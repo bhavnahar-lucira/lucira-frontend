@@ -155,7 +155,16 @@ export async function generateMetadata({ params }) {
 }
 
 async function getProduct(handle) {
-  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { cache: 'no-store' });
+  //const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { cache: 'no-store' });
+  const data = await shopifyStorefrontFetch(
+    PRODUCT_QUERY,
+    { handle },
+    {
+      next: {
+        revalidate: 3600,
+      },
+    }
+  );
   const product = data?.product;
 
   if (!product) return null;

@@ -499,6 +499,7 @@ export default function MobileHeader() {
                           <Link 
                             key={i} 
                             href={item.href || "#"} 
+                            prefetch={false}
                             onClick={() => setIsMenuOpen(false)}
                             className="flex flex-col items-center gap-2"
                           >
@@ -517,6 +518,7 @@ export default function MobileHeader() {
                         <Link 
                           key={i} 
                           href={item.href || "#"} 
+                          prefetch={false}
                           onClick={() => setIsMenuOpen(false)}
                           className="flex flex-col items-center gap-2"
                         >
@@ -545,6 +547,7 @@ export default function MobileHeader() {
                       <Link 
                         key={i} 
                         href={item.href || "#"} 
+                        prefetch={false}
                         onClick={() => setIsMenuOpen(false)}
                         className="bg-gray-50 px-3 py-2 text-[11px] font-medium text-center rounded-sm"
                       >
@@ -569,7 +572,7 @@ export default function MobileHeader() {
                       const fIcon = f.menuIcon || f.icon || f.megaMenuImage;
                       const isBlogOrPage = f.href?.includes("/blogs/") || f.href?.includes("/pages/");
                       return (
-                        <Link key={i} href={f.href || "#"} onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-gray-900 flex items-center gap-3">
+                        <Link key={i} href={f.href || "#"} prefetch={false} onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-gray-900 flex items-center gap-3">
                           {fIcon && (
                             <div className={cn(
                               "relative flex items-center justify-center bg-gray-50 overflow-hidden shrink-0",
@@ -603,7 +606,7 @@ export default function MobileHeader() {
                       {activeItem.featured.featuredIn.items.map((f, i) => {
                         const fIcon = f.menuIcon || f.icon || f.megaMenuImage;
                         return (
-                          <Link key={i} href={f.href || "#"} onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-gray-900 flex items-center gap-3">
+                          <Link key={i} href={f.href || "#"} prefetch={false} onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-gray-900 flex items-center gap-3">
                             {fIcon && (
                               <div className="w-8 h-8 relative flex items-center justify-center bg-gray-50 rounded-full overflow-hidden shrink-0">
                                 <SafeImage 
@@ -647,6 +650,7 @@ export default function MobileHeader() {
               <Link
                 key={index}
                 href={item.href || "#"}
+                prefetch={false}
                 onClick={() => setIsMenuOpen(false)}
                 className="relative aspect-4/4 overflow-hidden rounded-lg group bg-zinc-100"
               >
@@ -679,6 +683,7 @@ export default function MobileHeader() {
             <Link
               key={index}
               href={banner.href}
+              prefetch={false}
               onClick={() => setIsMenuOpen(false)}
               className="shrink-0 snap-center rounded-xl overflow-hidden relative"
               style={{ width: 'calc(100% - 32px)', height: '165px' }}
@@ -744,10 +749,10 @@ export default function MobileHeader() {
             >
               Track Your Order
             </button>
-            <Link href="/pages/contact-us" onClick={() => setIsMenuOpen(false)} className="block tracking-wider border-b border-gray-200 pb-3 font-figtree font-medium text-sm leading-none align-middle capitalize text-black">
+            <Link href="/pages/contact-us" prefetch={false} onClick={() => setIsMenuOpen(false)} className="block tracking-wider border-b border-gray-200 pb-3 font-figtree font-medium text-sm leading-none align-middle capitalize text-black">
               Contact Us
             </Link>
-            <Link href="/pages/faqs" onClick={() => setIsMenuOpen(false)} className="block text-[16px] tracking-wider font-figtree font-medium text-sm leading-none align-middle capitalize text-black">
+            <Link href="/pages/faqs" prefetch={false} onClick={() => setIsMenuOpen(false)} className="block text-[16px] tracking-wider font-figtree font-medium text-sm leading-none align-middle capitalize text-black">
               FAQs
             </Link>
           </div>
@@ -785,7 +790,7 @@ export default function MobileHeader() {
               <ChevronRight size={18} className="text-black" />
             </a>
 
-            <Link href="https://schemes.lucirajewelry.com/" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
+            <Link href="https://schemes.lucirajewelry.com/" prefetch={false} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
               <div className="flex items-center gap-4">
                 <div className="flex items-center justify-center">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -809,7 +814,7 @@ export default function MobileHeader() {
               <ChevronRight size={18} className="text-black" />
             </Link>
 
-            <Link href="/pages/video-call" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 bg-[#FBF7F2] border border-gray-100 rounded-lg group active:bg-gray-50">
+            <Link href="/pages/video-call" prefetch={false} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 bg-[#FBF7F2] border border-gray-100 rounded-lg group active:bg-gray-50">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 flex items-center justify-center">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -825,7 +830,7 @@ export default function MobileHeader() {
               <ChevronRight size={18} className="text-gray-400" />
             </Link>
 
-            <Link href="/pages/store-locator" onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 bg-[#FBF7F2] border border-gray-100 rounded-lg group active:bg-gray-50">
+            <Link href="/pages/store-locator" prefetch={false} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 bg-[#FBF7F2] border border-gray-100 rounded-lg group active:bg-gray-50">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 flex items-center justify-center">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">

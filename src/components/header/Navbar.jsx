@@ -81,7 +81,7 @@ export default function Navbar({ hideTop }) {
               hideTop ? "pointer-events-auto" : "pointer-events-none"
             )}
           >
-            <Link href="/" className="block">
+            <Link href="/" prefetch={false} className="block">
               <Image
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/dark_brown_Logo_icon_2.svg?v=1777366090"
                 alt="Lucira Jewelry"
@@ -113,6 +113,7 @@ export default function Navbar({ hideTop }) {
               >
                 <Link
                   href={menu.href}
+                  prefetch={false}
                   onClick={closeMenu}
                   className={cn(
                     "block py-4 tracking-normal transition-all duration-200 uppercase text-sm leading-none font-medium font-figtree",
@@ -200,6 +201,7 @@ export default function Navbar({ hideTop }) {
                         <Link
                           key={i}
                           href={item.href || "#"}
+                          prefetch={false}
                           onClick={closeMenu}
                           className="group relative block overflow-hidden rounded-md"
                         >
@@ -253,7 +255,7 @@ export default function Navbar({ hideTop }) {
                           <ul className="space-y-4">
                             {(menu.featured.items || (Array.isArray(menu.featured) ? menu.featured : [])).map((item, i) => (
                               <li key={i}>
-                                <Link href={item.href || "#"} onClick={closeMenu} className="group block">
+                                <Link href={item.href || "#"} prefetch={false} onClick={closeMenu} className="group block">
                                   <span className="text-base font-medium text-zinc-900 group-hover:text-primary transition-colors">{item.label}</span>
                                 </Link>
                               </li>
@@ -292,6 +294,7 @@ export default function Navbar({ hideTop }) {
                                   )}>
                                     <Link
                                       href={item.href || "#"}
+                                      prefetch={false}
                                       onClick={closeMenu}
                                       className={cn(
                                         "flex items-center gap-3 group",
@@ -345,6 +348,7 @@ export default function Navbar({ hideTop }) {
                         <div key={i} className="col-span-1">
                           <Link
                             href={card.href || "#"}
+                            prefetch={false}
                             onClick={closeMenu}
                             className="group relative block"
                           >
@@ -384,7 +388,7 @@ export default function Navbar({ hideTop }) {
                           </h4>
                           <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
                             {featuredIn.items.map((item, i) => (
-                              <Link key={i} href={item.href || "#"} onClick={closeMenu} className="flex items-center gap-3 group">
+                              <Link key={i} href={item.href || "#"} prefetch={false} onClick={closeMenu} className="flex items-center gap-3 group">
                                 {item.icon && (
                                   <div className="relative h-10 w-10 rounded-full bg-zinc-50 flex items-center justify-center overflow-hidden border border-transparent group-hover:border-primary transition-all">
                                     <Image 
