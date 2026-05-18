@@ -1,11 +1,26 @@
 import { NextResponse } from "next/server";
 import { shopifyStorefrontFetch, shopifyAdminFetch } from "@/lib/shopify";
+import menuData from "@/data/menu-data.json";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // 1. Fetch the basic menu structure from Storefront API (Fast and reliable)
+    // 1. Priority: Use pre-generated JSON data for maximum performance
+    // This avoids the 2MB Next.js cache limit and resolves the reported error.
+    if (menuData && menuData.success && menuData.menus?.length > 0) {
+      return NextResponse.json(menuData, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59',
+          'X-Menu-Source': 'static-json'
+        }
+      });
+    }
+
+    // 2. Fallback: Fetch dynamically from Shopify if JSON is missing or invalid
+    console.warn("Menu JSON data not found or invalid, falling back to live fetch.");
+    
+    // Fetch the basic menu structure from Storefront API
     const menuQuery = `
       query getMenu {
         menu(handle: "main-menu-official") {
@@ -32,7 +47,7 @@ export async function GET() {
       return NextResponse.json({ success: true, menus: [{ handle: "main-menu-official", items: [] }] });
     }
 
-    // 2. Fetch ALL collection data (including image and custom metafields) in bulk from Admin API
+    // Fetch ALL collection data in bulk from Admin API
     const collectionsQuery = `
       query getCollections {
         collections(first: 250) {
@@ -73,13 +88,13 @@ export async function GET() {
       };
     });
 
-    // 3. Recursive function to merge Shopify menu items with our collection metadata
+    // Recursive function to merge Shopify menu items with our collection metadata
     const transformItems = (items) => {
       return items.map(item => {
-        // Extract the handle from the URL (e.g., /collections/rings -> rings)
         let handle = "";
         try {
-            const path = new URL(item.url, "https://www.lucirajewelry.com").pathname;
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
+            const path = new URL(item.url, baseUrl).pathname;
             const segments = path.split("/").filter(Boolean);
             if (path.includes("/collections/")) {
                 handle = segments[segments.indexOf("collections") + 1] || "";
@@ -114,7 +129,8 @@ export async function GET() {
       menus: [{ handle: "main-menu-official", items: formattedMenu }]
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59'
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59',
+        'X-Menu-Source': 'live-fetch'
       }
     });
 

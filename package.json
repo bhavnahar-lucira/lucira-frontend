@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate-menu": "node generate_menu_json.js"
   },
   "dependencies": {
     "@opensearch-project/opensearch": "^3.5.1",
