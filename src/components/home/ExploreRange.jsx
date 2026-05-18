@@ -87,6 +87,7 @@ function CategoryCard({ cat }) {
   return (
     <Link 
       href={cat.href}
+      prefetch={false}
       className="group relative aspect-313/362 block overflow-hidden rounded-md bg-gray-50"
     >
       <LazyImage 

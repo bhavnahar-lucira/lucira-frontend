@@ -1219,8 +1219,9 @@ useEffect(() => {
     .sort((a, b) => Number(a) - Number(b));
 
   // Get current display price from active variant or product
-  const currentPrice = activeVariant ? activeVariant.price : product.price;
-  const currentComparePrice = activeVariant ? activeVariant.compare_price : product.compare_price;
+  // Use live priceBreakup total if available to bypass server-side caching
+  const currentPrice = priceBreakup?.total ?? (activeVariant ? activeVariant.price : product.price);
+  const currentComparePrice = priceBreakup?.original_total ?? (activeVariant ? activeVariant.compare_price : product.compare_price);
   // const mounted = useMounted();
   const isMobileView = useMediaQuery("(max-width: 1023px)");
   // if (!mounted) return null;

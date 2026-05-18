@@ -295,7 +295,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       <div className="space-y-4">
         <div className="group/card block space-y-4">
           <div className="relative aspect-square w-full bg-[#fafafa] overflow-hidden">
-            <Link href={`/products/${product.handle}`} className="block w-full h-full mix-blend-multiply" onClick={handleProductClick}>
+            <Link href={`/products/${product.handle}`} prefetch={false} className="block w-full h-full mix-blend-multiply" onClick={handleProductClick}>
               {galleryImages.length > 0 ? (
                 <Swiper
                   spaceBetween={0}

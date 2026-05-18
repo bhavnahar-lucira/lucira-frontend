@@ -74,19 +74,19 @@ export default function Footer() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-6">
                   <ul className="grid grid-cols-2 gap-y-3 gap-x-4 font-figtree text-[13px]">
-                    <li><Link href="/collections/bestsellers">Best Sellers</Link></li>
-                    <li><Link href="/collections/rings">Rings</Link></li>
-                    <li><Link href="/collections/engagement-rings">Engagement Rings</Link></li>
-                    <li><Link href="/collections/wedding-rings">Wedding Rings</Link></li>
-                    <li><Link href="/collections/earrings">Earrings</Link></li>
-                    <li><Link href="/collections/bracelets">Bracelets</Link></li>
-                    <li><Link href="/collections/necklaces">Necklaces</Link></li>
-                    <li><Link href="/collections/nosepins">Nosepins</Link></li>
-                    <li><Link href="/collections/mens-rings">Men's Rings</Link></li>
-                    <li><Link href="/collections/mens-stud">Men's Studs</Link></li>
-                    <li><Link href="/collections/mens-bracelets">Men's Bracelets</Link></li>
-                    <li><Link href="/collections/hexa">Collections</Link></li>
-                    <li><Link href="/collections/all">Gifting</Link></li>
+                    <li><Link prefetch={false} href="/collections/bestsellers">Best Sellers</Link></li>
+                    <li><Link prefetch={false} href="/collections/rings">Rings</Link></li>
+                    <li><Link prefetch={false} href="/collections/engagement-rings">Engagement Rings</Link></li>
+                    <li><Link prefetch={false} href="/collections/wedding-rings">Wedding Rings</Link></li>
+                    <li><Link prefetch={false} href="/collections/earrings">Earrings</Link></li>
+                    <li><Link prefetch={false} href="/collections/bracelets">Bracelets</Link></li>
+                    <li><Link prefetch={false} href="/collections/necklaces">Necklaces</Link></li>
+                    <li><Link prefetch={false} href="/collections/nosepins">Nosepins</Link></li>
+                    <li><Link prefetch={false} href="/collections/mens-rings">Men's Rings</Link></li>
+                    <li><Link prefetch={false} href="/collections/mens-stud">Men's Studs</Link></li>
+                    <li><Link prefetch={false} href="/collections/mens-bracelets">Men's Bracelets</Link></li>
+                    <li><Link prefetch={false} href="/collections/hexa">Collections</Link></li>
+                    <li><Link prefetch={false} href="/collections/all">Gifting</Link></li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>
@@ -98,16 +98,16 @@ export default function Footer() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-6">
                   <ul className="grid grid-cols-2 gap-y-3 gap-x-4 font-figtree text-[13px]">
-                    <li><Link href="/pages/diamond-education">Diamond Education</Link></li>
-                    <li><Link href="/pages/metal-education">Metal Education</Link></li>
-                    <li><Link href="/pages/gemstone-education-page">Gemstone Education</Link></li>
-                    <li><Link href="/pages/size-guide-1">Size Guide</Link></li>
-                    <li><Link href="/pages/how-to-wear-2">How To Wear</Link></li>
-                    <li><Link href="/pages/new-tips-care">Jewelry Care Tips</Link></li>
-                    <li><Link href="/pages/jewelry-gift-guide">Jewelry Gift Guide</Link></li>
-                    <li><Link href="/pages/lgd-mine-page">LGD vs Mined</Link></li>
-                    <li><Link href="/pages/ring-shank">Ring Shank</Link></li>
-                    <li><Link href="/pages/diamond-shapes">Diamond Shapes</Link></li>
+                    <li><Link prefetch={false} href="/pages/diamond-education">Diamond Education</Link></li>
+                    <li><Link prefetch={false} href="/pages/metal-education">Metal Education</Link></li>
+                    <li><Link prefetch={false} href="/pages/gemstone-education-page">Gemstone Education</Link></li>
+                    <li><Link prefetch={false} href="/pages/size-guide-1">Size Guide</Link></li>
+                    <li><Link prefetch={false} href="/pages/how-to-wear-2">How To Wear</Link></li>
+                    <li><Link prefetch={false} href="/pages/new-tips-care">Jewelry Care Tips</Link></li>
+                    <li><Link prefetch={false} href="/pages/jewelry-gift-guide">Jewelry Gift Guide</Link></li>
+                    <li><Link prefetch={false} href="/pages/lgd-mine-page">LGD vs Mined</Link></li>
+                    <li><Link prefetch={false} href="/pages/ring-shank">Ring Shank</Link></li>
+                    <li><Link prefetch={false} href="/pages/diamond-shapes">Diamond Shapes</Link></li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>
@@ -119,16 +119,16 @@ export default function Footer() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-6">
                   <ul className="grid grid-cols-2 gap-y-3 gap-x-4 font-figtree text-[13px]">
-                    <li><Link href="/pages/about-our-company">About Our Company</Link></li>
-                    <li><Link href="/pages/purpose-and-value">Purpose & Value</Link></li>
-                    <li><Link href="/blogs/stories">Blogs</Link></li>
-                    <li><Link href="/pages/rewards">Rewards</Link></li>
-                    <li><Link href="/pages/featured-in">Featured In</Link></li>
-                    <li><Link href="/pages/sitemap">Sitemap</Link></li>
-                    <li><Link href="/pages/craftmanship">Craftsmanship</Link></li>
-                    <li><Link href="/pages/mordern-slavery-policy">Modern Slavery Policy</Link></li>
-                    <li><Link href="/pages/supplier-code-of-conduct">Supplier Code of Conduct</Link></li>
-                    <li><Link href="/pages/accessibility-statement">Accessibility Statement</Link></li>
+                    <li><Link prefetch={false} href="/pages/about-our-company">About Our Company</Link></li>
+                    <li><Link prefetch={false} href="/pages/purpose-and-value">Purpose & Value</Link></li>
+                    <li><Link prefetch={false} href="/blogs/stories">Blogs</Link></li>
+                    <li><Link prefetch={false} href="/pages/rewards">Rewards</Link></li>
+                    <li><Link prefetch={false} href="/pages/featured-in">Featured In</Link></li>
+                    <li><Link prefetch={false} href="/pages/sitemap">Sitemap</Link></li>
+                    <li><Link prefetch={false} href="/pages/craftmanship">Craftsmanship</Link></li>
+                    <li><Link prefetch={false} href="/pages/mordern-slavery-policy">Modern Slavery Policy</Link></li>
+                    <li><Link prefetch={false} href="/pages/supplier-code-of-conduct">Supplier Code of Conduct</Link></li>
+                    <li><Link prefetch={false} href="/pages/accessibility-statement">Accessibility Statement</Link></li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>
@@ -140,17 +140,17 @@ export default function Footer() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-6">
                   <ul className="grid grid-cols-2 gap-y-3 gap-x-4 font-figtree text-[13px]">
-                    <li><Link href="/pages/contact-us">Contact Us</Link></li>
-                    <li><Link href="/pages/faqs">FAQ's</Link></li>
-                    <li><Link href="/reviews">Reviews</Link></li>
-                    <li><Link href="/pages/15-days-return">15-Days Return</Link></li>
-                    <li><Link href="/pages/cancel-refund">Cancel & Refund</Link></li>
-                    <li><Link href="/pages/lifetime-exchange-buyback-policy">Lifetime Exchange & Buyback</Link></li>
-                    <li><Link href="/pages/old-gold-exchange">Old Gold Exchange</Link></li>
-                    <li><Link href="/pages/shipping-policy-1">Shipping Policy</Link></li>
-                    <li><Link href="/pages/privacy-policy">Privacy Policy</Link></li>
-                    <li><Link href="/pages/exclusive-promotions-page">Offers T&C</Link></li>
-                    <li><Link href="/pages/terms-condition">Terms & Conditions</Link></li>
+                    <li><Link prefetch={false} href="/pages/contact-us">Contact Us</Link></li>
+                    <li><Link prefetch={false} href="/pages/faqs">FAQ's</Link></li>
+                    <li><Link prefetch={false} href="/reviews">Reviews</Link></li>
+                    <li><Link prefetch={false} href="/pages/15-days-return">15-Days Return</Link></li>
+                    <li><Link prefetch={false} href="/pages/cancel-refund">Cancel & Refund</Link></li>
+                    <li><Link prefetch={false} href="/pages/lifetime-exchange-buyback-policy">Lifetime Exchange & Buyback</Link></li>
+                    <li><Link prefetch={false} href="/pages/old-gold-exchange">Old Gold Exchange</Link></li>
+                    <li><Link prefetch={false} href="/pages/shipping-policy-1">Shipping Policy</Link></li>
+                    <li><Link prefetch={false} href="/pages/privacy-policy">Privacy Policy</Link></li>
+                    <li><Link prefetch={false} href="/pages/exclusive-promotions-page">Offers T&C</Link></li>
+                    <li><Link prefetch={false} href="/pages/terms-condition">Terms & Conditions</Link></li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>
@@ -162,10 +162,10 @@ export default function Footer() {
                 </AccordionTrigger>
                 <AccordionContent className="pb-6">
                   <ul className="grid grid-cols-2 gap-y-3 gap-x-4 font-figtree text-[13px]">
-                    <li><Link href="/pages/careers">Careers</Link></li>
-                    <li><Link href="/pages/franchise-page">Franchise</Link></li>
-                    <li><Link href="/pages/customized-jewelry">Bespoke</Link></li>
-                    <li><Link href="/pages/store-packaging">Packaging</Link></li>
+                    <li><Link prefetch={false} href="/pages/careers">Careers</Link></li>
+                    <li><Link prefetch={false} href="/pages/franchise-page">Franchise</Link></li>
+                    <li><Link prefetch={false} href="/pages/customized-jewelry">Bespoke</Link></li>
+                    <li><Link prefetch={false} href="/pages/store-packaging">Packaging</Link></li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>
@@ -236,19 +236,19 @@ export default function Footer() {
             <div>
               <h4 className="mb-4 text-lg font-extrabold font-abhaya">Shop All</h4>
               <ul className="space-y-2.5 text-sm text-white font-figtree">
-                <li><Link href="/collections/bestsellers">Best Sellers</Link></li>
-                <li><Link href="/collections/rings">Rings</Link></li>
-                <li><Link href="/collections/engagement-rings">Engagement Rings</Link></li>
-                <li><Link href="/collections/wedding-rings">Wedding Rings</Link></li>
-                <li><Link href="/collections/earrings">Earrings</Link></li>
-                <li><Link href="/collections/bracelets">Bracelets</Link></li>
-                <li><Link href="/collections/necklaces">Necklaces</Link></li>
-                <li><Link href="/collections/nosepins">Nosepins</Link></li>
-                <li><Link href="/collections/mens-rings">Men's Rings</Link></li>
-                <li><Link href="/collections/mens-stud">Men's Studs</Link></li>
-                <li><Link href="/collections/mens-bracelets">Men's Bracelets</Link></li>
-                <li><Link href="/collections/hexa">Collections</Link></li>
-                <li><Link href="/collections/all">Gifting</Link></li>
+                <li><Link prefetch={false} href="/collections/bestsellers">Best Sellers</Link></li>
+                <li><Link prefetch={false} href="/collections/rings">Rings</Link></li>
+                <li><Link prefetch={false} href="/collections/engagement-rings">Engagement Rings</Link></li>
+                <li><Link prefetch={false} href="/collections/wedding-rings">Wedding Rings</Link></li>
+                <li><Link prefetch={false} href="/collections/earrings">Earrings</Link></li>
+                <li><Link prefetch={false} href="/collections/bracelets">Bracelets</Link></li>
+                <li><Link prefetch={false} href="/collections/necklaces">Necklaces</Link></li>
+                <li><Link prefetch={false} href="/collections/nosepins">Nosepins</Link></li>
+                <li><Link prefetch={false} href="/collections/mens-rings">Men's Rings</Link></li>
+                <li><Link prefetch={false} href="/collections/mens-stud">Men's Studs</Link></li>
+                <li><Link prefetch={false} href="/collections/mens-bracelets">Men's Bracelets</Link></li>
+                <li><Link prefetch={false} href="/collections/hexa">Collections</Link></li>
+                <li><Link prefetch={false} href="/collections/all">Gifting</Link></li>
               </ul>
             </div>
 
@@ -258,16 +258,16 @@ export default function Footer() {
                 Lucira Jewelry Guide
               </h4>
               <ul className="space-y-2.5 text-sm text-white font-figtree">
-                <li><Link href="/pages/diamond-education">Diamond Education</Link></li>
-                <li><Link href="/pages/metal-education">Metal Education</Link></li>
-                <li><Link href="/pages/gemstone-education-page">Gemstone Education</Link></li>
-                <li><Link href="/pages/size-guide-1">Size Guide</Link></li>
-                <li><Link href="/pages/how-to-wear-2">How To Wear</Link></li>
-                <li><Link href="/pages/new-tips-care">Jewelry Care Tips</Link></li>
-                <li><Link href="/pages/jewelry-gift-guide">Jewelry Gift Guide</Link></li>
-                <li><Link href="/pages/lgd-mine-page">LGD vs Mined</Link></li>
-                <li><Link href="/pages/ring-shank">Ring Shank</Link></li>
-                <li><Link href="/pages/diamond-shapes">Diamond Shapes</Link></li>
+                <li><Link prefetch={false} href="/pages/diamond-education">Diamond Education</Link></li>
+                <li><Link prefetch={false} href="/pages/metal-education">Metal Education</Link></li>
+                <li><Link prefetch={false} href="/pages/gemstone-education-page">Gemstone Education</Link></li>
+                <li><Link prefetch={false} href="/pages/size-guide-1">Size Guide</Link></li>
+                <li><Link prefetch={false} href="/pages/how-to-wear-2">How To Wear</Link></li>
+                <li><Link prefetch={false} href="/pages/new-tips-care">Jewelry Care Tips</Link></li>
+                <li><Link prefetch={false} href="/pages/jewelry-gift-guide">Jewelry Gift Guide</Link></li>
+                <li><Link prefetch={false} href="/pages/lgd-mine-page">LGD vs Mined</Link></li>
+                <li><Link prefetch={false} href="/pages/ring-shank">Ring Shank</Link></li>
+                <li><Link prefetch={false} href="/pages/diamond-shapes">Diamond Shapes</Link></li>
               </ul>
             </div>
 
@@ -275,16 +275,16 @@ export default function Footer() {
             <div>
               <h4 className="mb-4 text-lg font-extrabold font-abhaya">About Lucira</h4>
               <ul className="space-y-2.5 text-sm text-white font-figtree">
-                <li><Link href="/pages/about-our-company">About Our Company</Link></li>
-                <li><Link href="/pages/purpose-and-value">Purpose & Value</Link></li>
-                <li><Link href="/blogs/stories">Blogs</Link></li>
-                <li><Link href="/pages/rewards">Rewards</Link></li>
-                <li><Link href="/pages/featured-in">Featured In</Link></li>
-                <li><Link href="/pages/sitemap">Sitemap</Link></li>
-                <li><Link href="/pages/craftmanship">Craftsmanship</Link></li>
-                <li><Link href="/pages/mordern-slavery-policy">Modern Slavery Policy</Link></li>
-                <li><Link href="/pages/supplier-code-of-conduct">Supplier Code of Conduct</Link></li>
-                <li><Link href="/pages/accessibility-statement">Accessibility Statement</Link></li>
+                <li><Link prefetch={false} href="/pages/about-our-company">About Our Company</Link></li>
+                <li><Link prefetch={false} href="/pages/purpose-and-value">Purpose & Value</Link></li>
+                <li><Link prefetch={false} href="/blogs/stories">Blogs</Link></li>
+                <li><Link prefetch={false} href="/pages/rewards">Rewards</Link></li>
+                <li><Link prefetch={false} href="/pages/featured-in">Featured In</Link></li>
+                <li><Link prefetch={false} href="/pages/sitemap">Sitemap</Link></li>
+                <li><Link prefetch={false} href="/pages/craftmanship">Craftsmanship</Link></li>
+                <li><Link prefetch={false} href="/pages/mordern-slavery-policy">Modern Slavery Policy</Link></li>
+                <li><Link prefetch={false} href="/pages/supplier-code-of-conduct">Supplier Code of Conduct</Link></li>
+                <li><Link prefetch={false} href="/pages/accessibility-statement">Accessibility Statement</Link></li>
               </ul>
             </div>
 
@@ -292,17 +292,17 @@ export default function Footer() {
             <div>
               <h4 className="mb-4 text-lg font-extrabold font-abhaya">Help</h4>
               <ul className="space-y-2.5 text-sm text-white font-figtree">
-                <li><Link href="/pages/contact-us">Contact Us</Link></li>
-                <li><Link href="/pages/faqs">FAQ's</Link></li>
-                <li><Link href="/reviews">Reviews</Link></li>
-                <li><Link href="/pages/15-days-return">15-Days Return</Link></li>
-                <li><Link href="/pages/cancel-refund">Cancel & Refund</Link></li>
-                <li><Link href="/pages/lifetime-exchange-buyback-policy">Lifetime Exchange & Buyback</Link></li>
-                <li><Link href="/pages/old-gold-exchange">Old Gold Exchange</Link></li>
-                <li><Link href="/pages/shipping-policy-1">Shipping Policy</Link></li>
-                <li><Link href="/pages/privacy-policy">Privacy Policy</Link></li>
-                <li><Link href="/pages/exclusive-promotions-page">Offers T&C</Link></li>
-                <li><Link href="/pages/terms-condition">Terms & Conditions</Link></li>
+                <li><Link prefetch={false} href="/pages/contact-us">Contact Us</Link></li>
+                <li><Link prefetch={false} href="/pages/faqs">FAQ's</Link></li>
+                <li><Link prefetch={false} href="/reviews">Reviews</Link></li>
+                <li><Link prefetch={false} href="/pages/15-days-return">15-Days Return</Link></li>
+                <li><Link prefetch={false} href="/pages/cancel-refund">Cancel & Refund</Link></li>
+                <li><Link prefetch={false} href="/pages/lifetime-exchange-buyback-policy">Lifetime Exchange & Buyback</Link></li>
+                <li><Link prefetch={false} href="/pages/old-gold-exchange">Old Gold Exchange</Link></li>
+                <li><Link prefetch={false} href="/pages/shipping-policy-1">Shipping Policy</Link></li>
+                <li><Link prefetch={false} href="/pages/privacy-policy">Privacy Policy</Link></li>
+                <li><Link prefetch={false} href="/pages/exclusive-promotions-page">Offers T&C</Link></li>
+                <li><Link prefetch={false} href="/pages/terms-condition">Terms & Conditions</Link></li>
               </ul>
             </div>
 
@@ -327,10 +327,10 @@ export default function Footer() {
                   Experience Lucira
                 </h5>
                 <ul className="space-y-2.5 text-sm text-white font-figtree">
-                  <li><Link href="/pages/careers">Careers</Link></li>
-                  <li><Link href="/pages/franchise-page">Franchise</Link></li>
-                  <li><Link href="/pages/customized-jewelry">Bespoke</Link></li>
-                  <li><Link href="/pages/store-packaging">Packaging</Link></li>
+                  <li><Link prefetch={false} href="/pages/careers">Careers</Link></li>
+                  <li><Link prefetch={false} href="/pages/franchise-page">Franchise</Link></li>
+                  <li><Link prefetch={false} href="/pages/customized-jewelry">Bespoke</Link></li>
+                  <li><Link prefetch={false} href="/pages/store-packaging">Packaging</Link></li>
                 </ul>
               </div>
             </div>
