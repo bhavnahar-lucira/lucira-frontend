@@ -5,6 +5,7 @@ const nextConfig = {
   compress: true,
   images: {
     formats: ['image/webp', 'image/avif'],
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
