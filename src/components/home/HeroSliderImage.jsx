@@ -62,7 +62,7 @@ export default function HeroBanner() {
 
             return (
               <SwiperSlide key={slide.name}>
-                <Link href={slide.url} className="block w-full h-full">
+                <Link href={slide.url} prefetch={false} className="block w-full h-full">
                   <div className="relative w-full h-full">
                     <picture>
                       <source media="(min-width: 1025px)" srcSet={desktop} />

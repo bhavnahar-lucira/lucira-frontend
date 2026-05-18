@@ -2,6 +2,8 @@ import { shopifyStorefrontFetch } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 
+export const revalidate = 3600;
+
 async function getCollectionData(handle) {
   const query = `
     query CollectionSchema($handle: String!) {

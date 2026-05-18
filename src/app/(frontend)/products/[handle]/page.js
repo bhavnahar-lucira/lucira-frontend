@@ -3,6 +3,8 @@ import ProductPageClient from "@/components/product/ProductPageClient";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { shopifyStorefrontFetch } from "@/lib/shopify";
 
+export const revalidate = 3600;
+
 const PRODUCT_QUERY = `
   query getProduct($handle: String!) {
     product(handle: $handle) {

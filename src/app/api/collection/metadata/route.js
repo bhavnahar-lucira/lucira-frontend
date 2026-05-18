@@ -142,6 +142,10 @@ export async function GET(req) {
     return NextResponse.json({
       success: true,
       collection,
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59'
+      }
     });
   } catch (error) {
     console.error("Failed to fetch collection metadata from Shopify:", error);

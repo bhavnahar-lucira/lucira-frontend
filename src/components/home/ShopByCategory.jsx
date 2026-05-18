@@ -163,6 +163,7 @@ export default function ShopByCategory() {
                 <Link
                   key={item.id}
                   href={item.href || `/collections/${activeCategory}?${currentTab === "shapes" ? "shape" : "style"}=${item.id}`}
+                  prefetch={false}
                   className="flex flex-col items-center gap-3 md:gap-4 group"
                 >
                   <div className="relative w-14 h-14 md:w-20 md:h-20 transition-transform duration-300 group-hover:scale-110">

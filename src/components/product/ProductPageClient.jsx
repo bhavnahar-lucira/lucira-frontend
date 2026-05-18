@@ -1063,6 +1063,9 @@ useEffect(() => {
   useEffect(() => {
     if (!activeVariant?.id) return;
 
+    // Reset price breakup to show base price while loading fresh live data
+    setPriceBreakup(null);
+
     fetch(`/api/variant-pricing?variantId=${activeVariant.id}&productId=${product.shopifyId}`)
       .then((res) => res.json())
       .then((data) => {
@@ -1219,9 +1222,16 @@ useEffect(() => {
     .sort((a, b) => Number(a) - Number(b));
 
   // Get current display price from active variant or product
-  // Use live priceBreakup total if available to bypass server-side caching
-  const currentPrice = priceBreakup?.total ?? (activeVariant ? activeVariant.price : product.price);
-  const currentComparePrice = priceBreakup?.original_total ?? (activeVariant ? activeVariant.compare_price : product.compare_price);
+  // Use live priceBreakup total only if it matches the currently active variant ID
+  // This ensures that during a variant switch, we instantly show the variant's base price 
+  // instead of the previous variant's stale live price.
+  const currentPrice = (priceBreakup?.variantId && String(priceBreakup.variantId).includes(String(activeVariant?.id || ''))) 
+    ? (priceBreakup?.price ?? (activeVariant ? activeVariant.price : product.price))
+    : (activeVariant ? activeVariant.price : product.price);
+
+  const currentComparePrice = (priceBreakup?.variantId && String(priceBreakup.variantId).includes(String(activeVariant?.id || '')))
+    ? (priceBreakup?.raw_breakup?.original_total ?? (activeVariant ? activeVariant.compare_price : product.compare_price))
+    : (activeVariant ? activeVariant.compare_price : product.compare_price);
   // const mounted = useMounted();
   const isMobileView = useMediaQuery("(max-width: 1023px)");
   // if (!mounted) return null;
