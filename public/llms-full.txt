@@ -1,0 +1,41 @@
+# Lucira Jewelry
+
+
+> Shop premium diamond jewellery online in India at Lucira Jewelry. Discover elegant lab grown diamond designs, certified quality, modern craftsmanship, and timeless styles crafted for every occasion. Shop now.
+
+
+Lucira Jewelry is an online store at https://www.lucirajewelry.com, powered by Shopify.
+
+## Browse
+
+- All products: https://www.lucirajewelry.com/collections/all
+- Search: https://www.lucirajewelry.com/search?q={query}
+- Product details: https://www.lucirajewelry.com/products/{handle}.json
+- Collection products: https://www.lucirajewelry.com/collections/{handle}/products.json
+
+## Store Information
+
+- Store name: Lucira Jewelry
+- Website: https://www.lucirajewelry.com
+- Currency: INR
+- Contact email: care@lucirajewelry.com
+- Phone: 9920429559
+
+
+## For Agents & Developers
+
+This store supports the Universal Commerce Protocol (UCP) for programmatic commerce.
+
+- Agent instructions: https://www.lucirajewelry.com/agents.md
+- UCP discovery: https://www.lucirajewelry.com/.well-known/ucp
+- MCP endpoint: https://www.lucirajewelry.com/api/ucp/mcp
+- Product data: https://www.lucirajewelry.com/products/{handle}.json
+- Collection data: https://www.lucirajewelry.com/collections/{handle}/products.json
+- Storefront API: Available via Shopify (see https://shopify.dev/docs/api/storefront)
+- Sitemap: https://www.lucirajewelry.com/sitemap.xml
+
+## Platform
+
+This store is built on Shopify (https://www.shopify.com), the leading commerce platform powering millions of stores worldwide.
+Start your own store: https://www.shopify.com/start
+Shopify developer docs: https://shopify.dev
