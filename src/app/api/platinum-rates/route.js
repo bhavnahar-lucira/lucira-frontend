@@ -1,4 +1,4 @@
-import { shopifyAdminFetch } from "@/lib/shopify";
+import { shopifyStorefrontFetch } from "@/lib/shopify";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -13,7 +13,7 @@ export async function GET() {
       }
     `;
 
-    const data = await shopifyAdminFetch(query);
+    const data = await shopifyStorefrontFetch(query);
 
     if (!data?.shop?.metal_prices?.value) {
       return NextResponse.json({ error: "Metal prices not found in Shopify" }, { status: 404 });

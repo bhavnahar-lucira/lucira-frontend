@@ -408,9 +408,15 @@ export default function ProductPageClient({
           return vKarat === targetKarat && vMetal === targetMetal && String(v.size) === String(size);
       }
 
+      // Fallback to color string matching
       const vColor = String(v.color || "").toLowerCase().trim();
-      const targetColor = `${karat} ${metal}`.toLowerCase().trim();
-      return vColor === targetColor && String(v.size) === String(size);
+      const targetColorFull = `${karat} ${metal}`.toLowerCase().trim();
+      const targetColorSimple = `${metal}`.toLowerCase().trim();
+      
+      const sizeMatch = String(v.size) === String(size);
+      const colorMatch = vColor === targetColorFull || vColor === targetColorSimple;
+      
+      return colorMatch && sizeMatch;
     });
   }, [product.variants]);
 
@@ -1210,12 +1216,32 @@ useEffect(() => {
     if (!variant) {
       variant = product.variants?.find(v => {
         const vColor = String(v.color || "").toLowerCase().trim();
-        const targetColor = `${karat} ${metal}`.toLowerCase().trim();
-        return vColor === targetColor && v.inStock;
+        const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
+        const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
+        
+        const targetKarat = String(karat || "").toLowerCase().trim();
+        const targetMetal = String(metal || "").toLowerCase().trim();
+        const targetColorFull = `${karat} ${metal}`.toLowerCase().trim();
+        const targetColorSimple = `${metal}`.toLowerCase().trim();
+
+        const metaMatch = vKarat && vMetal ? (vKarat === targetKarat && vMetal === targetMetal) : false;
+        const colorMatch = vColor === targetColorFull || vColor === targetColorSimple;
+
+        return (metaMatch || colorMatch) && v.inStock;
       }) || product.variants?.find(v => {
         const vColor = String(v.color || "").toLowerCase().trim();
-        const targetColor = `${karat} ${metal}`.toLowerCase().trim();
-        return vColor === targetColor;
+        const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
+        const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
+        
+        const targetKarat = String(karat || "").toLowerCase().trim();
+        const targetMetal = String(metal || "").toLowerCase().trim();
+        const targetColorFull = `${karat} ${metal}`.toLowerCase().trim();
+        const targetColorSimple = `${metal}`.toLowerCase().trim();
+
+        const metaMatch = vKarat && vMetal ? (vKarat === targetKarat && vMetal === targetMetal) : false;
+        const colorMatch = vColor === targetColorFull || vColor === targetColorSimple;
+
+        return metaMatch || colorMatch;
       });
     }
 
@@ -2520,7 +2546,7 @@ useEffect(() => {
               />
             </div>
 
-            {priceBreakup?.price_breakup?.total_savings && priceBreakup?.price_breakup?.total_savings !== "₹0" && (
+            {priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id) && priceBreakup?.price_breakup?.total_savings && priceBreakup?.price_breakup?.total_savings !== "₹0" && (
               <div className="mt-4 flex justify-between items-center bg-success/8 border border-success rounded-md px-5 py-4">
                 <span className="text-base font-bold text-gray-900 uppercase tracking-tight">Save on this jewelry</span>
                 <span className="text-lg font-bold text-success">{priceBreakup.price_breakup.total_savings}</span>

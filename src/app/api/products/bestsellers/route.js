@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { shopifyStorefrontFetch, shopifyAdminFetch } from "@/lib/shopify";
+import { shopifyStorefrontFetch } from "@/lib/shopify";
 import { calculatePriceBreakup } from "@/lib/priceEngine";
 import { getServerCache, stableCacheKey } from "@/lib/serverCache";
 
@@ -38,7 +38,7 @@ const getShopPricingData = () =>
           }
         }
       `;
-      const shopData = await shopifyAdminFetch(shopPricingQuery, {}, { next: { revalidate: 3600 } });
+      const shopData = await shopifyStorefrontFetch(shopPricingQuery, {}, { next: { revalidate: 3600 } });
 
       return {
         metalRates: shopData?.shop?.metalPrices?.value ? JSON.parse(shopData.shop.metalPrices.value) : {},
@@ -67,7 +67,7 @@ export async function GET(request) {
         }
     }
 
-    // 1. Fetch Shop-wide pricing data (Admin API)
+    // 1. Fetch Shop-wide pricing data (Storefront API)
     let metalRates = {};
     let stonePricingDB = [];
     try {
@@ -122,7 +122,7 @@ export async function GET(request) {
       return NextResponse.json({ products: [] });
     }
 
-    // 2. Fetch Variant Metafields in Bulk (Admin API)
+    // 2. Fetch Variant Metafields in Bulk (Storefront API)
     const variantGids = [];
     productsData.edges.forEach(({ node }) => {
       node.variants.edges.forEach(({ node: v }) => variantGids.push(v.id));
@@ -147,7 +147,7 @@ export async function GET(request) {
           const chunk = uniqueGids.slice(i, i + CHUNK_SIZE);
           const adminData = await getServerCache(
             stableCacheKey(["bestseller-variant-configs", chunk]),
-            () => shopifyAdminFetch(variantQuery, { ids: chunk }, { next: { revalidate: 3600 } }),
+            () => shopifyStorefrontFetch(variantQuery, { ids: chunk }, { next: { revalidate: 3600 } }),
             { ttlMs: VARIANT_CONFIG_CACHE_TTL, maxEntries: 2000 }
           );
           adminData?.nodes?.forEach(node => {

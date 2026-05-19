@@ -1,6 +1,7 @@
 import { fetchWithRetry } from "@/utils/helpers";
 
 const reviewCache = new Map();
+const browserReviewCache = new Map();
 const REVIEW_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
 /**
@@ -9,17 +10,28 @@ const REVIEW_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 export const fetchNectorReviews = async (productId, options = {}) => {
   // If running in the browser, call the local API route to protect keys
   if (typeof window !== 'undefined') {
-    try {
-      const url = productId 
-        ? `/api/reviews?productId=${encodeURIComponent(productId)}`
-        : `/api/reviews/list?limit=1000`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      return await res.json();
-    } catch (e) {
-      console.error("Error fetching reviews via local API:", e.message);
-      return { count: 0, average: 0, list: [], items: [], stats: [], isProductView: !!productId, usedFallback: false };
+    const cacheId = productId ? `product:${productId}` : "global";
+    if (browserReviewCache.has(cacheId)) {
+      return browserReviewCache.get(cacheId);
     }
+
+    const fetchPromise = (async () => {
+      try {
+        const url = productId 
+          ? `/api/reviews?productId=${encodeURIComponent(productId)}`
+          : `/api/reviews/list?limit=1000`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return await res.json();
+      } catch (e) {
+        console.error("Error fetching reviews via local API:", e.message);
+        return { count: 0, average: 0, list: [], items: [], stats: [], isProductView: !!productId, usedFallback: false };
+      }
+    })();
+
+    browserReviewCache.set(cacheId, fetchPromise);
+    fetchPromise.catch(() => browserReviewCache.delete(cacheId));
+    return fetchPromise;
   }
 
   // Convert shopify ID to simple ID
