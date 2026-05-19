@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
 import { shopifyStorefrontFetch } from "@/lib/shopify";
-import { fetchNectorReviews } from "@/lib/nector";
-
-export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   try {
@@ -122,15 +119,8 @@ export async function GET(request) {
       similarNodes = recData?.productRecommendations || [];
     }
 
-    // 4. Map nodes and fetch review stats
-    const products = await Promise.all(similarNodes.map(async (p) => {
-      let reviewStats = { count: 0, average: 0 };
-      try {
-        const reviews = await fetchNectorReviews(p.id);
-        reviewStats = { count: reviews.count || 0, average: reviews.average || 0 };
-      } catch(e) {}
-
-      return {
+    // 4. Map nodes. Review stats hydrate from the browser via /api/reviews.
+    const products = similarNodes.map((p) => ({
         id: p.id.split("/").pop(),
         shopifyId: p.id,
         title: p.title,
@@ -138,9 +128,8 @@ export async function GET(request) {
         image: p.featuredImage?.url,
         price: Number(p.variants.edges[0]?.node?.price?.amount || 0),
         compare_price: Number(p.variants.edges[0]?.node?.compareAtPrice?.amount || 0),
-        reviewStats
-      };
-    }));
+        reviewStats: { count: 0, average: 0 }
+      }));
 
     return NextResponse.json({ products }, {
       headers: {

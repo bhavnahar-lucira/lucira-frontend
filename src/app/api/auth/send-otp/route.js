@@ -42,8 +42,6 @@ export async function POST(req) {
 
     const result = await response.json();
 
-    console.log("MSG91 Response:", result);
-
     if (result.type === "success") {
       return NextResponse.json({ type: "success" });
     }

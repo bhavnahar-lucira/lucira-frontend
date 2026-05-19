@@ -6,7 +6,11 @@ if (!process.env.MONGODB_URI) {
 
 const uri = process.env.MONGODB_URI
 const options = {
-  connectTimeoutMS: 5000, // Speed up failure for debugging
+  connectTimeoutMS: Number(process.env.MONGODB_CONNECT_TIMEOUT_MS || 5000),
+  serverSelectionTimeoutMS: Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS || 5000),
+  maxIdleTimeMS: Number(process.env.MONGODB_MAX_IDLE_TIME_MS || 60000),
+  minPoolSize: Number(process.env.MONGODB_MIN_POOL_SIZE || 0),
+  maxPoolSize: Number(process.env.MONGODB_MAX_POOL_SIZE || 20),
 }
 
 let client

@@ -62,8 +62,6 @@ export async function POST(req) {
 
     const searchData = await searchRes.json();
     const customer = searchData.customers?.[0];
-    console.log(searchData)
-    console.log(customer)
 
     if (!customer) {
       return NextResponse.json({

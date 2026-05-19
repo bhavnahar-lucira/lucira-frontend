@@ -13,12 +13,9 @@ function buildPaymentMethod(body = {}, draftTotal = 0) {
   const requestedType = method?.type || "razorpay";
   const grandTotal = Number(draftTotal || 0);
 
-  console.log(`[PAYMENT API] Requested Type: ${requestedType}, Draft Total: ${grandTotal}, Frontend Payment Method:`, JSON.stringify(method));
-
   // Handle Partial COD ONLY if specifically requested
   if (requestedType === "partial_cod") {
       if (grandTotal <= 0 || grandTotal >= 50000) {
-        console.log(`[PAYMENT API] Partial COD requested but ineligible (Total: ${grandTotal}). Falling back to full Razorpay.`);
         return {
           type: "razorpay",
           prepaidAmount: grandTotal,
@@ -30,7 +27,6 @@ function buildPaymentMethod(body = {}, draftTotal = 0) {
       const prepaidAmount = grandTotal * 0.2;
       const codAmount = grandTotal - prepaidAmount;
 
-      console.log(`[PAYMENT API] Partial COD Applied. Prepaid: ${prepaidAmount}, COD: ${codAmount}`);
       return {
         type: "partial_cod",
         prepaidAmount: Math.round(prepaidAmount),
@@ -40,7 +36,6 @@ function buildPaymentMethod(body = {}, draftTotal = 0) {
   }
 
   // Always enforce 100% prepaid for Razorpay Secure
-  console.log(`[PAYMENT API] Razorpay Secure Applied. Full Amount: ${grandTotal}`);
   return {
     type: "razorpay",
     prepaidAmount: grandTotal,
@@ -94,7 +89,6 @@ export async function POST(req) {
     const client = await clientPromise;
     const db = client.db("shopify-app");
     const cartLookup = buildCartLookup({ userId, sessionId });
-    console.log("[PAYMENT API] Fetching cart with lookup:", JSON.stringify(cartLookup));
     
     // Fetch the MOST RECENT cart to avoid stale data issues
     const carts = await db.collection("carts")
@@ -106,11 +100,8 @@ export async function POST(req) {
     const cart = carts[0];
 
     if (!cart?.items?.length) {
-      console.log("[PAYMENT API] Cart not found or empty.");
       return NextResponse.json({ error: "Your cart is empty" }, { status: 400 });
     }
-
-    console.log("[PAYMENT API] Cart items found:", cart.items.map(i => `${i.title} (${i.quantity})`).join(", "));
 
     const shippingAddress = body?.shippingAddress;
     const billingAddress = body?.billingAddress;
@@ -240,8 +231,6 @@ export async function POST(req) {
       draftOrderInput.email = customer.email;
     }
 
-    console.log("[PAYMENT API] Draft Order Input:", JSON.stringify(draftOrderInput, null, 2));
-
     const shopifyDraftData = await shopifyAdminFetch(`
       mutation draftOrderCreate($input: DraftOrderInput!) {
         draftOrderCreate(input: $input) {
@@ -258,8 +247,6 @@ export async function POST(req) {
         }
       }
     `, { input: draftOrderInput });
-
-    console.log("[PAYMENT API] Shopify Draft Data Response:", JSON.stringify(shopifyDraftData, null, 2));
 
     const draftOrder = shopifyDraftData.draftOrderCreate.draftOrder;
     const userErrors = shopifyDraftData.draftOrderCreate.userErrors;

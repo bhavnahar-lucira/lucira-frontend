@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { shopifyStorefrontFetch, shopifyAdminFetch } from "@/lib/shopify";
 import { calculatePriceBreakup } from "@/lib/priceEngine";
-import { fetchNectorReviews } from "@/lib/nector";
-import clientPromise from "@/lib/mongodb";
+import { getServerCache, stableCacheKey } from "@/lib/serverCache";
 
 const SORT_MAP = {
   featured: { sortKey: "RELEVANCE", reverse: false },
@@ -34,6 +33,32 @@ const parseFilters = (rawFilters) => {
     return [];
   }
 };
+
+const SHOP_PRICING_CACHE_TTL = 60 * 60 * 1000;
+const PRODUCT_DATA_CACHE_TTL = 5 * 60;
+const VARIANT_CONFIG_CACHE_TTL = 60 * 60 * 1000;
+
+const getShopPricingData = () =>
+  getServerCache(
+    "shop-pricing-data",
+    async () => {
+      const shopPricingQuery = `
+        query {
+          shop {
+            metalPrices: metafield(namespace: "DI-GoldPrice", key: "metal_prices") { value }
+            stonePricing: metafield(namespace: "DI-GoldPrice", key: "stone_pricing") { value }
+          }
+        }
+      `;
+      const shopData = await shopifyAdminFetch(shopPricingQuery, {}, { next: { revalidate: 3600 } });
+
+      return {
+        metalRates: shopData?.shop?.metalPrices?.value ? JSON.parse(shopData.shop.metalPrices.value) : {},
+        stonePricingDB: shopData?.shop?.stonePricing?.value ? JSON.parse(shopData.shop.stonePricing.value) : [],
+      };
+    },
+    { ttlMs: SHOP_PRICING_CACHE_TTL, maxEntries: 20 }
+  );
 
 export async function GET(request) {
   try {
@@ -83,17 +108,9 @@ export async function GET(request) {
     let metalRates = {};
     let stonePricingDB = [];
     try {
-      const shopPricingQuery = `
-        query {
-          shop {
-            metalPrices: metafield(namespace: "DI-GoldPrice", key: "metal_prices") { value }
-            stonePricing: metafield(namespace: "DI-GoldPrice", key: "stone_pricing") { value }
-          }
-        }
-      `;
-      const shopData = await shopifyAdminFetch(shopPricingQuery);
-      if (shopData?.shop?.metalPrices?.value) metalRates = JSON.parse(shopData.shop.metalPrices.value);
-      if (shopData?.shop?.stonePricing?.value) stonePricingDB = JSON.parse(shopData.shop.stonePricing.value);
+      const pricingData = await getShopPricingData();
+      metalRates = pricingData.metalRates;
+      stonePricingDB = pricingData.stonePricingDB;
     } catch (e) {
       console.warn("⚠️ Shop pricing metadata fetch failed:", e.message);
     }
@@ -221,7 +238,7 @@ export async function GET(request) {
         first: limit,
         after: cursor || null,
         filters: finalFilters
-      });
+      }, { next: { revalidate: PRODUCT_DATA_CACHE_TTL } });
       productsData = storefrontData?.search;
     } else {
       const storefrontData = await shopifyStorefrontFetch(COLLECTION_QUERY, {
@@ -231,7 +248,7 @@ export async function GET(request) {
         sortKey: sortConfig.sortKey === "RELEVANCE" ? "BEST_SELLING" : sortConfig.sortKey,
         reverse: sortConfig.reverse,
         filters: finalFilters,
-      });
+      }, { next: { revalidate: PRODUCT_DATA_CACHE_TTL } });
       productsData = storefrontData?.collectionByHandle?.products;
     }
 
@@ -269,7 +286,11 @@ export async function GET(request) {
         const CHUNK_SIZE = 100;
         for (let i = 0; i < uniqueGids.length; i += CHUNK_SIZE) {
           const chunk = uniqueGids.slice(i, i + CHUNK_SIZE);
-          const adminData = await shopifyAdminFetch(variantQuery, { ids: chunk });
+          const adminData = await getServerCache(
+            stableCacheKey(["search-variant-configs", chunk]),
+            () => shopifyAdminFetch(variantQuery, { ids: chunk }, { next: { revalidate: 3600 } }),
+            { ttlMs: VARIANT_CONFIG_CACHE_TTL, maxEntries: 2000 }
+          );
           adminData?.nodes?.forEach(node => {
             if (node) {
               variantConfigs[node.id] = node;
@@ -433,25 +454,6 @@ export async function GET(request) {
         };
       })
     )).filter(Boolean);
-
-    // 4. Fetch Review Stats from Nector in Parallel
-    try {
-      await Promise.all(
-        products.map(async (p) => {
-          try {
-            const reviews = await fetchNectorReviews(p.shopifyId);
-            p.reviewStats = {
-              count: reviews.count || 0,
-              average: reviews.average || 0
-            };
-          } catch (e) {
-            p.reviewStats = { count: 0, average: 0 };
-          }
-        })
-      );
-    } catch (e) {
-      console.warn("⚠️ Parallel review stats fetch failed:", e.message);
-    }
 
     return NextResponse.json({
       products,

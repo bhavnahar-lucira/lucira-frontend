@@ -91,8 +91,6 @@ export const sendCheckoutCrmEvent = async (type, data) => {
       order: {}
     };
 
-    console.log(`[CRM Webhook] Sending ${type} event:`, payload);
-
     await fetch("/api/webhooks/checkout-crm", {
       method: "POST",
       headers: {

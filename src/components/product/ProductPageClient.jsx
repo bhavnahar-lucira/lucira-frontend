@@ -132,16 +132,6 @@ function getCookieValue(name) {
   return value ? decodeURIComponent(value.split("=").slice(1).join("=")) : "";
 }
 
-function useMounted() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  return mounted;
-}
-
 const handleSafeScroll = (elementRef) => {
   if (!elementRef.current) return;  
   const isDesktop = window.innerWidth >= 768;  
@@ -209,6 +199,13 @@ const getColorSpecificImage = (product, colorName) => {
 };
 
 const getVariantSelection = (variant) => {
+  if (variant?.metafields?.metal_purity && variant?.metafields?.metal_color) {
+    return {
+      karat: variant.metafields.metal_purity,
+      color: variant.metafields.metal_color,
+    };
+  }
+
   const fallback = {
     karat: variant?.metafields?.metal_purity || "14KT",
     color: "Yellow Gold",
@@ -220,7 +217,10 @@ const getVariantSelection = (variant) => {
 
   const parts = String(variant.color).trim().split(" ");
   if (parts.length < 2) {
-    return fallback;
+    return {
+      karat: fallback.karat,
+      color: variant.color || fallback.color,
+    };
   }
 
   return {
@@ -255,7 +255,11 @@ const mapShapeCode = (code) => {
   return maps[code.toUpperCase()] || code;
 };
 
-export default function ProductPageClient({ product, complementaryProducts = [], matchingProducts = [] }) {
+export default function ProductPageClient({
+  product,
+  complementaryProducts: initialComplementaryProducts = [],
+  matchingProducts: initialMatchingProducts = [],
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const variantIdFromUrl = searchParams.get("variant");
@@ -291,6 +295,8 @@ export default function ProductPageClient({ product, complementaryProducts = [],
   const [showSimilar, setShowSimilar] = useState(false);
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const [complementaryProducts, setComplementaryProducts] = useState(initialComplementaryProducts);
+  const [matchingProducts, setMatchingProducts] = useState(initialMatchingProducts);
 
   const [activeInfoSheet, setActiveInfoSheet] = useState(null);
   const [allStores, setAllStores] = useState([]);
@@ -305,6 +311,30 @@ export default function ProductPageClient({ product, complementaryProducts = [],
   });
 
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: false, threshold: 20000, message: "" });
+
+  useEffect(() => {
+    if (!product.handle) return;
+
+    let ignore = false;
+
+    fetch(`/api/products/related?handle=${encodeURIComponent(product.handle)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch related products");
+        return res.json();
+      })
+      .then((data) => {
+        if (ignore) return;
+        setComplementaryProducts(data.complementaryProducts || []);
+        setMatchingProducts(data.matchingProducts || []);
+      })
+      .catch((error) => {
+        console.error("Error fetching related products:", error);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [product.handle]);
 
   useEffect(() => {
     fetch("/api/settings/gold-coin")
@@ -367,6 +397,17 @@ export default function ProductPageClient({ product, complementaryProducts = [],
   // Robust variant lookup helper
   const findMatchingVariant = useCallback((metal, karat, size) => {
     return product.variants?.find(v => {
+      const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
+      const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
+      
+      const targetKarat = String(karat || "").toLowerCase().trim();
+      const targetMetal = String(metal || "").toLowerCase().trim();
+      
+      // If metafields are present, use them for strict matching
+      if (vKarat && vMetal) {
+          return vKarat === targetKarat && vMetal === targetMetal && String(v.size) === String(size);
+      }
+
       const vColor = String(v.color || "").toLowerCase().trim();
       const targetColor = `${karat} ${metal}`.toLowerCase().trim();
       return vColor === targetColor && String(v.size) === String(size);
@@ -1218,9 +1259,14 @@ useEffect(() => {
   const availableSizes = Array.from(new Set(product.variants?.map(v => v.size) || []))
     .sort((a, b) => Number(a) - Number(b));
 
-  // Get current display price from active variant or product
-  const currentPrice = activeVariant ? activeVariant.price : product.price;
-  const currentComparePrice = activeVariant ? activeVariant.compare_price : product.compare_price;
+  // Get current display price from active variant or product, prioritized by dynamic breakup API if available
+  const currentPrice = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
+    ? priceBreakup.price
+    : (activeVariant ? activeVariant.price : product.price);
+
+  const currentComparePrice = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
+    ? (priceBreakup.raw_breakup?.original_total || (activeVariant ? activeVariant.compare_price : product.compare_price))
+    : (activeVariant ? activeVariant.compare_price : product.compare_price);
   // const mounted = useMounted();
   const isMobileView = useMediaQuery("(max-width: 1023px)");
   // if (!mounted) return null;

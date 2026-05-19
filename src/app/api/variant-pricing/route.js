@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { shopifyAdminFetch } from "@/lib/shopify";
 import { calculatePriceBreakup } from "@/lib/priceEngine";
+import { getServerCache } from "@/lib/serverCache";
 
 const formatPrice = (num) => {
   if (num === null || num === undefined || isNaN(num)) return "0";
   return new Intl.NumberFormat("en-IN").format(Math.round(num));
 };
 
-export const dynamic = "force-dynamic";
+const VARIANT_PRICING_CACHE_TTL = 60 * 60 * 1000;
 
 export async function GET(req) {
-  // No caching for debugging
   const { searchParams } = new URL(req.url);
   const variantId = searchParams.get("variantId");
   const productId = searchParams.get("productId");
@@ -47,9 +47,11 @@ export async function GET(req) {
       }
     `;
     
-    const data = await shopifyAdminFetch(query, {
-      id: gid,
-    });
+    const data = await getServerCache(
+      `variant-pricing:${gid}`,
+      () => shopifyAdminFetch(query, { id: gid }, { next: { revalidate: 3600 } }),
+      { ttlMs: VARIANT_PRICING_CACHE_TTL, maxEntries: 5000 }
+    );
 
     if (!data.node?.metafield?.value) {
       return NextResponse.json({ error: "Variant config not found" }, { status: 404 });

@@ -37,6 +37,9 @@ import {
 } from "@/components/ui/dialog";
 import { pushProductClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { loadNectorReviews } from "@/lib/nector";
+
+const clientReviewStatsCache = new Map();
 
 const colorMap = {
   yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
@@ -200,6 +203,43 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
+  const [reviewStats, setReviewStats] = useState(product.reviews || product.reviewStats || { count: 0, average: 0 });
+
+  useEffect(() => {
+    setReviewStats(product.reviews || product.reviewStats || { count: 0, average: 0 });
+  }, [product.reviews, product.reviewStats]);
+
+  useEffect(() => {
+    const productReviewId = product.shopifyId || product.id;
+    if (!productReviewId || (reviewStats?.count || 0) > 0) return;
+
+    let ignore = false;
+    const cacheKey = String(productReviewId);
+    const cached = clientReviewStatsCache.get(cacheKey);
+
+    if (cached) {
+      setReviewStats(cached);
+      return;
+    }
+
+    loadNectorReviews(productReviewId)
+      .then((reviews) => {
+        if (ignore) return;
+        const nextStats = {
+          count: reviews?.count || 0,
+          average: reviews?.average || 0,
+        };
+        clientReviewStatsCache.set(cacheKey, nextStats);
+        setReviewStats(nextStats);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch product review stats:", error);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [product.shopifyId, product.id, reviewStats?.count]);
 
   const videoMedia = useMemo(() => {
     if (product.video) return product.video;
@@ -460,7 +500,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
               {/* Rating Section */}
               {(() => {
-                const reviews = product.reviews || product.reviewStats;
+                const reviews = reviewStats;
                 const count = reviews?.count || 0;
                 if (count > 0) {
                   const average = reviews.average || 0;

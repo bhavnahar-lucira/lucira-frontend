@@ -106,28 +106,6 @@ const PRODUCT_QUERY = `
         value
       }
       category: metafield(namespace: "ornaverse", key: "category") { value }
-      matching_products: metafield(namespace: "custom", key: "matching_product") { 
-        value 
-        reference {
-          ... on Product {
-            id title handle featuredImage { url }
-            variants(first: 1) { edges { node { price { amount } compareAtPrice { amount } } } }
-          }
-        }
-      }
-      complementary_products: metafield(namespace: "shopify--discovery--product_recommendation", key: "complementary_products") { 
-        value
-        references(first: 10) {
-          edges {
-            node {
-              ... on Product {
-                id title handle featuredImage { url }
-                variants(first: 1) { edges { node { price { amount } compareAtPrice { amount } } } }
-              }
-            }
-          }
-        }
-      }
     }
   }
 `;
@@ -155,7 +133,7 @@ export async function generateMetadata({ params }) {
 }
 
 async function getProduct(handle) {
-  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { cache: 'no-store' });
+  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { next: { revalidate: 300 } });
   const product = data?.product;
 
   if (!product) return null;
@@ -309,10 +287,6 @@ async function getProduct(handle) {
     alt: img.altText || ""
   }));
 
-  // Map matching product IDs for 'View Similar' logic
-  const matchingProductIds = (product.matching_products?.references?.edges || [])
-    .map(({ node }) => node.id.split("/").pop());
-
   return {
     ...product,
     id: product.id.split("/").pop(),
@@ -326,24 +300,10 @@ async function getProduct(handle) {
     collectionHandles: product.collectionHandles?.edges?.map(e => e.node.handle) || [],
     productMetafields,
     category: product.category?.value || product.productType,
-    complementaryProductIds: [], 
-    matchingProductIds: matchingProductIds,
+    complementaryProductIds: [],
+    matchingProductIds: [],
     hasSimilar: true
   };
-}
-
-function mapShopifyProduct(p) {
-    if (!p) return null;
-    return {
-        id: p.id.split("/").pop(),
-        shopifyId: p.id,
-        title: p.title,
-        handle: p.handle,
-        image: p.featuredImage?.url,
-        price: Number(p.variants?.edges?.[0]?.node?.price?.amount || 0),
-        compare_price: Number(p.variants?.edges?.[0]?.node?.compareAtPrice?.amount || 0),
-        reviewStats: { count: 0, average: 0 }
-    };
 }
 
 export default async function ProductPage({ params }) {
@@ -353,15 +313,6 @@ export default async function ProductPage({ params }) {
   if (!rawProduct) {
     notFound();
   }
-
-  // Handle complementary/matching products from metafield references
-  const complementaryProducts = (rawProduct.complementary_products?.references?.edges || [])
-    .map(({ node }) => mapShopifyProduct(node))
-    .filter(Boolean);
-
-  const matchingProducts = rawProduct.matching_products?.reference 
-    ? [mapShopifyProduct(rawProduct.matching_products.reference)]
-    : [];
 
   const jsonLd = getProductSchema(rawProduct);
   const breadcrumbs = [
@@ -383,8 +334,6 @@ export default async function ProductPage({ params }) {
       />
       <ProductPageClient 
         product={rawProduct} 
-        complementaryProducts={complementaryProducts} 
-        matchingProducts={matchingProducts} 
       />
     </>
   );

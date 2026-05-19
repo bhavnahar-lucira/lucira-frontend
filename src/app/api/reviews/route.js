@@ -8,7 +8,11 @@ export async function GET(request) {
     if (!productId) return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
 
     const reviews = await fetchNectorReviews(productId);
-    return NextResponse.json(reviews);
+    return NextResponse.json(reviews, {
+      headers: {
+        "Cache-Control": "public, s-maxage=14400, stale-while-revalidate=3600",
+      },
+    });
   } catch (error) {
     console.error("Reviews GET Error:", error);
     return NextResponse.json({ error: "Failed to fetch reviews" }, { status: 500 });
@@ -42,8 +46,6 @@ export async function POST(request) {
     const body = await request.json();
     
     // Safety: If ID is "all", Nector will reject. Use a fallback if needed or let it fail gracefully with a better error
-    console.log(`[NectorProxy] Submitting review for: ${body.reference_product_id}`);
-
     const nectorRes = await fetch(`https://api.nector.io/v1/merchant/reviews`, {
       method: "POST",
       headers: {

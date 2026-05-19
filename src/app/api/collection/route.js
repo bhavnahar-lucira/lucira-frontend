@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { shopifyStorefrontFetch, shopifyAdminFetch } from "@/lib/shopify";
 import { calculatePriceBreakup } from "@/lib/priceEngine";
-import { fetchNectorReviews } from "@/lib/nector";
-import clientPromise from "@/lib/mongodb";
+import { getServerCache, stableCacheKey } from "@/lib/serverCache";
 
 const SORT_MAP = {
   best_selling: { sortKey: "BEST_SELLING", reverse: false },
@@ -39,6 +38,31 @@ const parseFilters = (rawFilters) => {
 };
 
 const collectionCountCache = new Map();
+const SHOP_PRICING_CACHE_TTL = 60 * 60 * 1000;
+const PRODUCT_DATA_CACHE_TTL = 5 * 60;
+const VARIANT_CONFIG_CACHE_TTL = 60 * 60 * 1000;
+
+const getShopPricingData = () =>
+  getServerCache(
+    "shop-pricing-data",
+    async () => {
+      const shopPricingQuery = `
+        query {
+          shop {
+            metalPrices: metafield(namespace: "DI-GoldPrice", key: "metal_prices") { value }
+            stonePricing: metafield(namespace: "DI-GoldPrice", key: "stone_pricing") { value }
+          }
+        }
+      `;
+      const shopData = await shopifyAdminFetch(shopPricingQuery, {}, { next: { revalidate: 3600 } });
+
+      return {
+        metalRates: shopData?.shop?.metalPrices?.value ? JSON.parse(shopData.shop.metalPrices.value) : {},
+        stonePricingDB: shopData?.shop?.stonePricing?.value ? JSON.parse(shopData.shop.stonePricing.value) : [],
+      };
+    },
+    { ttlMs: SHOP_PRICING_CACHE_TTL, maxEntries: 20 }
+  );
 
 const getCollectionTotalCount = async (handle) => {
   const cacheKey = `collection-count:${handle}`;
@@ -129,20 +153,12 @@ export async function GET(req) {
     let metalRates = {};
     let stonePricingDB = [];
     try {
-      const shopPricingQuery = `
-        query {
-          shop {
-            metalPrices: metafield(namespace: "DI-GoldPrice", key: "metal_prices") { value }
-            stonePricing: metafield(namespace: "DI-GoldPrice", key: "stone_pricing") { value }
-          }
-        }
-      `;
-      const shopData = await shopifyAdminFetch(shopPricingQuery, {}, { next: { revalidate: 3600 } });
-      if (shopData?.shop?.metalPrices?.value) metalRates = JSON.parse(shopData.shop.metalPrices.value);
-      if (shopData?.shop?.stonePricing?.value) stonePricingDB = JSON.parse(shopData.shop.stonePricing.value);
-      } catch (e) {
+      const pricingData = await getShopPricingData();
+      metalRates = pricingData.metalRates;
+      stonePricingDB = pricingData.stonePricingDB;
+    } catch (e) {
       console.warn("⚠️ Shop pricing metadata fetch failed:", e.message);
-      }
+    }
     // 2. Fetch Collection (Storefront API)
     const COLLECTION_QUERY = `
       query CollectionProducts(
@@ -312,7 +328,7 @@ export async function GET(req) {
         sortKey: sortConfig.sortKey === "BEST_SELLING" ? "BEST_SELLING" : sortConfig.sortKey === "PRICE" ? "PRICE" : "TITLE",
         reverse: sortConfig.reverse,
         query: filterQuery.trim() || null,
-      }, { cache: 'no-store' });
+      }, { next: { revalidate: PRODUCT_DATA_CACHE_TTL } });
     } else {
       storefrontData = await shopifyStorefrontFetch(COLLECTION_QUERY, {
         handle,
@@ -321,7 +337,7 @@ export async function GET(req) {
         sortKey: sortConfig.sortKey,
         reverse: sortConfig.reverse,
         filters: finalFilters,
-      }, { cache: 'no-store' });
+      }, { next: { revalidate: PRODUCT_DATA_CACHE_TTL } });
     }
 
     const collectionData = storefrontData?.collectionByHandle;
@@ -358,7 +374,11 @@ export async function GET(req) {
         const CHUNK_SIZE = 100;
         for (let i = 0; i < uniqueGids.length; i += CHUNK_SIZE) {
           const chunk = uniqueGids.slice(i, i + CHUNK_SIZE);
-          const adminData = await shopifyAdminFetch(variantQuery, { ids: chunk }, { cache: 'no-store' });
+          const adminData = await getServerCache(
+            stableCacheKey(["collection-variant-configs", chunk]),
+            () => shopifyAdminFetch(variantQuery, { ids: chunk }, { next: { revalidate: 3600 } }),
+            { ttlMs: VARIANT_CONFIG_CACHE_TTL, maxEntries: 2000 }
+          );
           adminData?.nodes?.forEach(node => {
             if (node?.metafield?.value) {
               variantConfigs[node.id] = node.metafield.value;
@@ -556,23 +576,6 @@ export async function GET(req) {
         };
       })
     )).filter(Boolean);
-
-    // 5. Fetch Review Stats from Nector in Parallel
-    try {
-      await Promise.all(
-        products.map(async (p) => {
-          try {
-            const reviews = await fetchNectorReviews(p.shopifyId);
-            p.reviewStats = {
-              count: reviews.count || 0,
-              average: reviews.average || 0
-            };
-          } catch (e) {
-            p.reviewStats = { count: 0, average: 0 };
-          }
-        })
-      );
-    } catch (e) {}
 
     const processedFilters = {};
     productsData.filters.forEach((f) => {

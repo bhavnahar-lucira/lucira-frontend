@@ -220,8 +220,6 @@ async function callNectorPerform({ userId, orderId, amount }) {
     // Extract numeric order ID from GID (e.g., gid://shopify/Order/6565486231770 -> 6565486231770)
     const numericOrderId = String(orderId || "").match(/\d+/)?.[0] || orderId;
 
-    console.log("Calling Nector Perform Server-Side:", { customerId, orderId: numericOrderId, amount });
-
     const response = await fetch(`https://platform.nector.io/api/open/integrations/customcheckoutwebhook/${webhookKey}`, {
       method: "POST",
       headers: {
@@ -238,7 +236,6 @@ async function callNectorPerform({ userId, orderId, amount }) {
     });
 
     const data = await response.json();
-    console.log("Nector Perform Response:", data);
     return data;
   } catch (error) {
     console.error("Nector Perform Server-Side Error:", error);
@@ -456,8 +453,6 @@ export async function POST(req) {
       ? body.paymentMethod
       : { type: "razorpay" };
 
-    console.log("COMPLETE ORDER REQUEST:", { userId, sessionId, razorpayOrderId, razorpayPaymentId, draftId });
-
     if (!userId && !sessionId) {
       return NextResponse.json({ error: "UserId or SessionId is required" }, { status: 400 });
     }
@@ -597,7 +592,6 @@ export async function POST(req) {
     });
 
     // STEP 2: Complete Shopify Draft Order
-    console.log("Completing draft order:", draftId);
     const shopifyData = await shopifyAdminFetch(`
       mutation draftOrderComplete($id: ID!, $paymentPending: Boolean) {
         draftOrderComplete(id: $id, paymentPending: $paymentPending) {
@@ -624,7 +618,6 @@ export async function POST(req) {
     const payload = shopifyData.draftOrderComplete;
     
     if (payload?.userErrors?.some(e => e.message.toLowerCase().includes("already completed") || e.message.toLowerCase().includes("not open"))) {
-      console.log("Draft order already completed or not open:", draftId);
       await cartCollection.updateOne(cartLookup, { $set: { items: [], updatedAt: new Date() } });
       return NextResponse.json({
         success: true,
@@ -638,7 +631,6 @@ export async function POST(req) {
     }
 
     const order = payload.draftOrder.order;
-    console.log("Order completed successfully:", order.name);
 
     let partialCodPaymentRecorded = false;
     if (paymentMethod.type === "partial_cod") {
@@ -650,7 +642,6 @@ export async function POST(req) {
         });
 
         partialCodPaymentRecorded = Boolean(recordedPaymentOrder);
-        console.log("Partial COD payment record result:", recordedPaymentOrder);
       } catch (paymentRecordError) {
         console.error("Partial COD payment could not be recorded in Shopify:", paymentRecordError);
       }
@@ -696,7 +687,6 @@ export async function POST(req) {
     });
 
     // STEP 4: Clear Cart
-    console.log("Clearing cart for user:", userId || sessionId);
     await cartCollection.updateOne(cartLookup, { $set: { items: [], updatedAt: new Date() } });
 
     return NextResponse.json({

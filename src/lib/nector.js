@@ -1,6 +1,7 @@
 import { fetchWithRetry } from "@/utils/helpers";
 
 const reviewCache = new Map();
+const REVIEW_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
 /**
  * Main function to fetch Nector reviews using Direct API
@@ -23,9 +24,14 @@ export const fetchNectorReviews = async (productId, options = {}) => {
 
   // Convert shopify ID to simple ID
   const id = productId ? String(productId).split("/").pop() : null;
+  const cacheId = id || "global";
 
-  if (id && reviewCache.has(id)) {
-    return reviewCache.get(id);
+  if (reviewCache.has(cacheId)) {
+    const cached = reviewCache.get(cacheId);
+    if (cached?.expiresAt > Date.now()) {
+      return cached.data;
+    }
+    reviewCache.delete(cacheId);
   }
 
   try {
@@ -38,8 +44,6 @@ export const fetchNectorReviews = async (productId, options = {}) => {
       ? `${baseUrl}?page=1&limit=20&sort=image_count&sort_op=DESC&reference_product_id=${id}&reference_product_source=shopify`
       : `${baseUrl}?page=1&limit=200&sort=created_at&sort_op=DESC`;
 
-    console.log(`[Nector] Fetching reviews from: ${url}`);
-
     let res = await fetch(url, {
       headers: {
         "x-apikey": process.env.NECTOR_API_KEY,
@@ -47,21 +51,22 @@ export const fetchNectorReviews = async (productId, options = {}) => {
         "x-source": "web",
       },
       signal: controller.signal,
-      cache: 'no-store'
+      cache: "force-cache",
+      next: { revalidate: REVIEW_CACHE_TTL_MS / 1000 }
     });
 
     let json = await res.json();
     
     // If global fetch returned nothing, try the main API endpoint
     if (!id && (!json?.data?.items || json.data.items.length === 0)) {
-       console.log(`[Nector] Global fetch from cachefront empty, trying main API...`);
        const mainApiUrl = `https://api.nector.io/v1/merchant/reviews?page=1&limit=100`;
        const res2 = await fetch(mainApiUrl, {
          headers: {
            "x-apikey": process.env.NECTOR_API_KEY,
            "x-workspaceid": process.env.NECTOR_WORKSPACE_ID,
          },
-         cache: 'no-store'
+         cache: "force-cache",
+         next: { revalidate: REVIEW_CACHE_TTL_MS / 1000 }
        });
        if (res2.ok) {
          const json2 = await res2.json();
@@ -116,10 +121,11 @@ export const fetchNectorReviews = async (productId, options = {}) => {
     };
 
     reviews.list = reviews.items;
-    if (id) {
-      reviewCache.set(id, reviews);
-      setTimeout(() => reviewCache.delete(id), 5 * 60 * 1000);
-    }
+    reviewCache.set(cacheId, {
+      data: reviews,
+      expiresAt: Date.now() + REVIEW_CACHE_TTL_MS,
+    });
+    setTimeout(() => reviewCache.delete(cacheId), REVIEW_CACHE_TTL_MS);
 
     return reviews;
   } catch (e) {
@@ -212,7 +218,6 @@ export async function uploadSingleImage(file, reviewId) {
 }
 
 export function extractReviewId(result) {
-  console.log('[NectorReviews] Extracting ID from:', JSON.stringify(result, null, 2));
   return (
     result?.data?.review?._id ||
     result?.data?.item?._id   ||
