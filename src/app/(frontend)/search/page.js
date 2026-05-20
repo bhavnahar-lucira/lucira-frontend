@@ -253,9 +253,9 @@ export default function SearchPage() {
           )}
           <div className={`grid mt-4 ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : products.map((prod, idx) => {
-               // Trigger pagination when the 16th product from the current end is reached
-               // For a batch of 25, this is the 16th product (index 15, or length - 10)
-               const isTrigger = pagination.hasNextPage && idx === products.length - 10;
+               // Trigger pagination when 10 products are scrolled
+               // For a batch of 25, this is the 11th product (index 10, or length - 15)
+               const isTrigger = pagination.hasNextPage && idx === products.length - 15;
                return (
                  <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
                    <ProductCard product={prod} index={idx + 1} />

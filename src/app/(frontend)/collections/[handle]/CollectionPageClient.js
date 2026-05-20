@@ -436,9 +436,9 @@ export default function CollectionPage({ params: paramsPromise }) {
         );
       }
       
-      // Trigger pagination when the 16th product from the current end is reached
-      // For a batch of 25, this is the 16th product (index 15, or length - 10)
-      const isTrigger = pagination.hasNextPage && idx === products.length - 10;
+      // Trigger pagination when 10 products are scrolled
+      // For a batch of 25, this is the 11th product (index 10, or length - 15)
+      const isTrigger = pagination.hasNextPage && idx === products.length - 15;
       
       items.push(
         <div key={prod.id || idx} ref={isTrigger ? loadMoreRef : null}>
