@@ -68,7 +68,7 @@ export default function SearchPage() {
   const searchParams = useSearchParams();
   
   const query = searchParams.get("q") || "";
-  const limit = 20;
+  const limit = 25;
 
   const [expandedFilters, setExpandedFilters] = useState({ "In Store Available": true });
   const loadMoreRef = useRef(null);
@@ -86,6 +86,11 @@ export default function SearchPage() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Scroll to top on mount or query change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [query]);
 
   const [localPriceRange, setLocalPriceRange] = useState({
     min: searchParams.get("filter.v.price.gte") || "",
@@ -150,7 +155,7 @@ export default function SearchPage() {
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && pagination.hasNextPage && !isFetchingNextPage) fetchNextPage();
     }, { 
-      rootMargin: "0px 0px 1200px 0px",
+      rootMargin: "0px 0px 800px 0px",
       threshold: 0 
     });
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
@@ -247,7 +252,16 @@ export default function SearchPage() {
             </div>
           )}
           <div className={`grid mt-4 ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
-            {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : products.map((prod, idx) => <ProductCard key={`${prod.id || idx}-${idx}`} product={prod} index={idx + 1} />)}
+            {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : products.map((prod, idx) => {
+               // Trigger pagination when the 16th product from the current end is reached
+               // For a batch of 25, this is the 16th product (index 15, or length - 10)
+               const isTrigger = pagination.hasNextPage && idx === products.length - 10;
+               return (
+                 <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
+                   <ProductCard product={prod} index={idx + 1} />
+                 </div>
+               );
+            })}
             {isFetchingNextPage && <><ProductCardSkeleton /><ProductCardSkeleton /></>}
           </div>
           <div ref={loadMoreRef} className="h-20" />

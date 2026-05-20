@@ -99,37 +99,38 @@ function getImagesForBase(product, selectedBase) {
   const variant = getVariantForBase(product, selectedBase);
   const variantColor = String(variant?.color || variant?.title || "").toLowerCase();
   
-  let primaryImages = [];
-  if (selectedBase) {
-    primaryImages = product.images?.filter((image) => 
-      String(image.alt || "").toLowerCase().includes(selectedBase)
-    ) || [];
-  }
-
-  if (primaryImages.length === 0 && variantColor) {
-     primaryImages = product.images?.filter((image) => 
-      String(image.alt || "").toLowerCase().includes(variantColor)
-    ) || [];
-  }
-
-  if (primaryImages.length === 0 && variant?.image) {
-      primaryImages = product.images?.filter((image) => image.url === variant.image) || [];
-  }
-
-  // If we still have nothing, or even if we have some, let's make sure we have enough for a slider
   const allImages = product.images || [];
-  const finalImages = [...primaryImages];
-  
-  // Add other images that are not already in primaryImages
-  allImages.forEach(img => {
-      if (!finalImages.some(p => p.url === img.url)) {
-          finalImages.push(img);
-      }
-  });
+  let colorSpecificImages = [];
 
-  if (finalImages.length > 0) return finalImages;
-  
-  const fallbackImage = product?.image || null;
+  // 1. Find images strictly belonging to this specific variant (by exact URL)
+  if (variant?.image) {
+    const variantImg = allImages.find(img => img.url === variant.image);
+    if (variantImg) colorSpecificImages.push(variantImg);
+  }
+
+  // 2. Find images whose alt text matches the selected base color (e.g., "yellow")
+  if (selectedBase) {
+    const baseImages = allImages.filter(img => 
+      String(img.alt || "").toLowerCase().includes(selectedBase.toLowerCase()) &&
+      !colorSpecificImages.some(p => p.url === img.url)
+    );
+    colorSpecificImages = [...colorSpecificImages, ...baseImages];
+  }
+
+  // 3. Find images whose alt text matches the specific variant color string
+  if (variantColor) {
+    const colorImages = allImages.filter(img => 
+      String(img.alt || "").toLowerCase().includes(variantColor) &&
+      !colorSpecificImages.some(p => p.url === img.url)
+    );
+    colorSpecificImages = [...colorSpecificImages, ...colorImages];
+  }
+
+  // If we found color-specific images, ONLY show those
+  if (colorSpecificImages.length > 0) return colorSpecificImages;
+
+  // Fallback to variant image or main image if no color-specific images are found
+  const fallbackImage = variant?.image || product?.image || null;
   return fallbackImage ? [{ url: fallbackImage, alt: product?.title || "Product image" }] : [];
 }
 
@@ -283,6 +284,14 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const galleryImages = getImagesForBase(product, activeBase);
   const swiperId = `card-swiper-${String(product.id || product.shopifyId || product.handle).replace(/[^a-zA-Z0-9]/g, "")}`;
   const swiperRef = useRef(null);
+
+  // Reset swiper to first slide when gallery images change
+  useEffect(() => {
+    if (swiperRef.current && !swiperRef.current.destroyed) {
+      swiperRef.current.slideTo(0, 0);
+    }
+  }, [galleryImages]);
+
   const prevImageBtnRef = useRef(null);
   const nextImageBtnRef = useRef(null);
   const hasSimilar = (product.matchingProductIds && product.matchingProductIds.length > 0) || product.hasSimilar;

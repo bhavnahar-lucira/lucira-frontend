@@ -104,6 +104,8 @@ export default function Navbar({ hideTop }) {
 
             const isHovered = activeMenu === index;
 
+            const isClickable = menu.href && menu.href !== "#";
+
             return (
               <li
                 key={menu.label}
@@ -111,20 +113,34 @@ export default function Navbar({ hideTop }) {
                 onMouseLeave={handleLeave}
                 className="relative"
               >
-                <Link
-                  href={menu.href}
-                  prefetch={false}
-                  onClick={closeMenu}
-                  className={cn(
-                    "block py-4 tracking-normal transition-all duration-200 uppercase text-sm leading-none font-medium font-figtree",
-                    isActive || isHovered
-                      ? "text-primary"
-                      : "text-gray-900 hover:text-primary",
-                    isActive ? "font-semibold" : "font-medium"
-                  )}
-                >
-                  {menu.label}
-                </Link>
+                {isClickable ? (
+                  <Link
+                    href={menu.href}
+                    prefetch={false}
+                    onClick={closeMenu}
+                    className={cn(
+                      "block py-4 tracking-normal transition-all duration-200 uppercase text-sm leading-none font-medium font-figtree",
+                      isActive || isHovered
+                        ? "text-primary"
+                        : "text-gray-900 hover:text-primary",
+                      isActive ? "font-semibold" : "font-medium"
+                    )}
+                  >
+                    {menu.label}
+                  </Link>
+                ) : (
+                  <span
+                    className={cn(
+                      "block py-4 tracking-normal transition-all duration-200 uppercase text-sm leading-none font-medium font-figtree cursor-default",
+                      isActive || isHovered
+                        ? "text-primary"
+                        : "text-gray-900",
+                      isActive ? "font-semibold" : "font-medium"
+                    )}
+                  >
+                    {menu.label}
+                  </span>
+                )}
 
                 {/* Underline */}
                 {(isHovered || (isActive && activeMenu === null)) && (

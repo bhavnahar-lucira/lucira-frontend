@@ -105,7 +105,7 @@ export async function GET(req) {
     const handle = searchParams.get("handle");
     const sort = searchParams.get("sort") || "best_selling";
     const cursor = searchParams.get("cursor");
-    const limit = Number(searchParams.get("limit")) || 20;
+    const limit = Number(searchParams.get("limit")) || 25;
     const filters = searchParams.get("filters");
 
     if (!handle) {
@@ -518,6 +518,18 @@ export async function GET(req) {
 
         let selectedVariant = variants.find((v) => v.inStock) || variants[0];
 
+        if (finalFilters && finalFilters.length > 0) {
+          const priceFilter = finalFilters.find(f => f.price);
+          if (priceFilter && priceFilter.price) {
+            const min = priceFilter.price.min ?? 0;
+            const max = priceFilter.price.max ?? 1000000;
+            const matchingVariant = variants.find(v => v.inStock && v.price >= min && v.price <= max);
+            if (matchingVariant) {
+              selectedVariant = matchingVariant;
+            }
+          }
+        }
+
         const images = [];
         let video = null;
 
@@ -596,6 +608,21 @@ export async function GET(req) {
     });
 
     let totalProducts = await getCollectionTotalCount(handle);
+    
+    // 5. Extract total count from filters to respect active selections
+    if (productsData?.filters) {
+      const availabilityFilter = productsData.filters.find(f => f.label === "Availability");
+      if (availabilityFilter) {
+        const count = availabilityFilter.values.reduce((sum, v) => sum + v.count, 0);
+        if (count > 0) totalProducts = count;
+      } else {
+        const categoryFilter = productsData.filters.find(f => f.label === "Product Category");
+        if (categoryFilter) {
+          const count = categoryFilter.values.reduce((sum, v) => sum + v.count, 0);
+          if (count > 0) totalProducts = count;
+        }
+      }
+    }
 
     return NextResponse.json(
       {

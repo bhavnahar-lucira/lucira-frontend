@@ -65,7 +65,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const handle = searchParams.get("handle") || "all";
     const query = searchParams.get("q") || "";
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = parseInt(searchParams.get("limit") || "25");
     const cursor = searchParams.get("cursor");
     const sort = searchParams.get("sort") || "featured";
     const filtersRaw = searchParams.get("filters");
@@ -395,6 +395,18 @@ export async function GET(request) {
         }
 
         let selectedVariant = variants.find((v) => v.inStock) || variants[0];
+
+        if (finalFilters && finalFilters.length > 0) {
+          const priceFilter = finalFilters.find(f => f.price);
+          if (priceFilter && priceFilter.price) {
+            const min = priceFilter.price.min ?? 0;
+            const max = priceFilter.price.max ?? 1000000;
+            const matchingVariant = variants.find(v => v.inStock && v.price >= min && v.price <= max);
+            if (matchingVariant) {
+              selectedVariant = matchingVariant;
+            }
+          }
+        }
 
         const images = [];
         let video = null;

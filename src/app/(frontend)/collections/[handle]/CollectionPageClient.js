@@ -154,7 +154,7 @@ export default function CollectionPage({ params: paramsPromise }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const limit = 20;
+  const limit = 25;
 
   const [expandedFilters, setExpandedFilters] = useState({ "In Store Available": true });
   const loadMoreRef = useRef(null);
@@ -372,10 +372,12 @@ export default function CollectionPage({ params: paramsPromise }) {
     setIsFetchingNextPage(true);
     try {
       const sort = searchParams.get("sort") || "best_selling";
-      const res = await fetch(`/api/products/search?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
+      const res = await fetch(`/api/collection?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
       const data = await res.json();
       setProducts(prev => [...prev, ...(data.products || [])]);
-      setPagination(data.pagination || { hasNextPage: false, endCursor: null });
+      setPagination(data.pageInfo || { hasNextPage: false, endCursor: null });
+      // Update totalCount from response to ensure it reflects filtered results
+      if (data.totalProducts) setTotalCount(data.totalProducts);
     } catch (err) {
       console.error("Failed to fetch next page:", err);
     } finally {
@@ -392,7 +394,7 @@ export default function CollectionPage({ params: paramsPromise }) {
         }
       },
       { 
-        rootMargin: "0px 0px 1200px 0px",
+        rootMargin: "0px 0px 800px 0px", // Increased margin for earlier pre-fetching
         threshold: 0 
       }
     );
@@ -433,7 +435,16 @@ export default function CollectionPage({ params: paramsPromise }) {
           </div>
         );
       }
-      items.push(<ProductCard key={prod.id || idx} product={prod} collectionHandle={handle} index={idx + 1} />);
+      
+      // Trigger pagination when the 16th product from the current end is reached
+      // For a batch of 25, this is the 16th product (index 15, or length - 10)
+      const isTrigger = pagination.hasNextPage && idx === products.length - 10;
+      
+      items.push(
+        <div key={prod.id || idx} ref={isTrigger ? loadMoreRef : null}>
+          <ProductCard product={prod} collectionHandle={handle} index={idx + 1} />
+        </div>
+      );
     });
     if (isFetchingNextPage) {
       items.push(<ProductCardSkeleton key="next-1" />, <ProductCardSkeleton key="next-2" />, <ProductCardSkeleton key="next-3" />);
@@ -540,7 +551,7 @@ export default function CollectionPage({ params: paramsPromise }) {
         <div className="flex-1">
           <div className={`flex gap-4 items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "py-5 border-b border-gray-50 px-4" : "py-4"}`}>
             <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
-              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{totalCount} Designs</span></>) : (<span className="text-sm text-gray-500">{products.length}/{totalCount} products</span>)}
+              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{totalCount} Designs</span></>) : (<span className="text-sm text-gray-500">{Math.min(products.length, totalCount)}/{totalCount} products</span>)}
             </div>
             {!isMobile && (
               <div className="flex items-center gap-4"><div className="flex items-center gap-2"><span className="text-sm text-gray-600">Sort:</span><select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="text-sm border rounded-md px-3 py-2 bg-white">{SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}</select></div></div>

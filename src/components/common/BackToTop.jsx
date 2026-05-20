@@ -8,6 +8,11 @@ import { cn } from "@/lib/utils";
 export default function BackToTop() {
   const pathname = usePathname();
 
+  // Scroll to top on pathname change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   const [visible, setVisible] = useState(false);
   const [scrollDirection, setScrollDirection] = useState("up");
 

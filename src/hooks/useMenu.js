@@ -47,13 +47,23 @@ function transformMenu(shopifyMenu) {
     const menuType = getMetafield(metafields, "custom", "menu_type")?.value || (item.items?.length > 0 ? "mega" : "link");
     const layout = getMetafield(metafields, "custom", "layout")?.value || "5-col-featured";
     
+    const menuIcon = getFileUrl(getMetafield(metafields, "custom", "menu_links_image_icon")) || resource.image?.url || resource.featuredImage?.url;
+
+    let href = item.url.replace(/https:\/\/[^/]+/, "");
+    const label = item.title.trim();
+    if (label === "Engagement & Bridal") {
+      href = "#";
+    } else if (label === "Rings") {
+      href = "/collections/all-rings";
+    }
+    
     let transformedItem = {
       label: item.title,
-      href: item.url.replace(/https:\/\/[^/]+/, ""), // Strip domain
+      href: href,
       type: menuType,
       layout: layout,
       mobileBanner: getFileUrl(getMetafield(metafields, "custom", "mobile_menu_banner_image")),
-      menuIcon: getFileUrl(getMetafield(metafields, "custom", "menu_links_image_icon")) || resource.image?.url || resource.featuredImage?.url,
+      menuIcon: menuIcon,
     };
 
     if (menuType === "mega") {
