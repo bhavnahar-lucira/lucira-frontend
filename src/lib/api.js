@@ -18,11 +18,10 @@ export const apiFetch = async (url, options = {}) => {
       cache: "no-store",
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
         ...(options.headers || {}),
       },
     });
-
     const contentType = res.headers.get("content-type");
 
     let data;
@@ -41,7 +40,7 @@ export const apiFetch = async (url, options = {}) => {
     return data;
   } catch (err) {
     if (err.name === "TypeError" && err.message === "Failed to fetch") {
-      console.error("Network Error: Could not connect to the backend at " + finalUrl + ". Ensure your Fastify server is running on port 8080.");
+      console.error("Network Error: Could not connect to the backend at " + finalUrl + ". Ensure your local Fastify server is running.");
     }
     throw err;
   }
@@ -139,8 +138,6 @@ export const removeWishlistApi = (productId, variantId = "", userId = "", sessio
   if (sessionId) q.set("sessionId", sessionId);
   return apiFetch(`/api/wishlist?${q.toString()}`, {
     method: "DELETE",
-    // Also send in body for backend robustness
-    body: JSON.stringify({ userId, sessionId })
   });
 };
 

@@ -181,10 +181,13 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const productHandle = product.handle;
 
   const isWishlisted = useMemo(() => {
+    const normProductId = String(getNumericId(productId));
+    const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
+    
     if (user?.id) {
-      return wishlist.some((item) => String(item.productId) === productId);
+      return wishlist.some(findFn);
     }
-    return guestWishlist.some((item) => String(item.productId) === productId);
+    return guestWishlist.some(findFn);
   }, [user, wishlist, guestWishlist, productId]);
 
   const [isWishlistAnimating, setIsWishlistAnimating] = useState(false);
