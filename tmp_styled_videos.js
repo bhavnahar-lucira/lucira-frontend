@@ -20,7 +20,7 @@ export default function StyledVideosDashboard() {
 
   const fetchVideos = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8080/api/styled-videos");
+      const res = await fetch("https://webuat.lucirajewelry.com/api/styled-videos");
       const data = await res.json();
       if (data.success) {
         setVideos(data.videos || []);
@@ -35,7 +35,7 @@ export default function StyledVideosDashboard() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("http://127.0.0.1:8080/api/styled-videos", {
+      const res = await fetch("https://webuat.lucirajewelry.com/api/styled-videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(videos),
@@ -87,7 +87,7 @@ export default function StyledVideosDashboard() {
     }
     setSearching(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8080/api/products/search?q=${encodeURIComponent(query)}&limit=5`);
+      const res = await fetch(`https://webuat.lucirajewelry.com/api/products/search?q=${encodeURIComponent(query)}&limit=5`);
       const data = await res.json();
       setSearchResults(data.products || []);
     } catch (err) {

@@ -2,6 +2,13 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWishlistApi, addWishlistApi, removeWishlistApi, syncWishlistApi } from "@/lib/api";
 import { logout } from "../user/userSlice";
 
+const getNumericId = (gid) => {
+  if (!gid) return 0;
+  if (typeof gid === "number") return gid;
+  const match = String(gid).match(/\d+$/);
+  return match ? String(match[0]) : String(gid);
+};
+
 export const fetchWishlist = createAsyncThunk(
   "wishlist/fetchWishlist",
   async (_, { dispatch, getState }) => {
@@ -70,8 +77,8 @@ export const mergeGuestWishlist = createAsyncThunk(
       return remoteItems;
     }
 
-    const remoteUniqueKeys = new Set(remoteItems.map((item) => `${item.productId}-${item.variantId || ""}`));
-    const itemsToAdd = guestItems.filter((item) => !remoteUniqueKeys.has(`${item.productId}-${item.variantId || ""}`));
+    const remoteUniqueKeys = new Set(remoteItems.map((item) => `${getNumericId(item.productId)}-${getNumericId(item.variantId || "")}`));
+    const itemsToAdd = guestItems.filter((item) => !remoteUniqueKeys.has(`${getNumericId(item.productId)}-${getNumericId(item.variantId || "")}`));
 
     if (itemsToAdd.length > 0) {
         const mergedItems = [...remoteItems, ...itemsToAdd];
@@ -101,22 +108,29 @@ const wishlistSlice = createSlice({
     },
     addGuestWishlistItem: (state, action) => {
       const item = action.payload;
-      const key = `${item.productId}-${item.variantId || ""}`;
-      const existsInGuest = state.guestItems.some((i) => `${i.productId}-${i.variantId || ""}` === key);
-      const existsInItems = state.items.some((i) => `${i.productId}-${i.variantId || ""}` === key);
+      const prodId = getNumericId(item.productId);
+      const varId = getNumericId(item.variantId || "");
+      const key = `${prodId}-${varId}`;
+      
+      const existsInGuest = state.guestItems.some((i) => `${getNumericId(i.productId)}-${getNumericId(i.variantId || "")}` === key);
+      const existsInItems = state.items.some((i) => `${getNumericId(i.productId)}-${getNumericId(i.variantId || "")}` === key);
+      
       if (!existsInGuest) state.guestItems.unshift(item);
       if (!existsInItems) state.items.unshift(item);
     },
     removeGuestWishlistItem: (state, action) => {
       const payload = action.payload;
-      const productId = typeof payload === 'string' ? payload : payload.productId;
-      const variantId = typeof payload === 'string' ? "" : payload.variantId;
+      const productId = getNumericId(typeof payload === 'string' ? payload : payload.productId);
+      const variantId = getNumericId(typeof payload === 'string' ? "" : payload.variantId);
       
       const filterFn = (item) => {
-        if (variantId) {
-          return !(item.productId === productId && item.variantId === variantId);
+        const itemProdId = getNumericId(item.productId);
+        const itemVarId = getNumericId(item.variantId || "");
+        
+        if (variantId && variantId !== "0") {
+          return !(itemProdId === productId && itemVarId === variantId);
         }
-        return item.productId !== productId;
+        return itemProdId !== productId;
       };
 
       state.guestItems = state.guestItems.filter(filterFn);
@@ -144,15 +158,29 @@ const wishlistSlice = createSlice({
         state.loading = false;
         state.error = action.error.message;
       })
-      .addCase(addWishlistItem.pending, (state) => {
+      .addCase(addWishlistItem.pending, (state, action) => {
         state.loading = true;
+        // Optimistic add
+        const item = action.meta.arg;
+        if (item && item.productId) {
+          const prodId = getNumericId(item.productId);
+          const varId = getNumericId(item.variantId || "");
+          const key = `${prodId}-${varId}`;
+          if (!state.items.find((i) => `${getNumericId(i.productId)}-${getNumericId(i.variantId || "")}` === key)) {
+            state.items.unshift(item);
+          }
+        }
       })
       .addCase(addWishlistItem.fulfilled, (state, action) => {
         state.loading = false;
         const item = action.payload;
         if (item) {
-          const key = `${item.productId}-${item.variantId || ""}`;
-          if (!state.items.find((i) => `${i.productId}-${i.variantId || ""}` === key)) {
+          const prodId = getNumericId(item.productId);
+          const varId = getNumericId(item.variantId || "");
+          const key = `${prodId}-${varId}`;
+          
+          // If it's not already in there (from optimistic add), add it
+          if (!state.items.find((i) => `${getNumericId(i.productId)}-${getNumericId(i.variantId || "")}` === key)) {
             state.items.unshift(item);
           }
         }
@@ -160,21 +188,40 @@ const wishlistSlice = createSlice({
       .addCase(addWishlistItem.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+        // Revert optimistic add if necessary (optional, but for now we keep it simple)
       })
-      .addCase(removeWishlistItem.pending, (state) => {
+      .addCase(removeWishlistItem.pending, (state, action) => {
         state.loading = true;
+        // Optimistic remove
+        const payload = action.meta.arg;
+        const productId = getNumericId(typeof payload === 'string' ? payload : payload.productId);
+        const variantId = getNumericId(typeof payload === 'string' ? "" : (payload.variantId || ""));
+        
+        state.items = state.items.filter((item) => {
+          const itemProdId = getNumericId(item.productId);
+          const itemVarId = getNumericId(item.variantId || "");
+          
+          if (variantId && variantId !== "0" && variantId !== "") {
+            return !(itemProdId === productId && itemVarId === variantId);
+          }
+          return itemProdId !== productId;
+        });
       })
       .addCase(removeWishlistItem.fulfilled, (state, action) => {
         state.loading = false;
+        // No need to filter again as it was done in pending, but safe to do so
         const payload = action.payload;
-        const productId = typeof payload === 'string' ? payload : payload.productId;
-        const variantId = typeof payload === 'string' ? "" : payload.variantId;
+        const productId = getNumericId(typeof payload === 'string' ? payload : payload.productId);
+        const variantId = getNumericId(typeof payload === 'string' ? "" : (payload.variantId || ""));
         
         state.items = state.items.filter((item) => {
-          if (variantId) {
-            return !(item.productId === productId && item.variantId === variantId);
+          const itemProdId = getNumericId(item.productId);
+          const itemVarId = getNumericId(item.variantId || "");
+          
+          if (variantId && variantId !== "0" && variantId !== "") {
+            return !(itemProdId === productId && itemVarId === variantId);
           }
-          return item.productId !== productId;
+          return itemProdId !== productId;
         });
       })
       .addCase(removeWishlistItem.rejected, (state, action) => {

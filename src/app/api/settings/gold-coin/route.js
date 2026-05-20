@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://webuat.lucirajewelry.com";
+
 export async function GET() {
   try {
-    const res = await fetch("http://127.0.0.1:8080/api/settings/gold-coin", {
+    const res = await fetch(`${BACKEND_URL}/api/settings/gold-coin`, {
       next: { revalidate: 3600 }
     });
     const data = await res.json();
