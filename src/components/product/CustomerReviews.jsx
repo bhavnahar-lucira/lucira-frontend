@@ -23,7 +23,7 @@ import {
 import { loadNectorReviews } from "@/lib/nector";
 
 // Helper to ensure image src is a valid string URL
-const getValidSrc = (src, fallback = "/images/product/1.jpg") => {
+const getValidSrc = (src, fallback = null) => {
   if (typeof src === "string" && src.trim() !== "") return src;
   if (src && typeof src === "object" && src.url) return src.url;
   return fallback;
