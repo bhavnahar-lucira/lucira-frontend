@@ -125,6 +125,7 @@ export async function GET(request) {
         $filters: [ProductFilter!]
       ) {
         collectionByHandle(handle: $handle) {
+          productsCount { count }
           products(
             first: $first
             after: $after
@@ -182,6 +183,7 @@ export async function GET(request) {
     const SEARCH_QUERY = `
       query KeywordSearch($query: String!, $first: Int!, $after: String, $filters: [ProductFilter!]) {
         search(query: $query, first: $first, after: $after, productFilters: $filters, types: [PRODUCT]) {
+          totalCount
           pageInfo { hasNextPage endCursor }
           edges {
             node {
@@ -232,6 +234,7 @@ export async function GET(request) {
     `;
 
     let productsData;
+    let totalCount = 0;
     if (query && (handle === "all" || !handle)) {
       const storefrontData = await shopifyStorefrontFetch(SEARCH_QUERY, {
         query,
@@ -240,6 +243,7 @@ export async function GET(request) {
         filters: finalFilters
       }, { next: { revalidate: PRODUCT_DATA_CACHE_TTL } });
       productsData = storefrontData?.search;
+      totalCount = storefrontData?.search?.totalCount || 0;
     } else {
       const storefrontData = await shopifyStorefrontFetch(COLLECTION_QUERY, {
         handle: handle,
@@ -250,6 +254,7 @@ export async function GET(request) {
         filters: finalFilters,
       }, { next: { revalidate: PRODUCT_DATA_CACHE_TTL } });
       productsData = storefrontData?.collectionByHandle?.products;
+      totalCount = storefrontData?.collectionByHandle?.productsCount?.count || 0;
     }
 
     if (!productsData) {
@@ -472,7 +477,7 @@ export async function GET(request) {
       pagination: {
         hasNextPage: productsData.pageInfo.hasNextPage,
         endCursor: productsData.pageInfo.endCursor,
-        total: 0
+        total: totalCount
       }
     }, {
       headers: {

@@ -156,7 +156,7 @@ export default function AtcBar({
           <div className="lg:hidden pointer-events-auto bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] -mx-4 px-4 py-3 flex items-center gap-2 w-screen">
             {/* WhatsApp Button */}
             <a
-              href="https://wa.me/919172499912"
+              href="https://wa.me/+919004435760"
               target="_blank"
               rel="noopener noreferrer"
               className="h-14 aspect-square bg-white shadow-md border border-zinc-100 rounded-sm flex items-center justify-center shrink-0"
