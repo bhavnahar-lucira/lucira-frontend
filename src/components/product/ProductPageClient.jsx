@@ -705,8 +705,8 @@ useEffect(() => {
 
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
-  const currentWishlistKey = `${productId}-${activeVariantId}`;
-  const isWishlisted = productId ? wishlistItems.some((item) => `${item.productId}-${item.variantId || ""}` === currentWishlistKey) : false;
+  const currentWishlistKey = `${getNumericId(productId)}-${getNumericId(activeVariantId)}`;
+  const isWishlisted = productId ? wishlistItems.some((item) => `${getNumericId(item.productId)}-${getNumericId(item.variantId || "")}` === currentWishlistKey) : false;
   const recentlyViewedState = useSelector(selectRecentlyViewed);
 
   const handleSaveEngraving = () => {

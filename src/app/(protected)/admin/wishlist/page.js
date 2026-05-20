@@ -8,6 +8,7 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { getValidSrc } from "@/lib/utils";
 import { formatPrice } from "@/utils/formatPrice";
+import { getNumericId } from "@/lib/gtm";
 import { 
   Drawer, 
   DrawerClose, 
@@ -31,8 +32,8 @@ import { getEstimatedDispatchDate } from "@/lib/utils";
 export default function WishlistPage() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user);
+  const { sessionId } = useSelector((state) => state.cart);
   const { items: reduxWishlist, loading } = useSelector((state) => state.wishlist);
-  const [wishlistItems, setWishlistItems] = useState([]);
   const [removingId, setRemovingId] = useState(null);
   const [movingToCartId, setMovingToCartId] = useState(null);
   const [showSimilar, setShowSimilar] = useState(false);
@@ -45,13 +46,8 @@ export default function WishlistPage() {
   const [activeVideoMedia, setActiveVideoMedia] = useState(null);
   const [loadingVideo, setLoadingVideo] = useState(false);
 
-  const loadWishlist = async () => {
-    try {
-      const res = await dispatch(fetchWishlist()).unwrap();
-      setWishlistItems(res);
-    } catch (err) {
-      console.error("Failed to load wishlist", err);
-    }
+  const loadWishlist = () => {
+    dispatch(fetchWishlist());
   };
 
   const handleVideoClick = async (item) => {
@@ -83,29 +79,7 @@ export default function WishlistPage() {
     const key = variantId ? `${productId}-${variantId}` : productId;
     setRemovingId(key);
     try {
-      const q = new URLSearchParams();
-      q.set("productId", productId);
-      if (variantId) q.set("variantId", variantId);
-      
-      const { user } = useSelector((state) => state.user);
-      const { sessionId } = useSelector((state) => state.cart);
-      if (user?.id) q.set("userId", user.id);
-      if (sessionId) q.set("sessionId", sessionId);
-
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
-      const res = await fetch(`${baseUrl}/api/wishlist?${q.toString()}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to remove item");
-      
-      setWishlistItems((items) => items.filter((item) => {
-        if (variantId) {
-          return !(item.productId === productId && item.variantId === variantId);
-        }
-        return item.productId !== productId;
-      }));
-      
-      dispatch(removeWishlistItem({ productId, variantId }));
+      await dispatch(removeWishlistItem({ productId, variantId })).unwrap();
       
       if (!silent) {
         toast.error("Removed from wishlist", {
@@ -259,8 +233,8 @@ export default function WishlistPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-x-8 gap-y-12">
         {loading ? (
           <div className="col-span-full py-20 text-center text-zinc-500">Loading your wishlist...</div>
-        ) : wishlistItems.length > 0 ? (
-          wishlistItems.map((item, index) => {
+        ) : reduxWishlist.length > 0 ? (
+          reduxWishlist.map((item, index) => {
             const priceNum = Number(item.price);
             const comparePriceNum = Number(item.comparePrice);
             const discount = comparePriceNum && priceNum ? Math.round(((comparePriceNum - priceNum) / comparePriceNum) * 100) : 0;
