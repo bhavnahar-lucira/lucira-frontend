@@ -532,7 +532,7 @@ export default function ProductPage() {
                 <div className="flex items-center gap-8">
 
                   <Image
-                    src="/images/product/igi.png"
+                    src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png"
                     alt="IGI"
                     width={70}
                     height={70}

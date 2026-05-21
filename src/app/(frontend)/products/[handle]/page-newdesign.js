@@ -537,13 +537,13 @@ export default function ProductPage() {
                   </button>
                   <div className="flex items-center gap-7">
                     <div className="w-14 h-14 relative">
-                      <Image src="/images/product/IGI.png" alt="IGI" fill className="object-contain" />
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
                     </div>
                     <div className="w-14 h-14 relative">
-                      <Image src="/images/product/SGL.png" alt="SGL" fill className="object-contain" />
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/SGL_528e2e93-e563-40b6-a8a6-c098475a6de9.png" alt="SGL" fill className="object-contain" />
                     </div>
                     <div className="w-14 h-14 relative">
-                      <Image src="/images/product/BIS.png" alt="BIS Hallmark" fill className="object-contain" />
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BIS.png" alt="BIS Hallmark" fill className="object-contain" />
                     </div>
                   </div>
                 </div>
