@@ -112,7 +112,9 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function BlogArticlePage({ params }) {
+export const revalidate = false; // SSG
+
+export default async function ArticlePage({ params }) {
   const { blogHandle, articleHandle } = await params;
   const [article, relatedArticles, mostViewed] = await Promise.all([
     getArticleByBlogAndHandle(blogHandle, articleHandle),

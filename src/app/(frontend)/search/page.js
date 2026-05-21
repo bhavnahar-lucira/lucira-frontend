@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { pushProductImpression } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { apiFetch } from "@/lib/api";
 
 const SORT_OPTIONS = [
   { value: "best_selling", label: "Best selling" },
@@ -117,13 +118,11 @@ export default function SearchPage() {
       setProductsLoading(true);
       setFiltersLoading(true);
       try {
-        const filtersRes = await fetch(`/api/products/filters?q=${encodeURIComponent(query)}&${filterParamsString}`);
-        const filtersData = await filtersRes.json();
+        const filtersData = await apiFetch(`/api/products/filters?q=${encodeURIComponent(query)}&${filterParamsString}`);
         setAvailableFilters(filtersData);
         setFiltersLoading(false);
 
-        const prodRes = await fetch(`/api/products/search?q=${encodeURIComponent(query)}&${filterParamsString}&limit=${limit}`);
-        const prodData = await prodRes.json();
+        const prodData = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&${filterParamsString}&limit=${limit}`);
         setProducts(prodData.products || []);
         setPagination(prodData.pagination || { hasNextPage: false, endCursor: null });
         setTotalCount(prodData.pagination?.total || 0);
@@ -140,8 +139,7 @@ export default function SearchPage() {
     if (isFetchingNextPage || !pagination.hasNextPage) return;
     setIsFetchingNextPage(true);
     try {
-      const res = await fetch(`/api/products/search?q=${encodeURIComponent(query)}&${filterParamsString}&limit=${limit}&cursor=${pagination.endCursor}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&${filterParamsString}&limit=${limit}&cursor=${pagination.endCursor}`);
       setProducts(prev => [...prev, ...(data.products || [])]);
       setPagination(data.pagination || { hasNextPage: false, endCursor: null });
     } catch (err) {

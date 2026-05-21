@@ -306,6 +306,8 @@ async function getProduct(handle) {
   };
 }
 
+export const revalidate = 3600; // 1 hour
+
 export default async function ProductPage({ params }) {
   const { handle } = await params;
   const rawProduct = await getProduct(handle);

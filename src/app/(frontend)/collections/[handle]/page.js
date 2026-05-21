@@ -52,6 +52,8 @@ export async function generateMetadata({ params }) {
   };
 }
 
+export const revalidate = 3600; // 1 hour
+
 export default async function Page({ params }) {
   const { handle } = await params;
   const collection = await getCollectionData(handle);

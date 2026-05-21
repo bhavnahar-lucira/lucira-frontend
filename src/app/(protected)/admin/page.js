@@ -13,10 +13,13 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
 
 export default function CustomerDashboard() {
-  const user = useSelector(selectUser);
+  const { user, accessToken } = useSelector((state) => state.user);
   const [orders, setOrders] = useState([]);
+  // ... (keep stats state)
   const [stats, setStats] = useState({
     points: "0",
     tier: "Member",
@@ -29,19 +32,33 @@ export default function CustomerDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [ordersRes, statsRes] = await Promise.all([
-          fetch("/api/customer/orders"),
-          fetch("/api/customer/dashboard-stats")
-        ]);
+        const statsData = await apiFetch("/api/customer/dashboard-stats");
+        if (statsData) setStats(statsData);
 
-        if (ordersRes.ok) {
-          const ordersData = await ordersRes.json();
-          setOrders(ordersData.orders || []);
-        }
+        if (accessToken) {
+          const data = await shopifyStorefrontFetch(CUSTOMER_ORDERS_QUERY, {
+            customerAccessToken: accessToken,
+            first: 5
+          });
 
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats(statsData);
+          const storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
+            const mainItem = node.lineItems?.edges?.[0]?.node;
+            return {
+              id: node.id,
+              orderNumber: node.orderNumber.toString(),
+              date: new Date(node.processedAt).toLocaleDateString('en-IN', {
+                year: 'numeric', month: 'long', day: 'numeric'
+              }),
+              status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
+                      node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+              amount: new Intl.NumberFormat('en-IN', {
+                style: 'currency', currency: node.totalPrice.currencyCode,
+              }).format(node.totalPrice.amount),
+              product: mainItem?.title || "Jewelry Item",
+              image: mainItem?.variant?.image?.url || "/images/product/1.jpg"
+            };
+          }) || [];
+          setOrders(storefrontOrders);
         }
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -49,9 +66,8 @@ export default function CustomerDashboard() {
         setLoading(false);
       }
     }
-
     fetchData();
-  }, []);
+  }, [accessToken]);
 
   const fName = user?.first_name || user?.firstName || "";
   const lName = user?.last_name || user?.lastName || "";

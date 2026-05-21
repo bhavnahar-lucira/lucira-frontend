@@ -90,6 +90,8 @@ function ReviewCard({ item, onClick, isMobile }) {
   );
 }
 
+import { fetchNectorReviews } from "@/lib/nector";
+
 export default function CustomerReview({
   title = "Why Our Customers Love Us",
   subtitle,
@@ -107,10 +109,20 @@ export default function CustomerReview({
   useEffect(() => {
     async function fetchReviews() {
       try {
-        const response = await fetch(`/api/home-reviews`);
-        const data = await response.json();
-        // The API returns { reviews: [...] }
-        setReviews(data?.reviews || []);
+        const data = await fetchNectorReviews();
+        // Map Nector structure to the one expected by this component
+        const mapped = (data?.items || []).map(r => ({
+           id: r.id,
+           userName: r.name,
+           rating: r.rating,
+           text: r.text,
+           date: r.date,
+           productTitle: r.title,
+           productImage: r.reference_product_image || "/images/product/1.jpg",
+           images: r.images,
+           videos: r.videos
+        }));
+        setReviews(mapped);
       } catch (error) {
         console.error("Error fetching reviews:", error);
         setReviews([]);

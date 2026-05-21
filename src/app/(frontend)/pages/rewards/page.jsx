@@ -6,6 +6,7 @@ import { AuthDialog } from "@/components/auth/AuthDialog";
 import { setReferralLink, setReferralLoading, setReferralError } from "@/redux/features/user/userSlice";
 import { toast } from "react-toastify";
 import FAQ from "@/components/common/FAQ";
+import { apiFetch } from "@/lib/api";
 
 export default function RewardsPage() {
     const howItWorks = [
@@ -109,19 +110,14 @@ export default function RewardsPage() {
             dispatch(
                 setReferralLoading(true)
             );
-            const response = await fetch("/api/customer/referral",
+            const data = await apiFetch("/api/customer/referral",
                 {
                     method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
                     body: JSON.stringify({
                         customerId: user.id
                     })
                 }
             );
-            const data = await response.json();
             if (data.referralLink) {
                 dispatch(
                     setReferralLink(

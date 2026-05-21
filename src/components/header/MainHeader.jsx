@@ -18,6 +18,7 @@ import {
   clearWishlist,
 } from "@/redux/features/wishlist/wishlistSlice";
 import { useDebounce } from "@/hooks/useDebounce";
+import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
@@ -150,12 +151,9 @@ export default function MainHeader() {
     // Fetch avatar if user is logged in but avatar is not in state
     const fetchUserAvatar = async () => {
       try {
-        const res = await fetch("/api/customer/profile/avatar");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.avatar) {
-            dispatch(setAvatar(data.avatar));
-          }
+        const data = await apiFetch("/api/customer/profile/avatar");
+        if (data.avatar) {
+          dispatch(setAvatar(data.avatar));
         }
       } catch (err) {
         console.error("Header avatar fetch error:", err);
@@ -184,8 +182,7 @@ export default function MainHeader() {
       if (debouncedSearchQuery.length > 1) {
         setIsSearching(true);
         try {
-          const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchQuery)}`);
-          const data = await res.json();
+          const data = await apiFetch(`/api/search?q=${encodeURIComponent(debouncedSearchQuery)}`);
           setSearchResults(data.results || []);
         } catch (err) {
           console.error("Search error:", err);
@@ -222,7 +219,7 @@ export default function MainHeader() {
           email: user?.email || ""
         });
       //gtm
-      await fetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { method: "POST" });
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {

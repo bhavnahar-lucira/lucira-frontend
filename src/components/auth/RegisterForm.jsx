@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { motion, useAnimation } from "framer-motion";
 import {
+  apiFetch,
   registerCustomer,
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
@@ -112,11 +113,8 @@ export function RegisterForm({ initialMobile = "" }) {
     );
 
     try {
-      const avRes = await fetch("/api/customer/profile/avatar");
-      if (avRes.ok) {
-        const avData = await avRes.json();
-        if (avData.avatar) dispatch(setAvatar(avData.avatar));
-      }
+      const avData = await apiFetch("/api/customer/profile/avatar");
+      if (avData.avatar) dispatch(setAvatar(avData.avatar));
     } catch (err) {}
 
     try {

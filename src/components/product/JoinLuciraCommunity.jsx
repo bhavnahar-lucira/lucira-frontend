@@ -9,6 +9,8 @@ import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
 import { pushNewsletterSubscription } from "@/lib/gtm";
 
+import { apiFetch } from "@/lib/api";
+
 export function JoinLuciraCommunity() {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [email, setEmail] = useState("");
@@ -30,17 +32,12 @@ export function JoinLuciraCommunity() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/newsletter", {
+      const data = await apiFetch("/api/newsletter", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         // GTM tracking
         pushNewsletterSubscription(email);
 
@@ -51,7 +48,7 @@ export function JoinLuciraCommunity() {
       }
     } catch (error) {
       console.error("Subscription error:", error);
-      toast.error("An error occurred. Please try again later.");
+      toast.error(error.message || "An error occurred. Please try again later.");
     } finally {
       setLoading(false);
     }

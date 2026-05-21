@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { CheckCircle2, Clock, Loader2, AlertCircle, Calendar } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { apiFetch } from "@/lib/api";
 
 const CRON_SCHEDULE = [
   { hour: 8, minute: 0, label: "8:00 AM IST" },
@@ -19,8 +20,7 @@ export default function SyncStatusMonitor() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch("/api/sync-status");
-      const data = await res.json();
+      const data = await apiFetch("/api/sync-status");
       setSyncStatus(data);
     } catch (e) {
       console.error("Failed to fetch sync status", e);

@@ -312,6 +312,10 @@ export default function PaymentPage() {
     };
   }, [dispatch]);
 
+import { apiFetch } from "@/lib/api";
+
+// ... elsewhere ...
+
   useEffect(() => {
     const checkDelivery = async () => {
       if (typeof window === "undefined") return;
@@ -325,8 +329,7 @@ export default function PaymentPage() {
       const selection = JSON.parse(selectionStr);
       if (selection.deliveryMethod === "ship" && selection.selectedAddress?.zip) {
         try {
-          const res = await fetch(`/api/pincodes/check?pincode=${selection.selectedAddress.zip.trim()}`);
-          const data = await res.json();
+          const data = await apiFetch(`/api/pincodes/check?pincode=${selection.selectedAddress.zip.trim()}`);
           if (!data.deliverable) {
             toast.error("We are not delivering to this pincode. Redirecting to shipping...");
             router.push("/checkout/shipping");

@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   user: null,
+  accessToken: null,
   isAuthenticated: false,
   isAuthModalOpen: false,
   authRedirectPath: null,
@@ -17,7 +18,12 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     login: (state, action) => {
-      state.user = action.payload;
+      if (action.payload.user) {
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken || null;
+      } else {
+        state.user = action.payload;
+      }
       state.isAuthenticated = true;
       state.isAuthModalOpen = false;
     },
@@ -31,6 +37,7 @@ const userSlice = createSlice({
     },
     logout: (state) => {
       state.user = null;
+      state.accessToken = null;
       state.isAuthenticated = false;
     },
     setAvatar: (state, action) => {

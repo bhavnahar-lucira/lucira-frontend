@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import {
   ShoppingBag, ChevronRight, Package, Truck,
   CheckCircle2, Clock, Loader2, ChevronDown, RefreshCcw
@@ -8,8 +9,10 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
+import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
 
 export default function MyOrdersPage() {
+  const { accessToken } = useSelector((state) => state.user);
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,22 +22,51 @@ export default function MyOrdersPage() {
 
   useEffect(() => {
     async function fetchOrders() {
+      if (!accessToken) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const res = await fetch("/api/customer/orders");
-        if (res.ok) {
-          const data = await res.json();
-          setOrders(data.orders || []);
-          setFilteredOrders(data.orders || []);
-        }
+        const data = await shopifyStorefrontFetch(CUSTOMER_ORDERS_QUERY, {
+          customerAccessToken: accessToken,
+          first: 20
+        });
+
+        const storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
+          const mainItem = node.lineItems?.edges?.[0]?.node;
+          return {
+            id: node.id,
+            orderNumber: node.orderNumber.toString(),
+            date: new Date(node.processedAt).toLocaleDateString('en-IN', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
+                    node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+            amount: new Intl.NumberFormat('en-IN', {
+              style: 'currency',
+              currency: node.totalPrice.currencyCode,
+            }).format(node.totalPrice.amount),
+            product: mainItem?.title || "Jewelry Item",
+            image: mainItem?.variant?.image?.url || "/images/product/1.jpg",
+            customerEmail: data?.customer?.email || ""
+          };
+        }) || [];
+
+        setOrders(storefrontOrders);
+        setFilteredOrders(storefrontOrders);
       } catch (err) {
+        console.error("Storefront Orders Error:", err);
         toast.error("Failed to load orders");
       } finally {
         setLoading(false);
       }
     }
     fetchOrders();
-  }, []);
+  }, [accessToken]);
 
   const handleReturnClick = async (e, order) => {
     e.preventDefault();
@@ -45,15 +77,13 @@ export default function MyOrdersPage() {
 
     try {
       setReturnLoading(order.id);
-      const res = await fetch('/api/customer/returns', {
+      const data = await apiFetch('/api/customer/returns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderNumber: order.orderNumber,
           customerEmail: order.customerEmail,
         }),
       });
-      const data = await res.json();
       if (data.success) {
         window.location.href = data.url;
       } else {
@@ -64,7 +94,7 @@ export default function MyOrdersPage() {
     } finally {
       setReturnLoading(null);
     }
-  };
+    };
 
   useEffect(() => {
     let result = orders;

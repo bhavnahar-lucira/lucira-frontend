@@ -38,6 +38,7 @@ import {
 import { pushProductClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
+import { apiFetch } from "@/lib/api";
 
 const clientReviewStatsCache = new Map();
 
@@ -310,8 +311,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const res = await fetch(`/api/products/similar?handle=${product.handle}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/products/similar?handle=${product.handle}`);
       setSimilarProducts(data.products || []);
     } catch (e) { console.error("Failed to fetch similar products", e); } finally { setLoadingSimilar(false); }
   };

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Plus, Trash2, Save, MoveUp, MoveDown, Package, X, Loader2, Target, ExternalLink, Upload } from "lucide-react";
 import Image from "next/image";
 import { uploadToShopify } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 
 export default function CuratedLooksDashboard() {
   const [looks, setLooks] = useState([]);
@@ -22,8 +23,7 @@ export default function CuratedLooksDashboard() {
 
   const fetchLooks = async () => {
     try {
-      const res = await fetch("/api/curated-looks");
-      const data = await res.json();
+      const data = await apiFetch("/api/curated-looks");
       if (data.success) {
         setLooks(data.looks || []);
       }
@@ -37,12 +37,10 @@ export default function CuratedLooksDashboard() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/curated-looks", {
+      const data = await apiFetch("/api/curated-looks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(looks),
       });
-      const data = await res.json();
       if (data.success) {
         alert("Curated looks saved successfully!");
       } else {
@@ -133,8 +131,7 @@ export default function CuratedLooksDashboard() {
     }
     setSearching(true);
     try {
-      const res = await fetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=5`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=5`);
       setSearchResults(data.products || []);
     } catch (err) {
       console.error("Search error", err);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSelector } from "react-redux";
 import {
   MapPin,
   Plus,
@@ -22,13 +23,14 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "react-toastify";
 import { cn } from "@/lib/utils";
-import {
-  fetchCustomerAddresses,
-  deleteCustomerAddress,
-  selectDefaultCustomerAddress,
-  createCustomerAddress,
-  updateCustomerAddress,
-} from "@/lib/api";
+import { 
+  shopifyStorefrontFetch, 
+  CUSTOMER_QUERY,
+  ADDRESS_CREATE_MUTATION,
+  ADDRESS_UPDATE_MUTATION,
+  ADDRESS_DELETE_MUTATION,
+  ADDRESS_DEFAULT_UPDATE_MUTATION
+} from "@/lib/shopify-client";
 
 const emptyAddressForm = {
   firstName: "",
@@ -41,18 +43,26 @@ const emptyAddressForm = {
   zip: "",
   country: "India",
   phone: "",
-  gstin: "",
 };
 
 function normalizeAddressForm(address = {}) {
   return {
     ...emptyAddressForm,
-    ...address,
+    firstName: address.firstName || "",
+    lastName: address.lastName || "",
+    company: address.company || "",
+    address1: address.address1 || "",
+    address2: address.address2 || "",
+    city: address.city || "",
+    province: address.province || "",
+    zip: address.zip || "",
     country: address.country || "India",
+    phone: address.phone || "",
   };
 }
 
 export default function SavedAddressesPage() {
+  const { accessToken } = useSelector((state) => state.user);
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,16 +75,26 @@ export default function SavedAddressesPage() {
   const [showErrors, setShowErrors] = useState(false);
 
   const loadAddresses = useCallback(async () => {
+    if (!accessToken) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const payload = await fetchCustomerAddresses();
-      setAddresses(payload.addresses || []);
+      const data = await shopifyStorefrontFetch(CUSTOMER_QUERY, { customerAccessToken: accessToken });
+      const customer = data?.customer;
+      const defaultId = customer?.defaultAddress?.id;
+      const mapped = customer?.addresses?.edges?.map(({ node }) => ({
+        ...node,
+        isDefault: node.id === defaultId
+      })) || [];
+      setAddresses(mapped);
     } catch (error) {
-      toast.error(error.message || "Unable to load addresses");
+      toast.error("Unable to load addresses");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     loadAddresses();
@@ -105,33 +125,50 @@ export default function SavedAddressesPage() {
       return;
     }
 
-    // Phone validation: exactly 10 digits
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(addressForm.phone)) {
-      setShowErrors(true);
-      toast.error("Please enter a valid 10-digit phone number");
-      return;
-    }
-
-    // ZIP/PIN validation: exactly 6 digits (India)
-    const zipRegex = /^[0-9]{6}$/;
-    if (!zipRegex.test(addressForm.zip)) {
-      setShowErrors(true);
-      toast.error("Please enter a valid 6-digit PIN code");
-      return;
-    }
-
     try {
       setSaving(true);
+      const addressInput = {
+        firstName: addressForm.firstName,
+        lastName: addressForm.lastName,
+        address1: addressForm.address1,
+        address2: addressForm.address2,
+        city: addressForm.city,
+        province: addressForm.province,
+        zip: addressForm.zip,
+        country: addressForm.country,
+        phone: addressForm.phone,
+      };
+
       if (dialogMode === "create") {
-        await createCustomerAddress({ address: addressForm, makeDefault });
+        const res = await shopifyStorefrontFetch(ADDRESS_CREATE_MUTATION, {
+          customerAccessToken: accessToken,
+          address: addressInput
+        });
+        if (res?.customerAddressCreate?.customerUserErrors?.length > 0) {
+          throw new Error(res.customerAddressCreate.customerUserErrors[0].message);
+        }
+        if (makeDefault && res?.customerAddressCreate?.customerAddress?.id) {
+          await shopifyStorefrontFetch(ADDRESS_DEFAULT_UPDATE_MUTATION, {
+            customerAccessToken: accessToken,
+            addressId: res.customerAddressCreate.customerAddress.id
+          });
+        }
         toast.success("Address added successfully");
       } else {
-        await updateCustomerAddress({
-          addressId: editingAddressId,
-          address: addressForm,
-          makeDefault,
+        const res = await shopifyStorefrontFetch(ADDRESS_UPDATE_MUTATION, {
+          customerAccessToken: accessToken,
+          id: editingAddressId,
+          address: addressInput
         });
+        if (res?.customerAddressUpdate?.customerUserErrors?.length > 0) {
+          throw new Error(res.customerAddressUpdate.customerUserErrors[0].message);
+        }
+        if (makeDefault) {
+          await shopifyStorefrontFetch(ADDRESS_DEFAULT_UPDATE_MUTATION, {
+            customerAccessToken: accessToken,
+            addressId: editingAddressId
+          });
+        }
         toast.success("Address updated successfully");
       }
       setDialogOpen(false);
@@ -152,7 +189,13 @@ export default function SavedAddressesPage() {
 
     if (!confirm("Are you sure you want to remove this address?")) return;
     try {
-      await deleteCustomerAddress(id);
+      const res = await shopifyStorefrontFetch(ADDRESS_DELETE_MUTATION, {
+        customerAccessToken: accessToken,
+        id
+      });
+      if (res?.customerAddressDelete?.customerUserErrors?.length > 0) {
+        throw new Error(res.customerAddressDelete.customerUserErrors[0].message);
+      }
       toast.error("Address removed successfully", {
         icon: <Check className="w-4 h-4" />
       });
@@ -164,7 +207,13 @@ export default function SavedAddressesPage() {
 
   const handleSetDefault = async (id) => {
     try {
-      await selectDefaultCustomerAddress(id);
+      const res = await shopifyStorefrontFetch(ADDRESS_DEFAULT_UPDATE_MUTATION, {
+        customerAccessToken: accessToken,
+        addressId: id
+      });
+      if (res?.customerDefaultAddressUpdate?.customerUserErrors?.length > 0) {
+        throw new Error(res.customerDefaultAddressUpdate.customerUserErrors[0].message);
+      }
       toast.success("Default address updated");
       loadAddresses();
     } catch (error) {
@@ -175,7 +224,6 @@ export default function SavedAddressesPage() {
   return (
     <div className="font-figtree space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 outline-none">
 
-      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-figtree text-xl md:text-2xl font-bold text-zinc-900 tracking-tight mb-1">
@@ -194,7 +242,6 @@ export default function SavedAddressesPage() {
         </button>
       </div>
 
-      {/* ── Loading ── */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 md:py-20 space-y-4 bg-white rounded-[2rem] md:rounded-[3rem] border border-zinc-100">
           <Loader2 className="size-8 md:size-10 animate-spin text-primary" />
@@ -204,8 +251,6 @@ export default function SavedAddressesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 items-stretch">
-
-          {/* ── Address Cards ── */}
           {addresses.map((address) => (
             <div
               key={address.id}
@@ -215,7 +260,6 @@ export default function SavedAddressesPage() {
                   : "border-zinc-100 hover:border-zinc-200 shadow-sm"
               }`}
             >
-              {/* Default badge */}
               {address.isDefault && (
                 <div className="absolute -top-3 left-5 px-3 py-1 bg-primary text-white text-[8px] font-semibold uppercase tracking-[0.12em] rounded-full shadow-lg shadow-primary/20 flex items-center gap-1">
                   <CheckCircle2 size={9} />
@@ -224,7 +268,6 @@ export default function SavedAddressesPage() {
               )}
 
               <div className="space-y-4">
-                {/* Icon + Action buttons */}
                 <div className="flex items-start justify-between">
                   <div className="size-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 group-hover:bg-primary group-hover:text-white transition-colors duration-500">
                     <MapPin size={19} />
@@ -245,7 +288,6 @@ export default function SavedAddressesPage() {
                   </div>
                 </div>
 
-                {/* Name + Address */}
                 <div className="space-y-1">
                   <h3 className="font-figtree text-sm md:text-base font-semibold text-zinc-900 line-clamp-1">
                     {[address.firstName, address.lastName].filter(Boolean).join(" ")}
@@ -257,7 +299,6 @@ export default function SavedAddressesPage() {
                   </p>
                 </div>
 
-                {/* Footer: phone + set default */}
                 <div className="pt-3 border-t border-zinc-50 flex items-center justify-between">
                   <span className="font-figtree text-[9px] font-semibold text-zinc-300 uppercase tracking-[0.12em]">
                     {address.phone || "No phone"}
@@ -275,7 +316,6 @@ export default function SavedAddressesPage() {
             </div>
           ))}
 
-          {/* ── Empty State ── */}
           {addresses.length === 0 && (
             <div className="col-span-full py-16 md:py-20 text-center space-y-5 md:space-y-6 bg-white rounded-[2rem] md:rounded-[3rem] border-2 border-dashed border-zinc-100">
               <div className="size-16 md:size-20 bg-zinc-50 text-zinc-300 rounded-3xl flex items-center justify-center mx-auto">
@@ -300,14 +340,9 @@ export default function SavedAddressesPage() {
         </div>
       )}
 
-      {/* ── Address Dialog ── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl p-0 rounded-[1.5rem] sm:rounded-[2rem] border-none shadow-2xl flex flex-col max-h-[90vh] lg:max-h-[85vh] overflow-hidden w-[95vw] sm:w-full mx-auto">
-
-          {/* Scrollable Form Body */}
           <div className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
-
-            {/* Dialog Header */}
             <div className="flex items-start justify-between gap-4 shrink-0">
               <div>
                 <DialogTitle className="font-figtree text-xl md:text-2xl font-bold text-zinc-900 tracking-tight">
@@ -319,7 +354,6 @@ export default function SavedAddressesPage() {
               </div>
             </div>
 
-            {/* Form Fields */}
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div className="space-y-1">
@@ -423,7 +457,6 @@ export default function SavedAddressesPage() {
                 </div>
               </div>
 
-              {/* Make Default Checkbox */}
               <div className="flex items-center gap-3 p-4 bg-zinc-50 rounded-2xl">
                 <Checkbox
                   id="make-default"
@@ -441,7 +474,6 @@ export default function SavedAddressesPage() {
             </div>
           </div>
 
-          {/* Sticky Footer */}
           <div className="px-6 py-4 md:py-5 bg-zinc-50 border-t border-zinc-100 flex items-center justify-end gap-3 shrink-0">
             <Button
               variant="outline"

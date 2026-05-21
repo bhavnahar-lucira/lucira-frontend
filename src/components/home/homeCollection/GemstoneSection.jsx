@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
+import { apiFetch } from "@/lib/api";
 
 const DEFAULT_TABS = [
   "All",
@@ -24,8 +25,7 @@ export default function GemstoneSection() {
     async function fetchGemstoneCategories() {
       setTabsLoading(true);
       try {
-        const res = await fetch(`/api/products/filters?q=gemstone`);
-        const data = await res.json();
+        const data = await apiFetch(`/api/products/filters?q=gemstone`);
         const categories = (data["Product Category"] || [])
           .map((option) => option.label || option.value)
           .filter(Boolean);
@@ -52,31 +52,28 @@ export default function GemstoneSection() {
         setTabsLoading(false);
       }
     }
-
     fetchGemstoneCategories();
   }, []);
 
   useEffect(() => {
-    async function fetchGemstones() {
+    async function fetchGemstoneProducts() {
       setLoading(true);
       try {
-        const filterParam = activeTab === "All"
-          ? ""
-          : `&filter.p.product_type=${encodeURIComponent(activeTab)}`;
-
-        const res = await fetch(`/api/products/search?q=gemstone&limit=20${filterParam}`);
-        const data = await res.json();
+        const filterParam = activeTab !== "All" ? `&filter.p.product_type=${encodeURIComponent(activeTab)}` : "";
+        const data = await apiFetch(`/api/products/search?q=gemstone&limit=20${filterParam}`);
         if (data.products) {
           setProducts(data.products);
+        } else {
+          setProducts([]);
         }
       } catch (error) {
         console.error("Failed to fetch gemstone products:", error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
     }
-
-    fetchGemstones();
+    fetchGemstoneProducts();
   }, [activeTab]);
 
   return (

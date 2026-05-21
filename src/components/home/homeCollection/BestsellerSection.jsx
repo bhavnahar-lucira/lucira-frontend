@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
+import { apiFetch } from "@/lib/api";
 
 export default function BestsellerSection() {
   const [products, setProducts] = useState([]);
@@ -13,8 +14,7 @@ export default function BestsellerSection() {
     async function fetchBestsellers() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/products/bestsellers?tab=${activeTab}`);
-        const data = await res.json();
+        const data = await apiFetch(`/api/products/bestsellers?tab=${activeTab}`);
         if (data.products) {
           setProducts(data.products);
         }

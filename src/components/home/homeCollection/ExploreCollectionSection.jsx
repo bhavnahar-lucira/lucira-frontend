@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
+import { apiFetch } from "@/lib/api";
 
 const COLLECTION_HANDLE_MAP = {
   "On The Move": "sports-collection",
@@ -22,8 +23,7 @@ export default function ExploreCollectionSection() {
     async function fetchCollectionProducts() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/products/search?handle=${encodeURIComponent(activeHandle)}&limit=20`);
-        const data = await res.json();
+        const data = await apiFetch(`/api/products/search?handle=${encodeURIComponent(activeHandle)}&limit=20`);
         if (data.products) {
           setProducts(data.products);
         } else {

@@ -29,6 +29,7 @@ import {
 import { pushProductImpression } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
+import { apiFetch } from "@/lib/api";
 
 const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad"];
 
@@ -292,10 +293,7 @@ export default function CollectionPage({ params: paramsPromise }) {
         const apiUrl = `/api/collection?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}`;
         console.log("Fetching from API:", apiUrl);
 
-        const collRes = await fetch(apiUrl);
-        if (!collRes.ok) throw new Error("Failed to fetch collection");
-        
-        const collData = await collRes.json();
+        const collData = await apiFetch(apiUrl);
         setCollection({
           title: collData.collection?.title || handle.replace(/-/g, " "),
           description: collData.collection?.description || ""
@@ -304,12 +302,12 @@ export default function CollectionPage({ params: paramsPromise }) {
         setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
         setTotalCount(collData.totalProducts || 0);
 
-        const dbRes = await fetch(`/api/collection/metadata?handle=${handle}`);
-        const dbData = await dbRes.json();
-        if (dbData.success) setDbCollection(dbData.collection);
+        try {
+          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
+          if (dbData.success) setDbCollection(dbData.collection);
+        } catch(e) {}
 
-        const filtersRes = await fetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
-        const filtersData = await filtersRes.json();
+        const filtersData = await apiFetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
 
         // Apply Master-style merging and sorting
         const mergedData = {};
@@ -372,8 +370,7 @@ export default function CollectionPage({ params: paramsPromise }) {
     setIsFetchingNextPage(true);
     try {
       const sort = searchParams.get("sort") || "best_selling";
-      const res = await fetch(`/api/collection?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/collection?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
       setProducts(prev => [...prev, ...(data.products || [])]);
       setPagination(data.pageInfo || { hasNextPage: false, endCursor: null });
       // Update totalCount from response to ensure it reflects filtered results
@@ -531,7 +528,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                         {isExpanded && (
                           <div className="space-y-4 my-2 pb-5">
                             {Array.isArray(options) && options.map((opt) => (
-                              <div key={opt.value} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
+                              <div key={opt.label} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
                                 <input type="checkbox" checked={searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)} onChange={() => {}} className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" />
                                 <label className="flex-1 cursor-pointer flex justify-between items-center"><span>{opt.label}</span><span className="text-gray-400 text-xs">({opt.count})</span></label>
                               </div>
@@ -571,7 +568,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                     )
                   ) : (
                     Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).map((opt) => (
-                      <Badge key={`${groupKey}-${opt.value}`} variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
+                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
                         <span className="text-xs font-medium">{opt.label.split(" (")[0]}</span>
                         <XIcon className="size-3" />
                       </Badge>
@@ -735,7 +732,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                         availableFilters[activeMobileGroup].map((option) => {
                           const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(option.value);
                           return (
-                            <div key={option.value} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value)}>
+                            <div key={option.label} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value)}>
                               <div className="flex items-center gap-3">
                                 {isSelected ? <div className="w-4 h-4 bg-[#5a413f] rounded flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-4 h-4 border border-gray-300 rounded group-hover:border-[#5a413f]" />}
                                 <span className={`text-[13px] ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>

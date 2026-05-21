@@ -11,6 +11,7 @@ import { pushLogin, pushSignup } from "@/lib/gtm";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 import {
+  apiFetch,
   sendOtpApi,
   verifyOtpApi,
   registerCustomer,
@@ -130,12 +131,9 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
 
     // Fetch avatar immediately after login
     try {
-      const avRes = await fetch("/api/customer/profile/avatar");
-      if (avRes.ok) {
-        const avData = await avRes.json();
-        if (avData.avatar) {
-          dispatch(setAvatar(avData.avatar));
-        }
+      const avData = await apiFetch("/api/customer/profile/avatar");
+      if (avData.avatar) {
+        dispatch(setAvatar(avData.avatar));
       }
     } catch (err) {
       console.error("Avatar fetch error on login:", err);

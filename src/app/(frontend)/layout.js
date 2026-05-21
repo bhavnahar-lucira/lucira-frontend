@@ -5,11 +5,16 @@ import PopularSearches from "@/components/common/PopularSearches";
 import VisitorTracking from "@/components/common/VisitorTracking";
 import HomeInformationContent from "@/components/common/HomeInformationContent";
 import FloatingActionButton from "@/components/common/FloatingActionButton";
+import { getMenu } from "@/lib/menus";
 
-export default function FrontendLayout({ children }) {
+export const revalidate = false; // SSG for the layout and menu
+
+export default async function FrontendLayout({ children }) {
+  const menuData = await getMenu("main-menu-official");
+
   return (
     <>
-      <Header />
+      <Header menuData={menuData} />
       <VisitorTracking />
       {children}
       <Footer />

@@ -361,11 +361,14 @@ export default function ShippingPage() {
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
   }, [cartItems, totalAmount, appliedCoupon, nectorPoints]);
 
+import { apiFetch } from "@/lib/api";
+
+// ... elsewhere ...
+
   useEffect(() => {
     const fetchStores = async () => {
       try {
-        const res = await fetch("/api/stores");
-        const data = await res.json();
+        const data = await apiFetch("/api/stores");
         if (data.stores) {
           const mappedStores = data.stores.map(s => ({
             id: s.shopifyId,
@@ -546,8 +549,7 @@ export default function ShippingPage() {
   const checkPincodeDeliverability = async (pincode) => {
     if (!pincode) return false;
     try {
-      const res = await fetch(`/api/pincodes/check?pincode=${pincode.trim()}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/pincodes/check?pincode=${pincode.trim()}`);
       return data.success && data.deliverable;
     } catch (err) {
       console.error("Pincode check failed:", err);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
+import { apiFetch } from "@/lib/api";
 import {
   setReferralLink,
   setReferralLoading,
@@ -53,12 +54,10 @@ export default function ReferralPage() {
   async function fetchReferralLink() {
     try {
       dispatch(setReferralLoading(true));
-      const response = await fetch("/api/customer/referral", {
+      const data = await apiFetch("/api/customer/referral", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customerId: user.id }),
       });
-      const data = await response.json();
       if (data.referralLink) {
         dispatch(setReferralLink(data.referralLink));
       }
@@ -73,10 +72,9 @@ export default function ReferralPage() {
     try {
       setLoadingStats(true);
       const numericId = user.id.toString().split("/").pop();
-      const res = await fetch(
+      const data = await apiFetch(
         `/api/customer/referral/history?customer_id=shopify-${numericId}`
       );
-      const data = await res.json();
       if (data.status) {
         setStats({
           total_referrals: data.total_referrals || 0,

@@ -46,6 +46,8 @@ import {
 } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 
+import { apiFetch } from "@/lib/api";
+
 function SidebarNav({ pathname, handleSignOut, setSheetOpen }) {
   return (
     <div className="flex flex-col h-full bg-white">
@@ -102,11 +104,8 @@ export default function CustomerDashboardLayout({ children }) {
   useEffect(() => {
     async function fetchAvatar() {
       try {
-        const res = await fetch(`/api/customer/profile/avatar?t=${Date.now()}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.avatar) setAvatar(data.avatar);
-        }
+        const data = await apiFetch(`/api/customer/profile/avatar?t=${Date.now()}`);
+        if (data.avatar) setAvatar(data.avatar);
       } catch (err) {
         console.error("Layout avatar fetch error", err);
       }
@@ -120,7 +119,7 @@ export default function CustomerDashboardLayout({ children }) {
 
   const handleSignOut = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { method: "POST" });
       dispatch(logout());
       router.push("/login");
     } catch (err) {

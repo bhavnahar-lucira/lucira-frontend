@@ -26,6 +26,8 @@ export async function generateMetadata({ params }) {
   };
 }
 
+export const revalidate = false; // SSG
+
 export default async function Page({ params }) {
   const { handle } = await params;
 

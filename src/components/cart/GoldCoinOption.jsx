@@ -3,6 +3,7 @@
 import { useCart } from "@/hooks/useCart";
 import { Loader2, Check, Coins, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 export const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
@@ -12,8 +13,7 @@ export default function GoldCoinOption() {
   const [globalConfig, setGlobalConfig] = useState({ enabled: false, threshold: 20000 });
 
   useEffect(() => {
-    fetch("/api/settings/gold-coin")
-      .then(res => res.json())
+    apiFetch("/api/settings/gold-coin")
       .then(data => {
         setGlobalConfig({
           enabled: data.enabled ?? false,

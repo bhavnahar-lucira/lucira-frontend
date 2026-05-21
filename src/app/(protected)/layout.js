@@ -4,35 +4,39 @@ import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { logout } from "@/redux/features/user/userSlice";
+import { apiFetch } from "@/lib/api";
+import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
 
 export default function ProtectedLayout({ children }) {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector(
+  const { isAuthenticated, accessToken } = useSelector(
     (state) => state.user
   );
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login");
-    } else {
-      // Verify session with backend
+    } else if (accessToken) {
+      // Verify session with Storefront API
       const checkSession = async () => {
         try {
-          const res = await fetch("/api/customer/profile");
-          if (!res.ok) {
-            if (res.status === 401 || res.status === 404) {
-              dispatch(logout());
-              router.push("/login");
-            }
+          const data = await shopifyStorefrontFetch(CUSTOMER_QUERY, {
+            customerAccessToken: accessToken
+          });
+          
+          if (!data?.customer) {
+            throw new Error("Invalid session");
           }
         } catch (err) {
           console.error("Session verification failed:", err);
+          dispatch(logout());
+          router.push("/login");
         }
       };
       checkSession();
     }
-  }, [isAuthenticated, router, dispatch]);
+  }, [isAuthenticated, accessToken, router, dispatch]);
 
   if (!isAuthenticated) return null;
 
