@@ -10,7 +10,7 @@ export default function NoteFromFounder() {
           {/* Left Column: Image */}
           <div className="relative aspect-4/3 md:aspect-auto">
             <LazyImage
-              src="/images/founder.jpg" // Using existing founder placeholder image
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/founder_Rupesh_Jain.jpg" // Using existing founder placeholder image
               alt="Rupesh Jain - Founder & CEO"
               fill
               sizes="(max-width: 768px) 100vw, 50vw"

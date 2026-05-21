@@ -34,7 +34,7 @@ export default function Footer() {
           {/* LOGO & TAGLINE */}
           <div className="mb-10 text-center">
             <Image
-              src="/images/footer-logo.svg"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/footer-logo.svg"
               alt="Lucira"
               width={50}
               height={100}
@@ -217,7 +217,7 @@ export default function Footer() {
           <div className="text-center">
             <div className="mb-4 opacity-75">
               <Image
-                src="/images/footer-logo.svg"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/footer-logo.svg"
                 alt="Lucira"
                 width={90}
                 height={165}

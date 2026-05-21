@@ -21,21 +21,21 @@ const WAYS = [
     title: "Virtual Shop",
     desc: "Shop live over video call view designs up close, compare pieces, and get expert guidance.",
     buttonText: "SCHEDULE VIDEO CALL",
-    image: "/images/explore/VirtualTryOn.jpg",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_VirtualTryOn.jpg",
     url: "https://wa.me/919004435760?text=Hi,%20I%20want%20to%20schedule%20video%20call%20"
   },
   {
     title: "Try At Home",
     desc: "Select your favorite pieces & try them at home before you decide, see the fit, finish in your own space.",
     buttonText: "BOOK HOME TRIAL",
-    image: "/images/explore/TryAtHome.jpg",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_TryAtHome.jpg",
     url: "https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20home%20trial%20"
   },
   {
     title: "Visit Our Store",
     desc: "Explore and try your favorite designs in person, with expert guidance from our in-store team.",
     buttonText: "BOOK APPOINTMENT",
-    image: "/images/explore/LuciraStore.jpg",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_LuciraStore.jpg",
     url: "https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment%20"
   }
 ];

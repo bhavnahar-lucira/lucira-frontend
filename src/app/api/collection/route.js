@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { shopifyStorefrontFetch, shopifyAdminFetch } from "@/lib/shopify";
+import { shopifyStorefrontFetch, shopifyAdminFetch, shopifyAdminRestFetch } from "@/lib/shopify";
 import { calculatePriceBreakup } from "@/lib/priceEngine";
 import { getServerCache, stableCacheKey } from "@/lib/serverCache";
 
@@ -70,31 +70,36 @@ const getCollectionTotalCount = async (handle) => {
     return collectionCountCache.get(cacheKey);
   }
 
-  const query = `
-    query CollectionProductCount($query: String!) {
-      collections(first: 1, query: $query) {
-        edges {
-          node {
-            productsCount { count }
-          }
+  try {
+    // 1. Get collection ID from handle
+    const collectionQuery = `
+      query GetCollectionId($handle: String!) {
+        collectionByHandle(handle: $handle) {
+          id
         }
       }
-    }
-  `;
+    `;
+    const collData = await shopifyAdminFetch(collectionQuery, { handle });
+    const gid = collData?.collectionByHandle?.id;
 
-  try {
-    const data = await shopifyAdminFetch(query, {
-      query: `handle:${handle}`,
+    if (!gid) return 0;
+
+    // 2. Get accurate count from REST API with status=active and published_status=published (Online Store)
+    const collectionId = gid.split("/").pop();
+    const countRes = await shopifyAdminRestFetch(`products/count.json`, {
+      collection_id: collectionId,
+      status: "active",
+      published_status: "published"
     });
 
-    const count =
-      data?.collections?.edges?.[0]?.node?.productsCount?.count ?? 0;
+    const count = countRes?.data?.count ?? 0;
 
     collectionCountCache.set(cacheKey, count);
     setTimeout(() => collectionCountCache.delete(cacheKey), 10 * 60 * 1000);
 
     return count;
   } catch (e) {
+    console.error("Failed to fetch collection count:", e);
     return 0;
   }
 };
@@ -610,7 +615,7 @@ export async function GET(req) {
     let totalProducts = await getCollectionTotalCount(handle);
     
     // 5. Extract total count from filters to respect active selections
-    if (productsData?.filters) {
+    if (finalFilters.length > 0 && productsData?.filters) {
       const availabilityFilter = productsData.filters.find(f => f.label === "Availability");
       if (availabilityFilter) {
         const count = availabilityFilter.values.reduce((sum, v) => sum + v.count, 0);

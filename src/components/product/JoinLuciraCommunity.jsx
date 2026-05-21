@@ -131,7 +131,7 @@ export function JoinLuciraCommunity() {
           <div className="flex h-64 w-full">
             <div className="w-1/2 relative">
               <LazyImage
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/subscribe-2_6402a239-1346-40d1-9ea4-bd006e45e7b7.jpg"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
                 alt="Community 1"
                 fill
                 className="object-cover"
@@ -139,7 +139,7 @@ export function JoinLuciraCommunity() {
             </div>
             <div className="w-1/2 relative">
               <LazyImage
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/subscribe-1_c04b465b-7a96-46ad-b598-661436560a1e.jpg"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-1.jpg"
                 alt="Community 2"
                 fill
                 className="object-cover"

@@ -30,14 +30,14 @@ export default function CartItem({ item, onAuthRequired }) {
   const [movingToWishlist, setMovingToWishlist] = useState(false);
 
   const wishlistKeys = useMemo(
-    () => wishlistItems.map((i) => `${i.productId}-${i.variantId || ""}`),
+    () => wishlistItems.map((i) => `${getNumericId(i.productId)}-${getNumericId(i.variantId || "")}`),
     [wishlistItems]
   );
 
   if (!item) return null;
 
   const productId = item.id || item.productId || item.handle;
-  const currentKey = `${productId}-${item.variantId || ""}`;
+  const currentKey = `${getNumericId(productId)}-${getNumericId(item.variantId || "")}`;
   const isWishlisted = productId ? wishlistKeys.includes(currentKey) : false;
 
   const variantOptions = Array.isArray(item.variantOptions) ? item.variantOptions : [];

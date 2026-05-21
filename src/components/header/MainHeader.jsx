@@ -127,16 +127,26 @@ export default function MainHeader() {
 
   useEffect(() => {
     dispatch(fetchCart({ userId: user?.id }));
+  }, [dispatch, user?.id]);
+
+  useEffect(() => {
+    // Handle Wishlist Sync
     if (user?.id) {
       if (wishlistItems.length === 0) {
         dispatch(mergeGuestWishlist());
       }
-    } else if (guestWishlistItems.length > 0) {
-      dispatch(restoreGuestWishlist());
     } else {
-      dispatch(clearWishlist());
+      if (guestWishlistItems.length > 0) {
+        if (wishlistItems.length !== guestWishlistItems.length) {
+          dispatch(restoreGuestWishlist());
+        }
+      } else if (wishlistItems.length > 0) {
+        dispatch(clearWishlist());
+      }
     }
+  }, [dispatch, user?.id, guestWishlistItems.length]);
 
+  useEffect(() => {
     // Fetch avatar if user is logged in but avatar is not in state
     const fetchUserAvatar = async () => {
       try {
@@ -165,7 +175,7 @@ export default function MainHeader() {
 
     window.addEventListener("profile-updated", handleProfileUpdate);
     return () => window.removeEventListener("profile-updated", handleProfileUpdate);
-  }, [dispatch, user?.id, user?.avatar, wishlistItems.length, guestWishlistItems.length]);
+  }, [dispatch, user?.id, user?.avatar]);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
@@ -237,7 +247,7 @@ export default function MainHeader() {
         {/* Logo */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/images/logo.svg"
+            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
             alt="Lucira Jewelry"
             width={100}
             height={40}
