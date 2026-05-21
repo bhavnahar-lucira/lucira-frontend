@@ -37,7 +37,7 @@ const STORE_IMAGES = {
   "chembur-store": ["/images/store/Chembur.jpg"],
   "noida-store": ["/images/store/Noida.jpg"],
   "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
-  "malad": ["/images/store/store.jpg"],
+  "malad": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg"],
 };
 
 const SORT_OPTIONS = [
