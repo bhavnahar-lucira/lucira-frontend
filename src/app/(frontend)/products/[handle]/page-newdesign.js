@@ -435,13 +435,13 @@ export default function ProductPage() {
                 title="Visit Our Store"
                 description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                 action="BOOK APPOINTMENT"
-                img="/images/store.jpg"
+                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/subscribe-1.jpg"
               />
               <ExploreCard
                 title="Try At Home"
                 description="Try your selected pieces from the comfort of your home. Available in all major cities"
                 action="BOOK HOME TRIAL"
-                img="/images/subscribe-2.jpg"
+                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/subscribe-2.jpg"
               />
               <Separator/>
             </div>
