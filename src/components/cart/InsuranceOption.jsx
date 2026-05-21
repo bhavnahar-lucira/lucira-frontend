@@ -28,7 +28,7 @@ export default function InsuranceOption() {
         productId: "gid://shopify/Product/9207163617498",
         variantId: INSURANCE_VARIANT_ID,
         title: "Insurance",
-        image: "/images/story-ring.jpg",
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/story-ring.jpg",
         price: INSURANCE_PRICE,
         quantity: otherItemsQuantity || 1,
         variantTitle: "Shipping Protection",
@@ -55,7 +55,7 @@ export default function InsuranceOption() {
     <div className="bg-white border border-accent/30 p-4 rounded-lg flex items-center gap-4 flex-wrap xl:flex-nowrap">
       <div className="relative size-24 shrink-0 rounded-xl overflow-hidden border border-zinc-100 w-full xl:w-24">
         <Image 
-          src="/images/story-ring.jpg" 
+          src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/story-ring.jpg" 
           alt="Insurance" 
           fill 
           className="object-cover"

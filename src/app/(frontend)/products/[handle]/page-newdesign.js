@@ -403,7 +403,7 @@ export default function ProductPage() {
                     <SwiperSlide key={i}>
                       <div className="bg-[#F9F9F9] border border-gray-100 rounded-xl p-5 flex items-center gap-5 h-full">
                         <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-sm shrink-0">
-                          <Image src="/images/story-ring.jpg" alt="gold coin" fill className="object-cover" />
+                          <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/story-ring.jpg" alt="gold coin" fill className="object-cover" unoptimized />
                         </div>
                         <div className="space-y-2">
                           <p className="text-lg font-semibold italic leading-tight">Complimentary Gold Coin</p>
