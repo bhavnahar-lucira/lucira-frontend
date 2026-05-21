@@ -46,7 +46,7 @@ const LazyImage = ({ src, alt, className, fill, width, height, priority, sizes, 
       {(!loaded || !isInView) && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#fafafa] z-[5]">
           <Image 
-            src="/images/loader.gif" 
+            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/loader.gif" 
             alt="Loading..." 
             width={24} 
             height={24} 

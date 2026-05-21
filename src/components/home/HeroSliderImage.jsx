@@ -52,12 +52,12 @@ export default function HeroBanner() {
 
             const { props: { srcSet: desktop } } = getImageProps({
               ...common,
-              src: `/images/heroslider/${slide.name}-Desktop.jpg`,
+              src: `https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-${slide.name}-Desktop.jpg`,
             });
 
             const { props: { srcSet: mobile, ...rest } } = getImageProps({
               ...common,
-              src: `/images/heroslider/${slide.name}-Mobile.jpg`,
+              src: `https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-${slide.name}-Mobile.jpg`,
             });
 
             return (

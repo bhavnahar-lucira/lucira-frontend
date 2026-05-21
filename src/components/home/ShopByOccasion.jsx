@@ -5,10 +5,10 @@ import { ArrowRight } from "lucide-react";
 import LazyImage from "../common/LazyImage";
 
 const OCCASIONS = [
-  { name: "Engagement", image: "/images/occasion/1.jpg", href: "/collections/engagement-rings" },
-  { name: "Wedding", image: "/images/occasion/2.jpg", href: "/collections/wedding-rings" },
-  { name: "Anniversary", image: "/images/occasion/3.jpg", href: "/collections/anniversary-gifts" },
-  { name: "Valentine's", image: "/images/occasion/4.jpg", href: "/collections/valentines-gift" },
+  { name: "Engagement", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_1.jpg", href: "/collections/engagement-rings" },
+  { name: "Wedding", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_2.jpg", href: "/collections/wedding-rings" },
+  { name: "Anniversary", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_3.jpg", href: "/collections/anniversary-gifts" },
+  { name: "Valentine's", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_4.jpg", href: "/collections/valentines-gift" },
 ];
 
 export default function ShopByOccasion() {

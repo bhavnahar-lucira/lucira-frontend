@@ -11,14 +11,14 @@ import Link from "next/link";
 import Image from "next/image";
 
 const CATEGORIES = [
-  { id: 1, name: "Rings", handle: "rings", image: "/images/range/Rings.jpg" },
-  { id: 2, name: "Earrings", handle: "earrings", image: "/images/range/Earrings.jpg" },
-  { id: 3, name: "Bracelets", handle: "bracelets", image: "/images/range/Bracelets.jpg" },
-  { id: 4, name: "Necklaces", handle: "necklaces", image: "/images/range/Necklaces.jpg" },
-  { id: 5, name: "Nosepins", handle: "nosepins", image: "/images/range/Nosepin.jpg" },
-  { id: 6, name: "Mangalsutra", handle: "mangalsutra", image: "/images/range/Mangalsutra.jpg" },
-  { id: 7, name: "Men's Ring", handle: "mens-ring", image: "/images/range/MensRing.jpg" },
-  { id: 8, name: "Men's Stud", handle: "mens-stud", image: "/images/range/MensStud.jpg" },
+  { id: 1, name: "Rings", handle: "rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Rings.jpg" },
+  { id: 2, name: "Earrings", handle: "earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Earrings.jpg" },
+  { id: 3, name: "Bracelets", handle: "bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Bracelets.jpg" },
+  { id: 4, name: "Necklaces", handle: "necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Necklaces.jpg" },
+  { id: 5, name: "Nosepins", handle: "nosepins", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Nosepin.jpg" },
+  { id: 6, name: "Mangalsutra", handle: "mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Mangalsutra.jpg" },
+  { id: 7, name: "Men's Ring", handle: "mens-ring", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensRing.jpg" },
+  { id: 8, name: "Men's Stud", handle: "mens-stud", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensStud.jpg" },
 ];
 
 export default function CategorySlider() {

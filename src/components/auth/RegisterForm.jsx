@@ -247,7 +247,7 @@ export function RegisterForm({ initialMobile = "" }) {
         {/* Right Side: Form */}
         <div className="w-full md:w-[50%] p-6 md:p-12 flex flex-col justify-center">
           <div className="text-center mb-6">
-            <img src="/images/logo.svg" width="120" height="49" alt="lucira jewelry logo" className="mx-auto" />
+            <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg" width="120" height="49" alt="lucira jewelry logo" className="mx-auto" />
           </div>
           
           <h2 className="text-xl font-bold text-center uppercase mb-1 font-serif">Register to Win Rewards</h2>

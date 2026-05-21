@@ -2,15 +2,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 const collections = [
-  { name: 'BESTSELLERS', url: '/collections/bestsellers', img: '/images/categorymobileslider/Bestseller.jpg', priority: true },
-  { name: '9KT Collection', url: '/collections/9kt-collection', img: '/images/categorymobileslider/9KT.jpg', priority: true },
-  { name: 'Rings', url: '/collections/rings', img: '/images/categorymobileslider/Ring.jpg', priority: true },
-  { name: 'Earings', url: '/collections/earrings', img: '/images/categorymobileslider/Earring.jpg' },
-  { name: 'Bracelets', url: '/collections/bracelets', img: '/images/categorymobileslider/Bracelet.jpg' },
-  { name: 'Necklace', url: '/collections/necklaces', img: '/images/categorymobileslider/Pendant.jpg' },
-  { name: 'Hexa', url: '/collections/hexa', img: '/images/categorymobileslider/Hexa.jpg' },
-  { name: 'On the Move', url: '/collections/sports-collection', img: '/images/categorymobileslider/OnTheMove.jpg' },
-  { name: 'Lucira Express', url: '/collections/fast-shipping', img: '/images/categorymobileslider/LuciraExpress.jpg' },
+  { name: 'BESTSELLERS', url: '/collections/bestsellers', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Best_Seller_jpg_719fedc1-d9a7-44f1-9605-3bbdece90a40_120x120_crop_center.jpg', priority: true },
+  { name: '9KT Collection', url: '/collections/9kt-collection', img: 'https://luciraonline.myshopify.com/cdn/shop/files/9KT_jpg_120x120_crop_center.jpg', priority: true },
+  { name: 'Rings', url: '/collections/rings', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Ring_jpg_e12c9c88-3cf4-46b4-bd74-e1bc2dc6bee2_120x120_crop_center.jpg', priority: true },
+  { name: 'Earings', url: '/collections/earrings', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Earring_jpg_4c2fc527-d8d4-430b-aa55-7af74e1de77b_120x120_crop_center.jpg' },
+  { name: 'Bracelets', url: '/collections/bracelets', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Bracelet_jpg_120x120_crop_center.jpg' },
+  { name: 'Necklace', url: '/collections/necklaces', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Pendant_jpg_5f30e325-3874-4403-b865-9206d541e1d5_120x120_crop_center.jpg' },
+  { name: 'Hexa', url: '/collections/hexa', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Hexa_jpg_120x120_crop_center.jpg' },
+  { name: 'On the Move', url: '/collections/sports-collection', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Bezel_Green_BG_V4_120x120_crop_center.jpg' },
+  { name: 'Lucira Express', url: '/collections/fast-shipping', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Fast_Shipping_jpg_120x120_crop_center.jpg' },
 ];
 
 export default function MobileCategorySlider() {
