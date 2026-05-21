@@ -5,10 +5,10 @@ import { ArrowRight } from "lucide-react";
 import LazyImage from "../common/LazyImage";
 
 const OCCASIONS = [
-  { name: "For Her", image: "/images/love/ForHer.jpg", href: "/collections/gifts-for-her" },
-  { name: "For Him", image: "/images/love/ForHim.jpg", href: "/collections/gifts-for-him" },
-  { name: "For Mothers", image: "/images/love/ForMother.jpg", href: "/collections/gift-for-mother" },
-  { name: "For Kids", image: "/images/love/ForKid.jpg", href: "/collections/kids-collection" },
+  { name: "For Her", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Love_ForHer.jpg", href: "/collections/gifts-for-her" },
+  { name: "For Him", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Love_ForHim.jpg", href: "/collections/gifts-for-him" },
+  { name: "For Mothers", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Love_ForMother.jpg", href: "/collections/gift-for-mother" },
+  { name: "For Kids", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Love_ForKid.jpg", href: "/collections/kids-collection" },
 ];
 
 export default function EveryoneYouLove() {

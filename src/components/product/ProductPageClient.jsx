@@ -18,7 +18,6 @@ import PriceSavingsDetails from "@/components/product/PriceSavingsDetails";
 import ProductAccordion from "@/components/product/ProductAccordion";
 import LuxuryMarquee from "@/components/product/LuxuryMarquee";
 import ProductStory from "@/components/product/ProductStory";
-import FeaturedIn from "@/components/product/FeaturedIn";
 import OurProcess from "@/components/product/OurProcess";
 import CategorySlider from "@/components/product/CategorySlider";
 import CustomerReviews from "@/components/product/CustomerReviews";

@@ -69,7 +69,7 @@ const stores = [
     city: "Pune",
     name: "Pune Lucira Store",
     rating: 4.8,
-    image: "/images/store/Pune.jpg",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_Pune.jpg",
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -87,10 +87,10 @@ const stores = [
       "Exclusive Offers",
     ],
     services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
+      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
+      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
     ],
     address:
       "Shop no. 3,4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd, Pune, Maharashtra 411005",
@@ -99,7 +99,7 @@ const stores = [
     city: "Chembur",
     name: "Chembur Lucira Store",
     rating: 4.7,
-    image: "/images/store/Chembur.jpg",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_Chembur.jpg",
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -115,10 +115,10 @@ const stores = [
       "Daily Offers",
     ],
     services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
+      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
+      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
     ],
     address:
       "Shop No. 3 Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd, Chembur, Mumbai, Maharashtra 400071",
@@ -127,7 +127,7 @@ const stores = [
     city: "Borivali",
     name: "Borivali Lucira Store",
     rating: 4.9,
-    image: "/images/store/Borivali.jpg",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_Borivali.jpg",
     storeHours: {
       weekday: { open: "10:30", close: "21:30" },
       weekend: { open: "10:30", close: "21:30" },
@@ -143,10 +143,10 @@ const stores = [
       "Exclusive Offers",
     ],
     services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
+      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
+      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
     ],
     address:
       "Sky City Mall, S-40, 2nd Floor, Western Express Hwy, Borivali East, Mumbai - 400066",
@@ -155,7 +155,7 @@ const stores = [
     city: "Noida",
     name: "Noida Lucira Store",
     rating: 4.9,
-    image: "/images/store/Noida.jpg",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_Noida.jpg",
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -173,10 +173,10 @@ const stores = [
       "Exclusive Offers",
     ],
     services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
+      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
+      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
     ],
     address:
       "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",

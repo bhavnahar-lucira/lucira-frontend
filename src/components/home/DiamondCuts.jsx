@@ -3,14 +3,14 @@ import Link from 'next/link';
 
 // Move data outside the component to prevent re-creation on every render
 const SHAPES = [
-  { name: 'Emerald', slug: 'solitaires-emerald', imgId: 'Emerald_2_1' },
-  { name: 'Oval', slug: 'solitaires-oval', imgId: 'Oval_1_1' },
-  { name: 'Cushion', slug: 'solitaires-cushion', imgId: 'Cushion_1_1' },
-  { name: 'Round', slug: 'solitaire-round', imgId: 'Round_1' },
-  { name: 'Princess', slug: 'solitaires-princess', imgId: 'Princess_1' },
-  { name: 'Pear', slug: 'solitaires-pear', imgId: 'Pear_1' },
-  { name: 'Marquise', slug: 'solitaires-marquise', imgId: 'Marquise_1' },
-  { name: 'Heart', slug: 'solitaires-heart', imgId: 'Heart_1' },
+  { name: 'Emerald', slug: 'solitaires-emerald', imgId: 'Emerald' },
+  { name: 'Oval', slug: 'solitaires-oval', imgId: 'Oval' },
+  { name: 'Cushion', slug: 'solitaires-cushion', imgId: 'Cushion' },
+  { name: 'Round', slug: 'solitaire-round', imgId: 'Round' },
+  { name: 'Princess', slug: 'solitaires-princess', imgId: 'Princess' },
+  { name: 'Pear', slug: 'solitaires-pear', imgId: 'Pear' },
+  { name: 'Marquise', slug: 'solitaires-marquise', imgId: 'Marquise' },
+  { name: 'Heart', slug: 'solitaires-heart', imgId: 'Heart' },
 ];
 
 export default function DiamondShapes() {
@@ -35,7 +35,7 @@ export default function DiamondShapes() {
             >
               <div className="w-14 md:w-full lg:w-18 relative aspect-square max-w-24 mb-4">
                 <Image
-                  src={`/images/diamondCuts/${shape.imgId}.png`}
+                  src={`https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_${shape.imgId}.png`}
                   alt={`${shape.name} cut diamond shape`}
                   fill
                   sizes="(max-width: 768px) 80px, 100px"
