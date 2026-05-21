@@ -10,7 +10,7 @@ export async function GET(request) {
     const reviews = await fetchNectorReviews(productId);
     return NextResponse.json(reviews, {
       headers: {
-        "Cache-Control": "public, s-maxage=14400, stale-while-revalidate=3600",
+        "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=172800",
       },
     });
   } catch (error) {

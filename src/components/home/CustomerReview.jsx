@@ -107,7 +107,12 @@ export default function CustomerReview({
   useEffect(() => {
     async function fetchReviews() {
       try {
-        const response = await fetch(`/api/home-reviews`);
+        const response = await fetch(`/api/home-reviews`, {
+           cache: "force-cache",
+            next: {
+              revalidate: 14400,
+            },
+        });
         const data = await response.json();
         // The API returns { reviews: [...] }
         setReviews(data?.reviews || []);
@@ -236,7 +241,39 @@ export default function CustomerReview({
         )}
       </div>
 
-      {isMobile ? (
+      {popupState.isOpen &&
+        (isMobile ? (
+          <ReviewBottomSheet
+            isOpen={popupState.isOpen}
+            onClose={() =>
+              setPopupState({
+                ...popupState,
+                isOpen: false,
+              })
+            }
+            review={reviews[popupState.index]}
+          />
+        ) : (
+          <ReviewDetailedPopup
+            isOpen={popupState.isOpen}
+            onClose={() =>
+              setPopupState({
+                ...popupState,
+                isOpen: false,
+              })
+            }
+            reviews={reviews}
+            activeIndex={popupState.index}
+            onIndexChange={(index) =>
+              setPopupState({
+                ...popupState,
+                index,
+              })
+            }
+          />
+        ))}
+
+      {/* {isMobile ? (
         <ReviewBottomSheet 
           isOpen={popupState.isOpen}
           onClose={() => setPopupState({ ...popupState, isOpen: false })}
@@ -250,7 +287,7 @@ export default function CustomerReview({
           activeIndex={popupState.index}
           onIndexChange={(index) => setPopupState({ ...popupState, index })}
         />
-      )}
+      )} */}
 
       <style jsx global>{`
         .${paginationElClass} .swiper-pagination-bullet {
