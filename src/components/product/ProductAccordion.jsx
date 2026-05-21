@@ -40,13 +40,13 @@ export default function ProductAccordion() {
             >
               <div className="flex gap-3 mb-6">
                 <div className="w-25 aspect-square bg-gray-50 rounded-lg relative overflow-hidden">
-                   <Image src="/images/product/package/Box.jpg" alt="Box" fill className="object-cover" />
+                   <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Box.jpg" alt="Box" fill className="object-cover" unoptimized />
                 </div>
                 <div className="w-25 aspect-square bg-gray-50 rounded-lg relative overflow-hidden">
-                   <Image src="/images/product/package/Selvet.jpg" alt="Cloth" fill className="object-cover" />
+                   <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Selvet_a9064cb1-d29c-4bd2-a3b6-3f504dd02d9d.jpg" alt="Cloth" fill className="object-cover" unoptimized />
                 </div>
                 <div className="w-25 aspect-square bg-gray-50 rounded-lg relative overflow-hidden">
-                   <Image src="/images/product/package/Thank-You-Card.jpg" alt="Card" fill className="object-cover" />
+                   <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Thank-You-Card_4d9152e7-daaa-4f9c-9183-3cfbd6620035.jpg" alt="Card" fill className="object-cover" unoptimized />
                 </div>
               </div>
               <p className="text-sm leading-relaxed">

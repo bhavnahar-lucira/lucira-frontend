@@ -12,37 +12,37 @@ export default function OurProcess() {
     {
       title: "Ideation & Sketching",
       desc: "We shape the initial design concept.",
-      img: "/images/process/IdeationSketching.jpg",
+      img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IdeationSketching.jpg",
     },
     {
       title: "3D Designing",
       desc: "Digital model is created in 3D.",
-      img: "/images/process/3DDesigning.jpg",
+      img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3DDesigning.jpg",
     },
     {
       title: "Modeling & Casting",
       desc: "Metal is cast into the base form.",
-      img: "/images/process/ModelingCasting.jpg",
+      img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ModelingCasting.jpg",
     },
     {
       title: "Filing & Polishing",
       desc: "Piece is refined and polished smooth.",
-      img: "/images/process/FilingPolishing.jpg",
+      img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/FilingPolishing.jpg",
     },
     {
       title: "Diamond Setting",
       desc: "Stones are carefully set by hand.",
-      img: "/images/process/DiamondSetting.jpg",
+      img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/DiamondSetting.jpg",
     },
     {
       title: "Quality Check",
       desc: "Each piece is thoroughly inspected.",
-      img: "/images/process/QualityCheck.jpg",
+      img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/QualityCheck.jpg",
     },
     {
       title: "Packaging",
       desc: "Packed securely for a premium unboxing.",
-      img: "/images/process/Packaging.jpg",
+      img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Packaging.jpg",
     },
   ];
 

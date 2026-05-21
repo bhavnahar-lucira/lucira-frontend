@@ -108,7 +108,7 @@ export default function QuestionsAnswered() {
         <div className="relative w-full min-h-132 hidden lg:block rounded-lg overflow-hidden bg-gray-200">
 
           <Image
-            src="/images/faq.jpg"
+            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/faq_2.avif"
             alt="FAQ"
             fill
             className="object-cover"

@@ -103,7 +103,7 @@ export function SizeGuideMobile({ children, nearestStore, availableStores = [], 
                 >
                   <div className="relative w-20 h-16 bg-white rounded-lg shadow-sm overflow-hidden flex items-center justify-center shrink-0">
                     <Image 
-                      src="/images/Sizing_A_ring_thumb.jpg" 
+                      src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Sizing_A_ring_thumb_fead0dba-6cb0-4c0c-95d1-e0b673d42401.jpg" 
                       alt="Video Icon" 
                       fill 
                       className="object-cover"

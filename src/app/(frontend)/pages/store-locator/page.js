@@ -215,7 +215,7 @@ export default function StoreLocatorPage() {
 
   const heroSlides = [
     {
-      image: "/images/store/store.jpg",
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg",
       title: "Find a Store",
       desc: "Experience the brilliance of Lucira in person. Visit our experience centers to explore over 700+ unique designs."
     },
