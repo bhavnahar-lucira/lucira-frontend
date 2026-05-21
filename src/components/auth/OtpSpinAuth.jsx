@@ -474,7 +474,7 @@ export function OtpSpinAuth({
         {!(isMobileView && step === "register") && (
           <div className="text-center mb-4">
             <img
-              src="/images/logo.svg"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
               width="120"
               height="49"
               alt="lucira jewelry logo"

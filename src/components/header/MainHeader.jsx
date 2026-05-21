@@ -247,7 +247,7 @@ export default function MainHeader() {
         {/* Logo */}
         <Link href="/" className="flex items-center">
           <Image
-            src="/images/logo.svg"
+            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
             alt="Lucira Jewelry"
             width={100}
             height={40}

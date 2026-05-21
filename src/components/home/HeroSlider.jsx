@@ -15,16 +15,16 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const slides = [
   {
-    desktop: "/images/heroslider/Eterna-Band-Desktop.jpg",
-    mobile: "/images/heroslider/Eterna-Band-Mobile.jpg",
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-Eterna-Band-Desktop.jpg",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-Eterna-Band-Mobile.jpg",
   },
   {
-    desktop: "/images/heroslider/Birthday-Desktop.jpg",
-    mobile: "/images/heroslider/Birthday-Mobile.jpg",
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-Birthday-Desktop.jpg",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-Birthday-Mobile.jpg",
   },
   {
-    desktop: "/images/heroslider/NineKT-Desktop.jpg",
-    mobile: "/images/heroslider/NineKT-Mobile.jpg",
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-NineKT-Desktop.jpg",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-NineKT-Mobile.jpg",
   },
 ];
 

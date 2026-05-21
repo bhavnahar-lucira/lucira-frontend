@@ -28,7 +28,7 @@ export default function CheckoutHeader() {
           <div className="flex-1">
             <Link href="/">
               <Image 
-                src="/images/logo.svg" 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg" 
                 alt="Lucira" 
                 width={120} 
                 height={50} 
