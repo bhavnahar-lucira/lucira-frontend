@@ -1982,7 +1982,7 @@ useEffect(() => {
               <div className="flex gap-2 mt-2">
                 <Button asChild variant="outline" className={`h-14 flex items-center justify-center bg-gray-50 hover:cursor-pointer hover:bg-primary hover:text-white transition-all group px-0 shrink-0 ${schemeData ? 'w-14 rounded-md' : 'flex-1 gap-2 rounded-md'}`}>
                   <a href={`https://api.whatsapp.com/send/?phone=+919004435760&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
-                    <Image src="/images/icons/whatsapp.png" alt="Whatsapp icon" width={24} height={24} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_5.png" alt="Whatsapp icon" width={24} height={24} />
                     <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                   </a>
                 </Button>
@@ -2245,7 +2245,7 @@ useEffect(() => {
 
               if (isGoldCoinEligible) {
                 slides.push({
-                  img: "/images/service/PDPGoldCoin.png",
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPGoldCoin.png",
                   title: "Complimentary Gold Coin",
                   desc: goldCoinConfig.message || "Receive a free gold coin with this ring, making your order even more special."
                 });
@@ -2253,12 +2253,12 @@ useEffect(() => {
 
               slides.push(
                 {
-                  img: "/images/service/PDPOldGoldExchange.jpg",
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPOldGoldExchange.jpg",
                   title: "Old Gold Exchange",
                   desc: "Exchange your old gold at the best value and upgrade to new Lucira Jewelry with ease."
                 },
                 {
-                  img: "/images/service/PDPScheme.png",
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPScheme.png",
                   title: "9 + 1 Scheme",
                   desc: "Complete 9 monthly payments and enjoy an extra month benefit from Lucira Jewelry."
                 }

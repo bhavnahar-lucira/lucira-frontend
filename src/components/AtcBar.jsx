@@ -162,7 +162,7 @@ export default function AtcBar({
               className="h-14 aspect-square bg-white shadow-md border border-zinc-100 rounded-sm flex items-center justify-center shrink-0"
             >
               <div className="relative w-7 h-7">
-                <Image src="/images/icons/whatsapp.png" alt="WhatsApp" fill className="object-contain" />
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_5.png" alt="WhatsApp" fill className="object-contain" />
               </div>
             </a>
 
