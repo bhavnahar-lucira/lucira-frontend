@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 // Helper to ensure image src is a valid string URL
-const getValidSrc = (src, fallback = "/images/product/1.jpg") => {
+const getValidSrc = (src, fallback = null) => {
   if (typeof src === 'string' && src.trim() !== '') return src;
   if (src && typeof src === 'object' && src.url) return src.url;
   return fallback;
@@ -46,7 +46,7 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
 
   const currentImageRaw = review.images && review.images.length > 0 
     ? review.images[currentImageIndex] 
-    : (review.personImage || "/images/review/1.jpg");
+    : review.personImage;
     
   const currentImage = getValidSrc(currentImageRaw);
 
@@ -68,7 +68,7 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
       </button>
 
       {/* Main Container */}
-      <div className="relative w-full h-[calc(90vh-64px)] md:h-auto max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+      <div className={`relative w-full h-[calc(90vh-64px)] md:h-auto ${currentImage ? 'max-w-5xl' : 'max-w-2xl'} bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300`}>
         
         {/* Close Button */}
         <button
@@ -81,40 +81,42 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
         <div className="flex flex-col md:flex-row h-full min-h-[400px] md:h-[600px]">
           
           {/* Left Side: Image Gallery */}
-          <div className="w-full md:w-1/2 relative bg-gray-50 flex items-center justify-center overflow-hidden border-r border-gray-100">
-            {!isLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center z-[5]">
-                    <Image src="/images/loader.gif" alt="Loading..." width={64} height={64} className="object-contain" unoptimized />
-                </div>
-            )}
-            <div className="relative w-full h-full aspect-square md:aspect-auto">
-                <Image
-                    src={currentImage}
-                    alt={review.personName}
-                    fill
-                    onLoad={() => setIsLoaded(true)}
-                    className={`object-cover transition-opacity duration-500 ${isLoaded ? "opacity-100" : "opacity-0"}`}
-                    priority
-                    unoptimized={true}
-                />
-            </div>
+          {currentImage && (
+            <div className="w-full md:w-1/2 relative bg-gray-50 flex items-center justify-center overflow-hidden border-r border-gray-100">
+              {!isLoaded && (
+                  <div className="absolute inset-0 flex items-center justify-center z-[5]">
+                      <Image src="/images/loader.gif" alt="Loading..." width={64} height={64} className="object-contain" unoptimized />
+                  </div>
+              )}
+              <div className="relative w-full h-full aspect-square md:aspect-auto">
+                  <Image
+                      src={currentImage}
+                      alt={review.personName}
+                      fill
+                      onLoad={() => setIsLoaded(true)}
+                      className={`object-cover transition-opacity duration-500 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+                      priority
+                      unoptimized={true}
+                  />
+              </div>
 
-            {/* Multiple Images Dots */}
-            {review.images && review.images.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                    {review.images.map((_, i) => (
-                        <button 
-                            key={`popup-dot-${i}`} 
-                            onClick={() => { setCurrentImageIndex(i); setIsLoaded(false); }}
-                            className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === i ? "bg-white w-6" : "bg-white/50"}`}
-                        />
-                    ))}
-                </div>
-            )}
-          </div>
+              {/* Multiple Images Dots */}
+              {review.images && review.images.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                      {review.images.map((_, i) => (
+                          <button 
+                              key={`popup-dot-${i}`} 
+                              onClick={() => { setCurrentImageIndex(i); setIsLoaded(false); }}
+                              className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === i ? "bg-white w-6" : "bg-white/50"}`}
+                          />
+                      ))}
+                  </div>
+              )}
+            </div>
+          )}
 
           {/* Right Side: Review Content */}
-          <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col bg-white overflow-y-auto custom-scrollbar font-figtree">
+          <div className={`w-full ${currentImage ? 'md:w-1/2' : 'md:w-full'} p-6 md:p-10 flex flex-col bg-white overflow-y-auto custom-scrollbar font-figtree`}>
             
             {/* User Info */}
             <div className="flex items-center gap-4 mb-8">
