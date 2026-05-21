@@ -65,11 +65,12 @@ export default function HeroBanner() {
                 <Link href={slide.url} className="block w-full h-full">
                   <div className="relative w-full h-full">
                     <picture>
-                      <source media="(min-width: 1025px)" srcSet={desktop} />
-                      <source media="(max-width: 1024px)" srcSet={mobile} />
+                      <source media="(min-width: 1025px)" srcSet={desktop} unoptimized={true} />
+                      <source media="(max-width: 1024px)" srcSet={mobile} unoptimized={true} />
                       <img 
                         {...rest}
                         className="w-full h-full object-cover object-center"
+                        unoptimized={true}
                       />
                     </picture>
                   </div>

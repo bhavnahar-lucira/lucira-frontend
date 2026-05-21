@@ -40,6 +40,7 @@ export default function MobileCategorySlider() {
                     sizes="100px"
                     priority={collection.priority}
                     className="object-cover block"
+                    unoptimized={true}
                   />
                 </div>
                 <p className="text-[10px] sm:text-xs uppercase text-black mt-2 font-semibold text-xs leading-[1.4] tracking-normal align-middle">
