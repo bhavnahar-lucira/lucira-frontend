@@ -66,7 +66,7 @@ export function JoinLuciraCommunity() {
           <div className="flex h-full min-h-[400px]">
             <div className="w-1/2 relative">
               <LazyImage
-                src="/images/subscribe-2.jpg"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
                 alt="Community 1"
                 fill
                 className="object-cover"
@@ -74,7 +74,7 @@ export function JoinLuciraCommunity() {
             </div>
             <div className="w-1/2 relative">
               <LazyImage
-                src="/images/subscribe-1.jpg"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-1.jpg"
                 alt="Community 2"
                 fill
                 className="object-cover"
