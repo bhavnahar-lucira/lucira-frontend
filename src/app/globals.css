@@ -2,6 +2,22 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@font-face {
+  font-family: 'Figtree';
+  src: url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Figtree-VariableFont_wght.ttf?v=1779362620') format('truetype');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Figtree';
+  src: url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Figtree-Italic-VariableFont_wght.ttf?v=1779362621') format('truetype');
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -51,11 +67,12 @@
   --text-12px: var(--font-12px);
   /*font-family*/
   --font-abhaya: var(--font-abhaya);
-  --font-figtree: var(--font-figtree);
+  --font-figtree: 'Figtree', sans-serif;
   --color-success: var(--success);
 }
 
 :root {
+  --font-figtree: 'Figtree', sans-serif;
   --radius: 0.65rem;
 
   --background: oklch(1 0 0);

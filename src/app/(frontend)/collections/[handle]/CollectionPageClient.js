@@ -475,7 +475,7 @@ export default function CollectionPage({ params: paramsPromise }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative h-40">
-            <Image src="/images/collection/category-banner.jpg" alt={displayTitle} fill className="object-cover" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner.jpg" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
       ) : (
