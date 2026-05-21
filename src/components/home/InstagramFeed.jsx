@@ -55,10 +55,23 @@ export default function InstagramFeed() {
   useEffect(() => {
     async function fetchFeed() {
       try {
-        const response = await fetch("/api/instagram");
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setFeedData(data);
+        const INSTAGRAM_ACCESS_TOKEN = "IGAAVJNIZC9IvtBZAFpuQ05oZAEJNeUh2RU80MUxGbENadVZAObF93MEhmOENDNTQ3RXBwZA3pIQXZAhZAFN5UzZAQVklaOEYySm80Ym5WUFFPX2FwVndSSF9uTTRXZA3Itc1BQcDdua2xNYURma2I3TDZAhNnlnaWNfTDNFbGQxTVlYTGQ2cwZDZD";
+        const response = await fetch(
+          `https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&access_token=${INSTAGRAM_ACCESS_TOKEN}&limit=30`
+        );
+        const result = await response.json();
+        
+        if (result.data && Array.isArray(result.data)) {
+          const formattedData = result.data.map(item => ({
+            id: item.id,
+            image: item.media_type === "VIDEO" ? item.thumbnail_url : item.media_url,
+            mediaUrl: item.media_url,
+            isVideo: item.media_type === "VIDEO",
+            caption: item.caption || "",
+            permalink: item.permalink,
+            timestamp: item.timestamp
+          }));
+          setFeedData(formattedData);
         } else {
           setFeedData([]);
         }

@@ -69,6 +69,7 @@ export default function HeroBanner() {
                           fill
                           priority
                           className="object-cover"
+                          unoptimized={true}
                         />
                       ) : (
                         <LazyImage
@@ -76,6 +77,7 @@ export default function HeroBanner() {
                           alt="Hero Banner"
                           fill
                           className="object-cover"
+                          unoptimized={true}
                         />
                       )}
                     </div>

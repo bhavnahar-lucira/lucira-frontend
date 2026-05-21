@@ -41,6 +41,7 @@ export default function DiamondShapes() {
                   sizes="(max-width: 768px) 80px, 100px"
                   className="object-contain transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
+                  unoptimized={true}
                 />
               </div>
               

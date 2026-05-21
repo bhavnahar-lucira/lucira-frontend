@@ -138,6 +138,7 @@ export default function InstaPopup({ isOpen, onClose, data, activeIndex }) {
                           fill
                           className="object-contain"
                           priority={idx === currentIndex}
+                          unoptimized={true}
                       />
                   </div>
               )}
