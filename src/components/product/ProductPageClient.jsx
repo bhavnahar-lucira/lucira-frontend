@@ -1709,7 +1709,7 @@ useEffect(() => {
                           <DialogTrigger asChild>
                             <div className="bg-[#F8F9FA] rounded-lg flex items-center gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
                               <div className="bg-white rounded-lg shadow-sm">
-                                <Image src="/images/Sizing_A_ring_thumb.jpg" alt="Video Icon" aspect-ratio="3/4" width={60} height={25} />
+                                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Sizing_A_ring_thumb_fead0dba-6cb0-4c0c-95d1-e0b673d42401.jpg" alt="Video Icon" aspect-ratio="3/4" width={60} height={25} />
                                 {/* <Video size={16} fill="black" /> */}
                               </div>
                               <span className="text-base text-black">
