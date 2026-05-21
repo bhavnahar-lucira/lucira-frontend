@@ -11,14 +11,21 @@ const COLLECTION_HANDLE_MAP = {
   "9KT Collection": "9kt-collection",
 };
 
-export default function ExploreCollectionSection() {
-  const [products, setProducts] = useState([]);
+export default function ExploreCollectionSection({ initialProducts = [] }) {
+  const [products, setProducts] = useState(initialProducts);
   const [activeTab, setActiveTab] = useState("On The Move");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const activeHandle = COLLECTION_HANDLE_MAP[activeTab] || "sports-collection";
 
   useEffect(() => {
+    if (!hasMounted && activeTab === "On The Move") return;
+
     async function fetchCollectionProducts() {
       setLoading(true);
       try {

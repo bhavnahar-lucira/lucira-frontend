@@ -4,12 +4,19 @@ import { useState, useEffect } from "react";
 import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
 
-export default function BestsellerSection() {
-  const [products, setProducts] = useState([]);
+export default function BestsellerSection({ initialProducts = [] }) {
+  const [products, setProducts] = useState(initialProducts);
   const [activeTab, setActiveTab] = useState("All");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted && activeTab === "All") return;
+
     async function fetchBestsellers() {
       setLoading(true);
       try {

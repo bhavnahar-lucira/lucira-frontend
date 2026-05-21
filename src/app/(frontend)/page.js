@@ -22,12 +22,13 @@ const NoteFromFounder = dynamic(() => import("@/components/home/NoteFromFounder"
 const InstagramFeed = dynamic(() => import("@/components/home/InstagramFeed"), { suspense: true });
 const JoinLuciraCommunity = dynamic(() => import("@/components/product/JoinLuciraCommunity").then(mod => ({ default: mod.JoinLuciraCommunity })), { suspense: true });
 const HomeFAQSection = dynamic(() => import("@/components/home/HomeFAQSection"), { suspense: true });
+const BestsellerSection = dynamic(() => import("@/components/home/homeCollection/BestsellerSection"), { suspense: true });
+const GemstoneSection = dynamic(() => import("@/components/home/homeCollection/GemstoneSection"), { suspense: true });
+const ExploreCollectionSection = dynamic(() => import("@/components/home/homeCollection/ExploreCollectionSection"), { suspense: true });
 
 // Refactored Sections
-import BestsellerSection from "@/components/home/homeCollection/BestsellerSection";
-import GemstoneSection from "@/components/home/homeCollection/GemstoneSection";
-import ExploreCollectionSection from "@/components/home/homeCollection/ExploreCollectionSection";
 import MobileCategorySlider from "@/components/home/MobileCategorySlider";
+import { getHomepageSectionsData } from "@/lib/homepage-data";
 
 export const metadata = {
   alternates: {
@@ -35,7 +36,9 @@ export const metadata = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const sectionsData = await getHomepageSectionsData();
+
   return (
     <div className="w-full">
       <MobileCategorySlider />
@@ -43,7 +46,9 @@ export default function Home() {
       <FeatureBar />
       <ExploreRange />
 
-      <BestsellerSection />
+      <Suspense fallback={<div className="h-40 bg-gray-50 animate-pulse"></div>}>
+        <BestsellerSection initialProducts={sectionsData.bestsellers} />
+      </Suspense>
 
       <DiamondCuts />
       {/* <ShopByCategory /> */}
@@ -63,13 +68,17 @@ export default function Home() {
         <WaysToExplore />
       </Suspense>
 
-      <GemstoneSection />
+      <Suspense fallback={<div className="h-40 bg-gray-50 animate-pulse"></div>}>
+        <GemstoneSection initialProducts={sectionsData.gemstones} />
+      </Suspense>
 
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <EveryoneYouLove />
       </Suspense>
 
-      <ExploreCollectionSection />
+      <Suspense fallback={<div className="h-40 bg-gray-50 animate-pulse"></div>}>
+        <ExploreCollectionSection initialProducts={sectionsData.explore} />
+      </Suspense>
 
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <CuratedLooks />

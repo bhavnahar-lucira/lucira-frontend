@@ -13,15 +13,21 @@ const DEFAULT_TABS = [
   "Rings"
 ];
 
-export default function GemstoneSection() {
-  const [products, setProducts] = useState([]);
+export default function GemstoneSection({ initialProducts = [] }) {
+  const [products, setProducts] = useState(initialProducts);
   const [tabs, setTabs] = useState(DEFAULT_TABS);
   const [activeTab, setActiveTab] = useState("All");
-  const [loading, setLoading] = useState(true);
-  const [tabsLoading, setTabsLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [tabsLoading, setTabsLoading] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchGemstoneCategories() {
+      if (!hasMounted) return;
       setTabsLoading(true);
       try {
         const res = await fetch(`/api/products/filters?q=gemstone`);
@@ -57,6 +63,8 @@ export default function GemstoneSection() {
   }, []);
 
   useEffect(() => {
+    if (!hasMounted && activeTab === "All") return;
+
     async function fetchGemstones() {
       setLoading(true);
       try {

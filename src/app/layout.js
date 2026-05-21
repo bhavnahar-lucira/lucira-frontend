@@ -2,15 +2,16 @@ import { Figtree, Abhaya_Libre } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
 import ReduxProvider from "@/redux/provider";
-import BackToTop from "@/components/common/BackToTop";
-import ZohoSalesIQ from "@/components/common/ZohoSalesIQ";
-import ToastProvider from "@/components/common/ToastProvider";
-import PointsResetHandler from "@/components/common/PointsResetHandler";
-import { GlobalAuthModal } from "@/components/auth/GlobalAuthModal";
 import Script from "next/script";
 import GtmPageView from "@/components/common/GtmPageView";
 import { organizationSchema, websiteSchema, storesSchema } from "@/lib/seo";
-import WebEngageRegistration from "@/components/common/WebEngageRegistration";
+import dynamic from "next/dynamic";
+import PointsResetHandler from "@/components/common/PointsResetHandler";
+
+const ZohoSalesIQ = dynamic(() => import("@/components/common/ZohoSalesIQ"), { ssr: false });
+const BackToTop = dynamic(() => import("@/components/common/BackToTop"), { ssr: false });
+const ToastProvider = dynamic(() => import("@/components/common/ToastProvider"), { ssr: false });
+const GlobalAuthModal = dynamic(() => import("@/components/auth/GlobalAuthModal").then(mod => mod.GlobalAuthModal), { ssr: false });
 
 const figtree = Figtree({
   subsets: ["latin"],
