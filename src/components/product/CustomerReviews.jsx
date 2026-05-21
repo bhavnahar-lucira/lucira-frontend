@@ -263,7 +263,7 @@ export default function CustomerReviews({
           ))}
         </div>
 
-        <div className="mt-20 text-center flex flex-col items-center gap-6">
+        <div className="mt-15 md:mt-20 text-center flex flex-col items-center gap-6">
            <button onClick={() => setIsWriteReviewOpen(true)} className="text-xs font-bold uppercase tracking-widest border-b border-black pb-1 hover:text-gray-500 hover:border-gray-500 transition-colors font-figtree">Write a Review</button>
            <Link href="/reviews" target="_blank" className="w-full md:w-auto px-10 py-4 text-sm font-bold uppercase bg-[#5A413F] hover:bg-[#4A3934] text-white transition-colors font-figtree tracking-widest">View All Reviews</Link>
         </div>
