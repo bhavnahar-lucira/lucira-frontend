@@ -1,4 +1,6 @@
 "use client";
+
+export const revalidate = 21600; // 6 hours
 import { useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";

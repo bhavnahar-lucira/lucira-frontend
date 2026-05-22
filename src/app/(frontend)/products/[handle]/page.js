@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import ProductPageClient from "@/components/product/ProductPageClient";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
-import { shopifyStorefrontFetch } from "@/lib/shopify";
+import { shopifyStorefrontFetch, getAllProductHandles } from "@/lib/shopify";
 
 const PRODUCT_QUERY = `
   query getProduct($handle: String!) {
@@ -132,9 +132,17 @@ export async function generateMetadata({ params }) {
   };
 }
 
+export async function generateStaticParams() {
+  const handles = await getAllProductHandles();
+  return handles.map((handle) => ({
+    handle,
+  }));
+}
+
 async function getProduct(handle) {
-  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { next: { revalidate: 300 } });
+  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { next: { revalidate: 21600 } });
   const product = data?.product;
+
 
   if (!product) return null;
 
@@ -306,7 +314,7 @@ async function getProduct(handle) {
   };
 }
 
-export const revalidate = 3600; // 1 hour
+export const revalidate = 21600; // 6 hours
 
 export default async function ProductPage({ params }) {
   const { handle } = await params;

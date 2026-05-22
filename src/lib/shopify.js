@@ -291,3 +291,87 @@ async function pollFileStatus(fileId) {
   
   throw new Error("Timeout waiting for file to be ready in Shopify");
 }
+
+/* ================= ISR HELPERS ================= */
+
+/**
+ * Fetches all product handles for generateStaticParams
+ */
+export async function getAllProductHandles() {
+  const query = `
+    query getAllProducts($cursor: String) {
+      products(first: 250, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        edges {
+          node {
+            handle
+          }
+        }
+      }
+    }
+  `;
+
+  let handles = [];
+  let cursor = null;
+  let hasNextPage = true;
+
+  try {
+    while (hasNextPage) {
+      const data = await shopifyStorefrontFetch(query, { cursor }, { next: { revalidate: 3600 } });
+      if (!data?.products) break;
+      
+      const newHandles = data.products.edges.map(edge => edge.node.handle);
+      handles = [...handles, ...newHandles];
+      hasNextPage = data.products.pageInfo.hasNextPage;
+      cursor = data.products.pageInfo.endCursor;
+    }
+    return handles;
+  } catch (error) {
+    console.error("Error fetching all product handles:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetches all collection handles for generateStaticParams
+ */
+export async function getAllCollectionHandles() {
+  const query = `
+    query getAllCollections($cursor: String) {
+      collections(first: 250, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        edges {
+          node {
+            handle
+          }
+        }
+      }
+    }
+  `;
+
+  let handles = [];
+  let cursor = null;
+  let hasNextPage = true;
+
+  try {
+    while (hasNextPage) {
+      const data = await shopifyStorefrontFetch(query, { cursor }, { next: { revalidate: 3600 } });
+      if (!data?.collections) break;
+
+      const newHandles = data.collections.edges.map(edge => edge.node.handle);
+      handles = [...handles, ...newHandles];
+      hasNextPage = data.collections.pageInfo.hasNextPage;
+      cursor = data.collections.pageInfo.endCursor;
+    }
+    return handles;
+  } catch (error) {
+    console.error("Error fetching all collection handles:", error);
+    return [];
+  }
+}

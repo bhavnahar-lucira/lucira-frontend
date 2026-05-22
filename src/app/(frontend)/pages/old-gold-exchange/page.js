@@ -1,5 +1,7 @@
 "use client";
 
+export const revalidate = 21600; // 6 hours
+
 import { PAGE_DATA } from "./data";
 import LazyImage from "@/components/common/LazyImage";
 import OldGoldCalculator from "@/components/pages/old-gold-exchange/OldGoldCalculator";

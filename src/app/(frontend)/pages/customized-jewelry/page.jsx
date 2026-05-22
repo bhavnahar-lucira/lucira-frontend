@@ -1,5 +1,7 @@
 'use client'
 
+export const revalidate = 21600; // 6 hours
+
 import Image from "next/image";
 import Link from "next/link";
 import FAQ from "@/components/common/FAQ";

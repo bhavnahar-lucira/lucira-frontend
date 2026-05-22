@@ -42,31 +42,56 @@ export const fetchNectorReviews = async (productId, options = {}) => {
         ? `${baseUrl}?page=1&limit=20&sort=image_count&sort_op=DESC&reference_product_id=${id}&reference_product_source=shopify`
         : `${baseUrl}?page=1&limit=200&sort=created_at&sort_op=DESC`;
 
-      let res = await fetch(url, {
-        headers: {
-          "x-apikey": nectorApiKey,
-          "x-workspaceid": nectorWorkspaceId,
-          "x-source": "web",
-        },
-        signal: controller.signal,
-      });
+      if (!nectorApiKey || !nectorWorkspaceId) {
+         console.warn("Nector: Missing API Key or Workspace ID. Fetch may fail.");
+      }
 
-      let json = await res.json();
+      let json = {};
+      try {
+        let res = await fetch(url, {
+          headers: {
+            "x-apikey": nectorApiKey,
+            "x-workspaceid": nectorWorkspaceId,
+            "x-source": "web",
+          },
+          signal: controller.signal,
+        });
+
+        if (res.ok) {
+          json = await res.json();
+        } else {
+          console.warn(`Nector Cachefront returned ${res.status} for ${id || 'global'}`);
+        }
+      } catch (cachefrontError) {
+        console.error("Nector Cachefront Fetch Error:", cachefrontError.message);
+      }
       
-      // If global fetch returned nothing, try the main API endpoint
-      if (!id && (!json?.data?.items || json.data.items.length === 0)) {
-         const mainApiUrl = `https://api.nector.io/v1/merchant/reviews?page=1&limit=100`;
-         const res2 = await fetch(mainApiUrl, {
-           headers: {
-             "x-apikey": nectorApiKey,
-             "x-workspaceid": nectorWorkspaceId,
+      // If global fetch returned nothing or cachefront failed, try the main API endpoint
+      if (!json?.data?.items || json.data.items.length === 0) {
+         const mainApiUrl = id 
+            ? `https://platform.nector.io/api/v2/merchant/reviews?page=1&limit=20&reference_product_id=${id}&reference_product_source=shopify`
+            : `https://platform.nector.io/api/v2/merchant/reviews?page=1&limit=100`;
+
+         try {
+           const res2 = await fetch(mainApiUrl, {
+             headers: {
+               "x-apikey": nectorApiKey,
+               "x-workspaceid": nectorWorkspaceId,
+               "x-source": "web",
+             }
+           });
+           
+           if (res2.ok) {
+             const json2 = await res2.json();
+             if (json2?.data?.items?.length > 0) {
+               json = json2;
+             }
+           } else {
+              console.error(`Nector Main API also failed: ${res2.status}`);
            }
-         });
-         if (res2.ok) {
-           const json2 = await res2.json();
-           if (json2?.data?.items?.length > 0) {
-             json = json2;
-           }
+         } catch (platformError) {
+           console.error("Nector Platform Fetch Error:", platformError.message);
+           throw platformError; // Re-throw to be caught by outer catch
          }
       }
 
@@ -150,7 +175,7 @@ export async function submitReview(payload) {
   const nectorWorkspaceId = process.env.NEXT_PUBLIC_NECTOR_WORKSPACE_ID || process.env.NECTOR_WORKSPACE_ID;
 
   try {
-    const res = await fetch(`https://api.nector.io/v1/merchant/reviews`, {
+    const res = await fetch(`https://platform.nector.io/api/v1/merchant/reviews`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -182,7 +207,7 @@ export async function uploadSingleImage(file, reviewId) {
     formData.append('parent_type', 'reviews');
     formData.append('parent_id', reviewId);
 
-    const res = await fetch(`https://api.nector.io/v1/merchant/uploads`, {
+    const res = await fetch(`https://platform.nector.io/api/v1/merchant/uploads`, {
       method: 'POST',
       headers: {
         "x-apikey": nectorApiKey,

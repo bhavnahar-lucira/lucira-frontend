@@ -7,7 +7,7 @@ import HomeInformationContent from "@/components/common/HomeInformationContent";
 import FloatingActionButton from "@/components/common/FloatingActionButton";
 import { getMenu } from "@/lib/menus";
 
-export const revalidate = false; // SSG for the layout and menu
+export const revalidate = 21600; // 6 hours
 
 export default async function FrontendLayout({ children }) {
   const menuData = await getMenu("main-menu-official");

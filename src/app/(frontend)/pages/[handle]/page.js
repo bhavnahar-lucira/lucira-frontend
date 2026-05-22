@@ -26,7 +26,7 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export const revalidate = false; // SSG
+export const revalidate = 21600; // 6 hours
 
 export default async function Page({ params }) {
   const { handle } = await params;

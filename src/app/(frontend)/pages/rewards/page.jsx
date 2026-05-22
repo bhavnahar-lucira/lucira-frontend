@@ -1,4 +1,7 @@
 'use client'
+
+export const revalidate = 21600; // 6 hours
+
 import Image from "next/image";
 import { Suspense, useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";

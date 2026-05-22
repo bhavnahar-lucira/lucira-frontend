@@ -1,4 +1,4 @@
-import { shopifyStorefrontFetch } from "@/lib/shopify";
+import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 
@@ -22,7 +22,7 @@ async function getCollectionData(handle) {
     }
   `;
   
-  const data = await shopifyStorefrontFetch(query, { handle });
+  const data = await shopifyStorefrontFetch(query, { handle }, { next: { revalidate: 21600 } });
   return data?.collectionByHandle;
 }
 
@@ -52,7 +52,15 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export const revalidate = 3600; // 1 hour
+export async function generateStaticParams() {
+  const handles = await getAllCollectionHandles();
+  // Include "all" as a static param as well
+  return [...handles, "all"].map((handle) => ({
+    handle,
+  }));
+}
+
+export const revalidate = 21600; // 6 hours
 
 export default async function Page({ params }) {
   const { handle } = await params;
