@@ -18,8 +18,8 @@ export const metadata = {
   title: "India's Best Lab Grown Diamond Jewellery Brand - Lucira Jewelry",
   description: "Shop premium diamond jewellery online in India at Lucira Jewelry. Discover elegant lab grown diamond designs, certified quality, modern craftsmanship, and timeless styles crafted for every occasion. Shop now.",
   icons: {
-    icon: "/Favicon.png",
-    apple: "/Favicon.png",
+    icon: "https://www.lucirajewelry.com/cdn/shop/files/Favicon_New_10.png?crop=center&height=32&v=1767615434&width=32",
+    apple: "https://www.lucirajewelry.com/cdn/shop/files/Favicon_New_10.png?crop=center&height=32&v=1767615434&width=32",
   },
   manifest: "/manifest.json",
 };

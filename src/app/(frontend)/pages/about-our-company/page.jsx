@@ -7,8 +7,8 @@ import FAQ from "@/components/common/FAQ";
 
 export default function AboutPage() {
     const data = {
-        aboutBlack: "/images/aboutUs/about_us_2.png",
-        aboutWhite: "/images/aboutUs/about_us_3.png",
+        aboutBlack: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/about_us_2_119e2c3b-0412-4ac2-b6e5-0098ea53e451.png?v=1779347749",
+        aboutWhite: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/about_us_3_b0beb068-37f4-47b4-bbcd-cc6da51a24e7.png?v=1779347749",
         founderImage: "https://luciraonline.myshopify.com/cdn/shop/files/Group_1321315953_2.png",
         signatureBlack: "https://luciraonline.myshopify.com/cdn/shop/files/Group_1321315956_1.png",
         signatureWhite: "https://luciraonline.myshopify.com/cdn/shop/files/Group_1321315955_2.png",
