@@ -117,15 +117,18 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
 
     dispatch(
       login({
-        id: userId,
-        mobile,
-        email: user?.email,
-        first_name: user?.first_name,
-        last_name: user?.last_name,
-        name:
-          user?.first_name && user?.last_name
-            ? `${user.first_name} ${user.last_name}`
-            : "User",
+        user: {
+          id: userId,
+          mobile,
+          email: user?.email,
+          first_name: user?.first_name,
+          last_name: user?.last_name,
+          name:
+            user?.first_name && user?.last_name
+              ? `${user.first_name} ${user.last_name}`
+              : "User",
+        },
+        accessToken: data.accessToken,
       })
     );
 

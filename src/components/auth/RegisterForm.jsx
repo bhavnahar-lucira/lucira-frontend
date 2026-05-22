@@ -100,15 +100,18 @@ export function RegisterForm({ initialMobile = "" }) {
     
     dispatch(
       login({
-        id: userId,
-        mobile,
-        email: user?.email || email,
-        first_name: user?.first_name || firstName,
-        last_name: user?.last_name || lastName,
-        name:
-          (user?.first_name || firstName) && (user?.last_name || lastName)
-            ? `${user?.first_name || firstName} ${user?.last_name || lastName}`
-            : "User",
+        user: {
+          id: userId,
+          mobile,
+          email: user?.email || email,
+          first_name: user?.first_name || firstName,
+          last_name: user?.last_name || lastName,
+          name:
+            (user?.first_name || firstName) && (user?.last_name || lastName)
+              ? `${user?.first_name || firstName} ${user?.last_name || lastName}`
+              : "User",
+        },
+        accessToken: data.accessToken,
       })
     );
 
