@@ -11,41 +11,47 @@ function stripHtml(value) {
 }
 
 export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
+  // 1. Try Storefront API first (most reliable, supports caching)
+  const storefrontArticle = await getArticleByBlogAndHandleStorefront(blogHandle, articleHandle);
+  
+  // 2. Fallback to MongoDB (local cache)
   const client = await clientPromise;
   const db = client.db();
 
-  const article = await db.collection("articles").findOne({
+  const dbArticle = await db.collection("articles").findOne({
     handle: articleHandle,
     blogHandle,
   });
 
-  // Only return immediately if we have content AND the new metafields AND SEO description AND tags
-  if ((article?.contentHtml || article?.content) && article?.author_name && article?.seo?.description && article?.tags?.length > 0) return serialize(article);
-
-  const storefrontArticle = await getArticleByBlogAndHandleStorefront(blogHandle, articleHandle);
-  const adminArticle =
-    storefrontArticle?.contentHtml || storefrontArticle?.content
-      ? null
-      : await getArticleByBlogAndHandleAdminRest(blogHandle, articleHandle, article?.blogId);
-  const liveArticle =
-    adminArticle?.contentHtml || adminArticle?.content || storefrontArticle?.contentHtml || storefrontArticle?.content
-      ? null
-      : await getArticleRenderedFromLiveSite(blogHandle, articleHandle);
-  const fallbackArticle = liveArticle || adminArticle || storefrontArticle;
-
-  if (article && fallbackArticle) {
-    return serialize({
-      ...article,
-      ...fallbackArticle,
-      image: fallbackArticle.image || article.image,
-      authorV2: fallbackArticle.authorV2 || article.authorV2,
-      publishedAt: fallbackArticle.publishedAt || article.publishedAt,
-    });
+  // 3. Last resort: Live site scraping
+  let liveArticle = null;
+  if (!storefrontArticle?.contentHtml && !dbArticle?.contentHtml) {
+    liveArticle = await getArticleRenderedFromLiveSite(blogHandle, articleHandle);
   }
 
-  if (article) return serialize(article);
+  // Merge sources
+  const baseArticle = storefrontArticle || dbArticle || liveArticle;
+  if (!baseArticle) return null;
 
-  return fallbackArticle;
+  const merged = {
+    ...dbArticle,
+    ...baseArticle,
+    contentHtml: baseArticle.contentHtml || dbArticle?.contentHtml || liveArticle?.contentHtml || baseArticle.content || dbArticle?.content,
+    content: baseArticle.content || dbArticle?.content || stripHtml(baseArticle.contentHtml || dbArticle?.contentHtml || liveArticle?.contentHtml),
+    image: baseArticle.image || dbArticle?.image || storefrontArticle?.image || liveArticle?.image,
+    authorV2: baseArticle.authorV2 || dbArticle?.authorV2 || storefrontArticle?.authorV2,
+    publishedAt: baseArticle.publishedAt || dbArticle?.publishedAt || storefrontArticle?.publishedAt || liveArticle?.publishedAt,
+  };
+
+  // Try to find image in content if still missing
+  if (!merged.image?.url && merged.contentHtml) {
+    const imgMatch = merged.contentHtml.match(/<img[^>]+src="([^">]+)"/i);
+    if (imgMatch) {
+      merged.image = { url: imgMatch[1], altText: merged.title };
+    }
+  }
+
+  return serialize(merged);
 }
 
 export async function getBlogByHandle(blogHandle) {
@@ -106,7 +112,7 @@ export async function getArticleByBlogAndHandleStorefront(blogHandle, articleHan
   `;
 
   const data = await shopifyStorefrontFetch(query, { blogHandle, articleHandle }, {
-    next: { revalidate: 21600 } // ✅ 6 hours cache
+    next: { revalidate: 86400 } // ✅ 24 hours cache
   });
   const article = data?.blog?.articleByHandle;
 
@@ -206,7 +212,9 @@ export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) 
 
   const contentHtml = liveContentHtml
     .replace(/src="\/\//g, 'src="https://')
-    .replace(/href="\//g, 'href="https://luciraonline.myshopify.com/');
+    .replace(/href="https:\/\/luciraonline\.myshopify\.com\//g, 'href="/')
+    .replace(/href="https:\/\/www\.lucirajewelry\.com\//g, 'href="/')
+    .replace(/href="\/(products|collections|blogs)\//g, 'href="/$1/');
 
   return {
     content: stripHtml(contentHtml),
@@ -327,7 +335,7 @@ export async function getArticlesByBlogHandleStorefront(blogHandle) {
   `;
 
   const data = await shopifyStorefrontFetch(query, { blogHandle }, {
-    next: { revalidate: 21600 } // ✅ 6 hours cache
+    next: { revalidate: 86400 } // ✅ 24 hours cache
   });
   const articles = data?.blog?.articles?.edges?.map(edge => ({
     ...edge.node,

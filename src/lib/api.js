@@ -188,6 +188,13 @@ export const createCartApi = () =>
     body: JSON.stringify({}),
   });
 
+/* ================= SEARCH RESULTS ================= */
+
+export const fetchSearchResults = (query) => {
+  if (!query) return { results: [] };
+  return apiFetch(`/api/products/search?q=${encodeURIComponent(query)}`);
+};
+
 /* ================= COLLECTION PRODUCTS ================= */
 
 export const fetchCollectionProducts = async (params) => {
@@ -213,7 +220,7 @@ export const fetchCollectionFilters = async (handle) => {
 
 export const fetchVariantPricing = async (variantId, productId = "") => {
   if (!variantId) throw new Error("Variant ID required");
-  const url = `/api/variant-pricing?variantId=${variantId}${productId ? `&productId=${productId}` : ""}`;
+  const url = `/api/products/pricing?variantId=${variantId}${productId ? `&productId=${productId}` : ""}`;
   return apiFetch(url);
 };
 

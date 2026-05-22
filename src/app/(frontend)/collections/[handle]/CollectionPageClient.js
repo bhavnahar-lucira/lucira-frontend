@@ -239,13 +239,13 @@ export default function CollectionPage({ params: paramsPromise }) {
     scrollToTop();
   };
 
-  const getActiveFiltersForShopify = useCallback(() => {
+  const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
     const filters = [];
-    searchParams.forEach((value, key) => {
+    currentSearchParams.forEach((value, key) => {
       if (key.startsWith("filter.")) {
         try {
           if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
-            const existingPrice = filters.find(f => f.price);
+            let existingPrice = filters.find(f => f.price);
             if (existingPrice) {
               if (key === "filter.v.price.gte") existingPrice.price.min = parseFloat(value);
               else existingPrice.price.max = parseFloat(value);
@@ -253,7 +253,7 @@ export default function CollectionPage({ params: paramsPromise }) {
               filters.push({
                 price: {
                   min: key === "filter.v.price.gte" ? parseFloat(value) : 0,
-                  max: key === "filter.v.price.lte" ? parseFloat(value) : 1000000
+                  max: key === "filter.v.price.lte" ? parseFloat(value) : 5000000
                 }
               });
             }
@@ -262,25 +262,33 @@ export default function CollectionPage({ params: paramsPromise }) {
           }
         } catch (e) { }
       } else if (!["sort", "cursor", "limit", "q", "page"].includes(key)) {
-        Object.values(availableFilters).forEach(group => {
+        // Find matching option in currentAvailableFilters
+        let found = false;
+        Object.entries(currentAvailableFilters || {}).forEach(([groupName, group]) => {
           if (Array.isArray(group)) {
+            // Check if groupName matches the key (case-insensitive)
+            const groupMatchesKey = groupName.toLowerCase() === key.toLowerCase();
+            
             group.forEach(opt => {
-              if ((opt.urlKey === key || opt.label === key) && opt.value === value) {
+              if (
+                (opt.urlKey === key || opt.label === key || groupMatchesKey) && 
+                (opt.value === value || opt.label === value)
+              ) {
                 filters.push(typeof opt.input === 'string' ? JSON.parse(opt.input) : opt.input);
+                found = true;
               }
             });
           }
         });
+        
+        // Fallback for productType which is common
+        if (!found && key.toLowerCase() === "producttype") {
+            filters.push({ productType: value });
+        }
       }
     });
     return filters;
-  }, [searchParams, availableFilters]);
-
-  const filterParamsForApi = useMemo(() => {
-    const active = getActiveFiltersForShopify();
-    if (active.length === 0) return "";
-    return `filters=${encodeURIComponent(JSON.stringify(active))}`;
-  }, [getActiveFiltersForShopify]);
+  }, []);
 
   // Initial Fetch & Filter Changes
   useEffect(() => {
@@ -290,23 +298,8 @@ export default function CollectionPage({ params: paramsPromise }) {
 
       try {
         const sort = searchParams.get("sort") || "best_selling";
-        const apiUrl = `/api/collection?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}`;
-        console.log("Fetching from API:", apiUrl);
-
-        const collData = await apiFetch(apiUrl);
-        setCollection({
-          title: collData.collection?.title || handle.replace(/-/g, " "),
-          description: collData.collection?.description || ""
-        });
-        setProducts(collData.products || []);
-        setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
-        setTotalCount(collData.totalProducts || 0);
-
-        try {
-          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
-          if (dbData.success) setDbCollection(dbData.collection);
-        } catch(e) {}
-
+        
+        // 1. Fetch filters first to ensure we have mappings for products fetch
         const filtersData = await apiFetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
 
         // Apply Master-style merging and sorting
@@ -355,6 +348,27 @@ export default function CollectionPage({ params: paramsPromise }) {
           setActiveMobileGroup(Object.keys(sortedData)[0]);
         }
         setFiltersLoading(false);
+
+        // 2. Now fetch products using the mappings we just got
+        const activeFilters = getActiveFiltersForShopify(searchParams, sortedData);
+        const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+        
+        const apiUrl = `/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}`;
+        console.log("Fetching products from API:", apiUrl);
+
+        const collData = await apiFetch(apiUrl);
+        setCollection({
+          title: collData.collection?.title || handle.replace(/-/g, " "),
+          description: collData.collection?.description || ""
+        });
+        setProducts(collData.products || []);
+        setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
+        setTotalCount(collData.totalProducts || 0);
+
+        try {
+          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
+          if (dbData.success) setDbCollection(dbData.collection);
+        } catch(e) {}
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
       } finally {
@@ -362,7 +376,7 @@ export default function CollectionPage({ params: paramsPromise }) {
       }
     }
     fetchData();
-  }, [handle, filterParamsForApi, searchParams, limit]);
+  }, [handle, searchParams, limit, getActiveFiltersForShopify]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
@@ -370,17 +384,18 @@ export default function CollectionPage({ params: paramsPromise }) {
     setIsFetchingNextPage(true);
     try {
       const sort = searchParams.get("sort") || "best_selling";
-      const data = await apiFetch(`/api/collection?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
+      const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
+      const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+      const data = await apiFetch(`/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
       setProducts(prev => [...prev, ...(data.products || [])]);
       setPagination(data.pageInfo || { hasNextPage: false, endCursor: null });
-      // Update totalCount from response to ensure it reflects filtered results
       if (data.totalProducts) setTotalCount(data.totalProducts);
     } catch (err) {
       console.error("Failed to fetch next page:", err);
     } finally {
       setIsFetchingNextPage(false);
     }
-  }, [handle, filterParamsForApi, searchParams, pagination, isFetchingNextPage, limit]);
+  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify]);
 
   // Infinite scroll trigger
   useEffect(() => {
@@ -452,6 +467,13 @@ export default function CollectionPage({ params: paramsPromise }) {
   const displayTitle = isMobile
     ? (handle === "all" ? "All Products" : handle.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "))
     : (collection.title || (handle === "all" ? "All Products" : handle.replace(/-/g, " ")));
+
+  const countDisplay = useMemo(() => {
+    const loaded = products.length;
+    // Fallback if API returns 0 total but we have products (common with filters)
+    const total = totalCount > 0 ? totalCount : (pagination.hasNextPage ? `${loaded}+` : loaded);
+    return `${loaded}/${total} Products`;
+  }, [products.length, totalCount, pagination.hasNextPage]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -548,7 +570,7 @@ export default function CollectionPage({ params: paramsPromise }) {
         <div className="flex-1">
           <div className={`flex gap-4 items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "py-5 border-b border-gray-50 px-4" : "py-4"}`}>
             <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
-              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{totalCount} Designs</span></>) : (<span className="text-sm text-gray-500">{Math.min(products.length, totalCount)}/{totalCount} products</span>)}
+              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{countDisplay}</span></>) : (<span className="text-sm text-gray-500">{countDisplay}</span>)}
             </div>
             {!isMobile && (
               <div className="flex items-center gap-4"><div className="flex items-center gap-2"><span className="text-sm text-gray-600">Sort:</span><select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="text-sm border rounded-md px-3 py-2 bg-white">{SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}</select></div></div>

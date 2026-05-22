@@ -14,7 +14,23 @@ export default function BestsellerSection() {
     async function fetchBestsellers() {
       setLoading(true);
       try {
-        const data = await apiFetch(`/api/products/bestsellers?tab=${activeTab}`);
+        let apiUrl = `/api/collection?handle=bestsellers&limit=15`;
+        if (activeTab !== "All") {
+          // Map plural tabs to singular if needed, or send as is if Shopify handles it
+          // Most Shopify product types are singular (Ring, Earring)
+          const typeMap = {
+            "Rings": "Rings",
+            "Earrings": "Earrings",
+            "Bracelets": "Bracelets",
+            "Necklaces": "Necklaces",
+            "Pendants": "Charms & Pendants"
+          };
+          const productType = typeMap[activeTab] || activeTab;
+          const filters = [{ productType: productType }];
+          apiUrl += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+        }
+        
+        const data = await apiFetch(apiUrl);
         if (data.products) {
           setProducts(data.products);
         }

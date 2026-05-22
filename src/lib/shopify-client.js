@@ -21,7 +21,9 @@ export async function shopifyStorefrontFetch(query, variables = {}) {
 
     const data = await res.json();
     if (data.errors) {
-      console.error("Shopify Storefront Errors:", data.errors);
+      console.error("Shopify Storefront Errors:", JSON.stringify(data.errors, null, 2));
+      console.error("Query:", query);
+      console.error("Variables:", JSON.stringify(variables, null, 2));
       return null;
     }
     return data.data;
@@ -29,6 +31,19 @@ export async function shopifyStorefrontFetch(query, variables = {}) {
     console.error("Shopify Storefront Fetch Error:", err);
     return null;
   }
+}
+
+/**
+ * Ensures an ID is in Shopify Global ID (GID) format.
+ * @param {string|number} id The ID to convert
+ * @param {string} type The Shopify resource type (e.g., 'ProductVariant', 'Product', 'Cart')
+ * @returns {string} The formatted GID
+ */
+export function toShopifyGid(id, type = "ProductVariant") {
+  if (!id) return id;
+  const stringId = String(id);
+  if (stringId.startsWith("gid://shopify/")) return stringId;
+  return `gid://shopify/${type}/${stringId}`;
 }
 
 /* ================= CART QUERIES & MUTATIONS ================= */

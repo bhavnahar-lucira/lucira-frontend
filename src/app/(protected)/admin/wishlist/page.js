@@ -195,8 +195,9 @@ export default function WishlistPage() {
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const data = await apiFetch(`/api/products/similar?handle=${handle}`);
-      setSimilarProducts(data.products || []);
+      const data = await apiFetch(`/api/products/related?handle=${handle}`);
+      const products = data.products || data.matchingProducts || data.complementaryProducts || [];
+      setSimilarProducts(products.filter(p => p.handle !== handle));
     } catch (e) {
       console.error("Failed to fetch similar products", e);
     } finally {

@@ -39,9 +39,15 @@ function slugify(value) {
 function prepareArticleHtml(html) {
   if (!html) return { html: "", toc: [] };
 
+  // Clean absolute links to Shopify/Lucira domain
+  let processedHtml = html
+    .replace(/href="https:\/\/luciraonline\.myshopify\.com\//g, 'href="/')
+    .replace(/href="https:\/\/www\.lucirajewelry\.com\//g, 'href="/')
+    .replace(/href="\/(products|collections|blogs)\//g, 'href="/$1/');
+
   const toc = [];
   const usedIds = new Set();
-  const preparedHtml = html.replace(/<h([2-3])([^>]*)>(.*?)<\/h\1>/gi, (match, level, attrs, content) => {
+  const finalHtml = processedHtml.replace(/<h([2-3])([^>]*)>(.*?)<\/h\1>/gi, (match, level, attrs, content) => {
     const label = stripHtml(content);
     if (!label) return match;
 
@@ -61,7 +67,7 @@ function prepareArticleHtml(html) {
     return `<h${level}${nextAttrs}>${content}</h${level}>`;
   });
 
-  return { html: preparedHtml, toc };
+  return { html: finalHtml, toc };
 }
 
 export async function generateMetadata({ params }) {
@@ -124,7 +130,12 @@ export default async function ArticlePage({ params }) {
 
   if (!article) return notFound();
 
-  const publishedDate = formatDate(article.publishedAt);
+  // Robust field extraction with fallbacks
+  // Try to find a better title from SEO or content if the main one is generic
+  const contentTitle = article.contentHtml?.match(/<h1[^>]*>(.*?)<\/h1>/i)?.[1]?.replace(/<[^>]*>?/gm, '');
+  const displayTitle = article.seo?.title || article.title || contentTitle || article.blogTitle || blogHandle.charAt(0).toUpperCase() + blogHandle.slice(1);
+  
+  const publishedDate = formatDate(article.publishedAt || article.created_at || new Date().toISOString());
   const readTime = readingTime(article);
   const { html: bodyHtml, toc } = prepareArticleHtml(article.contentHtml || article.content);
 
@@ -132,11 +143,11 @@ export default async function ArticlePage({ params }) {
     .filter((item) => item.handle !== article.handle)
     .slice(0, 4);
 
-  const jsonLd = getArticleSchema(article, blogHandle);
+  const jsonLd = getArticleSchema({ ...article, title: displayTitle }, blogHandle);
   const breadcrumbs = [
     { name: "Home", url: "/" },
     { name: blogHandle.charAt(0).toUpperCase() + blogHandle.slice(1), url: `/blogs/${blogHandle}` },
-    { name: article.title, url: `/blogs/${blogHandle}/${article.handle}` }
+    { name: displayTitle, url: `/blogs/${blogHandle}/${article.handle}` }
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
 
@@ -151,7 +162,7 @@ export default async function ArticlePage({ params }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
       <BlogArticleClient
-        article={article}
+        article={{ ...article, title: displayTitle }}
         bodyHtml={bodyHtml}
         toc={toc}
         publishedDate={publishedDate}

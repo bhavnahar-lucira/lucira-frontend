@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { 
   shopifyStorefrontFetch, 
+  toShopifyGid,
   CART_QUERY, 
   CART_CREATE_MUTATION, 
   CART_LINES_ADD_MUTATION, 
@@ -61,9 +62,10 @@ export const fetchCart = createAsyncThunk(
 
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async ({ product }) => {
+  async ({ product }, { rejectWithValue }) => {
     let cartId = getCartId();
-    const variantId = product.shopifyVariantId || product.variantId || product.id;
+    const rawVariantId = product.shopifyVariantId || product.variantId || product.id;
+    const variantId = toShopifyGid(rawVariantId, "ProductVariant");
     
     if (!cartId) {
       const data = await shopifyStorefrontFetch(CART_CREATE_MUTATION, {
@@ -71,6 +73,13 @@ export const addToCart = createAsyncThunk(
           lines: [{ merchandiseId: variantId, quantity: product.quantity || 1 }]
         }
       });
+      
+      const userErrors = data?.cartCreate?.userErrors;
+      if (userErrors && userErrors.length > 0) {
+        console.error("Shopify cartCreate UserErrors:", userErrors);
+        return rejectWithValue(userErrors[0].message);
+      }
+
       const newCart = data?.cartCreate?.cart;
       if (newCart) {
         setCartId(newCart.id);
@@ -78,14 +87,26 @@ export const addToCart = createAsyncThunk(
         return mapShopifyCart(fullData?.cart);
       }
     } else {
-      await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
+      const data = await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
         cartId,
         lines: [{ merchandiseId: variantId, quantity: product.quantity || 1 }]
       });
+
+      const userErrors = data?.cartLinesAdd?.userErrors;
+      if (userErrors && userErrors.length > 0) {
+        console.error("Shopify cartLinesAdd UserErrors:", userErrors);
+        // If cart not found, clear local cartId and retry once
+        if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+          localStorage.removeItem("shopify_cart_id");
+          return rejectWithValue("Cart not found, please try adding again.");
+        }
+        return rejectWithValue(userErrors[0].message);
+      }
+
       const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
       return mapShopifyCart(fullData?.cart);
     }
-    return { items: [], totalQuantity: 0, totalAmount: 0 };
+    return rejectWithValue("Failed to add to cart");
   }
 );
 

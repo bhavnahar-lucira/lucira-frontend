@@ -107,7 +107,7 @@ export const fetchNectorReviews = async (productId, options = {}) => {
           title: r.title || r.reference_product_name || "",
           uploads: r.uploads,
           reference_product_name: r.reference_product_name,
-          reference_product_handle: r.reference_product_handle,
+          reference_product_handle: r.reference_product_handle || r.reference_product_slug,
           reference_product_image: r.reference_product_image
         })),
         isProductView: !!id,

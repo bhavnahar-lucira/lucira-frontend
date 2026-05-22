@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  apiFetch,
   createCustomerAddress,
   deleteCustomerAddress,
   fetchCustomerAddresses,
@@ -360,10 +361,6 @@ export default function ShippingPage() {
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
   }, [cartItems, totalAmount, appliedCoupon, nectorPoints]);
-
-import { apiFetch } from "@/lib/api";
-
-// ... elsewhere ...
 
   useEffect(() => {
     const fetchStores = async () => {

@@ -34,7 +34,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { toast } from 'react-toastify';
-import { apiFetch } from "@/lib/api";
+import { apiFetch, fetchVariantPricing } from "@/lib/api";
 import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -1101,7 +1101,7 @@ useEffect(() => {
   useEffect(() => {
     if (!activeVariant?.id) return;
 
-    apiFetch(`/api/variant-pricing?variantId=${activeVariant.id}&productId=${product.shopifyId}`)
+    fetchVariantPricing(activeVariant.id, product.shopifyId)
       .then((data) => {
         setPriceBreakup(data);
       })
@@ -1182,8 +1182,9 @@ useEffect(() => {
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const data = await apiFetch(`/api/products/similar?handle=${product.handle}`);
-      const validProducts = (data.products || []).filter(p => p.handle !== product.handle);
+      const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
+      const relatedProducts = data.products || data.matchingProducts || data.complementaryProducts || [];
+      const validProducts = relatedProducts.filter(p => p.handle !== product.handle);
       setSimilarProducts(validProducts);
     } catch (e) {
       console.error("Failed to fetch similar products", e);

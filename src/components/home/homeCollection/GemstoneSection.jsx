@@ -59,8 +59,13 @@ export default function GemstoneSection() {
     async function fetchGemstoneProducts() {
       setLoading(true);
       try {
-        const filterParam = activeTab !== "All" ? `&filter.p.product_type=${encodeURIComponent(activeTab)}` : "";
-        const data = await apiFetch(`/api/products/search?q=gemstone&limit=20${filterParam}`);
+        let apiUrl = `/api/collection?handle=gemstone-jewelry&limit=15`;
+        if (activeTab !== "All") {
+          const filters = [{ productType: activeTab }];
+          apiUrl += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+        }
+        
+        const data = await apiFetch(apiUrl);
         if (data.products) {
           setProducts(data.products);
         } else {
@@ -82,7 +87,7 @@ export default function GemstoneSection() {
       tabs={tabs}
       page="home"
       colCat="shop all gemstone"
-      colLink="/collections/gemstone-jewellery"
+      colLink="/collections/gemstone-jewelry"
       onTabChange={(tab) => setActiveTab(tab)}
       loading={loading || tabsLoading}
     >

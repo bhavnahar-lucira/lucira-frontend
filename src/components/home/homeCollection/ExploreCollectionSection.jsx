@@ -23,7 +23,7 @@ export default function ExploreCollectionSection() {
     async function fetchCollectionProducts() {
       setLoading(true);
       try {
-        const data = await apiFetch(`/api/products/search?handle=${encodeURIComponent(activeHandle)}&limit=20`);
+        const data = await apiFetch(`/api/collection?handle=${encodeURIComponent(activeHandle)}&limit=15`);
         if (data.products) {
           setProducts(data.products);
         } else {
