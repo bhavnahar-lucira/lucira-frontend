@@ -8,6 +8,7 @@ import {
   CART_LINES_UPDATE_MUTATION, 
   CART_LINES_REMOVE_MUTATION 
 } from "@/lib/shopify-client";
+import { apiFetch } from "@/lib/api";
 
 // Helper to get or create Shopify Cart ID
 const getCartId = () => {
@@ -20,25 +21,61 @@ const setCartId = (id) => {
   localStorage.setItem("shopify_cart_id", id);
 };
 
-// Map Shopify Cart to local state structure
-const mapShopifyCart = (cart) => {
+// Helper to get or create guest session ID for backend cart syncing
+const getSessionId = () => {
+  if (typeof window === "undefined") return null;
+  let sessionId = localStorage.getItem("cart_session_id");
+  if (!sessionId) {
+    sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
+    localStorage.setItem("cart_session_id", sessionId);
+  }
+  return sessionId;
+};
+
+// Map Shopify Cart to local state structure, merging custom attributes from the backend cart
+const mapShopifyCart = (cart, backendCart = null) => {
   if (!cart) return { items: [], totalQuantity: 0, totalAmount: 0 };
   
-  const items = cart.lines?.edges?.map(({ node }) => ({
-    lineId: node.id,
-    variantId: node.merchandise.id,
-    quantity: node.quantity,
-    title: node.merchandise.product.title,
-    variantTitle: node.merchandise.title,
-    handle: node.merchandise.product.handle,
-    sku: node.merchandise.sku,
-    price: Number(node.merchandise.price.amount),
-    compare_price: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
-    image: node.merchandise.image?.url,
-    altText: node.merchandise.image?.altText,
-    productId: node.merchandise.product.id,
-    inStock: true, // Storefront API only allows adding available items
-  })) || [];
+  const items = cart.lines?.edges?.map(({ node }) => {
+    const variantId = node.merchandise.id;
+    // Find matching item in backend cart to restore custom dynamic attributes
+    const backendItem = backendCart?.items?.find(i => {
+      if (!i.variantId) return false;
+      const bVarId = String(i.variantId).toLowerCase();
+      const sVarId = String(variantId).toLowerCase();
+      return bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
+    });
+
+    return {
+      lineId: node.id,
+      variantId,
+      quantity: node.quantity,
+      title: node.merchandise.product.title,
+      variantTitle: node.merchandise.title,
+      handle: node.merchandise.product.handle,
+      sku: node.merchandise.sku,
+      price: Number(node.merchandise.price.amount),
+      compare_price: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
+      image: node.merchandise.image?.url,
+      altText: node.merchandise.image?.altText,
+      productId: node.merchandise.product.id,
+      inStock: true, // Storefront API only allows adding available items
+
+      // Dynamic metal / diamond attributes from backend cart
+      goldWeight: backendItem?.goldWeight || 0,
+      goldPrice: backendItem?.goldPrice || 0,
+      goldPricePerGram: backendItem?.goldPricePerGram || 0,
+      makingCharges: backendItem?.makingCharges || 0,
+      diamondCharges: backendItem?.diamondCharges || 0,
+      gst: backendItem?.gst || 0,
+      finalPrice: backendItem?.finalPrice || 0,
+      diamondTotalPcs: backendItem?.diamondTotalPcs || 0,
+      engraving: backendItem?.engraving || "",
+      engravingText: backendItem?.engravingText || "",
+      engravingFont: backendItem?.engravingFont || "",
+      giftText: backendItem?.giftText || "",
+    };
+  }) || [];
 
   return {
     id: cart.id,
@@ -51,22 +88,68 @@ const mapShopifyCart = (cart) => {
 
 export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
-  async () => {
+  async (params = {}, { getState }) => {
+    const userId = params?.userId || getState().user?.user?.id || null;
     const cartId = getCartId();
     if (!cartId) return { items: [], totalQuantity: 0, totalAmount: 0 };
     
-    const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-    return mapShopifyCart(data?.cart);
+    const shopifyPromise = shopifyStorefrontFetch(CART_QUERY, { cartId });
+    
+    const sessionId = getSessionId();
+    const backendPromise = apiFetch(`/api/cart/get?userId=${userId || ""}&sessionId=${sessionId || ""}`)
+      .catch(e => {
+        console.error("fetchCart backend error:", e);
+        return null;
+      });
+
+    const [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
+    
+    // Auto-heal/sync backend cart from storefront lines if backend cart has no items
+    let finalBackendCart = backendCart;
+    if (data?.cart?.lines?.edges?.length > 0 && (!backendCart || !backendCart.items || backendCart.items.length === 0)) {
+      try {
+        console.log("[fetchCart] Storefront cart has items but backend is empty. Syncing...");
+        const itemsToSync = data.cart.lines.edges.map(({ node }) => ({
+          variantId: node.merchandise.id,
+          productId: node.merchandise.product.id,
+          quantity: node.quantity,
+          price: Number(node.merchandise.price.amount),
+          variantTitle: node.merchandise.title,
+          title: node.merchandise.product.title,
+          sku: node.merchandise.sku || "",
+          image: node.merchandise.image?.url || "",
+          handle: node.merchandise.product.handle || "",
+        }));
+
+        finalBackendCart = await apiFetch("/api/cart/sync", {
+          method: "POST",
+          body: JSON.stringify({
+            userId,
+            sessionId,
+            items: itemsToSync
+          })
+        });
+        console.log("[fetchCart] Dynamic sync complete:", finalBackendCart);
+      } catch (syncErr) {
+        console.error("[fetchCart] Dynamic sync failed:", syncErr);
+      }
+    }
+    
+    return mapShopifyCart(data?.cart, finalBackendCart);
   }
 );
 
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async ({ product }, { rejectWithValue }) => {
+  async ({ userId, product }, { rejectWithValue, getState }) => {
+    const finalUserId = userId || getState().user?.user?.id || null;
+    const sessionId = getSessionId();
     let cartId = getCartId();
     const rawVariantId = product.shopifyVariantId || product.variantId || product.id;
     const variantId = toShopifyGid(rawVariantId, "ProductVariant");
     
+    // 1. Shopify Storefront Mutation
+    let shopifyCartData = null;
     if (!cartId) {
       const data = await shopifyStorefrontFetch(CART_CREATE_MUTATION, {
         input: {
@@ -84,7 +167,7 @@ export const addToCart = createAsyncThunk(
       if (newCart) {
         setCartId(newCart.id);
         const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId: newCart.id });
-        return mapShopifyCart(fullData?.cart);
+        shopifyCartData = fullData?.cart;
       }
     } else {
       const data = await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
@@ -104,60 +187,201 @@ export const addToCart = createAsyncThunk(
       }
 
       const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-      return mapShopifyCart(fullData?.cart);
+      shopifyCartData = fullData?.cart;
     }
+
+    // 2. Parallel Fastify Backend Call
+    let backendCart = null;
+    try {
+      backendCart = await apiFetch("/api/cart/add", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: finalUserId,
+          sessionId,
+          product: {
+            ...product,
+            variantId: toShopifyGid(product.shopifyVariantId || product.variantId || product.id, "ProductVariant"),
+            price: Number(product.price || 0),
+            quantity: Number(product.quantity || 1)
+          }
+        })
+      });
+      console.log("[addToCart] Backend Cart updated successfully:", backendCart);
+    } catch (e) {
+      console.error("[addToCart] Backend Cart update failed:", e);
+    }
+
+    if (shopifyCartData) {
+      return mapShopifyCart(shopifyCartData, backendCart);
+    }
+    
     return rejectWithValue("Failed to add to cart");
   }
 );
 
 export const removeFromCart = createAsyncThunk(
   "cart/removeFromCart",
-  async ({ lineId }) => {
+  async ({ userId, lineId }, { getState }) => {
+    const finalUserId = userId || getState().user?.user?.id || null;
+    const sessionId = getSessionId();
     const cartId = getCartId();
-    if (!cartId || !lineId) return;
+    if (!cartId || !lineId) return { items: [], totalQuantity: 0, totalAmount: 0 };
 
+    let targetLineId = lineId;
+
+    // Check if the lineId passed is actually a variantId or productId
+    const state = getState();
+    const items = state.cart?.items || [];
+    const hasLineId = items.some(item => item.lineId === lineId);
+
+    let variantId = null;
+
+    const foundItem = items.find(item => 
+      item.lineId === lineId ||
+      item.variantId === lineId || 
+      item.productId === lineId ||
+      (item.variantId && item.variantId.toString().toLowerCase().includes(lineId.toString().toLowerCase())) ||
+      (lineId && lineId.toString().toLowerCase().includes(item.variantId.toString().toLowerCase()))
+    );
+
+    if (foundItem) {
+      targetLineId = foundItem.lineId;
+      variantId = foundItem.variantId;
+    }
+
+    // 1. Shopify storefront remove
     await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
       cartId,
-      lineIds: [lineId]
+      lineIds: [targetLineId]
     });
-    
+
+    // 2. Fastify backend remove
+    let backendCart = null;
+    if (variantId) {
+      try {
+        backendCart = await apiFetch("/api/cart/remove", {
+          method: "POST",
+          body: JSON.stringify({
+            userId: finalUserId,
+            sessionId,
+            variantId
+          })
+        });
+      } catch (e) {
+        console.error("removeFromCart backend error:", e);
+      }
+    }
+
     const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-    return mapShopifyCart(data?.cart);
+    return mapShopifyCart(data?.cart, backendCart);
   }
 );
 
 export const updateCartItem = createAsyncThunk(
   "cart/updateCartItem",
-  async ({ lineId, quantity }) => {
+  async ({ userId, lineId, currentVariantId, quantity }, { getState }) => {
+    const finalUserId = userId || getState().user?.user?.id || null;
+    const sessionId = getSessionId();
     const cartId = getCartId();
-    if (!cartId || !lineId) return;
+    const lookupId = lineId || currentVariantId;
+    if (!cartId || !lookupId) return { items: [], totalQuantity: 0, totalAmount: 0 };
 
+    let targetLineId = lookupId;
+    let resolvedVariantId = currentVariantId || null;
+
+    // Check if the lookupId passed is actually a variantId or productId or lineId
+    const state = getState();
+    const items = state.cart?.items || [];
+
+    const foundItem = items.find(item => 
+      item.lineId === lookupId ||
+      item.variantId === lookupId || 
+      item.productId === lookupId ||
+      (item.variantId && item.variantId.toString().toLowerCase().includes(lookupId.toString().toLowerCase())) ||
+      (lookupId && lookupId.toString().toLowerCase().includes(item.variantId.toString().toLowerCase()))
+    );
+
+    if (foundItem) {
+      targetLineId = foundItem.lineId;
+      resolvedVariantId = foundItem.variantId;
+    }
+
+    // 1. Shopify Storefront update
     await shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
       cartId,
-      lines: [{ id: lineId, quantity }]
+      lines: [{ id: targetLineId, quantity }]
     });
-    
+
+    // 2. Fastify backend update
+    let backendCart = null;
+    if (resolvedVariantId) {
+      try {
+        backendCart = await apiFetch("/api/cart/update", {
+          method: "POST",
+          body: JSON.stringify({
+            userId: finalUserId,
+            sessionId,
+            currentVariantId: resolvedVariantId,
+            quantity
+          })
+        });
+      } catch (e) {
+        console.error("updateCartItem backend error:", e);
+      }
+    }
+
     const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-    return mapShopifyCart(data?.cart);
+    return mapShopifyCart(data?.cart, backendCart);
   }
 );
 
-// Coupons are handled by Shopify Cart as well, but for now we'll keep the points/coupons logic 
-// as is or move them to the Fastify backend in Phase 2 if they use custom logic.
 export const mergeCart = createAsyncThunk(
   "cart/mergeCart",
-  async (_, { dispatch }) => {
-     // Shopify handles cart merging automatically if we associate the cart with a customer token.
-     // For now, just fetch the existing cart.
-     const result = await dispatch(fetchCart()).unwrap();
-     return result;
+  async ({ userId } = {}, { dispatch, getState }) => {
+    const finalUserId = userId || getState().user?.user?.id || null;
+    const sessionId = getSessionId();
+    
+    // 1. Fastify backend merge
+    if (finalUserId && sessionId) {
+      try {
+        await apiFetch("/api/cart/merge", {
+          method: "POST",
+          body: JSON.stringify({
+            userId: finalUserId,
+            sessionId
+          })
+        });
+      } catch (e) {
+        console.error("mergeCart backend error:", e);
+      }
+    }
+
+    // 2. Fetch the newly merged cart state
+    const result = await dispatch(fetchCart({ userId: finalUserId })).unwrap();
+    return result;
   }
 );
 
 export const repriceCartForCheckout = createAsyncThunk(
   "cart/repriceCartForCheckout",
-  async (_, { dispatch }) => {
-    const result = await dispatch(fetchCart()).unwrap();
+  async ({ userId } = {}, { dispatch, getState }) => {
+    const finalUserId = userId || getState().user?.user?.id || null;
+    const sessionId = getSessionId();
+
+    // Call backend recalculation endpoint
+    try {
+      await apiFetch("/api/cart/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: finalUserId,
+          sessionId
+        })
+      });
+    } catch (e) {
+      console.error("repriceCartForCheckout backend error:", e);
+    }
+
+    const result = await dispatch(fetchCart({ userId: finalUserId })).unwrap();
     return result;
   }
 );
@@ -213,38 +437,50 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload.items || [];
-        state.totalQuantity = action.payload.totalQuantity || 0;
-        state.totalAmount = action.payload.totalAmount || 0;
+        if (action.payload) {
+          state.items = action.payload.items || [];
+          state.totalQuantity = action.payload.totalQuantity || 0;
+          state.totalAmount = action.payload.totalAmount || 0;
+        }
       })
       .addCase(addToCart.fulfilled, (state, action) => {
-        state.items = action.payload.items || [];
-        state.totalQuantity = action.payload.totalQuantity || 0;
-        state.totalAmount = action.payload.totalAmount || 0;
+        if (action.payload) {
+          state.items = action.payload.items || [];
+          state.totalQuantity = action.payload.totalQuantity || 0;
+          state.totalAmount = action.payload.totalAmount || 0;
+        }
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
-        state.items = action.payload.items || [];
-        state.totalQuantity = action.payload.totalQuantity || 0;
-        state.totalAmount = action.payload.totalAmount || 0;
+        if (action.payload) {
+          state.items = action.payload.items || [];
+          state.totalQuantity = action.payload.totalQuantity || 0;
+          state.totalAmount = action.payload.totalAmount || 0;
+        }
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {
-        state.items = action.payload.items || [];
-        state.totalQuantity = action.payload.totalQuantity || 0;
-        state.totalAmount = action.payload.totalAmount || 0;
+        if (action.payload) {
+          state.items = action.payload.items || [];
+          state.totalQuantity = action.payload.totalQuantity || 0;
+          state.totalAmount = action.payload.totalAmount || 0;
+        }
       })
       .addCase(repriceCartForCheckout.fulfilled, (state, action) => {
-        state.items = action.payload.items || [];
-        state.totalQuantity = action.payload.totalQuantity || 0;
-        state.totalAmount = action.payload.totalAmount || 0;
+        if (action.payload) {
+          state.items = action.payload.items || [];
+          state.totalQuantity = action.payload.totalQuantity || 0;
+          state.totalAmount = action.payload.totalAmount || 0;
+        }
       })
       .addCase(mergeCart.pending, (state) => {
         state.loading = true;
       })
       .addCase(mergeCart.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload.items || [];
-        state.totalQuantity = action.payload.totalQuantity || 0;
-        state.totalAmount = action.payload.totalAmount || 0;
+        if (action.payload) {
+          state.items = action.payload.items || [];
+          state.totalQuantity = action.payload.totalQuantity || 0;
+          state.totalAmount = action.payload.totalAmount || 0;
+        }
       });
   },
 });

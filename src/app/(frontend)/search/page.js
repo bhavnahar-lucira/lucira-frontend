@@ -109,8 +109,10 @@ export default function SearchPage() {
     const p = new URLSearchParams(searchParams.toString());
     p.delete("page");
     p.delete("cursor");
+    p.delete("q"); // Remove q — it's added explicitly in each apiFetch call to avoid duplication
     return p.toString();
   }, [searchParams]);
+
 
   useEffect(() => {
     if (!query) return;

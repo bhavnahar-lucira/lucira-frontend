@@ -57,8 +57,9 @@ export default function WishlistPage() {
     try {
       // 1. Fetch full product details to find variants
       const data = await apiFetch(`/api/products/details?handle=${item.productHandle}`);
+      const product = data?.product;
       
-      const videoMedia = product.media?.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
+      const videoMedia = product?.media?.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
       if (videoMedia) {
         setActiveVideoMedia(videoMedia);
       } else {
@@ -99,6 +100,7 @@ export default function WishlistPage() {
     try {
       // 1. Fetch full product details to find variants
       const data = await apiFetch(`/api/products/details?handle=${item.productHandle}`);
+      const product = data?.product;
 
       if (!product || !product.variants?.length) {
         throw new Error("Product variants not found");

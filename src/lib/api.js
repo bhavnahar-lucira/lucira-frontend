@@ -2,13 +2,13 @@
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
   ? process.env.NEXT_PUBLIC_BACKEND_URL 
-  : "http://127.0.0.1:8080";
+  : "http://localhost:8080";
 
 export const apiFetch = async (url, options = {}) => {
   // All /api calls now go to the external backend since the local app/api is removed
   // We ensure the URL is absolute to avoid hitting the Next.js server on port 3000
   let finalUrl = url;
-  if (url.startsWith("/api")) {
+  if (url.startsWith("/api") && !url.startsWith("/api/proxy/")) {
     const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
     finalUrl = `${base}${url}`;
     
@@ -18,12 +18,29 @@ export const apiFetch = async (url, options = {}) => {
     }
   }
 
+  let token = null;
+  if (typeof window !== "undefined") {
+    try {
+      const persistRoot = localStorage.getItem("persist:root");
+      if (persistRoot) {
+        const rootState = JSON.parse(persistRoot);
+        const userState = rootState.user ? JSON.parse(rootState.user) : null;
+        if (userState?.accessToken) {
+          token = `Bearer ${userState.accessToken}`;
+        }
+      }
+    } catch (e) {
+      console.warn("[apiFetch] Failed to retrieve token from localStorage:", e);
+    }
+  }
+
   try {
     const res = await fetch(finalUrl, {
       credentials: "include",
       ...options,
       headers: {
         ...(options.body && !(options.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { "Authorization": token } : {}),
         ...(options.headers || {}),
       },
     });
@@ -83,6 +100,21 @@ export const registerCustomer = (payload) =>
   apiFetch("/api/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+
+export const fetchCustomerProfile = (accessToken) =>
+  apiFetch("/api/customer/profile", {
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
+  });
+
+export const fetchCustomerOrders = (accessToken) =>
+  apiFetch("/api/customer/orders", {
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
+  });
+
+export const fetchCustomerDashboardStats = (accessToken) =>
+  apiFetch("/api/customer/dashboard-stats", {
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
   });
 
 export const fetchCustomerAddresses = (accessToken) => 
@@ -197,10 +229,38 @@ export const createCartApi = () =>
 
 /* ================= SEARCH RESULTS ================= */
 
-export const fetchSearchResults = (query) => {
+export const fetchSearchResults = async (query) => {
   if (!query) return { results: [] };
-  return apiFetch(`/api/products/search?q=${encodeURIComponent(query)}`);
+  try {
+    const data = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=6`);
+    const formatPrice = (num) => {
+      if (!num && num !== 0) return '';
+      return '₹' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
+    };
+    // Map products → results shape expected by SearchPopup
+    const productResults = (data.products || []).map(p => ({
+      id: p.shopifyId || p.id,
+      title: p.title,
+      url: `/products/${p.handle}`,
+      image: p.image || p.variants?.[0]?.image || '',
+      price: formatPrice(p.price),
+      isCollection: false,
+    }));
+    // Include matched collections if backend returns them (future-proof)
+    const collectionResults = (data.matchedCollections || []).map(c => ({
+      id: c.shopifyId || c._id,
+      title: c.title,
+      url: `/collections/${c.handle}`,
+      image: c.image || '',
+      isCollection: true,
+    }));
+    return { results: [...collectionResults, ...productResults] };
+  } catch (err) {
+    console.error('[fetchSearchResults] Error:', err);
+    return { results: [] };
+  }
 };
+
 
 /* ================= COLLECTION PRODUCTS ================= */
 

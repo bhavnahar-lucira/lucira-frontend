@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "react-toastify";
 import { logout } from "@/redux/features/user/userSlice";
+import { apiFetch } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
 
 const avatarColors = [
@@ -59,36 +60,67 @@ export default function MyProfilePage() {
       try {
         setLoading(true);
 
-        const data = await shopifyStorefrontFetch(CUSTOMER_QUERY, {
-          customerAccessToken: accessToken
-        });
+        // Hybrid Strategy: Try backend first, fallback to Storefront API
+        let customerData = null;
+        try {
+          const data = await apiFetch("/api/customer/profile");
+          if (data && data.customer) {
+            customerData = data.customer;
+          } else {
+            throw new Error("Empty backend profile");
+          }
+        } catch (backendErr) {
+          console.warn("[MyProfilePage] Backend profile fetch failed, falling back to Storefront API:", backendErr);
+          
+          if (accessToken && !accessToken.startsWith("simulated_")) {
+            const storefrontData = await shopifyStorefrontFetch(CUSTOMER_QUERY, {
+              customerAccessToken: accessToken
+            });
+            customerData = storefrontData?.customer;
+          }
+        }
 
-        if (data?.customer) {
+        if (customerData) {
+          if (process.env.NODE_ENV === "development") {
+            console.log("[MyProfilePage] Found customer data:", customerData);
+          }
           setFormData({
-            firstName: data.customer.firstName || "",
-            lastName: data.customer.lastName || "",
-            email: data.customer.email || "",
-            phone: data.customer.phone || "",
+            firstName: customerData.firstName || customerData.first_name || "",
+            lastName: customerData.lastName || customerData.last_name || "",
+            email: customerData.email || "",
+            phone: customerData.phone || "",
           });
         } else {
-          dispatch(logout());
-          router.push("/login");
-          return;
+          console.warn("[MyProfilePage] Could not retrieve customer data from any source.");
         }
-
-        const avData = await apiFetch("/api/customer/profile/avatar");
-        if (avData.avatar) setProfileImage(avData.avatar);
 
         try {
-          const sData = await apiFetch("/api/customer/dashboard-stats");
-          let pBal = sData.points !== undefined ? sData.points.toLocaleString() : "0";
-          
-          setUserStats(prev => ({ ...prev, points: pBal }));
+          const avData = await apiFetch("/api/customer/profile/avatar");
+          if (avData.avatar) setProfileImage(avData.avatar);
         } catch (e) {
-          console.warn("Failed to load stats", e);
+          console.warn("[MyProfilePage] Failed to load avatar", e);
+        }
+
+        try {
+          const [sData, oData] = await Promise.all([
+            apiFetch("/api/customer/dashboard-stats").catch(e => {
+              console.warn("[MyProfilePage] Failed to load stats", e);
+              return { points: 0 };
+            }),
+            apiFetch("/api/customer/orders").catch(e => {
+              console.warn("[MyProfilePage] Failed to load orders", e);
+              return { orders: [] };
+            })
+          ]);
+
+          const pBal = sData?.points !== undefined ? sData.points.toLocaleString() : "0";
+          const oCount = oData?.orders?.length?.toString() || "0";
+          setUserStats({ orders: oCount, points: pBal });
+        } catch (e) {
+          console.warn("[MyProfilePage] Failed to load stats or orders", e);
         }
       } catch (err) {
-        console.error("Failed to load profile", err);
+        console.error("[MyProfilePage] Unexpected error during profile load:", err);
       } finally {
         setLoading(false);
       }

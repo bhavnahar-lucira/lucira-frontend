@@ -4,8 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { logout } from "@/redux/features/user/userSlice";
-import { apiFetch } from "@/lib/api";
-import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
+import { fetchCustomerProfile } from "@/lib/api";
 
 export default function ProtectedLayout({ children }) {
   const router = useRouter();
@@ -16,22 +15,33 @@ export default function ProtectedLayout({ children }) {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push("/login");
+      router.replace("/login");
     } else if (accessToken) {
-      // Verify session with Storefront API
+      // Verify session via Fastify Backend (proxies to Shopify Admin API if needed)
       const checkSession = async () => {
         try {
-          const data = await shopifyStorefrontFetch(CUSTOMER_QUERY, {
-            customerAccessToken: accessToken
-          });
+          if (process.env.NODE_ENV === "development") {
+             console.log("[ProtectedLayout] Running authenticated session check...");
+          }
           
-          if (!data?.customer) {
-            throw new Error("Invalid session");
+          // Use authenticated helper
+          const data = await fetchCustomerProfile(accessToken);
+          
+          if (process.env.NODE_ENV === "development") {
+            console.log("[ProtectedLayout] Session check response:", data);
+          }
+
+          if (!data || !data.customer) {
+             console.warn("[ProtectedLayout] Session invalid. Logging out.");
+             dispatch(logout());
+             router.replace("/login");
           }
         } catch (err) {
-          console.error("Session verification failed:", err);
-          dispatch(logout());
-          router.push("/login");
+          console.error("[ProtectedLayout] Session verification failure:", err);
+          if (err.message.includes("401") || err.message.toLowerCase().includes("unauthorized")) {
+            dispatch(logout());
+            router.replace("/login");
+          }
         }
       };
       checkSession();

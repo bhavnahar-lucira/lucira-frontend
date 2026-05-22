@@ -297,11 +297,9 @@ export default function SchemesPage() {
           return;
         }
 
-        // Fetch profile to get phone (user in redux may not have phone)
-        const profData = await shopifyStorefrontFetch(CUSTOMER_QUERY, {
-          customerAccessToken: accessToken
-        });
-        
+        // Fetch profile from backend instead of Shopify Storefront
+        const profData = await apiFetch("/api/customer/profile");
+
         const rawPhone = profData?.customer?.phone || "";
         const cleanedPhone = cleanPhone(rawPhone);
         setPhone(cleanedPhone);
@@ -321,8 +319,13 @@ export default function SchemesPage() {
 
         setSchemes(data.schemes || []);
       } catch (err) {
-        console.error("Schemes load error:", err);
-        setError(err.message || "Something went wrong. Please try again.");
+        // If it's a 404, we just keep the empty state silently to avoid console noise
+        if (err.message.includes("404")) {
+          setSchemes([]);
+        } else {
+          console.error("Schemes load error:", err);
+          setError(err.message || "Something went wrong. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -330,7 +333,6 @@ export default function SchemesPage() {
 
     load();
   }, [accessToken]);
-
   /* Loading */
   if (loading) {
     return (

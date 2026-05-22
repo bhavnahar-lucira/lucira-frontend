@@ -1,5 +1,6 @@
 const SHOP = "luciraonline";
-const SHOP_DOMAIN = `${SHOP}.myshopify.com`;
+const rawStore = process.env.NEXT_PUBLIC_SHOPIFY_STORE || SHOP;
+const SHOP_DOMAIN = rawStore.includes(".") ? rawStore : `${rawStore}.myshopify.com`;
 
 export async function shopifyStorefrontFetch(query, variables = {}) {
   const token = process.env.NEXT_PUBLIC_STOREFRONT_TOKEN;
@@ -7,6 +8,11 @@ export async function shopifyStorefrontFetch(query, variables = {}) {
   if (!token) {
     console.error("NEXT_PUBLIC_STOREFRONT_TOKEN is not defined");
     return null;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[shopifyStorefrontFetch] Fetching from ${SHOP_DOMAIN}`);
+    // console.log(`[shopifyStorefrontFetch] Variables:`, JSON.stringify(variables, null, 2));
   }
 
   try {
@@ -20,10 +26,17 @@ export async function shopifyStorefrontFetch(query, variables = {}) {
     });
 
     const data = await res.json();
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[shopifyStorefrontFetch] Response status: ${res.status}`);
+      if (data.errors) {
+        console.error("[shopifyStorefrontFetch] GraphQL Errors:", JSON.stringify(data.errors, null, 2));
+      }
+    }
+
     if (data.errors) {
-      console.error("Shopify Storefront Errors:", JSON.stringify(data.errors, null, 2));
-      console.error("Query:", query);
-      console.error("Variables:", JSON.stringify(variables, null, 2));
+      // console.error("Query:", query);
+      // console.error("Variables:", JSON.stringify(variables, null, 2));
       return null;
     }
     return data.data;

@@ -29,37 +29,71 @@ export default function MyOrdersPage() {
 
       try {
         setLoading(true);
-        const data = await shopifyStorefrontFetch(CUSTOMER_ORDERS_QUERY, {
-          customerAccessToken: accessToken,
-          first: 20
-        });
+        
+        // Hybrid Strategy: Try backend first, fallback to Storefront API
+        let storefrontOrders = [];
+        try {
+          const data = await apiFetch("/api/customer/orders");
+          if (data && data.orders) {
+            storefrontOrders = data.orders.map((order) => ({
+              ...order,
+              id: order.id,
+              orderNumber: order.orderNumber.toString(),
+              date: new Date(order.processedAt).toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }),
+              status: order.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
+                      order.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+              amount: new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: order.totalPrice?.currencyCode || 'INR',
+              }).format(order.totalPrice?.amount || 0),
+              product: order.product || "Jewelry Item",
+              image: order.image || "/images/product/1.jpg",
+              customerEmail: order.customerEmail || ""
+            }));
+          } else {
+            throw new Error("Empty backend orders");
+          }
+        } catch (backendErr) {
+          console.warn("[MyOrdersPage] Backend orders fetch failed, falling back to Storefront API:", backendErr);
+          
+          if (!accessToken.startsWith("simulated_")) {
+            const data = await shopifyStorefrontFetch(CUSTOMER_ORDERS_QUERY, {
+              customerAccessToken: accessToken,
+              first: 20
+            });
 
-        const storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
-          const mainItem = node.lineItems?.edges?.[0]?.node;
-          return {
-            id: node.id,
-            orderNumber: node.orderNumber.toString(),
-            date: new Date(node.processedAt).toLocaleDateString('en-IN', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            }),
-            status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
-                    node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
-            amount: new Intl.NumberFormat('en-IN', {
-              style: 'currency',
-              currency: node.totalPrice.currencyCode,
-            }).format(node.totalPrice.amount),
-            product: mainItem?.title || "Jewelry Item",
-            image: mainItem?.variant?.image?.url || "/images/product/1.jpg",
-            customerEmail: data?.customer?.email || ""
-          };
-        }) || [];
+            storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
+              const mainItem = node.lineItems?.edges?.[0]?.node;
+              return {
+                id: node.id,
+                orderNumber: node.orderNumber.toString(),
+                date: new Date(node.processedAt).toLocaleDateString('en-IN', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }),
+                status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
+                        node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+                amount: new Intl.NumberFormat('en-IN', {
+                  style: 'currency',
+                  currency: node.totalPrice.currencyCode,
+                }).format(node.totalPrice.amount),
+                product: mainItem?.title || "Jewelry Item",
+                image: mainItem?.variant?.image?.url || "/images/product/1.jpg",
+                customerEmail: data?.customer?.email || ""
+              };
+            }) || [];
+          }
+        }
 
         setOrders(storefrontOrders);
         setFilteredOrders(storefrontOrders);
       } catch (err) {
-        console.error("Storefront Orders Error:", err);
+        console.error("Orders Fetch Error:", err);
         toast.error("Failed to load orders");
       } finally {
         setLoading(false);

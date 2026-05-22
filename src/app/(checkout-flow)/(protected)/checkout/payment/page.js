@@ -313,10 +313,6 @@ export default function PaymentPage() {
     };
   }, [dispatch]);
 
-import { apiFetch } from "@/lib/api";
-
-// ... elsewhere ...
-
   useEffect(() => {
     const checkDelivery = async () => {
       if (typeof window === "undefined") return;
@@ -516,7 +512,7 @@ import { apiFetch } from "@/lib/api";
     } catch (error) {
       toast.error(error.message || "Unable to load addresses");
     }
-  }, [applyAddressPayload]);
+  }, [applyAddressPayload, accessToken]);
 
   useEffect(() => {
     Promise.resolve().then(loadAddresses);
@@ -763,6 +759,7 @@ import { apiFetch } from "@/lib/api";
       const order = await createRazorpayOrder({
         userId: user?.id || "",
         sessionId: getCartSessionId(),
+        items: items,
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",

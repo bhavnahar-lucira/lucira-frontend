@@ -13,13 +13,12 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { fetchCustomerDashboardStats, fetchCustomerOrders } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
 
 export default function CustomerDashboard() {
   const { user, accessToken } = useSelector((state) => state.user);
   const [orders, setOrders] = useState([]);
-  // ... (keep stats state)
   const [stats, setStats] = useState({
     points: "0",
     tier: "Member",
@@ -32,34 +31,57 @@ export default function CustomerDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const statsData = await apiFetch("/api/customer/dashboard-stats");
-        if (statsData) setStats(statsData);
-
-        if (accessToken) {
-          const data = await shopifyStorefrontFetch(CUSTOMER_ORDERS_QUERY, {
-            customerAccessToken: accessToken,
-            first: 5
-          });
-
-          const storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
-            const mainItem = node.lineItems?.edges?.[0]?.node;
-            return {
-              id: node.id,
-              orderNumber: node.orderNumber.toString(),
-              date: new Date(node.processedAt).toLocaleDateString('en-IN', {
-                year: 'numeric', month: 'long', day: 'numeric'
-              }),
-              status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
-                      node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
-              amount: new Intl.NumberFormat('en-IN', {
-                style: 'currency', currency: node.totalPrice.currencyCode,
-              }).format(node.totalPrice.amount),
-              product: mainItem?.title || "Jewelry Item",
-              image: mainItem?.variant?.image?.url || "/images/product/1.jpg"
-            };
-          }) || [];
-          setOrders(storefrontOrders);
+        setLoading(true);
+        
+        // Fetch stats from backend (Authenticated)
+        try {
+          const statsData = await fetchCustomerDashboardStats(accessToken);
+          if (statsData) setStats(statsData);
+        } catch (e) {
+          console.warn("[CustomerDashboard] Stats fetch failed:", e);
         }
+
+        // Fetch recent orders - Hybrid Strategy
+        let storefrontOrders = [];
+        try {
+          // Use authenticated helper
+          const ordersData = await fetchCustomerOrders(accessToken);
+          if (ordersData && ordersData.orders) {
+            storefrontOrders = ordersData.orders.slice(0, 5);
+          } else {
+            throw new Error("Empty backend orders");
+          }
+        } catch (err) {
+          console.warn("[CustomerDashboard] Backend orders fetch failed, falling back to Storefront API:", err);
+          
+          if (accessToken && !accessToken.startsWith("simulated_")) {
+            const data = await shopifyStorefrontFetch(CUSTOMER_ORDERS_QUERY, {
+              customerAccessToken: accessToken,
+              first: 5
+            });
+
+            storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
+              if (!node) return null;
+              const mainItem = node.lineItems?.edges?.[0]?.node;
+              return {
+                id: node.id,
+                orderNumber: node.orderNumber ? node.orderNumber.toString() : "N/A",
+                date: node.processedAt ? new Date(node.processedAt).toLocaleDateString('en-IN', {
+                  year: 'numeric', month: 'long', day: 'numeric'
+                }) : "Date Unknown",
+                status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
+                        node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+                amount: node.totalPrice ? new Intl.NumberFormat('en-IN', {
+                  style: 'currency', currency: node.totalPrice.currencyCode || 'INR',
+                }).format(node.totalPrice.amount) : "0.00",
+                product: mainItem?.title || "Jewelry Item",
+                image: mainItem?.variant?.image?.url || "/images/product/1.jpg"
+              };
+            }).filter(Boolean) || [];
+          }
+        }
+        
+        setOrders(storefrontOrders);
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
       } finally {
@@ -67,16 +89,16 @@ export default function CustomerDashboard() {
       }
     }
     fetchData();
-  }, [accessToken]);
+  }, []);
 
-  const fName = user?.first_name || user?.firstName || "";
-  const lName = user?.last_name || user?.lastName || "";
+  const fName = user?.firstName || user?.first_name || "";
+  const lName = user?.lastName || user?.last_name || "";
   const displayName = (user ? `${fName} ${lName}`.trim() : "") || user?.name || "";
 
   const customerStats = [
     {
       title: "Orders Placed",
-      value: loading ? "..." : orders.length.toString(),
+      value: loading ? "..." : String(orders?.length ?? 0),
       subtitle: "Total history",
       icon: ShoppingBag,
       color: "from-primary to-primary/80",
@@ -85,7 +107,7 @@ export default function CustomerDashboard() {
     },
     {
       title: "Wishlist Items",
-      value: loading ? "..." : stats.wishlistCount.toString(),
+      value: loading ? "..." : String(stats?.wishlistCount ?? 0),
       subtitle: "Saved for later",
       icon: Heart,
       color: "from-primary to-primary/80",

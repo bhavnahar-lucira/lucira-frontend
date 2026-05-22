@@ -81,15 +81,45 @@ export default function SavedAddressesPage() {
     }
     try {
       setLoading(true);
-      const data = await shopifyStorefrontFetch(CUSTOMER_QUERY, { customerAccessToken: accessToken });
-      const customer = data?.customer;
-      const defaultId = customer?.defaultAddress?.id;
-      const mapped = customer?.addresses?.edges?.map(({ node }) => ({
-        ...node,
-        isDefault: node.id === defaultId
-      })) || [];
-      setAddresses(mapped);
+      
+      // Hybrid Strategy: Try backend first, fallback to Storefront API
+      let finalAddresses = [];
+      try {
+        const data = await apiFetch("/api/customer/addresses");
+        if (data && data.addresses && data.addresses.length > 0) {
+          finalAddresses = data.addresses;
+          if (process.env.NODE_ENV === "development") {
+            console.log("[SavedAddressesPage] Backend addresses found:", finalAddresses);
+          }
+        } else {
+          throw new Error("Empty or missing backend addresses");
+        }
+      } catch (backendErr) {
+        console.warn("[SavedAddressesPage] Backend addresses fetch failed or empty, falling back to Storefront API:", backendErr);
+        
+        if (accessToken && !accessToken.startsWith("simulated_")) {
+          const storefrontData = await shopifyStorefrontFetch(CUSTOMER_QUERY, { 
+            customerAccessToken: accessToken 
+          });
+          
+          if (storefrontData && storefrontData.customer) {
+            const customer = storefrontData.customer;
+            const defaultId = customer?.defaultAddress?.id;
+            finalAddresses = customer?.addresses?.edges?.map(({ node }) => ({
+              ...node,
+              isDefault: node.id === defaultId
+            })) || [];
+            
+            if (process.env.NODE_ENV === "development") {
+              console.log("[SavedAddressesPage] Storefront addresses found:", finalAddresses);
+            }
+          }
+        }
+      }
+
+      setAddresses(finalAddresses);
     } catch (error) {
+      console.error("Addresses Load Error:", error);
       toast.error("Unable to load addresses");
     } finally {
       setLoading(false);
@@ -140,35 +170,21 @@ export default function SavedAddressesPage() {
       };
 
       if (dialogMode === "create") {
-        const res = await shopifyStorefrontFetch(ADDRESS_CREATE_MUTATION, {
-          customerAccessToken: accessToken,
-          address: addressInput
+        await apiFetch("/api/customer/addresses", {
+          method: "POST",
+          body: JSON.stringify({ address: addressInput, makeDefault })
         });
-        if (res?.customerAddressCreate?.customerUserErrors?.length > 0) {
-          throw new Error(res.customerAddressCreate.customerUserErrors[0].message);
-        }
-        if (makeDefault && res?.customerAddressCreate?.customerAddress?.id) {
-          await shopifyStorefrontFetch(ADDRESS_DEFAULT_UPDATE_MUTATION, {
-            customerAccessToken: accessToken,
-            addressId: res.customerAddressCreate.customerAddress.id
-          });
-        }
         toast.success("Address added successfully");
       } else {
-        const res = await shopifyStorefrontFetch(ADDRESS_UPDATE_MUTATION, {
-          customerAccessToken: accessToken,
-          id: editingAddressId,
-          address: addressInput
+        await apiFetch("/api/customer/addresses", {
+          method: "PATCH",
+          body: JSON.stringify({ 
+            addressId: editingAddressId, 
+            address: addressInput, 
+            makeDefault,
+            mode: "update" 
+          })
         });
-        if (res?.customerAddressUpdate?.customerUserErrors?.length > 0) {
-          throw new Error(res.customerAddressUpdate.customerUserErrors[0].message);
-        }
-        if (makeDefault) {
-          await shopifyStorefrontFetch(ADDRESS_DEFAULT_UPDATE_MUTATION, {
-            customerAccessToken: accessToken,
-            addressId: editingAddressId
-          });
-        }
         toast.success("Address updated successfully");
       }
       setDialogOpen(false);
@@ -189,13 +205,9 @@ export default function SavedAddressesPage() {
 
     if (!confirm("Are you sure you want to remove this address?")) return;
     try {
-      const res = await shopifyStorefrontFetch(ADDRESS_DELETE_MUTATION, {
-        customerAccessToken: accessToken,
-        id
+      await apiFetch(`/api/customer/addresses?addressId=${encodeURIComponent(id)}`, {
+        method: "DELETE"
       });
-      if (res?.customerAddressDelete?.customerUserErrors?.length > 0) {
-        throw new Error(res.customerAddressDelete.customerUserErrors[0].message);
-      }
       toast.error("Address removed successfully", {
         icon: <Check className="w-4 h-4" />
       });
@@ -207,13 +219,10 @@ export default function SavedAddressesPage() {
 
   const handleSetDefault = async (id) => {
     try {
-      const res = await shopifyStorefrontFetch(ADDRESS_DEFAULT_UPDATE_MUTATION, {
-        customerAccessToken: accessToken,
-        addressId: id
+      await apiFetch("/api/customer/addresses", {
+        method: "PATCH",
+        body: JSON.stringify({ addressId: id, mode: "default" })
       });
-      if (res?.customerDefaultAddressUpdate?.customerUserErrors?.length > 0) {
-        throw new Error(res.customerDefaultAddressUpdate.customerUserErrors[0].message);
-      }
       toast.success("Default address updated");
       loadAddresses();
     } catch (error) {

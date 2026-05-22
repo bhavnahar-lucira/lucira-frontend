@@ -75,7 +75,7 @@ export default function ReferralPage() {
       const data = await apiFetch(
         `/api/customer/referral/history?customer_id=shopify-${numericId}`
       );
-      if (data.status) {
+      if (data && data.status) {
         setStats({
           total_referrals: data.total_referrals || 0,
           coins_earned: data.coins_earned || 0,
@@ -84,7 +84,10 @@ export default function ReferralPage() {
         });
       }
     } catch (err) {
-      console.error("Referral history fetch failed:", err);
+      // If it's a 404, we just keep the empty state silently to avoid console noise
+      if (!err.message.includes("404")) {
+        console.error("Referral history fetch failed:", err);
+      }
     } finally {
       setLoadingStats(false);
     }
