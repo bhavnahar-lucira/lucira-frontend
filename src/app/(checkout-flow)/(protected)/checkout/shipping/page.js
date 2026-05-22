@@ -597,7 +597,7 @@ export default function ShippingPage() {
   const loadAddresses = useCallback(async () => {
     try {
       setLoadingAddresses(true);
-      applyAddressPayload(await fetchCustomerAddresses());
+      applyAddressPayload(await fetchCustomerAddresses(accessToken));
     } catch (error) {
       toast.error(error.message || "Unable to load saved addresses");
     } finally {
@@ -728,10 +728,8 @@ export default function ShippingPage() {
       return toast.error("You cannot delete default address");
     }
     try {
-      applyAddressPayload(await deleteCustomerAddress(addressId));
-      toast.error("Address removed", {
-        icon: <Check className="w-4 h-4" />
-      });
+      applyAddressPayload(await deleteCustomerAddress(addressId, accessToken));
+      toast.success("Address removed");
     } catch (error) {
       toast.error(error.message || "Unable to remove address");
     }
@@ -1276,3 +1274,4 @@ export default function ShippingPage() {
     </div>
   );
 }
+

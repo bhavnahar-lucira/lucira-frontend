@@ -85,29 +85,36 @@ export const registerCustomer = (payload) =>
     body: JSON.stringify(payload),
   });
 
-export const fetchCustomerAddresses = () => apiFetch("/api/customer/addresses");
+export const fetchCustomerAddresses = (accessToken) => 
+  apiFetch("/api/customer/addresses", {
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
+  });
 
-export const createCustomerAddress = ({ address, makeDefault = false }) =>
+export const createCustomerAddress = ({ address, makeDefault = false }, accessToken) =>
   apiFetch("/api/customer/addresses", {
     method: "POST",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
     body: JSON.stringify({ address, makeDefault }),
   });
 
-export const updateCustomerAddress = ({ addressId, address, makeDefault = false }) =>
+export const updateCustomerAddress = ({ addressId, address, makeDefault = false }, accessToken) =>
   apiFetch("/api/customer/addresses", {
     method: "PATCH",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
     body: JSON.stringify({ addressId, address, makeDefault, mode: "update" }),
   });
 
-export const selectDefaultCustomerAddress = (addressId) =>
+export const selectDefaultCustomerAddress = (addressId, accessToken) =>
   apiFetch("/api/customer/addresses", {
     method: "PATCH",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
     body: JSON.stringify({ addressId, mode: "default" }),
   });
 
-export const deleteCustomerAddress = (addressId) =>
+export const deleteCustomerAddress = (addressId, accessToken) =>
   apiFetch(`/api/customer/addresses?addressId=${encodeURIComponent(addressId)}`, {
     method: "DELETE",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
   });
 
 export const fetchWishlistApi = (userId = "", sessionId = "") => {

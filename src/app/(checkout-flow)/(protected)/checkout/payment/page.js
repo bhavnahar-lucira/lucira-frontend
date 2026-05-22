@@ -24,6 +24,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  apiFetch,
   completeRazorpayPayment,
   createRazorpayOrder,
   deleteCustomerAddress,
@@ -263,7 +264,7 @@ export default function PaymentPage() {
   const [addressSaving, setAddressSaving] = useState(false);
   const [makeDefault, setMakeDefault] = useState(false);
 
-  const user = useSelector(selectUser);
+  const { user, accessToken } = useSelector((state) => state.user);
   const {items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
   const finalAmount = useMemo(() => {
@@ -504,7 +505,7 @@ import { apiFetch } from "@/lib/api";
     try {
       const storedSelection = readStoredBillingSelection();
       const [payload, selection] = await Promise.all([
-        fetchCustomerAddresses(),
+        fetchCustomerAddresses(accessToken),
         fetchCheckoutAddressSelection(),
       ]);
       const effectiveSelection =
@@ -1494,3 +1495,4 @@ import { apiFetch } from "@/lib/api";
     </div>
   );
 }
+

@@ -146,17 +146,19 @@ export const updateCartItem = createAsyncThunk(
 // as is or move them to the Fastify backend in Phase 2 if they use custom logic.
 export const mergeCart = createAsyncThunk(
   "cart/mergeCart",
-  async () => {
+  async (_, { dispatch }) => {
      // Shopify handles cart merging automatically if we associate the cart with a customer token.
      // For now, just fetch the existing cart.
-     return await fetchCart();
+     const result = await dispatch(fetchCart()).unwrap();
+     return result;
   }
 );
 
 export const repriceCartForCheckout = createAsyncThunk(
   "cart/repriceCartForCheckout",
-  async () => {
-    return await fetchCart();
+  async (_, { dispatch }) => {
+    const result = await dispatch(fetchCart()).unwrap();
+    return result;
   }
 );
 
