@@ -3,6 +3,8 @@ import ProductPageClient from "@/components/product/ProductPageClient";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { shopifyStorefrontFetch, getAllProductHandles } from "@/lib/shopify";
 
+export const revalidate = 21600; // 6 hours
+
 const PRODUCT_QUERY = `
   query getProduct($handle: String!) {
     product(handle: $handle) {
@@ -313,8 +315,6 @@ async function getProduct(handle) {
     hasSimilar: true
   };
 }
-
-export const revalidate = 21600; // 6 hours
 
 export default async function ProductPage({ params }) {
   const { handle } = await params;

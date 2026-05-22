@@ -1,5 +1,8 @@
 import { getPageByHandle, getPageByHandleStorefront } from "@/lib/pages";
 import { notFound } from "next/navigation";
+
+export const revalidate = 21600; // 6 hours
+
 import ContactSection from "@/components/common/ContactSection";
 import SitemapPage from "@/components/sitemap/SitemapPage";
 import FooterPageContent from "@/components/FooterPageContent";
@@ -25,8 +28,6 @@ export async function generateMetadata({ params }) {
     },
   };
 }
-
-export const revalidate = 21600; // 6 hours
 
 export default async function Page({ params }) {
   const { handle } = await params;

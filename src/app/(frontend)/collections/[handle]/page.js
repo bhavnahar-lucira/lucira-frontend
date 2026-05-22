@@ -2,6 +2,8 @@ import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 
+export const revalidate = 21600; // 6 hours
+
 async function getCollectionData(handle) {
   const query = `
     query CollectionSchema($handle: String!) {
@@ -59,8 +61,6 @@ export async function generateStaticParams() {
     handle,
   }));
 }
-
-export const revalidate = 21600; // 6 hours
 
 export default async function Page({ params }) {
   const { handle } = await params;
