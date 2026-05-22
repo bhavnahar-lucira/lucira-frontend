@@ -28,7 +28,7 @@ const STORES_DATA = {
     city: "Pune",
     name: "Pune Lucira Store",
     rating: 4.8,
-    images: ["/images/store/Pune.jpg"],
+    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg"],
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -57,7 +57,7 @@ const STORES_DATA = {
     city: "Chembur",
     name: "Chembur Lucira Store",
     rating: 4.7,
-    images: ["/images/store/Chembur.jpg"],
+    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chembur_73ce3ac6-7515-473d-a2dd-2385fd065eaa.jpg"],
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -84,7 +84,8 @@ const STORES_DATA = {
     city: "Borivali",
     name: "Borivali Lucira Store",
     rating: 4.9,
-    images: ["/images/store/Borivali.jpg"],
+    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Noida.jpg"],
+  "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
     storeHours: {
       weekday: { open: "10:30", close: "21:30" },
       weekend: { open: "10:30", close: "21:30" },

@@ -225,7 +225,7 @@ export default function StoreLocatorPage() {
       desc: "Get expert guidance for your perfect piece at our nearest experience center."
     },
     {
-      image: "/images/store/Pune.jpg",
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg",
       title: "Store Locator",
       desc: "Find us in your city and explore our latest collections with personalized assistance."
     }

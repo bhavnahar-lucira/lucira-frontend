@@ -2322,7 +2322,7 @@ useEffect(() => {
                 title="Visit Our Store"
                 description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                 action="BOOK APPOINTMENT"
-                img="/images/store.jpg"
+                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
                 url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                 onClick={() => pushToDataLayer({
                   event: 'promoClick',
