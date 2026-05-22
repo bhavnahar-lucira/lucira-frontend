@@ -460,7 +460,7 @@ export default function ProductPage() {
                     </div>
                     <div className="flex items-center gap-4.5 pr-2">
                       <div className="w-20 h-20 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-2 shadow-sm">
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/try.jpg" alt="Metal details sample" width={80} height={80} className="object-contain" />
+                        <Image src="/images/product/try.jpg" alt="Metal details sample" width={80} height={80} className="object-contain" />
                       </div>
                       <div className="space-y-3">
                         <p className="text-sm  leading-none">14KT Yellow Gold</p>
@@ -471,19 +471,12 @@ export default function ProductPage() {
                   {/* Dimensions */}
                   <div className="w-[48%] pl-2">
                     <div className="flex items-center gap-2 font-semibold text-sm mb-2 uppercase tracking-wide">
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13 7.54633L9.09153 3.63786C8.68103 3.22934 8.12546 3 7.54633 3C6.96719 3 6.41162 3.22934 6.00112 3.63786L3.63786 6.00112C3.22934 6.41162 3 6.96719 3 7.54633C3 8.12546 3.22934 8.68103 3.63786 9.09153L7.54633 13" stroke="#785754" strokeLinejoin="round"/>
-                        <path d="M8 7.00781L10 5.00781" stroke="#785754" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M16.6464 14.6543C16.4512 14.8495 16.4512 15.1661 16.6464 15.3614C16.8417 15.5566 17.1583 15.5566 17.3536 15.3614L17 15.0078L16.6464 14.6543ZM17 15.0078L17.3536 15.3614L19.3536 13.3614L19 13.0078L18.6464 12.6543L16.6464 14.6543L17 15.0078Z" fill="#785754"/>
-                        <path d="M16.4521 11L20.3594 14.9073C21.2135 15.7615 21.2135 17.1427 20.3594 17.9968L17.9968 20.3594C17.1427 21.2135 15.7615 21.2135 14.9073 20.3594L11 16.4521" stroke="#785754" strokeLinejoin="round"/>
-                        <path d="M20.2567 7.33905C20.7325 6.86332 20.9999 6.21805 21 5.54518C21.0001 4.87231 20.7329 4.22697 20.2571 3.75112C19.7814 3.27527 19.1362 3.0079 18.4633 3.00781C17.7904 3.00773 17.1451 3.27494 16.6693 3.75067L4.65776 15.765C4.44879 15.9734 4.29426 16.2299 4.20775 16.5121L3.01884 20.429C2.99558 20.5068 2.99382 20.5895 3.01376 20.6682C3.03369 20.747 3.07457 20.8189 3.13206 20.8763C3.18955 20.9337 3.2615 20.9744 3.34029 20.9942C3.41907 21.014 3.50175 21.0122 3.57955 20.9888L7.49728 19.8007C7.77914 19.715 8.03564 19.5614 8.24429 19.3534L20.2567 7.33905Z" stroke="#785754" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M14 6L18 10" stroke="#785754" strokeLinejoin="round"/>
-                      </svg>
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/dimension.svg" alt="Dimensions icon" width={18} height={18} />
                       Dimensions
                     </div>
                     <div className="flex items-center gap-4.5">
                       <div className="w-20 h-20 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-2 shadow-sm">
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/try.jpg" alt="Dimensions sample" width={80} height={80} className="object-contain" />
+                        <Image src="/images/product/try.jpg" alt="Dimensions sample" width={80} height={80} className="object-contain" />
                       </div>
                       <div className="space-y-3">
                         <p className="text-sm  leading-none">Height: <span className="font-medium ml-2">7.1 mm</span></p>
@@ -497,7 +490,7 @@ export default function ProductPage() {
                 {/* Diamond Section */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 font-semibold text-sm uppercase tracking-wide">
-                    <Image src="/images/icons/diamond.svg" alt="Diamond details icon" width={18} height={18} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-PD0059YG_1.jpg" alt="Diamond details icon" width={18} height={18} />
                     Diamond
                   </div>
                   
