@@ -1,7 +1,5 @@
 "use client";
 
-export const revalidate = 21600; // 6 hours
-
 import { useEffect, useRef, useState } from "react";
 const cards = [
   {

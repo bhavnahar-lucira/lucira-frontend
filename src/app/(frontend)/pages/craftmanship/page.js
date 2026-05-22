@@ -1,8 +1,4 @@
-"use client";
-
 export const revalidate = 21600; // 6 hours
-
-import { useEffect } from "react";
 
 const sections = [
   {

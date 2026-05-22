@@ -1,6 +1,5 @@
 "use client";
 
-export const revalidate = 21600; // 6 hours
 import { useState } from "react";
 
 export default function FAQPage() {

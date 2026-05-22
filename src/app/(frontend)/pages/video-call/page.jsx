@@ -1,7 +1,5 @@
 "use client";
 
-export const revalidate = 21600; // 6 hours
-
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";

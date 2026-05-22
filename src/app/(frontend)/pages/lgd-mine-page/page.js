@@ -1,7 +1,5 @@
 "use client";
 
-export const revalidate = 21600; // 6 hours
-
 import { useEffect, useRef, useState, useMemo } from "react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 

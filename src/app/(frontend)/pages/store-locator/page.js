@@ -1,7 +1,5 @@
 "use client";
 
-export const revalidate = 21600; // 6 hours
-
 import { useState, useEffect, useId } from "react";
 import LazyImage from "@/components/common/LazyImage";
 import Image from "next/image";
