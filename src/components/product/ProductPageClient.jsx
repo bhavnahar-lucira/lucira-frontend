@@ -2319,7 +2319,7 @@ useEffect(() => {
                 title="Visit Our Store"
                 description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                 action="BOOK APPOINTMENT"
-                img="/images/store.jpg"
+                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDP_Store.jpg"
                 url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                 onClick={() => pushToDataLayer({
                   event: 'promoClick',
@@ -2380,7 +2380,7 @@ useEffect(() => {
                 {/* Metal Card */}
                 <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="/images/icons/metal.svg" alt="Metal" width={18} height={18} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal" width={18} height={18} />
                     Metal <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("metal")} />
                   </div>
                   <div className="space-y-2">
@@ -2408,7 +2408,7 @@ useEffect(() => {
                 {/* Dimensions Card */}
                 <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="/images/icons/dimension.svg" alt="Dimensions" width={18} height={18} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_dimension.svg" alt="Dimensions" width={18} height={18} />
                     Dimension <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("dimension")} />
                   </div>
                   <div className="space-y-2">
@@ -2437,7 +2437,7 @@ useEffect(() => {
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1 && (
                   <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                      <Image src="/images/icons/diamond.svg" alt="Diamond" width={18} height={18} />
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
                     </div>
                     <div className="space-y-2.5">
@@ -2502,7 +2502,7 @@ useEffect(() => {
               {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length > 1 && (
                 <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="/images/icons/diamond.svg" alt="Diamond" width={18} height={18} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                     Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
                   </div>
 
@@ -2532,7 +2532,7 @@ useEffect(() => {
               {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length > 1 && (
                 <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="/images/icons/diamond.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
                     Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" />
                   </div>
 
@@ -2739,7 +2739,7 @@ useEffect(() => {
                             className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
                           >
                             <div className="relative w-7 h-7">
-                              <Image src="/images/icons/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
+                              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
@@ -2834,7 +2834,7 @@ useEffect(() => {
                             className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
                           >
                             <div className="relative w-7 h-7">
-                              <Image src="/images/icons/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
+                              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
                             </div>
                         </a>
                         <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>

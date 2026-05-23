@@ -66,7 +66,7 @@ export default function GoldCoinOption() {
         productId: "gid://shopify/Product/9023549014234",
         variantId: GOLDCOIN_VARIANT_ID,
         title: "100 mg Gold Coin",
-        image: "/images/icons/metal.svg", 
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg", 
         price: 0,
         originalPrice: 2000,
         quantity: Number(eligibleQuantity) || 1,

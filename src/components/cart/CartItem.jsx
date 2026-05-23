@@ -22,6 +22,7 @@ import {
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check } from "lucide-react";
 
 export default function CartItem({ item, onAuthRequired }) {
+  console.log("items", item)
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.user);
   const wishlistItems = useSelector((state) => state.wishlist.items);
