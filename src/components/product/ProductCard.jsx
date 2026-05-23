@@ -38,9 +38,10 @@ import {
 import { pushProductClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, fetchVariantPricing } from "@/lib/api";
 
 const clientReviewStatsCache = new Map();
+const clientPriceCache = new Map();
 
 const colorMap = {
   yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
@@ -209,10 +210,62 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
   const [reviewStats, setReviewStats] = useState(product.reviews || product.reviewStats || { count: 0, average: 0 });
+  const [livePrice, setLivePrice] = useState(null);
+  const [liveComparePrice, setLiveComparePrice] = useState(null);
 
   useEffect(() => {
     setReviewStats(product.reviews || product.reviewStats || { count: 0, average: 0 });
   }, [product.reviews, product.reviewStats]);
+
+  const currentVariant = useMemo(() => {
+    return product.variants?.find((v) => getBaseColor(v.color || v.title) === activeBase) || product.variants?.[0] || null;
+  }, [product.variants, activeBase]);
+
+  // Live Pricing Fetch
+  useEffect(() => {
+    if (fixedPrice || !currentVariant?.id) return;
+    
+    const variantId = String(currentVariant.id);
+    const productId = String(product.shopifyId || product.id);
+    const cacheKey = `${productId}-${variantId}`;
+    
+    if (clientPriceCache.has(cacheKey)) {
+      const cached = clientPriceCache.get(cacheKey);
+      setLivePrice(cached.price);
+      setLiveComparePrice(cached.comparePrice);
+      return;
+    }
+
+    let ignore = false;
+    const vid = getNumericId(variantId);
+    const pid = getNumericId(productId);
+
+    fetchVariantPricing(vid, pid)
+      .then((data) => {
+        if (ignore) return;
+        if (data?.raw_breakup?.total) {
+          const p = data.raw_breakup.total;
+          const cp = data.raw_breakup.original_total > p ? data.raw_breakup.original_total : null;
+          clientPriceCache.set(cacheKey, { price: p, comparePrice: cp });
+          setLivePrice(p);
+          setLiveComparePrice(cp);
+        } else {
+          // If response is valid but no breakup, cache as null to prevent re-fetch
+          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
+        }
+      })
+      .catch((err) => {
+        // Silently handle "Variant config not found" or other 404s
+        // These are expected for items not yet configured in the backend
+        if (err.message?.includes("not found")) {
+          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
+        } else {
+          console.warn("[ProductCard] Pricing fetch failed:", err.message);
+        }
+      });
+
+    return () => { ignore = true; };
+  }, [currentVariant?.id, product.shopifyId, product.id, fixedPrice]);
 
   useEffect(() => {
     const productReviewId = product.shopifyId || product.id;
@@ -257,12 +310,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     return null;
   }, [product.video, product.media, product.images]);
 
-  const currentVariant = useMemo(() => {
-    return product.variants?.find((v) => getBaseColor(v.color || v.title) === activeBase) || product.variants?.[0] || null;
-  }, [product.variants, activeBase]);
-
-  const displayPrice = fixedPrice || currentVariant?.price || product.price;
-  const displayComparePrice = fixedComparePrice || currentVariant?.compare_price || currentVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
+  const displayPrice = fixedPrice || livePrice || currentVariant?.price_breakup?.total || currentVariant?.price || product.price_breakup?.total || product.price;
+  const displayComparePrice = fixedComparePrice || liveComparePrice || currentVariant?.compare_price || currentVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
   const discountPercent = useMemo(() => {
     if (!displayComparePrice || displayComparePrice <= displayPrice) return 0;
     return Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100);

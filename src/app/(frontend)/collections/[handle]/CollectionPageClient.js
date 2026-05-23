@@ -677,7 +677,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                                   {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-zinc-200"><ShoppingBag size={20} /></div>}
                                 </div>
                                 <Link href={`/products/${item.handle}`} className="text-[13px] font-medium text-gray-900 hover:text-primary transition-colors truncate pr-4">{item.title}</Link>
-                                <span className="text-[13px] font-bold text-black text-right">₹{new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(item.price)}</span>
+                                <span className="text-[13px] font-bold text-black text-right">₹{new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(item.price_breakup?.total || item.price)}</span>
                               </div>
                             ))}
                           </div>

@@ -88,6 +88,15 @@ export default function MainHeader() {
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
 
+  // Filter out non-product items (Insurance, Gold Coins) to match Cart Page count
+  const displayItems = (items || []).filter(
+    (item) =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      item.variantId !== GOLDCOIN_VARIANT_ID
+  );
+
+  const displayQuantity = displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setPlaceholderIndex((prev) => (prev + 1) % SEARCH_PLACEHOLDERS.length);
@@ -400,9 +409,9 @@ export default function MainHeader() {
               onClick={handleCartClick}
             >
             <CartIcon />
-            {totalQuantity > 0 && (
+            {displayQuantity > 0 && (
               <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
-                {totalQuantity}
+                {displayQuantity}
               </span>
             )}
           </Link>

@@ -229,7 +229,9 @@ export default function CartItem({ item, onAuthRequired }) {
                    (lowerTitle.includes("bracelet") || lowerTitle.includes("bangle")) ? "Wrist Size" : 
                    lowerTitle.includes("necklace") ? "Length" : "Size";
 
-  const productLink = item.handle ? `/products/${item.handle}${item.variantId ? `?variant=${item.variantId}` : ""}` : "#";
+  // Strip GID prefix from variant ID for cleaner URLs
+  const shortVariantId = item.variantId ? String(item.variantId).split("/").pop() : "";
+  const productLink = item.handle ? `/products/${item.handle}${shortVariantId ? `?variant=${shortVariantId}` : ""}` : "#";
 
   return (
     <>
@@ -292,7 +294,7 @@ export default function CartItem({ item, onAuthRequired }) {
                     <span className="mb-1 text-[10px] font-bold uppercase tracking-tighter text-zinc-400">
                       {sizeLabel}
                     </span>
-                    {canEditSelection ? (
+                    {false ? ( // Disable size editing for instock unique items
                       <Select
                         value={String(item.size)}
                         onValueChange={(val) => handleUpdate("size", val)}
@@ -319,7 +321,7 @@ export default function CartItem({ item, onAuthRequired }) {
                   <span className="mb-1 text-[10px] font-bold uppercase tracking-tighter text-zinc-400">
                     Quantity
                   </span>
-                  {canEditSelection ? (
+                  {false ? ( // Disable quantity editing (always 1)
                     <Select
                       value={String(item.quantity)}
                       onValueChange={(val) => handleUpdate("quantity", val)}
@@ -438,7 +440,7 @@ export default function CartItem({ item, onAuthRequired }) {
                     <span className="text-[13px] text-zinc-800 font-medium">
                       {sizeLabel.replace(" Size", "")}:
                     </span>
-                    {canEditSelection ? (
+                    {false ? ( // Disable size editing
                       <Select
                         value={String(item.size)}
                         onValueChange={(val) => handleUpdate("size", val)}
@@ -463,7 +465,7 @@ export default function CartItem({ item, onAuthRequired }) {
                 
                 <div className="flex items-center gap-0.5">
                   <span className="text-[13px] text-zinc-800 font-medium">Quantity:</span>
-                  {canEditSelection ? (
+                  {false ? ( // Disable quantity editing
                     <Select
                       value={String(item.quantity)}
                       onValueChange={(val) => handleUpdate("quantity", val)}
