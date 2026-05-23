@@ -301,14 +301,49 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const hasSimilar = true; // Always allow viewing similar products as we can fetch them by handle
   const videoMedia = useMemo(() => {
-    if (product.video) return product.video;
-    const mediaVideo = product.media?.find(m => m.mediaContentType === "VIDEO" || m.mimeType?.includes("video") || m.url?.includes(".mp4"));
+    // 1. Check if product.video is an object or a direct string URL
+    if (product.video) {
+      if (typeof product.video === "string") return { url: product.video, mimeType: "video/mp4" };
+      return product.video;
+    }
+
+    // 2. Search in media array for VIDEO or EXTERNAL_VIDEO
+    const mediaVideo = product.media?.find(m => 
+      m.mediaContentType === "VIDEO" || 
+      m.mediaContentType === "EXTERNAL_VIDEO" || 
+      m.type === "VIDEO" || 
+      m.type === "EXTERNAL_VIDEO" || 
+      m.mimeType?.includes("video") || 
+      m.url?.includes(".mp4")
+    );
     if (mediaVideo) return mediaVideo;
-    // Check if any image is actually a video URL
-    const videoUrl = product.images?.find(img => img.url?.includes(".mp4") || img.url?.includes("video"))?.url;
+    
+    // 3. Check if any image is actually a video URL or if direct URL fields exist
+    const videoUrl = (product.images || product.media)?.find(img => 
+      img.url?.includes(".mp4") || 
+      img.url?.includes("video") ||
+      img.mediaContentType === "VIDEO"
+    )?.url || product.videoUrl || product.video_url || product.productMetafields?.video_url;
+
     if (videoUrl) return { url: videoUrl, mimeType: "video/mp4" };
+    
+    // 4. Fallback to boolean flags from Shopify/Backend
+    const hasVideoFlag = product.hasVideo === true || product.hasVideo === "true" || 
+                         product.productMetafields?.has_video === true || product.productMetafields?.has_video === "true";
+
+    if (hasVideoFlag) {
+       const sku = currentVariant?.sku || product.variants?.[0]?.sku;
+       if (sku) {
+          // Standard Lucira CDN pattern
+          return { url: `https://luciraonline.myshopify.com/cdn/shop/files/${sku}.mp4`, isPlaceholder: true };
+       }
+       return { url: null, isPlaceholder: true }; 
+    }
+
     return null;
-  }, [product.video, product.media, product.images]);
+  }, [product.video, product.media, product.images, product.videoUrl, product.video_url, product.hasVideo, product.productMetafields, currentVariant?.sku, product.variants]);
+
+  const showVideoIcon = Boolean(videoMedia);
 
   const displayPrice = fixedPrice || livePrice || currentVariant?.price_breakup?.total || currentVariant?.price || product.price_breakup?.total || product.price;
   const displayComparePrice = fixedComparePrice || liveComparePrice || currentVariant?.compare_price || currentVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;

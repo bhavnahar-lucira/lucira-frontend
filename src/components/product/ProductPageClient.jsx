@@ -1189,9 +1189,17 @@ useEffect(() => {
     setShowSimilar(true);
     try {
       const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
-      const relatedProducts = data.products || data.matchingProducts || data.complementaryProducts || [];
-      const validProducts = relatedProducts.filter(p => p.handle !== product.handle);
-      setSimilarProducts(validProducts);
+      // Priority: complementaryProducts > matchingProducts > products
+      let products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      
+      // Fallback: If no related products found, use search API based on product type
+      if (products.length === 0 && (product.type || product.category)) {
+        const query = product.type || product.category;
+        const searchData = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=11`);
+        products = searchData.products || [];
+      }
+
+      setSimilarProducts(products.filter(p => p.handle !== product.handle));
     } catch (e) {
       console.error("Failed to fetch similar products", e);
     } finally {
