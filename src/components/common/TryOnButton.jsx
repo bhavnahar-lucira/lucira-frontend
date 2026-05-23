@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 export default function TryOnButton({ sku, productTitle, isAvailable, className = "", id = "tryonbutton2" }) {
   const formattedSku = sku?.replace("/", "");
@@ -63,26 +64,27 @@ export default function TryOnButton({ sku, productTitle, isAvailable, className 
     window.onTryOnBuynowCallback = async (skuReceived) => {
       if (skuReceived === formattedSku) {
         // 👉 Replace with your real cart logic
-        await fetch("/api/cart/add", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sku: skuReceived,
-            quantity: 1,
-          }),
-        });
+        try {
+          await apiFetch("/api/cart/add", {
+            method: "POST",
+            body: JSON.stringify({
+              sku: skuReceived,
+              quantity: 1,
+            }),
+          });
+        } catch (e) {
+          console.error("TryOn Buy Now failed:", e);
+        }
 
         //window.location.href = "/checkout/cart";
       } else {
-        const res = await fetch(
-          `/api/search-by-sku?sku=${encodeURIComponent(skuReceived)}`
-        );
-        const data = await res.json();
-
-        if (data?.handle) {
-          window.location.href = `/products/${data.handle}`;
+        try {
+          const data = await apiFetch(`/api/search-by-sku?sku=${encodeURIComponent(skuReceived)}`);
+          if (data?.handle) {
+            window.location.href = `/products/${data.handle}`;
+          }
+        } catch (e) {
+          console.error("TryOn search-by-sku failed:", e);
         }
       }
     };

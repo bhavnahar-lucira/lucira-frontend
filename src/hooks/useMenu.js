@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/lib/api";
 
 export function useMenu(handle) {
   const [menuData, setMenuData] = useState(null);
@@ -8,8 +9,7 @@ export function useMenu(handle) {
   useEffect(() => {
     async function fetchMenu() {
       try {
-        const res = await fetch("/api/menus", { cache: "no-store" });
-        const data = await res.json();
+        const data = await apiFetch("/api/menus");
         
         if (data.success) {
           const mainMenu = data.menus.find(m => m.handle === handle);

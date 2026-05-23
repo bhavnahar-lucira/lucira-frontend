@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { apiFetch } from "@/lib/api";
 
 export default function useCollectionFilters(handle) {
   const [filters, setFilters] = useState({});
@@ -12,8 +13,7 @@ export default function useCollectionFilters(handle) {
 
       try {
         setLoading(true);
-        const res = await fetch(`/api/collection/filters?handle=${handle}`);
-        const data = await res.json();
+        const data = await apiFetch(`/api/collection/filters?handle=${handle}`);
         setFilters(data.filters || {});
       } catch (err) {
         console.error("Error fetching filters:", err);

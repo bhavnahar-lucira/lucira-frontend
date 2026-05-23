@@ -22,6 +22,7 @@ import {
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check } from "lucide-react";
 
 export default function CartItem({ item, onAuthRequired }) {
+  console.log("items", item)
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.user);
   const wishlistItems = useSelector((state) => state.wishlist.items);
@@ -94,7 +95,7 @@ export default function CartItem({ item, onAuthRequired }) {
         thumbnail_image: item.image
       });
 
-      await dispatch(removeFromCart({ userId: user?.id, variantId: item.variantId })).unwrap();
+      await dispatch(removeFromCart({ lineId: item.lineId })).unwrap();
       toast.error("Removed from cart", {
         icon: <Check className="w-4 h-4" />
       });
@@ -169,7 +170,7 @@ export default function CartItem({ item, onAuthRequired }) {
       const commonTrackingData = getStandardWishlistPayload(mockProduct, mockVariant, currentOrigin, item.image);
       pushAddToWishlist(commonTrackingData);
 
-      await dispatch(removeFromCart({ userId: user?.id, variantId: item.variantId })).unwrap();
+      await dispatch(removeFromCart({ lineId: item.lineId })).unwrap();
       toast.error("Moved to wishlist", {
         icon: <Check className="w-4 h-4" />
       });
@@ -194,26 +195,28 @@ export default function CartItem({ item, onAuthRequired }) {
   const handleUpdate = async (type, value) => {
     setUpdating(true);
     try {
-      const payload = {
-        userId: user?.id,
-        currentVariantId: item.variantId,
-      };
-
       if (type === "size") {
         const selectedVariant = variantOptions.find(
           (variant) => String(variant.size) === String(value)
         );
         if (!selectedVariant) throw new Error("Selected size is unavailable");
-        payload.nextVariantId = selectedVariant.variantId;
-        payload.size = selectedVariant.size;
-        payload.price = selectedVariant.price;
-        payload.variantTitle = selectedVariant.variantTitle;
-        payload.inStock = selectedVariant.inStock;
-        payload.sku = selectedVariant.sku || "";
+        
+        // Changing size means changing the variant, which in Shopify Cart requires
+        // removing the old line and adding a new one.
+        await dispatch(removeFromCart({ lineId: item.lineId })).unwrap();
+        await dispatch(addToCart({ 
+          product: { 
+            ...item, 
+            variantId: selectedVariant.variantId,
+            quantity: item.quantity 
+          } 
+        })).unwrap();
+        
+        toast.success(`Updated to size ${selectedVariant.size}`);
       } else {
-        payload.quantity = parseInt(value, 10);
+        const quantity = parseInt(value, 10);
+        await dispatch(updateCartItem({ lineId: item.lineId, quantity })).unwrap();
       }
-      await dispatch(updateCartItem(payload)).unwrap();
     } catch (err) {
       console.error("Update failed:", err);
       toast.error("Failed to update cart");

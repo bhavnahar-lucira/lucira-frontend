@@ -27,10 +27,10 @@ export default function CheckoutFooter() {
   ];
 
   const paymentIcons = [
-    { name: "VISA", src: "/images/icons/visa.svg" },
-    { name: "MASTERCARD", src: "/images/icons/mastercard.svg" },
-    { name: "RUPAY", src: "/images/icons/rupay.svg" },
-    { name: "UPI", src: "/images/icons/upi.svg" },
+    { name: "VISA", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" },
+    { name: "MASTERCARD", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" },
+    { name: "RUPAY", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icons_rupay.svg" },
+    { name: "UPI", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" },
   ];
 
   return (

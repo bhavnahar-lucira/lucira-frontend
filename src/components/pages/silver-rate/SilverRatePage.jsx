@@ -9,6 +9,7 @@ import SilverInvestmentSection from "./SilverInvestmentSection";
 import SilverPriceTable from "./SilverPriceTable";
 import SilverInformationContent from "./SilverInformationContent";
 import { SILVER_RATE_TEMPLATE } from "@/data/silverRateTemplate";
+import { apiFetch } from "@/lib/api";
 
 const stateCityMap = {
     'andaman-and-nicobar-islands': ['Port Blair'],
@@ -76,11 +77,8 @@ export default function SilverRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const res = await fetch("/api/silver-rates");
-                if (res.ok) {
-                    const data = await res.json();
-                    setRates(data);
-                }
+                const data = await apiFetch("/api/silver-rates");
+                setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
             }

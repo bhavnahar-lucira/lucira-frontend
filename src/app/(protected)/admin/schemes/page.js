@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
+import { apiFetch } from "@/lib/api";
 import { Loader2, ArrowLeft, ExternalLink, TicketPercent, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
@@ -274,7 +275,7 @@ function EmptySchemes({ enrollUrl }) {
 
 /* ─── Main Page ─────────────────────────────────────────────────────────────*/
 export default function SchemesPage() {
-  const user = useSelector(selectUser);
+  const { user, accessToken } = useSelector((state) => state.user);
 
   const [schemes, setSchemes] = useState([]);
   const [selectedScheme, setSelectedScheme] = useState(null);
@@ -291,10 +292,14 @@ export default function SchemesPage() {
       try {
         setLoading(true);
 
-        // Fetch profile to get phone (user in redux may not have phone)
-        const profRes = await fetch("/api/customer/profile");
-        if (!profRes.ok) throw new Error("Could not load profile");
-        const profData = await profRes.json();
+        if (!accessToken) {
+          router.push("/login");
+          return;
+        }
+
+        // Fetch profile from backend instead of Shopify Storefront
+        const profData = await apiFetch("/api/customer/profile");
+
         const rawPhone = profData?.customer?.phone || "";
         const cleanedPhone = cleanPhone(rawPhone);
         setPhone(cleanedPhone);
@@ -307,30 +312,27 @@ export default function SchemesPage() {
         }
 
         // Fetch schemes via our secure server-side proxy
-        const res = await fetch("/api/customer/schemes", {
+        const data = await apiFetch("/api/customer/schemes", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mobile: cleanedPhone }),
         });
 
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "Failed to load schemes");
-        }
-
-        const data = await res.json();
         setSchemes(data.schemes || []);
       } catch (err) {
-        console.error("Schemes load error:", err);
-        setError(err.message || "Something went wrong. Please try again.");
+        // If it's a 404, we just keep the empty state silently to avoid console noise
+        if (err.message.includes("404")) {
+          setSchemes([]);
+        } else {
+          console.error("Schemes load error:", err);
+          setError(err.message || "Something went wrong. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
     }
 
     load();
-  }, []);
-
+  }, [accessToken]);
   /* Loading */
   if (loading) {
     return (

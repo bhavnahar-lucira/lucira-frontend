@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { apiFetch } from "@/lib/api";
 
 export default function AdminLock({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,10 +25,8 @@ export default function AdminLock({ children }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch("/api/auth/admin-login");
-        if (res.ok) {
-          setIsAuthenticated(true);
-        }
+        await apiFetch("/api/auth/admin-login");
+        setIsAuthenticated(true);
       } catch (err) {
         console.error("Auth check failed:", err);
       } finally {
@@ -43,21 +42,13 @@ export default function AdminLock({ children }) {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/admin-login", {
+      await apiFetch("/api/auth/admin-login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setIsAuthenticated(true);
-      } else {
-        setError(data.error || "Invalid credentials");
-      }
+      setIsAuthenticated(true);
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError(err.message || "Invalid credentials");
     } finally {
       setSubmitting(false);
     }

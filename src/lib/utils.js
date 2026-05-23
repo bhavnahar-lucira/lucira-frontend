@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { apiFetch } from "./api";
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -39,15 +40,13 @@ export async function uploadToShopify(file, customFilename = null) {
   try {
     const finalFilename = customFilename || file.name;
     // 1. Get staged target
-    const stagedRes = await fetch("/api/shopify/upload/staged", {
+    const { stagedTarget } = await apiFetch("/api/shopify/upload/staged", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         filename: finalFilename,
         mimeType: file.type,
       }),
     });
-    const { stagedTarget } = await stagedRes.json();
 
     // 2. Upload to Shopify's URL
     const formData = new FormData();
@@ -66,17 +65,14 @@ export async function uploadToShopify(file, customFilename = null) {
     }
 
     // 3. Register file in Shopify
-    const registerRes = await fetch("/api/shopify/upload/register", {
+    const result = await apiFetch("/api/shopify/upload/register", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         resourceUrl: stagedTarget.resourceUrl,
         mimeType: file.type,
         filename: finalFilename,
       }),
     });
-
-    const result = await registerRes.json();
 
     if (!result.success) {
       throw new Error(result.error || "Failed to register file in Shopify");

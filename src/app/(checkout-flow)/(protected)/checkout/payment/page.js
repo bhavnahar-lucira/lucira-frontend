@@ -24,6 +24,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  apiFetch,
   completeRazorpayPayment,
   createRazorpayOrder,
   deleteCustomerAddress,
@@ -263,7 +264,7 @@ export default function PaymentPage() {
   const [addressSaving, setAddressSaving] = useState(false);
   const [makeDefault, setMakeDefault] = useState(false);
 
-  const user = useSelector(selectUser);
+  const { user, accessToken } = useSelector((state) => state.user);
   const {items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
   const finalAmount = useMemo(() => {
@@ -325,8 +326,7 @@ export default function PaymentPage() {
       const selection = JSON.parse(selectionStr);
       if (selection.deliveryMethod === "ship" && selection.selectedAddress?.zip) {
         try {
-          const res = await fetch(`/api/pincodes/check?pincode=${selection.selectedAddress.zip.trim()}`);
-          const data = await res.json();
+          const data = await apiFetch(`/api/pincodes/check?pincode=${selection.selectedAddress.zip.trim()}`);
           if (!data.deliverable) {
             toast.error("We are not delivering to this pincode. Redirecting to shipping...");
             router.push("/checkout/shipping");
@@ -501,7 +501,7 @@ export default function PaymentPage() {
     try {
       const storedSelection = readStoredBillingSelection();
       const [payload, selection] = await Promise.all([
-        fetchCustomerAddresses(),
+        fetchCustomerAddresses(accessToken),
         fetchCheckoutAddressSelection(),
       ]);
       const effectiveSelection =
@@ -512,7 +512,7 @@ export default function PaymentPage() {
     } catch (error) {
       toast.error(error.message || "Unable to load addresses");
     }
-  }, [applyAddressPayload]);
+  }, [applyAddressPayload, accessToken]);
 
   useEffect(() => {
     Promise.resolve().then(loadAddresses);
@@ -759,6 +759,7 @@ export default function PaymentPage() {
       const order = await createRazorpayOrder({
         userId: user?.id || "",
         sessionId: getCartSessionId(),
+        items: items,
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
@@ -769,6 +770,7 @@ export default function PaymentPage() {
         appliedCoupon: appliedCoupon,
         nectorPoints: nectorPoints,
         paymentMethod: paymentMethodDetails,
+        amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
       });
 
       const razorpay = new window.Razorpay({
@@ -801,7 +803,8 @@ export default function PaymentPage() {
               }
             }
 
-            const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount;
+            const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
+            const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
             const purchaseValue = selectedPaymentGateway === "partial_cod"
               ? partialCodDetails.prepaidAmount
               : grandTotalValue;
@@ -1109,13 +1112,13 @@ export default function PaymentPage() {
                             {gateway.id === "razorpay" ? (
                               <div className="flex items-center gap-2">
                                 <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/upi.svg" className="h-3 w-auto opacity-70" alt="UPI" width={36} height={12} unoptimized />
+                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" className="h-3 w-auto opacity-70" alt="UPI" width={36} height={12} unoptimized />
                                 </div>
                                 <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/visa.svg" className="h-2 w-auto opacity-70" alt="VISA" width={36} height={8} unoptimized />
+                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" className="h-2 w-auto opacity-70" alt="VISA" width={36} height={8} unoptimized />
                                 </div>
                                 <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/mastercard.svg" className="h-3 w-auto opacity-70" alt="MASTERCARD" width={36} height={12} unoptimized />
+                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" className="h-3 w-auto opacity-70" alt="MASTERCARD" width={36} height={12} unoptimized />
                                 </div>
                                 <span className="text-[10px] text-zinc-400 font-bold">+18</span>
                               </div>
@@ -1491,3 +1494,4 @@ export default function PaymentPage() {
     </div>
   );
 }
+

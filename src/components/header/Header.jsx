@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 const TOP_HEIGHT = 40;
 const HEADER_HEIGHT = 96;
 
-export default function Header() {
+export default function Header({ menuData }) {
   const pathname = usePathname();
   const [hideTop, setHideTop] = useState(false);
   const { scrollY } = useScroll();
@@ -34,7 +34,7 @@ export default function Header() {
           style={{ top: '-104px' }} // Hides TopBar (40px) + Logo Row (64px) on scroll
         >
           <TopBar />
-          <MobileHeader />
+          <MobileHeader menuData={menuData} />
         </header>
       );
     }
@@ -75,7 +75,7 @@ export default function Header() {
 
         {/* Navbar always visible */}
         <div className="relative z-10">
-          <Navbar hideTop={hideTop} />
+          <Navbar hideTop={hideTop} menuData={menuData} />
         </div>
 
       </header>

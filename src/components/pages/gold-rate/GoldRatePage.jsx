@@ -9,6 +9,7 @@ import InvestmentSection from "./InvestmentSection";
 import PriceTable from "./PriceTable";
 import InformationContent from "./InformationContent";
 import { GOLD_RATE_TEMPLATE } from "@/data/goldRateTemplate";
+import { apiFetch } from "@/lib/api";
 
 const stateCityMap = {
     'andaman-and-nicobar-islands': ['Port Blair'],
@@ -76,11 +77,8 @@ export default function GoldRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const res = await fetch("/api/gold-rates");
-                if (res.ok) {
-                    const data = await res.json();
-                    setRates(data);
-                }
+                const data = await apiFetch("/api/gold-rates");
+                setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
             }

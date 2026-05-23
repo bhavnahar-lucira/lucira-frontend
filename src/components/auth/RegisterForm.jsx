@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { motion, useAnimation } from "framer-motion";
 import {
+  apiFetch,
   registerCustomer,
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
@@ -99,24 +100,24 @@ export function RegisterForm({ initialMobile = "" }) {
     
     dispatch(
       login({
-        id: userId,
-        mobile,
-        email: user?.email || email,
-        first_name: user?.first_name || firstName,
-        last_name: user?.last_name || lastName,
-        name:
-          (user?.first_name || firstName) && (user?.last_name || lastName)
-            ? `${user?.first_name || firstName} ${user?.last_name || lastName}`
-            : "User",
+        user: {
+          id: userId,
+          mobile,
+          email: user?.email || email,
+          first_name: user?.first_name || firstName,
+          last_name: user?.last_name || lastName,
+          name:
+            (user?.first_name || firstName) && (user?.last_name || lastName)
+              ? `${user?.first_name || firstName} ${user?.last_name || lastName}`
+              : "User",
+        },
+        accessToken: data.accessToken,
       })
     );
 
     try {
-      const avRes = await fetch("/api/customer/profile/avatar");
-      if (avRes.ok) {
-        const avData = await avRes.json();
-        if (avData.avatar) dispatch(setAvatar(avData.avatar));
-      }
+      const avData = await apiFetch("/api/customer/profile/avatar");
+      if (avData.avatar) dispatch(setAvatar(avData.avatar));
     } catch (err) {}
 
     try {

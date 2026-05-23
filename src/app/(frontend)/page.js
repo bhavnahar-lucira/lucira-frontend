@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
+
+export const revalidate = 21600; // 6 hours
+
 import HeroSliderImage from "@/components/home/HeroSliderImage";
 import ExploreRange from "@/components/home/ExploreRange";
 import FeatureBar from "@/components/home/FeatureBar";
