@@ -34,6 +34,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { toast } from 'react-toastify';
+import { apiFetch, fetchVariantPricing } from "@/lib/api";
 import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -61,7 +62,7 @@ import { SizeGuideSheet } from "@/components/product/SizeGuideSheet";
 import { ProductCustomizerMobile } from "@/components/product/ProductCustomizerMobile";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@/redux/features/cart/cartSlice";
-import { selectUser, setPincode as setGlobalPincode, selectPincode } from "@/redux/features/user/userSlice";
+import { selectUser, setPincode, selectPincode } from "@/redux/features/user/userSlice";
 import {
   addWishlistItem,
   removeWishlistItem,
@@ -316,11 +317,7 @@ export default function ProductPageClient({
 
     let ignore = false;
 
-    fetch(`/api/products/related?handle=${encodeURIComponent(product.handle)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch related products");
-        return res.json();
-      })
+    apiFetch(`/api/products/related?handle=${encodeURIComponent(product.handle)}`)
       .then((data) => {
         if (ignore) return;
         setComplementaryProducts(data.complementaryProducts || []);
@@ -336,8 +333,7 @@ export default function ProductPageClient({
   }, [product.handle]);
 
   useEffect(() => {
-    fetch("/api/settings/gold-coin")
-      .then((res) => res.json())
+    apiFetch("/api/settings/gold-coin")
       .then((data) => {
         setGoldCoinConfig({
           enabled: data.enabled ?? false,
@@ -457,7 +453,7 @@ export default function ProductPageClient({
 
   // Pincode & Dispatch Logic
   const globalPincode = useSelector(selectPincode);
-  const [pincode, setPincode] = useState(globalPincode || "");
+  const [localPincode, setLocalPincode] = useState(globalPincode || "");
   const [checkingPincode, setCheckingPincode] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState({
     status: "idle", // idle, loading, deliverable, undeliverable
@@ -468,9 +464,9 @@ export default function ProductPageClient({
 useEffect(() => {
   if (
     globalPincode &&
-    !pincode
+    !localPincode
   ) {
-    setPincode(globalPincode);
+    setLocalPincode(globalPincode);
   }
 }, [globalPincode]);
 
@@ -482,18 +478,16 @@ useEffect(() => {
     .slice(0, 6);
 
   if (savedPincode) {
-    setPincode(savedPincode);
+    setLocalPincode(savedPincode);
 
-    dispatch(setGlobalPincode(savedPincode));
+    dispatch(setPincode(savedPincode));
   }
 }, [dispatch]);
 
   useEffect(() => {
     const fetchStores = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-        const res = await fetch(`${baseUrl}/api/stores`);
-        const data = await res.json();
+        const data = await apiFetch("/api/stores");
         setAllStores(data.stores || []);
       } catch (err) {
         console.error("Error fetching stores:", err);
@@ -511,10 +505,9 @@ useEffect(() => {
 
   const handlePincodeCheck = useCallback(async (val) => {
     // If val is a string (like from useEffect), use it. 
-    // Otherwise (from button click/event), use the current 'pincode' state.
-    // const pincodeToCheck = (typeof val === 'string' ? val : pincode).trim();
+    // Otherwise (from button click/event), use the current 'localPincode' state.
       const pincodeToCheck = String(
-      typeof val === "string" ? val : pincode
+      typeof val === "string" ? val : localPincode
     ).trim();
 
     if (pincodeToCheck.length !== 6) {
@@ -526,8 +519,7 @@ useEffect(() => {
     setDeliveryInfo({ status: "loading", message: "Checking..." });
 
     try {
-      const res = await fetch(`/api/pincodes/check?pincode=${pincodeToCheck}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/pincodes/check?pincode=${pincodeToCheck}`);
 
       // GTM tracking for pincode entry
       handlePromoClick('pincodeEntered', pincodeToCheck, {}, true);
@@ -547,7 +539,7 @@ useEffect(() => {
             },
           })
         );
-        dispatch(setGlobalPincode(pincodeToCheck));
+        dispatch(setPincode(pincodeToCheck));
       } else {
         setDeliveryInfo({
           status: "undeliverable",
@@ -563,7 +555,7 @@ useEffect(() => {
     } finally {
       setCheckingPincode(false);
     }
-  }, [pincode, calculateDispatchDate, dispatch]);
+  }, [localPincode, calculateDispatchDate, dispatch]);
 
   // Initial check for persisted pincode - ONLY ON MOUNT
   useEffect(() => {
@@ -580,9 +572,9 @@ useEffect(() => {
       .replace(/\D/g, "")
       .slice(0, 6);
 
-    if (cookiePincode === pincode) return;
+    if (cookiePincode === localPincode) return;
 
-    setPincode(cookiePincode);
+    setLocalPincode(cookiePincode);
 
     if (cookiePincode.length === 6) {
       handlePincodeCheck(cookiePincode);
@@ -603,7 +595,7 @@ useEffect(() => {
       "lucira:user-pincode",
       handleUserPincode
     );
-}, [handlePincodeCheck, pincode]);
+}, [handlePincodeCheck, localPincode]);
 
   // Update dispatch message when variant changes (size/color)
   useEffect(() => {
@@ -1109,15 +1101,20 @@ useEffect(() => {
   useEffect(() => {
     if (!activeVariant?.id) return;
 
-    fetch(`/api/variant-pricing?variantId=${activeVariant.id}&productId=${product.shopifyId}`)
-      .then((res) => res.json())
+    const vid = getNumericId(activeVariant.id);
+    const pid = getNumericId(product.shopifyId || product.id);
+    // Capture the variantId at the time of fetch to tag the result
+    const snapshotId = String(activeVariant.id);
+
+    fetchVariantPricing(vid, pid)
       .then((data) => {
-        setPriceBreakup(data);
+        // Tag the response with the activeVariant.id so comparison is reliable
+        setPriceBreakup({ ...data, variantId: snapshotId });
       })
       .catch((err) => {
         console.error("Pricing fetch failed", err);
       });
-  }, [activeVariant, product.shopifyId]);
+  }, [activeVariant, product.shopifyId, product.id]);
 
   // Toast notification on price update
   useEffect(() => {
@@ -1191,9 +1188,9 @@ useEffect(() => {
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const res = await fetch(`/api/products/similar?handle=${product.handle}`);
-      const data = await res.json();
-      const validProducts = (data.products || []).filter(p => p.handle !== product.handle);
+      const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
+      const relatedProducts = data.products || data.matchingProducts || data.complementaryProducts || [];
+      const validProducts = relatedProducts.filter(p => p.handle !== product.handle);
       setSimilarProducts(validProducts);
     } catch (e) {
       console.error("Failed to fetch similar products", e);
@@ -2159,19 +2156,19 @@ useEffect(() => {
                 <div className="relative">
                   <Input
                     placeholder="Enter Pincode"
-                    value={pincode}
+                    value={localPincode}
                     onChange={(e) => {const value = e.target.value.replace(/\D/g, "").slice(0, 6);
-                      setPincode(value);
-                      dispatch(setGlobalPincode(value));
+                      setLocalPincode(value);
+                      dispatch(setPincode(value));
                     }}
-                    onKeyDown={(e) => e.key === 'Enter' && handlePincodeCheck(pincode)}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePincodeCheck(localPincode)}
                     maxLength={6}
                     inputMode="numeric"
                     pattern="[0-9]*"
                     className="h-14 bg-white border-gray-200 rounded-md text-sm font-medium pr-40"
                   />
                   <Button
-                    onClick={() => handlePincodeCheck(pincode)}
+                    onClick={() => handlePincodeCheck(localPincode)}
                     disabled={checkingPincode}
                     className="h-12 px-10 font-bold rounded-md absolute right-1 top-1/2 transform -translate-y-1/2 bg-tertiary hover:cursor-pointer"
                   >
@@ -2561,25 +2558,25 @@ useEffect(() => {
                 </div>
               )}
 
-              <p className="text-xs leading-relaxed text-gray-900 italic mt-3">
+              <div ref={productDetailsRef} className="mt-8">
+                <PriceSavingsDetails
+                  priceBreakup={priceBreakup?.price_breakup}
+                  onTabChange={(tab) => {
+                    if (tab === 'price') {
+                      const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
+                      handlePromoClick('priceBreakup', 'Product Details Section', { savings_amount: totalSavingsAmount });
+                    } else if (tab === 'comparison') {
+                      const savingsStr = priceBreakup?.price_breakup?.comparison?.savings || '₹0';
+                      const savingsAmount = parseFloat(savingsStr.replace(/[^\d.]/g, '')) || 0;
+                      handlePromoClick('yourSavings', savingsAmount, { savings_amount: savingsAmount });
+                    }
+                  }}
+                />
+              </div>
+
+              <p className="text-xs leading-relaxed text-gray-900 italic mt-6">
                 * Our products are handcrafted and personalised for your delight, hence a weight variance is expected.
               </p>
-            </div>
-
-            <div ref={productDetailsRef}>
-              <PriceSavingsDetails
-                priceBreakup={priceBreakup?.price_breakup}
-                onTabChange={(tab) => {
-                  if (tab === 'price') {
-                    const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
-                    handlePromoClick('priceBreakup', 'Product Details Section', { savings_amount: totalSavingsAmount });
-                  } else if (tab === 'comparison') {
-                    const savingsStr = priceBreakup?.price_breakup?.comparison?.savings || '₹0';
-                    const savingsAmount = parseFloat(savingsStr.replace(/[^\d.]/g, '')) || 0;
-                    handlePromoClick('yourSavings', savingsAmount, { savings_amount: savingsAmount });
-                  }
-                }}
-              />
             </div>
 
             {priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id) && priceBreakup?.price_breakup?.total_savings && priceBreakup?.price_breakup?.total_savings !== "₹0" && (
@@ -2662,8 +2659,8 @@ useEffect(() => {
       {/* <ExploreOtherRings /> */}
       {isMobile ? (<ExploreRange />) : (<CategorySlider />)}
       <FindLuciraStore
-        pincode={pincode}
-        setPincode={setPincode}
+        pincode={localPincode}
+        setPincode={setLocalPincode}
         handlePincodeCheck={handlePincodeCheck}
         checkingPincode={checkingPincode}
         deliveryInfo={deliveryInfo}

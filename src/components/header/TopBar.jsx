@@ -7,6 +7,7 @@ import { Autoplay, Navigation } from "swiper/modules";
 import Link from "next/link";
 import "swiper/css";
 import "swiper/css/navigation";
+import { apiFetch } from "@/lib/api";
 
 export default function TopBar() {
   const [announcements, setAnnouncements] = useState([]);
@@ -16,9 +17,7 @@ export default function TopBar() {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-        const res = await fetch(`${baseUrl}/api/announcements`);
-        const data = await res.json();
+        const data = await apiFetch("/api/announcements");
         setSettingsVisible(data.isVisible ?? true);
         if (data.announcements && data.announcements.length > 0) {
           setAnnouncements(data.announcements);

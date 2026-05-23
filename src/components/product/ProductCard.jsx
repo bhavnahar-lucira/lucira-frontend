@@ -38,6 +38,7 @@ import {
 import { pushProductClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
+import { apiFetch } from "@/lib/api";
 
 const clientReviewStatsCache = new Map();
 
@@ -245,10 +246,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     };
   }, [product.shopifyId, product.id, reviewStats?.count]);
 
+  const hasSimilar = true; // Always allow viewing similar products as we can fetch them by handle
   const videoMedia = useMemo(() => {
     if (product.video) return product.video;
-    return product.media?.find(m => m.mediaContentType === "VIDEO" || m.mimeType?.includes("video")) || null;
-  }, [product.video, product.media]);
+    const mediaVideo = product.media?.find(m => m.mediaContentType === "VIDEO" || m.mimeType?.includes("video") || m.url?.includes(".mp4"));
+    if (mediaVideo) return mediaVideo;
+    // Check if any image is actually a video URL
+    const videoUrl = product.images?.find(img => img.url?.includes(".mp4") || img.url?.includes("video"))?.url;
+    if (videoUrl) return { url: videoUrl, mimeType: "video/mp4" };
+    return null;
+  }, [product.video, product.media, product.images]);
 
   const currentVariant = useMemo(() => {
     return product.variants?.find((v) => getBaseColor(v.color || v.title) === activeBase) || product.variants?.[0] || null;
@@ -297,7 +304,6 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const prevImageBtnRef = useRef(null);
   const nextImageBtnRef = useRef(null);
-  const hasSimilar = (product.matchingProductIds && product.matchingProductIds.length > 0) || product.hasSimilar;
 
   const handleBeforeInit = (swiper) => {
     if (galleryImages.length <= 1 || !swiper.params.navigation) return;
@@ -310,9 +316,18 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const res = await fetch(`/api/products/similar?handle=${product.handle}`);
-      const data = await res.json();
-      setSimilarProducts(data.products || []);
+      const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
+      // Priority: complementaryProducts > matchingProducts > products
+      let products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      
+      // Fallback: If no related products found, use search API based on product type
+      if (products.length === 0 && (product.type || product.category)) {
+        const query = product.type || product.category;
+        const searchData = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=11`);
+        products = searchData.products || [];
+      }
+
+      setSimilarProducts(products.filter(p => p.handle !== product.handle));
     } catch (e) { console.error("Failed to fetch similar products", e); } finally { setLoadingSimilar(false); }
   };
 
@@ -342,6 +357,39 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     pushProductClick(clickData);
   }, [product, currentVariant, galleryImages, displayPrice, displayComparePrice, index, collectionHandle, dispatch]);
 
+  const productOffers = useMemo(() => {
+    const offers = [];
+    
+    // 1. Direct fields
+    if (product.diamondDiscount > 0) offers.push(`${product.diamondDiscount}% OFF on Diamonds`);
+    if (product.makingDiscount > 0) offers.push(`${product.makingDiscount}% OFF on Making Charges`);
+    
+    // 2. Variants (common in collection API)
+    if (product.variants?.length > 0) {
+        const v = product.variants[0];
+        if (v.diamondDiscount > 0) offers.push(`${v.diamondDiscount}% OFF on Diamonds`);
+        if (v.makingDiscount > 0) offers.push(`${v.makingDiscount}% OFF on Making Charges`);
+    }
+
+    // 3. Price breakup
+    const breakup = currentVariant?.price_breakup || product.price_breakup;
+    if (breakup) {
+      if (breakup.diamond?.discount_percent > 0) offers.push(`${breakup.diamond.discount_percent}% OFF on Diamonds`);
+      if (breakup.making_charges?.discount_percent > 0) offers.push(`${breakup.making_charges.discount_percent}% OFF on Making Charges`);
+    }
+    
+    // 4. Tags
+    const tags = Array.isArray(product.tags) ? product.tags : [];
+    tags.forEach(tag => {
+      const lowerTag = tag.toLowerCase();
+      if (lowerTag.includes("off on making charges") || lowerTag.includes("off on diamonds")) {
+        offers.push(tag);
+      }
+    });
+
+    return [...new Set(offers)];
+  }, [product, currentVariant]);
+
   return (
     <>
       <div className="space-y-4">
@@ -353,6 +401,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   spaceBetween={0}
                   loop={galleryImages.length > 1}
                   slidesPerView={1}
+                  nested={true}
+                  touchStartPreventDefault={false}
                   modules={[Navigation, Pagination]}
                   pagination={galleryImages.length > 1 ? { type: 'progressbar', el: `.pagination-${swiperId}` } : false}
                   navigation={{
@@ -419,7 +469,12 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                                     <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]"><LazyImage src={item.image} alt={item.title} fill className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" /></div>
                                     <div className="space-y-2">
                                       <h4 className="text-[13px] font-normal text-zinc-900 line-clamp-1">{item.title}</h4>
-                                      <div className="flex items-center gap-2"><p className="text-[14px] font-bold text-black">₹{formatPrice(item.price)}</p>{item.compare_price > item.price && <p className="text-[12px] text-zinc-400 line-through">₹{formatPrice(item.compare_price)}</p>}</div>
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-[14px] font-bold text-black">₹{formatPrice(item.price)}</p>
+                                        {(item.compare_price > item.price || item.compareAtPrice > item.price) && (
+                                          <p className="text-[12px] text-zinc-400 line-through">₹{formatPrice(item.compare_price || item.compareAtPrice)}</p>
+                                        )}
+                                      </div>
                                       <div className="flex items-center gap-1 group/link"><span className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest border-b border-zinc-200 group-hover/link:border-black transition-colors">VIEW DETAILS</span><ChevronRight size={10} /></div>
                                     </div>
                                   </Link>
@@ -565,22 +620,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               </div>
             </div>
 
-            {(() => {
-              const offers = [];
-              if (product.diamondDiscount > 0) offers.push(`${product.diamondDiscount}% OFF on Diamonds`);
-              if (product.makingDiscount > 0) offers.push(`${product.makingDiscount}% OFF on Making Charges`);
-              if (offers.length === 0) return null;
-              return (
+            {productOffers.length > 0 && (
                 <div className="inline-flex items-center gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 lg:px-3 py-1 mt-1 w-fit">
                   <ShieldCheck size={12} />
                   <div className="overflow-hidden">
                     <AnimatePresence mode="wait" initial={false}>
-                      <motion.span key={currentLabelIndex % offers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="text-[8px] lg:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap block">{offers[currentLabelIndex % offers.length]}</motion.span>
+                      <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="text-[8px] lg:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
                     </AnimatePresence>
                   </div>
                 </div>
-              );
-            })()}
+            )}
           </div>
         </div>
       </div>

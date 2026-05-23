@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -15,6 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "react-toastify";
 import { logout } from "@/redux/features/user/userSlice";
+import { apiFetch } from "@/lib/api";
+import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
 
 const avatarColors = [
   "bg-blue-500", "bg-rose-500", "bg-emerald-500", "bg-violet-500",
@@ -33,6 +35,7 @@ const getAvatarColor = (name) => {
 export default function MyProfilePage() {
   const dispatch = useDispatch();
   const router = useRouter();
+  const { accessToken } = useSelector((state) => state.user);
   const [profileImage, setProfileImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -48,58 +51,82 @@ export default function MyProfilePage() {
 
   useEffect(() => {
     async function loadProfile() {
+      if (!accessToken) {
+        setLoading(false);
+        router.push("/login");
+        return;
+      }
+
       try {
         setLoading(true);
 
-        const res = await fetch("/api/customer/profile");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.customer) {
-            setFormData({
-              firstName: data.customer.firstName || "",
-              lastName: data.customer.lastName || "",
-              email: data.customer.email || "",
-              phone: data.customer.phone || "",
-            });
+        // Hybrid Strategy: Try backend first, fallback to Storefront API
+        let customerData = null;
+        try {
+          const data = await apiFetch("/api/customer/profile");
+          if (data && data.customer) {
+            customerData = data.customer;
+          } else {
+            throw new Error("Empty backend profile");
           }
-        } else if (res.status === 401 || res.status === 404) {
-          dispatch(logout());
-          router.push("/login");
-          return;
+        } catch (backendErr) {
+          console.warn("[MyProfilePage] Backend profile fetch failed, falling back to Storefront API:", backendErr);
+          
+          if (accessToken && !accessToken.startsWith("simulated_")) {
+            const storefrontData = await shopifyStorefrontFetch(CUSTOMER_QUERY, {
+              customerAccessToken: accessToken
+            });
+            customerData = storefrontData?.customer;
+          }
         }
 
-        const avRes = await fetch("/api/customer/profile/avatar");
-        if (avRes.ok) {
-          const avData = await avRes.json();
-          if (avData.avatar) setProfileImage(avData.avatar);
+        if (customerData) {
+          if (process.env.NODE_ENV === "development") {
+            console.log("[MyProfilePage] Found customer data:", customerData);
+          }
+          setFormData({
+            firstName: customerData.firstName || customerData.first_name || "",
+            lastName: customerData.lastName || customerData.last_name || "",
+            email: customerData.email || "",
+            phone: customerData.phone || "",
+          });
+        } else {
+          console.warn("[MyProfilePage] Could not retrieve customer data from any source.");
         }
 
         try {
-          const [statsRes, ordersRes] = await Promise.all([
-            fetch("/api/customer/dashboard-stats"),
-            fetch("/api/customer/orders"),
+          const avData = await apiFetch("/api/customer/profile/avatar");
+          if (avData.avatar) setProfileImage(avData.avatar);
+        } catch (e) {
+          console.warn("[MyProfilePage] Failed to load avatar", e);
+        }
+
+        try {
+          const [sData, oData] = await Promise.all([
+            apiFetch("/api/customer/dashboard-stats").catch(e => {
+              console.warn("[MyProfilePage] Failed to load stats", e);
+              return { points: 0 };
+            }),
+            apiFetch("/api/customer/orders").catch(e => {
+              console.warn("[MyProfilePage] Failed to load orders", e);
+              return { orders: [] };
+            })
           ]);
-          let oCount = "0", pBal = "0";
-          if (statsRes.ok) {
-            const sData = await statsRes.json();
-            pBal = sData.points !== undefined ? sData.points.toLocaleString() : "0";
-          }
-          if (ordersRes.ok) {
-            const oData = await ordersRes.json();
-            oCount = oData.orders?.length?.toString() || "0";
-          }
+
+          const pBal = sData?.points !== undefined ? sData.points.toLocaleString() : "0";
+          const oCount = oData?.orders?.length?.toString() || "0";
           setUserStats({ orders: oCount, points: pBal });
         } catch (e) {
-          console.warn("Failed to load stats", e);
+          console.warn("[MyProfilePage] Failed to load stats or orders", e);
         }
       } catch (err) {
-        console.error("Failed to load profile", err);
+        console.error("[MyProfilePage] Unexpected error during profile load:", err);
       } finally {
         setLoading(false);
       }
     }
     loadProfile();
-  }, [dispatch, router]);
+  }, [accessToken, dispatch, router]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -111,7 +138,6 @@ export default function MyProfilePage() {
       return;
     }
 
-    // Phone validation: strip non-digits and ensure at least 10 digits
     const cleanPhone = formData.phone.replace(/\D/g, "");
     if (cleanPhone.length < 10) {
       toast.error("Please enter a valid phone number");
@@ -120,23 +146,17 @@ export default function MyProfilePage() {
 
     try {
       setIsSaving(true);
-      const res = await fetch("/api/customer/profile", {
+      await apiFetch("/api/customer/profile", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone,
         }),
       });
-      if (res.ok) {
-        toast.success("Profile updated successfully");
-      } else {
-        const error = await res.json();
-        throw new Error(error.error || "Update failed");
-      }
+      toast.success("Profile updated successfully");
     } catch (err) {
-      toast.error(err.message || "Failed to update profile");
+      toast.error(err.message || "Update failed");
     } finally {
       setIsSaving(false);
     }
@@ -149,22 +169,14 @@ export default function MyProfilePage() {
       setIsUploading(true);
       const data = new FormData();
       data.append("avatar", file);
-      const res = await fetch("/api/customer/profile/avatar", {
+      const result = await apiFetch("/api/customer/profile/avatar", {
         method: "POST",
         body: data,
       });
-      if (res.ok) {
-        const result = await res.json();
-        // Add cache buster to URL
-        const imageUrl = result.url + (result.url.includes("?") ? "&" : "?") + "t=" + Date.now();
-        setProfileImage(imageUrl);
-        toast.success("Profile image updated");
-        // Notify layout/header to refresh avatar
-        window.dispatchEvent(new Event("profile-updated"));
-      } else {
-        const error = await res.json();
-        throw new Error(error.error || "Upload failed");
-      }
+      const imageUrl = result.url + (result.url.includes("?") ? "&" : "?") + "t=" + Date.now();
+      setProfileImage(imageUrl);
+      toast.success("Profile image updated");
+      window.dispatchEvent(new Event("profile-updated"));
     } catch (err) {
       toast.error(err.message || "Failed to update profile image");
     } finally {
@@ -185,8 +197,6 @@ export default function MyProfilePage() {
 
   return (
     <div className="font-figtree space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-figtree text-xl md:text-2xl font-bold text-zinc-900 tracking-tight mb-1">
@@ -211,12 +221,8 @@ export default function MyProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
-
-        {/* ── Left: Personal Info ── */}
         <div className="lg:col-span-2 space-y-6 md:space-y-8">
           <div className="bg-white rounded-[2rem] border border-zinc-100 p-6 md:p-8 lg:p-10 space-y-6 md:space-y-8 shadow-sm">
-
-            {/* Section header */}
             <div className="flex items-center gap-3 md:gap-4 border-b border-zinc-100 pb-5 md:pb-6">
               <div className="size-11 md:size-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0">
                 <User size={22} />
@@ -231,10 +237,7 @@ export default function MyProfilePage() {
               </div>
             </div>
 
-            {/* Form fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
-
-              {/* First Name */}
               <div className="space-y-2">
                 <label className="font-figtree text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
                   First Name *
@@ -246,7 +249,6 @@ export default function MyProfilePage() {
                 />
               </div>
 
-              {/* Last Name */}
               <div className="space-y-2">
                 <label className="font-figtree text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
                   Last Name
@@ -258,7 +260,6 @@ export default function MyProfilePage() {
                 />
               </div>
 
-              {/* Email — disabled */}
               <div className="space-y-2">
                 <label className="font-figtree text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
                   Email Address
@@ -276,7 +277,6 @@ export default function MyProfilePage() {
                 </div>
               </div>
 
-              {/* Phone — disabled */}
               <div className="space-y-2">
                 <label className="font-figtree text-xs font-bold text-zinc-400 uppercase tracking-widest ml-1">
                   Phone Number
@@ -295,16 +295,12 @@ export default function MyProfilePage() {
                 </div>
                 <p className="text-[10px] text-zinc-400 font-medium ml-1">To change your phone number, please contact support.</p>
               </div>
-
             </div>
           </div>
         </div>
 
-        {/* ── Right: Avatar Card ── */}
         <div className="space-y-6 md:space-y-8">
           <div className="bg-white rounded-[2rem] border border-zinc-100 p-6 md:p-8 text-center space-y-5 md:space-y-6 shadow-sm">
-
-            {/* Avatar */}
             <div className="relative size-28 md:size-32 mx-auto">
               <div
                 className={`size-28 md:size-32 rounded-[2rem] flex items-center justify-center overflow-hidden relative shadow-md transition-all ${
@@ -336,7 +332,6 @@ export default function MyProfilePage() {
                 )}
               </div>
 
-              {/* Camera upload button */}
               <label className="absolute -right-2 -bottom-2 size-9 md:size-10 bg-primary text-white rounded-2xl flex items-center justify-center shadow-xl hover:scale-110 transition-transform cursor-pointer">
                 <Camera size={16} />
                 <input
@@ -348,7 +343,6 @@ export default function MyProfilePage() {
               </label>
             </div>
 
-            {/* Name */}
             <div className="overflow-hidden">
               <h4 className="font-figtree text-lg md:text-xl font-semibold text-zinc-900 truncate px-2">
                 {formData.firstName} {formData.lastName}
@@ -358,7 +352,6 @@ export default function MyProfilePage() {
               </p>
             </div>
 
-            {/* Stats */}
             <div className="pt-5 md:pt-6 border-t border-zinc-100 grid grid-cols-2 gap-4">
               <div>
                 <p className="font-figtree text-[10px] font-semibold text-zinc-300 uppercase tracking-[0.13em] mb-1">
@@ -377,10 +370,8 @@ export default function MyProfilePage() {
                 </p>
               </div>
             </div>
-
           </div>
         </div>
-
       </div>
     </div>
   );

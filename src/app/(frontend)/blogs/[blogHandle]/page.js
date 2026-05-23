@@ -17,6 +17,8 @@ export async function generateMetadata({ params }) {
   };
 }
 
+export const revalidate = 21600; // 6 hours
+
 export default async function BlogListingPage({ params, searchParams }) {
   const { blogHandle } = await params;
   const { tag } = await searchParams;

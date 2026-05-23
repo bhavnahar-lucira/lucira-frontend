@@ -9,6 +9,7 @@ import { Pagination } from "swiper/modules";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -190,9 +191,7 @@ export default function CuratedLooks() {
   useEffect(() => {
     async function fetchLooks() {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-        const res = await fetch(`${baseUrl}/api/curated-looks`, { cache: "no-store" });
-        const data = await res.json();
+        const data = await apiFetch("/api/curated-looks", { cache: "no-store" });
         if (data.success) {
           setLooks(data.looks || []);
         }

@@ -32,7 +32,7 @@ export const useCart = () => {
 
   const addToCart = async (product) => {
     try {
-      await dispatch(addToCartThunk({ userId, sessionId: getCartSessionId(), product })).unwrap();
+      await dispatch(addToCartThunk({ product })).unwrap();
       // dispatch(openCart());
     } catch (err) {
       console.error("Add to cart error:", err);
@@ -40,9 +40,9 @@ export const useCart = () => {
     }
   };
 
-  const removeFromCart = async (variantId) => {
+  const removeFromCart = async (lineId) => {
     try {
-      await dispatch(removeFromCartThunk({ userId, sessionId: getCartSessionId(), variantId })).unwrap();
+      await dispatch(removeFromCartThunk({ lineId })).unwrap();
     } catch (err) {
       console.error("Remove from cart error:", err);
       toast.error("Failed to remove from cart");
@@ -51,7 +51,8 @@ export const useCart = () => {
 
   const updateCartItem = async (payload) => {
     try {
-      await dispatch(updateCartItemThunk({ userId, sessionId: getCartSessionId(), ...payload })).unwrap();
+      // payload should contain lineId and quantity
+      await dispatch(updateCartItemThunk(payload)).unwrap();
     } catch (err) {
       console.error("Update cart error:", err);
       toast.error("Failed to update cart");

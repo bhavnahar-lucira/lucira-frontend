@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, Plus, Trash2, Save, MoveUp, MoveDown, Video, Package, X, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { apiFetch } from "@/lib/api";
 import "./dashboard.css";
 
 export default function StyledVideosDashboard() {
@@ -21,8 +22,7 @@ export default function StyledVideosDashboard() {
 
   const fetchVideos = async () => {
     try {
-      const res = await fetch("/api/styled-videos");
-      const data = await res.json();
+      const data = await apiFetch("/api/styled-videos");
       if (data.success) {
         setVideos(data.videos || []);
       }
@@ -36,12 +36,10 @@ export default function StyledVideosDashboard() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/styled-videos", {
+      const data = await apiFetch("/api/styled-videos", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(videos),
       });
-      const data = await res.json();
       if (data.success) {
         alert("Videos saved successfully!");
       } else {
@@ -88,8 +86,7 @@ export default function StyledVideosDashboard() {
     }
     setSearching(true);
     try {
-      const res = await fetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=5`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=5`);
       setSearchResults(data.products || []);
     } catch (err) {
       console.error("Search error", err);

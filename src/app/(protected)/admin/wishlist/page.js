@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { fetchWishlist, removeWishlistItem } from "@/redux/features/wishlist/wishlistSlice";
 import { addToCart, openCart } from "@/redux/features/cart/cartSlice";
 import { getEstimatedDispatchDate } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 
 export default function WishlistPage() {
   const dispatch = useDispatch();
@@ -55,11 +56,10 @@ export default function WishlistPage() {
     setLoadingVideo(true);
     try {
       // 1. Fetch full product details to find variants
-      const res = await fetch(`/api/products/details?handle=${item.productHandle}`);
-      if (!res.ok) throw new Error("Failed to fetch product details");
-      const { product } = await res.json();
+      const data = await apiFetch(`/api/products/details?handle=${item.productHandle}`);
+      const product = data?.product;
       
-      const videoMedia = product.media?.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
+      const videoMedia = product?.media?.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
       if (videoMedia) {
         setActiveVideoMedia(videoMedia);
       } else {
@@ -99,9 +99,8 @@ export default function WishlistPage() {
     setMovingToCartId(itemKey);
     try {
       // 1. Fetch full product details to find variants
-      const res = await fetch(`/api/products/details?handle=${item.productHandle}`);
-      if (!res.ok) throw new Error("Failed to fetch product details");
-      const { product } = await res.json();
+      const data = await apiFetch(`/api/products/details?handle=${item.productHandle}`);
+      const product = data?.product;
 
       if (!product || !product.variants?.length) {
         throw new Error("Product variants not found");
@@ -198,9 +197,9 @@ export default function WishlistPage() {
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const res = await fetch(`/api/products/similar?handle=${handle}`);
-      const data = await res.json();
-      setSimilarProducts(data.products || []);
+      const data = await apiFetch(`/api/products/related?handle=${handle}`);
+      const products = data.products || data.matchingProducts || data.complementaryProducts || [];
+      setSimilarProducts(products.filter(p => p.handle !== handle));
     } catch (e) {
       console.error("Failed to fetch similar products", e);
     } finally {

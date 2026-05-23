@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
+import { apiFetch } from "@/lib/api";
 import {
   setReferralLink,
   setReferralLoading,
@@ -53,12 +54,10 @@ export default function ReferralPage() {
   async function fetchReferralLink() {
     try {
       dispatch(setReferralLoading(true));
-      const response = await fetch("/api/customer/referral", {
+      const data = await apiFetch("/api/customer/referral", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customerId: user.id }),
       });
-      const data = await response.json();
       if (data.referralLink) {
         dispatch(setReferralLink(data.referralLink));
       }
@@ -73,11 +72,10 @@ export default function ReferralPage() {
     try {
       setLoadingStats(true);
       const numericId = user.id.toString().split("/").pop();
-      const res = await fetch(
+      const data = await apiFetch(
         `/api/customer/referral/history?customer_id=shopify-${numericId}`
       );
-      const data = await res.json();
-      if (data.status) {
+      if (data && data.status) {
         setStats({
           total_referrals: data.total_referrals || 0,
           coins_earned: data.coins_earned || 0,
@@ -86,7 +84,10 @@ export default function ReferralPage() {
         });
       }
     } catch (err) {
-      console.error("Referral history fetch failed:", err);
+      // If it's a 404, we just keep the empty state silently to avoid console noise
+      if (!err.message.includes("404")) {
+        console.error("Referral history fetch failed:", err);
+      }
     } finally {
       setLoadingStats(false);
     }

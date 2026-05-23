@@ -1,3 +1,4 @@
+export const revalidate = 21600; // 6 hours
 import Image from "next/image";
 import { Suspense } from "react";
 import FeaturedIn from "@/components/home/FeaturedIn";

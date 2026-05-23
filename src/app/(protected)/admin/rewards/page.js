@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSelector } from "react-redux";
 import { Check, ArrowRight, Loader2, Gift } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
 
 /* ─────────────────────────────────────────────────────────
    CONFIG
@@ -418,6 +421,7 @@ const initial = {
    MAIN PAGE
 ───────────────────────────────────────────────────────── */
 export default function EarnRewardsPage() {
+  const { user, accessToken } = useSelector((state) => state.user);
   const [state,       setState]       = useState(initial);
   const [nectorCoins, setNectorCoins] = useState(null);   // fetched via proxy
   const [coinsLoading, setCoinsLoading] = useState(true);
@@ -432,20 +436,21 @@ export default function EarnRewardsPage() {
   useEffect(() => {
     async function init() {
       loadLocal();
-      await fetchServerProgress();
+      if (accessToken) {
+        await fetchServerProgress();
+      }
       setPageLoading(false);
       fetchCoins();
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [accessToken]);
 
   /* ── Nector coins (via Next.js proxy — no CORS) ── */
   async function fetchCoins() {
     setCoinsLoading(true);
     try {
-      const r    = await fetch("/api/customer/nector-coins", { cache:"no-store" });
-      const data = await r.json();
+      const data = await apiFetch("/api/customer/nector-coins", { cache:"no-store" });
       if (data?.status !== false) setNectorCoins(data.coins_balance ?? 0);
     } catch (e) {
       console.warn("Nector proxy error:", e);
@@ -476,16 +481,17 @@ export default function EarnRewardsPage() {
   /* ── Server progress ── */
   async function fetchServerProgress() {
     try {
-      const profileRes = await fetch("/api/customer/profile");
-      if (!profileRes.ok) return;
-      const profileData = await profileRes.json();
+      if (!accessToken) return;
+
+      const profileData = await shopifyStorefrontFetch(CUSTOMER_QUERY, {
+        customerAccessToken: accessToken
+      });
       const simpleId    = extractNumericId(profileData?.customer?.id || "");
       if (!simpleId) return;
 
-      const r = await fetch(
+      const d = await apiFetch(
         `${CONFIG.apiBase}/get-progress.php?customer_id=shopify-${simpleId}&t=${Date.now()}`
       );
-      const d = await r.json();
       if (!d.success) return;
 
       const rewardedSteps  = (d.rewarded_steps  || []).map(Number);
@@ -531,9 +537,11 @@ export default function EarnRewardsPage() {
   /* ── API save (with coin reward on first time) ── */
   async function apiSave(step, stepData, autoSave = false, allFormData = null) {
     try {
-      const profileRes = await fetch("/api/customer/profile");
-      if (!profileRes.ok) return;
-      const profileData = await profileRes.json();
+      if (!accessToken) return;
+
+      const profileData = await shopifyStorefrontFetch(CUSTOMER_QUERY, {
+        customerAccessToken: accessToken
+      });
       const simpleId    = extractNumericId(profileData?.customer?.id || "");
       if (!simpleId) return;
 
@@ -546,14 +554,12 @@ export default function EarnRewardsPage() {
         auto_save: autoSave 
       };
 
-      const res = await fetch(`${CONFIG.apiBase}/save-step.php`, {
+      const d = await apiFetch(`${CONFIG.apiBase}/save-step.php`, {
         method: "POST", 
-        headers: { "Content-Type": "application/json" }, 
         keepalive: true,
         body: JSON.stringify(payload),
       });
       
-      const d = await res.json();
       if (!autoSave && d.coins_awarded) {
         fetchCoins();
       }
