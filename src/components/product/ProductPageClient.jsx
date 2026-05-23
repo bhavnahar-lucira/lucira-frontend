@@ -1101,14 +1101,20 @@ useEffect(() => {
   useEffect(() => {
     if (!activeVariant?.id) return;
 
-    fetchVariantPricing(activeVariant.id, product.shopifyId)
+    const vid = getNumericId(activeVariant.id);
+    const pid = getNumericId(product.shopifyId || product.id);
+    // Capture the variantId at the time of fetch to tag the result
+    const snapshotId = String(activeVariant.id);
+
+    fetchVariantPricing(vid, pid)
       .then((data) => {
-        setPriceBreakup(data);
+        // Tag the response with the activeVariant.id so comparison is reliable
+        setPriceBreakup({ ...data, variantId: snapshotId });
       })
       .catch((err) => {
         console.error("Pricing fetch failed", err);
       });
-  }, [activeVariant, product.shopifyId]);
+  }, [activeVariant, product.shopifyId, product.id]);
 
   // Toast notification on price update
   useEffect(() => {
@@ -2552,25 +2558,25 @@ useEffect(() => {
                 </div>
               )}
 
-              <p className="text-xs leading-relaxed text-gray-900 italic mt-3">
+              <div ref={productDetailsRef} className="mt-8">
+                <PriceSavingsDetails
+                  priceBreakup={priceBreakup?.price_breakup}
+                  onTabChange={(tab) => {
+                    if (tab === 'price') {
+                      const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
+                      handlePromoClick('priceBreakup', 'Product Details Section', { savings_amount: totalSavingsAmount });
+                    } else if (tab === 'comparison') {
+                      const savingsStr = priceBreakup?.price_breakup?.comparison?.savings || '₹0';
+                      const savingsAmount = parseFloat(savingsStr.replace(/[^\d.]/g, '')) || 0;
+                      handlePromoClick('yourSavings', savingsAmount, { savings_amount: savingsAmount });
+                    }
+                  }}
+                />
+              </div>
+
+              <p className="text-xs leading-relaxed text-gray-900 italic mt-6">
                 * Our products are handcrafted and personalised for your delight, hence a weight variance is expected.
               </p>
-            </div>
-
-            <div ref={productDetailsRef}>
-              <PriceSavingsDetails
-                priceBreakup={priceBreakup?.price_breakup}
-                onTabChange={(tab) => {
-                  if (tab === 'price') {
-                    const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
-                    handlePromoClick('priceBreakup', 'Product Details Section', { savings_amount: totalSavingsAmount });
-                  } else if (tab === 'comparison') {
-                    const savingsStr = priceBreakup?.price_breakup?.comparison?.savings || '₹0';
-                    const savingsAmount = parseFloat(savingsStr.replace(/[^\d.]/g, '')) || 0;
-                    handlePromoClick('yourSavings', savingsAmount, { savings_amount: savingsAmount });
-                  }
-                }}
-              />
             </div>
 
             {priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id) && priceBreakup?.price_breakup?.total_savings && priceBreakup?.price_breakup?.total_savings !== "₹0" && (

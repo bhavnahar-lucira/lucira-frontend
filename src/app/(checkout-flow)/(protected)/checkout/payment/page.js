@@ -770,6 +770,7 @@ export default function PaymentPage() {
         appliedCoupon: appliedCoupon,
         nectorPoints: nectorPoints,
         paymentMethod: paymentMethodDetails,
+        amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
       });
 
       const razorpay = new window.Razorpay({
@@ -802,7 +803,8 @@ export default function PaymentPage() {
               }
             }
 
-            const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount;
+            const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
+            const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
             const purchaseValue = selectedPaymentGateway === "partial_cod"
               ? partialCodDetails.prepaidAmount
               : grandTotalValue;

@@ -434,6 +434,22 @@ export default function CollectionPage({ params: paramsPromise }) {
 
   const activeSort = searchParams.get("sort") || "best_selling";
 
+  // Extract selected color from filters to pass to ProductCard
+  const selectedColor = useMemo(() => {
+    // 1. Check direct Shopify filter key
+    const filterColor = searchParams.get("filter.v.option.metal_color");
+    if (filterColor) return filterColor;
+
+    // 2. Check for any key containing 'color'
+    let foundColor = "";
+    searchParams.forEach((value, key) => {
+      if (key.toLowerCase().includes("color")) {
+        foundColor = value;
+      }
+    });
+    return foundColor;
+  }, [searchParams]);
+
   const renderGridItems = () => {
     const items = [];
     products.forEach((prod, idx) => {
@@ -454,7 +470,11 @@ export default function CollectionPage({ params: paramsPromise }) {
       
       items.push(
         <div key={prod.id || idx} ref={isTrigger ? loadMoreRef : null}>
-          <ProductCard product={prod} collectionHandle={handle} index={idx + 1} />
+          <ProductCard 
+            product={selectedColor ? { ...prod, selectedColor } : prod} 
+            collectionHandle={handle} 
+            index={idx + 1} 
+          />
         </div>
       );
     });

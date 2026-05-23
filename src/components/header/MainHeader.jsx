@@ -84,7 +84,7 @@ export default function MainHeader() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   const dispatch = useDispatch();
-  const { totalQuantity, totalAmount, items } = useSelector((state) => state.cart);
+  const { totalQuantity, totalAmount, items, loading: cartLoading } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
 
@@ -127,7 +127,12 @@ export default function MainHeader() {
 
 
   useEffect(() => {
+    // Skip auto-fetch if cart is currently loading (mergeCart triggered by login is in progress).
+    // Reading cartLoading via a ref avoids adding it to deps (which would cause infinite loops).
+    // mergeCart will call fetchCart itself when complete, so we don't need to race it.
+    if (cartLoading) return;
     dispatch(fetchCart({ userId: user?.id }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, user?.id]);
 
   useEffect(() => {

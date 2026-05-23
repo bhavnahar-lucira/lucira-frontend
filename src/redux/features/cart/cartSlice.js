@@ -340,8 +340,9 @@ export const mergeCart = createAsyncThunk(
   async ({ userId } = {}, { dispatch, getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
-    
-    // 1. Fastify backend merge
+    const cartId = getCartId();
+
+    // Step 1: Merge MongoDB guest cart into user cart
     if (finalUserId && sessionId) {
       try {
         await apiFetch("/api/cart/merge", {
@@ -356,7 +357,43 @@ export const mergeCart = createAsyncThunk(
       }
     }
 
-    // 2. Fetch the newly merged cart state
+    // Step 2: If there's a Shopify storefront cart, sync its lines into the user's
+    // MongoDB cart so all items (from any source) are present for checkout.
+    // This handles the case where guest added items via Shopify cart only.
+    if (finalUserId && cartId) {
+      try {
+        const shopifyData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+        const shopifyLines = shopifyData?.cart?.lines?.edges || [];
+        if (shopifyLines.length > 0) {
+          const itemsToSync = shopifyLines.map(({ node }) => ({
+            variantId: node.merchandise.id,
+            productId: node.merchandise.product.id,
+            quantity: node.quantity,
+            price: Number(node.merchandise.price.amount),
+            finalPrice: Number(node.merchandise.price.amount),
+            variantTitle: node.merchandise.title,
+            title: node.merchandise.product.title,
+            sku: node.merchandise.sku || "",
+            image: node.merchandise.image?.url || "",
+            handle: node.merchandise.product.handle || "",
+          }));
+
+          // Sync Shopify cart items into user's MongoDB cart (merging, not replacing)
+          await apiFetch("/api/cart/sync", {
+            method: "POST",
+            body: JSON.stringify({
+              userId: finalUserId,
+              sessionId,
+              items: itemsToSync
+            })
+          }).catch(e => console.error("mergeCart Shopify sync error:", e));
+        }
+      } catch (e) {
+        console.error("mergeCart Shopify fetch error:", e);
+      }
+    }
+
+    // Step 3: Fetch the final merged cart state
     const result = await dispatch(fetchCart({ userId: finalUserId })).unwrap();
     return result;
   }
