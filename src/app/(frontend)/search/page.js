@@ -253,8 +253,8 @@ export default function SearchPage() {
           <div className="hidden lg:block w-78 shrink-0">
             <div className="sticky top-5 self-start h-fit">
               <ScrollArea className="w-full h-[calc(100vh-5rem)]">
-                {filtersLoading ? <FilterSidebarSkeleton /> : (
-                  <div className="space-y-3 px-4">
+                {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
+                  <div className={`space-y-3 px-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
                     <div className="flex justify-between items-center border-b"><h3 className="font-semibold mb-3 font-black uppercase tracking-widest text-sm">Filters</h3><button onClick={clearAllFilters} className="text-[10px] font-bold uppercase text-zinc-400 hover:text-black mb-3">Clear All</button></div>
                     {(() => {
                       const filterEntries = Object.entries(availableFilters);
@@ -320,7 +320,7 @@ export default function SearchPage() {
               )}
             </div>
           )}
-          <div className={`grid mt-4 ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
+          <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : products.map((prod, idx) => {
                // Trigger pagination when 10 products are scrolled
                // For a batch of 25, this is the 11th product (index 10, or length - 15)
