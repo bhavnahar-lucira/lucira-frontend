@@ -265,9 +265,8 @@ export const fetchSearchResults = async (query) => {
       price: formatPrice(p.price_breakup?.total || p.price),
       isCollection: false,
     }));
-    // Include matched collections if backend returns them (future-proof)
     const collectionResults = (data.matchedCollections || []).map(c => ({
-      id: c.shopifyId || c._id,
+      id: c.shopifyId || c.id || c._id,
       title: c.title,
       url: `/collections/${c.handle}`,
       image: c.image || '',

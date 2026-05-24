@@ -387,7 +387,12 @@ export default function CollectionPage({ params: paramsPromise }) {
       const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
       const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
       const data = await apiFetch(`/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
-      setProducts(prev => [...prev, ...(data.products || [])]);
+      setProducts(prev => {
+        const nextProducts = data.products || [];
+        const existingIds = new Set(prev.map(p => p.id));
+        const filteredNew = nextProducts.filter(p => !existingIds.has(p.id));
+        return [...prev, ...filteredNew];
+      });
       setPagination(data.pageInfo || { hasNextPage: false, endCursor: null });
       if (data.totalProducts) setTotalCount(data.totalProducts);
     } catch (err) {
@@ -469,7 +474,7 @@ export default function CollectionPage({ params: paramsPromise }) {
       const isTrigger = pagination.hasNextPage && idx === products.length - 15;
       
       items.push(
-        <div key={prod.id || idx} ref={isTrigger ? loadMoreRef : null}>
+        <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
           <ProductCard 
             product={selectedColor ? { ...prod, selectedColor } : prod} 
             collectionHandle={handle} 

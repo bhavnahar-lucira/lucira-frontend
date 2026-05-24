@@ -189,7 +189,7 @@ export default function MainHeader() {
     return () => window.removeEventListener("profile-updated", handleProfileUpdate);
   }, [dispatch, user?.id, user?.avatar]);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     const performSearch = async () => {
