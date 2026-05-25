@@ -251,6 +251,14 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     <source src={item.url || null} type={item.mimeType || "video/mp4"} />
                   )}
                 </video>
+              ) : isFirst ? (
+                <Image 
+                  src={item.url || "/images/product/1.jpg"} 
+                  alt={item.alt || title} 
+                  fill
+                  priority
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                />
               ) : (
                 <LazyImage 
                   src={item.url || "/images/product/1.jpg"} 
