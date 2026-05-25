@@ -55,11 +55,11 @@ const mapShopifyCart = (cart, backendCart = null) => {
       handle: node.merchandise.product.handle,
       sku: node.merchandise.sku,
       price: Number(node.merchandise.price.amount),
-      compare_price: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
+      comparePrice: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
       image: node.merchandise.image?.url,
       altText: node.merchandise.image?.altText,
       productId: node.merchandise.product.id,
-      inStock: true, // Storefront API only allows adding available items
+      inStock: backendItem?.inStock !== undefined ? backendItem.inStock : true, // Storefront API only allows adding available items
 
       // Dynamic metal / diamond attributes from backend cart
       goldWeight: backendItem?.goldWeight || 0,
@@ -74,6 +74,8 @@ const mapShopifyCart = (cart, backendCart = null) => {
       engravingText: backendItem?.engravingText || "",
       engravingFont: backendItem?.engravingFont || "",
       giftText: backendItem?.giftText || "",
+      color: backendItem?.color || null,
+      karat: backendItem?.karat || null,
     };
   }) || [];
 

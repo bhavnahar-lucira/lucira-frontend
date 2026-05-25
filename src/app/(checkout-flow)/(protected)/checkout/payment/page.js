@@ -1112,13 +1112,13 @@ export default function PaymentPage() {
                             {gateway.id === "razorpay" ? (
                               <div className="flex items-center gap-2">
                                 <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/upi.svg" className="h-3 w-auto opacity-70" alt="UPI" width={36} height={12} unoptimized />
+                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" className="h-3 w-auto opacity-70" alt="UPI" width={36} height={12} unoptimized />
                                 </div>
                                 <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/visa.svg" className="h-2 w-auto opacity-70" alt="VISA" width={36} height={8} unoptimized />
+                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" className="h-2 w-auto opacity-70" alt="VISA" width={36} height={8} unoptimized />
                                 </div>
                                 <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/mastercard.svg" className="h-3 w-auto opacity-70" alt="MASTERCARD" width={36} height={12} unoptimized />
+                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" className="h-3 w-auto opacity-70" alt="MASTERCARD" width={36} height={12} unoptimized />
                                 </div>
                                 <span className="text-[10px] text-zinc-400 font-bold">+18</span>
                               </div>
