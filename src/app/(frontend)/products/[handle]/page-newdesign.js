@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Breadcrumb,
@@ -25,17 +25,100 @@ import DiamondComparison from "@/components/product/DiamondComparison";
 import { FindLuciraStore } from "@/components/product/FindLuciraStore";
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
+import ProductCard from "@/components/product/ProductCard";
 import ExploreOtherRings from "@/components/product/ExploreOtherRings";
 import WearThisWith from "@/components/product/WearThisWith";
 import { Separator } from "@/components/ui/separator"
+import { shopifyStorefrontFetch } from "@/lib/shopify-client";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 
-export default function ProductPage() {
+export default function ProductPage({ product = {} }) {
   const [engraving, setEngraving] = useState("");
   const [activePromoSlide, setActivePromoSlide] = useState(1);
+  const [youMayAlsoLikeProducts, setYouMayAlsoLikeProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchMatching = async () => {
+      const gid = product.shopifyId || (product.id ? `gid://shopify/Product/${product.id}` : null);
+      if (!gid) return;
+
+      const QUERY = `
+        query getMatching($id: ID!) {
+          product(id: $id) {
+            matching: metafield(namespace: "custom", key: "matching_product") {
+              references(first: 20) {
+                edges {
+                  node {
+                    ... on Product {
+                      id
+                      title
+                      handle
+                      productType
+                      featuredImage { url altText }
+                      images(first: 5) { edges { node { url altText } } }
+                      variants(first: 20) {
+                        edges {
+                          node {
+                            id
+                            title
+                            sku
+                            availableForSale
+                            price { amount currencyCode }
+                            compareAtPrice { amount currencyCode }
+                            selectedOptions { name value }
+                            image { url altText }
+                          }
+                        }
+                      }
+                      productMetafields: metafields(identifiers: [{namespace: "ornaverse", key: "bestsellers"}]) {
+                        key
+                        value
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      try {
+        const data = await shopifyStorefrontFetch(QUERY, { id: gid });
+        const refs = data?.product?.matching?.references?.edges || [];
+        if (refs.length > 0) {
+          const mapped = refs.map(({ node: p }) => {
+            const productMetafields = {};
+            p.productMetafields?.forEach(m => { if (m) productMetafields[m.key] = m.value; });
+
+            return {
+              ...p,
+              id: p.id.split("/").pop(),
+              shopifyId: p.id,
+              image: p.featuredImage?.url,
+              productMetafields,
+              variants: p.variants.edges.map(({ node: v }) => ({
+                ...v,
+                id: v.id.split("/").pop(),
+                shopifyId: v.id,
+                price: Number(v.price.amount),
+                compare_price: v.compareAtPrice ? Number(v.compareAtPrice.amount) : null,
+                inStock: v.availableForSale,
+                image: v.image?.url
+              }))
+            };
+          });
+          setYouMayAlsoLikeProducts(mapped);
+        }
+      } catch (e) {
+        console.error("Error fetching matching products", e);
+      }
+    };
+    fetchMatching();
+  }, [product.shopifyId, product.id]);
   return (
     <div className="w-full">
       <div className="max-w-480 mx-auto px-17 min-[1440px]:px-17">
@@ -568,6 +651,20 @@ export default function ProductPage() {
       <ExploreOtherRings />
       <CategorySlider/>
       <ProductSlider title="Recently Viewed"/>
+      {youMayAlsoLikeProducts.length > 0 && (
+        <section className="w-full bg-white mt-10 md:mt-15 overflow-hidden">
+          <div className="max-w-480 mx-auto px-5 md:px-17">
+            <div className="text-center mb-10 md:mb-12">
+              <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">You May Also Like</h2>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-8 md:gap-y-12">
+              {youMayAlsoLikeProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       <FindLuciraStore/>
       <JoinLuciraCommunity/>
 
