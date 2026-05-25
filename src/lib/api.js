@@ -76,7 +76,7 @@ export const apiFetch = async (url, options = {}) => {
       // Downgrade "not found" errors to warnings to prevent console pollution
       if (res.status === 404 || errorMsg.toLowerCase().includes("not found")) {
         console.warn(`[apiFetch Resource Not Found] ${finalUrl}: ${errorMsg}`);
-      } else {
+      } else if (!options.suppressErrorLog) {
         console.error(`[apiFetch Error] ${finalUrl}: ${errorMsg}`, data);
       }
       

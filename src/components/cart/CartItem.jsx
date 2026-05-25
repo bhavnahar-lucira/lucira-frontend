@@ -94,7 +94,7 @@ export default function CartItem({ item, onAuthRequired }) {
         thumbnail_image: item.image
       });
 
-      await dispatch(removeFromCart({ userId: user?.id, variantId: item.variantId })).unwrap();
+      await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Removed from cart", {
         icon: <Check className="w-4 h-4" />
       });
@@ -169,7 +169,7 @@ export default function CartItem({ item, onAuthRequired }) {
       const commonTrackingData = getStandardWishlistPayload(mockProduct, mockVariant, currentOrigin, item.image);
       pushAddToWishlist(commonTrackingData);
 
-      await dispatch(removeFromCart({ userId: user?.id, variantId: item.variantId })).unwrap();
+      await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Moved to wishlist", {
         icon: <Check className="w-4 h-4" />
       });
