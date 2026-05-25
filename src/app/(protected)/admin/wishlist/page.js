@@ -99,7 +99,11 @@ export default function WishlistPage() {
     setMovingToCartId(itemKey);
     try {
       // 1. Fetch full product details to find variants
-      const data = await apiFetch(`/api/products/details?handle=${item.productHandle}`);
+      const handleToFetch = item.productHandle || item.handle;
+      if (!handleToFetch || handleToFetch === "undefined") {
+        throw new Error("Product handle missing. Please remove and re-add to wishlist.");
+      }
+      const data = await apiFetch(`/api/products/details?handle=${handleToFetch}`);
       const product = data?.product;
 
       if (!product || !product.variants?.length) {
