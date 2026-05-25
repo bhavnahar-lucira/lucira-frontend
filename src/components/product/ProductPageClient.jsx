@@ -2343,7 +2343,7 @@ useEffect(() => {
                 title="Try At Home"
                 description="Try your selected pieces from the comfort of your home. Available in all major cities"
                 action="BOOK HOME TRIAL"
-                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/subscribe-2_6402a239-1346-40d1-9ea4-bd006e45e7b7.jpg"
+                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
                 url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
                 onClick={() => pushToDataLayer({
                   event: 'promoClick',
