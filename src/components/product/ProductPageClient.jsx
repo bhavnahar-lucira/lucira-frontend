@@ -2592,11 +2592,9 @@ export default function ProductPageClient({
             </div>
 
             {priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id) && priceBreakup?.price_breakup?.total_savings && priceBreakup?.price_breakup?.total_savings !== "₹0" && (
-              <div className="mt-4 flex justify-between items-stretch bg-[#F2FAF5] border border-[#1E7D4E] rounded-xl overflow-hidden h-12">
-                <span className="text-[14px] font-bold text-gray-900 pl-5 flex items-center">Save on this jewelry</span>
-                <div className="bg-[#1E7D4E] px-6 flex items-center justify-center">
-                  <span className="text-[15px] font-bold text-white">{priceBreakup.price_breakup.total_savings}</span>
-                </div>
+              <div className="mt-4 flex justify-between items-center bg-success/8 border border-success rounded-md px-5 py-4">
+                <span className="text-base font-bold text-gray-900 uppercase tracking-tight">Save on this jewelry</span>
+                <span className="text-lg font-bold text-success">{priceBreakup.price_breakup.total_savings}</span>
               </div>
             )}
 
