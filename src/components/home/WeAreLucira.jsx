@@ -78,7 +78,7 @@ export default function WeAreLucira() {
             <div className="mb-2.5 flex justify-center">
               <div className="flex h-10 w-10 items-center justify-center">
                 <LazyImage
-                  src="/images/icons/small-logo.svg"
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/small-logo.svg"
                   alt="Lucira Jewelry"
                   width={20}
                   height={40}
