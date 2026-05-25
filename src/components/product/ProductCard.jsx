@@ -87,7 +87,7 @@ function getUniqueBaseColors(colors = []) {
 
 function getVariantForBase(product, selectedBase) {
   const inStockVariant = product?.variants?.find(
-    (v) => (v.inStock === true || v.inStock === "true") && getBaseColor(v.color || v.title) === selectedBase
+    (v) => (v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && v.inventoryQuantity > 0)) && getBaseColor(v.color || v.title) === selectedBase
   );
   if (inStockVariant) return inStockVariant;
   return (
@@ -218,8 +218,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [product.reviews, product.reviewStats]);
 
   const currentVariant = useMemo(() => {
-    return product.variants?.find((v) => getBaseColor(v.color || v.title) === activeBase) || product.variants?.[0] || null;
-  }, [product.variants, activeBase]);
+    return getVariantForBase(product, activeBase);
+  }, [product, activeBase]);
 
   // Live Pricing Fetch
   useEffect(() => {
