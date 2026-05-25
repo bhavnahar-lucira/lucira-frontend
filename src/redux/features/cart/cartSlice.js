@@ -46,40 +46,58 @@ const mapShopifyCart = (cart, backendCart = null) => {
       return bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
     });
 
-    return {
-      lineId: node.id,
-      variantId,
-      quantity: node.quantity,
-      title: variantId.includes("47753346973914") ? "100 mg Gold Coin" : node.merchandise.product.title,
-      variantTitle: variantId.includes("47753346973914") ? "Free Gift" : node.merchandise.title,
-      handle: node.merchandise.product.handle,
-      sku: node.merchandise.sku,
-      price: variantId.includes("47753346973914") || backendItem?.isFreeGift ? 0 : Number(node.merchandise.price.amount),
-      comparePrice: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
-      image: node.merchandise.image?.url,
-      altText: node.merchandise.image?.altText,
-      productId: node.merchandise.product.id,
-      inStock: backendItem?.inStock !== undefined ? backendItem.inStock : true, // Storefront API only allows adding available items
+      // Extract attributes from Shopify selectedOptions as fallback
+      const shopifyOptions = node.merchandise.selectedOptions || [];
+      const shopifyColor = shopifyOptions.find(o => o.name.toLowerCase().includes("color") || o.name.toLowerCase().includes("metal"))?.value;
+      const shopifySize = shopifyOptions.find(o => o.name.toLowerCase() === "size" || o.name.toLowerCase().includes("ring"))?.value;
+      const parsedTitle = node.merchandise.title !== "Default Title" ? node.merchandise.title : "";
 
-      // Dynamic metal / diamond attributes from backend cart
-      goldWeight: backendItem?.goldWeight || 0,
-      goldPrice: backendItem?.goldPrice || 0,
-      goldPricePerGram: backendItem?.goldPricePerGram || 0,
-      makingCharges: backendItem?.makingCharges || 0,
-      diamondCharges: backendItem?.diamondCharges || 0,
-      gst: backendItem?.gst || 0,
-      finalPrice: backendItem?.finalPrice || 0,
-      diamondTotalPcs: backendItem?.diamondTotalPcs || 0,
-      engraving: backendItem?.engraving || "",
-      engravingText: backendItem?.engravingText || "",
-      engravingFont: backendItem?.engravingFont || "",
-      giftText: backendItem?.giftText || "",
-      color: backendItem?.color || null,
-      karat: backendItem?.karat || null,
-      size: backendItem?.size || (node.merchandise.title !== "Default Title" ? node.merchandise.title : ""),
-      variantOptions: backendItem?.variantOptions || [],
-    };
-  }) || [];
+      // Try to intelligently parse color/karat if Shopify option just returned "14KT Rose Gold"
+      let fallbackKarat = null;
+      let fallbackColor = null;
+      if (shopifyColor) {
+        if (shopifyColor.toLowerCase().includes("14k")) fallbackKarat = "14K";
+        else if (shopifyColor.toLowerCase().includes("18k")) fallbackKarat = "18K";
+        
+        if (shopifyColor.toLowerCase().includes("rose")) fallbackColor = "Rose Gold";
+        else if (shopifyColor.toLowerCase().includes("yellow")) fallbackColor = "Yellow Gold";
+        else if (shopifyColor.toLowerCase().includes("white")) fallbackColor = "White Gold";
+      }
+
+      return {
+        lineId: node.id,
+        variantId,
+        quantity: node.quantity,
+        title: variantId.includes("47753346973914") ? "100 mg Gold Coin" : node.merchandise.product.title,
+        variantTitle: variantId.includes("47753346973914") ? "Free Gift" : node.merchandise.title,
+        handle: node.merchandise.product.handle,
+        sku: node.merchandise.sku,
+        price: variantId.includes("47753346973914") || backendItem?.isFreeGift ? 0 : Number(node.merchandise.price.amount),
+        comparePrice: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
+        image: node.merchandise.image?.url,
+        altText: node.merchandise.image?.altText,
+        productId: node.merchandise.product.id,
+        inStock: backendItem?.inStock !== undefined ? backendItem.inStock : true,
+
+        // Dynamic metal / diamond attributes from backend cart
+        goldWeight: backendItem?.goldWeight || 0,
+        goldPrice: backendItem?.goldPrice || 0,
+        goldPricePerGram: backendItem?.goldPricePerGram || 0,
+        makingCharges: backendItem?.makingCharges || 0,
+        diamondCharges: backendItem?.diamondCharges || 0,
+        gst: backendItem?.gst || 0,
+        finalPrice: backendItem?.finalPrice || 0,
+        diamondTotalPcs: backendItem?.diamondTotalPcs || 0,
+        engraving: backendItem?.engraving || "",
+        engravingText: backendItem?.engravingText || "",
+        engravingFont: backendItem?.engravingFont || "",
+        giftText: backendItem?.giftText || "",
+        color: backendItem?.color || fallbackColor || shopifyColor || null,
+        karat: backendItem?.karat || fallbackKarat || null,
+        size: backendItem?.size || shopifySize || parsedTitle,
+        variantOptions: backendItem?.variantOptions || [],
+      };
+    }) || [];
 
   // Recalculate totals locally
   const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 1), 0);

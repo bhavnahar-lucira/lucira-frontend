@@ -2,7 +2,7 @@ const SHOP = "luciraonline";
 const rawStore = process.env.NEXT_PUBLIC_SHOPIFY_STORE || SHOP;
 const SHOP_DOMAIN = rawStore.includes(".") ? rawStore : `${rawStore}.myshopify.com`;
 
-export async function shopifyStorefrontFetch(query, variables = {}) {
+export async function shopifyStorefrontFetch(query, variables = {}, retries = 3, delayMs = 500) {
   const token = process.env.NEXT_PUBLIC_STOREFRONT_TOKEN;
   
   if (!token) {
@@ -10,9 +10,8 @@ export async function shopifyStorefrontFetch(query, variables = {}) {
     return null;
   }
 
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && retries === 3) {
     console.log(`[shopifyStorefrontFetch] Fetching from ${SHOP_DOMAIN}`);
-    // console.log(`[shopifyStorefrontFetch] Variables:`, JSON.stringify(variables, null, 2));
   }
 
   try {
@@ -27,21 +26,28 @@ export async function shopifyStorefrontFetch(query, variables = {}) {
 
     const data = await res.json();
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[shopifyStorefrontFetch] Response status: ${res.status}`);
-      if (data.errors) {
+    if (data.errors) {
+      const hasConflict = data.errors.some(e => e.extensions?.code === "CONFLICT");
+      
+      if (hasConflict && retries > 0) {
+        console.warn(`[shopifyStorefrontFetch] Cart conflict detected. Retrying in ${delayMs}ms... (${retries} retries left)`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        return shopifyStorefrontFetch(query, variables, retries - 1, delayMs * 2);
+      }
+
+      if (process.env.NODE_ENV === "development") {
         console.error("[shopifyStorefrontFetch] GraphQL Errors:", JSON.stringify(data.errors, null, 2));
       }
-    }
-
-    if (data.errors) {
-      // console.error("Query:", query);
-      // console.error("Variables:", JSON.stringify(variables, null, 2));
       return null;
     }
     return data.data;
   } catch (err) {
     console.error("Shopify Storefront Fetch Error:", err);
+    // On network failure, we could also retry, but CONFLICT is specifically what we want to solve
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      return shopifyStorefrontFetch(query, variables, retries - 1, delayMs * 2);
+    }
     return null;
   }
 }
@@ -80,6 +86,10 @@ export const CART_QUERY = `
                 price { amount currencyCode }
                 compareAtPrice { amount currencyCode }
                 image { url altText }
+                selectedOptions {
+                  name
+                  value
+                }
                 product {
                   id
                   title
