@@ -103,7 +103,15 @@ export default function WishlistPage() {
       if (!handleToFetch || handleToFetch === "undefined") {
         throw new Error("Product handle missing. Please remove and re-add to wishlist.");
       }
-      const data = await apiFetch(`/api/products/details?handle=${handleToFetch}`);
+      let data;
+      try {
+        data = await apiFetch(`/api/products/details?handle=${handleToFetch}`);
+      } catch (fetchErr) {
+        if (fetchErr.message?.toLowerCase().includes("not found")) {
+          throw new Error("This product is no longer available.");
+        }
+        throw fetchErr;
+      }
       const product = data?.product;
 
       if (!product || !product.variants?.length) {
@@ -184,8 +192,12 @@ export default function WishlistPage() {
       });
       dispatch(openCart());
     } catch (err) {
-      console.error("Move to cart failed", err);
-      toast.error(err.message || "Failed to move to cart");
+      if (err.message === "This product is no longer available.") {
+         toast.error(err.message);
+      } else {
+         console.error("Move to cart failed:", err.message);
+         toast.error(err.message || "Failed to move to cart");
+      }
     } finally {
       setMovingToCartId(null);
     }

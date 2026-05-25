@@ -1,5 +1,4 @@
 import { fetchWithRetry } from "@/utils/helpers";
-import { store } from "@/redux/store";
 import { logout } from "@/redux/features/user/userSlice";
 
 /* ================= GENERIC API FETCH ================= */
@@ -66,6 +65,7 @@ export const apiFetch = async (url, options = {}) => {
       if (res.status === 401) {
         console.warn("[apiFetch] Unauthorized request. Triggering global logout.", finalUrl);
         if (typeof window !== "undefined") {
+          const { store } = await import("@/redux/store");
           store.dispatch(logout());
         }
       }

@@ -56,7 +56,7 @@ const StyledVideoCard = forwardRef(({ video, onClick }, ref) => {
         }}
         // Only set src when it has been in view at least once to prevent early loading
         // Once set, we keep it to avoid re-fetching
-        src={hasBeenInView ? video : undefined}
+        src={hasBeenInView && video && video.trim() !== "" ? video : null}
         muted
         loop
         playsInline
