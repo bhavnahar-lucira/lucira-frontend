@@ -17,7 +17,7 @@ export default function InsuranceOption() {
 
   // Calculate total quantity of other items
   const otherItemsQuantity = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/GOLDCOIN_100MG" && item.variantId !== "gid://shopify/ProductVariant/47661824082138")
+    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/GOLDCOIN_100MG" && item.variantId !== "gid://shopify/ProductVariant/47753346973914")
     .reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const handleAdd = async () => {

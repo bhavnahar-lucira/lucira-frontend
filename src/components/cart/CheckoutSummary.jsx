@@ -13,7 +13,7 @@ import CartContact from "./CartContact";
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 export default function CheckoutSummary({ 
   showItems = true, 
