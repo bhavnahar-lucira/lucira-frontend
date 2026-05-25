@@ -59,7 +59,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
       image: node.merchandise.image?.url,
       altText: node.merchandise.image?.altText,
       productId: node.merchandise.product.id,
-      inStock: true, // Storefront API only allows adding available items
+      inStock: backendItem?.inStock !== undefined ? backendItem.inStock : true, // Storefront API only allows adding available items
 
       // Dynamic metal / diamond attributes from backend cart
       goldWeight: backendItem?.goldWeight || 0,
