@@ -93,10 +93,7 @@ export default function Navbar({ hideTop, menuData }) {
         </div>
 
         {/* Navigation Menu - Stays centered */}
-        <ul className={cn(
-          "flex items-center lg:text-xs xl:text-sm uppercase transition-all duration-300",
-          hideTop ? "gap-8" : "gap-12"
-        )}>
+        <ul className="flex items-center lg:text-xs xl:text-sm uppercase transition-all duration-300 gap-8">
           {MEGA_MENU.map((menu, index) => {
             const isActive =
               pathname === menu.href ||
