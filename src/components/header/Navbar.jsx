@@ -65,7 +65,7 @@ export default function Navbar({ hideTop, menuData }) {
     <nav className="relative bg-white border-b border-gray-100 z-[90]">
       <div className="container-main relative flex items-center min-h-[40px] justify-center">
         {/* Sticky Logo - Absolute positioned to align with main logo */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2">
+        <div className="absolute left-4 lg:left-17 top-1/2 -translate-y-1/2">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{
@@ -93,7 +93,10 @@ export default function Navbar({ hideTop, menuData }) {
         </div>
 
         {/* Navigation Menu - Stays centered */}
-        <ul className="flex items-center lg:text-xs xl:text-sm uppercase transition-all duration-300 gap-12">
+        <ul className={cn(
+          "flex items-center lg:text-xs xl:text-sm uppercase transition-all duration-300",
+          hideTop ? "gap-8" : "gap-12"
+        )}>
           {MEGA_MENU.map((menu, index) => {
             const isActive =
               pathname === menu.href ||
