@@ -49,7 +49,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
     return {
       lineId: node.id,
       variantId,
-      quantity: 1, // Force quantity 1 globally as per business requirement
+      quantity: node.quantity,
       title: node.merchandise.product.title,
       variantTitle: node.merchandise.title,
       handle: node.merchandise.product.handle,
@@ -76,12 +76,14 @@ const mapShopifyCart = (cart, backendCart = null) => {
       giftText: backendItem?.giftText || "",
       color: backendItem?.color || null,
       karat: backendItem?.karat || null,
+      size: backendItem?.size || (node.merchandise.title !== "Default Title" ? node.merchandise.title : ""),
+      variantOptions: backendItem?.variantOptions || [],
     };
   }) || [];
 
-  // Recalculate totals locally based on enforced quantity 1
-  const totalQuantity = items.length;
-  const totalAmount = items.reduce((sum, item) => sum + (item.price || 0), 0);
+  // Recalculate totals locally
+  const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const totalAmount = items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
 
   return {
     id: cart.id,
@@ -119,28 +121,7 @@ export const fetchCart = createAsyncThunk(
 
     const [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
     
-    // Quantity Correction: If any line in Shopify has quantity > 1, correct it to 1
-    const linesToCorrect = data?.cart?.lines?.edges
-      ?.filter(e => e.node.quantity > 1)
-      .map(e => ({
-        id: e.node.id,
-        quantity: 1
-      })) || [];
-
-    if (linesToCorrect.length > 0) {
-      console.log("[fetchCart] Correcting line quantities to 1...", linesToCorrect);
-      try {
-        await shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
-          cartId,
-          lines: linesToCorrect
-        });
-        // Re-fetch Shopify cart to get updated state after correction
-        const correctedData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-        return mapShopifyCart(correctedData?.cart, backendCart);
-      } catch (err) {
-        console.error("[fetchCart] Quantity correction failed:", err);
-      }
-    }
+    // Quantity correction logic removed to allow quantity > 1
     
     // Auto-heal/sync backend cart from storefront lines if backend cart has no items
     let finalBackendCart = backendCart;
@@ -198,9 +179,8 @@ export const fetchCart = createAsyncThunk(
               const vid = toShopifyGid(item.variantId, "ProductVariant").toLowerCase();
               const existingQty = shopifyVariants.get(vid) || 0;
               
-              // Strictly enforce quantity 1 for sync as well
-              // Only add if it doesn't exist in Shopify at all
-              const diff = existingQty > 0 ? 0 : 1;
+              // Add the difference in quantity
+              const diff = item.quantity > existingQty ? item.quantity - existingQty : 0;
               
               return {
                 merchandiseId: toShopifyGid(item.variantId, "ProductVariant"),
@@ -273,7 +253,7 @@ export const addToCart = createAsyncThunk(
     if (!cartId) {
       const data = await shopifyStorefrontFetch(CART_CREATE_MUTATION, {
         input: {
-          lines: [{ merchandiseId: variantId, quantity: 1 }] // Force quantity 1
+          lines: [{ merchandiseId: variantId, quantity: product.quantity || 1 }]
         }
       });
       
@@ -292,7 +272,7 @@ export const addToCart = createAsyncThunk(
     } else {
       const data = await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
         cartId,
-        lines: [{ merchandiseId: variantId, quantity: 1 }] // Force quantity 1
+        lines: [{ merchandiseId: variantId, quantity: product.quantity || 1 }]
       });
 
       const userErrors = data?.cartLinesAdd?.userErrors;
@@ -322,7 +302,7 @@ export const addToCart = createAsyncThunk(
             ...product,
             variantId: toShopifyGid(product.shopifyVariantId || product.variantId || product.id, "ProductVariant"),
             price: Number(product.price || 0),
-            quantity: 1 // Force quantity 1
+            quantity: product.quantity || 1
           }
         })
       });
