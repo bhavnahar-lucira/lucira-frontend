@@ -387,7 +387,12 @@ export default function CollectionPage({ params: paramsPromise }) {
       const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
       const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
       const data = await apiFetch(`/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
-      setProducts(prev => [...prev, ...(data.products || [])]);
+      setProducts(prev => {
+        const nextProducts = data.products || [];
+        const existingIds = new Set(prev.map(p => p.id));
+        const filteredNew = nextProducts.filter(p => !existingIds.has(p.id));
+        return [...prev, ...filteredNew];
+      });
       setPagination(data.pageInfo || { hasNextPage: false, endCursor: null });
       if (data.totalProducts) setTotalCount(data.totalProducts);
     } catch (err) {
@@ -469,7 +474,7 @@ export default function CollectionPage({ params: paramsPromise }) {
       const isTrigger = pagination.hasNextPage && idx === products.length - 15;
       
       items.push(
-        <div key={prod.id || idx} ref={isTrigger ? loadMoreRef : null}>
+        <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
           <ProductCard 
             product={selectedColor ? { ...prod, selectedColor } : prod} 
             collectionHandle={handle} 
@@ -622,7 +627,7 @@ export default function CollectionPage({ params: paramsPromise }) {
             </div>
           )}
 
-          <div className={`grid mt-4 ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
+          <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : renderGridItems()}
           </div>
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
@@ -677,7 +682,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                                   {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-zinc-200"><ShoppingBag size={20} /></div>}
                                 </div>
                                 <Link href={`/products/${item.handle}`} className="text-[13px] font-medium text-gray-900 hover:text-primary transition-colors truncate pr-4">{item.title}</Link>
-                                <span className="text-[13px] font-bold text-black text-right">₹{new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(item.price)}</span>
+                                <span className="text-[13px] font-bold text-black text-right">₹{new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(item.price_breakup?.total || item.price)}</span>
                               </div>
                             ))}
                           </div>

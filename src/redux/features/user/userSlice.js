@@ -18,13 +18,11 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     login: (state, action) => {
-      if (action.payload.user) {
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken || null;
-      } else {
-        state.user = action.payload;
-      }
-      state.isAuthenticated = true;
+      const { user, accessToken } = action.payload.user ? action.payload : { user: action.payload, accessToken: state.accessToken };
+      
+      state.user = user;
+      state.accessToken = accessToken || null;
+      state.isAuthenticated = !!accessToken; // Only authenticated if we have a token
       state.isAuthModalOpen = false;
     },
     setPincode: (state, action) => {
@@ -36,7 +34,7 @@ const userSlice = createSlice({
       state.collectionContext = action.payload;
     },
     logout: (state) => {
-      console.trace("[userSlice] logout called");
+      console.log("[userSlice] Logging out user and clearing session.");
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;

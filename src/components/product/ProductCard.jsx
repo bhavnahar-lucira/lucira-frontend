@@ -38,9 +38,10 @@ import {
 import { pushProductClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, fetchVariantPricing } from "@/lib/api";
 
 const clientReviewStatsCache = new Map();
+const clientPriceCache = new Map();
 
 const colorMap = {
   yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
@@ -209,10 +210,62 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
   const [reviewStats, setReviewStats] = useState(product.reviews || product.reviewStats || { count: 0, average: 0 });
+  const [livePrice, setLivePrice] = useState(null);
+  const [liveComparePrice, setLiveComparePrice] = useState(null);
 
   useEffect(() => {
     setReviewStats(product.reviews || product.reviewStats || { count: 0, average: 0 });
   }, [product.reviews, product.reviewStats]);
+
+  const currentVariant = useMemo(() => {
+    return product.variants?.find((v) => getBaseColor(v.color || v.title) === activeBase) || product.variants?.[0] || null;
+  }, [product.variants, activeBase]);
+
+  // Live Pricing Fetch
+  useEffect(() => {
+    if (fixedPrice || !currentVariant?.id) return;
+    
+    const variantId = String(currentVariant.id);
+    const productId = String(product.shopifyId || product.id);
+    const cacheKey = `${productId}-${variantId}`;
+    
+    if (clientPriceCache.has(cacheKey)) {
+      const cached = clientPriceCache.get(cacheKey);
+      setLivePrice(cached.price);
+      setLiveComparePrice(cached.comparePrice);
+      return;
+    }
+
+    let ignore = false;
+    const vid = getNumericId(variantId);
+    const pid = getNumericId(productId);
+
+    fetchVariantPricing(vid, pid)
+      .then((data) => {
+        if (ignore) return;
+        if (data?.raw_breakup?.total) {
+          const p = data.raw_breakup.total;
+          const cp = data.raw_breakup.original_total > p ? data.raw_breakup.original_total : null;
+          clientPriceCache.set(cacheKey, { price: p, comparePrice: cp });
+          setLivePrice(p);
+          setLiveComparePrice(cp);
+        } else {
+          // If response is valid but no breakup, cache as null to prevent re-fetch
+          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
+        }
+      })
+      .catch((err) => {
+        // Silently handle "Variant config not found" or other 404s
+        // These are expected for items not yet configured in the backend
+        if (err.message?.includes("not found")) {
+          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
+        } else {
+          console.warn("[ProductCard] Pricing fetch failed:", err.message);
+        }
+      });
+
+    return () => { ignore = true; };
+  }, [currentVariant?.id, product.shopifyId, product.id, fixedPrice]);
 
   useEffect(() => {
     const productReviewId = product.shopifyId || product.id;
@@ -248,21 +301,52 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const hasSimilar = true; // Always allow viewing similar products as we can fetch them by handle
   const videoMedia = useMemo(() => {
-    if (product.video) return product.video;
-    const mediaVideo = product.media?.find(m => m.mediaContentType === "VIDEO" || m.mimeType?.includes("video") || m.url?.includes(".mp4"));
+    // 1. Check if product.video is an object or a direct string URL
+    if (product.video) {
+      if (typeof product.video === "string") return { url: product.video, mimeType: "video/mp4" };
+      return product.video;
+    }
+
+    // 2. Search in media array for VIDEO or EXTERNAL_VIDEO
+    const mediaVideo = product.media?.find(m => 
+      m.mediaContentType === "VIDEO" || 
+      m.mediaContentType === "EXTERNAL_VIDEO" || 
+      m.type === "VIDEO" || 
+      m.type === "EXTERNAL_VIDEO" || 
+      m.mimeType?.includes("video") || 
+      m.url?.includes(".mp4")
+    );
     if (mediaVideo) return mediaVideo;
-    // Check if any image is actually a video URL
-    const videoUrl = product.images?.find(img => img.url?.includes(".mp4") || img.url?.includes("video"))?.url;
+    
+    // 3. Check if any image is actually a video URL or if direct URL fields exist
+    const videoUrl = (product.images || product.media)?.find(img => 
+      img.url?.includes(".mp4") || 
+      img.url?.includes("video") ||
+      img.mediaContentType === "VIDEO"
+    )?.url || product.videoUrl || product.video_url || product.productMetafields?.video_url;
+
     if (videoUrl) return { url: videoUrl, mimeType: "video/mp4" };
+    
+    // 4. Fallback to boolean flags from Shopify/Backend
+    const hasVideoFlag = product.hasVideo === true || product.hasVideo === "true" || 
+                         product.productMetafields?.has_video === true || product.productMetafields?.has_video === "true";
+
+    if (hasVideoFlag) {
+       const sku = currentVariant?.sku || product.variants?.[0]?.sku;
+       if (sku) {
+          // Standard Lucira CDN pattern
+          return { url: `https://luciraonline.myshopify.com/cdn/shop/files/${sku}.mp4`, isPlaceholder: true };
+       }
+       return { url: null, isPlaceholder: true }; 
+    }
+
     return null;
-  }, [product.video, product.media, product.images]);
+  }, [product.video, product.media, product.images, product.videoUrl, product.video_url, product.hasVideo, product.productMetafields, currentVariant?.sku, product.variants]);
 
-  const currentVariant = useMemo(() => {
-    return product.variants?.find((v) => getBaseColor(v.color || v.title) === activeBase) || product.variants?.[0] || null;
-  }, [product.variants, activeBase]);
+  const showVideoIcon = Boolean(videoMedia);
 
-  const displayPrice = fixedPrice || currentVariant?.price || product.price;
-  const displayComparePrice = fixedComparePrice || currentVariant?.compare_price || currentVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
+  const displayPrice = fixedPrice || livePrice || currentVariant?.price_breakup?.total || currentVariant?.price || product.price_breakup?.total || product.price;
+  const displayComparePrice = fixedComparePrice || liveComparePrice || currentVariant?.compare_price || currentVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
   const discountPercent = useMemo(() => {
     if (!displayComparePrice || displayComparePrice <= displayPrice) return 0;
     return Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100);

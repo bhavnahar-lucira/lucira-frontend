@@ -1,9 +1,12 @@
 import Link from "next/link";
 import Header from "@/components/header/Header";
 import Footer from "@/components/common/Footer";
+import { getMenu } from "@/lib/menus";
 
 
-export default function NotFound() {
+export default async function NotFound() {
+  const menuData = await getMenu("main-menu-official");
+
   // Replace these with CMS / API later if needed
   const data = {
     ringImage: "https://luciraonline.myshopify.com/cdn/shop/files/Group_1321315630_9e9275ff-1542-4638-b680-f1903f950cf9.png?v=1750417573", // put your image in /public/images/
@@ -17,7 +20,7 @@ export default function NotFound() {
 
   return (
     <div className="w-full">
-      <Header />
+      <Header menuData={menuData} />
       <section className="pt-7.5">
         <div className="text-center pb-12.5 md:pt-7.5">
           <div className="flex justify-center items-center gap-2.5 w-[50%] mx-auto text-[100px] font-bold">

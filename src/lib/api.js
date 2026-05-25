@@ -1,3 +1,7 @@
+import { fetchWithRetry } from "@/utils/helpers";
+import { store } from "@/redux/store";
+import { logout } from "@/redux/features/user/userSlice";
+
 /* ================= GENERIC API FETCH ================= */
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
@@ -58,9 +62,24 @@ export const apiFetch = async (url, options = {}) => {
     }
 
     if (!res.ok) {
+      // Handle Unauthorized (Session Expired)
+      if (res.status === 401) {
+        console.warn("[apiFetch] Unauthorized request. Triggering global logout.", finalUrl);
+        if (typeof window !== "undefined") {
+          store.dispatch(logout());
+        }
+      }
+
       // Improve error reporting
       const errorMsg = data?.error || data?.message || `HTTP ${res.status}`;
-      console.error(`[apiFetch Error] ${finalUrl}: ${errorMsg}`, data);
+      
+      // Downgrade "not found" errors to warnings to prevent console pollution
+      if (res.status === 404 || errorMsg.toLowerCase().includes("not found")) {
+        console.warn(`[apiFetch Resource Not Found] ${finalUrl}: ${errorMsg}`);
+      } else {
+        console.error(`[apiFetch Error] ${finalUrl}: ${errorMsg}`, data);
+      }
+      
       throw new Error(errorMsg);
     }
 
@@ -243,12 +262,11 @@ export const fetchSearchResults = async (query) => {
       title: p.title,
       url: `/products/${p.handle}`,
       image: p.image || p.variants?.[0]?.image || '',
-      price: formatPrice(p.price),
+      price: formatPrice(p.price_breakup?.total || p.price),
       isCollection: false,
     }));
-    // Include matched collections if backend returns them (future-proof)
     const collectionResults = (data.matchedCollections || []).map(c => ({
-      id: c.shopifyId || c._id,
+      id: c.shopifyId || c.id || c._id,
       title: c.title,
       url: `/collections/${c.handle}`,
       image: c.image || '',
