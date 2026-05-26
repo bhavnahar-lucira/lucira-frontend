@@ -125,7 +125,8 @@ export default function CartSummary({ onPlaceOrder }) {
               items, 
               couponCode: couponDetails.code,
               customerEmail: user?.email 
-            })
+            }),
+            suppressErrorLog: true
           });
         } catch (err) {
           dispatch(removeCoupon());
@@ -163,7 +164,8 @@ export default function CartSummary({ onPlaceOrder }) {
           items, 
           couponCode: couponCode.trim(),
           customerEmail: user?.email 
-        })
+        }),
+        suppressErrorLog: true
       });
       dispatch(applyCoupon({ 
         code: data.code, 

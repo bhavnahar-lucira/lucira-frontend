@@ -47,6 +47,7 @@ import {
 import { Menu } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
+import { getMenu } from "@/lib/menus";
 
 function SidebarNav({ pathname, handleSignOut, setSheetOpen }) {
   return (
@@ -100,9 +101,15 @@ export default function CustomerDashboardLayout({ children }) {
   const user = useSelector(selectUser);
   const [avatar, setAvatar] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuData, setMenuData] = useState([]);
 
   useEffect(() => {
-    async function fetchAvatar() {
+    async function fetchInitialData() {
+      // Fetch Menu
+      const menu = await getMenu("main-menu-official");
+      setMenuData(menu);
+
+      // Fetch Avatar
       try {
         const data = await apiFetch(`/api/customer/profile/avatar?t=${Date.now()}`);
         if (data.avatar) setAvatar(data.avatar);
@@ -110,11 +117,20 @@ export default function CustomerDashboardLayout({ children }) {
         console.error("Layout avatar fetch error", err);
       }
     }
-    fetchAvatar();
+    fetchInitialData();
 
     // Listen for profile updates from other components
-    window.addEventListener("profile-updated", fetchAvatar);
-    return () => window.removeEventListener("profile-updated", fetchAvatar);
+    const updateHandler = async () => {
+      try {
+        const data = await apiFetch(`/api/customer/profile/avatar?t=${Date.now()}`);
+        if (data.avatar) setAvatar(data.avatar);
+      } catch (err) {
+        console.error("Layout avatar fetch error", err);
+      }
+    };
+
+    window.addEventListener("profile-updated", updateHandler);
+    return () => window.removeEventListener("profile-updated", updateHandler);
   }, [pathname]);
 
   const handleSignOut = async () => {
@@ -129,7 +145,7 @@ export default function CustomerDashboardLayout({ children }) {
 
   return (
     <>
-      <Header />
+      <Header menuData={menuData} />
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row relative">
 
         {/* Mobile menu bar */}

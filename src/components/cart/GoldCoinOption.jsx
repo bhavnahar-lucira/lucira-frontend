@@ -5,7 +5,7 @@ import { Loader2, Check, Coins, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 
-export const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+export const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914"; // Updated to 0.50gm 22kt Gold Coin
 
 export default function GoldCoinOption() {
   const { items, addToCart, removeFromCart, loading } = useCart();
@@ -63,10 +63,10 @@ export default function GoldCoinOption() {
     setIsProcessing(true);
     try {
       const product = {
-        productId: "gid://shopify/Product/9023549014234",
+        productId: "gid://shopify/Product/9223009009882",
         variantId: GOLDCOIN_VARIANT_ID,
-        title: "100 mg Gold Coin",
-        image: "/images/icons/metal.svg", 
+        title: "0.50gm 22kt Gold Coin",
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg", 
         price: 0,
         originalPrice: 2000,
         quantity: Number(eligibleQuantity) || 1,

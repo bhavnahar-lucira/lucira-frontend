@@ -29,8 +29,8 @@ const SORT_OPTIONS = [
   { value: "discount_desc", label: "Discount: High to Low" },
   { value: "created_at_desc", label: "Date: New to Old" },
   { value: "created_at_asc", label: "Date: Old to New" },
-  { value: "price_low_high", label: "Price, low to high" },
-  { value: "price_high_low", label: "Price, high to low" },
+  { value: "price_low_high", label: "Price: low to high" },
+  { value: "price_high_low", label: "Price: high to low" },
   { value: "az", label: "Alphabetically, A-Z" },
 ];
 
@@ -182,6 +182,43 @@ export default function SearchPage() {
     scrollToTop();
   };
 
+  // Extract selected color from filters to pass to ProductCard
+  const selectedColor = useMemo(() => {
+    // 1. Check direct Shopify filter key
+    const filterColor = searchParams.get("filter.v.option.metal_color");
+    if (filterColor) return filterColor;
+
+    // 2. Check for any key containing 'color'
+    let foundColor = "";
+    searchParams.forEach((value, key) => {
+      if (key.toLowerCase().includes("color")) {
+        foundColor = value;
+      }
+    });
+    return foundColor;
+  }, [searchParams]);
+
+  const applyPriceFilter = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (localPriceRange.min) params.set("filter.v.price.gte", localPriceRange.min);
+    else params.delete("filter.v.price.gte");
+    if (localPriceRange.max) params.set("filter.v.price.lte", localPriceRange.max);
+    else params.delete("filter.v.price.lte");
+    params.delete("cursor");
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    scrollToTop();
+  }, [localPriceRange, searchParams, pathname, router]);
+
+  const resetPriceFilter = useCallback(() => {
+    setLocalPriceRange({ min: "", max: "" });
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("filter.v.price.gte");
+    params.delete("filter.v.price.lte");
+    params.delete("cursor");
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    scrollToTop();
+  }, [searchParams, pathname, router]);
+
   const handleSort = (value) => {
     const p = new URLSearchParams(searchParams.toString());
     if (value === "best_selling") p.delete("sort");
@@ -216,22 +253,54 @@ export default function SearchPage() {
           <div className="hidden lg:block w-78 shrink-0">
             <div className="sticky top-5 self-start h-fit">
               <ScrollArea className="w-full h-[calc(100vh-5rem)]">
-                {filtersLoading ? <FilterSidebarSkeleton /> : (
-                  <div className="space-y-3 px-4">
+                {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
+                  <div className={`space-y-3 px-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
                     <div className="flex justify-between items-center border-b"><h3 className="font-semibold mb-3 font-black uppercase tracking-widest text-sm">Filters</h3><button onClick={clearAllFilters} className="text-[10px] font-bold uppercase text-zinc-400 hover:text-black mb-3">Clear All</button></div>
-                    {Object.entries(availableFilters).map(([groupKey, options]) => (
-                      <div key={groupKey} className="border-b mb-0">
-                        <button onClick={() => setExpandedFilters(prev => ({...prev, [groupKey]: !prev[groupKey]}))} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronDown size={18} className={`transition-transform duration-300 ${expandedFilters[groupKey] ? "rotate-0" : "rotate-180"}`} /></button>
-                        {expandedFilters[groupKey] && Array.isArray(options) && (
-                          <div className="space-y-4 my-2 pb-5">{options.map(opt => (
-                            <div key={opt.value} className="flex items-start gap-3 text-sm">
-                              <input type="checkbox" checked={searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)} onChange={() => toggleFilter(opt.urlKey || groupKey, opt.value)} className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" />
-                              <label className="flex-1 cursor-pointer flex justify-between"><span>{opt.label}</span><span className="text-gray-400 text-xs">({opt.count})</span></label>
+                    {(() => {
+                      const filterEntries = Object.entries(availableFilters);
+                      const priceIdx = filterEntries.findIndex(([key]) => key === "Price");
+                      if (priceIdx !== -1) {
+                        const [priceEntry] = filterEntries.splice(priceIdx, 1);
+                        const insertIdx = Math.min(2, filterEntries.length);
+                        filterEntries.splice(insertIdx, 0, priceEntry);
+                      }
+                      return filterEntries.map(([groupKey, options]) => {
+                        const isExpanded = expandedFilters[groupKey] ?? false;
+                        if (groupKey === "Price") {
+                          return (
+                            <div key={groupKey} className="border-b mb-0 border-gray-200">
+                              <button onClick={() => setExpandedFilters(prev => ({...prev, [groupKey]: !prev[groupKey]}))} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronDown size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                              {isExpanded && (
+                                <div className="space-y-4 my-2 pb-5">
+                                  <p className="text-xs text-gray-500">The highest price is ₹{new Intl.NumberFormat("en-IN").format(options.max || 0)}</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className="relative flex-1"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span><Input type="number" placeholder="From" value={localPriceRange.min} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, min: e.target.value }))} className="pl-7 h-10 text-sm focus-visible:ring-black" /></div>
+                                    <div className="relative flex-1"><Input type="number" placeholder="To" value={localPriceRange.max} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, max: e.target.value }))} className="h-10 text-sm focus-visible:ring-black" /></div>
+                                  </div>
+                                  <div className="flex items-center gap-2 pt-2">
+                                    <Button onClick={applyPriceFilter} className="flex-1 h-9 text-xs bg-primary hover:bg-primary/90 text-white rounded-md uppercase font-bold tracking-wider">Apply</Button>
+                                    <Button variant="outline" onClick={resetPriceFilter} className="h-9 text-xs border-gray-200 hover:bg-gray-50 rounded-md uppercase font-bold tracking-wider px-3">Reset</Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          ))}</div>
-                        )}
-                      </div>
-                    ))}
+                          );
+                        }
+                        return (
+                          <div key={groupKey} className="border-b mb-0">
+                            <button onClick={() => setExpandedFilters(prev => ({...prev, [groupKey]: !prev[groupKey]}))} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronDown size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                            {isExpanded && Array.isArray(options) && (
+                              <div className="space-y-4 my-2 pb-5">{options.map(opt => (
+                                <div key={opt.value} className="flex items-start gap-3 text-sm">
+                                  <input type="checkbox" checked={searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)} onChange={() => toggleFilter(opt.urlKey || groupKey, opt.value)} className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" />
+                                  <label className="flex-1 cursor-pointer flex justify-between"><span>{opt.label}</span><span className="text-gray-400 text-xs">({opt.count})</span></label>
+                                </div>
+                              ))}</div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </ScrollArea>
@@ -251,14 +320,17 @@ export default function SearchPage() {
               )}
             </div>
           )}
-          <div className={`grid mt-4 ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
+          <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : products.map((prod, idx) => {
                // Trigger pagination when 10 products are scrolled
                // For a batch of 25, this is the 11th product (index 10, or length - 15)
                const isTrigger = pagination.hasNextPage && idx === products.length - 15;
                return (
                  <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
-                   <ProductCard product={prod} index={idx + 1} />
+                   <ProductCard 
+                     product={selectedColor ? { ...prod, selectedColor } : prod} 
+                     index={idx + 1} 
+                   />
                  </div>
                );
             })}

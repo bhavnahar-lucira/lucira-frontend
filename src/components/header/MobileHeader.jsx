@@ -21,7 +21,7 @@ import { Sheet as MobileSheet } from "react-modal-sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, fetchSearchResults } from "@/lib/api";
 
 const CATEGORY_IMAGES = {
   "BEST SELLERS": "/images/menu/engagement-ring.jpg",
@@ -199,26 +199,26 @@ export default function MobileHeader({ menuData }) {
     return () => clearInterval(interval);
   }, []);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
-useEffect(() => {
-  const performSearch = async () => {
-    if (debouncedSearchQuery.length > 1) {
-      setIsSearching(true);
-      try {
-        const data = await apiFetch(`/api/search?q=${encodeURIComponent(debouncedSearchQuery)}`);
-        setSearchResults(data.results || []);
-      } catch (err) {
-        console.error("Search error:", err);
-      } finally {
-        setIsSearching(false);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  useEffect(() => {
+    const performSearch = async () => {
+      if (debouncedSearchQuery.length > 1) {
+        setIsSearching(true);
+        try {
+          const data = await fetchSearchResults(debouncedSearchQuery);
+          setSearchResults(data.results || []);
+        } catch (err) {
+          console.error("Search error:", err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
       }
-    } else {
-      setSearchResults([]);
-    }
-  };
+    };
 
-  performSearch();
-}, [debouncedSearchQuery]);
+    performSearch();
+  }, [debouncedSearchQuery]);
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);

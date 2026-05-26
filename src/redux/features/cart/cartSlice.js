@@ -46,45 +46,74 @@ const mapShopifyCart = (cart, backendCart = null) => {
       return bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
     });
 
-    return {
-      lineId: node.id,
-      variantId,
-      quantity: node.quantity,
-      title: node.merchandise.product.title,
-      variantTitle: node.merchandise.title,
-      handle: node.merchandise.product.handle,
-      sku: node.merchandise.sku,
-      price: Number(node.merchandise.price.amount),
-      compare_price: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
-      image: node.merchandise.image?.url,
-      altText: node.merchandise.image?.altText,
-      productId: node.merchandise.product.id,
-      inStock: true, // Storefront API only allows adding available items
+      // Extract attributes from Shopify selectedOptions as fallback
+      const shopifyOptions = node.merchandise.selectedOptions || [];
+      const shopifyColor = shopifyOptions.find(o => o.name.toLowerCase().includes("color") || o.name.toLowerCase().includes("metal"))?.value;
+      const shopifySize = shopifyOptions.find(o => o.name.toLowerCase() === "size" || o.name.toLowerCase().includes("ring"))?.value;
+      const parsedTitle = node.merchandise.title !== "Default Title" ? node.merchandise.title : "";
 
-      // Dynamic metal / diamond attributes from backend cart
-      goldWeight: backendItem?.goldWeight || 0,
-      goldPrice: backendItem?.goldPrice || 0,
-      goldPricePerGram: backendItem?.goldPricePerGram || 0,
-      makingCharges: backendItem?.makingCharges || 0,
-      diamondCharges: backendItem?.diamondCharges || 0,
-      gst: backendItem?.gst || 0,
-      finalPrice: backendItem?.finalPrice || 0,
-      diamondTotalPcs: backendItem?.diamondTotalPcs || 0,
-      engraving: backendItem?.engraving || "",
-      engravingText: backendItem?.engravingText || "",
-      engravingFont: backendItem?.engravingFont || "",
-      giftText: backendItem?.giftText || "",
-    };
-  }) || [];
+      // Try to intelligently parse color/karat if Shopify option just returned "14KT Rose Gold"
+      let fallbackKarat = null;
+      let fallbackColor = null;
+      if (shopifyColor) {
+        if (shopifyColor.toLowerCase().includes("14k")) fallbackKarat = "14K";
+        else if (shopifyColor.toLowerCase().includes("18k")) fallbackKarat = "18K";
+        
+        if (shopifyColor.toLowerCase().includes("rose")) fallbackColor = "Rose Gold";
+        else if (shopifyColor.toLowerCase().includes("yellow")) fallbackColor = "Yellow Gold";
+        else if (shopifyColor.toLowerCase().includes("white")) fallbackColor = "White Gold";
+      }
+
+      return {
+        lineId: node.id,
+        variantId,
+        quantity: node.quantity,
+        title: variantId.includes("47753346973914") ? "100 mg Gold Coin" : node.merchandise.product.title,
+        variantTitle: variantId.includes("47753346973914") ? "Free Gift" : node.merchandise.title,
+        handle: node.merchandise.product.handle,
+        sku: node.merchandise.sku,
+        price: variantId.includes("47753346973914") || backendItem?.isFreeGift ? 0 : Number(node.merchandise.price.amount),
+        comparePrice: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
+        image: node.merchandise.image?.url,
+        altText: node.merchandise.image?.altText,
+        productId: node.merchandise.product.id,
+        inStock: backendItem?.inStock !== undefined ? backendItem.inStock : true,
+
+        // Dynamic metal / diamond attributes from backend cart
+        goldWeight: backendItem?.goldWeight || 0,
+        goldPrice: backendItem?.goldPrice || 0,
+        goldPricePerGram: backendItem?.goldPricePerGram || 0,
+        makingCharges: backendItem?.makingCharges || 0,
+        diamondCharges: backendItem?.diamondCharges || 0,
+        gst: backendItem?.gst || 0,
+        finalPrice: backendItem?.finalPrice || 0,
+        diamondTotalPcs: backendItem?.diamondTotalPcs || 0,
+        engraving: backendItem?.engraving || "",
+        engravingText: backendItem?.engravingText || "",
+        engravingFont: backendItem?.engravingFont || "",
+        giftText: backendItem?.giftText || "",
+        color: backendItem?.color || fallbackColor || shopifyColor || null,
+        karat: backendItem?.karat || fallbackKarat || null,
+        size: backendItem?.size || shopifySize || parsedTitle,
+        variantOptions: backendItem?.variantOptions || [],
+      };
+    }) || [];
+
+  // Recalculate totals locally
+  const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const totalAmount = items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
 
   return {
     id: cart.id,
     checkoutUrl: cart.checkoutUrl,
     items,
-    totalQuantity: cart.totalQuantity || 0,
-    totalAmount: Number(cart.cost?.totalAmount?.amount || 0),
+    totalQuantity,
+    totalAmount,
   };
 };
+
+// Module-level variable to track ongoing sync to prevent concurrent double-syncs
+let ongoingSyncPromise = null;
 
 export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
@@ -93,6 +122,12 @@ export const fetchCart = createAsyncThunk(
     const cartId = getCartId();
     if (!cartId) return { items: [], totalQuantity: 0, totalAmount: 0 };
     
+    // If there's an ongoing sync, wait for it instead of starting a new one
+    // this prevents double-adding in React StrictMode (dev) or rapid transitions
+    if (ongoingSyncPromise) {
+      await ongoingSyncPromise;
+    }
+
     const shopifyPromise = shopifyStorefrontFetch(CART_QUERY, { cartId });
     
     const sessionId = getSessionId();
@@ -103,6 +138,8 @@ export const fetchCart = createAsyncThunk(
       });
 
     const [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
+    
+    // Quantity correction logic removed to allow quantity > 1
     
     // Auto-heal/sync backend cart from storefront lines if backend cart has no items
     let finalBackendCart = backendCart;
@@ -133,6 +170,63 @@ export const fetchCart = createAsyncThunk(
       } catch (syncErr) {
         console.error("[fetchCart] Dynamic sync failed:", syncErr);
       }
+    } else if (finalBackendCart?.items?.length > 0 && cartId) {
+      // Bidirectional Sync: If MongoDB has items missing in Shopify, sync them to Shopify.
+      // This happens after login when items from other devices/sessions need to be restored.
+      const shopifyLines = data?.cart?.lines?.edges || [];
+      const shopifyVariants = new Map(
+        shopifyLines.map(e => [e.node.merchandise.id.toLowerCase(), e.node.quantity])
+      );
+      
+      const missingInShopify = finalBackendCart.items.filter(item => {
+        const vid = toShopifyGid(item.variantId, "ProductVariant").toLowerCase();
+        const existingQty = shopifyVariants.get(vid) || 0;
+        // Only add if it's completely missing or has a lower quantity in Shopify (merged state)
+        return existingQty < item.quantity;
+      });
+
+      if (missingInShopify.length > 0) {
+        console.log("[fetchCart] MongoDB items missing or higher quantity in Shopify. Syncing...", missingInShopify);
+        
+        // Wrap the sync in a promise to prevent concurrent runs
+        ongoingSyncPromise = (async () => {
+          try {
+            // We use CART_LINES_ADD_MUTATION which adds to existing quantity.
+            // If the item exists but has lower quantity, we only add the difference.
+            const linesToAdd = missingInShopify.map(item => {
+              const vid = toShopifyGid(item.variantId, "ProductVariant").toLowerCase();
+              const existingQty = shopifyVariants.get(vid) || 0;
+              
+              // Add the difference in quantity
+              const diff = item.quantity > existingQty ? item.quantity - existingQty : 0;
+              
+              return {
+                merchandiseId: toShopifyGid(item.variantId, "ProductVariant"),
+                quantity: diff
+              };
+            }).filter(l => l.quantity > 0);
+
+            if (linesToAdd.length > 0) {
+              await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
+                cartId,
+                lines: linesToAdd
+              });
+            }
+          } catch (err) {
+            console.error("[fetchCart] MongoDB -> Shopify sync failed:", err);
+          } finally {
+            ongoingSyncPromise = null;
+          }
+        })();
+
+        await ongoingSyncPromise;
+        
+        // Re-fetch Shopify cart to get updated state
+        const updatedShopifyData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+        if (updatedShopifyData?.cart) {
+          return mapShopifyCart(updatedShopifyData.cart, finalBackendCart);
+        }
+      }
     }
     
     return mapShopifyCart(data?.cart, finalBackendCart);
@@ -142,11 +236,35 @@ export const fetchCart = createAsyncThunk(
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
   async ({ userId, product }, { rejectWithValue, getState }) => {
-    const finalUserId = userId || getState().user?.user?.id || null;
+    const state = getState();
+    const finalUserId = userId || state.user?.user?.id || null;
     const sessionId = getSessionId();
     let cartId = getCartId();
+    
     const rawVariantId = product.shopifyVariantId || product.variantId || product.id;
     const variantId = toShopifyGid(rawVariantId, "ProductVariant");
+
+    // Enforce Quantity of 1 and avoid duplicates with same attributes
+    // We treat items with different attributes (engraving, metal, etc.) as distinct
+    const existingItems = state.cart?.items || [];
+    const isDuplicate = existingItems.some(item => {
+      const sameVariant = String(item.variantId).toLowerCase() === variantId.toLowerCase();
+      
+      const itemEngraving = (item.engraving || "").trim().toLowerCase();
+      const productEngraving = (product.engraving || "").trim().toLowerCase();
+      const sameEngraving = itemEngraving === productEngraving;
+
+      const sameKarat = String(item.karat || "").toLowerCase() === String(product.karat || "").toLowerCase();
+      const sameColor = String(item.color || "").toLowerCase() === String(product.color || "").toLowerCase();
+      const sameSize = String(item.size || "").toLowerCase() === String(product.size || "").toLowerCase();
+      
+      return sameVariant && sameEngraving && sameKarat && sameColor && sameSize;
+    });
+
+    if (isDuplicate) {
+      console.log("[addToCart] Item already in cart with same attributes. Skipping add.");
+      return state.cart; // Return existing cart state
+    }
     
     // 1. Shopify Storefront Mutation
     let shopifyCartData = null;
@@ -202,7 +320,7 @@ export const addToCart = createAsyncThunk(
             ...product,
             variantId: toShopifyGid(product.shopifyVariantId || product.variantId || product.id, "ProductVariant"),
             price: Number(product.price || 0),
-            quantity: Number(product.quantity || 1)
+            quantity: product.quantity || 1
           }
         })
       });
@@ -469,6 +587,15 @@ const cartSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Clear cart on global logout
+      .addCase("user/logout", (state) => {
+        state.items = [];
+        state.totalQuantity = 0;
+        state.totalAmount = 0;
+        state.appliedCoupon = null;
+        state.nectorPoints = null;
+        state.error = null;
+      })
       .addCase(fetchCart.pending, (state) => {
         state.loading = true;
       })

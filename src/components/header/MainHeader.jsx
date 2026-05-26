@@ -21,7 +21,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { apiFetch, fetchSearchResults } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 
 const getInitials = (name = "") =>
@@ -87,6 +87,15 @@ export default function MainHeader() {
   const { totalQuantity, totalAmount, items, loading: cartLoading } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
+
+  // Filter out non-product items (Insurance, Gold Coins) to match Cart Page count
+  const displayItems = (items || []).filter(
+    (item) =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      item.variantId !== GOLDCOIN_VARIANT_ID
+  );
+
+  const displayQuantity = displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -180,7 +189,7 @@ export default function MainHeader() {
     return () => window.removeEventListener("profile-updated", handleProfileUpdate);
   }, [dispatch, user?.id, user?.avatar]);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     const performSearch = async () => {
@@ -400,9 +409,9 @@ export default function MainHeader() {
               onClick={handleCartClick}
             >
             <CartIcon />
-            {totalQuantity > 0 && (
+            {displayQuantity > 0 && (
               <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
-                {totalQuantity}
+                {displayQuantity}
               </span>
             )}
           </Link>

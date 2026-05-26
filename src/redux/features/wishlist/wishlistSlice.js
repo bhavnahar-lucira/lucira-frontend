@@ -141,6 +141,11 @@ const wishlistSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase("user/logout", (state) => {
+        state.items = state.guestItems; // Revert to guest state
+        state.loading = false;
+        state.error = null;
+      })
       .addCase(fetchWishlist.pending, (state) => {
         state.loading = true;
       })

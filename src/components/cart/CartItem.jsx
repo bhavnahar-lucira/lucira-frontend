@@ -30,14 +30,14 @@ export default function CartItem({ item, onAuthRequired }) {
   const [movingToWishlist, setMovingToWishlist] = useState(false);
 
   const wishlistKeys = useMemo(
-    () => wishlistItems.map((i) => `${getNumericId(i.productId)}-${getNumericId(i.variantId || "")}`),
+    () => wishlistItems.map((i) => `${i.productId}-${i.variantId || ""}`),
     [wishlistItems]
   );
 
   if (!item) return null;
 
   const productId = item.id || item.productId || item.handle;
-  const currentKey = `${getNumericId(productId)}-${getNumericId(item.variantId || "")}`;
+  const currentKey = `${productId}-${item.variantId || ""}`;
   const isWishlisted = productId ? wishlistKeys.includes(currentKey) : false;
 
   const variantOptions = Array.isArray(item.variantOptions) ? item.variantOptions : [];
@@ -94,7 +94,7 @@ export default function CartItem({ item, onAuthRequired }) {
         thumbnail_image: item.image
       });
 
-      await dispatch(removeFromCart({ lineId: item.lineId })).unwrap();
+      await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Removed from cart", {
         icon: <Check className="w-4 h-4" />
       });
@@ -169,7 +169,7 @@ export default function CartItem({ item, onAuthRequired }) {
       const commonTrackingData = getStandardWishlistPayload(mockProduct, mockVariant, currentOrigin, item.image);
       pushAddToWishlist(commonTrackingData);
 
-      await dispatch(removeFromCart({ lineId: item.lineId })).unwrap();
+      await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Moved to wishlist", {
         icon: <Check className="w-4 h-4" />
       });
@@ -194,28 +194,26 @@ export default function CartItem({ item, onAuthRequired }) {
   const handleUpdate = async (type, value) => {
     setUpdating(true);
     try {
+      const payload = {
+        userId: user?.id,
+        currentVariantId: item.variantId,
+      };
+
       if (type === "size") {
         const selectedVariant = variantOptions.find(
           (variant) => String(variant.size) === String(value)
         );
         if (!selectedVariant) throw new Error("Selected size is unavailable");
-        
-        // Changing size means changing the variant, which in Shopify Cart requires
-        // removing the old line and adding a new one.
-        await dispatch(removeFromCart({ lineId: item.lineId })).unwrap();
-        await dispatch(addToCart({ 
-          product: { 
-            ...item, 
-            variantId: selectedVariant.variantId,
-            quantity: item.quantity 
-          } 
-        })).unwrap();
-        
-        toast.success(`Updated to size ${selectedVariant.size}`);
+        payload.nextVariantId = selectedVariant.variantId;
+        payload.size = selectedVariant.size;
+        payload.price = selectedVariant.price;
+        payload.variantTitle = selectedVariant.variantTitle;
+        payload.inStock = selectedVariant.inStock;
+        payload.sku = selectedVariant.sku || "";
       } else {
-        const quantity = parseInt(value, 10);
-        await dispatch(updateCartItem({ lineId: item.lineId, quantity })).unwrap();
+        payload.quantity = parseInt(value, 10);
       }
+      await dispatch(updateCartItem(payload)).unwrap();
     } catch (err) {
       console.error("Update failed:", err);
       toast.error("Failed to update cart");
@@ -233,7 +231,7 @@ export default function CartItem({ item, onAuthRequired }) {
 
   return (
     <>
-      {/* DESKTOP DESIGN (Original) */}
+      {/* DESKTOP DESIGN */}
       <div className="hidden lg:block mb-6 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-sm">
         <div className="relative flex flex-col gap-6 p-4 md:flex-row md:p-6">
           {updating && (
@@ -251,7 +249,6 @@ export default function CartItem({ item, onAuthRequired }) {
               alt={item.title}
               width={200}
               height={200}
-              unoptimized={String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com")}
               className="h-full w-full object-contain mix-blend-multiply"
             />
           </Link>
@@ -285,79 +282,106 @@ export default function CartItem({ item, onAuthRequired }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 divide-y rounded-sm border border-zinc-100 md:grid-cols-[1.2fr_2fr] md:divide-x md:divide-y-0 divide-zinc-100">
-              <div className={`grid ${item.size ? "grid-cols-2" : "grid-cols-1"} divide-x divide-zinc-100 bg-zinc-50/30`}>
-                {item.size && (
-                  <div className="flex flex-col justify-center p-2">
-                    <span className="mb-1 text-[10px] font-bold uppercase tracking-tighter text-zinc-400">
-                      {sizeLabel}
-                    </span>
+            <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[13px] font-medium text-zinc-800">
+              
+              {/* Row 1: Size & Quantity */}
+              <div className="flex border-b border-zinc-100 min-h-[44px]">
+                {item.size ? (
+                  <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                    {sizeLabel}
+                  </div>
+                ) : (
+                  <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                    Quantity
+                  </div>
+                )}
+                
+                <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2">
+                  {item.size && (
+                    <div className="flex items-center min-w-[60px]">
+                      {canEditSelection ? (
+                        <Select
+                          value={String(item.size)}
+                          onValueChange={(val) => handleUpdate("size", val)}
+                          disabled={updating}
+                        >
+                          <SelectTrigger className="h-6 w-auto border-none bg-transparent p-0 font-medium text-zinc-800 shadow-none focus:ring-0 gap-2">
+                            <SelectValue placeholder={item.size} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sizeOptions.map((variant) => (
+                              <SelectItem key={variant.variantId || variant.size} value={String(variant.size)}>
+                                {variant.size}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="font-medium">{item.size}</span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {item.size && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
+                  
+                  <div className="flex items-center gap-2">
+                    {item.size && <span className="text-zinc-500 font-normal">Quantity</span>}
                     {canEditSelection ? (
                       <Select
-                        value={String(item.size)}
-                        onValueChange={(val) => handleUpdate("size", val)}
+                        value={String(item.quantity)}
+                        onValueChange={(val) => handleUpdate("quantity", val)}
                         disabled={updating}
                       >
-                        <SelectTrigger className="h-6 border-none bg-transparent p-0 text-xs font-bold text-zinc-800 shadow-none focus:ring-0">
-                          <SelectValue placeholder={item.size} />
+                        <SelectTrigger className="h-6 w-auto border-none bg-transparent p-0 font-medium text-zinc-800 shadow-none focus:ring-0 gap-2">
+                          <SelectValue placeholder={item.quantity} />
                         </SelectTrigger>
                         <SelectContent>
-                          {sizeOptions.map((variant) => (
-                            <SelectItem key={variant.variantId || variant.size} value={String(variant.size)}>
-                              {variant.size}
+                          {[...Array(10)].map((_, i) => (
+                            <SelectItem key={i + 1} value={String(i + 1)}>
+                              {i + 1}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="text-xs font-bold text-zinc-800">{item.size}</span>
+                      <span className="font-medium">{item.quantity}</span>
                     )}
                   </div>
-                )}
-
-                <div className="flex flex-col justify-center p-2">
-                  <span className="mb-1 text-[10px] font-bold uppercase tracking-tighter text-zinc-400">
-                    Quantity
-                  </span>
-                  {canEditSelection ? (
-                    <Select
-                      value={String(item.quantity)}
-                      onValueChange={(val) => handleUpdate("quantity", val)}
-                      disabled={updating}
-                    >
-                      <SelectTrigger className="h-6 border-none bg-transparent p-0 text-xs font-bold text-zinc-800 shadow-none focus:ring-0">
-                        <SelectValue placeholder={item.quantity} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[...Array(10)].map((_, i) => (
-                          <SelectItem key={i + 1} value={String(i + 1)}>
-                            {i + 1}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className="text-xs font-bold text-zinc-800">{item.quantity}</span>
-                  )}
                 </div>
               </div>
 
-              <div className="divide-y divide-zinc-100">
-                <div className="grid grid-cols-[80px_1fr] items-center p-2">
-                  <span className="text-[10px] font-bold uppercase tracking-tighter text-zinc-400">
-                    Metal
-                  </span>
-                  <span className="text-xs font-medium text-zinc-800">
-                    {item.karat} {item.color}
-                  </span>
+              {/* Row 2: Metal */}
+              <div className="flex border-b border-zinc-100 min-h-[44px]">
+                <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                  Metal
                 </div>
-                <div className="grid grid-cols-[80px_1fr] items-center p-2">
-                  <span className="text-[10px] font-bold uppercase tracking-tighter text-zinc-400">
-                    Status
-                  </span>
-                  <span className={`text-xs font-bold uppercase ${statusClass}`}>{statusLabel}</span>
+                <div className="flex-1 bg-white px-4 py-2 flex items-center">
+                  {item.karat} {item.color}{item.goldWeight ? `, ${item.goldWeight} gram` : ''}
                 </div>
               </div>
+
+              {/* Row 3: Stone (If diamondTotalPcs > 0) */}
+              {item.diamondTotalPcs > 0 && (
+                <div className="flex border-b border-zinc-100 min-h-[44px]">
+                  <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                    Stone
+                  </div>
+                  <div className="flex-1 bg-white px-4 py-2 flex items-center">
+                    {item.diamondTotalPcs} Diamond{item.diamondCarat ? `, ${item.diamondCarat} Carat` : ''}{item.diamondQuality ? `, ${item.diamondQuality}` : ''}
+                  </div>
+                </div>
+              )}
+              
+              {/* Row 4: Status */}
+              <div className="flex min-h-[44px]">
+                <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                  Status
+                </div>
+                <div className="flex-1 bg-white px-4 py-2 flex items-center">
+                  <span className={`font-medium uppercase ${statusClass}`}>{statusLabel}</span>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -400,7 +424,6 @@ export default function CartItem({ item, onAuthRequired }) {
                   alt={item.title}
                   width={150}
                   height={150}
-                  unoptimized={String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com")}
                   className="h-full w-full object-contain mix-blend-multiply"
                 />
               </Link>

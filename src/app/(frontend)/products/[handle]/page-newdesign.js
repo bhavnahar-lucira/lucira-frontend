@@ -455,7 +455,7 @@ export default function ProductPage() {
                   {/* Metal */}
                   <div className="w-[48%] border-r">
                     <div className="flex items-center gap-2 font-semibold text-sm mb-2 uppercase tracking-wide">
-                      <Image src="/images/icons/metal.svg" alt="Metal details icon" width={18} height={18} />
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal details icon" width={18} height={18} />
                       Metal
                     </div>
                     <div className="flex items-center gap-4.5 pr-2">
@@ -471,7 +471,7 @@ export default function ProductPage() {
                   {/* Dimensions */}
                   <div className="w-[48%] pl-2">
                     <div className="flex items-center gap-2 font-semibold text-sm mb-2 uppercase tracking-wide">
-                      <Image src="/images/icons/dimension.svg" alt="Dimensions icon" width={18} height={18} />
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_dimension.svg" alt="Dimensions icon" width={18} height={18} />
                       Dimensions
                     </div>
                     <div className="flex items-center gap-4.5">
@@ -490,7 +490,7 @@ export default function ProductPage() {
                 {/* Diamond Section */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 font-semibold text-sm uppercase tracking-wide">
-                    <Image src="/images/icons/diamond.svg" alt="Diamond details icon" width={18} height={18} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond details icon" width={18} height={18} />
                     Diamond
                   </div>
                   

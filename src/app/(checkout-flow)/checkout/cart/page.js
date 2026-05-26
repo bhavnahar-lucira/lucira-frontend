@@ -12,7 +12,7 @@ import { pushViewCart } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 export default function CartPage() {
   const router = useRouter();

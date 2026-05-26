@@ -34,3 +34,8 @@ To minimize Vercel serverless costs:
 - `lucira-frontend`: `npm run dev` (Frontend)
 - `lucira-backend`: `npm run dev` (Backend)
 - `lucira-frontend`: `npm run generate-menu` (Updates static menu data if needed)
+
+
+ Homepage           │ ISR (6 Hours)    │ Pre-rendered, updates every 6 hours.             │
+  │ Blogs/Static Pages │ SSG (Permanent)  │ Pre-rendered at build time.                      │
+  │ Checkout Flow      │ Dynamic (None)   │ Always live; managed via Redux & Storefront API. 

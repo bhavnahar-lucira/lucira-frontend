@@ -17,7 +17,7 @@ export default function InsuranceOption() {
 
   // Calculate total quantity of other items
   const otherItemsQuantity = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/GOLDCOIN_100MG" && item.variantId !== "gid://shopify/ProductVariant/47661824082138")
+    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/GOLDCOIN_100MG" && item.variantId !== "gid://shopify/ProductVariant/47753346973914")
     .reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const handleAdd = async () => {
@@ -61,7 +61,7 @@ export default function InsuranceOption() {
           className="object-cover"
         />
         <div className="absolute top-1 left-1 bg-white/90 backdrop-blur-sm rounded-md p-1 border border-zinc-100">
-          <Image src="/images/icons/small-logo.svg" alt="Lucira" width={16} height={16} />
+          <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/small-logo.svg" alt="Lucira" width={16} height={16} />
         </div>
       </div>
 
