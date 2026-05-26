@@ -72,7 +72,7 @@ export default function VideoPopup({ isOpen, onClose, videoData, initialIndex })
                 <div className="relative w-full h-full bg-black">
                    {/* Full Screen Video */}
                    <video
-                     src={item.video}
+                     src={item.video || null}
                      autoPlay
                      muted
                      loop
@@ -205,7 +205,7 @@ export default function VideoPopup({ isOpen, onClose, videoData, initialIndex })
               <div className="flex flex-col md:flex-row min-h-[500px] md:h-[600px]">
                 <div className="w-full md:w-[42%] relative bg-black flex items-center justify-center group">
                   <video
-                    src={item.video}
+                    src={item.video || null}
                     loop
                     playsInline
                     className="w-full h-full object-cover"
