@@ -2595,10 +2595,6 @@ export default function ProductPageClient({
                 </div>
               )}
 
-              <p className="text-xs leading-relaxed text-gray-900 italic mt-6">
-                * Our products are handcrafted and personalised for your delight, hence a weight variance is expected.
-              </p>
-
               <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
 
               <div ref={productDetailsRef} className="mt-8">
