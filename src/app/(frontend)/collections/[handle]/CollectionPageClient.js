@@ -147,7 +147,7 @@ const renderRichTextNodes = (nodes) => {
   });
 };
 
-export default function CollectionPage({ params: paramsPromise }) {
+export default function CollectionPage({ params: paramsPromise, initialData }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
 
@@ -165,16 +165,83 @@ export default function CollectionPage({ params: paramsPromise }) {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
 
+  // Helper to process filters
+  const processFilters = useCallback((filtersData) => {
+    const mergedData = {};
+    Object.entries(filtersData || {}).forEach(([groupKey, options]) => {
+      if (groupKey === "Price") {
+        mergedData[groupKey] = options;
+      } else if (Array.isArray(options)) {
+        const mergedOptionsMap = new Map();
+        options.forEach(opt => {
+          let label = (opt.label || "").trim();
+          if (groupKey === "Metal Purity") {
+            if (label === "14K") label = "14KT";
+            else if (label === "18K") label = "18KT";
+            else if (label === "9K") label = "9KT";
+          }
+          if (mergedOptionsMap.has(label)) {
+            const existing = mergedOptionsMap.get(label);
+            existing.count += opt.count;
+          } else {
+            mergedOptionsMap.set(label, { ...opt, label });
+          }
+        });
+        mergedData[groupKey] = Array.from(mergedOptionsMap.values());
+      }
+    });
+
+    const sortedData = {};
+    Object.entries(mergedData).forEach(([groupKey, options]) => {
+      if (groupKey === "Price") {
+        sortedData[groupKey] = options;
+      } else if (Array.isArray(options)) {
+        sortedData[groupKey] = [...options].sort((a, b) => {
+          const aLabel = a.label?.toString() || "";
+          const bLabel = b.label?.toString() || "";
+          const aNum = parseFloat(aLabel);
+          const bNum = parseFloat(bLabel);
+          if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+          return aLabel.localeCompare(bLabel, undefined, { numeric: true, sensitivity: 'base' });
+        });
+      }
+    });
+    return sortedData;
+  }, []);
+
   // Data State
-  const [availableFilters, setAvailableFilters] = useState({});
-  const [filtersLoading, setFiltersLoading] = useState(true);
-  const [collection, setCollection] = useState({ title: "", description: "" });
+  const [availableFilters, setAvailableFilters] = useState(() => {
+    if (initialData && initialData.filterData) {
+      return processFilters(initialData.filterData);
+    }
+    return {};
+  });
+  const [filtersLoading, setFiltersLoading] = useState(!initialData);
+  const [collection, setCollection] = useState(() => {
+    if (initialData && initialData.collData && initialData.collData.collection) {
+      return {
+        title: initialData.collData.collection.title || handle.replace(/-/g, " "),
+        description: initialData.collData.collection.description || "",
+        metafields: initialData.collData.collection.metafields || {}
+      };
+    }
+    return { title: "", description: "" };
+  });
   const [dbCollection, setDbCollection] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [pagination, setPagination] = useState({ hasNextPage: false, endCursor: null });
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [products, setProducts] = useState(() => initialData?.collData?.products || []);
+  const [pagination, setPagination] = useState(() => initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null });
+  const [productsLoading, setProductsLoading] = useState(!initialData);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(() => initialData?.collData?.totalProducts || 0);
+
+  // Set initial active mobile group if needed
+  useEffect(() => {
+    if (initialData && Object.keys(availableFilters).length > 0 && !activeMobileGroup) {
+      setActiveMobileGroup(Object.keys(availableFilters)[0]);
+    }
+  }, []);
+
+  const isFirstRender = useRef(true);
 
   // Price Filter State
   const [localPriceRange, setLocalPriceRange] = useState({
@@ -293,6 +360,18 @@ export default function CollectionPage({ params: paramsPromise }) {
   // Initial Fetch & Filter Changes
   useEffect(() => {
     async function fetchData() {
+      // Check if we can skip the fetch completely because it's the first render AND we have SSG data
+      if (isFirstRender.current && initialData) {
+        isFirstRender.current = false;
+        
+        // Ensure we are on the default path (no params or only sort=best_selling)
+        const paramsString = searchParams.toString();
+        if (paramsString === "" || paramsString === "sort=best_selling") {
+          return; // Skip API fetch, initialData holds exactly what we need!
+        }
+      }
+      isFirstRender.current = false;
+
       setProductsLoading(true);
       setFiltersLoading(true);
 
@@ -302,46 +381,7 @@ export default function CollectionPage({ params: paramsPromise }) {
         // 1. Fetch filters first to ensure we have mappings for products fetch
         const filtersData = await apiFetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
 
-        // Apply Master-style merging and sorting
-        const mergedData = {};
-        Object.entries(filtersData || {}).forEach(([groupKey, options]) => {
-          if (groupKey === "Price") {
-            mergedData[groupKey] = options;
-          } else if (Array.isArray(options)) {
-            const mergedOptionsMap = new Map();
-            options.forEach(opt => {
-              let label = (opt.label || "").trim();
-              if (groupKey === "Metal Purity") {
-                if (label === "14K") label = "14KT";
-                else if (label === "18K") label = "18KT";
-                else if (label === "9K") label = "9KT";
-              }
-              if (mergedOptionsMap.has(label)) {
-                const existing = mergedOptionsMap.get(label);
-                existing.count += opt.count;
-              } else {
-                mergedOptionsMap.set(label, { ...opt, label });
-              }
-            });
-            mergedData[groupKey] = Array.from(mergedOptionsMap.values());
-          }
-        });
-
-        const sortedData = {};
-        Object.entries(mergedData).forEach(([groupKey, options]) => {
-          if (groupKey === "Price") {
-            sortedData[groupKey] = options;
-          } else if (Array.isArray(options)) {
-            sortedData[groupKey] = [...options].sort((a, b) => {
-              const aLabel = a.label?.toString() || "";
-              const bLabel = b.label?.toString() || "";
-              const aNum = parseFloat(aLabel);
-              const bNum = parseFloat(bLabel);
-              if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-              return aLabel.localeCompare(bLabel, undefined, { numeric: true, sensitivity: 'base' });
-            });
-          }
-        });
+        const sortedData = processFilters(filtersData);
 
         setAvailableFilters(sortedData);
         if (Object.keys(sortedData).length > 0 && !activeMobileGroup) {
@@ -377,7 +417,7 @@ export default function CollectionPage({ params: paramsPromise }) {
       }
     }
     fetchData();
-  }, [handle, searchParams, limit, getActiveFiltersForShopify]);
+  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
