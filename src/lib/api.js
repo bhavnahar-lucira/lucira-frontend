@@ -76,6 +76,8 @@ export const apiFetch = async (url, options = {}) => {
       // Downgrade "not found" errors to warnings to prevent console pollution
       if (res.status === 404 || errorMsg.toLowerCase().includes("not found")) {
         console.warn(`[apiFetch Resource Not Found] ${finalUrl}: ${errorMsg}`);
+      } else if (res.status === 401 || res.status === 403) {
+        console.warn(`[apiFetch Unauthorized] ${finalUrl}: ${errorMsg}`);
       } else if (!options.suppressErrorLog) {
         console.error(`[apiFetch Error] ${finalUrl}: ${errorMsg}`, data);
       }
@@ -136,10 +138,12 @@ export const fetchCustomerDashboardStats = (accessToken) =>
     headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
   });
 
-export const fetchCustomerAddresses = (accessToken) => 
-  apiFetch("/api/customer/addresses", {
-    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
+export const fetchCustomerAddresses = (accessToken) => {
+  if (!accessToken || accessToken.startsWith('simulated_')) return Promise.resolve({ addresses: [], customer: null, defaultAddressId: null });
+  return apiFetch("/api/customer/addresses", {
+    headers: { "Authorization": `Bearer ${accessToken}` }
   });
+};
 
 export const createCustomerAddress = ({ address, makeDefault = false }, accessToken) =>
   apiFetch("/api/customer/addresses", {
@@ -209,32 +213,38 @@ export const removeWishlistApi = (productId, variantId = "", userId = "", sessio
   });
 };
 
-export const fetchCheckoutAddressSelection = () =>
-  apiFetch("/api/checkout/address-selection");
+export const fetchCheckoutAddressSelection = (accessToken) =>
+  apiFetch("/api/checkout/address-selection", {
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
+  });
 
-export const saveCheckoutAddressSelection = ({ billingAddressMode, billingAddressId = "" }) =>
+export const saveCheckoutAddressSelection = ({ billingAddressMode, billingAddressId = "" }, accessToken) =>
   apiFetch("/api/checkout/address-selection", {
     method: "PATCH",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
     body: JSON.stringify({ billingAddressMode, billingAddressId }),
   });
 
-export const createRazorpayOrder = (payload) =>
+export const createRazorpayOrder = (payload, accessToken) =>
   apiFetch("/api/payment/razorpay/order", {
     method: "POST",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
     body: JSON.stringify(payload),
   });
 
-export const completeRazorpayPayment = (payload) =>
+export const completeRazorpayPayment = (payload, accessToken) =>
   apiFetch("/api/payment/razorpay/complete", {
     method: "POST",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
     body: JSON.stringify(payload),
   });
 
 /* ================= ATTACH CART ================= */
 
-export const attachCartApi = ({ cartId }) =>
+export const attachCartApi = ({ cartId }, accessToken) =>
   apiFetch("/api/cart/attach", {
     method: "POST",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
     body: JSON.stringify({ cartId }),
   });
 

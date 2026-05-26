@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "react-toastify";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 import { 
   shopifyStorefrontFetch, 
   CUSTOMER_QUERY,
@@ -85,7 +86,9 @@ export default function SavedAddressesPage() {
       // Hybrid Strategy: Try backend first, fallback to Storefront API
       let finalAddresses = [];
       try {
-        const data = await apiFetch("/api/customer/addresses");
+        const data = await apiFetch("/api/customer/addresses", {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
         if (data && data.addresses && data.addresses.length > 0) {
           finalAddresses = data.addresses;
           if (process.env.NODE_ENV === "development") {
@@ -172,12 +175,14 @@ export default function SavedAddressesPage() {
       if (dialogMode === "create") {
         await apiFetch("/api/customer/addresses", {
           method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
           body: JSON.stringify({ address: addressInput, makeDefault })
         });
         toast.success("Address added successfully");
       } else {
         await apiFetch("/api/customer/addresses", {
           method: "PATCH",
+          headers: { Authorization: `Bearer ${accessToken}` },
           body: JSON.stringify({ 
             addressId: editingAddressId, 
             address: addressInput, 
@@ -206,7 +211,8 @@ export default function SavedAddressesPage() {
     if (!confirm("Are you sure you want to remove this address?")) return;
     try {
       await apiFetch(`/api/customer/addresses?addressId=${encodeURIComponent(id)}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
       toast.error("Address removed successfully", {
         icon: <Check className="w-4 h-4" />
@@ -221,6 +227,7 @@ export default function SavedAddressesPage() {
     try {
       await apiFetch("/api/customer/addresses", {
         method: "PATCH",
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ addressId: id, mode: "default" })
       });
       toast.success("Default address updated");

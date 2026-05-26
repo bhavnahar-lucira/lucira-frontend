@@ -118,7 +118,7 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 6 hours
 
 export default async function ArticlePage({ params }) {
   const { blogHandle, articleHandle } = await params;

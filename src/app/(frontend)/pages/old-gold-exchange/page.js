@@ -1,4 +1,4 @@
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 6 hours
 
 import { PAGE_DATA } from "./data";
 import LazyImage from "@/components/common/LazyImage";
@@ -66,3 +66,4 @@ export default function OldGoldExchangePage() {
     </div>
   );
 }
+

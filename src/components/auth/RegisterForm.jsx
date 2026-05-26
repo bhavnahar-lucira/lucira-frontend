@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { motion, useAnimation } from "framer-motion";
-import {
   apiFetch,
   registerCustomer,
+  checkCustomerApi,
+  sendOtpApi,
+  verifyOtpApi,
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { pushSignup } from "@/lib/gtm";
@@ -62,11 +64,46 @@ export function RegisterForm({ initialMobile = "" }) {
   const [wonPrize, setWonPrize] = useState(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [consent, setConsent] = useState(true);
-  const [step, setStep] = useState("register"); // register, success
+  const [step, setStep] = useState("register"); // register, verify-otp, success
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [otp, setOtp] = useState("");
+  const [timer, setTimer] = useState(0);
+
+  const otpRef = useRef();
+  const timerRef = useRef();
 
   const [isMobilePreFilled] = useState(!!initialMobile);
+
+  useEffect(() => {
+    if (timer > 0) {
+      timerRef.current = setTimeout(() => setTimer(timer - 1), 1000);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [timer]);
+
+  // WebOTP API listener
+  useEffect(() => {
+    if ("OTPCredential" in window && step === "verify-otp") {
+      const ac = new AbortController();
+      navigator.credentials
+        .get({
+          otp: { transport: ["sms"] },
+          signal: ac.signal,
+        })
+        .then((otpData) => {
+          if (otpData && otpData.code) {
+            const cleanCode = otpData.code.replace(/\D/g, "").slice(0, 4);
+            if (cleanCode.length === 4) {
+              setOtp(cleanCode);
+              verifyExistingOtp(cleanCode);
+            }
+          }
+        })
+        .catch((err) => console.log("WebOTP Error:", err));
+      return () => ac.abort();
+    }
+  }, [step]);
 
   useEffect(() => {
     if (initialMobile) {
@@ -140,12 +177,47 @@ export function RegisterForm({ initialMobile = "" }) {
     if (mobile.length !== 10) return toast.error("Enter valid 10-digit mobile");
     if (!consent) return toast.error("Please accept T&Cs");
 
+    try {
+      setLoading(true);
+      const res = await checkCustomerApi({ mobile });
+      if (res.exists) {
+         toast.info("You already have an account! Please verify OTP to login.");
+         await sendOtpApi(mobile);
+         setStep("verify-otp");
+         setTimer(30);
+         setLoading(false);
+         return;
+      }
+    } catch(e) {
+      console.error(e);
+    }
+    setLoading(false);
+
     if (isMobile) {
       setIsDrawerOpen(true);
       // Small delay to ensure drawer is open before animation
       setTimeout(() => startSpinning(), 500);
     } else {
       startSpinning();
+    }
+  };
+
+  const verifyExistingOtp = async (overrideOtp) => {
+    const otpValue = typeof overrideOtp === "string" ? overrideOtp : otp;
+    if (otpValue.length < 4) return toast.error("Invalid OTP");
+
+    try {
+      setLoading(true);
+      const data = await verifyOtpApi(mobile, otpValue);
+
+      if (data.status === "LOGIN" || data.type === "success") {
+        loginSuccess(data);
+        router.push("/admin");
+      }
+    } catch (err) {
+      toast.error(err.message || "OTP verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -255,58 +327,107 @@ export function RegisterForm({ initialMobile = "" }) {
           <p className="text-sm text-gray-500 text-center mb-6">Try Your Luck! Win a Diamond Pendant</p>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-600">First Name <span className="text-red-500">*</span></label>
-                <input type="text" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-600">Last Name <span className="text-red-500">*</span></label>
-                <input type="text" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-              </div>
-            </div>
+            {step === "register" && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-600">First Name <span className="text-red-500">*</span></label>
+                    <input type="text" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-600">Last Name <span className="text-red-500">*</span></label>
+                    <input type="text" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                  </div>
+                </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-600">Email Address <span className="text-red-500">*</span></label>
-              <input type="email" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">Email Address <span className="text-red-500">*</span></label>
+                  <input type="email" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-gray-600">Phone Number <span className="text-red-500">*</span></label>
-              <div className="flex items-center border border-gray-200 rounded h-10 px-3 bg-white focus-within:border-black transition-all">
-                <span className="text-sm text-gray-500 mr-2 border-r border-gray-200 pr-2">+91</span>
-                <input
-                  type="tel"
-                  maxLength="10"
-                  className="w-full h-full text-sm outline-none bg-transparent disabled:opacity-50"
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
-                  disabled={isMobilePreFilled && mobile.length === 10}
-                />
-              </div>
-            </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">Phone Number <span className="text-red-500">*</span></label>
+                  <div className="flex items-center border border-gray-200 rounded h-10 px-3 bg-white focus-within:border-black transition-all">
+                    <span className="text-sm text-gray-500 mr-2 border-r border-gray-200 pr-2">+91</span>
+                    <input
+                      type="tel"
+                      maxLength="10"
+                      className="w-full h-full text-sm outline-none bg-transparent disabled:opacity-50"
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                      disabled={isMobilePreFilled && mobile.length === 10}
+                    />
+                  </div>
+                </div>
 
-            <div className="flex items-start gap-2 pt-2">
-              <input type="checkbox" id="consent-reg" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 accent-[#5a413f]" />
-              <label htmlFor="consent-reg" className="text-[11px] text-gray-600 leading-tight cursor-pointer">
-                I accept that I have read & understood Privacy Policy and T&Cs.
-              </label>
-            </div>
+                <div className="flex items-start gap-2 pt-2">
+                  <input type="checkbox" id="consent-reg" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 accent-[#5a413f]" />
+                  <label htmlFor="consent-reg" className="text-[11px] text-gray-600 leading-tight cursor-pointer">
+                    I accept that I have read & understood Privacy Policy and T&Cs.
+                  </label>
+                </div>
 
-            <button
-              className="w-full h-11 bg-[#5f4745] hover:bg-[#4a3634] text-white text-sm font-semibold rounded transition-colors uppercase tracking-wider mt-2 disabled:opacity-50 shadow-md"
-              onClick={handleSpinAndRegister}
-              disabled={isSpinning || loading}
-            >
-              {isSpinning ? "SPINNING..." : "SPIN & CREATE ACCOUNT"}
-            </button>
+                <button
+                  className="w-full h-11 bg-[#5f4745] hover:bg-[#4a3634] text-white text-sm font-semibold rounded transition-colors uppercase tracking-wider mt-2 disabled:opacity-50 shadow-md"
+                  onClick={handleSpinAndRegister}
+                  disabled={isSpinning || loading}
+                >
+                  {isSpinning ? "SPINNING..." : "SPIN & CREATE ACCOUNT"}
+                </button>
 
-            <p className="text-center text-[13px] text-gray-600 mt-4">
-              Already registered?{" "}
-              <span className="text-[#5a413f] font-bold underline cursor-pointer" onClick={() => router.push("/login")}>
-                Login
-              </span>
-            </p>
+                <p className="text-center text-[13px] text-gray-600 mt-4">
+                  Already registered?{" "}
+                  <span className="text-[#5a413f] font-bold underline cursor-pointer" onClick={() => router.push("/login")}>
+                    Login
+                  </span>
+                </p>
+              </>
+            )}
+
+            {step === "verify-otp" && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-900">Enter OTP <span className="text-red-500">*</span></label>
+                  <input
+                    ref={otpRef}
+                    placeholder="Enter 4-digit OTP"
+                    value={otp}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+                      setOtp(val);
+                      if (val.length === 4) {
+                        verifyExistingOtp(val);
+                      }
+                    }}
+                    className="w-full h-11 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all"
+                  />
+                </div>
+                <button
+                  onClick={() => verifyExistingOtp(otp)}
+                  disabled={loading}
+                  className="w-full h-11 bg-[#5f4745] hover:bg-[#4a3634] text-white text-sm font-semibold rounded transition-colors uppercase tracking-wider mt-2 shadow-md"
+                >
+                  {loading ? "VERIFYING..." : "VERIFY OTP"}
+                </button>
+                
+                <p className="text-center text-[13px] text-gray-600 mt-2">
+                  {timer > 0 ? (
+                    `Resend OTP in 00:${timer < 10 ? `0${timer}` : timer}`
+                  ) : (
+                    <span 
+                      className="text-[#b77766] font-bold underline cursor-pointer" 
+                      onClick={async () => {
+                        setTimer(30);
+                        await sendOtpApi(mobile);
+                        toast.success("OTP resent!");
+                      }}
+                    >
+                      Resend OTP
+                    </span>
+                  )}
+                </p>
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-center gap-1 text-[11px] text-gray-400 mt-6 uppercase tracking-widest">

@@ -403,7 +403,7 @@ export default function PaymentPage() {
       const payload = await createCustomerAddress({
         address: addressForm,
         makeDefault,
-      });
+      }, accessToken);
       
       applyAddressPayload(payload);
       
@@ -502,7 +502,7 @@ export default function PaymentPage() {
       const storedSelection = readStoredBillingSelection();
       const [payload, selection] = await Promise.all([
         fetchCustomerAddresses(accessToken),
-        fetchCheckoutAddressSelection(),
+        fetchCheckoutAddressSelection(accessToken),
       ]);
       const effectiveSelection =
         selection?.billingAddressMode === "different" && selection?.billingAddressId
@@ -520,7 +520,7 @@ export default function PaymentPage() {
 
   const handleSelectAddress = async (addressId) => {
     try {
-      applyAddressPayload(await selectDefaultCustomerAddress(addressId));
+      applyAddressPayload(await selectDefaultCustomerAddress(addressId, accessToken));
       setAddressDialogOpen(false);
       if (billingAddressMode === "same") {
         setSelectedBillingAddressId(addressId);
@@ -532,7 +532,7 @@ export default function PaymentPage() {
 
   const handleDeleteAddress = async (addressId) => {
     try {
-      const payload = await deleteCustomerAddress(addressId);
+      const payload = await deleteCustomerAddress(addressId, accessToken);
       applyAddressPayload(payload);
       if (selectedBillingAddressId === addressId) {
         setSelectedBillingAddressId(payload.defaultAddressId || payload.addresses?.[0]?.id || "");
@@ -541,7 +541,7 @@ export default function PaymentPage() {
         billingModeRef.current = "same";
         billingAddressIdRef.current = payload.defaultAddressId || payload.addresses?.[0]?.id || "";
         persistBillingSelection({ billingAddressMode: "same" });
-        await saveCheckoutAddressSelection({ billingAddressMode: "same" });
+        await saveCheckoutAddressSelection({ billingAddressMode: "same" }, accessToken);
       }
       toast.error("Address removed", {
         icon: <Check className="w-4 h-4" />
@@ -568,7 +568,7 @@ export default function PaymentPage() {
       await saveCheckoutAddressSelection({
         billingAddressMode: "different",
         billingAddressId: addressId,
-      });
+      }, accessToken);
     } catch (error) {
       toast.error(error.message || "Unable to save billing address");
     }
@@ -584,7 +584,7 @@ export default function PaymentPage() {
       setBillingAddressSnapshot(selectedAddress);
       persistBillingSelection({ billingAddressMode: "same" });
       try {
-        await saveCheckoutAddressSelection({ billingAddressMode: "same" });
+        await saveCheckoutAddressSelection({ billingAddressMode: "same" }, accessToken);
       } catch (error) {
         toast.error(error.message || "Unable to save billing preference");
       }
@@ -771,7 +771,7 @@ export default function PaymentPage() {
         nectorPoints: nectorPoints,
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
-      });
+      }, accessToken);
 
       const razorpay = new window.Razorpay({
         key: order.key,
@@ -865,7 +865,7 @@ export default function PaymentPage() {
               appliedCoupon: appliedCoupon,
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
-            });
+            }, accessToken);
 
             toast.success(
               completion?.shopifyOrderName

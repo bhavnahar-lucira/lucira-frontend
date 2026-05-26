@@ -3,7 +3,7 @@ import ProductPageClient from "@/components/product/ProductPageClient";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { shopifyStorefrontFetch, getAllProductHandles } from "@/lib/shopify";
 
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 6 hours
 
 const PRODUCT_QUERY = `
   query getProduct($handle: String!) {
@@ -61,7 +61,7 @@ const PRODUCT_QUERY = `
             title
             sku
             availableForSale
-            quantityAvailable
+            currentlyNotInStock
             price { amount currencyCode }
             compareAtPrice { amount currencyCode }
             selectedOptions { name value }
@@ -142,7 +142,7 @@ export async function generateStaticParams() {
 }
 
 async function getProduct(handle) {
-  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { next: { revalidate: 21600 } });
+  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { next: { revalidate: 86400 } });
   const product = data?.product;
 
 
@@ -243,8 +243,8 @@ async function getProduct(handle) {
       sku: v.sku,
       price: Number(v.price.amount),
       compare_price: v.compareAtPrice ? Number(v.compareAtPrice.amount) : null,
-      inStock: v.availableForSale === true && Number(v.quantityAvailable || 0) > 0,
-      inventoryQuantity: v.quantityAvailable || 0,
+      inStock: v.availableForSale === true && v.currentlyNotInStock === false,
+      inventoryQuantity: (v.availableForSale === true && v.currentlyNotInStock === false) ? 10 : 0,
       image: v.image?.url,
       size: options.size || null,
       color: getOpt(options, ["color", "metal", "metal color", "material color"]),

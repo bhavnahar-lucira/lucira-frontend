@@ -2,7 +2,7 @@ import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 6 hours
 
 async function getCollectionData(handle) {
   const query = `
@@ -24,7 +24,7 @@ async function getCollectionData(handle) {
     }
   `;
   
-  const data = await shopifyStorefrontFetch(query, { handle }, { next: { revalidate: 21600 } });
+  const data = await shopifyStorefrontFetch(query, { handle }, { next: { revalidate: 86400 } });
   return data?.collectionByHandle;
 }
 
@@ -85,8 +85,8 @@ export default async function Page({ params }) {
   let initialData = null;
   try {
     const [collRes, filterRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=best_selling`, { next: { revalidate: 21600 } }),
-      fetch(`${base}/api/products/filters?handle=${handle}`, { next: { revalidate: 21600 } })
+      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=best_selling`, { next: { revalidate: 86400 } }),
+      fetch(`${base}/api/products/filters?handle=${handle}`, { next: { revalidate: 86400 } })
     ]);
     if (collRes.ok && filterRes.ok) {
       const collData = await collRes.json();

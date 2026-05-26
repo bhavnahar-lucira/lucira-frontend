@@ -5,7 +5,15 @@ const rawStore = process.env.SHOPIFY_STORE || process.env.SHOPIFYSTORE || SHOP;
 const SHOP_DOMAIN = rawStore.includes(".") ? rawStore : `${rawStore}.myshopify.com`;
 
 export async function shopifyStorefrontFetch(query, variables = {}, options = {}) {
-  if (!process.env.STOREFRONT_TOKEN) {
+  let token = process.env.STOREFRONT_TOKEN;
+  
+  // Use the RW token specifically for customer and blog queries
+  const isCustomerOrBlog = /customer|blog|article|address/i.test(query);
+  if (isCustomerOrBlog && process.env.SHOPIFY_RW_STOREFRONT_TOKEN) {
+    token = process.env.SHOPIFY_RW_STOREFRONT_TOKEN;
+  }
+
+  if (!token) {
     throw new Error("STOREFRONT_TOKEN not configured");
   }
 
@@ -16,7 +24,8 @@ export async function shopifyStorefrontFetch(query, variables = {}, options = {}
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Shopify-Storefront-Access-Token": process.env.STOREFRONT_TOKEN,
+          "X-Shopify-Storefront-Access-Token": token,
+          ...options.headers
         },
         body: JSON.stringify({ query, variables }),
         next: {
@@ -30,13 +39,25 @@ export async function shopifyStorefrontFetch(query, variables = {}, options = {}
     const data = await res.json();
 
     if (data.errors) {
-      console.error("GraphQL Errors:", JSON.stringify(data.errors, null, 2));
+      const isAccessDenied = data.errors.some(err => err.extensions?.code === "ACCESS_DENIED");
+      if (isAccessDenied) {
+        console.warn("GraphQL Access Denied (Storefront API):", data.errors[0]?.message);
+        // Do not throw, return an empty object so it fails gracefully to fallbacks
+        return {}; 
+      } else {
+        console.error("GraphQL Errors:", JSON.stringify(data.errors, null, 2));
+      }
       throw new Error(data.errors[0]?.message || "GraphQL error");
     }
 
     return data.data;
   } catch (err) {
-    console.error(`Storefront Fetch Error (${SHOP_DOMAIN}):`, err.message);
+    if (err.message && err.message.includes("Access denied")) {
+      console.warn(`Storefront Fetch Warning (${SHOP_DOMAIN}):`, err.message);
+      return {};
+    } else {
+      console.error(`Storefront Fetch Error (${SHOP_DOMAIN}):`, err.message);
+    }
     throw err;
   }
 }

@@ -10,17 +10,17 @@ import { toast } from "react-toastify";
 export default function CheckoutProtectedLayout({ children }) {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector(
+  const { isAuthenticated, accessToken } = useSelector(
     (state) => state.user
   );
   const user = useSelector((state) => state.user.user);
   const hasRepricedRef = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !accessToken || accessToken.startsWith('simulated_')) {
       router.push("/login"); // Redirect to login page instead of homepage
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, accessToken, router]);
 
   useEffect(() => {
     if (!isAuthenticated || hasRepricedRef.current) return;
@@ -44,7 +44,7 @@ export default function CheckoutProtectedLayout({ children }) {
       });
   }, [dispatch, isAuthenticated, user?.id]);
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || !accessToken || accessToken.startsWith('simulated_')) return null;
 
   return <>{children}</>;
 }

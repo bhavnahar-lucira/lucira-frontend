@@ -4,8 +4,8 @@
   "description": "India's Best Lab Grown Diamond Jewellery Brand",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#5a413f",
+  "theme_color": "#5a413f",
   "gcm_sender_id": "482941778795",
   "icons": [
     {

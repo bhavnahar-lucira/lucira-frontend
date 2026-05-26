@@ -3,7 +3,12 @@ const rawStore = process.env.NEXT_PUBLIC_SHOPIFY_STORE || SHOP;
 const SHOP_DOMAIN = rawStore.includes(".") ? rawStore : `${rawStore}.myshopify.com`;
 
 export async function shopifyStorefrontFetch(query, variables = {}, retries = 3, delayMs = 500) {
-  const token = process.env.NEXT_PUBLIC_STOREFRONT_TOKEN;
+  let token = process.env.NEXT_PUBLIC_STOREFRONT_TOKEN;
+  
+  const isCustomerOrBlog = /customer|blog|article|address/i.test(query);
+  if (isCustomerOrBlog && process.env.NEXT_PUBLIC_SHOPIFY_RW_STOREFRONT_TOKEN) {
+    token = process.env.NEXT_PUBLIC_SHOPIFY_RW_STOREFRONT_TOKEN;
+  }
   
   if (!token) {
     console.error("NEXT_PUBLIC_STOREFRONT_TOKEN is not defined");

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 6 hours
 
 import HeroSliderImage from "@/components/home/HeroSliderImage";
 import ExploreRange from "@/components/home/ExploreRange";
@@ -51,10 +51,10 @@ export default async function Home() {
 
   try {
     const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { next: { revalidate: 21600 } }),
-      fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { next: { revalidate: 21600 } }),
-      fetch(`${base}/api/products/filters?q=gemstone`, { next: { revalidate: 21600 } }),
-      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { next: { revalidate: 21600 } })
+      fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { next: { revalidate: 86400 } }),
+      fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { next: { revalidate: 86400 } }),
+      fetch(`${base}/api/products/filters?q=gemstone`, { next: { revalidate: 86400 } }),
+      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { next: { revalidate: 86400 } })
     ]);
 
     if (bestsellersRes.ok) bestsellersInitial = await bestsellersRes.json();
@@ -136,3 +136,4 @@ export default async function Home() {
     </div>
   );
 }
+

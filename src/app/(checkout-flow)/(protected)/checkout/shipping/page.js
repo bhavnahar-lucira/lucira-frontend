@@ -575,7 +575,7 @@ export default function ShippingPage() {
     return () => { isMounted = false; };
   }, [selectedAddress?.zip, deliveryMethod]);
 
-  const applyAddressPayload = (payload) => {
+  const applyAddressPayload = useCallback((payload) => {
     setAddresses(payload.addresses || []);
     setCustomer(payload.customer || null);
 
@@ -592,7 +592,7 @@ export default function ShippingPage() {
         })
       );
     }
-  };
+  }, []);
 
   const loadAddresses = useCallback(async () => {
     try {
@@ -603,7 +603,7 @@ export default function ShippingPage() {
     } finally {
       setLoadingAddresses(false);
     }
-  }, []);
+  }, [accessToken, applyAddressPayload]);
 
   useEffect(() => {
     loadAddresses();
@@ -665,7 +665,7 @@ export default function ShippingPage() {
         await createCustomerAddress({
           address: addressForm,
           makeDefault,
-        })
+        }, accessToken)
       );
       toast.success("Address added");
       if (useDialog) setDialogOpen(false);
@@ -694,7 +694,7 @@ export default function ShippingPage() {
           addressId: editingAddressId,
           address: addressForm,
           makeDefault,
-        })
+        }, accessToken)
       );
       setDialogOpen(false);
       toast.success("Address updated");
@@ -715,7 +715,7 @@ export default function ShippingPage() {
 
     setSelectedAddressId(addressId);
     try {
-      applyAddressPayload(await selectDefaultCustomerAddress(addressId));
+      applyAddressPayload(await selectDefaultCustomerAddress(addressId, accessToken));
     } catch (error) {
       toast.error(error.message || "Unable to select address");
       loadAddresses();

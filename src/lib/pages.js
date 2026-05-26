@@ -31,7 +31,7 @@ export async function getPageByHandle(handle) {
       }
     `;
     const data = await shopifyStorefrontFetch(query, { handle }, {
-      next: { revalidate: 21600 } // ✅ 6 hours cache
+      next: { revalidate: 86400 } // ✅ 6 hours cache
     });
     return data?.page;
 }
@@ -39,3 +39,4 @@ export async function getPageByHandle(handle) {
 export async function getPageByHandleStorefront(handle) {
     return getPageByHandle(handle);
 }
+

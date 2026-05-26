@@ -1,4 +1,4 @@
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 6 hours
 import React from "react";
 import Link from "next/link";
 
@@ -53,3 +53,4 @@ export default function CareersPage() {
     </div>
   );
 }
+

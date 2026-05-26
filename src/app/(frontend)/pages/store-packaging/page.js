@@ -1,4 +1,4 @@
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 6 hours
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -119,3 +119,4 @@ export default function StorePackagingPage() {
     </div>
   );
 }
+

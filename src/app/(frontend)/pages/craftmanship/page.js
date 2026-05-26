@@ -1,4 +1,4 @@
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 6 hours
 
 const sections = [
   {
@@ -234,3 +234,4 @@ export default function CraftmanshipPage() {
     </main>
   );
 }
+
