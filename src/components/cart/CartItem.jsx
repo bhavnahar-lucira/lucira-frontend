@@ -29,16 +29,20 @@ export default function CartItem({ item, onAuthRequired }) {
   const [updating, setUpdating] = useState(false);
   const [movingToWishlist, setMovingToWishlist] = useState(false);
 
-  const wishlistKeys = useMemo(
-    () => wishlistItems.map((i) => `${i.productId}-${i.variantId || ""}`),
-    [wishlistItems]
-  );
-
   if (!item) return null;
 
-  const productId = item.id || item.productId || item.handle;
-  const currentKey = `${productId}-${item.variantId || ""}`;
-  const isWishlisted = productId ? wishlistKeys.includes(currentKey) : false;
+  const productId = item.id || item.productId || item.handle || item.shopifyId;
+  const isWishlisted = useMemo(() => {
+    if (!productId) return false;
+    const normProductId = String(getNumericId(productId));
+    const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
+    
+    if (user?.id) {
+      return wishlistItems.some(findFn);
+    }
+    const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
+    return guestItems.some(findFn);
+  }, [user?.id, wishlistItems, productId]);
 
   const variantOptions = Array.isArray(item.variantOptions) ? item.variantOptions : [];
   const currentVariant =
