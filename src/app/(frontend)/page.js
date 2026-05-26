@@ -38,7 +38,32 @@ export const metadata = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
+    ? process.env.NEXT_PUBLIC_BACKEND_URL 
+    : "http://127.0.0.1:8080";
+  const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+
+  let bestsellersInitial = null;
+  let gemstoneInitial = null;
+  let gemstoneCategoriesInitial = null;
+  let exploreInitial = null;
+
+  try {
+    const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes] = await Promise.all([
+      fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { next: { revalidate: 21600 } }),
+      fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { next: { revalidate: 21600 } }),
+      fetch(`${base}/api/products/filters?q=gemstone`, { next: { revalidate: 21600 } }),
+      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { next: { revalidate: 21600 } })
+    ]);
+
+    if (bestsellersRes.ok) bestsellersInitial = await bestsellersRes.json();
+    if (gemstoneRes.ok) gemstoneInitial = await gemstoneRes.json();
+    if (gemstoneCatRes.ok) gemstoneCategoriesInitial = await gemstoneCatRes.json();
+    if (exploreRes.ok) exploreInitial = await exploreRes.json();
+  } catch (e) {
+    console.error("Failed to fetch initial data for Home SSG", e);
+  }
   return (
     <div className="w-full">
       <MobileCategorySlider />
@@ -46,7 +71,7 @@ export default function Home() {
       <FeatureBar />
       <ExploreRange />
 
-      <BestsellerSection />
+      <BestsellerSection initialData={bestsellersInitial} />
 
       <DiamondCuts />
       {/* <ShopByCategory /> */}
@@ -66,13 +91,13 @@ export default function Home() {
         <WaysToExplore />
       </Suspense>
 
-      <GemstoneSection />
+      <GemstoneSection initialProducts={gemstoneInitial} initialCategories={gemstoneCategoriesInitial} />
 
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <EveryoneYouLove />
       </Suspense>
 
-      <ExploreCollectionSection />
+      <ExploreCollectionSection initialData={exploreInitial} />
 
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <CuratedLooks />

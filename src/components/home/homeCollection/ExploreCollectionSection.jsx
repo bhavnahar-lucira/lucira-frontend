@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
 import { apiFetch } from "@/lib/api";
@@ -12,15 +12,22 @@ const COLLECTION_HANDLE_MAP = {
   "9KT Collection": "9kt-collection",
 };
 
-export default function ExploreCollectionSection() {
-  const [products, setProducts] = useState([]);
+export default function ExploreCollectionSection({ initialData }) {
+  const [products, setProducts] = useState(() => initialData?.products || []);
   const [activeTab, setActiveTab] = useState("On The Move");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
+  const isFirstRender = useRef(true);
 
   const activeHandle = COLLECTION_HANDLE_MAP[activeTab] || "sports-collection";
 
   useEffect(() => {
     async function fetchCollectionProducts() {
+      if (isFirstRender.current && initialData && activeHandle === "sports-collection") {
+        isFirstRender.current = false;
+        return;
+      }
+      isFirstRender.current = false;
+
       setLoading(true);
       try {
         const data = await apiFetch(`/api/collection?handle=${encodeURIComponent(activeHandle)}&limit=15`);

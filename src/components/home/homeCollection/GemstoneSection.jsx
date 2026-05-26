@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
 import { apiFetch } from "@/lib/api";
@@ -14,15 +14,34 @@ const DEFAULT_TABS = [
   "Rings"
 ];
 
-export default function GemstoneSection() {
-  const [products, setProducts] = useState([]);
-  const [tabs, setTabs] = useState(DEFAULT_TABS);
+export default function GemstoneSection({ initialProducts, initialCategories }) {
+  const [products, setProducts] = useState(() => initialProducts?.products || []);
+  const [tabs, setTabs] = useState(() => {
+    if (initialCategories) {
+      const categories = (initialCategories["Product Category"] || [])
+        .map((option) => option.label || option.value)
+        .filter(Boolean);
+      if (categories.length > 0) {
+        const preferredOrder = ["Bracelets", "Charms & Pendants", "Earrings", "Necklaces", "Rings"];
+        return ["All", ...preferredOrder.filter((cat) => categories.includes(cat)), ...categories.filter((cat) => !preferredOrder.includes(cat))];
+      }
+    }
+    return DEFAULT_TABS;
+  });
   const [activeTab, setActiveTab] = useState("All");
-  const [loading, setLoading] = useState(true);
-  const [tabsLoading, setTabsLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialProducts);
+  const [tabsLoading, setTabsLoading] = useState(!initialCategories);
+  const isFirstRenderTabs = useRef(true);
+  const isFirstRenderProducts = useRef(true);
 
   useEffect(() => {
     async function fetchGemstoneCategories() {
+      if (isFirstRenderTabs.current && initialCategories) {
+        isFirstRenderTabs.current = false;
+        return;
+      }
+      isFirstRenderTabs.current = false;
+
       setTabsLoading(true);
       try {
         const data = await apiFetch(`/api/products/filters?q=gemstone`);
@@ -57,6 +76,12 @@ export default function GemstoneSection() {
 
   useEffect(() => {
     async function fetchGemstoneProducts() {
+      if (isFirstRenderProducts.current && initialProducts && activeTab === "All") {
+        isFirstRenderProducts.current = false;
+        return;
+      }
+      isFirstRenderProducts.current = false;
+
       setLoading(true);
       try {
         let apiUrl = `/api/collection?handle=gemstone-jewelry&limit=15`;
