@@ -29,6 +29,7 @@ import {
 import { pushProductImpression } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
+import { apiFetch } from "@/lib/api";
 
 const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad"];
 
@@ -146,7 +147,7 @@ const renderRichTextNodes = (nodes) => {
   });
 };
 
-export default function CollectionPage({ params: paramsPromise }) {
+export default function CollectionPage({ params: paramsPromise, initialData }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
 
@@ -164,16 +165,83 @@ export default function CollectionPage({ params: paramsPromise }) {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
 
+  // Helper to process filters
+  const processFilters = useCallback((filtersData) => {
+    const mergedData = {};
+    Object.entries(filtersData || {}).forEach(([groupKey, options]) => {
+      if (groupKey === "Price") {
+        mergedData[groupKey] = options;
+      } else if (Array.isArray(options)) {
+        const mergedOptionsMap = new Map();
+        options.forEach(opt => {
+          let label = (opt.label || "").trim();
+          if (groupKey === "Metal Purity") {
+            if (label === "14K") label = "14KT";
+            else if (label === "18K") label = "18KT";
+            else if (label === "9K") label = "9KT";
+          }
+          if (mergedOptionsMap.has(label)) {
+            const existing = mergedOptionsMap.get(label);
+            existing.count += opt.count;
+          } else {
+            mergedOptionsMap.set(label, { ...opt, label });
+          }
+        });
+        mergedData[groupKey] = Array.from(mergedOptionsMap.values());
+      }
+    });
+
+    const sortedData = {};
+    Object.entries(mergedData).forEach(([groupKey, options]) => {
+      if (groupKey === "Price") {
+        sortedData[groupKey] = options;
+      } else if (Array.isArray(options)) {
+        sortedData[groupKey] = [...options].sort((a, b) => {
+          const aLabel = a.label?.toString() || "";
+          const bLabel = b.label?.toString() || "";
+          const aNum = parseFloat(aLabel);
+          const bNum = parseFloat(bLabel);
+          if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+          return aLabel.localeCompare(bLabel, undefined, { numeric: true, sensitivity: 'base' });
+        });
+      }
+    });
+    return sortedData;
+  }, []);
+
   // Data State
-  const [availableFilters, setAvailableFilters] = useState({});
-  const [filtersLoading, setFiltersLoading] = useState(true);
-  const [collection, setCollection] = useState({ title: "", description: "" });
+  const [availableFilters, setAvailableFilters] = useState(() => {
+    if (initialData && initialData.filterData) {
+      return processFilters(initialData.filterData);
+    }
+    return {};
+  });
+  const [filtersLoading, setFiltersLoading] = useState(!initialData);
+  const [collection, setCollection] = useState(() => {
+    if (initialData && initialData.collData && initialData.collData.collection) {
+      return {
+        title: initialData.collData.collection.title || handle.replace(/-/g, " "),
+        description: initialData.collData.collection.description || "",
+        metafields: initialData.collData.collection.metafields || {}
+      };
+    }
+    return { title: "", description: "" };
+  });
   const [dbCollection, setDbCollection] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [pagination, setPagination] = useState({ hasNextPage: false, endCursor: null });
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [products, setProducts] = useState(() => initialData?.collData?.products || []);
+  const [pagination, setPagination] = useState(() => initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null });
+  const [productsLoading, setProductsLoading] = useState(!initialData);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(() => initialData?.collData?.totalProducts || 0);
+
+  // Set initial active mobile group if needed
+  useEffect(() => {
+    if (initialData && Object.keys(availableFilters).length > 0 && !activeMobileGroup) {
+      setActiveMobileGroup(Object.keys(availableFilters)[0]);
+    }
+  }, []);
+
+  const isFirstRender = useRef(true);
 
   // Price Filter State
   const [localPriceRange, setLocalPriceRange] = useState({
@@ -238,13 +306,13 @@ export default function CollectionPage({ params: paramsPromise }) {
     scrollToTop();
   };
 
-  const getActiveFiltersForShopify = useCallback(() => {
+  const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
     const filters = [];
-    searchParams.forEach((value, key) => {
+    currentSearchParams.forEach((value, key) => {
       if (key.startsWith("filter.")) {
         try {
           if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
-            const existingPrice = filters.find(f => f.price);
+            let existingPrice = filters.find(f => f.price);
             if (existingPrice) {
               if (key === "filter.v.price.gte") existingPrice.price.min = parseFloat(value);
               else existingPrice.price.max = parseFloat(value);
@@ -252,7 +320,7 @@ export default function CollectionPage({ params: paramsPromise }) {
               filters.push({
                 price: {
                   min: key === "filter.v.price.gte" ? parseFloat(value) : 0,
-                  max: key === "filter.v.price.lte" ? parseFloat(value) : 1000000
+                  max: key === "filter.v.price.lte" ? parseFloat(value) : 5000000
                 }
               });
             }
@@ -261,102 +329,87 @@ export default function CollectionPage({ params: paramsPromise }) {
           }
         } catch (e) { }
       } else if (!["sort", "cursor", "limit", "q", "page"].includes(key)) {
-        Object.values(availableFilters).forEach(group => {
+        // Find matching option in currentAvailableFilters
+        let found = false;
+        Object.entries(currentAvailableFilters || {}).forEach(([groupName, group]) => {
           if (Array.isArray(group)) {
+            // Check if groupName matches the key (case-insensitive)
+            const groupMatchesKey = groupName.toLowerCase() === key.toLowerCase();
+            
             group.forEach(opt => {
-              if ((opt.urlKey === key || opt.label === key) && opt.value === value) {
+              if (
+                (opt.urlKey === key || opt.label === key || groupMatchesKey) && 
+                (opt.value === value || opt.label === value)
+              ) {
                 filters.push(typeof opt.input === 'string' ? JSON.parse(opt.input) : opt.input);
+                found = true;
               }
             });
           }
         });
+        
+        // Fallback for productType which is common
+        if (!found && key.toLowerCase() === "producttype") {
+            filters.push({ productType: value });
+        }
       }
     });
     return filters;
-  }, [searchParams, availableFilters]);
-
-  const filterParamsForApi = useMemo(() => {
-    const active = getActiveFiltersForShopify();
-    if (active.length === 0) return "";
-    return `filters=${encodeURIComponent(JSON.stringify(active))}`;
-  }, [getActiveFiltersForShopify]);
+  }, []);
 
   // Initial Fetch & Filter Changes
   useEffect(() => {
     async function fetchData() {
+      // Check if we can skip the fetch completely because it's the first render AND we have SSG data
+      if (isFirstRender.current && initialData) {
+        isFirstRender.current = false;
+        
+        // Ensure we are on the default path (no params or only sort=best_selling)
+        const paramsString = searchParams.toString();
+        if (paramsString === "" || paramsString === "sort=best_selling") {
+          return; // Skip API fetch, initialData holds exactly what we need!
+        }
+      }
+      isFirstRender.current = false;
+
       setProductsLoading(true);
       setFiltersLoading(true);
 
       try {
         const sort = searchParams.get("sort") || "best_selling";
-        const apiUrl = `/api/collection?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}`;
-        console.log("Fetching from API:", apiUrl);
-
-        const collRes = await fetch(apiUrl);
-        if (!collRes.ok) throw new Error("Failed to fetch collection");
         
-        const collData = await collRes.json();
-        setCollection({
-          title: collData.collection?.title || handle.replace(/-/g, " "),
-          description: collData.collection?.description || ""
-        });
-        setProducts(collData.products || []);
-        setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
-        setTotalCount(collData.totalProducts || 0);
+        // 1. Fetch filters first to ensure we have mappings for products fetch
+        const filtersData = await apiFetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
 
-        const dbRes = await fetch(`/api/collection/metadata?handle=${handle}`);
-        const dbData = await dbRes.json();
-        if (dbData.success) setDbCollection(dbData.collection);
-
-        const filtersRes = await fetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
-        const filtersData = await filtersRes.json();
-
-        // Apply Master-style merging and sorting
-        const mergedData = {};
-        Object.entries(filtersData || {}).forEach(([groupKey, options]) => {
-          if (groupKey === "Price") {
-            mergedData[groupKey] = options;
-          } else if (Array.isArray(options)) {
-            const mergedOptionsMap = new Map();
-            options.forEach(opt => {
-              let label = (opt.label || "").trim();
-              if (groupKey === "Metal Purity") {
-                if (label === "14K") label = "14KT";
-                else if (label === "18K") label = "18KT";
-                else if (label === "9K") label = "9KT";
-              }
-              if (mergedOptionsMap.has(label)) {
-                const existing = mergedOptionsMap.get(label);
-                existing.count += opt.count;
-              } else {
-                mergedOptionsMap.set(label, { ...opt, label });
-              }
-            });
-            mergedData[groupKey] = Array.from(mergedOptionsMap.values());
-          }
-        });
-
-        const sortedData = {};
-        Object.entries(mergedData).forEach(([groupKey, options]) => {
-          if (groupKey === "Price") {
-            sortedData[groupKey] = options;
-          } else if (Array.isArray(options)) {
-            sortedData[groupKey] = [...options].sort((a, b) => {
-              const aLabel = a.label?.toString() || "";
-              const bLabel = b.label?.toString() || "";
-              const aNum = parseFloat(aLabel);
-              const bNum = parseFloat(bLabel);
-              if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-              return aLabel.localeCompare(bLabel, undefined, { numeric: true, sensitivity: 'base' });
-            });
-          }
-        });
+        const sortedData = processFilters(filtersData);
 
         setAvailableFilters(sortedData);
         if (Object.keys(sortedData).length > 0 && !activeMobileGroup) {
           setActiveMobileGroup(Object.keys(sortedData)[0]);
         }
         setFiltersLoading(false);
+
+        // 2. Now fetch products using the mappings we just got
+        const activeFilters = getActiveFiltersForShopify(searchParams, sortedData);
+        const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+        
+        const apiUrl = `/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}`;
+        console.log("Fetching products from API:", apiUrl);
+
+        const collData = await apiFetch(apiUrl);
+        setCollection({
+          title: collData.collection?.title || handle.replace(/-/g, " "),
+          description: collData.collection?.description || "",
+          metafields: collData.collection?.metafields || {}
+        });
+        setProducts(collData.products || []);
+        setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
+        setTotalCount(collData.totalProducts || 0);
+
+        try {
+          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
+          if (dbData.success) setDbCollection(dbData.collection);
+        } catch(e) {}
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
       } finally {
@@ -364,7 +417,7 @@ export default function CollectionPage({ params: paramsPromise }) {
       }
     }
     fetchData();
-  }, [handle, filterParamsForApi, searchParams, limit]);
+  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
@@ -372,18 +425,23 @@ export default function CollectionPage({ params: paramsPromise }) {
     setIsFetchingNextPage(true);
     try {
       const sort = searchParams.get("sort") || "best_selling";
-      const res = await fetch(`/api/collection?handle=${handle}&${filterParamsForApi}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
-      const data = await res.json();
-      setProducts(prev => [...prev, ...(data.products || [])]);
+      const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
+      const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+      const data = await apiFetch(`/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
+      setProducts(prev => {
+        const nextProducts = data.products || [];
+        const existingIds = new Set(prev.map(p => p.id));
+        const filteredNew = nextProducts.filter(p => !existingIds.has(p.id));
+        return [...prev, ...filteredNew];
+      });
       setPagination(data.pageInfo || { hasNextPage: false, endCursor: null });
-      // Update totalCount from response to ensure it reflects filtered results
       if (data.totalProducts) setTotalCount(data.totalProducts);
     } catch (err) {
       console.error("Failed to fetch next page:", err);
     } finally {
       setIsFetchingNextPage(false);
     }
-  }, [handle, filterParamsForApi, searchParams, pagination, isFetchingNextPage, limit]);
+  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify]);
 
   // Infinite scroll trigger
   useEffect(() => {
@@ -422,6 +480,22 @@ export default function CollectionPage({ params: paramsPromise }) {
 
   const activeSort = searchParams.get("sort") || "best_selling";
 
+  // Extract selected color from filters to pass to ProductCard
+  const selectedColor = useMemo(() => {
+    // 1. Check direct Shopify filter key
+    const filterColor = searchParams.get("filter.v.option.metal_color");
+    if (filterColor) return filterColor;
+
+    // 2. Check for any key containing 'color'
+    let foundColor = "";
+    searchParams.forEach((value, key) => {
+      if (key.toLowerCase().includes("color")) {
+        foundColor = value;
+      }
+    });
+    return foundColor;
+  }, [searchParams]);
+
   const renderGridItems = () => {
     const items = [];
     products.forEach((prod, idx) => {
@@ -430,7 +504,7 @@ export default function CollectionPage({ params: paramsPromise }) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link href="/collections/bestsellers">
-              <Image src="/images/inpage.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/inpage_banner.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
             </Link>
           </div>
         );
@@ -441,8 +515,12 @@ export default function CollectionPage({ params: paramsPromise }) {
       const isTrigger = pagination.hasNextPage && idx === products.length - 15;
       
       items.push(
-        <div key={prod.id || idx} ref={isTrigger ? loadMoreRef : null}>
-          <ProductCard product={prod} collectionHandle={handle} index={idx + 1} />
+        <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
+          <ProductCard 
+            product={selectedColor ? { ...prod, selectedColor } : prod} 
+            collectionHandle={handle} 
+            index={idx + 1} 
+          />
         </div>
       );
     });
@@ -455,6 +533,13 @@ export default function CollectionPage({ params: paramsPromise }) {
   const displayTitle = isMobile
     ? (handle === "all" ? "All Products" : handle.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "))
     : (collection.title || (handle === "all" ? "All Products" : handle.replace(/-/g, " ")));
+
+  const countDisplay = useMemo(() => {
+    const loaded = products.length;
+    // Fallback if API returns 0 total but we have products (common with filters)
+    const total = totalCount > 0 ? totalCount : (pagination.hasNextPage ? `${loaded}+` : loaded);
+    return `${loaded}/${total} Products`;
+  }, [products.length, totalCount, pagination.hasNextPage]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -475,7 +560,7 @@ export default function CollectionPage({ params: paramsPromise }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative h-40">
-            <Image src="/images/collection/category-banner.jpg" alt={displayTitle} fill className="object-cover" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category_banner.jpg" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
       ) : (
@@ -490,7 +575,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day free returns</span></div>
               </div>
             </div>
-            <div className="flex-1 relative w-full h-57.5"><Image src="/images/category-banner.jpg" alt={displayTitle} fill className="object-cover" /></div>
+            <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category_banner.jpg" alt={displayTitle} fill className="object-cover" /></div>
           </div>
         </div>
       )}
@@ -531,7 +616,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                         {isExpanded && (
                           <div className="space-y-4 my-2 pb-5">
                             {Array.isArray(options) && options.map((opt) => (
-                              <div key={opt.value} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
+                              <div key={opt.label} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
                                 <input type="checkbox" checked={searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)} onChange={() => {}} className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" />
                                 <label className="flex-1 cursor-pointer flex justify-between items-center"><span>{opt.label}</span><span className="text-gray-400 text-xs">({opt.count})</span></label>
                               </div>
@@ -551,7 +636,7 @@ export default function CollectionPage({ params: paramsPromise }) {
         <div className="flex-1">
           <div className={`flex gap-4 items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "py-5 border-b border-gray-50 px-4" : "py-4"}`}>
             <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
-              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{totalCount} Designs</span></>) : (<span className="text-sm text-gray-500">{Math.min(products.length, totalCount)}/{totalCount} products</span>)}
+              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{countDisplay}</span></>) : (<span className="text-sm text-gray-500">{countDisplay}</span>)}
             </div>
             {!isMobile && (
               <div className="flex items-center gap-4"><div className="flex items-center gap-2"><span className="text-sm text-gray-600">Sort:</span><select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="text-sm border rounded-md px-3 py-2 bg-white">{SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}</select></div></div>
@@ -571,7 +656,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                     )
                   ) : (
                     Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).map((opt) => (
-                      <Badge key={`${groupKey}-${opt.value}`} variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
+                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
                         <span className="text-xs font-medium">{opt.label.split(" (")[0]}</span>
                         <XIcon className="size-3" />
                       </Badge>
@@ -583,7 +668,7 @@ export default function CollectionPage({ params: paramsPromise }) {
             </div>
           )}
 
-          <div className={`grid mt-4 ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
+          <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : renderGridItems()}
           </div>
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
@@ -592,83 +677,153 @@ export default function CollectionPage({ params: paramsPromise }) {
         </div>
       </div>
 
-      {/* SEO & FAQ Content from MongoDB */}
+      {/* SEO & FAQ Content */}
       {(() => {
-        if (!dbCollection) return null;
-        const faqSection = dbCollection.metafields?.["custom.faq_section"];
+        const faqSection = collection?.metafields?.["custom.seo_content_data"];
         const isFaqSectionValid = faqSection && !faqSection.includes("gid://shopify/Metaobject");
-        let questions = []; let answers = [];
+
+        let questions = [];
+        let answers = [];
         try {
-          const rawQ = dbCollection.metafields?.["custom.faqquestion"];
-          const rawA = dbCollection.metafields?.["custom.faqanswers"];
-          if (rawQ?.startsWith("[")) questions = JSON.parse(rawQ); else questions = (rawQ || "").split("•").filter(Boolean);
-          if (rawA?.startsWith("[")) answers = JSON.parse(rawA); else answers = (rawA || "").split("•").filter(Boolean);
-        } catch (e) { }
+          const rawQ = collection?.metafields?.["custom.faqquestion"];
+          const rawA = collection?.metafields?.["custom.faqanswers"];
+          
+          if (Array.isArray(rawQ)) {
+            questions = rawQ;
+          } else if (rawQ?.startsWith("[")) {
+            questions = JSON.parse(rawQ);
+          } else {
+            questions = (rawQ || "").split("•").filter(Boolean);
+          }
+          
+          if (Array.isArray(rawA)) {
+            answers = rawA;
+          } else if (rawA?.startsWith("[")) {
+            answers = JSON.parse(rawA);
+          } else {
+            answers = (rawA || "").split("•").filter(Boolean);
+          }
+        } catch (e) {
+          console.error("Error parsing FAQ:", e);
+        }
+
         const hasFaq = questions.length > 0 || isFaqSectionValid;
-        const hasBestsellers = (dbCollection?.bestsellerProducts && dbCollection.bestsellerProducts.length > 0) || dbCollection?.metafields?.["custom.bestsellers_html"];
-        const seoContent = dbCollection.metafields?.["custom.seocontent"] || dbCollection.metafields?.["custom.seo_content"];
+        const hasBestsellers = (collection?.bestsellerProducts && collection.bestsellerProducts.length > 0) || collection?.metafields?.["custom.bestsellers_html"];
+        const seoContent = collection?.metafields?.["custom.seocontent"];
         const hasSeo = seoContent && !seoContent.toString().startsWith("gid://shopify/Page/") && !seoContent.toString().startsWith("gid://shopify/OnlineStorePage/");
+
         if (!hasFaq && !hasBestsellers && !hasSeo) return null;
+
         return (
           <div className="seo-content container-main py-10 md:py-16 border-t border-gray-100">
             <div className="w-full px-2 lg:px-6">
               <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
+                {/* Bestseller Products (SEO Links) */}
                 {hasBestsellers && (
                   <div className={`${hasFaq ? "lg:w-1/2" : "w-full"} order-1`}>
                     <div className="plp-seo-links-section">
-                      <h2 className="text-lg lg:text-xl font-semibold mb-5 text-left text-gray-900 uppercase tracking-wider">Bestsellers</h2>
-                      {dbCollection?.metafields?.["custom.bestsellers_html"] ? (
-                        <div className="prose prose-sm max-w-none border border-gray-200 rounded-xl p-6 bg-white overflow-x-auto shadow-sm" dangerouslySetInnerHTML={{ __html: dbCollection.metafields["custom.bestsellers_html"] }} />
+                      <h2 className="text-lg lg:text-xl font-semibold mb-5 text-left text-gray-900 uppercase tracking-wider">
+                        Bestsellers
+                      </h2>
+                      {collection?.metafields?.["custom.bestsellers_html"] ? (
+                        <div className="prose prose-sm max-w-none border border-gray-200 rounded-xl p-6 bg-white overflow-x-auto shadow-sm" dangerouslySetInnerHTML={{ __html: collection.metafields["custom.bestsellers_html"] }} />
                       ) : (
                         <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
-                          {hasFaq ? (
-                            <div className="grid grid-cols-[auto_1fr_auto] bg-gray-50 border-b border-gray-200 px-6 py-4 gap-4">
-                              <div className="w-12 h-6" /> <h3 className="text-xs font-black uppercase tracking-widest text-black">PRODUCT NAME</h3> <h3 className="text-xs font-black uppercase tracking-widest text-black text-right">PRICE</h3>
-                            </div>
-                          ) : (
+                          {!hasFaq && (
                             <div className="grid lg:grid-cols-2 bg-gray-50 border-b border-gray-200 divide-x divide-gray-200 hidden lg:grid">
-                              <div className="grid grid-cols-[auto_1fr_auto] px-6 py-4 gap-4"><div className="w-12 h-6" /><h3 className="text-[10px] font-black uppercase tracking-widest text-black/60">PRODUCT NAME</h3><h3 className="text-[10px] font-black uppercase tracking-widest text-black/60 text-right">PRICE</h3></div>
-                              <div className="grid grid-cols-[auto_1fr_auto] px-6 py-4 gap-4"><div className="w-12 h-6" /><h3 className="text-[10px] font-black uppercase tracking-widest text-black/60">PRODUCT NAME</h3><h3 className="text-[10px] font-black uppercase tracking-widest text-black/60 text-right">PRICE</h3></div>
+                              <div className="grid grid-cols-[auto_1fr_auto] px-6 py-4 gap-4">
+                                <div className="w-12 h-6" />
+                                <h3 className="text-[0.625rem] font-bold uppercase tracking-widest text-zinc-400">PRODUCT NAME</h3>
+                                <h3 className="text-[0.625rem] font-bold uppercase tracking-widest text-zinc-400 text-right">PRICE</h3>
+                              </div>
+                              <div className="grid grid-cols-[auto_1fr_auto] px-6 py-4 gap-4">
+                                <div className="w-12 h-6" />
+                                <h3 className="text-[0.625rem] font-bold uppercase tracking-widest text-zinc-400">PRODUCT NAME</h3>
+                                <h3 className="text-[0.625rem] font-bold uppercase tracking-widest text-zinc-400 text-right">PRICE</h3>
+                              </div>
                             </div>
                           )}
-                          <div className={`divide-y divide-gray-100 ${!hasFaq ? "lg:grid lg:grid-cols-2 lg:divide-y-0 lg:divide-x lg:divide-gray-100" : ""}`}>
-                            {(dbCollection.bestsellerProducts || []).slice(0, 10).map((item, idx) => (
-                              <div key={idx} className={`grid grid-cols-[auto_1fr_auto] px-6 py-4 hover:bg-gray-50/50 transition-colors items-center gap-4 ${!hasFaq ? "lg:border-t lg:border-gray-100 first:border-t-0 [&:nth-child(2)]:lg:border-t-0" : ""}`}>
+                          {hasFaq && (
+                            <div className="grid grid-cols-[auto_1fr_auto] bg-gray-50 border-b border-gray-200 px-6 py-4 gap-4 justify-content: center;">
+                              <div className="w-12 h-6" />
+                              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-black-400">PRODUCT NAME</h3>
+                              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-black-400 text-right">PRICE</h3>
+                            </div>
+                          )}
+                          <div className={`divide-y divide-gray-100 ${!hasFaq ? "lg:grid lg:grid-cols-2 lg:divide-y-0" : ""}`}>
+                            {(collection.bestsellerProducts || []).slice(0, 10).map((item, idx) => (
+                              <div key={idx} className={`grid grid-cols-[auto_1fr_auto] px-6 py-4 hover:bg-gray-50/50 transition-colors items-center gap-4 ${!hasFaq ? "lg:border-t lg:border-gray-100 first:border-t-0 [&:nth-child(2)]:lg:border-t-0 lg:border-l lg:first:border-l-0 lg:[&:nth-child(odd)]:border-l-0" : ""}`}>
                                 <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden relative shrink-0 border border-gray-100">
-                                  {item.image ? <Image src={item.image} alt={item.title} fill className="object-cover" unoptimized /> : <div className="w-full h-full flex items-center justify-center text-zinc-200"><ShoppingBag size={20} /></div>}
+                                  {item.image ? (
+                                    <Image src={item.image} alt={item.title} fill className="object-cover" unoptimized />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-200">
+                                      <ShoppingBag size={20} />
+                                    </div>
+                                  )}
                                 </div>
-                                <Link href={`/products/${item.handle}`} className="text-[13px] font-medium text-gray-900 hover:text-primary transition-colors truncate pr-4">{item.title}</Link>
-                                <span className="text-[13px] font-bold text-black text-right">₹{new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(item.price)}</span>
+                                <Link href={`/products/${item.handle}`} className="text-sm  text-gray-900 hover:text-primary transition-colors truncate pr-4">
+                                  {item.title}
+                                </Link>
+                                <span className="text-sm  text-black-800 text-right">
+                                  ₹{new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(item.price)}
+                                </span>
                               </div>
                             ))}
                           </div>
                         </div>
                       )}
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4">Last Updated: {new Date(dbCollection.updatedAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4">
+                        Last Updated: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      </p>
                     </div>
                   </div>
                 )}
+
+                {/* FAQ Section */}
                 {hasFaq && (
                   <div className={`${hasBestsellers ? "lg:w-1/2" : "w-full"} order-2 mb-16`}>
-                    <h2 className="text-lg lg:text-xl font-semibold mb-5 text-left text-gray-900 uppercase tracking-wider">FAQ</h2>
+                    <h2 className="
+                    text-lg lg:text-xl font-semibold mb-5 text-left text-gray-900 uppercase tracking-wider
+                    ">
+                      FAQ
+                    </h2>
                     <div className="w-full">
                       {questions.length > 0 ? (
                         <Accordion type="single" collapsible className="w-full">
                           {questions.map((q, idx) => (
                             <AccordionItem key={idx} value={`item-${idx}`} className="border-b border-gray-200">
-                              <AccordionTrigger className="text-base lg:text-lg font-medium text-gray-900 hover:no-underline py-4 text-left">{q.trim()}</AccordionTrigger>
-                              {answers[idx] && <AccordionContent className="text-gray-600 leading-relaxed pb-6 text-[15px]">{answers[idx].trim()}</AccordionContent>}
+                              <AccordionTrigger className="text-base lg:text-lg font-medium text-gray-900 hover:no-underline py-4">
+                                {q.trim()}
+                              </AccordionTrigger>
+                              {answers[idx] && (
+                                <AccordionContent className="text-gray-600 leading-relaxed pb-6">
+                                  {answers[idx].trim()}
+                                </AccordionContent>
+                              )}
                             </AccordionItem>
                           ))}
                         </Accordion>
                       ) : isFaqSectionValid ? (
-                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm"><div className="text-gray-600 text-sm leading-relaxed">{faqSection}</div></div>
+                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                          <div className="text-gray-600 text-sm leading-relaxed">
+                            {faqSection}
+                          </div>
+                        </div>
                       ) : null}
                     </div>
                   </div>
                 )}
               </div>
-              {hasSeo && <div className="prose prose-sm md:prose-base max-w-none mt-8 border-t border-gray-100 pt-8"><div className="text-gray-600 leading-loose">{renderShopifyRichText(seoContent)}</div></div>}
+
+              {/* SEO Section */}
+              {hasSeo && (
+                <div className="prose prose-sm md:prose-base max-w-none mt-8 border-t border-gray-100 pt-8">
+                  <div className="text-gray-600 leading-loose">
+                    {renderShopifyRichText(seoContent)}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -735,7 +890,7 @@ export default function CollectionPage({ params: paramsPromise }) {
                         availableFilters[activeMobileGroup].map((option) => {
                           const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(option.value);
                           return (
-                            <div key={option.value} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value)}>
+                            <div key={option.label} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value)}>
                               <div className="flex items-center gap-3">
                                 {isSelected ? <div className="w-4 h-4 bg-[#5a413f] rounded flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-4 h-4 border border-gray-300 rounded group-hover:border-[#5a413f]" />}
                                 <span className={`text-[13px] ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>

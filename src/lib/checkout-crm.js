@@ -1,7 +1,8 @@
 import { getNumericId } from "./gtm";
+import { apiFetch } from "./api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 export const getStoredUtms = () => {
   if (typeof window === 'undefined') return {};
@@ -91,11 +92,8 @@ export const sendCheckoutCrmEvent = async (type, data) => {
       order: {}
     };
 
-    await fetch("/api/webhooks/checkout-crm", {
+    await apiFetch("/api/webhooks/checkout-crm", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ type, payload }),
     });
   } catch (error) {

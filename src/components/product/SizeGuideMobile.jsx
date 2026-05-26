@@ -121,7 +121,7 @@ export function SizeGuideMobile({ children, nearestStore, availableStores = [], 
                   className="bg-white rounded-sm mb-4 flex items-center gap-4 p-3 border border-gray-100 shadow-sm"
                 >
                   <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
-                    <Image src="/images/store.jpg" alt="Lucira store" fill className="object-cover" />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDP_Store.jpg" alt="Lucira store" fill className="object-cover" />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-sm text-gray-900">Visit Nearest Lucira Store</h4>

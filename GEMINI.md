@@ -1,13 +1,41 @@
-# Project Instructions
+# Project Instructions: Lucira Restructured Architecture
 
 - **Contextual Precedence:** Always check this file and the `MEMORY.md` index before starting any task.
-- **Architecture:** This project is a frontend-only Next.js application. All product, collection, and search data must be fetched directly from the Shopify Storefront API with a 1-hour cache (`revalidate: 3600`).
-- **Database:** MongoDB Atlas is used strictly for transactional/user data: Cart, Wishlist, Orders, Pincodes, Stores, Announcements, Styled Videos, and Curated Looks. Products and collections are NOT stored in the database.
-- **Surgical Updates:** Strictly avoid changing or updating any existing working code or logic unless it is the direct cause of a bug or explicitly requested. 
-- **Preservation:** All additions should be purely to handle specific edge cases or new requirements without disrupting the established codebase architecture.
-- **Menu Caching:** The site uses a pre-generated JSON file (`src/data/menu-data.json`) for the main menu to bypass Shopify API size limits and improve performance. Run `npm run generate-menu` to update this file whenever the menu structure or collection metadata changes in Shopify.
-- **Shopify GIDs:** Specific handling for Shopify GID resolution (e.g., Pages, Metaobjects) should be implemented in the relevant API routes to ensure clean data delivery to the frontend.
 
-- **note:** search and do only on three folder lucira-frontend, lucira-backend and admin so any operation wil happen work only
+## 1. Overall Architecture
+The project is split into a **Next.js Frontend (`lucira-frontend`)** and a **Standalone Fastify Backend (`lucira-backend`)**.
+- **Frontend**: Hosted on Vercel, optimized for zero/low function invocations via ISR/SSG.
+- **Backend**: Fixed-cost Node.js server handling heavy logic, proxying Shopify Admin API, and managing MongoDB data.
 
--- npm run generate-menu for generate menu
+## 2. Frontend Caching Strategy (ISR & SSG)
+To minimize Vercel serverless costs:
+- **Homepage**: Incremental Static Regeneration (ISR) with a 6-hour window (`revalidate: 21600`).
+- **Blogs, Static Pages, & Menus**: Fully Static Site Generation (SSG, `revalidate: false`). These only update on redeploy or manual revalidation.
+- **Product Pages**: Use standard Next.js fetching, aiming for ISR where possible.
+
+## 3. Data Fetching Rules
+- **Shopify Storefront API (Maximized)**:
+  - **Cart**: Managed 100% client-side via Storefront API. No MongoDB dependency for active carts.
+  - **Customer Account**: Profile, Orders, and Addresses are fetched directly from the client using `customerAccessToken`.
+  - **Fetching Utilities**: Use `src/lib/shopify-client.js` for browser-side calls and `src/lib/shopify.js` for server-side calls.
+- **Fastify Backend (`lucira-backend`)**:
+  - All logic from the (now removed) `app/api` folder lives here.
+  - Frontend components must use `apiFetch` from `src/lib/api.js`, which automatically prefixes calls with `NEXT_PUBLIC_BACKEND_URL` for externalized routes.
+  - Managed routes include: Search, Collections, Filters, Variant Pricing (Price Engine), Metal Rates, and Pincode checking.
+- **Reviews (Nector)**:
+  - Fetched 100% client-side via `src/lib/nector.js` using public API keys.
+
+## 4. Engineering Standards
+- **Zero app/api**: Do NOT add new API routes to the Next.js `app/api` folder. All server-side logic must go to `lucira-backend`.
+- **GIDs**: Maintain consistency with Shopify Global IDs (GIDs) throughout the stack.
+- **UI/UX Parity**: Any changes to data flow must maintain identical UI behavior and styling.
+
+## 5. Helpful Commands
+- `lucira-frontend`: `npm run dev` (Frontend)
+- `lucira-backend`: `npm run dev` (Backend)
+- `lucira-frontend`: `npm run generate-menu` (Updates static menu data if needed)
+
+
+ Homepage           │ ISR (6 Hours)    │ Pre-rendered, updates every 6 hours.             │
+  │ Blogs/Static Pages │ SSG (Permanent)  │ Pre-rendered at build time.                      │
+  │ Checkout Flow      │ Dynamic (None)   │ Always live; managed via Redux & Storefront API. 

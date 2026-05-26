@@ -28,6 +28,8 @@ const getValidSrc = (src, fallback = "/images/product/1.jpg") => {
   return fallback;
 };
 
+import { fetchNectorReviews } from "@/lib/nector";
+
 export default function ReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ average: 0, total: 0, breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } });
@@ -45,11 +47,7 @@ export default function ReviewsPage() {
     async function fetchReviews() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/reviews/list?limit=1000`, { cache: 'no-store' });
-        const data = await res.json();
-        
-        if (!data.success) throw new Error(data.error || "Failed to fetch");
-        
+        const data = await fetchNectorReviews();
         const items = data.items || [];
         
         // Transform stats array to breakdown object if needed
@@ -61,26 +59,19 @@ export default function ReviewsPage() {
           }
         });
 
-        const count = items.length;
-        let average = 0;
-        if (count > 0) {
-          const sum = items.reduce((s, r) => s + (parseFloat(r.rating) || 0), 0);
-          average = (sum / count).toFixed(1);
-        }
-
         setStats({
-          total: count,
-          average: average,
+          total: data.count || items.length,
+          average: data.average || 0,
           breakdown: breakdown
         });
 
         // Extract gallery
         const galleryItems = [];
         items.forEach((r) => {
-            const uploads = Array.isArray(r.uploads) ? r.uploads : (r.uploads?.uploads || []);
+            const uploads = r.uploads || [];
             uploads.forEach(u => {
                 if (u?.link && u.type === 'image') {
-                    galleryItems.push({ url: u.link, reviewId: r._id || r.id });
+                    galleryItems.push({ url: u.link, reviewId: r.id });
                 }
             });
         });

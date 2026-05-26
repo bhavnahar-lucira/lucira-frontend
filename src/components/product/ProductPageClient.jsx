@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import Image from "next/image";
 import {
   Breadcrumb,
@@ -34,6 +34,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { toast } from 'react-toastify';
+import { apiFetch, fetchVariantPricing } from "@/lib/api";
 import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -61,7 +62,7 @@ import { SizeGuideSheet } from "@/components/product/SizeGuideSheet";
 import { ProductCustomizerMobile } from "@/components/product/ProductCustomizerMobile";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@/redux/features/cart/cartSlice";
-import { selectUser, setPincode as setGlobalPincode, selectPincode } from "@/redux/features/user/userSlice";
+import { selectUser, setPincode, selectPincode } from "@/redux/features/user/userSlice";
 import {
   addWishlistItem,
   removeWishlistItem,
@@ -132,19 +133,19 @@ function getCookieValue(name) {
 }
 
 const handleSafeScroll = (elementRef) => {
-  if (!elementRef.current) return;  
-  const isDesktop = window.innerWidth >= 768;  
+  if (!elementRef.current) return;
+  const isDesktop = window.innerWidth >= 768;
   const bodyRect = document.body.getBoundingClientRect().top;
   const elementRect = elementRef.current.getBoundingClientRect().top;
   const absoluteElementTop = elementRect - bodyRect;
-  const offset = isDesktop ? 80 : 20; 
+  const offset = isDesktop ? 80 : 20;
   const targetPosition = absoluteElementTop - offset;
-  
+
   window.scrollTo({
     top: targetPosition,
     behavior: "smooth",
   });
-  
+
   if (isDesktop) {
     setTimeout(() => {
       window.scrollTo({
@@ -185,9 +186,9 @@ const getColorSpecificImage = (product, colorName) => {
   if (!product?.media || product.media.length === 0) return null;
   const baseColor = getBaseColor(colorName);
   if (!baseColor) return null;
-  
+
   const colorTerms = ["yellow", "white", "rose"];
-  
+
   // Logic similar to ProductGallery: find image matching color base and not mentioning others
   return product.media.find(m => {
     if (m.type !== "IMAGE") return false;
@@ -263,7 +264,7 @@ export default function ProductPageClient({
   const searchParams = useSearchParams();
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
@@ -316,11 +317,7 @@ export default function ProductPageClient({
 
     let ignore = false;
 
-    fetch(`/api/products/related?handle=${encodeURIComponent(product.handle)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch related products");
-        return res.json();
-      })
+    apiFetch(`/api/products/related?handle=${encodeURIComponent(product.handle)}`)
       .then((data) => {
         if (ignore) return;
         setComplementaryProducts(data.complementaryProducts || []);
@@ -336,8 +333,7 @@ export default function ProductPageClient({
   }, [product.handle]);
 
   useEffect(() => {
-    fetch("/api/settings/gold-coin")
-      .then((res) => res.json())
+    apiFetch("/api/settings/gold-coin")
       .then((data) => {
         setGoldCoinConfig({
           enabled: data.enabled ?? false,
@@ -398,23 +394,23 @@ export default function ProductPageClient({
     return product.variants?.find(v => {
       const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
       const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
-      
+
       const targetKarat = String(karat || "").toLowerCase().trim();
       const targetMetal = String(metal || "").toLowerCase().trim();
-      
+
       // If metafields are present, use them for strict matching
       if (vKarat && vMetal) {
-          return vKarat === targetKarat && vMetal === targetMetal && String(v.size) === String(size);
+        return vKarat === targetKarat && vMetal === targetMetal && String(v.size) === String(size);
       }
 
       // Fallback to color string matching
       const vColor = String(v.color || "").toLowerCase().trim();
       const targetColorFull = `${karat} ${metal}`.toLowerCase().trim();
       const targetColorSimple = `${metal}`.toLowerCase().trim();
-      
+
       const sizeMatch = String(v.size) === String(size);
       const colorMatch = vColor === targetColorFull || vColor === targetColorSimple;
-      
+
       return colorMatch && sizeMatch;
     });
   }, [product.variants]);
@@ -457,7 +453,7 @@ export default function ProductPageClient({
 
   // Pincode & Dispatch Logic
   const globalPincode = useSelector(selectPincode);
-  const [pincode, setPincode] = useState(globalPincode || "");
+  const [localPincode, setLocalPincode] = useState(globalPincode || "");
   const [checkingPincode, setCheckingPincode] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState({
     status: "idle", // idle, loading, deliverable, undeliverable
@@ -465,35 +461,33 @@ export default function ProductPageClient({
     coords: null
   });
 
-useEffect(() => {
-  if (
-    globalPincode &&
-    !pincode
-  ) {
-    setPincode(globalPincode);
-  }
-}, [globalPincode]);
+  useEffect(() => {
+    if (
+      globalPincode &&
+      !localPincode
+    ) {
+      setLocalPincode(globalPincode);
+    }
+  }, [globalPincode]);
 
-useEffect(() => {
-  const savedPincode = String(
-    getCookieValue(USER_PINCODE_COOKIE) || ""
-  )
-    .replace(/\D/g, "")
-    .slice(0, 6);
+  useEffect(() => {
+    const savedPincode = String(
+      getCookieValue(USER_PINCODE_COOKIE) || ""
+    )
+      .replace(/\D/g, "")
+      .slice(0, 6);
 
-  if (savedPincode) {
-    setPincode(savedPincode);
+    if (savedPincode) {
+      setLocalPincode(savedPincode);
 
-    dispatch(setGlobalPincode(savedPincode));
-  }
-}, [dispatch]);
+      dispatch(setPincode(savedPincode));
+    }
+  }, [dispatch]);
 
   useEffect(() => {
     const fetchStores = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-        const res = await fetch(`${baseUrl}/api/stores`);
-        const data = await res.json();
+        const data = await apiFetch("/api/stores");
         setAllStores(data.stores || []);
       } catch (err) {
         console.error("Error fetching stores:", err);
@@ -511,10 +505,9 @@ useEffect(() => {
 
   const handlePincodeCheck = useCallback(async (val) => {
     // If val is a string (like from useEffect), use it. 
-    // Otherwise (from button click/event), use the current 'pincode' state.
-    // const pincodeToCheck = (typeof val === 'string' ? val : pincode).trim();
-      const pincodeToCheck = String(
-      typeof val === "string" ? val : pincode
+    // Otherwise (from button click/event), use the current 'localPincode' state.
+    const pincodeToCheck = String(
+      typeof val === "string" ? val : localPincode
     ).trim();
 
     if (pincodeToCheck.length !== 6) {
@@ -526,8 +519,7 @@ useEffect(() => {
     setDeliveryInfo({ status: "loading", message: "Checking..." });
 
     try {
-      const res = await fetch(`/api/pincodes/check?pincode=${pincodeToCheck}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/pincodes/check?pincode=${pincodeToCheck}`);
 
       // GTM tracking for pincode entry
       handlePromoClick('pincodeEntered', pincodeToCheck, {}, true);
@@ -547,7 +539,7 @@ useEffect(() => {
             },
           })
         );
-        dispatch(setGlobalPincode(pincodeToCheck));
+        dispatch(setPincode(pincodeToCheck));
       } else {
         setDeliveryInfo({
           status: "undeliverable",
@@ -563,7 +555,7 @@ useEffect(() => {
     } finally {
       setCheckingPincode(false);
     }
-  }, [pincode, calculateDispatchDate, dispatch]);
+  }, [localPincode, calculateDispatchDate, dispatch]);
 
   // Initial check for persisted pincode - ONLY ON MOUNT
   useEffect(() => {
@@ -575,35 +567,35 @@ useEffect(() => {
   }, []);
 
   useEffect(() => {
-  const applyPincode = (value) => {
-    const cookiePincode = String(value || "")
-      .replace(/\D/g, "")
-      .slice(0, 6);
+    const applyPincode = (value) => {
+      const cookiePincode = String(value || "")
+        .replace(/\D/g, "")
+        .slice(0, 6);
 
-    if (cookiePincode === pincode) return;
+      if (cookiePincode === localPincode) return;
 
-    setPincode(cookiePincode);
+      setLocalPincode(cookiePincode);
 
-    if (cookiePincode.length === 6) {
-      handlePincodeCheck(cookiePincode);
-    }
-  };
+      if (cookiePincode.length === 6) {
+        handlePincodeCheck(cookiePincode);
+      }
+    };
 
-  const handleUserPincode = (event) => {
-    applyPincode(event.detail?.pincode);
-  };
+    const handleUserPincode = (event) => {
+      applyPincode(event.detail?.pincode);
+    };
 
-  window.addEventListener(
-    "lucira:user-pincode",
-    handleUserPincode
-  );
-
-  return () =>
-    window.removeEventListener(
+    window.addEventListener(
       "lucira:user-pincode",
       handleUserPincode
     );
-}, [handlePincodeCheck, pincode]);
+
+    return () =>
+      window.removeEventListener(
+        "lucira:user-pincode",
+        handleUserPincode
+      );
+  }, [handlePincodeCheck, localPincode]);
 
   // Update dispatch message when variant changes (size/color)
   useEffect(() => {
@@ -638,7 +630,7 @@ useEffect(() => {
 
       const storeNameLower = store.name.toLowerCase();
       const storeCityLower = (store.city || "").toLowerCase();
-      
+
       return inStoreTags.some(tag => {
         const tagLower = String(tag).toLowerCase();
         if (tagLower.includes("gid://")) return false;
@@ -704,8 +696,17 @@ useEffect(() => {
 
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
-  const currentWishlistKey = `${getNumericId(productId)}-${getNumericId(activeVariantId)}`;
-  const isWishlisted = productId ? wishlistItems.some((item) => `${getNumericId(item.productId)}-${getNumericId(item.variantId || "")}` === currentWishlistKey) : false;
+  
+  const isWishlisted = useMemo(() => {
+    const normProductId = String(getNumericId(productId));
+    const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
+    
+    if (user?.id) {
+      return wishlistItems.some(findFn);
+    }
+    const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
+    return guestItems.some(findFn);
+  }, [user?.id, wishlistItems, productId]);
   const recentlyViewedState = useSelector(selectRecentlyViewed);
 
   const handleSaveEngraving = () => {
@@ -831,7 +832,7 @@ useEffect(() => {
     try {
       // Calculate robust diamondCharges
       let finalDiamondCharges = priceBreakup?.raw_breakup?.diamond?.final || 0;
-      
+
       // Fallback: Calculate from variant_config if priceBreakup is not ready
       if (finalDiamondCharges === 0) {
         try {
@@ -842,7 +843,7 @@ useEffect(() => {
           } else if (config.diamond_charges) {
             finalDiamondCharges = config.diamond_charges;
           }
-        } catch(e) {}
+        } catch (e) { }
       }
 
       // Calculate fallbacks from metafields
@@ -968,48 +969,67 @@ useEffect(() => {
       toast.error("Unable to save this product");
       return;
     }
+    const rawProductId = product.shopifyId || product.id;
+    if (!rawProductId) return;
 
     setWishlistLoading(true);
     try {
-      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : "";
-      const thumbnailImage = getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.images?.[0]?.url || product.featuredImage || (product.media && product.media[0]?.url));
-      const commonTrackingData = getStandardWishlistPayload(product, activeVariant, currentOrigin, thumbnailImage);
-
       if (isWishlisted) {
-        if (user?.id) {
-          await dispatch(removeWishlistItem({ productId, variantId: activeVariantId })).unwrap();
-        } else {
-          dispatch(removeGuestWishlistItem({ productId, variantId: activeVariantId }));
+        // Remove
+        const normProductId = String(getNumericId(rawProductId));
+        const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
+        const targetItem = (user?.id ? wishlistItems : guestItems).find(
+          (item) => String(getNumericId(item.productId)) === normProductId
+        );
+        
+        if (targetItem) {
+          if (user?.id) {
+            dispatch(removeWishlistItem({ productId: targetItem.productId, variantId: targetItem.variantId }));
+          } else {
+            dispatch(removeGuestWishlistItem({ productId: targetItem.productId, variantId: targetItem.variantId }));
+          }
         }
-        pushRemoveFromWishlist(commonTrackingData);
-        toast.error("Removed from wishlist", {
-          icon: <Check className="w-4 h-4" />
-        });
+
+        const commonTrackingData = getStandardWishlistPayload(
+          product,
+          activeVariant,
+          typeof window !== 'undefined' ? window.location.origin : '',
+          getValidSrc(activeVariant?.image || product.featuredImage)
+        );
+        pushRemoveFromWishlist([commonTrackingData]);
+        toast.info("Removed from wishlist");
       } else {
+        // Add
         const payload = {
-          productId,
-          variantId: activeVariantId,
-          variantTitle: activeVariant?.title || "",
-          size: selectedSize || "",
-          color: activeColor || "",
-          karat: activeKarat || "",
-          productHandle: product.handle || "",
+          productId: rawProductId,
+          productHandle: product.handle,
           title: product.title,
-          image: thumbnailImage,
-          price: activeVariant?.price || product.price || "",
+          image: typeof activeVariant?.image === 'string' ? activeVariant.image : (activeVariant?.image?.url || product.featuredImage),
+          price: activeVariant?.price || product.price,
           comparePrice: activeVariant?.compare_price || product.compare_price || "",
           reviews: product.reviews || null,
-          hasVideo: Boolean(product.media?.some((m) => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO")),
+          hasVideo: Boolean(product.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO")),
           hasSimilar: Boolean(product.handle),
+          variantId: String(getNumericId(activeVariantId)),
+          size: selectedSize || "",
+          color: activeColor || activeKarat || ""
         };
 
+        const commonTrackingData = getStandardWishlistPayload(
+          product,
+          activeVariant,
+          typeof window !== 'undefined' ? window.location.origin : '',
+          payload.image
+        );
+
         if (user?.id) {
-          await dispatch(addWishlistItem(payload)).unwrap();
+          const finalUserId = typeof user.id === 'object' ? user.id.$oid || user.id.toString() : user.id;
+          dispatch(addWishlistItem({ ...payload, userId: finalUserId }));
         } else {
           dispatch(addGuestWishlistItem(payload));
         }
 
-        pushAddToWishlist(commonTrackingData);
+        pushAddToWishlist([commonTrackingData]);
         toast.success("Saved to wishlist");
       }
     } catch (err) {
@@ -1109,15 +1129,20 @@ useEffect(() => {
   useEffect(() => {
     if (!activeVariant?.id) return;
 
-    fetch(`/api/variant-pricing?variantId=${activeVariant.id}&productId=${product.shopifyId}`)
-      .then((res) => res.json())
+    const vid = getNumericId(activeVariant.id);
+    const pid = getNumericId(product.shopifyId || product.id);
+    // Capture the variantId at the time of fetch to tag the result
+    const snapshotId = String(activeVariant.id);
+
+    fetchVariantPricing(vid, pid)
       .then((data) => {
-        setPriceBreakup(data);
+        // Tag the response with the activeVariant.id so comparison is reliable
+        setPriceBreakup({ ...data, variantId: snapshotId });
       })
       .catch((err) => {
         console.error("Pricing fetch failed", err);
       });
-  }, [activeVariant, product.shopifyId]);
+  }, [activeVariant, product.shopifyId, product.id]);
 
   // Toast notification on price update
   useEffect(() => {
@@ -1191,10 +1216,18 @@ useEffect(() => {
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const res = await fetch(`/api/products/similar?handle=${product.handle}`);
-      const data = await res.json();
-      const validProducts = (data.products || []).filter(p => p.handle !== product.handle);
-      setSimilarProducts(validProducts);
+      const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
+      // Priority: complementaryProducts > matchingProducts > products
+      let products = data.complementaryProducts || data.matchingProducts || data.products || [];
+
+      // Fallback: If no related products found, use search API based on product type
+      if (products.length === 0 && (product.type || product.category)) {
+        const query = product.type || product.category;
+        const searchData = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=11`);
+        products = searchData.products || [];
+      }
+
+      setSimilarProducts(products.filter(p => p.handle !== product.handle));
     } catch (e) {
       console.error("Failed to fetch similar products", e);
     } finally {
@@ -1210,14 +1243,14 @@ useEffect(() => {
     setActiveKarat(karat);
 
     let variant = findMatchingVariant(metal, karat, selectedSize);
-    
+
     // If exact match with current size isn't found, pick the first available variant for this color
     if (!variant) {
       variant = product.variants?.find(v => {
         const vColor = String(v.color || "").toLowerCase().trim();
         const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
         const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
-        
+
         const targetKarat = String(karat || "").toLowerCase().trim();
         const targetMetal = String(metal || "").toLowerCase().trim();
         const targetColorFull = `${karat} ${metal}`.toLowerCase().trim();
@@ -1231,7 +1264,7 @@ useEffect(() => {
         const vColor = String(v.color || "").toLowerCase().trim();
         const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
         const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
-        
+
         const targetKarat = String(karat || "").toLowerCase().trim();
         const targetMetal = String(metal || "").toLowerCase().trim();
         const targetColorFull = `${karat} ${metal}`.toLowerCase().trim();
@@ -1631,9 +1664,9 @@ useEffect(() => {
                       product.variants?.forEach(v => {
                         const karat = v.metafields?.metal_purity || String(v.color || v.title || "").split(" ")[0];
                         const metal = v.metafields?.metal_color || String(v.color || v.title || "").split(" ").slice(1).join(" ");
-                        
+
                         if (karat && metal && !combinations.find(c => c.karat === karat && c.metal === metal)) {
-                           combinations.push({ karat, metal });
+                          combinations.push({ karat, metal });
                         }
                       });
 
@@ -1655,7 +1688,7 @@ useEffect(() => {
 
                         const aMetalIdx = metalOrder.findIndex(m => a.metal.toLowerCase().includes(m.split(" ")[0].toLowerCase()));
                         const bMetalIdx = metalOrder.findIndex(m => b.metal.toLowerCase().includes(m.split(" ")[0].toLowerCase()));
-                        
+
                         return (aMetalIdx === -1 ? 99 : aMetalIdx) - (bMetalIdx === -1 ? 99 : bMetalIdx);
                       });
                       const colorMap = {
@@ -1920,7 +1953,7 @@ useEffect(() => {
                                   <div className="space-y-2">
                                     <div className="flex items-center gap-2">
                                       <p className="text-[14px] font-bold text-black tracking-tight">₹{formatPrice(item.price)}</p>
-                                      {(item.compare_price || item.compareAtPrice) > item.price && (
+                                      {(Number(item.compare_price || item.compareAtPrice || 0) > Number(item.price || 0)) && (
                                         <p className="text-[12px] text-zinc-400 line-through font-medium">₹{formatPrice(item.compare_price || item.compareAtPrice)}</p>
                                       )}
                                     </div>
@@ -2093,8 +2126,8 @@ useEffect(() => {
                 <Feature
                   icon={
                     <svg width="22" height="22" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21.125 18.9583C21.125 19.6766 20.8397 20.3655 20.3317 20.8734C19.8238 21.3813 19.135 21.6667 18.4167 21.6667C17.6984 21.6667 17.0095 21.3813 16.5016 20.8734C15.9937 20.3655 15.7083 19.6766 15.7083 18.9583C15.7083 18.24 15.9937 17.5512 16.5016 17.0433C17.0095 16.5353 17.6984 16.25 18.4167 16.25C19.135 16.25 19.8238 16.5353 20.3317 17.0433C20.8397 17.5512 21.125 18.24 21.125 18.9583ZM10.2917 18.9583C10.2917 19.6766 10.0063 20.3655 9.49841 20.8734C8.9905 21.3813 8.30163 21.6667 7.58333 21.6667C6.86504 21.6667 6.17616 21.3813 5.66825 20.8734C5.16034 20.3655 4.875 19.6766 4.875 18.9583C4.875 18.24 5.16034 17.5512 5.66825 17.0433C6.17616 16.5353 6.86504 16.25 7.58333 16.25C8.30163 16.25 8.9905 16.5353 9.49841 17.0433C10.0063 17.5512 10.2917 18.24 10.2917 18.9583Z" stroke="#5A413F" strokeWidth="2"/>
-                      <path d="M15.7084 18.9585H10.2917M21.1251 18.9585H21.9517C22.19 18.9585 22.3092 18.9585 22.4088 18.9455C22.7675 18.9008 23.101 18.7379 23.3566 18.4824C23.6123 18.227 23.7755 17.8936 23.8204 17.535C23.8334 17.4342 23.8334 17.3151 23.8334 17.0767V14.0835C23.8334 12.2159 23.0915 10.4249 21.771 9.10429C20.4504 7.78372 18.6593 7.04183 16.7917 7.04183M16.2501 16.7918V7.5835C16.2501 6.05166 16.2501 5.28575 15.7734 4.81016C15.2989 4.3335 14.533 4.3335 13.0001 4.3335H5.41675C3.88491 4.3335 3.119 4.3335 2.64341 4.81016C2.16675 5.28466 2.16675 6.05058 2.16675 7.5835V16.2502C2.16675 17.2631 2.16675 17.769 2.3845 18.146C2.52712 18.393 2.73224 18.5981 2.97925 18.7407C3.35625 18.9585 3.86216 18.9585 4.87508 18.9585" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M21.125 18.9583C21.125 19.6766 20.8397 20.3655 20.3317 20.8734C19.8238 21.3813 19.135 21.6667 18.4167 21.6667C17.6984 21.6667 17.0095 21.3813 16.5016 20.8734C15.9937 20.3655 15.7083 19.6766 15.7083 18.9583C15.7083 18.24 15.9937 17.5512 16.5016 17.0433C17.0095 16.5353 17.6984 16.25 18.4167 16.25C19.135 16.25 19.8238 16.5353 20.3317 17.0433C20.8397 17.5512 21.125 18.24 21.125 18.9583ZM10.2917 18.9583C10.2917 19.6766 10.0063 20.3655 9.49841 20.8734C8.9905 21.3813 8.30163 21.6667 7.58333 21.6667C6.86504 21.6667 6.17616 21.3813 5.66825 20.8734C5.16034 20.3655 4.875 19.6766 4.875 18.9583C4.875 18.24 5.16034 17.5512 5.66825 17.0433C6.17616 16.5353 6.86504 16.25 7.58333 16.25C8.30163 16.25 8.9905 16.5353 9.49841 17.0433C10.0063 17.5512 10.2917 18.24 10.2917 18.9583Z" stroke="#5A413F" strokeWidth="2" />
+                      <path d="M15.7084 18.9585H10.2917M21.1251 18.9585H21.9517C22.19 18.9585 22.3092 18.9585 22.4088 18.9455C22.7675 18.9008 23.101 18.7379 23.3566 18.4824C23.6123 18.227 23.7755 17.8936 23.8204 17.535C23.8334 17.4342 23.8334 17.3151 23.8334 17.0767V14.0835C23.8334 12.2159 23.0915 10.4249 21.771 9.10429C20.4504 7.78372 18.6593 7.04183 16.7917 7.04183M16.2501 16.7918V7.5835C16.2501 6.05166 16.2501 5.28575 15.7734 4.81016C15.2989 4.3335 14.533 4.3335 13.0001 4.3335H5.41675C3.88491 4.3335 3.119 4.3335 2.64341 4.81016C2.16675 5.28466 2.16675 6.05058 2.16675 7.5835V16.2502C2.16675 17.2631 2.16675 17.769 2.3845 18.146C2.52712 18.393 2.73224 18.5981 2.97925 18.7407C3.35625 18.9585 3.86216 18.9585 4.87508 18.9585" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   }
                   text="Free and secure shipping"
@@ -2103,12 +2136,12 @@ useEffect(() => {
                   icon={
                     <svg width="22" height="22" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <g clipPath="url(#clip0_2_68952)">
-                        <path d="M0.8125 15.4375V25.1875M0.8125 23.5625H18.6875C18.6875 22.7005 18.3451 21.8739 17.7356 21.2644C17.1261 20.6549 16.2995 20.3125 15.4375 20.3125H11.375M11.375 20.3125C11.375 19.4505 11.0326 18.6239 10.4231 18.0144C9.8136 17.4049 8.98695 17.0625 8.125 17.0625H0.8125M11.375 20.3125H7.3125M7.1825 0.8125H23.6925C24.0929 0.81821 24.4747 0.982005 24.7548 1.26816C25.0349 1.55431 25.1904 1.93961 25.1875 2.34V11.7433C25.1904 12.1437 25.0349 12.529 24.7548 12.8152C24.4747 13.1013 24.0929 13.2651 23.6925 13.2708H7.1825C6.78214 13.2651 6.40028 13.1013 6.12021 12.8152C5.84015 12.529 5.6846 12.1437 5.6875 11.7433V2.34C5.6846 1.93961 5.84015 1.55431 6.12021 1.26816C6.40028 0.982005 6.78214 0.81821 7.1825 0.8125Z" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M8.66663 4.3335H10.2916M20.5833 9.75016H22.2083M13 7.04183C13 7.68829 13.2568 8.30828 13.7139 8.7654C14.171 9.22252 14.791 9.47933 15.4375 9.47933C16.0839 9.47933 16.7039 9.22252 17.161 8.7654C17.6182 8.30828 17.875 7.68829 17.875 7.04183C17.875 6.39536 17.6182 5.77538 17.161 5.31826C16.7039 4.86114 16.0839 4.60433 15.4375 4.60433C14.791 4.60433 14.171 4.86114 13.7139 5.31826C13.2568 5.77538 13 6.39536 13 7.04183Z" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M0.8125 15.4375V25.1875M0.8125 23.5625H18.6875C18.6875 22.7005 18.3451 21.8739 17.7356 21.2644C17.1261 20.6549 16.2995 20.3125 15.4375 20.3125H11.375M11.375 20.3125C11.375 19.4505 11.0326 18.6239 10.4231 18.0144C9.8136 17.4049 8.98695 17.0625 8.125 17.0625H0.8125M11.375 20.3125H7.3125M7.1825 0.8125H23.6925C24.0929 0.81821 24.4747 0.982005 24.7548 1.26816C25.0349 1.55431 25.1904 1.93961 25.1875 2.34V11.7433C25.1904 12.1437 25.0349 12.529 24.7548 12.8152C24.4747 13.1013 24.0929 13.2651 23.6925 13.2708H7.1825C6.78214 13.2651 6.40028 13.1013 6.12021 12.8152C5.84015 12.529 5.6846 12.1437 5.6875 11.7433V2.34C5.6846 1.93961 5.84015 1.55431 6.12021 1.26816C6.40028 0.982005 6.78214 0.81821 7.1825 0.8125Z" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M8.66663 4.3335H10.2916M20.5833 9.75016H22.2083M13 7.04183C13 7.68829 13.2568 8.30828 13.7139 8.7654C14.171 9.22252 14.791 9.47933 15.4375 9.47933C16.0839 9.47933 16.7039 9.22252 17.161 8.7654C17.6182 8.30828 17.875 7.68829 17.875 7.04183C17.875 6.39536 17.6182 5.77538 17.161 5.31826C16.7039 4.86114 16.0839 4.60433 15.4375 4.60433C14.791 4.60433 14.171 4.86114 13.7139 5.31826C13.2568 5.77538 13 6.39536 13 7.04183Z" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </g>
                       <defs>
                         <clipPath id="clip0_2_68952">
-                          <rect width="26" height="26" fill="white"/>
+                          <rect width="26" height="26" fill="white" />
                         </clipPath>
                       </defs>
                     </svg>
@@ -2118,7 +2151,7 @@ useEffect(() => {
                 <Feature
                   icon={
                     <svg width="22" height="22" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18.3917 21.1248C20.2953 19.8642 21.6962 17.9755 22.3501 15.788C23.004 13.6005 22.8694 11.2529 21.9699 9.15437C21.0704 7.05588 19.463 5.33961 17.4279 4.30473C15.3927 3.26984 13.0589 2.98199 10.8333 3.49135M22.2083 21.1248H18.3917V17.3331M7.58333 4.89209C5.68631 6.15733 4.29275 8.04743 3.64498 10.2337C2.99721 12.42 3.13622 14.7642 4.03782 16.8586C4.93942 18.9531 6.54659 20.6652 8.57984 21.6974C10.6131 22.7296 12.9438 23.0165 15.1667 22.5082M3.79167 4.89209H7.58333V8.66643" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M18.3917 21.1248C20.2953 19.8642 21.6962 17.9755 22.3501 15.788C23.004 13.6005 22.8694 11.2529 21.9699 9.15437C21.0704 7.05588 19.463 5.33961 17.4279 4.30473C15.3927 3.26984 13.0589 2.98199 10.8333 3.49135M22.2083 21.1248H18.3917V17.3331M7.58333 4.89209C5.68631 6.15733 4.29275 8.04743 3.64498 10.2337C2.99721 12.42 3.13622 14.7642 4.03782 16.8586C4.93942 18.9531 6.54659 20.6652 8.57984 21.6974C10.6131 22.7296 12.9438 23.0165 15.1667 22.5082M3.79167 4.89209H7.58333V8.66643" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   }
                   text="Lifetime exchange and 100% value guarantee"
@@ -2126,7 +2159,7 @@ useEffect(() => {
                 <Feature
                   icon={
                     <svg width="22" height="22" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path fillRule="evenodd" clipRule="evenodd" d="M7.07957 3.521C6.76741 3.5211 6.4601 3.59828 6.18494 3.74569C5.90977 3.8931 5.67527 4.10618 5.50224 4.366L1.61416 10.1965C1.37691 10.554 1.34874 11.0112 1.54049 11.3947C3.66944 15.6493 6.6262 19.4362 10.2375 22.5335L12.1333 24.1596C12.3748 24.3666 12.6824 24.4804 13.0005 24.4804C13.3186 24.4804 13.6262 24.3666 13.8677 24.1596L15.7636 22.5346C19.3754 19.4371 22.3325 15.6498 24.4617 11.3947C24.6534 11.0112 24.6242 10.554 24.3869 10.1965L20.4967 4.366C20.3236 4.10653 20.0892 3.89376 19.8143 3.74655C19.5393 3.59934 19.2323 3.52224 18.9204 3.52208L7.07957 3.521ZM6.85424 5.26625C6.87901 5.22922 6.91253 5.19887 6.95184 5.17789C6.99115 5.15691 7.03502 5.14596 7.07957 5.146H9.61457L7.53999 10.125C7.49389 10.2394 7.45765 10.3576 7.43166 10.4782C6.6687 10.4213 5.90667 10.3526 5.14582 10.2723L3.62374 10.1131L6.85424 5.26625ZM3.55332 11.7392C5.49823 15.3049 8.06409 18.4948 11.1302 21.1587L7.74474 12.1302C6.82109 12.0667 5.89866 11.9866 4.97791 11.8897L3.55332 11.7392ZM9.51816 12.231L13 21.5195L16.4829 12.231C14.1622 12.3362 11.8378 12.3362 9.51707 12.231M18.2563 12.1302L14.8709 21.1587C17.937 18.4948 20.5028 15.3049 22.4477 11.7392L21.0232 11.8897C20.1023 11.9858 19.18 12.066 18.2563 12.1302ZM22.3762 10.1131L20.8531 10.2734C20.0922 10.3537 19.3302 10.4223 18.5672 10.4792C18.5417 10.3583 18.5058 10.2398 18.46 10.125L16.3854 5.146H18.9204C18.965 5.14596 19.0088 5.15691 19.0481 5.17789C19.0874 5.19887 19.121 5.22922 19.1457 5.26625L22.3762 10.1131ZM16.8913 10.5843C14.2978 10.7187 11.7036 10.7187 9.10866 10.5843L11.375 5.146H14.625L16.8913 10.5843Z" fill="#5A413F"/>
+                      <path fillRule="evenodd" clipRule="evenodd" d="M7.07957 3.521C6.76741 3.5211 6.4601 3.59828 6.18494 3.74569C5.90977 3.8931 5.67527 4.10618 5.50224 4.366L1.61416 10.1965C1.37691 10.554 1.34874 11.0112 1.54049 11.3947C3.66944 15.6493 6.6262 19.4362 10.2375 22.5335L12.1333 24.1596C12.3748 24.3666 12.6824 24.4804 13.0005 24.4804C13.3186 24.4804 13.6262 24.3666 13.8677 24.1596L15.7636 22.5346C19.3754 19.4371 22.3325 15.6498 24.4617 11.3947C24.6534 11.0112 24.6242 10.554 24.3869 10.1965L20.4967 4.366C20.3236 4.10653 20.0892 3.89376 19.8143 3.74655C19.5393 3.59934 19.2323 3.52224 18.9204 3.52208L7.07957 3.521ZM6.85424 5.26625C6.87901 5.22922 6.91253 5.19887 6.95184 5.17789C6.99115 5.15691 7.03502 5.14596 7.07957 5.146H9.61457L7.53999 10.125C7.49389 10.2394 7.45765 10.3576 7.43166 10.4782C6.6687 10.4213 5.90667 10.3526 5.14582 10.2723L3.62374 10.1131L6.85424 5.26625ZM3.55332 11.7392C5.49823 15.3049 8.06409 18.4948 11.1302 21.1587L7.74474 12.1302C6.82109 12.0667 5.89866 11.9866 4.97791 11.8897L3.55332 11.7392ZM9.51816 12.231L13 21.5195L16.4829 12.231C14.1622 12.3362 11.8378 12.3362 9.51707 12.231M18.2563 12.1302L14.8709 21.1587C17.937 18.4948 20.5028 15.3049 22.4477 11.7392L21.0232 11.8897C20.1023 11.9858 19.18 12.066 18.2563 12.1302ZM22.3762 10.1131L20.8531 10.2734C20.0922 10.3537 19.3302 10.4223 18.5672 10.4792C18.5417 10.3583 18.5058 10.2398 18.46 10.125L16.3854 5.146H18.9204C18.965 5.14596 19.0088 5.15691 19.0481 5.17789C19.0874 5.19887 19.121 5.22922 19.1457 5.26625L22.3762 10.1131ZM16.8913 10.5843C14.2978 10.7187 11.7036 10.7187 9.10866 10.5843L11.375 5.146H14.625L16.8913 10.5843Z" fill="#5A413F" />
                     </svg>
                   }
                   text="IGI and Hallmark certified"
@@ -2159,19 +2192,20 @@ useEffect(() => {
                 <div className="relative">
                   <Input
                     placeholder="Enter Pincode"
-                    value={pincode}
-                    onChange={(e) => {const value = e.target.value.replace(/\D/g, "").slice(0, 6);
-                      setPincode(value);
-                      dispatch(setGlobalPincode(value));
+                    value={localPincode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      setLocalPincode(value);
+                      dispatch(setPincode(value));
                     }}
-                    onKeyDown={(e) => e.key === 'Enter' && handlePincodeCheck(pincode)}
+                    onKeyDown={(e) => e.key === 'Enter' && handlePincodeCheck(localPincode)}
                     maxLength={6}
                     inputMode="numeric"
                     pattern="[0-9]*"
                     className="h-14 bg-white border-gray-200 rounded-md text-sm font-medium pr-40"
                   />
                   <Button
-                    onClick={() => handlePincodeCheck(pincode)}
+                    onClick={() => handlePincodeCheck(localPincode)}
                     disabled={checkingPincode}
                     className="h-12 px-10 font-bold rounded-md absolute right-1 top-1/2 transform -translate-y-1/2 bg-tertiary hover:cursor-pointer"
                   >
@@ -2311,7 +2345,7 @@ useEffect(() => {
                   </div>
                   <Separator />
                 </div>
-                
+
               );
             })()}
             {/* Explore Section */}
@@ -2322,7 +2356,7 @@ useEffect(() => {
                 title="Visit Our Store"
                 description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                 action="BOOK APPOINTMENT"
-                img="/images/store.jpg"
+                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDP_Store.jpg"
                 url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                 onClick={() => pushToDataLayer({
                   event: 'promoClick',
@@ -2338,7 +2372,7 @@ useEffect(() => {
                 title="Try At Home"
                 description="Try your selected pieces from the comfort of your home. Available in all major cities"
                 action="BOOK HOME TRIAL"
-                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/subscribe-2_6402a239-1346-40d1-9ea4-bd006e45e7b7.jpg"
+                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
                 url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
                 onClick={() => pushToDataLayer({
                   event: 'promoClick',
@@ -2383,7 +2417,7 @@ useEffect(() => {
                 {/* Metal Card */}
                 <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="/images/icons/metal.svg" alt="Metal" width={18} height={18} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal" width={18} height={18} />
                     Metal <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("metal")} />
                   </div>
                   <div className="space-y-2">
@@ -2411,7 +2445,7 @@ useEffect(() => {
                 {/* Dimensions Card */}
                 <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="/images/icons/dimension.svg" alt="Dimensions" width={18} height={18} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_dimension.svg" alt="Dimensions" width={18} height={18} />
                     Dimension <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("dimension")} />
                   </div>
                   <div className="space-y-2">
@@ -2440,7 +2474,7 @@ useEffect(() => {
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1 && (
                   <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                      <Image src="/images/icons/diamond.svg" alt="Diamond" width={18} height={18} />
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
                     </div>
                     <div className="space-y-2.5">
@@ -2505,7 +2539,7 @@ useEffect(() => {
               {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length > 1 && (
                 <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="/images/icons/diamond.svg" alt="Diamond" width={18} height={18} />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                     Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
                   </div>
 
@@ -2535,7 +2569,7 @@ useEffect(() => {
               {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length > 1 && (
                 <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="/images/icons/diamond.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
+                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
                     Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" />
                   </div>
 
@@ -2561,25 +2595,24 @@ useEffect(() => {
                 </div>
               )}
 
-              <p className="text-xs leading-relaxed text-gray-900 italic mt-3">
-                * Our products are handcrafted and personalised for your delight, hence a weight variance is expected.
-              </p>
-            </div>
+              <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
 
-            <div ref={productDetailsRef}>
-              <PriceSavingsDetails
-                priceBreakup={priceBreakup?.price_breakup}
-                onTabChange={(tab) => {
-                  if (tab === 'price') {
-                    const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
-                    handlePromoClick('priceBreakup', 'Product Details Section', { savings_amount: totalSavingsAmount });
-                  } else if (tab === 'comparison') {
-                    const savingsStr = priceBreakup?.price_breakup?.comparison?.savings || '₹0';
-                    const savingsAmount = parseFloat(savingsStr.replace(/[^\d.]/g, '')) || 0;
-                    handlePromoClick('yourSavings', savingsAmount, { savings_amount: savingsAmount });
-                  }
-                }}
-              />
+              <div ref={productDetailsRef} className="mt-8">
+                <PriceSavingsDetails
+                  priceBreakup={priceBreakup?.price_breakup}
+                  onTabChange={(tab) => {
+                    if (tab === 'price') {
+                      const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
+                      handlePromoClick('priceBreakup', 'Product Details Section', { savings_amount: totalSavingsAmount });
+                    } else if (tab === 'comparison') {
+                      const savingsStr = priceBreakup?.price_breakup?.comparison?.savings || '₹0';
+                      const savingsAmount = parseFloat(savingsStr.replace(/[^\d.]/g, '')) || 0;
+                      handlePromoClick('yourSavings', savingsAmount, { savings_amount: savingsAmount });
+                    }
+                  }}
+                />
+              </div>
+
             </div>
 
             {priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id) && priceBreakup?.price_breakup?.total_savings && priceBreakup?.price_breakup?.total_savings !== "₹0" && (
@@ -2662,8 +2695,8 @@ useEffect(() => {
       {/* <ExploreOtherRings /> */}
       {isMobile ? (<ExploreRange />) : (<CategorySlider />)}
       <FindLuciraStore
-        pincode={pincode}
-        setPincode={setPincode}
+        pincode={localPincode}
+        setPincode={setLocalPincode}
         handlePincodeCheck={handlePincodeCheck}
         checkingPincode={checkingPincode}
         deliveryInfo={deliveryInfo}
@@ -2742,7 +2775,7 @@ useEffect(() => {
                             className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
                           >
                             <div className="relative w-7 h-7">
-                              <Image src="/images/icons/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
+                              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
@@ -2829,16 +2862,16 @@ useEffect(() => {
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                            href={`https://wa.me/919172499912?text=${encodeURIComponent(
-                              `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
-                            )}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
-                          >
-                            <div className="relative w-7 h-7">
-                              <Image src="/images/icons/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
-                            </div>
+                          href={`https://wa.me/919172499912?text=${encodeURIComponent(
+                            `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
+                        >
+                          <div className="relative w-7 h-7">
+                            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
+                          </div>
                         </a>
                         <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
                           <a href={`tel:${store.phone || "+919172499912"}`}>CALL STORE</a>

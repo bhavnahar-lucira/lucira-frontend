@@ -38,8 +38,10 @@ import {
 import { pushProductClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
+import { apiFetch, fetchVariantPricing } from "@/lib/api";
 
 const clientReviewStatsCache = new Map();
+const clientPriceCache = new Map();
 
 const colorMap = {
   yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
@@ -85,7 +87,7 @@ function getUniqueBaseColors(colors = []) {
 
 function getVariantForBase(product, selectedBase) {
   const inStockVariant = product?.variants?.find(
-    (v) => (v.inStock === true || v.inStock === "true") && getBaseColor(v.color || v.title) === selectedBase
+    (v) => (v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && v.inventoryQuantity > 0)) && getBaseColor(v.color || v.title) === selectedBase
   );
   if (inStockVariant) return inStockVariant;
   return (
@@ -208,10 +210,64 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
   const [reviewStats, setReviewStats] = useState(product.reviews || product.reviewStats || { count: 0, average: 0 });
+  const [livePrice, setLivePrice] = useState(null);
+  const [liveComparePrice, setLiveComparePrice] = useState(null);
 
   useEffect(() => {
     setReviewStats(product.reviews || product.reviewStats || { count: 0, average: 0 });
   }, [product.reviews, product.reviewStats]);
+
+  const currentVariant = useMemo(() => {
+    return getVariantForBase(product, activeBase);
+  }, [product, activeBase]);
+
+  const pricingVariant = prioritizedVariant || currentVariant;
+
+  // Live Pricing Fetch
+  useEffect(() => {
+    if (fixedPrice || !pricingVariant?.id) return;
+    
+    const variantId = String(pricingVariant.id);
+    const productId = String(product.shopifyId || product.id);
+    const cacheKey = `${productId}-${variantId}`;
+    
+    if (clientPriceCache.has(cacheKey)) {
+      const cached = clientPriceCache.get(cacheKey);
+      setLivePrice(cached.price);
+      setLiveComparePrice(cached.comparePrice);
+      return;
+    }
+
+    let ignore = false;
+    const vid = getNumericId(variantId);
+    const pid = getNumericId(productId);
+
+    fetchVariantPricing(vid, pid)
+      .then((data) => {
+        if (ignore) return;
+        if (data?.raw_breakup?.total) {
+          const p = data.raw_breakup.total;
+          const cp = data.raw_breakup.original_total > p ? data.raw_breakup.original_total : null;
+          clientPriceCache.set(cacheKey, { price: p, comparePrice: cp });
+          setLivePrice(p);
+          setLiveComparePrice(cp);
+        } else {
+          // If response is valid but no breakup, cache as null to prevent re-fetch
+          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
+        }
+      })
+      .catch((err) => {
+        // Silently handle "Variant config not found" or other 404s
+        // These are expected for items not yet configured in the backend
+        if (err.message?.includes("not found")) {
+          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
+        } else {
+          console.warn("[ProductCard] Pricing fetch failed:", err.message);
+        }
+      });
+
+    return () => { ignore = true; };
+  }, [pricingVariant?.id, product.shopifyId, product.id, fixedPrice]);
 
   useEffect(() => {
     const productReviewId = product.shopifyId || product.id;
@@ -245,17 +301,54 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     };
   }, [product.shopifyId, product.id, reviewStats?.count]);
 
+  const hasSimilar = true; // Always allow viewing similar products as we can fetch them by handle
   const videoMedia = useMemo(() => {
-    if (product.video) return product.video;
-    return product.media?.find(m => m.mediaContentType === "VIDEO" || m.mimeType?.includes("video")) || null;
-  }, [product.video, product.media]);
+    // 1. Check if product.video is an object or a direct string URL
+    if (product.video) {
+      if (typeof product.video === "string") return { url: product.video, mimeType: "video/mp4" };
+      return product.video;
+    }
 
-  const currentVariant = useMemo(() => {
-    return product.variants?.find((v) => getBaseColor(v.color || v.title) === activeBase) || product.variants?.[0] || null;
-  }, [product.variants, activeBase]);
+    // 2. Search in media array for VIDEO or EXTERNAL_VIDEO
+    const mediaVideo = product.media?.find(m => 
+      m.mediaContentType === "VIDEO" || 
+      m.mediaContentType === "EXTERNAL_VIDEO" || 
+      m.type === "VIDEO" || 
+      m.type === "EXTERNAL_VIDEO" || 
+      m.mimeType?.includes("video") || 
+      m.url?.includes(".mp4")
+    );
+    if (mediaVideo) return mediaVideo;
+    
+    // 3. Check if any image is actually a video URL or if direct URL fields exist
+    const videoUrl = (product.images || product.media)?.find(img => 
+      img.url?.includes(".mp4") || 
+      img.url?.includes("video") ||
+      img.mediaContentType === "VIDEO"
+    )?.url || product.videoUrl || product.video_url || product.productMetafields?.video_url;
 
-  const displayPrice = fixedPrice || currentVariant?.price || product.price;
-  const displayComparePrice = fixedComparePrice || currentVariant?.compare_price || currentVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
+    if (videoUrl) return { url: videoUrl, mimeType: "video/mp4" };
+    
+    // 4. Fallback to boolean flags from Shopify/Backend
+    const hasVideoFlag = product.hasVideo === true || product.hasVideo === "true" || 
+                         product.productMetafields?.has_video === true || product.productMetafields?.has_video === "true";
+
+    if (hasVideoFlag) {
+       const sku = currentVariant?.sku || product.variants?.[0]?.sku;
+       if (sku) {
+          // Standard Lucira CDN pattern
+          return { url: `https://luciraonline.myshopify.com/cdn/shop/files/${sku}.mp4`, isPlaceholder: true };
+       }
+       return { url: null, isPlaceholder: true }; 
+    }
+
+    return null;
+  }, [product.video, product.media, product.images, product.videoUrl, product.video_url, product.hasVideo, product.productMetafields, currentVariant?.sku, product.variants]);
+
+  const showVideoIcon = Boolean(videoMedia);
+
+  const displayPrice = fixedPrice || livePrice || pricingVariant?.price_breakup?.total || pricingVariant?.price || product.price_breakup?.total || product.price;
+  const displayComparePrice = fixedComparePrice || liveComparePrice || pricingVariant?.compare_price || pricingVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
   const discountPercent = useMemo(() => {
     if (!displayComparePrice || displayComparePrice <= displayPrice) return 0;
     return Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100);
@@ -297,7 +390,6 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const prevImageBtnRef = useRef(null);
   const nextImageBtnRef = useRef(null);
-  const hasSimilar = (product.matchingProductIds && product.matchingProductIds.length > 0) || product.hasSimilar;
 
   const handleBeforeInit = (swiper) => {
     if (galleryImages.length <= 1 || !swiper.params.navigation) return;
@@ -310,9 +402,18 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const res = await fetch(`/api/products/similar?handle=${product.handle}`);
-      const data = await res.json();
-      setSimilarProducts(data.products || []);
+      const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
+      // Priority: complementaryProducts > matchingProducts > products
+      let products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      
+      // Fallback: If no related products found, use search API based on product type
+      if (products.length === 0 && (product.type || product.category)) {
+        const query = product.type || product.category;
+        const searchData = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=11`);
+        products = searchData.products || [];
+      }
+
+      setSimilarProducts(products.filter(p => p.handle !== product.handle));
     } catch (e) { console.error("Failed to fetch similar products", e); } finally { setLoadingSimilar(false); }
   };
 
@@ -342,6 +443,39 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     pushProductClick(clickData);
   }, [product, currentVariant, galleryImages, displayPrice, displayComparePrice, index, collectionHandle, dispatch]);
 
+  const productOffers = useMemo(() => {
+    const offers = [];
+    
+    // 1. Direct fields
+    if (product.diamondDiscount > 0) offers.push(`${product.diamondDiscount}% OFF on Diamonds`);
+    if (product.makingDiscount > 0) offers.push(`${product.makingDiscount}% OFF on Making Charges`);
+    
+    // 2. Variants (common in collection API)
+    if (product.variants?.length > 0) {
+        const v = product.variants[0];
+        if (v.diamondDiscount > 0) offers.push(`${v.diamondDiscount}% OFF on Diamonds`);
+        if (v.makingDiscount > 0) offers.push(`${v.makingDiscount}% OFF on Making Charges`);
+    }
+
+    // 3. Price breakup
+    const breakup = currentVariant?.price_breakup || product.price_breakup;
+    if (breakup) {
+      if (breakup.diamond?.discount_percent > 0) offers.push(`${breakup.diamond.discount_percent}% OFF on Diamonds`);
+      if (breakup.making_charges?.discount_percent > 0) offers.push(`${breakup.making_charges.discount_percent}% OFF on Making Charges`);
+    }
+    
+    // 4. Tags
+    const tags = Array.isArray(product.tags) ? product.tags : [];
+    tags.forEach(tag => {
+      const lowerTag = tag.toLowerCase();
+      if (lowerTag.includes("off on making charges") || lowerTag.includes("off on diamonds")) {
+        offers.push(tag);
+      }
+    });
+
+    return [...new Set(offers)];
+  }, [product, currentVariant]);
+
   return (
     <>
       <div className="space-y-4">
@@ -353,6 +487,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   spaceBetween={0}
                   loop={galleryImages.length > 1}
                   slidesPerView={1}
+                  nested={true}
+                  touchStartPreventDefault={false}
                   modules={[Navigation, Pagination]}
                   pagination={galleryImages.length > 1 ? { type: 'progressbar', el: `.pagination-${swiperId}` } : false}
                   navigation={{
@@ -416,10 +552,31 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                               {similarProducts.slice(0, 10).map((item) => (
                                 <div key={item.id} className="space-y-4">
                                   <Link href={`/products/${item.handle}`} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
-                                    <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]"><LazyImage src={item.image} alt={item.title} fill className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" /></div>
+                                    <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]">
+                                      <LazyImage src={item.image} alt={item.title} fill className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" />
+                                      {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
+                                        <button 
+                                          onClick={(e) => { 
+                                            e.preventDefault(); 
+                                            const vMedia = item.media.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
+                                            if (vMedia) onVideoPlay?.(vMedia, item.title);
+                                          }}
+                                          className="absolute bottom-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300"
+                                        >
+                                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 ml-0.5">
+                                            <path d="M7 6V18L19 12L7 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                          </svg>
+                                        </button>
+                                      )}
+                                    </div>
                                     <div className="space-y-2">
                                       <h4 className="text-[13px] font-normal text-zinc-900 line-clamp-1">{item.title}</h4>
-                                      <div className="flex items-center gap-2"><p className="text-[14px] font-bold text-black">₹{formatPrice(item.price)}</p>{item.compare_price > item.price && <p className="text-[12px] text-zinc-400 line-through">₹{formatPrice(item.compare_price)}</p>}</div>
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-[14px] font-bold text-black">₹{formatPrice(item.price)}</p>
+                                        {(Number(item.compare_price || item.compareAtPrice || 0) > Number(item.price || 0)) && (
+                                          <p className="text-[12px] text-zinc-400 line-through">₹{formatPrice(item.compare_price || item.compareAtPrice)}</p>
+                                        )}
+                                      </div>
                                       <div className="flex items-center gap-1 group/link"><span className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest border-b border-zinc-200 group-hover/link:border-black transition-colors">VIEW DETAILS</span><ChevronRight size={10} /></div>
                                     </div>
                                   </Link>
@@ -461,7 +618,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                       else dispatch(removeGuestWishlistItem(productId));
                       pushRemoveFromWishlist(commonTrackingData); toast.error("Removed from wishlist", { icon: <Check className="w-4 h-4" /> });
                     } else {
-                      const payload = { productId, productHandle, title: product.title, image: thumbnailImage, price: displayPrice, comparePrice: displayComparePrice || "", reviews: product.reviews || null, hasVideo: Boolean(videoMedia), hasSimilar: Boolean(product.handle) };
+                      const payload = { productId, productHandle, title: product.title, image: thumbnailImage, price: displayPrice, comparePrice: displayComparePrice || "", reviews: product.reviews || null, hasVideo: Boolean(videoMedia), hasSimilar: Boolean(product.handle), variantId: String(getNumericId(currentVariant?.id || currentVariant?.shopifyId)), size: currentVariant?.size || "", color: currentVariant?.color || currentVariant?.title || "" };
                       if (user?.id) await dispatch(addWishlistItem(payload)).unwrap();
                       else dispatch(addGuestWishlistItem(payload));
                       pushAddToWishlist(commonTrackingData); toast.success("Saved to wishlist");
@@ -565,22 +722,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               </div>
             </div>
 
-            {(() => {
-              const offers = [];
-              if (product.diamondDiscount > 0) offers.push(`${product.diamondDiscount}% OFF on Diamonds`);
-              if (product.makingDiscount > 0) offers.push(`${product.makingDiscount}% OFF on Making Charges`);
-              if (offers.length === 0) return null;
-              return (
+            {productOffers.length > 0 && (
                 <div className="inline-flex items-center gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 lg:px-3 py-1 mt-1 w-fit">
                   <ShieldCheck size={12} />
                   <div className="overflow-hidden">
                     <AnimatePresence mode="wait" initial={false}>
-                      <motion.span key={currentLabelIndex % offers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="text-[8px] lg:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap block">{offers[currentLabelIndex % offers.length]}</motion.span>
+                      <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="text-[8px] lg:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
                     </AnimatePresence>
                   </div>
                 </div>
-              );
-            })()}
+            )}
           </div>
         </div>
       </div>

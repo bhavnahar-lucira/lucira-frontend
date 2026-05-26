@@ -6,14 +6,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const SHAPES = [
-  { name: "Round", icon: "/images/icons/diamond.svg" },
-  { name: "Pear", icon: "/images/icons/diamond.svg" },
-  { name: "Emerald", icon: "/images/icons/diamond.svg" },
-  { name: "Cushion", icon: "/images/icons/diamond.svg" },
-  { name: "Princess", icon: "/images/icons/diamond.svg" },
-  { name: "Rose", icon: "/images/icons/diamond.svg" },
-  { name: "Marquise", icon: "/images/icons/diamond.svg" },
-  { name: "Heart", icon: "/images/icons/diamond.svg" },
+  { name: "Round", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_Round.png" },
+  { name: "Pear", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_Pear.png" },
+  { name: "Emerald", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_Emerald.png" },
+  { name: "Cushion", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_Cushion.png" },
+  { name: "Princess", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_Princess.png" },
+  { name: "Rose", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_Rose.png" },
+  { name: "Marquise", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_Marquise.png" },
+  { name: "Heart", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_Heart.png" },
 ];
 
 export default function ShopByShape() {

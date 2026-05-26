@@ -18,6 +18,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-toastify";
+import { apiFetch } from "@/lib/api";
 
 export default function OrderDetailsPage() {
   const { id } = useParams();
@@ -29,15 +30,11 @@ export default function OrderDetailsPage() {
     async function fetchOrderDetails() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/customer/orders/${id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setOrder(data.order);
-        } else {
-          toast.error("Order not found");
-        }
+        const data = await apiFetch(`/api/customer/orders/${id}`);
+        setOrder(data.order);
       } catch (err) {
-        toast.error("Failed to load order details");
+        console.error("Order details fetch error:", err);
+        toast.error(err.message || "Failed to load order details");
       } finally {
         setLoading(false);
       }
@@ -53,15 +50,13 @@ export default function OrderDetailsPage() {
 
     try {
       setReturnLoading(true);
-      const res = await fetch('/api/customer/returns', {
+      const data = await apiFetch('/api/customer/returns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderNumber: order.orderNumber,
           customerEmail: order.customerEmail,
         }),
       });
-      const data = await res.json();
       if (data.success) {
         window.location.href = data.url;
       } else {

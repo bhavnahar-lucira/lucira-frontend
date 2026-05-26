@@ -5,6 +5,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation } from "swiper/modules";
 import StyledVideoCard from "./StyledCard";
 import VideoPopup from "./VideoPopup";
+import { apiFetch } from "@/lib/api";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -17,9 +18,7 @@ export default function StyledByLucira() {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-        const res = await fetch(`${baseUrl}/api/styled-videos`, { cache: "no-store" });
-        const data = await res.json();
+        const data = await apiFetch("/api/styled-videos", { cache: "no-store" });
         if (data.success && data.videos?.length > 0) {
           setVideoData(data.videos);
         }

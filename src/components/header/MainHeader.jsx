@@ -18,9 +18,10 @@ import {
   clearWishlist,
 } from "@/redux/features/wishlist/wishlistSlice";
 import { useDebounce } from "@/hooks/useDebounce";
+import { apiFetch, fetchSearchResults } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 
 const getInitials = (name = "") =>
@@ -83,9 +84,18 @@ export default function MainHeader() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   const dispatch = useDispatch();
-  const { totalQuantity, totalAmount, items } = useSelector((state) => state.cart);
+  const { totalQuantity, totalAmount, items, loading: cartLoading } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
+
+  // Filter out non-product items (Insurance, Gold Coins) to match Cart Page count
+  const displayItems = (items || []).filter(
+    (item) =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      item.variantId !== GOLDCOIN_VARIANT_ID
+  );
+
+  const displayQuantity = displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -126,7 +136,12 @@ export default function MainHeader() {
 
 
   useEffect(() => {
+    // Skip auto-fetch if cart is currently loading (mergeCart triggered by login is in progress).
+    // Reading cartLoading via a ref avoids adding it to deps (which would cause infinite loops).
+    // mergeCart will call fetchCart itself when complete, so we don't need to race it.
+    if (cartLoading) return;
     dispatch(fetchCart({ userId: user?.id }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, user?.id]);
 
   useEffect(() => {
@@ -150,12 +165,9 @@ export default function MainHeader() {
     // Fetch avatar if user is logged in but avatar is not in state
     const fetchUserAvatar = async () => {
       try {
-        const res = await fetch("/api/customer/profile/avatar");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.avatar) {
-            dispatch(setAvatar(data.avatar));
-          }
+        const data = await apiFetch("/api/customer/profile/avatar");
+        if (data.avatar) {
+          dispatch(setAvatar(data.avatar));
         }
       } catch (err) {
         console.error("Header avatar fetch error:", err);
@@ -177,15 +189,14 @@ export default function MainHeader() {
     return () => window.removeEventListener("profile-updated", handleProfileUpdate);
   }, [dispatch, user?.id, user?.avatar]);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {
     const performSearch = async () => {
       if (debouncedSearchQuery.length > 1) {
         setIsSearching(true);
         try {
-          const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchQuery)}`);
-          const data = await res.json();
+          const data = await fetchSearchResults(debouncedSearchQuery);
           setSearchResults(data.results || []);
         } catch (err) {
           console.error("Search error:", err);
@@ -222,7 +233,7 @@ export default function MainHeader() {
           email: user?.email || ""
         });
       //gtm
-      await fetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { method: "POST" });
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {
@@ -398,9 +409,9 @@ export default function MainHeader() {
               onClick={handleCartClick}
             >
             <CartIcon />
-            {totalQuantity > 0 && (
+            {displayQuantity > 0 && (
               <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
-                {totalQuantity}
+                {displayQuantity}
               </span>
             )}
           </Link>

@@ -98,7 +98,7 @@ export function FindLuciraStore({
                     {/* Map / Image */}
                     <div className="relative h-48 sm:h-64 md:h-full min-h-[200px]">
                       <Image
-                        src="/images/store.jpg"
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDP_Store.jpg"
                         alt={getStoreDisplayName(store.name)}
                         fill
                         className="object-cover"

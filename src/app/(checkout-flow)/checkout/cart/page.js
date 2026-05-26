@@ -12,7 +12,7 @@ import { pushViewCart } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 export default function CartPage() {
   const router = useRouter();
@@ -69,7 +69,7 @@ export default function CartPage() {
           <h1 className="text-2xl font-bold text-zinc-800 font-abhaya">Your cart is empty</h1>
           <p className="text-zinc-500 max-w-xs mx-auto">Looks like you haven&apos;t added anything to your cart yet.</p>
         </div>
-        <Link href="/collections">
+        <Link href="/collections/jewelry">
           <Button className="bg-primary hover:bg-primary/90 text-white font-bold h-12 px-8 uppercase tracking-widest rounded-sm flex items-center gap-2">
             Shop Now
             <ArrowRight size={18} />

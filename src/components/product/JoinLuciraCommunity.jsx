@@ -8,6 +8,9 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
 import { pushNewsletterSubscription } from "@/lib/gtm";
+import Link from "next/link";
+
+import { apiFetch } from "@/lib/api";
 
 export function JoinLuciraCommunity() {
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -30,17 +33,12 @@ export function JoinLuciraCommunity() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/newsletter", {
+      const data = await apiFetch("/api/newsletter", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         // GTM tracking
         pushNewsletterSubscription(email);
 
@@ -51,7 +49,7 @@ export function JoinLuciraCommunity() {
       }
     } catch (error) {
       console.error("Subscription error:", error);
-      toast.error("An error occurred. Please try again later.");
+      toast.error(error.message || "An error occurred. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -66,7 +64,7 @@ export function JoinLuciraCommunity() {
           <div className="flex h-full min-h-[400px]">
             <div className="w-1/2 relative">
               <LazyImage
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/subscribe-2_6402a239-1346-40d1-9ea4-bd006e45e7b7.jpg"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
                 alt="Community 1"
                 fill
                 className="object-cover"
@@ -74,7 +72,7 @@ export function JoinLuciraCommunity() {
             </div>
             <div className="w-1/2 relative">
               <LazyImage
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/subscribe-1_c04b465b-7a96-46ad-b598-661436560a1e.jpg"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-1.jpg"
                 alt="Community 2"
                 fill
                 className="object-cover"
@@ -118,9 +116,9 @@ export function JoinLuciraCommunity() {
               </form>
               <p className="text-xs text-black">
                 You can unsubscribe anytime. For more details read our{" "}
-                <a href="/pages/privacy-policy" className="underline font-bold text-zinc-900 hover:text-black transition-colors">
+                <Link href="/pages/privacy-policy" className="underline font-bold text-zinc-900 hover:text-black transition-colors">
                   Privacy Policy
-                </a>
+                </Link>
               </p>
             </div>
           </div>

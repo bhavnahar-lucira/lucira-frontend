@@ -90,6 +90,9 @@ function ReviewCard({ item, onClick, isMobile }) {
   );
 }
 
+import { fetchNectorReviews } from "@/lib/nector";
+import { apiFetch } from "@/lib/api";
+
 export default function CustomerReview({
   title = "Why Our Customers Love Us",
   subtitle,
@@ -107,10 +110,42 @@ export default function CustomerReview({
   useEffect(() => {
     async function fetchReviews() {
       try {
-        const response = await fetch(`/api/home-reviews`);
-        const data = await response.json();
-        // The API returns { reviews: [...] }
-        setReviews(data?.reviews || []);
+        const data = await fetchNectorReviews();
+        let items = (data?.items || []).filter(r => r.images && r.images.length > 0).slice(0, 10);
+        
+        // Fetch product images dynamically if missing
+        const mapped = await Promise.all(items.map(async (r) => {
+          let productImage = r.reference_product_image;
+          
+          if (!productImage && r.reference_product_handle) {
+            try {
+              const productData = await apiFetch(`/api/products/search?q=${r.reference_product_handle}&limit=1`);
+              if (productData.products && productData.products.length > 0) {
+                productImage = productData.products[0].image;
+              }
+            } catch (e) {
+               console.error("Failed to fetch product image for review", e);
+            }
+          }
+
+          return {
+             id: r.id,
+             userName: r.name,
+             personName: r.name,
+             rating: r.rating,
+             review: r.text,
+             text: r.text,
+             date: r.date,
+             productTitle: r.title,
+             productImage: productImage || "/images/product/1.jpg",
+             personImage: r.images[0],
+             images: r.images,
+             videos: r.videos,
+             verified: r.is_verified
+          };
+        }));
+
+        setReviews(mapped);
       } catch (error) {
         console.error("Error fetching reviews:", error);
         setReviews([]);

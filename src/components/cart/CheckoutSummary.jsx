@@ -10,9 +10,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { applyPoints, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
+import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 export default function CheckoutSummary({ 
   showItems = true, 
@@ -85,9 +86,8 @@ export default function CheckoutSummary({
         return `shopify-${numericId}`;
       };
 
-      const response = await fetch('/api/nector/checkout', {
+      const data = await apiFetch('/api/nector/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer_id: getNectorCustomerId(user.id),
           country: "ind",
@@ -95,23 +95,17 @@ export default function CheckoutSummary({
           amount: Math.max(totalAmount || 0, 1)
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const result = await response.json();
       
-      const points = result?.data || result;
-      const meta = result?.meta || {};
-      const statusCode = meta.code || result?.status || 200;
+      const points = data?.data || data;
+      const meta = data?.meta || {};
+      const statusCode = meta.code || data?.status || 200;
 
       // Nector sometimes returns success directly or nested in data
       if (statusCode === 200 || points?.points_balance !== undefined || points?.available_points !== undefined) {
         setPointsData(points);
-      } else if (statusCode !== 422 && Object.keys(result || {}).length > 0) {
+      } else if (statusCode !== 422 && Object.keys(data || {}).length > 0) {
         // Only log if it's NOT a 422 (No discount available) and not an empty object
-        console.error("Nector API Error Details:", result);
+        console.error("Nector API Error Details:", data);
       }
     } catch (error) {
       console.error("Error fetching points:", error);

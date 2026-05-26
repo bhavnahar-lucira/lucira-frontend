@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  apiFetch,
   createCustomerAddress,
   deleteCustomerAddress,
   fetchCustomerAddresses,
@@ -49,7 +50,7 @@ import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 const emptyAddressForm = {
   firstName: "",
@@ -257,7 +258,7 @@ const SummarySkeleton = () => (
 export default function ShippingPage() {
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const user = useSelector(selectUser);
+  const { user, accessToken } = useSelector((state) => state.user);
   const { items: cartItems, totalAmount, appliedCoupon, nectorPoints } = useCart();
   const searchParams = useSearchParams();
   const [deliveryMethod, setDeliveryMethod] = useState(searchParams.get("method") || "ship");
@@ -364,8 +365,7 @@ export default function ShippingPage() {
   useEffect(() => {
     const fetchStores = async () => {
       try {
-        const res = await fetch("/api/stores");
-        const data = await res.json();
+        const data = await apiFetch("/api/stores");
         if (data.stores) {
           const mappedStores = data.stores.map(s => ({
             id: s.shopifyId,
@@ -546,8 +546,7 @@ export default function ShippingPage() {
   const checkPincodeDeliverability = async (pincode) => {
     if (!pincode) return false;
     try {
-      const res = await fetch(`/api/pincodes/check?pincode=${pincode.trim()}`);
-      const data = await res.json();
+      const data = await apiFetch(`/api/pincodes/check?pincode=${pincode.trim()}`);
       return data.success && data.deliverable;
     } catch (err) {
       console.error("Pincode check failed:", err);
@@ -598,7 +597,7 @@ export default function ShippingPage() {
   const loadAddresses = useCallback(async () => {
     try {
       setLoadingAddresses(true);
-      applyAddressPayload(await fetchCustomerAddresses());
+      applyAddressPayload(await fetchCustomerAddresses(accessToken));
     } catch (error) {
       toast.error(error.message || "Unable to load saved addresses");
     } finally {
@@ -729,10 +728,8 @@ export default function ShippingPage() {
       return toast.error("You cannot delete default address");
     }
     try {
-      applyAddressPayload(await deleteCustomerAddress(addressId));
-      toast.error("Address removed", {
-        icon: <Check className="w-4 h-4" />
-      });
+      applyAddressPayload(await deleteCustomerAddress(addressId, accessToken));
+      toast.success("Address removed");
     } catch (error) {
       toast.error(error.message || "Unable to remove address");
     }
@@ -1277,3 +1274,4 @@ export default function ShippingPage() {
     </div>
   );
 }
+

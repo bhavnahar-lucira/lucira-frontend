@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { fetchWishlist, removeWishlistItem } from "@/redux/features/wishlist/wishlistSlice";
 import { addToCart, openCart } from "@/redux/features/cart/cartSlice";
 import { getEstimatedDispatchDate } from "@/lib/utils";
+import { apiFetch } from "@/lib/api";
 
 export default function WishlistPage() {
   const dispatch = useDispatch();
@@ -55,11 +56,11 @@ export default function WishlistPage() {
     setLoadingVideo(true);
     try {
       // 1. Fetch full product details to find variants
-      const res = await fetch(`/api/products/details?handle=${item.productHandle}`);
-      if (!res.ok) throw new Error("Failed to fetch product details");
-      const { product } = await res.json();
+      const handleToFetch = item.productHandle || item.handle;
+      const data = await apiFetch(`/api/products/details?handle=${handleToFetch}`);
+      const product = data?.product;
       
-      const videoMedia = product.media?.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
+      const videoMedia = product?.media?.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
       if (videoMedia) {
         setActiveVideoMedia(videoMedia);
       } else {
@@ -99,16 +100,30 @@ export default function WishlistPage() {
     setMovingToCartId(itemKey);
     try {
       // 1. Fetch full product details to find variants
-      const res = await fetch(`/api/products/details?handle=${item.productHandle}`);
-      if (!res.ok) throw new Error("Failed to fetch product details");
-      const { product } = await res.json();
+      const handleToFetch = item.productHandle || item.handle;
+      if (!handleToFetch || handleToFetch === "undefined") {
+        throw new Error("Product handle missing. Please remove and re-add to wishlist.");
+      }
+      let data;
+      try {
+        data = await apiFetch(`/api/products/details?handle=${handleToFetch}`);
+      } catch (fetchErr) {
+        if (fetchErr.message?.toLowerCase().includes("not found")) {
+          throw new Error("This product is no longer available.");
+        }
+        throw fetchErr;
+      }
+      const product = data?.product;
 
       if (!product || !product.variants?.length) {
         throw new Error("Product variants not found");
       }
 
       // 2. Prioritize the saved variant from wishlist
-      let selectedVariant = product.variants.find(v => (v.id === item.variantId || v.shopifyId === item.variantId));
+      const normalizeVid = (id) => String(id || '').replace(/.*ProductVariant\//i, '').trim();
+      const targetVid = normalizeVid(item.variantId);
+      
+      let selectedVariant = product.variants.find(v => (normalizeVid(v.id) === targetVid || normalizeVid(v.shopifyId) === targetVid));
       
       if (!selectedVariant) {
         // Fallback: In-store available first, then first in-stock, then default
@@ -162,12 +177,14 @@ export default function WishlistPage() {
         reviews: product.reviews || null,
         comparePrice: selectedVariant?.compare_price || product.compare_price || "",
         estDelivery: getEstimatedDispatchDate(Boolean(selectedVariant.inStock), product.productMetafields?.lead_time),
-        variantOptions: Array.from(new Map(product.variants.map(v => [v.size, {
-          variantId: v.id || v.shopifyId,
-          size: v.size,
-          price: v.price,
-          inStock: v.inStock,
-          variantTitle: v.title
+        variantOptions: Array.from(new Map(product.variants
+          .filter(v => (v.color || product.color) === (selectedVariant.color || product.color))
+          .map(v => [v.size, {
+            variantId: v.id || v.shopifyId,
+            size: v.size,
+            price: v.price,
+            inStock: v.inStock,
+            variantTitle: v.title
         }])).values())
       };
 
@@ -181,8 +198,12 @@ export default function WishlistPage() {
       });
       dispatch(openCart());
     } catch (err) {
-      console.error("Move to cart failed", err);
-      toast.error(err.message || "Failed to move to cart");
+      if (err.message === "This product is no longer available.") {
+         toast.error(err.message);
+      } else {
+         console.error("Move to cart failed:", err.message);
+         toast.error(err.message || "Failed to move to cart");
+      }
     } finally {
       setMovingToCartId(null);
     }
@@ -198,9 +219,9 @@ export default function WishlistPage() {
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const res = await fetch(`/api/products/similar?handle=${handle}`);
-      const data = await res.json();
-      setSimilarProducts(data.products || []);
+      const data = await apiFetch(`/api/products/related?handle=${handle}`);
+      const products = data.products || data.matchingProducts || data.complementaryProducts || [];
+      setSimilarProducts(products.filter(p => p.handle !== handle));
     } catch (e) {
       console.error("Failed to fetch similar products", e);
     } finally {
@@ -257,28 +278,6 @@ export default function WishlistPage() {
                     )}
                   </Link>
 
-                  {/* Video Play Button */}
-                  {item.hasVideo && (
-                    <button 
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        handleVideoClick(item); 
-                      }}
-                      className="absolute bottom-4 left-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300"
-                    >
-                      <Play size={16} fill="currentColor" />
-                    </button>
-                  )}
-
-                  {/* View Similar Button */}
-                  {item.hasSimilar && (
-                    <button 
-                      onClick={(e) => { e.preventDefault(); fetchSimilar(item.productHandle); }}
-                      className="absolute bottom-4 right-4 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  )}
 
                   {/* Delete Button */}
                   <button
@@ -421,13 +420,26 @@ export default function WishlistPage() {
                             fill
                             className="object-contain p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
                           />
+                          {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
+                            <button 
+                              onClick={(e) => { 
+                                e.preventDefault(); 
+                                handleVideoClick(item);
+                              }}
+                              className="absolute bottom-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300"
+                            >
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 ml-0.5">
+                                <path d="M7 6V18L19 12L7 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
+                          )}
                         </div>
                         <div className="space-y-2 px-0">
                           <h4 className="text-[13px] font-normal text-zinc-900 line-clamp-1 leading-relaxed tracking-tight">{item.title}</h4>
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
                               <p className="text-[14px] font-bold text-black tracking-tight">₹{formatPrice(item.price)}</p>
-                              {(item.compare_price || item.compareAtPrice) > item.price && (
+                              {(Number(item.compare_price || item.compareAtPrice || 0) > Number(item.price || 0)) && (
                                 <p className="text-[12px] text-zinc-400 line-through font-medium">₹{formatPrice(item.compare_price || item.compareAtPrice)}</p>
                               )}
                             </div>

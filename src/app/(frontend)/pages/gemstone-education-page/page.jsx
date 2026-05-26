@@ -1,4 +1,5 @@
 "use client"
+
 import Image from "next/image";
 import { RotateCw } from "lucide-react";
 import { useState, Suspense } from "react"

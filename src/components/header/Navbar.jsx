@@ -1,22 +1,19 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMenu } from "@/hooks/useMenu";
+import { transformMenuData } from "@/lib/menus";
 
-export default function Navbar({ hideTop }) {
-  const { menuData } = useMenu("main-menu-official");
+export default function Navbar({ hideTop, menuData }) {
+  const MEGA_MENU = useMemo(() => transformMenuData(menuData), [menuData]);
   const [activeMenu, setActiveMenu] = useState(null);
   const pathname = usePathname();
   const timeoutRef = useRef(null);
-
-  // No fallback to STATIC_MENU as requested ("api only", "dont use fall back")
-  const MEGA_MENU = menuData || [];
 
   const handleEnter = (index) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);

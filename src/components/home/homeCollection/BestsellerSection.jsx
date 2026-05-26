@@ -1,20 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
+import { apiFetch } from "@/lib/api";
 
-export default function BestsellerSection() {
-  const [products, setProducts] = useState([]);
+export default function BestsellerSection({ initialData }) {
+  const [products, setProducts] = useState(() => initialData?.products || []);
   const [activeTab, setActiveTab] = useState("All");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     async function fetchBestsellers() {
+      if (isFirstRender.current && initialData && activeTab === "All") {
+        isFirstRender.current = false;
+        return;
+      }
+      isFirstRender.current = false;
+
       setLoading(true);
       try {
-        const res = await fetch(`/api/products/bestsellers?tab=${activeTab}`);
-        const data = await res.json();
+        let apiUrl = `/api/collection?handle=bestsellers&limit=15`;
+        if (activeTab !== "All") {
+          // Map plural tabs to singular if needed, or send as is if Shopify handles it
+          // Most Shopify product types are singular (Ring, Earring)
+          const typeMap = {
+            "Rings": "Rings",
+            "Earrings": "Earrings",
+            "Bracelets": "Bracelets",
+            "Necklaces": "Necklaces",
+            "Pendants": "Charms & Pendants"
+          };
+          const productType = typeMap[activeTab] || activeTab;
+          const filters = [{ productType: productType }];
+          apiUrl += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
+        }
+        
+        const data = await apiFetch(apiUrl);
         if (data.products) {
           setProducts(data.products);
         }

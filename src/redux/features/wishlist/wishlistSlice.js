@@ -18,9 +18,7 @@ export const fetchWishlist = createAsyncThunk(
       const data = await fetchWishlistApi(user?.id, sessionId);
       return data.items || [];
     } catch (err) {
-      if (err.message === "Customer not found" || err.message === "Unauthorized") {
-        dispatch(logout());
-      }
+      console.error("Wishlist operation failed:", err);
       throw err;
     }
   }
@@ -35,9 +33,7 @@ export const addWishlistItem = createAsyncThunk(
       const data = await addWishlistApi(payload, user?.id, sessionId);
       return data.item;
     } catch (err) {
-      if (err.message === "Customer not found" || err.message === "Unauthorized") {
-        dispatch(logout());
-      }
+      console.error("Wishlist operation failed:", err);
       throw err;
     }
   }
@@ -54,9 +50,7 @@ export const removeWishlistItem = createAsyncThunk(
       await removeWishlistApi(productId, variantId, user?.id, sessionId);
       return payload;
     } catch (err) {
-      if (err.message === "Customer not found" || err.message === "Unauthorized") {
-        dispatch(logout());
-      }
+      console.error("Wishlist operation failed:", err);
       throw err;
     }
   }
@@ -147,6 +141,11 @@ const wishlistSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase("user/logout", (state) => {
+        state.items = state.guestItems; // Revert to guest state
+        state.loading = false;
+        state.error = null;
+      })
       .addCase(fetchWishlist.pending, (state) => {
         state.loading = true;
       })

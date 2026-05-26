@@ -1,6 +1,8 @@
-import { shopifyStorefrontFetch } from "@/lib/shopify";
+import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
+
+export const revalidate = 21600; // 6 hours
 
 async function getCollectionData(handle) {
   const query = `
@@ -22,7 +24,7 @@ async function getCollectionData(handle) {
     }
   `;
   
-  const data = await shopifyStorefrontFetch(query, { handle });
+  const data = await shopifyStorefrontFetch(query, { handle }, { next: { revalidate: 21600 } });
   return data?.collectionByHandle;
 }
 
@@ -52,12 +54,20 @@ export async function generateMetadata({ params }) {
   };
 }
 
+export async function generateStaticParams() {
+  const handles = await getAllCollectionHandles();
+  // Include "all" as a static param as well
+  return [...handles, "all"].map((handle) => ({
+    handle,
+  }));
+}
+
 export default async function Page({ params }) {
   const { handle } = await params;
   const collection = await getCollectionData(handle);
 
   if (!collection && handle !== "all") {
-    return <CollectionPageClient params={params} />;
+    return <CollectionPageClient params={params} initialData={null} />;
   }
 
   const collectionSchema = collection ? getCollectionSchema(collection, collection.products?.nodes || []) : [];
@@ -66,6 +76,26 @@ export default async function Page({ params }) {
     { name: collection?.title || "All Products", url: `/collections/${handle}` }
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
+
+  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
+    ? process.env.NEXT_PUBLIC_BACKEND_URL 
+    : "http://127.0.0.1:8080";
+  const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+  
+  let initialData = null;
+  try {
+    const [collRes, filterRes] = await Promise.all([
+      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=best_selling`, { next: { revalidate: 21600 } }),
+      fetch(`${base}/api/products/filters?handle=${handle}`, { next: { revalidate: 21600 } })
+    ]);
+    if (collRes.ok && filterRes.ok) {
+      const collData = await collRes.json();
+      const filterDataObj = await filterRes.json();
+      initialData = { collData, filterData: filterDataObj || {} };
+    }
+  } catch(e) {
+    console.error("Failed to fetch initial data for SSG", e);
+  }
 
   return (
     <>
@@ -80,7 +110,7 @@ export default async function Page({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <CollectionPageClient params={params} />
+      <CollectionPageClient params={params} initialData={initialData} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Menu, Search, Heart, ShoppingBag, Home, X, ChevronRight, ChevronLeft, User as UserIcon, LogOut, MessageCircle, Package, Video, Store, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,6 +21,7 @@ import { Sheet as MobileSheet } from "react-modal-sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
+import { apiFetch, fetchSearchResults } from "@/lib/api";
 
 const CATEGORY_IMAGES = {
   "BEST SELLERS": "/images/menu/engagement-ring.jpg",
@@ -160,7 +161,9 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
 
-export default function MobileHeader() {
+import { transformMenuData } from "@/lib/menus";
+
+export default function MobileHeader({ menuData }) {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();  
@@ -172,8 +175,7 @@ export default function MobileHeader() {
   const [isSearching, setIsSearching] = useState(false);
   const searchInputRef = useRef(null);
 
-  const { menuData } = useMenu("main-menu-official");
-  const MEGA_MENU = menuData || STATIC_MENU;
+  const MEGA_MENU = useMemo(() => transformMenuData(menuData || []), [menuData]);
 
   const { user, logout: authLogout, openLogin } = useAuth();
   const { totalQuantity } = useSelector((state) => state.cart);
@@ -197,15 +199,13 @@ export default function MobileHeader() {
     return () => clearInterval(interval);
   }, []);
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
-
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   useEffect(() => {
     const performSearch = async () => {
       if (debouncedSearchQuery.length > 1) {
         setIsSearching(true);
         try {
-          const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchQuery)}`);
-          const data = await res.json();
+          const data = await fetchSearchResults(debouncedSearchQuery);
           setSearchResults(data.results || []);
         } catch (err) {
           console.error("Search error:", err);
@@ -411,7 +411,7 @@ export default function MobileHeader() {
         last_name: user?.last_name || "",
         email: user?.email || ""
       });
-      await fetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { method: "POST" });
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {

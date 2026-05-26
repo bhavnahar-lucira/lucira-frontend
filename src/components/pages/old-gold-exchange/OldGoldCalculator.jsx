@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { MoveRight, Info, AlertTriangle } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 const KARATS = [
   { label: "24KT", value: "24", purity: 1, desc: "100% pure" },
@@ -23,8 +24,7 @@ export default function OldGoldCalculator({ config }) {
   useEffect(() => {
     async function fetchRates() {
       try {
-        const res = await fetch("/api/gold-rates");
-        const data = await res.json();
+        const data = await apiFetch("/api/gold-rates");
         setRates(data);
       } catch (err) {
         console.error("Failed to fetch rates:", err);

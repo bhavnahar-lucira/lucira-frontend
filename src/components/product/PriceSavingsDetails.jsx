@@ -2,34 +2,32 @@
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
-import Image from "next/image";
+import { IndianRupee, Gem, Search, Palette } from "lucide-react";
 
 export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
   if (!priceBreakup) return null;
 
   return (
     <div className="mt-6">
-      <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider">Price & Savings Details:</h2>
-
-      <div className="bg-gray-50 border border-gray-100 rounded-sm p-5">
+      <div className="bg-[#FAF7F5] rounded-2xl p-5 border border-gray-100">
         <Tabs 
           defaultValue="price" 
           className="w-full"
           onValueChange={(value) => onTabChange?.(value)}
         >
-          <TabsList className={`grid ${priceBreakup.comparison ? 'grid-cols-2' : 'grid-cols-1'} bg-gray-100 p-1 rounded-sm mb-6 w-full h-12!`}>
+          <TabsList className={`grid ${priceBreakup.comparison ? 'grid-cols-2' : 'grid-cols-1'} bg-white p-1 rounded-full mb-6 w-full h-auto!`}>
             <TabsTrigger 
               value="price" 
-              className="flex items-center justify-center gap-2 text-[13px] font-bold data-[state=active]:bg-tertiary data-[state=active]:text-white rounded-sm transition-all h-full hover:cursor-pointer uppercase tracking-tight"
+              className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-[#A87E6D] data-[state=active]:text-white rounded-full transition-all cursor-pointer"
             >
               Price Breakup
             </TabsTrigger>
             {priceBreakup.comparison && (
               <TabsTrigger 
                 value="comparison" 
-                className="flex items-center justify-center gap-2 text-[13px] font-bold data-[state=active]:bg-tertiary data-[state=active]:text-white rounded-sm transition-all h-full hover:cursor-pointer uppercase tracking-tight"
+                className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-[#A87E6D] data-[state=active]:text-white rounded-full transition-all cursor-pointer"
               >
-                Comparison
+                Price Comparison
               </TabsTrigger>
             )}
           </TabsList>
@@ -38,7 +36,7 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
             <motion.div
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
+              className="space-y-3"
             >
               {priceBreakup.price?.map((item, index) => (
                 <PriceRow 
@@ -50,9 +48,9 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
                 />
               ))}
               
-              <div className="flex justify-between items-center pt-5 border-t border-gray-200 mt-4">
-                <span className="text-base font-bold text-gray-900 uppercase">Grand Total</span>
-                <span className="text-lg font-bold text-gray-900">{priceBreakup.grand_total}</span>
+              <div className="flex justify-between items-center pt-4 border-t border-gray-200 mt-2">
+                <span className="text-[15px] font-bold text-gray-900">Total</span>
+                <span className="text-[15px] font-bold text-gray-900">{priceBreakup.grand_total}</span>
               </div>
             </motion.div>
           </TabsContent>
@@ -62,23 +60,39 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-6"
               >
-                <div className="grid grid-cols-3 gap-4 border-b border-gray-200 pb-4">
-                  <div className="text-xs font-bold text-gray-400 uppercase tracking-widest pt-1">Attributes</div>
-                  <div className="text-xs font-bold text-gray-900 uppercase tracking-widest text-center leading-tight">Lucira<br/>Grown</div>
-                  <div className="text-xs font-bold text-gray-900 uppercase tracking-widest text-center leading-tight">Mined<br/>Diamond</div>
-                </div>
+                <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-4">
+                  
+                  {/* Column 1: Labels */}
+                  <div className="flex flex-col space-y-4">
+                    <div className="text-[13px] font-medium text-gray-600 leading-tight border-b border-gray-200 pb-3">Diamond<br/>Comparison</div>
+                    <div className="flex items-center gap-2 text-[13px] text-gray-600"><IndianRupee size={14} className="text-gray-400" /><span>Price</span></div>
+                    <div className="flex items-center gap-2 text-[13px] text-gray-600"><Gem size={14} className="text-gray-400" /><span>Carat</span></div>
+                    <div className="flex items-center gap-2 text-[13px] text-gray-600"><Search size={14} className="text-gray-400" /><span>Clarity</span></div>
+                    <div className="flex items-center gap-2 text-[13px] text-gray-600"><Palette size={14} className="text-gray-400" /><span>Color</span></div>
+                    <div className="text-[13px] font-bold text-gray-900 pt-4 mt-2 border-t border-gray-200">Total Saving</div>
+                  </div>
 
-                <ComparisonRow label="Price" lucira={priceBreakup.comparison?.price?.lucira} mined={priceBreakup.comparison?.price?.mined} isPrice />
-                <ComparisonRow label="Carat" lucira={priceBreakup.comparison?.carat} mined={priceBreakup.comparison?.carat} />
-                <ComparisonRow label="Clarity" lucira={priceBreakup.comparison?.clarity?.lucira} mined={priceBreakup.comparison?.clarity?.mined} />
-                <ComparisonRow label="Color" lucira={priceBreakup.comparison?.color?.lucira} mined={priceBreakup.comparison?.color?.mined} />
+                  {/* Column 2: Lucira Grown */}
+                  <div className="flex flex-col space-y-4">
+                    <div className="text-[13px] font-medium text-gray-600 leading-tight border-b border-gray-200 pb-3">Lucira Grown<br/>Diamond</div>
+                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.price?.lucira}</div>
+                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.carat}</div>
+                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.clarity?.lucira}</div>
+                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.color?.lucira}</div>
+                    <div className="text-[13px] font-bold text-[#1E7D4E] pt-4 mt-2 border-t border-gray-200">{priceBreakup.comparison?.savings}</div>
+                  </div>
 
-                <div className="grid grid-cols-3 gap-4 pt-4 mt-2 bg-[#F0F7F4] -mx-5 px-5 py-4 border-t border-[#D5E6DE]">
-                  <div className="text-sm font-bold text-gray-900 uppercase pt-0.5">Total Saving</div>
-                  <div className="text-base font-bold text-[#1E7D4E] text-center">{priceBreakup.comparison?.savings}</div>
-                  <div className="text-base font-bold text-gray-400 text-center">₹ 0</div>
+                  {/* Column 3: Mined Diamond */}
+                  <div className="flex flex-col space-y-4">
+                    <div className="text-[13px] font-medium text-gray-600 leading-tight border-b border-gray-200 pb-3">Mined<br/>Diamond</div>
+                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.price?.mined}</div>
+                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.carat}</div>
+                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.clarity?.mined}</div>
+                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.color?.mined}</div>
+                    <div className="text-[13px] font-bold text-red-500 pt-4 mt-2 border-t border-gray-200">₹ 0</div>
+                  </div>
+
                 </div>
               </motion.div>
             </TabsContent>
@@ -90,32 +104,22 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
   );
 }
 
-function ComparisonRow({ label, lucira, mined, isPrice }) {
+function PriceRow({ label, value, oldValue, discount }) {
   return (
-    <div className="grid grid-cols-3 gap-4 items-center">
-      <div className="text-sm font-semibold text-gray-500">{label}</div>
-      <div className={`text-sm font-bold text-center ${isPrice ? 'text-gray-900' : 'text-gray-900'}`}>{lucira}</div>
-      <div className={`text-sm font-bold text-center ${isPrice ? 'text-gray-900' : 'text-gray-900'}`}>{mined}</div>
-    </div>
-  );
-}
-
-function PriceRow({ label, value, oldValue, isSaving, discount }) {
-  return (
-    <div className="flex justify-between items-center text-[13px] border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+    <div className="flex justify-between items-center text-[13px] pb-1">
       <div className="flex items-center gap-2">
         <span className="text-gray-600 font-medium">{label}</span>
         {discount && (
-          <span className="bg-[#E3F5E0] text-[#1E7D4E] text-[10px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap uppercase">
+          <span className="bg-[#1E7D4E] text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap uppercase tracking-wider">
             {discount}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         {oldValue && (
-          <span className="text-gray-400 line-through font-bold">{oldValue}</span>
+          <span className="text-gray-400 line-through">{oldValue}</span>
         )}
-        <span className={`font-bold ${isSaving ? 'text-[#1E7D4E]' : 'text-gray-900'}`}>{value}</span>
+        <span className="font-semibold text-gray-900">{value}</span>
       </div>
     </div>
   );

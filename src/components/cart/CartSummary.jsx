@@ -14,6 +14,7 @@ import { useCart } from "@/hooks/useCart";
 import { applyCoupon, removeCoupon } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
+import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
@@ -28,8 +29,7 @@ export default function CartSummary({ onPlaceOrder }) {
   const [goldCoinThreshold, setGoldCoinThreshold] = useState(20000);
 
   useEffect(() => {
-    fetch("/api/settings/gold-coin")
-      .then(res => res.json())
+    apiFetch("/api/settings/gold-coin")
       .then(data => {
         if (data.threshold) setGoldCoinThreshold(Number(data.threshold) || 20000);
       })
@@ -119,24 +119,20 @@ export default function CartSummary({ onPlaceOrder }) {
     if (appliedCoupon && items.length > 0 && couponDetails?.code) {
       const validateCurrentCoupon = async () => {
         try {
-          const res = await fetch("/api/cart/coupon/validate", {
+          await apiFetch("/api/cart/coupon/validate", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
               items, 
               couponCode: couponDetails.code,
               customerEmail: user?.email 
-            })
+            }),
+            suppressErrorLog: true
           });
-
-          if (!res.ok) {
-            dispatch(removeCoupon());
-            toast.error("Coupon removed: items in cart are no longer eligible.", {
-              icon: <Check className="w-4 h-4" />
-            });
-          }
         } catch (err) {
-          console.error("Auto-validation failed:", err);
+          dispatch(removeCoupon());
+          toast.error("Coupon removed: items in cart are no longer eligible.", {
+            icon: <Check className="w-4 h-4" />
+          });
         }
       };
       const timer = setTimeout(validateCurrentCoupon, 500);
@@ -162,17 +158,15 @@ export default function CartSummary({ onPlaceOrder }) {
     if (!couponCode.trim()) return;
     setIsApplying(true);
     try {
-      const res = await fetch("/api/cart/coupon/validate", {
+      const data = await apiFetch("/api/cart/coupon/validate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           items, 
           couponCode: couponCode.trim(),
           customerEmail: user?.email 
-            })
+        }),
+        suppressErrorLog: true
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Invalid coupon");
       dispatch(applyCoupon({ 
         code: data.code, 
         summary: data.summary,

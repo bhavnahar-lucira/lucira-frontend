@@ -9,6 +9,7 @@ import { Pagination } from "swiper/modules";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -190,9 +191,7 @@ export default function CuratedLooks() {
   useEffect(() => {
     async function fetchLooks() {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-        const res = await fetch(`${baseUrl}/api/curated-looks`, { cache: "no-store" });
-        const data = await res.json();
+        const data = await apiFetch("/api/curated-looks", { cache: "no-store" });
         if (data.success) {
           setLooks(data.looks || []);
         }
@@ -263,7 +262,7 @@ export default function CuratedLooks() {
                                 className="relative flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-white/20 backdrop-blur-sm"
                               >
                                 <span className="absolute h-7 w-7 animate-ping rounded-full bg-white/30" />
-                                <Image src="/images/icons/hotspot-icon.svg" alt="Hotspot" width={20} height={20} />
+                                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/curatedLooks-icon.svg" alt="Hotspot" width={20} height={20} />
                               </button>
                             </div>
                           ))}
@@ -369,7 +368,7 @@ export default function CuratedLooks() {
                         className="relative flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/80 bg-white/20 backdrop-blur-sm"
                       >
                         <span className="absolute h-7 w-7 animate-ping rounded-full bg-white/30" />
-                        <Image src="/images/icons/hotspot-icon.svg" alt="Hotspot" width={20} height={20} />
+                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/curatedLooks-icon.svg" alt="Hotspot" width={20} height={20} />
                       </button>
 
                       {spot.product && (

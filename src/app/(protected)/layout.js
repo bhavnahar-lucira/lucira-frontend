@@ -4,35 +4,49 @@ import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { logout } from "@/redux/features/user/userSlice";
+import { fetchCustomerProfile } from "@/lib/api";
 
 export default function ProtectedLayout({ children }) {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector(
+  const { isAuthenticated, accessToken } = useSelector(
     (state) => state.user
   );
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push("/login");
-    } else {
-      // Verify session with backend
+      router.replace("/login");
+    } else if (accessToken) {
+      // Verify session via Fastify Backend (proxies to Shopify Admin API if needed)
       const checkSession = async () => {
         try {
-          const res = await fetch("/api/customer/profile");
-          if (!res.ok) {
-            if (res.status === 401 || res.status === 404) {
-              dispatch(logout());
-              router.push("/login");
-            }
+          if (process.env.NODE_ENV === "development") {
+             console.log("[ProtectedLayout] Running authenticated session check...");
+          }
+          
+          // Use authenticated helper
+          const data = await fetchCustomerProfile(accessToken);
+          
+          if (process.env.NODE_ENV === "development") {
+            console.log("[ProtectedLayout] Session check response:", data);
+          }
+
+          if (!data || !data.customer) {
+             console.warn("[ProtectedLayout] Session invalid. Logging out.");
+             dispatch(logout());
+             router.replace("/login");
           }
         } catch (err) {
-          console.error("Session verification failed:", err);
+          console.error("[ProtectedLayout] Session verification failure:", err);
+          if (err.message.includes("401") || err.message.toLowerCase().includes("unauthorized")) {
+            dispatch(logout());
+            router.replace("/login");
+          }
         }
       };
       checkSession();
     }
-  }, [isAuthenticated, router, dispatch]);
+  }, [isAuthenticated, accessToken, router, dispatch]);
 
   if (!isAuthenticated) return null;
 

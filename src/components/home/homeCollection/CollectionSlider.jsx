@@ -48,6 +48,7 @@ export default function CollectionSlider ({ products = [], loading = false, coll
     <>
       <div className="relative">
         <Swiper
+          key={products.map(p => p.id || p.shopifyId || p.handle).join('-')}
           modules={[Navigation, Pagination, FreeMode, Autoplay]}
           spaceBetween={12}
           slidesPerView={2}
