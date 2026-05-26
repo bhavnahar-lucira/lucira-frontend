@@ -28,6 +28,7 @@ import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
 import ExploreOtherRings from "@/components/product/ExploreOtherRings";
 import WearThisWith from "@/components/product/WearThisWith";
+import ProductCard from "@/components/product/ProductCard";
 import { Separator } from "@/components/ui/separator";
 import ProductGallery from "@/components/product/ProductGallery";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -35,6 +36,7 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { toast } from 'react-toastify';
 import { apiFetch, fetchVariantPricing } from "@/lib/api";
+import { shopifyStorefrontFetch } from "@/lib/shopify-client";
 import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -297,6 +299,7 @@ export default function ProductPageClient({
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [complementaryProducts, setComplementaryProducts] = useState(initialComplementaryProducts);
   const [matchingProducts, setMatchingProducts] = useState(initialMatchingProducts);
+  const [youMayAlsoLikeProducts, setYouMayAlsoLikeProducts] = useState([]);
 
   const [activeInfoSheet, setActiveInfoSheet] = useState(null);
   const [allStores, setAllStores] = useState([]);
@@ -313,6 +316,191 @@ export default function ProductPageClient({
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: false, threshold: 20000, message: "" });
 
   useEffect(() => {
+    if (!product.shopifyId) return;
+
+    const fetchComplementary = async () => {
+      if (!product.shopifyId && !product.id) return;
+      
+      const gid = product.shopifyId?.startsWith("gid://") ? product.shopifyId : `gid://shopify/Product/${product.shopifyId || product.id}`;
+      console.log("[fetchComplementary] Starting fetch for GID:", gid);
+      
+      const PRODUCT_FIELDS = `
+        fragment ProductFields on Product {
+          id
+          title
+          handle
+          productType
+          featuredImage { url altText }
+          images(first: 5) { edges { node { url altText } } }
+          variants(first: 20) {
+            edges {
+              node {
+                id
+                title
+                sku
+                availableForSale
+                price { amount currencyCode }
+                compareAtPrice { amount currencyCode }
+                selectedOptions { name value }
+                image { url altText }
+                metal_purity: metafield(namespace: "ornaverse", key: "metal_purity") { value }
+                metal_color: metafield(namespace: "ornaverse", key: "metal_color") { value }
+              }
+            }
+          }
+          productMetafields: metafields(identifiers: [
+            {namespace: "ornaverse", key: "bestsellers"}
+          ]) {
+            key
+            value
+          }
+        }
+      `;
+
+      // 1. Try productRecommendations (intent: COMPLEMENTARY)
+      const RECOMMENDATIONS_QUERY = `
+        query getRecommendations($id: ID!) {
+          productRecommendations(productId: $id, intent: COMPLEMENTARY) {
+            ...ProductFields
+          }
+        }
+        ${PRODUCT_FIELDS}
+      `;
+
+      // 2. Try direct metafield fetch with multiple identifiers and types
+      const METAFIELD_QUERY = `
+        query getMetafieldRecommendations($id: ID!) {
+          product(id: $id) {
+            # Try multiple common patterns via identifiers
+            metafields(identifiers: [
+              {namespace: "shopify", key: "complementary_products"},
+              {namespace: "shopify", key: "complementary-products"},
+              {namespace: "shopify", key: "discovery--product_recommendation.complementary_products"},
+              {namespace: "shopify--discovery--product_recommendation", key: "complementary_products"},
+              {namespace: "custom", key: "complementary_products"},
+              {namespace: "custom", key: "complementary-products"},
+              {namespace: "custom", key: "matching_product"},
+              {namespace: "custom", key: "matching_products"}
+            ]) {
+              namespace
+              key
+              value
+              type
+              references(first: 20) {
+                edges {
+                  node {
+                    ... on Product {
+                      ...ProductFields
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        ${PRODUCT_FIELDS}
+      `;
+
+      try {
+        // Try productRecommendations first
+        const result = await shopifyStorefrontFetch(RECOMMENDATIONS_QUERY, { id: gid });
+        let rawProducts = result?.productRecommendations || [];
+        console.log("[fetchComplementary] Recommendations result:", rawProducts.length);
+
+        const mapProduct = (p) => {
+          if (!p || !p.id) return null;
+          
+          const variants = (p.variants?.edges || []).map(({ node: v }) => {
+            const options = {};
+            v.selectedOptions?.forEach(o => { options[o.name.toLowerCase()] = o.value; });
+            
+            return {
+              id: v.id.split("/").pop(),
+              shopifyId: v.id,
+              title: v.title,
+              sku: v.sku,
+              price: Number(v.price.amount),
+              compare_price: v.compareAtPrice ? Number(v.compareAtPrice.amount) : null,
+              inStock: v.availableForSale === true,
+              image: v.image?.url,
+              size: options.size || null,
+              color: options.color || options.metal || options["metal color"] || null,
+              metafields: {
+                metal_purity: v.metal_purity?.value,
+                metal_color: v.metal_color?.value
+              }
+            };
+          });
+
+          const images = (p.images?.edges || []).map(({ node: img }) => ({
+            url: img.url,
+            alt: img.altText || ""
+          }));
+
+          const productMetafields = {};
+          p.productMetafields?.forEach(m => { if (m) productMetafields[m.key] = m.value; });
+
+          return {
+            ...p,
+            id: p.id.split("/").pop(),
+            shopifyId: p.id,
+            type: p.productType,
+            image: p.featuredImage?.url,
+            images,
+            variants,
+            productMetafields
+          };
+        };
+
+        // If recommendations has products, map them to complementary
+        if (rawProducts.length > 0) {
+          const mapped = rawProducts.map(mapProduct).filter(Boolean);
+          const uniqueMapped = Array.from(new Map(mapped.map(p => [p.id, p])).values());
+          setComplementaryProducts(uniqueMapped);
+        }
+
+        // Always fetch metafields to check for matching_product even if recommendations had results
+        const metaResult = await shopifyStorefrontFetch(METAFIELD_QUERY, { id: gid });
+        const metafields = metaResult?.product?.metafields || [];
+        
+        console.log("[fetchComplementary] Metafields found:", metafields.length);
+        
+        const complementaryFromMeta = [];
+        const matchingFromMeta = [];
+
+        metafields.forEach(m => {
+          if (m?.references?.edges) {
+            const refs = m.references.edges.map(e => e.node).filter(Boolean).map(mapProduct).filter(Boolean);
+            if (m.key.includes('matching')) {
+              matchingFromMeta.push(...refs);
+            } else {
+              complementaryFromMeta.push(...refs);
+            }
+          }
+        });
+
+        if (complementaryFromMeta.length > 0 && rawProducts.length === 0) {
+          const uniqueMapped = Array.from(new Map(complementaryFromMeta.map(p => [p.id, p])).values());
+          setComplementaryProducts(uniqueMapped);
+        }
+
+        if (matchingFromMeta.length > 0) {
+          const uniqueMapped = Array.from(new Map(matchingFromMeta.map(p => [p.id, p])).values());
+          console.log("[fetchComplementary] Setting youMayAlsoLikeProducts:", uniqueMapped.length);
+          setYouMayAlsoLikeProducts(uniqueMapped);
+        }
+
+        return (rawProducts.length > 0 || complementaryFromMeta.length > 0 || matchingFromMeta.length > 0);
+      } catch (err) {
+        console.error("Error fetching complementary products:", err);
+      }
+      return false;
+    };
+
+    fetchComplementary();
+  }, [product.shopifyId, product.id]);
+
+  useEffect(() => {
     if (!product.handle) return;
 
     let ignore = false;
@@ -320,7 +508,13 @@ export default function ProductPageClient({
     apiFetch(`/api/products/related?handle=${encodeURIComponent(product.handle)}`)
       .then((data) => {
         if (ignore) return;
-        setComplementaryProducts(data.complementaryProducts || []);
+        // Only set complementary if they haven't been set by the metafield fetch
+        // Note: this is a simple race-condition prone check, but given the user request, 
+        // we want the metafield to be the primary source.
+        setComplementaryProducts(prev => {
+          if (prev && prev.length > 0) return prev;
+          return data.complementaryProducts || [];
+        });
         setMatchingProducts(data.matchingProducts || []);
       })
       .catch((error) => {
@@ -2356,7 +2550,7 @@ export default function ProductPageClient({
                 title="Visit Our Store"
                 description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                 action="BOOK APPOINTMENT"
-                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDP_Store.jpg"
+                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
                 url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                 onClick={() => pushToDataLayer({
                   event: 'promoClick',
@@ -2697,6 +2891,20 @@ export default function ProductPageClient({
         products={Array.isArray(recentlyViewedState?.products) && recentlyViewedState.products.length > 0 ? recentlyViewedState.products.slice(0, 12) : undefined}
         preservePriceOnColorChange={true}
       />
+      {youMayAlsoLikeProducts.length > 0 && (
+        <section className="w-full bg-white mt-10 md:mt-15 overflow-hidden">
+          <div className="max-w-480 mx-auto px-5 md:px-17">
+            <div className="text-center mb-10 md:mb-12">
+              <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">You May Also Like</h2>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-8 md:gap-y-12">
+              {youMayAlsoLikeProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       {!isGoldCoin && <DiamondComparison />}
       {/* <ExploreOtherRings /> */}
       {isMobile ? (<ExploreRange />) : (<CategorySlider />)}

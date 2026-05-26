@@ -1,4 +1,3 @@
-import { Figtree, Abhaya_Libre } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
 import ReduxProvider from "@/redux/provider";
@@ -11,20 +10,6 @@ import Script from "next/script";
 import GtmPageView from "@/components/common/GtmPageView";
 import { organizationSchema, websiteSchema, storesSchema } from "@/lib/seo";
 import WebEngageRegistration from "@/components/common/WebEngageRegistration";
-
-const figtree = Figtree({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-  variable: "--font-figtree",
-  display: "swap",
-});
-
-const abhaya = Abhaya_Libre({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-abhaya",
-  display: "swap",
-});
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
 
@@ -66,7 +51,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={`${figtree.variable} ${abhaya.variable} font-figtree antialiased`}>
+      <body className="font-figtree antialiased">
         {isProd && (
           <noscript>
             <iframe
