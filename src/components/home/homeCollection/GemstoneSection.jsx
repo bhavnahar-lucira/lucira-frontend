@@ -20,7 +20,8 @@ export default function GemstoneSection({ initialProducts, initialCategories }) 
     if (initialCategories) {
       const categories = (initialCategories["Product Category"] || [])
         .map((option) => option.label || option.value)
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter(cat => cat.toLowerCase() !== "pendants");
       if (categories.length > 0) {
         const preferredOrder = ["Bracelets", "Charms & Pendants", "Earrings", "Necklaces", "Rings"];
         return ["All", ...preferredOrder.filter((cat) => categories.includes(cat)), ...categories.filter((cat) => !preferredOrder.includes(cat))];
@@ -47,7 +48,8 @@ export default function GemstoneSection({ initialProducts, initialCategories }) 
         const data = await apiFetch(`/api/products/filters?q=gemstone`);
         const categories = (data["Product Category"] || [])
           .map((option) => option.label || option.value)
-          .filter(Boolean);
+          .filter(Boolean)
+          .filter(cat => cat.toLowerCase() !== "pendants");
 
         if (categories.length > 0) {
           const preferredOrder = [

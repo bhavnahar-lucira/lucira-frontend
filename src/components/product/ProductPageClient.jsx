@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import Image from "next/image";
 import {
   Breadcrumb,
@@ -696,8 +696,17 @@ export default function ProductPageClient({
 
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
-  const currentWishlistKey = `${getNumericId(productId)}-${getNumericId(activeVariantId)}`;
-  const isWishlisted = productId ? wishlistItems.some((item) => `${getNumericId(item.productId)}-${getNumericId(item.variantId || "")}` === currentWishlistKey) : false;
+  
+  const isWishlisted = useMemo(() => {
+    const normProductId = String(getNumericId(productId));
+    const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
+    
+    if (user?.id) {
+      return wishlistItems.some(findFn);
+    }
+    const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
+    return guestItems.some(findFn);
+  }, [user?.id, wishlistItems, productId]);
   const recentlyViewedState = useSelector(selectRecentlyViewed);
 
   const handleSaveEngraving = () => {
@@ -960,48 +969,67 @@ export default function ProductPageClient({
       toast.error("Unable to save this product");
       return;
     }
+    const rawProductId = product.shopifyId || product.id;
+    if (!rawProductId) return;
 
     setWishlistLoading(true);
     try {
-      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : "";
-      const thumbnailImage = getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.images?.[0]?.url || product.featuredImage || (product.media && product.media[0]?.url));
-      const commonTrackingData = getStandardWishlistPayload(product, activeVariant, currentOrigin, thumbnailImage);
-
       if (isWishlisted) {
-        if (user?.id) {
-          await dispatch(removeWishlistItem({ productId, variantId: activeVariantId })).unwrap();
-        } else {
-          dispatch(removeGuestWishlistItem({ productId, variantId: activeVariantId }));
+        // Remove
+        const normProductId = String(getNumericId(rawProductId));
+        const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
+        const targetItem = (user?.id ? wishlistItems : guestItems).find(
+          (item) => String(getNumericId(item.productId)) === normProductId
+        );
+        
+        if (targetItem) {
+          if (user?.id) {
+            dispatch(removeWishlistItem({ productId: targetItem.productId, variantId: targetItem.variantId }));
+          } else {
+            dispatch(removeGuestWishlistItem({ productId: targetItem.productId, variantId: targetItem.variantId }));
+          }
         }
-        pushRemoveFromWishlist(commonTrackingData);
-        toast.error("Removed from wishlist", {
-          icon: <Check className="w-4 h-4" />
-        });
+
+        const commonTrackingData = getStandardWishlistPayload(
+          product,
+          activeVariant,
+          typeof window !== 'undefined' ? window.location.origin : '',
+          getValidSrc(activeVariant?.image || product.featuredImage)
+        );
+        pushRemoveFromWishlist([commonTrackingData]);
+        toast.info("Removed from wishlist");
       } else {
+        // Add
         const payload = {
-          productId,
-          variantId: activeVariantId,
-          variantTitle: activeVariant?.title || "",
-          size: selectedSize || "",
-          color: activeColor || "",
-          karat: activeKarat || "",
-          productHandle: product.handle || "",
+          productId: rawProductId,
+          productHandle: product.handle,
           title: product.title,
-          image: thumbnailImage,
-          price: activeVariant?.price || product.price || "",
+          image: typeof activeVariant?.image === 'string' ? activeVariant.image : (activeVariant?.image?.url || product.featuredImage),
+          price: activeVariant?.price || product.price,
           comparePrice: activeVariant?.compare_price || product.compare_price || "",
           reviews: product.reviews || null,
-          hasVideo: Boolean(product.media?.some((m) => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO")),
+          hasVideo: Boolean(product.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO")),
           hasSimilar: Boolean(product.handle),
+          variantId: String(getNumericId(activeVariantId)),
+          size: selectedSize || "",
+          color: activeColor || activeKarat || ""
         };
 
+        const commonTrackingData = getStandardWishlistPayload(
+          product,
+          activeVariant,
+          typeof window !== 'undefined' ? window.location.origin : '',
+          payload.image
+        );
+
         if (user?.id) {
-          await dispatch(addWishlistItem(payload)).unwrap();
+          const finalUserId = typeof user.id === 'object' ? user.id.$oid || user.id.toString() : user.id;
+          dispatch(addWishlistItem({ ...payload, userId: finalUserId }));
         } else {
           dispatch(addGuestWishlistItem(payload));
         }
 
-        pushAddToWishlist(commonTrackingData);
+        pushAddToWishlist([commonTrackingData]);
         toast.success("Saved to wishlist");
       }
     } catch (err) {
@@ -1925,7 +1953,7 @@ export default function ProductPageClient({
                                   <div className="space-y-2">
                                     <div className="flex items-center gap-2">
                                       <p className="text-[14px] font-bold text-black tracking-tight">₹{formatPrice(item.price)}</p>
-                                      {(item.compare_price || item.compareAtPrice) > item.price && (
+                                      {(Number(item.compare_price || item.compareAtPrice || 0) > Number(item.price || 0)) && (
                                         <p className="text-[12px] text-zinc-400 line-through font-medium">₹{formatPrice(item.compare_price || item.compareAtPrice)}</p>
                                       )}
                                     </div>

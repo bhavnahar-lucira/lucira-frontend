@@ -221,11 +221,13 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     return getVariantForBase(product, activeBase);
   }, [product, activeBase]);
 
+  const pricingVariant = prioritizedVariant || currentVariant;
+
   // Live Pricing Fetch
   useEffect(() => {
-    if (fixedPrice || !currentVariant?.id) return;
+    if (fixedPrice || !pricingVariant?.id) return;
     
-    const variantId = String(currentVariant.id);
+    const variantId = String(pricingVariant.id);
     const productId = String(product.shopifyId || product.id);
     const cacheKey = `${productId}-${variantId}`;
     
@@ -265,7 +267,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       });
 
     return () => { ignore = true; };
-  }, [currentVariant?.id, product.shopifyId, product.id, fixedPrice]);
+  }, [pricingVariant?.id, product.shopifyId, product.id, fixedPrice]);
 
   useEffect(() => {
     const productReviewId = product.shopifyId || product.id;
@@ -345,8 +347,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const showVideoIcon = Boolean(videoMedia);
 
-  const displayPrice = fixedPrice || livePrice || currentVariant?.price_breakup?.total || currentVariant?.price || product.price_breakup?.total || product.price;
-  const displayComparePrice = fixedComparePrice || liveComparePrice || currentVariant?.compare_price || currentVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
+  const displayPrice = fixedPrice || livePrice || pricingVariant?.price_breakup?.total || pricingVariant?.price || product.price_breakup?.total || product.price;
+  const displayComparePrice = fixedComparePrice || liveComparePrice || pricingVariant?.compare_price || pricingVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
   const discountPercent = useMemo(() => {
     if (!displayComparePrice || displayComparePrice <= displayPrice) return 0;
     return Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100);
@@ -550,12 +552,28 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                               {similarProducts.slice(0, 10).map((item) => (
                                 <div key={item.id} className="space-y-4">
                                   <Link href={`/products/${item.handle}`} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
-                                    <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]"><LazyImage src={item.image} alt={item.title} fill className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" /></div>
+                                    <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]">
+                                      <LazyImage src={item.image} alt={item.title} fill className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" />
+                                      {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
+                                        <button 
+                                          onClick={(e) => { 
+                                            e.preventDefault(); 
+                                            const vMedia = item.media.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
+                                            if (vMedia) onVideoPlay?.(vMedia, item.title);
+                                          }}
+                                          className="absolute bottom-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300"
+                                        >
+                                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 ml-0.5">
+                                            <path d="M7 6V18L19 12L7 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                          </svg>
+                                        </button>
+                                      )}
+                                    </div>
                                     <div className="space-y-2">
                                       <h4 className="text-[13px] font-normal text-zinc-900 line-clamp-1">{item.title}</h4>
                                       <div className="flex items-center gap-2">
                                         <p className="text-[14px] font-bold text-black">₹{formatPrice(item.price)}</p>
-                                        {(item.compare_price > item.price || item.compareAtPrice > item.price) && (
+                                        {(Number(item.compare_price || item.compareAtPrice || 0) > Number(item.price || 0)) && (
                                           <p className="text-[12px] text-zinc-400 line-through">₹{formatPrice(item.compare_price || item.compareAtPrice)}</p>
                                         )}
                                       </div>
@@ -600,7 +618,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                       else dispatch(removeGuestWishlistItem(productId));
                       pushRemoveFromWishlist(commonTrackingData); toast.error("Removed from wishlist", { icon: <Check className="w-4 h-4" /> });
                     } else {
-                      const payload = { productId, productHandle, title: product.title, image: thumbnailImage, price: displayPrice, comparePrice: displayComparePrice || "", reviews: product.reviews || null, hasVideo: Boolean(videoMedia), hasSimilar: Boolean(product.handle) };
+                      const payload = { productId, productHandle, title: product.title, image: thumbnailImage, price: displayPrice, comparePrice: displayComparePrice || "", reviews: product.reviews || null, hasVideo: Boolean(videoMedia), hasSimilar: Boolean(product.handle), variantId: String(getNumericId(currentVariant?.id || currentVariant?.shopifyId)), size: currentVariant?.size || "", color: currentVariant?.color || currentVariant?.title || "" };
                       if (user?.id) await dispatch(addWishlistItem(payload)).unwrap();
                       else dispatch(addGuestWishlistItem(payload));
                       pushAddToWishlist(commonTrackingData); toast.success("Saved to wishlist");

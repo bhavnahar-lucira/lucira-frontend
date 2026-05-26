@@ -397,7 +397,7 @@ export const removeFromCart = createAsyncThunk(
 
 export const updateCartItem = createAsyncThunk(
   "cart/updateCartItem",
-  async ({ userId, lineId, currentVariantId, quantity }, { getState }) => {
+  async ({ userId, lineId, currentVariantId, nextVariantId, quantity, size, price, variantTitle, inStock, sku }, { getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
@@ -425,9 +425,13 @@ export const updateCartItem = createAsyncThunk(
     }
 
     // 1. Shopify Storefront update
+    const lineUpdate = { id: targetLineId };
+    if (quantity !== undefined) lineUpdate.quantity = quantity;
+    if (nextVariantId) lineUpdate.merchandiseId = toShopifyGid(nextVariantId, "ProductVariant");
+
     await shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
       cartId,
-      lines: [{ id: targetLineId, quantity }]
+      lines: [lineUpdate]
     });
 
     // 2. Fastify backend update
@@ -440,7 +444,13 @@ export const updateCartItem = createAsyncThunk(
             userId: finalUserId,
             sessionId,
             currentVariantId: resolvedVariantId,
-            quantity
+            nextVariantId,
+            quantity,
+            size,
+            price,
+            variantTitle,
+            inStock,
+            sku
           })
         });
       } catch (e) {

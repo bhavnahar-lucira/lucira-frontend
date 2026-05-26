@@ -91,7 +91,7 @@ export default async function Page({ params }) {
     if (collRes.ok && filterRes.ok) {
       const collData = await collRes.json();
       const filterDataObj = await filterRes.json();
-      initialData = { collData, filterData: filterDataObj.filters || {} };
+      initialData = { collData, filterData: filterDataObj || {} };
     }
   } catch(e) {
     console.error("Failed to fetch initial data for SSG", e);
