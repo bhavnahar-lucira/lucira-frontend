@@ -481,7 +481,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       <div className="space-y-4">
         <div className="group/card block space-y-4">
           <div className="relative aspect-square w-full bg-[#fafafa] overflow-hidden">
-            <Link href={`/products/${product.handle}`} className="block w-full h-full mix-blend-multiply" onClick={handleProductClick}>
+            <Link href={`/products/${product.handle}`} prefetch={false} className="block w-full h-full mix-blend-multiply" onClick={handleProductClick}>
               {galleryImages.length > 0 ? (
                 <Swiper
                   spaceBetween={0}
@@ -551,7 +551,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-8 gap-y-12 pb-10">
                               {similarProducts.slice(0, 10).map((item) => (
                                 <div key={item.id} className="space-y-4">
-                                  <Link href={`/products/${item.handle}`} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
+                                  <Link href={`/products/${item.handle}`} prefetch={false} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
                                     <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]">
                                       <LazyImage src={item.image} alt={item.title} fill className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" />
                                       {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
@@ -695,7 +695,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             </div>
 
             <div className="flex flex-col items-start gap-0.5">
-              <Link href={`/products/${product.handle}`} onClick={handleProductClick}>
+              <Link href={`/products/${product.handle}`} prefetch={false} onClick={handleProductClick}>
                 <h3 className="text-sm font-figtree font-semibold hover:underline underline-offset-4 leading-snug hover:text-gray-900 transition-colors line-clamp-1 min-h-5">{product.title}</h3>
               </Link>
               <div className="flex flex-col justify-center items-start gap-2">

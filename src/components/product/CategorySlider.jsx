@@ -67,6 +67,7 @@ export default function CategorySlider() {
               <SwiperSlide key={category.id}>
                 <Link
                   href={`/collections/${category.handle}`}
+                  prefetch={false}
                   className="group block relative aspect-4/5 bg-[#EFEFEF] overflow-hidden rounded-sm"
                 >
                   {/* Category Image */}

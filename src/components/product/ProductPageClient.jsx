@@ -2132,7 +2132,7 @@ export default function ProductPageClient({
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 sm:gap-x-8 gap-x-4 sm:gap-y-12 gap-y-6 pb-10">
                           {similarProducts.slice(0, 10).map((item) => (
                             <div key={item.shopifyId || item._id || item.id} className="space-y-4">
-                              <Link href={`/products/${item.handle}`} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
+                              <Link href={`/products/${item.handle}`} prefetch={false} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
                                 <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden transition-all duration-300 group-hover:bg-[#f3f3f3]">
                                   <Image
                                     src={getValidSrc(item.image)}

@@ -80,6 +80,7 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                       <Link 
                         key={i} 
                         href={cat.href}
+                        prefetch={false}
                         onClick={onClose}
                         className="group"
                       >
@@ -108,6 +109,7 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                         <Link 
                           key={col.id} 
                           href={col.url}
+                          prefetch={false}
                           onClick={onClose}
                           className="group block p-3 bg-zinc-50 rounded-lg border border-zinc-100 hover:border-primary/20 hover:bg-white transition-all duration-300"
                         >
@@ -134,6 +136,7 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                 <div className="mt-auto pt-6 border-t border-gray-50">
                   <Link 
                     href={`/search?q=${encodeURIComponent(searchQuery)}`}
+                    prefetch={false}
                     onClick={onClose}
                     className="text-primary font-bold text-xs md:text-sm underline underline-offset-4 decoration-primary/30 hover:decoration-primary transition-all uppercase tracking-widest"
                   >
@@ -170,6 +173,7 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                     <Link 
                       key={item.id} 
                       href={item.url}
+                      prefetch={false}
                       onClick={onClose}
                       className="group flex gap-3 md:gap-4 items-center"
                     >
