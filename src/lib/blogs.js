@@ -13,7 +13,7 @@ function stripHtml(value) {
 export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
   // 1. Try Storefront API first (most reliable, supports caching)
   const storefrontArticle = await getArticleByBlogAndHandleStorefront(blogHandle, articleHandle);
-  
+
   // 2. Fallback to MongoDB (local cache)
   const client = await clientPromise;
   const db = client.db();
@@ -111,10 +111,9 @@ export async function getArticleByBlogAndHandleStorefront(blogHandle, articleHan
     }
   `;
 
-  // No next: { revalidate } — blog/article pages use force-static (SSG) or page-level revalidate.
-  // Per-fetch revalidate timers cause extra background re-renders on Vercel.
+  // force-cache to respect SSG
   const data = await shopifyStorefrontFetch(query, { blogHandle, articleHandle }, {
-    cache: 'no-store'
+    cache: 'force-cache'
   });
   const article = data?.blog?.articleByHandle;
 
@@ -198,14 +197,14 @@ export async function getArticleByBlogAndHandleAdminRest(blogHandle, articleHand
 }
 
 export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) {
-    // No per-fetch revalidate — blog article pages are SSG (force-static).
-    // Cache: force-cache ensures the fetch result is reused within the same render pass.
-    const res = await fetchWithRetry(
-      `https://luciraonline.myshopify.com/blogs/${blogHandle}/${articleHandle}`,
-      {
-        cache: 'force-cache',
-      }
-    );
+  // No per-fetch revalidate — blog article pages are SSG (force-static).
+  // Cache: force-cache ensures the fetch result is reused within the same render pass.
+  const res = await fetchWithRetry(
+    `https://luciraonline.myshopify.com/blogs/${blogHandle}/${articleHandle}`,
+    {
+      cache: 'force-cache',
+    }
+  );
 
   if (!res.ok) return null;
 
@@ -338,9 +337,9 @@ export async function getArticlesByBlogHandleStorefront(blogHandle) {
     }
   `;
 
-  // No per-fetch revalidate — page-level revalidate or force-static handles cache lifetime.
+  // force-cache to respect SSG
   const data = await shopifyStorefrontFetch(query, { blogHandle }, {
-    cache: 'no-store'
+    cache: 'force-cache'
   });
   const articles = data?.blog?.articles?.edges?.map(edge => ({
     ...edge.node,

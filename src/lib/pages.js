@@ -1,7 +1,7 @@
 import { shopifyStorefrontFetch } from "./shopify";
 
 export async function getAllPages() {
-    const query = `
+  const query = `
       query {
         pages(first: 250) {
           edges {
@@ -14,12 +14,12 @@ export async function getAllPages() {
         }
       }
     `;
-    const data = await shopifyStorefrontFetch(query);
-    return data?.pages?.edges.map(e => e.node) || [];
+  const data = await shopifyStorefrontFetch(query);
+  return data?.pages?.edges.map(e => e.node) || [];
 }
 
 export async function getPageByHandle(handle) {
-    const query = `
+  const query = `
       query getPage($handle: String!) {
         page(handle: $handle) {
           id
@@ -30,12 +30,11 @@ export async function getPageByHandle(handle) {
         }
       }
     `;
-    // No next: { revalidate } — static pages use force-static (SSG). No background re-renders.
-    const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'no-store' });
-    return data?.page;
+  // force-cache to respect SSG
+  const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'force-cache' });
+  return data?.page;
 }
 
 export async function getPageByHandleStorefront(handle) {
-    return getPageByHandle(handle);
+  return getPageByHandle(handle);
 }
-

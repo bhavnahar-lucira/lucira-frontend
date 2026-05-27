@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 
-export const revalidate = 21600; // 6 hours
+export const revalidate = 86400; // 24 hours
 
 import HeroSliderImage from "@/components/home/HeroSliderImage";
 import ExploreRange from "@/components/home/ExploreRange";
@@ -39,8 +39,8 @@ export const metadata = {
 };
 
 export default async function Home() {
-  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
-    ? process.env.NEXT_PUBLIC_BACKEND_URL 
+  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "")
+    ? process.env.NEXT_PUBLIC_BACKEND_URL
     : "http://127.0.0.1:8080";
   const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
 
@@ -50,14 +50,12 @@ export default async function Home() {
   let exploreInitial = null;
 
   try {
-    // No `next: { revalidate }` here — the page-level `export const revalidate = 21600` (6h)
-    // is the single source of truth. Per-fetch revalidate options create independent background
-    // re-render timers that cause unnecessary ISR writes on Vercel.
+    // Use force-cache so these fetches inherit the page-level revalidate=21600
     const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { cache: 'no-store' }),
-      fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { cache: 'no-store' }),
-      fetch(`${base}/api/products/filters?q=gemstone`, { cache: 'no-store' }),
-      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { cache: 'no-store' })
+      fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { cache: 'force-cache' }),
+      fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { cache: 'force-cache' }),
+      fetch(`${base}/api/products/filters?q=gemstone`, { cache: 'force-cache' }),
+      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { cache: 'force-cache' })
     ]);
 
     if (bestsellersRes.ok) bestsellersInitial = await bestsellersRes.json();
