@@ -8,9 +8,11 @@ export async function POST(request) {
 
     console.log(`[Next.js Revalidate] Triggered ISR revalidation. Product Handle: ${handle || 'none'}`);
 
-    // Revalidate the global layout to flush the cache completely, ensuring all pages 
-    // (collections, home, product) get the latest product prices and data.
-    revalidatePath('/', 'layout');
+    // Revalidate only the homepage path to update featured products/sections.
+    // We avoid 'layout' revalidation here because revalidating the root layout 
+    // invalidates every single page in the application, leading to a massive 
+    // spike in Vercel ISR writes and exceeding limits.
+    revalidatePath('/');
 
     // Optionally revalidate specific paths explicitly
     if (handle) {
