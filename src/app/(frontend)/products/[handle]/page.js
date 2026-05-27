@@ -298,6 +298,10 @@ async function getProduct(handle) {
     alt: img.altText || ""
   }));
 
+  // Strip heavy unused fields to save Vercel bandwidth
+  delete product.descriptionHtml;
+  delete product.seo;
+
   return {
     ...product,
     id: product.id.split("/").pop(),

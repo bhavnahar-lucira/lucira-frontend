@@ -91,6 +91,23 @@ export default async function Page({ params }) {
     if (collRes.ok && filterRes.ok) {
       const collData = await collRes.json();
       const filterDataObj = await filterRes.json();
+
+      // Prune massive unused data to save Vercel bandwidth
+      if (collData?.collection) {
+        delete collData.collection.descriptionHtml;
+        if (collData.collection.metafields?.custom) {
+          delete collData.collection.metafields.custom.bestsellers_html;
+          delete collData.collection.metafields.custom.seo_content_data;
+        }
+      }
+
+      // Keep product descriptions lean in the grid
+      if (collData?.products) {
+        collData.products.forEach(p => {
+          delete p.descriptionHtml;
+        });
+      }
+
       initialData = { collData, filterData: filterDataObj || {} };
     }
   } catch(e) {

@@ -62,6 +62,28 @@ export default async function Home() {
     if (gemstoneRes.ok) gemstoneInitial = await gemstoneRes.json();
     if (gemstoneCatRes.ok) gemstoneCategoriesInitial = await gemstoneCatRes.json();
     if (exploreRes.ok) exploreInitial = await exploreRes.json();
+
+    // Helper to strip heavy fields and save Vercel bandwidth
+    const stripData = (data) => {
+      if (!data) return;
+      if (data.collection) {
+        delete data.collection.descriptionHtml;
+        if (data.collection.metafields?.custom) {
+          delete data.collection.metafields.custom.bestsellers_html;
+          delete data.collection.metafields.custom.seo_content_data;
+        }
+      }
+      if (data.products) {
+        data.products.forEach(p => {
+          delete p.descriptionHtml;
+        });
+      }
+    };
+
+    stripData(bestsellersInitial);
+    stripData(gemstoneInitial);
+    stripData(exploreInitial);
+
   } catch (e) {
     console.error("Failed to fetch initial data for Home SSG", e);
   }
