@@ -2,7 +2,7 @@ import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 
-export const revalidate = 86400; // 6 hours
+export const revalidate = 86400; // 24 hours
 
 async function getCollectionData(handle) {
   const query = `
@@ -55,11 +55,10 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  const handles = await getAllCollectionHandles();
-  // Include "all" as a static param as well
-  return [...handles, "all"].map((handle) => ({
-    handle,
-  }));
+  // Pre-render only the "/collections/all" page during build time.
+  // The rest of the collections will be generated dynamically on-demand when first requested, 
+  // keeping your build fast and light.
+  return [{ handle: "all" }];
 }
 
 export default async function Page({ params }) {

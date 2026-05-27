@@ -1,4 +1,3 @@
-export const revalidate = 86400; // 6 hours
 import JewelryGiftGuideClient from "./JewelryGiftGuideClient";
 
 export const metadata = {

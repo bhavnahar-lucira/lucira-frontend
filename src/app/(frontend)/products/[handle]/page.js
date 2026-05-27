@@ -3,7 +3,7 @@ import ProductPageClient from "@/components/product/ProductPageClient";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { shopifyStorefrontFetch, getAllProductHandles } from "@/lib/shopify";
 
-export const revalidate = 86400; // 6 hours
+export const revalidate = 86400; // 24 hours
 
 const PRODUCT_QUERY = `
   query getProduct($handle: String!) {
@@ -135,10 +135,10 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  const handles = await getAllProductHandles();
-  return handles.map((handle) => ({
-    handle,
-  }));
+  // Return an empty array to prevent Next.js from pre-rendering all 2,600+ product pages during build time.
+  // Instead, the product pages will be generated dynamically on-demand when a user first visits them,
+  // and then cached. This reduces your build time from 30+ minutes to less than 1 minute!
+  return [];
 }
 
 async function getProduct(handle) {

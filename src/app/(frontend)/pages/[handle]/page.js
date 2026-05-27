@@ -1,8 +1,6 @@
 import { getPageByHandle, getPageByHandleStorefront } from "@/lib/pages";
 import { notFound } from "next/navigation";
 
-export const revalidate = 86400; // 6 hours
-
 import ContactSection from "@/components/common/ContactSection";
 import SitemapPage from "@/components/sitemap/SitemapPage";
 import FooterPageContent from "@/components/FooterPageContent";

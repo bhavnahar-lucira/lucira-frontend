@@ -1,4 +1,3 @@
-export const revalidate = 86400; // 6 hours
 
 const sections = [
   {

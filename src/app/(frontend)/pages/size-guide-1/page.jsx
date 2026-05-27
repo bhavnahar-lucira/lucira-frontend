@@ -1,4 +1,3 @@
-export const revalidate = 21600; // 6 hours
 import Link from "next/link"
 import Image from "next/image"
 
