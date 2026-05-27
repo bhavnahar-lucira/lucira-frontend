@@ -24,7 +24,8 @@ async function getCollectionData(handle) {
     }
   `;
   
-  const data = await shopifyStorefrontFetch(query, { handle }, { next: { revalidate: 86400 } });
+  // No next: { revalidate } — the page-level `export const revalidate = 86400` controls ISR timing.
+  const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'no-store' });
   return data?.collectionByHandle;
 }
 
@@ -84,8 +85,8 @@ export default async function Page({ params }) {
   let initialData = null;
   try {
     const [collRes, filterRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=best_selling`, { next: { revalidate: 86400 } }),
-      fetch(`${base}/api/products/filters?handle=${handle}`, { next: { revalidate: 86400 } })
+      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=best_selling`, { cache: 'no-store' }),
+      fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'no-store' })
     ]);
     if (collRes.ok && filterRes.ok) {
       const collData = await collRes.json();

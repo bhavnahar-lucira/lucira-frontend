@@ -8,6 +8,11 @@ import GoldRatePage from "@/components/pages/gold-rate/GoldRatePage";
 import SilverRatePage from "@/components/pages/silver-rate/SilverRatePage";
 import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage";
 
+// SSG: Static pages (About, Careers, T&C, etc.) are rendered once at build and cached permanently.
+// Zero ISR background writes. Content only changes when an editor manually updates it in Shopify.
+export const dynamic = 'force-static';
+
+
 export async function generateMetadata({ params }) {
   const { handle } = await params;
   let page = await getPageByHandle(handle);

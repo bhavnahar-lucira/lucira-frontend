@@ -142,7 +142,9 @@ export async function generateStaticParams() {
 }
 
 async function getProduct(handle) {
-  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { next: { revalidate: 86400 } });
+  // No next: { revalidate } — the page-level `export const revalidate = 86400` controls ISR timing.
+  // Per-fetch revalidate creates an independent background re-render timer on Vercel, causing extra ISR writes.
+  const data = await shopifyStorefrontFetch(PRODUCT_QUERY, { handle }, { cache: 'no-store' });
   const product = data?.product;
 
 

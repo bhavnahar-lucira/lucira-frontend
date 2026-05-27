@@ -30,9 +30,8 @@ export async function getPageByHandle(handle) {
         }
       }
     `;
-    const data = await shopifyStorefrontFetch(query, { handle }, {
-      next: { revalidate: 86400 } // ✅ 6 hours cache
-    });
+    // No next: { revalidate } — static pages use force-static (SSG). No background re-renders.
+    const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'no-store' });
     return data?.page;
 }
 

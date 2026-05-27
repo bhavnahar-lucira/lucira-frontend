@@ -28,11 +28,12 @@ export async function shopifyStorefrontFetch(query, variables = {}, options = {}
           ...options.headers
         },
         body: JSON.stringify({ query, variables }),
-        next: {
-          revalidate: 3600, // ✅ 1 hour default cache
-          ...options.next
-        },
-        ...options
+        // Caller controls caching strategy:
+        //   ISR pages:   { cache: 'no-store' }    → fresh on each ISR render, page-level revalidate governs timing
+        //   Build-time:  { cache: 'force-cache' } → reuse build cache, no background re-renders
+        //   Default:     { cache: 'no-store' }    → safe default, avoids stale data
+        cache: options.cache ?? 'no-store',
+        ...(options.next ? { next: options.next } : {})
       }
     );
 
@@ -341,7 +342,9 @@ export async function getAllProductHandles() {
 
   try {
     while (hasNextPage) {
-      const data = await shopifyStorefrontFetch(query, { cursor }, { next: { revalidate: 3600 } });
+      // force-cache: reuse build-time cache. These functions only run during generateStaticParams
+      // (build time). No background revalidation needed — timers here cause Vercel function invocations.
+      const data = await shopifyStorefrontFetch(query, { cursor }, { cache: 'force-cache' });
       if (!data?.products) break;
       
       const newHandles = data.products.edges.map(edge => edge.node.handle);
@@ -382,7 +385,8 @@ export async function getAllCollectionHandles() {
 
   try {
     while (hasNextPage) {
-      const data = await shopifyStorefrontFetch(query, { cursor }, { next: { revalidate: 3600 } });
+      // force-cache: reuse build-time cache. These functions only run during generateStaticParams.
+      const data = await shopifyStorefrontFetch(query, { cursor }, { cache: 'force-cache' });
       if (!data?.collections) break;
 
       const newHandles = data.collections.edges.map(edge => edge.node.handle);

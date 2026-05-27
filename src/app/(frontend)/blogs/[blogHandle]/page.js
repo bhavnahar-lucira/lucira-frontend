@@ -4,6 +4,10 @@ import { notFound } from "next/navigation";
 import { getArticlesByBlogHandle, getBlogByHandle } from "@/lib/blogs";
 import BlogCard from "@/components/blogs/BlogCard";
 
+// SSG: Render once at build, never background-revalidate.
+// Blog content is static — it only changes when an editor publishes a new article.
+export const dynamic = 'force-static';
+
 export async function generateMetadata({ params }) {
   const { blogHandle } = await params;
   const blog = await getBlogByHandle(blogHandle);

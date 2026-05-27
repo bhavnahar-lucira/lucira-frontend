@@ -8,6 +8,10 @@ import BlogArticleClient from "@/components/blogs/BlogArticleClient";
 import "./blog-article.css";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 
+// SSG: Articles are static content. Render once at build, zero ISR background writes.
+// Content only changes when an editor publishes or edits — not on a timer.
+export const dynamic = 'force-static';
+
 function stripHtml(value) {
   return value?.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim() || "";
 }

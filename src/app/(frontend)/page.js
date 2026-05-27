@@ -50,11 +50,14 @@ export default async function Home() {
   let exploreInitial = null;
 
   try {
+    // No `next: { revalidate }` here — the page-level `export const revalidate = 21600` (6h)
+    // is the single source of truth. Per-fetch revalidate options create independent background
+    // re-render timers that cause unnecessary ISR writes on Vercel.
     const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { next: { revalidate: 86400 } }),
-      fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { next: { revalidate: 86400 } }),
-      fetch(`${base}/api/products/filters?q=gemstone`, { next: { revalidate: 86400 } }),
-      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { next: { revalidate: 86400 } })
+      fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { cache: 'no-store' }),
+      fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { cache: 'no-store' }),
+      fetch(`${base}/api/products/filters?q=gemstone`, { cache: 'no-store' }),
+      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { cache: 'no-store' })
     ]);
 
     if (bestsellersRes.ok) bestsellersInitial = await bestsellersRes.json();
