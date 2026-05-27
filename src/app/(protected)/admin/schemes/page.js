@@ -320,7 +320,7 @@ export default function SchemesPage() {
         setSchemes(data.schemes || []);
       } catch (err) {
         // If it's a 404, we just keep the empty state silently to avoid console noise
-        if (err.message.includes("404")) {
+        if (err.message.includes("404") || err.message.toLowerCase().includes("not found")) {
           setSchemes([]);
         } else {
           console.error("Schemes load error:", err);
