@@ -172,7 +172,7 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
@@ -225,7 +225,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   // Live Pricing Fetch
   useEffect(() => {
-    if (fixedPrice || !pricingVariant?.id) return;
+    if (disableLivePricing || fixedPrice || !pricingVariant?.id) return;
     
     const variantId = String(pricingVariant.id);
     const productId = String(product.shopifyId || product.id);

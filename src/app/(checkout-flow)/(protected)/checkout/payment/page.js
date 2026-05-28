@@ -881,6 +881,9 @@ export default function PaymentPage() {
                 : "Order placed successfully"
             );
             
+            // Clear the frontend cart state immediately after successful payment
+            dispatch(clearCart());
+            
             // Wait a moment for any background processes or toast to be visible
             setTimeout(() => {
               const successUrl = completion?.shopifyOrderName 

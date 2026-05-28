@@ -521,6 +521,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             product={selectedColor ? { ...prod, selectedColor } : prod} 
             collectionHandle={handle} 
             index={idx + 1} 
+            disableLivePricing={true}
           />
         </div>
       );
