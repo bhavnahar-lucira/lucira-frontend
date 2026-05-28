@@ -12,7 +12,7 @@ export default async function NotFound() {
     ringImage: "https://luciraonline.myshopify.com/cdn/shop/files/Group_1321315630_9e9275ff-1542-4638-b680-f1903f950cf9.png?v=1750417573", // put your image in /public/images/
     heading: "LOOKS LIKE THE GEM IS MISSING…",
     subheading: "But don’t worry, treasures waiting for you.",
-    collectionLink: "/collections/all",
+    collectionLink: "/collections/jewelry",
     collectionLabel: "BROWSE OUR COLLECTIONS",
     homeLink: "/",
     homeLabel: "GO TO HOMEPAGE",

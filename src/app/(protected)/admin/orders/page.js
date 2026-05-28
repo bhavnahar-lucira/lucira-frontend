@@ -327,7 +327,7 @@ export default function MyOrdersPage() {
               </p>
             </div>
             <Link
-              href="/collections/all"
+              href="/collections/jewelry"
               className="font-figtree inline-block px-8 md:px-10 py-3.5 md:py-4 bg-primary text-white text-xs font-semibold uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-transform"
             >
               Start Shopping
@@ -354,7 +354,7 @@ export default function MyOrdersPage() {
             </div>
           </div>
           <Link
-            href="/collections/all"
+            href="/collections/jewelry"
             className="font-figtree px-8 md:px-10 py-4 md:py-5 bg-primary text-white text-xs font-semibold uppercase tracking-[0.15em] rounded-[1.25rem] md:rounded-[1.5rem] hover:scale-105 transition-transform shadow-2xl shadow-primary/20 whitespace-nowrap"
           >
             Continue Shopping

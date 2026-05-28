@@ -807,7 +807,7 @@ export default function EarnRewardsPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-[#1c1410] mb-1.5">You Have Completed Your Profile</h3>
                 <p className="text-[#666] text-sm mb-7">Visit later if any question is added.</p>
-                <a href="/collections/all"
+                <a href="/collections/jewelry"
                   className="inline-block bg-[#5A413F] text-white px-12 py-[13px] rounded-full text-[11px] tracking-[2.5px] uppercase no-underline font-medium">
                   Shop Now
                 </a>

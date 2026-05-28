@@ -382,7 +382,7 @@ export default function WishlistPage() {
               <h3 className="font-figtree text-2xl font-black text-primary">Your wishlist is empty</h3>
               <p className="font-figtree text-zinc-500 font-medium max-w-sm mx-auto">Start adding items you love to your wishlist and they’ll appear here.</p>
             </div>
-            <Link href="/collections/all" className="font-figtree inline-block px-10 py-4 bg-primary text-white text-sm font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-transform">
+            <Link href="/collections/jewelry" className="font-figtree inline-block px-10 py-4 bg-primary text-white text-sm font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-transform">
               Browse Collections
             </Link>
           </div>

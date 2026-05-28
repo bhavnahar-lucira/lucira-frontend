@@ -47,7 +47,7 @@ export default function ShopByShape() {
           {SHAPES.map((shape, index) => (
             <Link 
               key={index} 
-              href={`/collections/all?shape=${shape.name.toLowerCase()}`}
+              href={`/collections/jewelry?shape=${shape.name.toLowerCase()}`}
               className="flex flex-col items-center gap-4 group"
             >
               <div className="w-20 h-20 relative flex items-center justify-center grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500">

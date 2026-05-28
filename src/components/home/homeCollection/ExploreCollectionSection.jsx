@@ -52,7 +52,7 @@ export default function ExploreCollectionSection({ initialData }) {
       tabs={Object.keys(COLLECTION_HANDLE_MAP)}
       page="home"
       colCat="shop all collections"
-      colLink="/collections/all"
+      colLink="/collections/jewelry"
       onTabChange={(tab) => setActiveTab(tab)}
       loading={loading}
     >        

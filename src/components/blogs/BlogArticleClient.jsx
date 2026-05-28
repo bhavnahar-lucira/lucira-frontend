@@ -182,7 +182,7 @@ export default function BlogArticleClient({
             <p className="cta-description">
               Step into a new era of sparkle — brilliant, ethical, yours. Shop your first lab grown diamond today.
             </p>
-            <Link href="/collections/all" className="cta-button">
+            <Link href="/collections/jewelry" className="cta-button">
               Shop Now
             </Link>
           </section>

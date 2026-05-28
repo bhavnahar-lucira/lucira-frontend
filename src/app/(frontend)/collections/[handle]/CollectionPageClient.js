@@ -554,7 +554,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               <BreadcrumbList className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">
                 <BreadcrumbItem><BreadcrumbLink href="/" className="hover:text-[#5a413f] transition-colors">Home</BreadcrumbLink></BreadcrumbItem>
                 <BreadcrumbSeparator className="scale-75" />
-                <BreadcrumbItem><BreadcrumbLink href="/collections/all" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
+                <BreadcrumbItem><BreadcrumbLink href="/collections/jewelry" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
                 <BreadcrumbSeparator className="scale-75" />
                 <BreadcrumbItem><BreadcrumbPage className="text-[#5a413f]">{displayTitle}</BreadcrumbPage></BreadcrumbItem>
               </BreadcrumbList>
