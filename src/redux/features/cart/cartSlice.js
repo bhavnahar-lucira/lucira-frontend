@@ -572,6 +572,13 @@ const cartSlice = createSlice({
       state.totalAmount = 0;
       state.appliedCoupon = null;
       state.nectorPoints = null;
+
+      // Clear local storage to prevent cart resurrection from Shopify/Backend sync
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("shopify_cart_id");
+        localStorage.removeItem("checkout_selection");
+        localStorage.removeItem("checkoutBillingAddressSelection");
+      }
     },
     applyCoupon: (state, action) => {
       state.appliedCoupon = action.payload;
@@ -605,6 +612,13 @@ const cartSlice = createSlice({
         state.appliedCoupon = null;
         state.nectorPoints = null;
         state.error = null;
+
+        // Clear local storage to prevent cart resurrection for new sessions
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("shopify_cart_id");
+          localStorage.removeItem("checkout_selection");
+          localStorage.removeItem("checkoutBillingAddressSelection");
+        }
       })
       .addCase(fetchCart.pending, (state) => {
         state.loading = true;
