@@ -9,7 +9,7 @@ import SilverInvestmentSection from "./SilverInvestmentSection";
 import SilverPriceTable from "./SilverPriceTable";
 import SilverInformationContent from "./SilverInformationContent";
 import { SILVER_RATE_TEMPLATE } from "@/data/silverRateTemplate";
-import { apiFetch } from "@/lib/api";
+import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
     'andaman-and-nicobar-islands': ['Port Blair'],
@@ -77,7 +77,7 @@ export default function SilverRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const data = await apiFetch("/api/silver-rates");
+                const data = await fetchLocalRates();
                 setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
@@ -99,8 +99,8 @@ export default function SilverRatePage({ page }) {
             flip_founder_image: base.flip_founder_image || "shopify://shop_images/612a521c6534a80708c03812f6a24fb301fc6dfa_1.png",
             flip_founder_name: base.flip_founder_name || "Rupesh Jain",
             flip_founder_designation: base.flip_founder_designation || "Founder",
-            rate_today: `₹ ${(Number(rates.silver_price) * 10 || parseInt(base.rate_today.replace(/[^\d]/g, ''))).toLocaleString('en-IN')}`,
-            rate_avg: `₹ ${(Number(rates.silver_price) * 1000 || parseInt(base.rate_avg.replace(/[^\d]/g, ''))).toLocaleString('en-IN')}`,
+            rate_today: `₹ ${(Number(rates.silver_price_10g) || parseInt(base.rate_today.replace(/[^\d]/g, ''))).toLocaleString('en-IN')}`,
+            rate_avg: `₹ ${(Number(rates.silver_price_1kg) || parseInt(base.rate_avg.replace(/[^\d]/g, ''))).toLocaleString('en-IN')}`,
         };
     }, [rates]);
 

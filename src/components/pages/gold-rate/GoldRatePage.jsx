@@ -9,7 +9,7 @@ import InvestmentSection from "./InvestmentSection";
 import PriceTable from "./PriceTable";
 import InformationContent from "./InformationContent";
 import { GOLD_RATE_TEMPLATE } from "@/data/goldRateTemplate";
-import { apiFetch } from "@/lib/api";
+import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
     'andaman-and-nicobar-islands': ['Port Blair'],
@@ -77,7 +77,7 @@ export default function GoldRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const data = await apiFetch("/api/gold-rates");
+                const data = await fetchLocalRates();
                 setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
@@ -91,9 +91,9 @@ export default function GoldRatePage({ page }) {
         if (!rates) return base;
         return {
             ...base,
-            rate_today: `₹ ${(Number(rates.gold_price_24k) * 10 || 154002).toLocaleString('en-IN')}`,
-            rate_yesterday: `₹ ${(Number(rates.gold_price_24k_yesterday) * 10 || 155053).toLocaleString('en-IN')}`,
-            rate_avg: `₹ ${(Number(rates.gold_price_22k) * 10 || 141682).toLocaleString('en-IN')}`,
+            rate_today: `₹ ${(Number(rates.gold_price_24k) || 154002).toLocaleString('en-IN')}`,
+            rate_yesterday: `₹ ${(Number(rates.gold_price_24k_yesterday) || 155053).toLocaleString('en-IN')}`,
+            rate_avg: `₹ ${(Number(rates.gold_price_22k) || 141682).toLocaleString('en-IN')}`,
         };
     }, [rates]);
 

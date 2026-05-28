@@ -49,15 +49,90 @@ export default async function Page({ params }) {
     page = await getPageByHandleStorefront(handle);
   }
 
+  // Check for Rate pages before returning notFound
+  const isSilverRatePage = handle.includes("silver-rate-today");
+  const isPlatinumRatePage = handle.includes("platinum-rate-today");
+  const isGoldRatePage = handle.includes("gold-rate-today");
+
+  if (!page && (isSilverRatePage || isPlatinumRatePage || isGoldRatePage)) {
+    // Extract city slug from handle: e.g. "baramula-platinum-rate-today" -> "baramula"
+    // or "new-delhi-gold-rate-today" -> "new-delhi"
+    let rateType = '';
+    if (isGoldRatePage) rateType = '-gold-rate-today';
+    else if (isSilverRatePage) rateType = '-silver-rate-today';
+    else if (isPlatinumRatePage) rateType = '-platinum-rate-today';
+
+    const citySlug = handle.replace(rateType, '');
+
+    // Capitalize city name from slug: "new-delhi" -> "New Delhi"
+    const cityCapitalized = citySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+    // Look up the state that contains this city using a case-insensitive match
+    const stateCityMap = {
+      'andaman-and-nicobar-islands': ['Port Blair'],
+      'andhra-pradesh': ['Chirala', 'Guntur', 'Hindupur', 'Kagaznagar', 'Kakinada', 'Kurnool', 'Machilipatnam', 'Nandyal', 'Nellore', 'Ongole', 'Proddatur', 'Rajahmundry', 'Tirupati', 'Vishakhapatnam', 'Vizianagaram'],
+      'arunachal-pradesh': ['Itanagar'],
+      'assam': ['Dibrugarh', 'Dispur', 'Guwahati', 'Jorhat', 'Silchar', 'Tezpur'],
+      'bihar': ['Aurangabad', 'Bhagalpur', 'Gaya', 'Muzaffarpur', 'Patna', 'Purnea'],
+      'chandigarh': ['Chandigarh'],
+      'chhattisgarh': ['Bhilai', 'Bilaspur', 'Raipur'],
+      'dadra-and-nagar-haveli': ['Silvassa'],
+      'daman-and-diu': ['Daman', 'Diu'],
+      'delhi': ['Delhi', 'New Delhi'],
+      'goa': ['Panaji'],
+      'gujarat': ['Ahmedabad', 'Bhavnagar', 'Bhuj', 'Ghandinagar', 'Navsari', 'Porbandar', 'Rajkot', 'Surat', 'Vadodara'],
+      'haryana': ['Ambala', 'Bhiwani', 'Faridabad', 'Gurugram', 'Hisar', 'Karnal', 'Panchkula', 'Panipat', 'Rohtak', 'Sirsa', 'Sonipat'],
+      'himachal-pradesh': ['Shimla'],
+      'jammu-and-kashmir': ['Baramula', 'Jammu', 'Saidpur', 'Srinagar'],
+      'jharkhand': ['Dhanbad', 'Jamshedpur', 'Ranchi', 'Jorapokhar'],
+      'karnataka': ['Belgaum', 'Bellary', 'Bengaluru', 'Bidar', 'Bijapur', 'Chikka Mandya', 'Davangere', 'Gulbarga', 'Hospet', 'Hubli', 'Kolar', 'Mangalore', 'Mysore', 'Raichur', 'Shimoga'],
+      'kerala': ['Alappuzha', 'Calicut', 'Kochi', 'Kollam', 'Thiruvananthapuram'],
+      'lakshadweep': ['Kavaratti'],
+      'madhya-pradesh': ['Bhopal', 'Gwalior', 'Indore', 'Jabalpur', 'Ratlam', 'Saugor', 'Ujjain'],
+      'maharashtra': ['Ahmadnagar', 'Akola', 'Amaravati', 'Aurangabad', 'Bhiwandi', 'Bhusaval', 'Chanda', 'Kalyan', 'Khanapur', 'Kolhapur', 'Latur', 'Malegaon Camp', 'Mumbai', 'Nanded', 'Nasik', 'Parbhani', 'Pune', 'Sangli'],
+      'manipur': ['Imphal'],
+      'meghalaya': ['Shillong'],
+      'mizoram': ['Aizawl'],
+      'nagaland': ['Kohima'],
+      'odisha': ['Bhubaneshwar', 'Brahmapur', 'Cuttack', 'Puri', 'Raurkela', 'Samlaipadar', 'Brajrajnagar', 'Talcher'],
+      'puducherry': ['Puducherry'],
+      'punjab': ['Abohar', 'Amritsar', 'Haripur', 'Ludhiana', 'Pathankot', 'Patiala'],
+      'rajasthan': ['Ajmer', 'Alwar', 'Bharatpur', 'Bhilwara', 'Bikaner', 'Jaipur', 'Jodhpur', 'Kota', 'Pali', 'Rampura', 'Sikar', 'Tonk', 'Udaipur'],
+      'sikkim': ['Gangtok'],
+      'tamil-nadu': ['Chennai', 'Coimbatore', 'Cuddalore', 'Dindigul', 'Karur', 'Krishnapuram', 'Kumbakonam', 'Madurai', 'Nagercoil', 'Rajapalaiyam', 'Salem', 'Thanjavur', 'Tiruchchirappalli', 'Tirunelveli', 'Tiruvannamalai', 'Tuticorin', 'Valparai', 'Vellore'],
+      'telangana': ['Adilabad', 'Hyderabad', 'Karimnagar', 'Khammam', 'Mahabubnagar', 'Nalgonda', 'Nizamabad', 'Ramagundam', 'Warangal'],
+      'tripura': ['Agartala'],
+      'uttar-pradesh': ['Agra', 'Aligarh', 'Allahabad', 'Bakshpur', 'Bamanpuri', 'Bareilly', 'Bharauri', 'Budaun', 'Bulandshahr', 'Firozabad', 'Fyzabad', 'Ghaziabad', 'Gopalpur', 'Hapur', 'Hata', 'Jhansi', 'Lucknow', 'Mathura', 'Meerut', 'Mirzapur', 'Moradabad', 'Muzaffarnagar', 'Pilibhit', 'Saharanpur', 'Saidapur', 'Shahbazpur', 'Tharati Etawah', 'Varanasi'],
+      'uttarakhand': ['DehraDun'],
+      'west-bengal': ['Alipurduar', 'Asansol', 'Barddhaman', 'Bhatpara', 'Haldia', 'Haora', 'Kolkata', 'Krishnanagar', 'Shiliguri'],
+    };
+
+    // Find the state for this city
+    let resolvedState = 'Maharashtra';
+    for (const [stateKey, cities] of Object.entries(stateCityMap)) {
+      const match = cities.find(c => c.toLowerCase().replace(/\s+/g, '-') === citySlug);
+      if (match) {
+        resolvedState = stateKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        break;
+      }
+    }
+
+    page = {
+      title: handle.replace(/-/g, ' ').toUpperCase(),
+      city: { value: cityCapitalized },
+      state: { value: resolvedState },
+      body: ""
+    };
+  }
+
   if (!page) return notFound();
-  
+
   // Serialize page object for Client Components (removes BSON ObjectId)
   page = JSON.parse(JSON.stringify(page));
 
   // Handle Gold, Silver, and Platinum Rate pages
-  const isSilverRatePage = handle.includes("silver-rate-today");
-  const isPlatinumRatePage = handle.includes("platinum-rate-today");
-  const isGoldRatePage = handle.includes("gold-rate-today") || (page.city && page.state && !isSilverRatePage && !isPlatinumRatePage);
+  // For gold rate page, we check includes or if it's a legacy city/state page
+  const isGoldRatePageResolved = isGoldRatePage || (page.city && page.state && !isSilverRatePage && !isPlatinumRatePage);
 
   if (isSilverRatePage) {
     return <SilverRatePage page={page} />;
@@ -67,7 +142,7 @@ export default async function Page({ params }) {
     return <PlatinumRatePage page={page} />;
   }
 
-  if (isGoldRatePage) {
+  if (isGoldRatePageResolved) {
     return <GoldRatePage page={page} />;
   }
 
