@@ -341,7 +341,15 @@ export default function PaymentPage() {
 
   const partialCodDetails = useMemo(() => {
     const total = Math.max(0, Number(finalAmount || 0));
-    const isEligible = total > 0 && total < 50000;
+    
+    const hasGoldCoin = items?.length > 0 && items.some(item => 
+      item.variantId === GOLDCOIN_VARIANT_ID || 
+      (item.handle && item.handle.includes("gold-coin")) ||
+      (item.type && item.type.toLowerCase() === "gold coin") ||
+      (item.title && item.title.toLowerCase().includes("gold coin"))
+    );
+    
+    const isEligible = total > 0 && total < 50000 && !hasGoldCoin;
     const prepaidAmount = isEligible ? total * 0.2 : 0;
     const codAmount = isEligible ? total - prepaidAmount : 0;
 
@@ -350,7 +358,7 @@ export default function PaymentPage() {
       prepaidAmount: Math.round(prepaidAmount),
       codAmount: Math.round(codAmount),
     };
-  }, [finalAmount]);
+  }, [finalAmount, items]);
 
   const paymentGateways = useMemo(() => {
     const gateways = [

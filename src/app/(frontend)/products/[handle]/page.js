@@ -135,10 +135,35 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  // Return an empty array to prevent Next.js from pre-rendering all 2,600+ product pages during build time.
-  // Instead, the product pages will be generated dynamically on-demand when a user first visits them,
-  // and then cached. This reduces your build time from 30+ minutes to less than 1 minute!
-  return [];
+  // Pre-render the top 50 bestseller product pages at build time.
+  // These are served from Vercel CDN (FREE — no function invocations on first visit).
+  // All 2600+ other product pages still work — rendered on-demand when first visited, then cached.
+  // ISR (revalidate=86400) + webhook revalidation still applies to pre-rendered pages.
+  try {
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
+      ? process.env.NEXT_PUBLIC_BACKEND_URL
+      : "http://127.0.0.1:8080";
+    const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+
+    const res = await fetch(
+      `${base}/api/collection?handle=bestsellers&limit=50&sort=best_selling`,
+      { cache: 'force-cache' }
+    );
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const handles = (data.products || [])
+      .filter(p => p?.handle)
+      .map(p => ({ handle: p.handle }));
+
+    console.log(`[generateStaticParams/products] Pre-rendering ${handles.length} bestseller pages at build time.`);
+    return handles;
+  } catch (err) {
+    // Safe fallback — if backend is unreachable at build time, skip pre-rendering.
+    // All product pages still work via on-demand rendering. Build continues normally.
+    console.warn("[generateStaticParams/products] Could not fetch bestsellers, skipping pre-render:", err.message);
+    return [];
+  }
 }
 
 async function getProduct(handle) {

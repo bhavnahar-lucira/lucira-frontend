@@ -231,7 +231,8 @@ export default function CartItem({ item, onAuthRequired }) {
                    (lowerTitle.includes("bracelet") || lowerTitle.includes("bangle")) ? "Wrist Size" : 
                    lowerTitle.includes("necklace") ? "Length" : "Size";
 
-  const productLink = item.handle ? `/products/${item.handle}${item.variantId ? `?variant=${item.variantId}` : ""}` : "#";
+  const variantIdForUrl = item.variantId ? String(item.variantId).split('/').pop() : "";
+  const productLink = item.handle ? `/products/${item.handle}${variantIdForUrl ? `?variant=${variantIdForUrl}` : ""}` : "#";
 
   return (
     <>
