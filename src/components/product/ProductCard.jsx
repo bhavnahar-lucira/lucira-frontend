@@ -553,7 +553,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                                 <div key={item.id} className="space-y-4">
                                   <Link href={`/products/${item.handle}`} prefetch={false} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
                                     <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]">
-                                      <LazyImage src={item.image} alt={item.title} fill className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" />
+                                      <LazyImage src={item.image} alt={item.title} fill className="object-contain transition-transform duration-500 group-hover:scale-105 mix-blend-multiply" />
                                       {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
                                         <button 
                                           onClick={(e) => { 
