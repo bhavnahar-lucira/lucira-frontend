@@ -77,7 +77,8 @@ export default function GoldRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const data = await apiFetch("/api/gold-rates");
+                const res = await fetch("/api/local-rates");
+                const data = await res.json();
                 setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
@@ -91,9 +92,9 @@ export default function GoldRatePage({ page }) {
         if (!rates) return base;
         return {
             ...base,
-            rate_today: `₹ ${(Number(rates.gold_price_24k) * 10 || 154002).toLocaleString('en-IN')}`,
-            rate_yesterday: `₹ ${(Number(rates.gold_price_24k_yesterday) * 10 || 155053).toLocaleString('en-IN')}`,
-            rate_avg: `₹ ${(Number(rates.gold_price_22k) * 10 || 141682).toLocaleString('en-IN')}`,
+            rate_today: `₹ ${(Number(rates.gold_price_24k) || 154002).toLocaleString('en-IN')}`,
+            rate_yesterday: `₹ ${(Number(rates.gold_price_24k_yesterday) || 155053).toLocaleString('en-IN')}`,
+            rate_avg: `₹ ${(Number(rates.gold_price_22k) || 141682).toLocaleString('en-IN')}`,
         };
     }, [rates]);
 

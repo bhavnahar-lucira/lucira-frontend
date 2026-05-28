@@ -77,7 +77,8 @@ export default function PlatinumRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const data = await apiFetch("/api/platinum-rates");
+                const res = await fetch("/api/local-rates");
+                const data = await res.json();
                 setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
