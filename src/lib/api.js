@@ -325,3 +325,7 @@ export const fetchProductReviews = async (productId) => {
   if (!productId) throw new Error("Product ID required");
   return apiFetch(`/api/reviews?productId=${productId}`);
 };
+
+/* ================= LOCAL RATES ================= */
+
+export const fetchLocalRates = () => apiFetch("/api/local-rates");

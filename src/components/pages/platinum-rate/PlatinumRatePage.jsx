@@ -9,7 +9,7 @@ import PlatinumInvestmentSection from "./PlatinumInvestmentSection";
 import PlatinumPriceTable from "./PlatinumPriceTable";
 import PlatinumInformationContent from "./PlatinumInformationContent";
 import { PLATINUM_RATE_TEMPLATE } from "@/data/platinumRateTemplate";
-import { apiFetch } from "@/lib/api";
+import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
     'andaman-and-nicobar-islands': ['Port Blair'],
@@ -77,8 +77,7 @@ export default function PlatinumRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const res = await fetch("/api/local-rates");
-                const data = await res.json();
+                const data = await fetchLocalRates();
                 setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
