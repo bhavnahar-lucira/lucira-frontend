@@ -873,6 +873,7 @@ export default function PaymentPage() {
               appliedCoupon: appliedCoupon,
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
+              cartItems: items || [], // Pass items explicitly as fallback for backend
             }, accessToken);
 
             toast.success(
@@ -880,9 +881,6 @@ export default function PaymentPage() {
                 ? `Order placed successfully: ${completion.shopifyOrderName}`
                 : "Order placed successfully"
             );
-            
-            // Clear the frontend cart state immediately after successful payment
-            dispatch(clearCart());
             
             // Wait a moment for any background processes or toast to be visible
             setTimeout(() => {
