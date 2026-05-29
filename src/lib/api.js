@@ -93,12 +93,20 @@ export const apiFetch = async (url, options = {}) => {
     throw err;
   }
 };
+/* ================= AUTH HELPERS ================= */
+
+const normalizeMobile = (mobile) => {
+  let clean = String(mobile || "").replace(/\D/g, "");
+  if (clean.length === 10) return `91${clean}`;
+  return clean;
+};
+
 /* ================= SEND OTP ================= */
 
 export const sendOtpApi = (mobile) =>
   apiFetch("/api/auth/send-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile }),
+    body: JSON.stringify({ mobile: normalizeMobile(mobile) }),
   });
 
 /* ================= VERIFY OTP ================= */
@@ -106,7 +114,7 @@ export const sendOtpApi = (mobile) =>
 export const verifyOtpApi = (mobile, otp) =>
   apiFetch("/api/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile, otp }),
+    body: JSON.stringify({ mobile: normalizeMobile(mobile), otp }),
   });
 
 /* ================= REGISTER ================= */
@@ -114,13 +122,19 @@ export const verifyOtpApi = (mobile, otp) =>
 export const checkCustomerApi = (payload) =>
   apiFetch("/api/auth/check-customer", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ 
+      ...payload, 
+      mobile: normalizeMobile(payload.mobile) 
+    }),
   });
 
 export const registerCustomer = (payload) =>
   apiFetch("/api/auth/register", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ 
+      ...payload, 
+      mobile: normalizeMobile(payload.mobile) 
+    }),
   });
 
 export const fetchCustomerProfile = (accessToken) =>
