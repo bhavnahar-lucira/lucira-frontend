@@ -70,6 +70,8 @@ const PRODUCT_QUERY = `
             gross_weight: metafield(namespace: "ornaverse", key: "gross_weight") { value }
             top_width: metafield(namespace: "ornaverse", key: "top_width") { value }
             top_height: metafield(namespace: "ornaverse", key: "top_height") { value }
+            in_store_available: metafield(namespace: "ornaverse", key: "in_store_available") { value }
+            custom_in_store_available: metafield(namespace: "custom", key: "in_store_available") { value }
             diamonds_meta: metafield(namespace: "ornaverse", key: "diamonds") { value }
             gemstones_meta: metafield(namespace: "ornaverse", key: "gemstones") { value }
             components: metafield(namespace: "ornaverse", key: "components") { value }
@@ -200,6 +202,8 @@ async function getProduct(handle) {
     const metalComp = comps?.components?.find(c => c.item_group_name === "Gold");
     const diamondComps = comps?.components?.filter(c => c.item_group_name === "Diamond") || [];
     const gemstoneComps = comps?.components?.filter(c => c.item_group_name === "Gemstone" || c.item_group_name === "Color Stone") || [];
+    const rawStoreData = v.in_store_available?.value || v.custom_in_store_available?.value;
+    const in_store_available = rawStoreData ? JSON.parse(rawStoreData) : [];
 
     let metal_purity = metalComp?.karat_code ? `${metalComp.karat_code}K` : (v.custom_metal_purity?.value || variantConfig?.purity || getOpt(options, ["metal purity", "purity"]));
     let metal_color = metalComp?.stone_color_code && metalComp.stone_color_code !== "NA" ? metalComp.stone_color_code : (v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]));
@@ -285,7 +289,8 @@ async function getProduct(handle) {
         diamonds,
         gemstones,
         components: v.components?.value,
-        variant_config: v.variant_config?.value
+        variant_config: v.variant_config?.value,
+        in_store_available: in_store_available
       }
     };
   });
