@@ -586,23 +586,26 @@ export default function ProductPageClient({
   // Robust variant lookup helper
   const findMatchingVariant = useCallback((metal, karat, size) => {
     return product.variants?.find(v => {
-      const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
-      const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
+      const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
 
-      const targetKarat = String(karat || "").toLowerCase().trim();
-      const targetMetal = String(metal || "").toLowerCase().trim();
+      const vKarat = normalize(v.metafields?.metal_purity || "");
+      const vMetal = normalize(v.metafields?.metal_color || "");
+
+      const targetKarat = normalize(karat || "");
+      const targetMetal = normalize(metal || "");
+
+      const sizeMatch = String(v.size || "").trim() === String(size || "").trim();
 
       // If metafields are present, use them for strict matching
-      if (vKarat && vMetal) {
-        return vKarat === targetKarat && vMetal === targetMetal && String(v.size) === String(size);
+      if (vKarat && vMetal && vKarat === targetKarat && vMetal === targetMetal) {
+        return sizeMatch;
       }
 
       // Fallback to color string matching
-      const vColor = String(v.color || "").toLowerCase().trim();
-      const targetColorFull = `${karat} ${metal}`.toLowerCase().trim();
-      const targetColorSimple = `${metal}`.toLowerCase().trim();
+      const vColor = normalize(v.color);
+      const targetColorFull = normalize(`${karat} ${metal}`);
+      const targetColorSimple = normalize(metal);
 
-      const sizeMatch = String(v.size) === String(size);
       const colorMatch = vColor === targetColorFull || vColor === targetColorSimple;
 
       return colorMatch && sizeMatch;
@@ -1509,27 +1512,50 @@ export default function ProductPageClient({
   // Helper to check if a specific color/karat combo is in stock (for any size)
   const isColorInStock = (metal, karat) => {
     return product.variants?.some(v => {
-      const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
-      const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
+      const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
 
-      const targetKarat = String(karat || "").toLowerCase().trim();
-      const targetMetal = String(metal || "").toLowerCase().trim();
-      if (vKarat === targetKarat && vMetal === targetMetal) {
+      const vKarat = normalize(v.metafields?.metal_purity || "");
+      const vMetal = normalize(v.metafields?.metal_color || "");
+
+      const targetKarat = normalize(karat || "");
+      const targetMetal = normalize(metal || "");
+
+      if (vKarat && vMetal && vKarat === targetKarat && vMetal === targetMetal) {
         return v.inStock;
       }
+
       // Fallback to the old Color String match
-      const vColor = String(v.color || "").toLowerCase().trim();
-      const targetColor = `${karat} ${metal}`.toLowerCase().trim();
-      return vColor === targetColor && v.inStock;
+      const vColor = normalize(v.color);
+      const targetColorFull = normalize(`${karat} ${metal}`);
+      const targetColorSimple = normalize(metal);
+      return (vColor === targetColorFull || vColor === targetColorSimple) && v.inStock;
     });
   };
 
   // Helper to check if a specific size is in stock (for current color/karat)
   const isSizeInStock = (size) => {
     return product.variants?.some(v => {
-      const vColor = String(v.color || "").toLowerCase().trim();
-      const targetColor = `${activeKarat} ${activeColor}`.toLowerCase().trim();
-      return vColor === targetColor && String(v.size) === String(size) && v.inStock;
+      const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+      
+      const vKarat = normalize(v.metafields?.metal_purity || "");
+      const vMetal = normalize(v.metafields?.metal_color || "");
+
+      const targetKarat = normalize(activeKarat || "");
+      const targetMetal = normalize(activeColor || "");
+
+      const sizeMatch = String(v.size || "").trim() === String(size || "").trim();
+
+      // Metafield Match
+      if (vKarat && vMetal && vKarat === targetKarat && vMetal === targetMetal) {
+        return sizeMatch && v.inStock;
+      }
+
+      // String Match Fallback
+      const vColor = normalize(v.color);
+      const targetColorFull = normalize(`${activeKarat} ${activeColor}`);
+      const targetColorSimple = normalize(activeColor);
+
+      return (vColor === targetColorFull || vColor === targetColorSimple) && sizeMatch && v.inStock;
     });
   };
 
@@ -1922,13 +1948,16 @@ export default function ProductPageClient({
                         if (metal.includes("White")) colorClass = colorMap.white;
                         if (metal.includes("Rose")) colorClass = colorMap.rose;
 
+                        const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+                        const isActive = normalize(activeColor) === normalize(metal) && normalize(activeKarat) === normalize(karat);
+
                         return (
                           <GoldOption
                             key={`${karat}-${metal}`}
                             metal={metal}
                             karat={karat}
                             onClick={handleGoldSelection}
-                            active={activeColor === metal && activeKarat === karat}
+                            active={isActive}
                             color={colorClass}
                             inStock={isColorInStock(metal, karat)}
                           />

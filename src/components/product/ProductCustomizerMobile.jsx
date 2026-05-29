@@ -126,30 +126,35 @@ export function ProductCustomizerMobile({
                       </span>
                     </h4>
                     <div className="grid grid-cols-3 gap-3">
-                      {combinations.map(({ karat, metal }) => (
-                        <div
-                          key={`${karat}-${metal}`}
-                          onClick={() => handleGoldSelection(metal, karat)}
-                          className={`border rounded-xl py-3 px-2 cursor-pointer relative flex flex-col items-center gap-3 transition-all ${
-                            activeColor === metal && activeKarat === karat
-                              ? "border-black bg-white ring-1 ring-black shadow-sm"
-                              : "border-gray-200 bg-[#F9F9F9]"
-                          }`}
-                        >
-                          {isColorInStock(metal, karat) && (
-                            <span className="absolute top-2 left-2 w-1.5 h-1.5 rounded-full bg-[#2DB36F]"></span>
-                          )}
-                          <div
-                            className={`w-7 h-7 rounded-full border border-gray-100 shadow-inner`}
-                            style={{ background: getGoldColor(metal) }}
-                          ></div>
-                          <div className="text-[11px] text-center text-black leading-tight uppercase font-bold flex flex-col gap-0.5">
-                            <span>{parseInt(String(karat).replace(/\D/g, ""), 10)}KT</span>
-                            <span>{metal.replace(" Gold", "")}</span>
-                          </div>
+                      {combinations.map(({ karat, metal }) => {
+                        const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+                        const isActive = normalize(activeColor) === normalize(metal) && normalize(activeKarat) === normalize(karat);
 
-                        </div>
-                      ))}
+                        return (
+                          <div
+                            key={`${karat}-${metal}`}
+                            onClick={() => handleGoldSelection(metal, karat)}
+                            className={`border rounded-xl py-3 px-2 cursor-pointer relative flex flex-col items-center gap-3 transition-all ${
+                              isActive
+                                ? "border-black bg-white ring-1 ring-black shadow-sm"
+                                : "border-gray-200 bg-[#F9F9F9]"
+                            }`}
+                          >
+                            {isColorInStock(metal, karat) && (
+                              <span className="absolute top-2 left-2 w-1.5 h-1.5 rounded-full bg-[#2DB36F]"></span>
+                            )}
+                            <div
+                              className={`w-7 h-7 rounded-full border border-gray-100 shadow-inner`}
+                              style={{ background: getGoldColor(metal) }}
+                            ></div>
+                            <div className="text-[11px] text-center text-black leading-tight uppercase font-bold flex flex-col gap-0.5">
+                              <span>{parseInt(String(karat).replace(/\D/g, ""), 10)}KT</span>
+                              <span>{metal.replace(" Gold", "")}</span>
+                            </div>
+
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
