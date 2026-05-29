@@ -266,7 +266,7 @@ export default function ProductPageClient({
   const searchParams = useSearchParams();
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch();  
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
@@ -2431,25 +2431,23 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               <div className="border border-gray-200 rounded-md p-4 space-y-2.5 bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <Store size={20} className="text-black" strokeWidth={1.2} />
+                    <span className="text-base font-bold">
+                      {nearestStore ? (
+                        <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
+                      ) : (
+                        <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
+                      )}
+                    </span>
+                  </div>
                 {availableStoreCount > 0 && (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Store size={20} className="text-black" strokeWidth={1.2} />
-                      <span className="text-base font-bold">
-                        {nearestStore ? (
-                          <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
-                        ) : (
-                          <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
-                        )}
-                      </span>
+                  <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
+                    <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
+                      <Check size={9} className="text-white" strokeWidth={4} />
                     </div>
-                    <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
-                      <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
-                        <Check size={9} className="text-white" strokeWidth={4} />
-                      </div>
-                      <span className="text-12px font-semibold tracking-tight">Design Available</span>
-                    </div>
-                  </>
+                    <span className="text-12px font-semibold tracking-tight">Design Available</span>
+                  </div>
                 )}
                 {availableStoreCount > 1 && (
                   <p className="text-sm text-black">
