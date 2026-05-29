@@ -88,11 +88,11 @@ export default function MainHeader() {
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
 
-  // Filter out non-product items (Insurance, Gold Coins) to match Cart Page count
+  // Filter out non-product items (Insurance, Free Gold Coins) to match Cart Page count
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      item.variantId !== GOLDCOIN_VARIANT_ID
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
   );
 
   const displayQuantity = displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
@@ -117,7 +117,7 @@ export default function MainHeader() {
       const filteredItems = items.filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          item.variantId !== GOLDCOIN_VARIANT_ID
+          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
       );
 
       pushViewCart({

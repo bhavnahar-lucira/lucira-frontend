@@ -49,17 +49,21 @@ export default function CartItem({ item, onAuthRequired }) {
     variantOptions.find((variant) => variant.variantId === item.variantId) ||
     variantOptions.find((variant) => String(variant.size) === String(item.size));
   const isInStock = currentVariant?.inStock ?? item.inStock ?? true;
-  const canEditSelection = !isInStock;
+
+  const sizeOptions =
+    variantOptions.length > 0
+      ? variantOptions
+      : (item.availableSizes || [item.size]).map((size) => ({ size }));
+
+  const canEditSize = !isInStock && sizeOptions.length > 1;
+  const canEditQuantity = !isInStock && !item.isFreeGift; 
+
   const lineAmount = (item.price || 0) * (item.quantity || 1);
   const lineCompareAmount = (item.comparePrice || 0) * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
   const statusLabel = isInStock ? "In Stock" : "Made to Order";
   const statusClass = isInStock ? "text-green-500" : "text-primary";
-  const sizeOptions =
-    variantOptions.length > 0
-      ? variantOptions
-      : (item.availableSizes || [item.size]).map((size) => ({ size }));
 
   const displayImage = currentVariant?.image || item.image;
 
@@ -81,7 +85,6 @@ export default function CartItem({ item, onAuthRequired }) {
         lowerTitle.includes("bracelet") ? "Bracelets" : ""
       );
 
-      // Robust SKU resolution for cart items
       const resolvedSku = item.sku || currentVariant?.sku || item.variantSku || item.item_sku || (variantOptions && variantOptions[0]?.sku) || "";
 
       pushRemoveFromCart({
@@ -151,10 +154,8 @@ export default function CartItem({ item, onAuthRequired }) {
         lowerTitle.includes("bracelet") ? "Bracelets" : ""
       );
 
-      // Robust SKU resolution for cart items
       const resolvedSku = item.sku || currentVariant?.sku || item.variantSku || item.item_sku || (variantOptions && variantOptions[0]?.sku) || "";
 
-      // Adapt cart item to standard product/variant structure for the helper
       const mockProduct = {
         shopifyId: item.productId || item.shopifyId || item.id,
         title: item.title,
@@ -162,7 +163,7 @@ export default function CartItem({ item, onAuthRequired }) {
         category: item.category || productTypeFallback,
         type: item.type || productTypeFallback,
         price: item.price,
-        sku: resolvedSku // Pass SKU at product level too for fallback
+        sku: resolvedSku
       };
       const mockVariant = {
         sku: resolvedSku,
@@ -211,9 +212,15 @@ export default function CartItem({ item, onAuthRequired }) {
         payload.nextVariantId = selectedVariant.variantId;
         payload.size = selectedVariant.size;
         payload.price = selectedVariant.price;
+        payload.finalPrice = selectedVariant.price;
         payload.variantTitle = selectedVariant.variantTitle;
         payload.inStock = selectedVariant.inStock;
         payload.sku = selectedVariant.sku || "";
+        
+        // Include dynamic fields that change with size
+        if (selectedVariant.goldWeight) payload.goldWeight = selectedVariant.goldWeight;
+        if (selectedVariant.diamondTotalPcs) payload.diamondTotalPcs = selectedVariant.diamondTotalPcs;
+        if (selectedVariant.diamondCarat) payload.diamondCarat = selectedVariant.diamondCarat;
       } else {
         payload.quantity = parseInt(value, 10);
       }
@@ -304,7 +311,7 @@ export default function CartItem({ item, onAuthRequired }) {
                 <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2">
                   {item.size && (
                     <div className="flex items-center min-w-[60px]">
-                      {canEditSelection ? (
+                      {canEditSize ? (
                         <Select
                           value={String(item.size)}
                           onValueChange={(val) => handleUpdate("size", val)}
@@ -331,7 +338,7 @@ export default function CartItem({ item, onAuthRequired }) {
                   
                   <div className="flex items-center gap-2">
                     {item.size && <span className="text-zinc-500 font-normal">Quantity</span>}
-                    {canEditSelection ? (
+                    {canEditQuantity ? (
                       <Select
                         value={String(item.quantity)}
                         onValueChange={(val) => handleUpdate("quantity", val)}
@@ -361,7 +368,14 @@ export default function CartItem({ item, onAuthRequired }) {
                   Metal
                 </div>
                 <div className="flex-1 bg-white px-4 py-2 flex items-center">
-                  {item.karat} {item.color}{item.goldWeight ? `, ${item.goldWeight} gram` : ''}
+                  {(() => {
+                    const k = String(item.karat || "").trim();
+                    const c = String(item.color || "").trim();
+                    if (!k) return c;
+                    if (c.toLowerCase().includes(k.toLowerCase())) return c;
+                    return `${k} ${c}`;
+                  })()}
+                  {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
                 </div>
               </div>
 
@@ -432,6 +446,9 @@ export default function CartItem({ item, onAuthRequired }) {
                   className="h-full w-full object-contain mix-blend-multiply"
                 />
               </Link>
+              <div className="w-full absolute bottom-0 flex items-center justify-center px-1 py-0.5 bg-white/90 border border-zinc-100 whitespace-nowrap">
+                <span className={`text-[8px] font-bold uppercase ${statusClass}`}>{statusLabel}</span>
+              </div>
             </div>
 
             {/* Info Content */}
@@ -456,7 +473,15 @@ export default function CartItem({ item, onAuthRequired }) {
               </p>
               
               <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-tight">
-                Metal: <span className="text-zinc-900">{item.karat} {item.color}</span>
+                Metal: <span className="text-zinc-900">
+                  {(() => {
+                    const k = String(item.karat || "").trim();
+                    const c = String(item.color || "").trim();
+                    if (!k) return c;
+                    if (c.toLowerCase().includes(k.toLowerCase())) return c;
+                    return `${k} ${c}`;
+                  })()}
+                </span>
               </p>
 
               {/* Selectors */}
@@ -466,7 +491,7 @@ export default function CartItem({ item, onAuthRequired }) {
                     <span className="text-[13px] text-zinc-800 font-medium">
                       {sizeLabel.replace(" Size", "")}:
                     </span>
-                    {canEditSelection ? (
+                    {canEditSize ? (
                       <Select
                         value={String(item.size)}
                         onValueChange={(val) => handleUpdate("size", val)}
@@ -491,7 +516,7 @@ export default function CartItem({ item, onAuthRequired }) {
                 
                 <div className="flex items-center gap-0.5">
                   <span className="text-[13px] text-zinc-800 font-medium">Quantity:</span>
-                  {canEditSelection ? (
+                  {canEditQuantity ? (
                     <Select
                       value={String(item.quantity)}
                       onValueChange={(val) => handleUpdate("quantity", val)}

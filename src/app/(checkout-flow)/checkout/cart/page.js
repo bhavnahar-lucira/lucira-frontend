@@ -47,7 +47,7 @@ export default function CartPage() {
   const filteredItems = items.filter(
     (item) => 
       item.variantId !== INSURANCE_VARIANT_ID && 
-      item.variantId !== GOLDCOIN_VARIANT_ID
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
   );
 
   const handlePlaceOrder = () => {
