@@ -1492,6 +1492,15 @@ export default function ProductPageClient({
   // Helper to check if a specific color/karat combo is in stock (for any size)
   const isColorInStock = (metal, karat) => {
     return product.variants?.some(v => {
+      const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
+      const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
+
+      const targetKarat = String(karat || "").toLowerCase().trim();
+      const targetMetal = String(metal || "").toLowerCase().trim();
+      if (vKarat === targetKarat && vMetal === targetMetal) {
+        return v.inStock;
+      }
+      // Fallback to the old Color String match
       const vColor = String(v.color || "").toLowerCase().trim();
       const targetColor = `${karat} ${metal}`.toLowerCase().trim();
       return vColor === targetColor && v.inStock;
@@ -2820,15 +2829,15 @@ export default function ProductPageClient({
             {!isGoldCoin && (
               <div className="pt-6">
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-base font-semibold text-black mb-4">
+                  <div className="flex items-start justify-between flex-col md:flex-row gap-2 text-base font-semibold text-black mb-4">
                     Certified Quality Guaranteed.
-                  </div>
-                  <div className="flex items-start justify-between gap-4 xl:flex-nowrap flex-wrap">
-                    <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black mt-1 whitespace-nowrap p-0 h-auto" asChild>
+                    <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black mt-0 whitespace-nowrap p-0 h-auto" asChild>
                       <a href="/images/certificate/SampleCertificate.jpg" alt="Sample Certificate" download>
                         See Sample Certificate
                       </a>
                     </Button>
+                  </div>
+                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">                    
                     <div className="flex items-center gap-7">
                       <div className="w-14 h-14 relative">
                         <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
