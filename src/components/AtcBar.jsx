@@ -153,7 +153,41 @@ export default function AtcBar({
           </div>
 
           {/* Mobile Layout: Full Width Style */}
-          <div className="lg:hidden pointer-events-auto bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] -mx-4 px-4 py-3 flex items-center gap-2 w-screen">
+          <div className="lg:hidden pointer-events-auto bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] -mx-4 px-4 py-3 flex flex-wrap items-center gap-2 w-screen">
+            
+            <div className="basis-full">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="relative w-12 h-12 rounded-sm overflow-hidden bg-gray-50 shrink-0">
+                  <Image
+                    src={getValidSrc(activeVariant?.image || product?.featuredImage || product?.images?.[0])}
+                    alt={product?.title || "Product"}
+                    fill
+                    unoptimized={String(getValidSrc(activeVariant?.image || product?.featuredImage || product?.images?.[0])).includes("cdn.shopify.com") || String(getValidSrc(activeVariant?.image || product?.featuredImage || product?.images?.[0])).includes("myshopify.com")}
+                    className="object-contain p-1"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-black truncate leading-tight">
+                    {product?.title}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-base font-bold text-black">
+                      ₹{formatPrice(currentPrice)}
+                    </span>
+                    {comparePrice > currentPrice && (
+                      <span className="text-xs text-gray-400 line-through font-medium">
+                        ₹{formatPrice(comparePrice)}
+                      </span>
+                    )}
+                    {discount > 0 && (
+                      <span className="text-xs font-bold text-[#2DB36F] flex items-center ml-1">
+                        <span className="mr-0.5">↓</span>{discount}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
             {/* WhatsApp Button */}
             <a
               href="https://wa.me/+919004435760"

@@ -22,10 +22,12 @@ export function ProductCustomizerMobile({
   availableStoreCount,
   deliveryInfo,
   getStoreDisplayName,
+  currentPrice,
+  currentComparePrice
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const collectionContext = useSelector((state) => state.user.collectionContext);
-
+console.log("product customizer mobile", product)
   const getGoldColor = (metal) => {
     if (metal.includes("White")) return "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)";
     if (metal.includes("Rose")) return "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)";
@@ -117,6 +119,10 @@ export function ProductCustomizerMobile({
                 </div>
 
                 <div className="mt-6 space-y-8 overflow-y-auto custom-scrollbar flex-1 pr-1">
+                  <div className="flex items-center justify-start gap-4 mb-6">
+                    <span className="text-2xl font-bold">&#8377;{currentPrice}</span>
+                    <span className="text-lg text-gray-500 line-through font-medium">&#8377;{currentComparePrice}</span>
+                  </div>
                   {/* Gold Selection */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-bold uppercase tracking-wider">

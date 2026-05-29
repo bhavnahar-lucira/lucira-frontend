@@ -1895,6 +1895,8 @@ export default function ProductPageClient({
                 availableStoreCount={availableStoreCount}
                 deliveryInfo={deliveryInfo}
                 getStoreDisplayName={getStoreDisplayName}
+                currentPrice={formatPrice(currentPrice)}
+                currentComparePrice={formatPrice(currentComparePrice)}
               />
 
               {/* Desktop Selection Blocks */}
