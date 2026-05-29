@@ -2942,7 +2942,8 @@ export default function ProductPageClient({
         <section className="w-full bg-white mt-10 md:mt-15 overflow-hidden">
           <div className="max-w-480 mx-auto px-5 md:px-17">
             <div className="text-center mb-10 md:mb-12">
-              <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">You May Also Like</h2>
+              <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">From the Same Collection</h2>
+              <p class="text-black font-normal md:text-base text-sm leading-[1.4] tracking-normal align-middle">Discover matching pieces that perfectly complement one another.</p>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-8 md:gap-y-12">
               {youMayAlsoLikeProducts.map((p) => (
