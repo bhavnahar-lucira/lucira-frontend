@@ -158,6 +158,13 @@ export default function SavedAddressesPage() {
       return;
     }
 
+    const cleanPhone = addressForm.phone.replace(/\D/g, "");
+    if (cleanPhone.length !== 10) {
+      setShowErrors(true);
+      toast.error("Phone number must be exactly 10 digits");
+      return;
+    }
+
     try {
       setSaving(true);
       const addressInput = {

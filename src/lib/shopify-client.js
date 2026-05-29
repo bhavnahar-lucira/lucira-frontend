@@ -225,6 +225,7 @@ export const CUSTOMER_ORDERS_QUERY = `
                   title
                   quantity
                   variant {
+                    id
                     image { url altText }
                   }
                 }

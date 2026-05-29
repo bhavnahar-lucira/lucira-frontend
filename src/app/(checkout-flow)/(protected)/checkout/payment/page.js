@@ -109,9 +109,9 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
         <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
         <div className="md:col-span-2">
           <Input
-            placeholder="Phone (optional)"
+            placeholder="Phone (10 digits) *"
             value={form.phone}
-            onChange={(e) => onChange("phone", e.target.value)}
+            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
             className="h-12 border-zinc-200"
           />
         </div>
