@@ -156,9 +156,9 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
         
         <div className="col-span-2">
           <Input
-            placeholder="Phone (10 digits) *"
+            placeholder="Phone (optional)"
             value={form.phone}
-            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+            onChange={(e) => onChange("phone", e.target.value)}
             className="h-12 border-zinc-200"
           />
         </div>
@@ -461,7 +461,7 @@ export default function ShippingPage() {
         selectedStoreId,
         selectedStore: dbStores.find(s => s.id === selectedStoreId) || null,
         selectedAddress: selectedAddress,
-        customerEmail: customer?.email || "techamitjha@gmail.com"
+        customerEmail: customer?.email || ""
       };
       window.localStorage.setItem("checkout_selection", JSON.stringify(selection));
     }
@@ -626,13 +626,6 @@ export default function ShippingPage() {
     }
 
     if (!addressForm.country.trim()) return "Country is required";
-
-    if (!addressForm.phone.trim()) return "Phone number is required";
-    const cleanPhone = addressForm.phone.replace(/\D/g, "");
-    if (cleanPhone.length !== 10) {
-      return "Phone number must be exactly 10 digits";
-    }
-
     if (addressForm.gstin.trim() && addressForm.gstin.trim().length !== 15) {
       return "GSTIN must be 15 characters";
     }
