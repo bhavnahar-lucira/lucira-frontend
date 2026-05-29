@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown, ArrowRight, ShoppingBag } from "lucide-react";
 import FAQSection from "./FAQSection";
@@ -51,14 +52,34 @@ const stateCityMap = {
 };
 
 export default function GoldRatePage({ page }) {
+    const router = useRouter();
     const [isFlipped, setIsFlipped] = useState(false);
+    
+    // Extract city from URL handle if available
+    const getInitialCity = () => {
+        if (typeof window !== 'undefined') {
+            const pathname = window.location.pathname;
+            // Extract city slug from URL like /pages/kalyan-gold-rate-today
+            const match = pathname.match(/\/pages\/(.+?)-gold-rate-today/);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        return page?.city?.value?.toLowerCase().replace(/\s+/g, '-') || 'mumbai';
+    };
+
     const [selectedState, setSelectedState] = useState(page?.state?.value?.toLowerCase().replace(/\s+/g, '-') || 'maharashtra');
-    const [selectedCity, setSelectedCity] = useState(page?.city?.value?.toLowerCase().replace(/\s+/g, '-') || 'mumbai');
+    const [selectedCity, setSelectedCity] = useState(getInitialCity());
     const [currentDate, setCurrentDate] = useState("");
     const [rates, setRates] = useState(null);
 
     const cityName = page?.city?.value || "Mumbai";
     const stateName = page?.state?.value || "Maharashtra";
+
+    // Compute the current city display name from selectedCity state
+    const cityNameDisplay = useMemo(() => {
+        return selectedCity.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }, [selectedCity]);
 
     useEffect(() => {
         const today = new Date();
@@ -129,7 +150,7 @@ export default function GoldRatePage({ page }) {
                         {/* Header Row */}
                         <div className="flex flex-row justify-between items-center w-full gap-4">
                             <h1 className="text-white text-[18px] md:text-[24px] lg:text-[26px] font-medium tracking-tight font-abhaya uppercase whitespace-nowrap">
-                                TODAYS GOLD RATE IN {cityName}
+                                TODAYS GOLD RATE IN {cityNameDisplay}
                             </h1>
                             <button onClick={() => setIsFlipped(!isFlipped)} className="text-white/80 hover:text-white text-[12px] md:text-[14px] underline underline-offset-4 tracking-wide font-figtree transition-colors text-right whitespace-nowrap shrink-0">
                                 {isFlipped ? "View Todays Gold Rate" : "Is Gold A Wise Investment?"}
@@ -254,7 +275,7 @@ export default function GoldRatePage({ page }) {
             </section>
 
             {/* Calculator Section */}
-            <GoldCalculator cityName={cityName} baseRate={todayRateNum} />
+            <GoldCalculator cityName={cityNameDisplay} baseRate={todayRateNum} />
 
             {/* Loop through all sections from template JSON in exact order */}
             <div className="sections-wrapper">
@@ -267,7 +288,7 @@ export default function GoldRatePage({ page }) {
                             return (
                                 <div key={sectionId}>
                                     <InvestmentSection
-                                        cityName={cityName}
+                                        cityName={cityNameDisplay}
                                         settings={section.settings}
                                     />
                                     {/* Moving PriceTable right after the InvestmentSection as requested */}
@@ -277,7 +298,7 @@ export default function GoldRatePage({ page }) {
                                     <section className="py-12 md:py-15 bg-zinc-50 border-t border-zinc-100 mb-12">
                                         <div className="container-main">
                                             <h2 className="text-[18px] md:text-[28px] font-medium text-zinc-900 mb-12 uppercase tracking-tight font-abhaya text-center px-4">
-                                                Market Analysis: {cityName} – {currentDate}
+                                            Market Analysis: {cityNameDisplay} – {currentDate}
                                             </h2>
 
                                             <div className="max-w-4xl mx-auto prose prose-zinc prose-lg prose-p:text-[14px] md:prose-p:text-[18px] prose-p:font-figtree prose-headings:font-abhaya prose-headings:uppercase px-2 md:px-0">
@@ -289,7 +310,7 @@ export default function GoldRatePage({ page }) {
                                                             Gold Rate Rises
                                                         </h3>
                                                         <p className="text-zinc-600 leading-relaxed text-[14px] md:text-[18px] font-figtree">
-                                                            In {cityName} on {currentDate}, 24-carat gold is priced at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams,
+                                                            In {cityNameDisplay} on {currentDate}, 24-carat gold is priced at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams,
                                                             while 22-carat gold stands at ₹{Math.round(todayRateNum * (22 / 24)).toLocaleString('en-IN')} per 10 grams.
                                                         </p>
                                                     </div>
@@ -302,7 +323,7 @@ export default function GoldRatePage({ page }) {
                                                             Gold Rate Falls
                                                         </h3>
                                                         <p className="text-zinc-600 leading-relaxed text-[14px] md:text-[18px] font-figtree">
-                                                            In {cityName} on {currentDate}, 24-carat gold is available at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams,
+                                                            In {cityNameDisplay} on {currentDate}, 24-carat gold is available at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams,
                                                             with 22-carat gold priced at ₹{Math.round(todayRateNum * (22 / 24)).toLocaleString('en-IN')} per 10 grams.
                                                         </p>
                                                     </div>
@@ -315,7 +336,7 @@ export default function GoldRatePage({ page }) {
                                                             Gold Rate Remains Stable
                                                         </h3>
                                                         <p className="text-zinc-600 leading-relaxed text-[14px] md:text-[18px] font-figtree">
-                                                            In {cityName} on {currentDate}, gold prices remain steady with 24-carat gold at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams
+                                                            In {cityNameDisplay} on {currentDate}, gold prices remain steady with 24-carat gold at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams
                                                             and 22-carat gold at ₹{Math.round(todayRateNum * (22 / 24)).toLocaleString('en-IN')} per 10 grams.
                                                         </p>
                                                     </div>
@@ -329,7 +350,7 @@ export default function GoldRatePage({ page }) {
                             return (
                                 <InformationContent
                                     key={sectionId}
-                                    cityName={cityName}
+                                    cityName={cityNameDisplay}
                                     stateName={stateName}
                                     sectionData={section}
                                 />
@@ -338,7 +359,7 @@ export default function GoldRatePage({ page }) {
                             return (
                                 <FAQSection
                                     key={sectionId}
-                                    cityName={cityName}
+                                    cityName={cityNameDisplay}
                                     stateName={stateName}
                                     todayRate={todayRateNum}
                                     sectionData={section}
