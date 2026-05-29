@@ -1050,9 +1050,26 @@ export default function ProductPageClient({
       const variantOptions = (product.variants || [])
         .filter((variant) => {
           if (!variant?.size || !variant?.color) return false;
-          const vColor = String(variant.color).toLowerCase().trim();
-          const targetColor = `${activeKarat} ${activeColor}`.toLowerCase().trim();
-          return vColor === targetColor;
+          
+          const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+
+          const vKarat = normalize(variant.metafields?.metal_purity || "");
+          const vMetal = normalize(variant.metafields?.metal_color || "");
+
+          const targetKarat = normalize(activeKarat || "");
+          const targetMetal = normalize(activeColor || "");
+
+          // If metafields are present, use them for strict matching
+          if (vKarat && vMetal) {
+            return vKarat === targetKarat && vMetal === targetMetal;
+          }
+
+          // Fallback to color string matching
+          const vColor = normalize(variant.color);
+          const targetColorFull = normalize(`${activeKarat} ${activeColor}`);
+          const targetColorSimple = normalize(activeColor);
+
+          return vColor === targetColorFull || vColor === targetColorSimple;
         })
         .map((variant) => ({
           variantId: variant.id,

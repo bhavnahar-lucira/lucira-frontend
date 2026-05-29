@@ -45,15 +45,47 @@ export default function CartItem({ item, onAuthRequired }) {
   }, [user?.id, wishlistItems, productId]);
 
   const variantOptions = Array.isArray(item.variantOptions) ? item.variantOptions : [];
-  const currentVariant =
-    variantOptions.find((variant) => variant.variantId === item.variantId) ||
-    variantOptions.find((variant) => String(variant.size) === String(item.size));
+  const currentVariant = useMemo(() => {
+    if (variantOptions.length === 0) return null;
+    
+    // 1. Try finding by exact variantId
+    const byId = variantOptions.find((v) => v.variantId === item.variantId);
+    if (byId) return byId;
+
+    // 2. Fallback to size + color matching with normalization
+    const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+    const itemSize = String(item.size || "");
+    const itemKarat = normalize(item.karat || "");
+    const itemColor = normalize(item.color || "");
+    const itemColorFull = normalize(`${item.karat} ${item.color}`);
+
+    return variantOptions.find((v) => {
+      const vSize = String(v.size || "");
+      const vColor = normalize(v.color || v.variantTitle || "");
+      
+      const sizeMatch = vSize === itemSize;
+      const colorMatch = vColor === itemColor || vColor === itemColorFull;
+      
+      return sizeMatch && colorMatch;
+    });
+  }, [variantOptions, item.variantId, item.size, item.color, item.karat]);
+
   const isInStock = currentVariant?.inStock ?? item.inStock ?? true;
 
-  const sizeOptions =
-    variantOptions.length > 0
-      ? variantOptions
-      : (item.availableSizes || [item.size]).map((size) => ({ size }));
+  const sizeOptions = useMemo(() => {
+    if (variantOptions.length > 0) return variantOptions;
+    
+    const sizes = item.availableSizes || [];
+    if (sizes.length > 0) {
+      return sizes.map(s => ({ size: String(s), variantId: null }));
+    }
+    
+    if (item.size) {
+      return [{ size: String(item.size), variantId: item.variantId }];
+    }
+    
+    return [];
+  }, [variantOptions, item.availableSizes, item.size, item.variantId]);
 
   const canEditSize = !isInStock && sizeOptions.length > 1;
   const canEditQuantity = !isInStock && !item.isFreeGift; 
@@ -208,19 +240,25 @@ export default function CartItem({ item, onAuthRequired }) {
         const selectedVariant = variantOptions.find(
           (variant) => String(variant.size) === String(value)
         );
-        if (!selectedVariant) throw new Error("Selected size is unavailable");
-        payload.nextVariantId = selectedVariant.variantId;
-        payload.size = selectedVariant.size;
-        payload.price = selectedVariant.price;
-        payload.finalPrice = selectedVariant.price;
-        payload.variantTitle = selectedVariant.variantTitle;
-        payload.inStock = selectedVariant.inStock;
-        payload.sku = selectedVariant.sku || "";
         
-        // Include dynamic fields that change with size
-        if (selectedVariant.goldWeight) payload.goldWeight = selectedVariant.goldWeight;
-        if (selectedVariant.diamondTotalPcs) payload.diamondTotalPcs = selectedVariant.diamondTotalPcs;
-        if (selectedVariant.diamondCarat) payload.diamondCarat = selectedVariant.diamondCarat;
+        if (selectedVariant) {
+          payload.nextVariantId = selectedVariant.variantId;
+          payload.size = selectedVariant.size;
+          payload.price = selectedVariant.price;
+          payload.finalPrice = selectedVariant.price;
+          payload.variantTitle = selectedVariant.variantTitle;
+          payload.inStock = selectedVariant.inStock;
+          payload.sku = selectedVariant.sku || "";
+          
+          if (selectedVariant.goldWeight) payload.goldWeight = selectedVariant.goldWeight;
+          if (selectedVariant.diamondTotalPcs) payload.diamondTotalPcs = selectedVariant.diamondTotalPcs;
+          if (selectedVariant.diamondCarat) payload.diamondCarat = selectedVariant.diamondCarat;
+        } else {
+          // Fallback if variantOptions is incomplete
+          payload.size = String(value);
+          // If we don't have the variantId, we'll let the backend try to find it or keep the current one
+          // This prevents the "Selected size is unavailable" crash
+        }
       } else {
         payload.quantity = parseInt(value, 10);
       }

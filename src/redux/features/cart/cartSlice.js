@@ -84,11 +84,12 @@ const mapShopifyCart = (cart, backendCart = null) => {
         image: node.merchandise.image?.url,
         altText: node.merchandise.image?.altText,
         productId: node.merchandise.product.id,
-        inStock: backendItem?.inStock !== undefined ? backendItem.inStock : true,
+        inStock: backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock),
         isFreeGift,
         category: backendItem?.category || backendItem?.type || "",
         estDelivery: backendItem?.estDelivery || null,
         leadTime: backendItem?.leadTime || 12,
+        availableSizes: backendItem?.availableSizes || [],
 
         // Dynamic metal / diamond attributes from backend cart
         goldWeight: backendItem?.goldWeight || 0,
