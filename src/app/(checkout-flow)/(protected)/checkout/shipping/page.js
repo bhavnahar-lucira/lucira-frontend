@@ -461,7 +461,7 @@ export default function ShippingPage() {
         selectedStoreId,
         selectedStore: dbStores.find(s => s.id === selectedStoreId) || null,
         selectedAddress: selectedAddress,
-        customerEmail: customer?.email || ""
+        customerEmail: customer?.email || "techamitjha@gmail.com"
       };
       window.localStorage.setItem("checkout_selection", JSON.stringify(selection));
     }
