@@ -26,7 +26,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { pushProductImpression } from "@/lib/gtm";
+import { pushProductImpression, getStandardImpressionProducts } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import { apiFetch } from "@/lib/api";
@@ -460,6 +460,17 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
   }, [pagination.hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Track product impressions when products are loaded
+  const impressionSentRef = useRef(false);
+  useEffect(() => {
+    if (products.length > 0 && !impressionSentRef.current) {
+      impressionSentRef.current = true;
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const impressionProducts = getStandardImpressionProducts(products, currentOrigin);
+      pushProductImpression(impressionProducts);
+    }
+  }, [products]);
 
   const clearAllFilters = () => {
     router.push(pathname, { scroll: false });

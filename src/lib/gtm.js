@@ -147,6 +147,54 @@ export const getStandardCartItem = (item, idx = 0) => {
   };
 };
 
+export const getStandardImpressionProducts = (products, currentOrigin = "") => {
+  return products.map((product, idx) => {
+    const getNumeric = (val) => {
+      const num = Number(val);
+      return isNaN(num) ? 0 : num;
+    };
+
+    // Robust SKU resolution
+    const sku = 
+      product?.sku || 
+      product?.variantSku || 
+      product?.item_sku ||
+      (product?.variants && product?.variants[0]?.sku) || 
+      (product?.variantOptions && product?.variantOptions[0]?.sku) ||
+      "";
+
+    // Robust Product ID resolution
+    const rawProductId = product?.shopifyId || product?.id || product?.productId || "";
+    const itemId = String(getNumericId(rawProductId)) === "0" ? String(rawProductId) : String(getNumericId(rawProductId));
+
+    // Robust Category resolution
+    const category = product?.type || product?.productType || "Jewelry";
+
+    // Build product URL
+    const baseUrl = currentOrigin || (typeof window !== "undefined" ? window.location.origin : "");
+    const handle = product?.handle || "";
+    const variantId = product?.variants?.[0]?.id || product?.variantId || "";
+    const itemUrl = variantId 
+      ? `${baseUrl}/products/${handle}?variant=${variantId}`
+      : `${baseUrl}/products/${handle}`;
+
+    // Price resolution (price is original, offer_price is discounted)
+    const originalPrice = getNumeric(product?.price || 0);
+    const comparePrice = getNumeric(product?.comparePrice || product?.originalPrice || product?.price || 0);
+
+    return {
+      item_id: itemId,
+      item_name: product?.title || "",
+      item_sku: sku,
+      category: category,
+      item_url: itemUrl,
+      price: originalPrice,
+      offer_price: comparePrice,
+      index: idx + 1
+    };
+  });
+};
+
 export const pushAddToWishlist = (data) => {
   pushToDataLayer({
     event: "addToWishlist",

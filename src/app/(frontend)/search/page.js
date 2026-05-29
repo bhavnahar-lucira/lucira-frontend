@@ -20,7 +20,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { pushProductImpression } from "@/lib/gtm";
+import { pushProductImpression, getStandardImpressionProducts } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { apiFetch } from "@/lib/api";
 
@@ -150,6 +150,17 @@ export default function SearchPage() {
       setIsFetchingNextPage(false);
     }
   }, [query, filterParamsString, pagination, isFetchingNextPage]);
+
+  // Track product impressions when products are loaded
+  const impressionSentRef = useRef(false);
+  useEffect(() => {
+    if (products.length > 0 && !impressionSentRef.current) {
+      impressionSentRef.current = true;
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const impressionProducts = getStandardImpressionProducts(products, currentOrigin);
+      pushProductImpression(impressionProducts);
+    }
+  }, [products]);
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
