@@ -644,6 +644,7 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.loading = false;
@@ -653,36 +654,77 @@ const cartSlice = createSlice({
           state.totalAmount = action.payload.totalAmount || 0;
         }
       })
+      .addCase(fetchCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(addToCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(addToCart.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
+      })
+      .addCase(addToCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(removeFromCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
+      })
+      .addCase(removeFromCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(updateCartItem.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
       })
+      .addCase(updateCartItem.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(repriceCartForCheckout.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(repriceCartForCheckout.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
+      })
+      .addCase(repriceCartForCheckout.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       })
       .addCase(mergeCart.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(mergeCart.fulfilled, (state, action) => {
         state.loading = false;
@@ -691,6 +733,10 @@ const cartSlice = createSlice({
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
+      })
+      .addCase(mergeCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       });
   },
 });
