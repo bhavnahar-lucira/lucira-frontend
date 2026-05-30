@@ -12,7 +12,7 @@ import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 // SSG: Articles are static content. Render once at build, zero ISR background writes.
 // Content only changes when an editor publishes or edits — not on a timer.
 export const dynamic = 'force-static';
-export const dynamicParams = false; // Strictly 404 for unknown articles to avoid any SSR
+export const dynamicParams = true; // Changed to true to allow on-demand generation if Vercel build misses an article
 
 export async function generateStaticParams() {
   return await getAllArticleHandles();

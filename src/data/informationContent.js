@@ -7,6 +7,16 @@ export const informationContentData = {
     "stores_heading": "Lucira's Experience Stores"
   },
   "blocks": {
+    "store_location_PTIUB3": {
+      "type": "store_location",
+      "settings": {
+        "store_name": "Head Office",
+        "phone": "+919004436052",
+        "email": "care@lucirajewelry.com",
+        "address": "Office: 1402-2, Dlh Park, 14th Floor, Swami Vivekanand Rd, Mumbai, Maharashtra 400062",
+        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Mumbai/data=!4m2!3m1!1s0x0:0x268fe0bb8a89f9bb?sa=X&ved=1t:2428&hl=en-GB&ictx=111"
+      }
+    },
     "store_location_PT9AJb": {
       "type": "store_location",
       "settings": {
@@ -55,6 +65,7 @@ export const informationContentData = {
     }
   },
   "block_order": [
+    "store_location_PTIUB3",
     "store_location_PT9AJb",
     "store_location_JXxGWf",
     "store_location_eMddbh",

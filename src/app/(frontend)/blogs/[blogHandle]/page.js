@@ -8,7 +8,7 @@ import BlogListingClient from "@/components/blogs/BlogListingClient";
 // SSG: Render once at build, never background-revalidate.
 // Blog content is static — it only changes when an editor publishes a new article.
 export const dynamic = 'force-static';
-export const dynamicParams = false; // Strictly 404 for unknown blogs to avoid any SSR
+export const dynamicParams = true; // Changed to true to allow on-demand generation if Vercel build misses a blog
 
 export async function generateStaticParams() {
   return await getAllBlogHandles();
