@@ -475,7 +475,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
     return [...new Set(offers)];
   }, [product, currentVariant]);
-
+  
   return (
     <>
       <div className="space-y-4">
@@ -499,11 +499,10 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   className="w-full h-full custom-product-swiper"
                 >
                   {galleryImages.map((image, idx) => {
-                  // 1. Define handles that require a 130% zoom (easy to add/remove here)
-                  const isZoom = collectionHandle?.toLowerCase().includes('ring') || 
-                     collectionHandle?.toLowerCase().includes('earring') || collectionHandle?.toLowerCase().includes('nosepin'); 
-
-                  const shouldZoom = isMobile && isZoom;
+                    const handleWords = product?.handle?.toLowerCase().split("-") || [];
+                    const targetKeywords = ['rings', 'ring', 'earrings', 'earring', 'nosepin', 'nose', 'band', 'bali', 'stud'];                  
+                    const hasMatchingWord = handleWords.some(word => targetKeywords.includes(word));
+                    const shouldZoom = isMobile && hasMatchingWord;
 
                   return (
                     <SwiperSlide key={`${image.url}-${idx}`}>
@@ -522,13 +521,6 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                     </SwiperSlide>
                   );
                 })}
-                  {/* {galleryImages.map((image, idx) => (
-                    <SwiperSlide key={`${image.url}-${idx}`}>
-                      <div className="relative w-full h-full">
-                        <LazyImage src={image.url} alt={image.alt || product.title} fill priority={idx === 0} className="object-contain grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-300" />
-                      </div>
-                    </SwiperSlide>
-                  ))} */}
                   {galleryImages.length > 1 && <div className={`pagination-${swiperId} swiper-pagination bottom-0!`} />}
                 </Swiper>
               ) : <div className="w-full h-full flex items-center justify-center text-zinc-400">No Image</div>}
