@@ -1,5 +1,4 @@
 import { fetchWithRetry } from "@/utils/helpers";
-import clientPromise from "./mongodb";
 import { shopifyAdminRestFetch, shopifyStorefrontFetch } from "./shopify";
 
 function serialize(value) {
@@ -14,33 +13,33 @@ export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
   // 1. Try Storefront API first (most reliable, supports caching)
   const storefrontArticle = await getArticleByBlogAndHandleStorefront(blogHandle, articleHandle);
 
-  // 2. Fallback to MongoDB (local cache)
-  const client = await clientPromise;
-  const db = client.db();
-
-  const dbArticle = await db.collection("articles").findOne({
-    handle: articleHandle,
-    blogHandle,
-  });
+  // 2. Try Admin API if Storefront content is missing (Shopify 2.0 sections hide content from Storefront API)
+  let adminArticle = null;
+  if (storefrontArticle && !storefrontArticle.contentHtml) {
+    try {
+      adminArticle = await getArticleByBlogAndHandleAdminRest(blogHandle, articleHandle, storefrontArticle.blogId);
+    } catch (e) {
+      console.warn("Admin API fallback failed:", e.message);
+    }
+  }
 
   // 3. Last resort: Live site scraping
   let liveArticle = null;
-  if (!storefrontArticle?.contentHtml && !dbArticle?.contentHtml) {
+  if (!storefrontArticle?.contentHtml && !adminArticle?.contentHtml) {
     liveArticle = await getArticleRenderedFromLiveSite(blogHandle, articleHandle);
   }
 
   // Merge sources
-  const baseArticle = storefrontArticle || dbArticle || liveArticle;
+  const baseArticle = storefrontArticle || adminArticle || liveArticle;
   if (!baseArticle) return null;
 
   const merged = {
-    ...dbArticle,
     ...baseArticle,
-    contentHtml: baseArticle.contentHtml || dbArticle?.contentHtml || liveArticle?.contentHtml || baseArticle.content || dbArticle?.content,
-    content: baseArticle.content || dbArticle?.content || stripHtml(baseArticle.contentHtml || dbArticle?.contentHtml || liveArticle?.contentHtml),
-    image: baseArticle.image || dbArticle?.image || storefrontArticle?.image || liveArticle?.image,
-    authorV2: baseArticle.authorV2 || dbArticle?.authorV2 || storefrontArticle?.authorV2,
-    publishedAt: baseArticle.publishedAt || dbArticle?.publishedAt || storefrontArticle?.publishedAt || liveArticle?.publishedAt,
+    contentHtml: baseArticle.contentHtml || adminArticle?.contentHtml || liveArticle?.contentHtml || baseArticle.content,
+    content: baseArticle.content || adminArticle?.content || stripHtml(baseArticle.contentHtml || adminArticle?.contentHtml || liveArticle?.contentHtml),
+    image: baseArticle.image || adminArticle?.image || storefrontArticle?.image || liveArticle?.image,
+    authorV2: baseArticle.authorV2 || adminArticle?.authorV2 || storefrontArticle?.authorV2,
+    publishedAt: baseArticle.publishedAt || adminArticle?.publishedAt || storefrontArticle?.publishedAt || liveArticle?.publishedAt,
   };
 
   // Try to find image in content if still missing
@@ -55,12 +54,18 @@ export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
 }
 
 export async function getBlogByHandle(blogHandle) {
-  const client = await clientPromise;
-  const db = client.db();
+  const query = `
+    query GetBlog($blogHandle: String!) {
+      blog(handle: $blogHandle) {
+        id
+        title
+        handle
+      }
+    }
+  `;
 
-  const blog = await db.collection("blogs").findOne({ handle: blogHandle });
-
-  return serialize(blog);
+  const data = await shopifyStorefrontFetch(query, { blogHandle }, { cache: 'force-cache' });
+  return serialize(data?.blog || null);
 }
 
 export async function getArticleByBlogAndHandleStorefront(blogHandle, articleHandle) {
@@ -111,7 +116,6 @@ export async function getArticleByBlogAndHandleStorefront(blogHandle, articleHan
     }
   `;
 
-  // force-cache to respect SSG
   const data = await shopifyStorefrontFetch(query, { blogHandle, articleHandle }, {
     cache: 'force-cache'
   });
@@ -199,14 +203,23 @@ export async function getArticleByBlogAndHandleAdminRest(blogHandle, articleHand
 export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) {
   // No per-fetch revalidate — blog article pages are SSG (force-static).
   // Cache: force-cache ensures the fetch result is reused within the same render pass.
-  const res = await fetchWithRetry(
-    `https://luciraonline.myshopify.com/blogs/${blogHandle}/${articleHandle}`,
-    {
-      cache: 'force-cache',
-    }
-  );
+  let res;
+  try {
+    res = await fetchWithRetry(
+      `https://luciraonline.myshopify.com/blogs/${blogHandle}/${articleHandle}?_fd=0`,
+      {
+        cache: 'force-cache',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      }
+    );
+  } catch (error) {
+    console.error(`Live site scraping failed for ${articleHandle}:`, error.message);
+    return null;
+  }
 
-  if (!res.ok) return null;
+  if (!res || !res.ok) return null;
 
   const pageHtml = await res.text();
   const liveContentHtml = extractLiveMainContent(pageHtml);
@@ -291,17 +304,7 @@ export async function getArticlesByBlogHandle(blogHandle) {
     console.error("Error fetching articles from Storefront:", error);
   }
 
-  // Fallback to MongoDB
-  const client = await clientPromise;
-  const db = client.db();
-
-  const articles = await db
-    .collection("articles")
-    .find({ blogHandle })
-    .sort({ publishedAt: -1 })
-    .toArray();
-
-  return serialize(articles) || [];
+  return [];
 }
 
 export async function getArticlesByBlogHandleStorefront(blogHandle) {
@@ -352,40 +355,106 @@ export async function getArticlesByBlogHandleStorefront(blogHandle) {
 }
 
 export async function getMostViewedArticles(limit = 4) {
-  const client = await clientPromise;
-  const db = client.db();
+  const query = `
+    query GetRecentArticles($limit: Int!) {
+      articles(first: $limit, sortKey: PUBLISHED_AT, reverse: true) {
+        edges {
+          node {
+            id
+            title
+            handle
+            publishedAt
+            excerpt
+            excerptHtml
+            image {
+              url
+              altText
+            }
+            authorV2 {
+              name
+            }
+            blog {
+              id
+              handle
+              title
+            }
+            views: metafield(namespace: "custom", key: "views") { value }
+          }
+        }
+      }
+    }
+  `;
 
-  const articles = await db
-    .collection("articles")
-    .aggregate([
-      // Only include articles that have an image (avoids blank cards)
-      { $match: { "image.url": { $exists: true, $ne: null } } },
-      {
-        $addFields: {
-          // Support both nested { views: { value: "123" } } and flat { views: "123" }
-          viewsInt: {
-            $toInt: {
-              $ifNull: [
-                "$views.value",
-                { $ifNull: ["$views", "0"] }
-              ]
+  try {
+    const data = await shopifyStorefrontFetch(query, { limit }, { cache: 'force-cache' });
+    const articles = data?.articles?.edges?.map(edge => ({
+      ...edge.node,
+      blogId: edge.node.blog?.id,
+      blogTitle: edge.node.blog?.title,
+      blogHandle: edge.node.blog?.handle
+    }));
+    return serialize(articles) || [];
+  } catch (error) {
+    console.error("Error fetching recent articles:", error);
+    return [];
+  }
+}
+
+export async function getAllBlogHandles() {
+  const query = `
+    query GetAllBlogs {
+      blogs(first: 250) {
+        edges {
+          node {
+            handle
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const data = await shopifyStorefrontFetch(query, {}, { cache: 'force-cache' });
+    return data?.blogs?.edges?.map(edge => ({ blogHandle: edge.node.handle })) || [];
+  } catch (e) {
+    console.error("Error fetching all blogs:", e);
+    return [];
+  }
+}
+
+export async function getAllArticleHandles() {
+  const query = `
+    query GetAllArticles {
+      blogs(first: 250) {
+        edges {
+          node {
+            handle
+            articles(first: 250) {
+              edges {
+                node {
+                  handle
+                }
+              }
             }
           }
         }
-      },
-      { $sort: { viewsInt: -1, publishedAt: -1 } },
-      // Deduplicate by handle — keeps first occurrence (highest views)
-      {
-        $group: {
-          _id: "$handle",
-          doc: { $first: "$$ROOT" }
-        }
-      },
-      { $replaceRoot: { newRoot: "$doc" } },
-      { $sort: { viewsInt: -1, publishedAt: -1 } },
-      { $limit: limit }
-    ])
-    .toArray();
-
-  return serialize(articles) || [];
+      }
+    }
+  `;
+  try {
+    const data = await shopifyStorefrontFetch(query, {}, { cache: 'force-cache' });
+    const paths = [];
+    data?.blogs?.edges?.forEach(blogEdge => {
+      const blogHandle = blogEdge.node.handle;
+      blogEdge.node.articles?.edges?.forEach(articleEdge => {
+        paths.push({
+          blogHandle,
+          articleHandle: articleEdge.node.handle
+        });
+      });
+    });
+    return paths;
+  } catch (e) {
+    console.error("Error fetching all articles:", e);
+    return [];
+  }
 }
