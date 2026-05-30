@@ -148,6 +148,10 @@
   }
 }
 
+.lucira-blogs .article-content-block * {
+  color: inherit !important;
+}
+
 .lucira-blogs .article-content-block p {
   margin-bottom: 24px;
 }
