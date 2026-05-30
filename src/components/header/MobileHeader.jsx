@@ -704,7 +704,10 @@ export default function MobileHeader({ menuData }) {
           {MEGA_MENU.map((item, index) => {
             const label = item.label || item.title;
             const is9kt = label.toLowerCase().includes('9kt');
-            const icon = item.menuIcon || (label.toUpperCase() === "GIFTING" ? CATEGORY_IMAGES["GIFTING"] : null);
+            const isLuciraExpress = label.toLowerCase().includes('lucira express');
+            const icon = item.menuIcon || 
+                        (label.toUpperCase() === "GIFTING" ? CATEGORY_IMAGES["GIFTING"] : 
+                        (isLuciraExpress ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/luciraExpress.png?v=1780129196" : null));
             
             return (
               <button
@@ -718,7 +721,10 @@ export default function MobileHeader({ menuData }) {
                       src={icon} 
                       alt={label} 
                       fill 
-                      className="object-contain p-0.5" 
+                      className={cn(
+                        "object-contain",
+                        isLuciraExpress ? "p-2" : "p-0.5"
+                      )} 
                     />
                   )}
                 </div>
