@@ -18,29 +18,132 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
 import { apiFetch } from "@/lib/api";
+import { shopifyStorefrontFetch, toShopifyGid } from "@/lib/shopify-client";
+
+// Specific query to get order details with handles via Customer
+const GET_ORDER_WITH_HANDLES = `
+  query getCustomerOrder($customerAccessToken: String!) {
+    customer(customerAccessToken: $customerAccessToken) {
+      orders(first: 50) {
+        edges {
+          node {
+            id
+            orderNumber
+            lineItems(first: 20) {
+              edges {
+                node {
+                  title
+                  variant {
+                    id
+                    sku
+                    product {
+                      handle
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
 
 export default function OrderDetailsPage() {
   const { id } = useParams();
+  const { accessToken } = useSelector((state) => state.user);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [returnLoading, setReturnLoading] = useState(false);
 
   useEffect(() => {
     async function fetchOrderDetails() {
+      if (!id) return;
       try {
         setLoading(true);
-        const data = await apiFetch(`/api/customer/orders/${id}`);
-        setOrder(data.order);
+        
+        // 1. Fetch basic order details from our backend
+        let orderData = null;
+        try {
+          const data = await apiFetch(`/api/customer/orders/${id}`);
+          orderData = data.order;
+        } catch (err) {
+          console.warn("[OrderDetails] Backend fetch failed:", err);
+        }
+
+        // 2. If handles are missing, fetch them from Shopify Storefront API fallback
+        if (orderData && accessToken) {
+          console.log("[OrderDetails] Checking handles...");
+          const hasMissingHandles = orderData.lineItems?.some(item => !item.handle && !item.productHandle && !item.product_handle);
+          
+          if (hasMissingHandles) {
+            console.log("[OrderDetails] Fetching missing handles from Storefront API...");
+            try {
+              const sfData = await shopifyStorefrontFetch(GET_ORDER_WITH_HANDLES, {
+                customerAccessToken: accessToken
+              });
+
+              // Find order by exact ID or orderNumber
+              const sfOrder = sfData?.customer?.orders?.edges?.find(e => {
+                const node = e.node;
+                const nodeNum = String(node.orderNumber);
+                const orderDataNum = String(orderData.orderNumber);
+                return node.id.includes(id) || nodeNum === orderDataNum;
+              })?.node;
+              
+              if (sfOrder) {
+                orderData.lineItems = orderData.lineItems.map(item => {
+                  // Match by variant ID first, then by SKU, then by title (case-insensitive)
+                  const sfItem = sfOrder.lineItems.edges.find(e => {
+                    const sfNode = e.node;
+                    const itemVarId = (item.variantId || item.variant?.id || "").split("/").pop();
+                    const sfVarId = (sfNode.variant?.id || "").split("/").pop();
+                    
+                    const skuMatch = item.sku && sfNode.variant?.sku && item.sku === sfNode.variant.sku;
+                    const titleMatch = (sfNode.title || "").toLowerCase() === (item.title || "").toLowerCase();
+                    
+                    return (itemVarId && itemVarId === sfVarId) || skuMatch || titleMatch;
+                  })?.node;
+
+                  return {
+                    ...item,
+                    handle: sfItem?.variant?.product?.handle || item.handle
+                  };
+                });
+              }
+            } catch (sfErr) {
+              console.warn("[OrderDetails] Storefront fallback failed:", sfErr);
+            }
+          }
+        }
+
+        // 3. Final Fallback: If handle still missing, try a search for each item (limit this to avoid spam)
+        if (orderData?.lineItems) {
+          for (let item of orderData.lineItems) {
+            if (!item.handle && !item.title.toLowerCase().includes("insurance")) {
+               try {
+                 const searchData = await apiFetch(`/api/products/search?q=${encodeURIComponent(item.title)}&limit=1`);
+                 if (searchData.products?.[0]?.handle) {
+                   item.handle = searchData.products[0].handle;
+                 }
+               } catch (e) {}
+            }
+          }
+        }
+
+        setOrder(orderData);
       } catch (err) {
         console.error("Order details fetch error:", err);
-        toast.error(err.message || "Failed to load order details");
+        toast.error("Failed to load order details");
       } finally {
         setLoading(false);
       }
     }
     fetchOrderDetails();
-  }, [id]);
+  }, [id, accessToken]);
 
   const handleReturnClick = async () => {
     if (order.fulfillmentStatus !== 'FULFILLED') {
@@ -244,25 +347,34 @@ export default function OrderDetailsPage() {
               <h3 className="text-lg font-bold text-primary uppercase tracking-tight">Items in this order</h3>  
             </div>
             <div className="divide-y divide-zinc-100">
-              {sortedLineItems.map((item, index) => (
-                <div key={index} className="p-8 flex gap-6 items-center">
-                  <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
-                    <Image src={item.image || item.variant?.image?.url || "/images/product/1.jpg"} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
+              {sortedLineItems.map((item, index) => {
+                 const isInsurance = (item.variantId || item.variant?.id) === INSURANCE_VARIANT_ID || (item.title || "").toLowerCase().includes("insurance");
+                 const handle = item.handle || item.productHandle || item.product_handle || item.variant?.product?.handle;
+                 const variantId = (item.variantId || item.variant?.id || "").split("/").pop();
+                 const productUrl = handle ? `/products/${handle}${variantId ? `?variant=${variantId}` : ""}` : `/search?q=${encodeURIComponent(item.title)}`;
+
+                 return (
+                  <div key={index} className="p-8 flex gap-6 items-center">
+                    <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
+                      <Image src={item.image || item.variant?.image?.url || "/images/product/1.jpg"} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-zinc-900">{item.title}</h4>
+                      <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>
+                      <p className="text-lg font-bold text-primary mt-2">
+                        {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
+                      </p>
+                    </div>
+                    {!isInsurance && (
+                      <div className="hidden sm:block">
+                        <Link href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
+                          View Product
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-zinc-900">{item.title}</h4>
-                    <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>
-                    <p className="text-lg font-bold text-primary mt-2">
-                      {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
-                    </p>
-                  </div>
-                  <div className="hidden sm:block">
-                    <Link href={item.handle ? `/products/${item.handle}` : "/products/all"} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
-                      View Product
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                 );
+              })}
             </div>
           </div>
 
