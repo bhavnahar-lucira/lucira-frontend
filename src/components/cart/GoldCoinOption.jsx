@@ -24,7 +24,7 @@ export default function GoldCoinOption() {
       .catch(err => console.error("Error fetching gold coin setting:", err));
   }, []);
 
-  const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID);
+  const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
   const isApplied = !!goldCoinItem;
 
   const diamondTotal = items
@@ -83,7 +83,7 @@ export default function GoldCoinOption() {
   const handleRemove = async () => {
     setIsProcessing(true);
     try {
-      await removeFromCart(GOLDCOIN_VARIANT_ID);
+      await removeFromCart(goldCoinItem?.lineId || GOLDCOIN_VARIANT_ID);
     } finally {
       setIsProcessing(false);
     }

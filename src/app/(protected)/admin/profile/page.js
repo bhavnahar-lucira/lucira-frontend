@@ -139,8 +139,8 @@ export default function MyProfilePage() {
     }
 
     const cleanPhone = formData.phone.replace(/\D/g, "");
-    if (cleanPhone.length < 10) {
-      toast.error("Please enter a valid phone number");
+    if (cleanPhone.length !== 10) {
+      toast.error("Phone number must be exactly 10 digits");
       return;
     }
 

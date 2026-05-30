@@ -47,7 +47,7 @@ export default function ExploreCollectionSection({ initialData }) {
   }, [activeHandle]);
 
   return (
-    <CollectionSection 
+    <CollectionSection
       title="Explore By Collections"
       tabs={Object.keys(COLLECTION_HANDLE_MAP)}
       page="home"
@@ -55,9 +55,9 @@ export default function ExploreCollectionSection({ initialData }) {
       colLink="/collections/all"
       onTabChange={(tab) => setActiveTab(tab)}
       loading={loading}
-    >        
-      <CollectionSlider 
-        products={products.length > 0 ? products : (loading ? [] : null)} 
+    >
+      <CollectionSlider
+        products={products.length > 0 ? products : (loading ? [] : null)}
         loading={loading}
         collectionHandle={activeHandle}
       />

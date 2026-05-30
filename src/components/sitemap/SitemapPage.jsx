@@ -717,7 +717,7 @@ export default async function SitemapPage() {
     },
     {
       section: "PRODUCTS",
-      url: "/collections/all",
+      url: "/collections/jewelry",
       columns: splitIntoColumns(products, "Product", 30)
     }
   ];

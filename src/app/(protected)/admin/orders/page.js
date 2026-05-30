@@ -35,25 +35,52 @@ export default function MyOrdersPage() {
         try {
           const data = await apiFetch("/api/customer/orders");
           if (data && data.orders) {
-            storefrontOrders = data.orders.map((order) => ({
-              ...order,
-              id: order.id,
-              orderNumber: order.orderNumber.toString(),
-              date: new Date(order.processedAt).toLocaleDateString('en-IN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              }),
-              status: order.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
-                      order.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
-              amount: new Intl.NumberFormat('en-IN', {
-                style: 'currency',
-                currency: order.totalPrice?.currencyCode || 'INR',
-              }).format(order.totalPrice?.amount || 0),
-              product: order.product || "Jewelry Item",
-              image: order.image || "/images/product/1.jpg",
-              customerEmail: order.customerEmail || ""
-            }));
+            storefrontOrders = data.orders.map((order) => {
+              const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
+              const items = order.lineItems || [];
+              
+              let displayProduct = order.product;
+              let displayImage = order.image;
+
+              if (items.length > 0) {
+                const sortedItems = [...items].sort((a, b) => {
+                  const isAInsurance = (a.variantId || a.variant?.id) === INSURANCE_VARIANT_ID || 
+                                       (a.title || "").toLowerCase().includes("insurance");
+                  const isBInsurance = (b.variantId || b.variant?.id) === INSURANCE_VARIANT_ID || 
+                                       (b.title || "").toLowerCase().includes("insurance");
+                  
+                  if (isAInsurance && !isBInsurance) return 1;
+                  if (!isAInsurance && isBInsurance) return -1;
+                  
+                  const priceA = parseFloat(a.price?.amount || a.variant?.price?.amount || 0);
+                  const priceB = parseFloat(b.price?.amount || b.variant?.price?.amount || 0);
+                  return priceB - priceA;
+                });
+                displayProduct = sortedItems[0]?.title || displayProduct;
+                displayImage = sortedItems[0]?.image || sortedItems[0]?.variant?.image?.url || displayImage;
+              }
+
+              const fStatus = (order.fulfillmentStatus || "").toUpperCase();
+              return {
+                ...order,
+                id: order.id,
+                orderNumber: order.orderNumber.toString(),
+                date: new Date(order.processedAt).toLocaleDateString('en-IN', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }),
+                status: (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' : 
+                        (fStatus === 'PARTIAL' || fStatus === 'IN_TRANSIT' || fStatus === 'IN_PROGRESS') ? 'In Transit' : 'Processing',
+                amount: new Intl.NumberFormat('en-IN', {
+                  style: 'currency',
+                  currency: order.totalPrice?.currencyCode || 'INR',
+                }).format(parseFloat(order.totalPrice?.amount || order.totalPrice || 0)),
+                product: displayProduct || "Jewelry Item",
+                image: displayImage || "/images/product/1.jpg",
+                customerEmail: order.customerEmail || ""
+              };
+            });
           } else {
             throw new Error("Empty backend orders");
           }
@@ -67,7 +94,24 @@ export default function MyOrdersPage() {
             });
 
             storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
-              const mainItem = node.lineItems?.edges?.[0]?.node;
+              const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
+              const items = node.lineItems?.edges?.map(e => e.node) || [];
+              
+              // Sort items by price DESC, but keep non-insurance items as priority for "mainItem"
+              const sortedItems = [...items].sort((a, b) => {
+                const isAInsurance = a.variant?.id === INSURANCE_VARIANT_ID;
+                const isBInsurance = b.variant?.id === INSURANCE_VARIANT_ID;
+                if (isAInsurance && !isBInsurance) return 1;
+                if (!isAInsurance && isBInsurance) return -1;
+                
+                const priceA = parseFloat(a.variant?.price?.amount || 0);
+                const priceB = parseFloat(b.variant?.price?.amount || 0);
+                return priceB - priceA;
+              });
+
+              const mainItem = sortedItems[0];
+              const fStatus = (node.fulfillmentStatus || "").toUpperCase();
+
               return {
                 id: node.id,
                 orderNumber: node.orderNumber.toString(),
@@ -76,8 +120,8 @@ export default function MyOrdersPage() {
                   month: 'long',
                   day: 'numeric'
                 }),
-                status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
-                        node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+                status: (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' : 
+                        fStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
                 amount: new Intl.NumberFormat('en-IN', {
                   style: 'currency',
                   currency: node.totalPrice.currencyCode,
@@ -327,7 +371,7 @@ export default function MyOrdersPage() {
               </p>
             </div>
             <Link
-              href="/collections/all"
+              href="/collections/jewelry"
               className="font-figtree inline-block px-8 md:px-10 py-3.5 md:py-4 bg-primary text-white text-xs font-semibold uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-transform"
             >
               Start Shopping
@@ -354,7 +398,7 @@ export default function MyOrdersPage() {
             </div>
           </div>
           <Link
-            href="/collections/all"
+            href="/collections/jewelry"
             className="font-figtree px-8 md:px-10 py-4 md:py-5 bg-primary text-white text-xs font-semibold uppercase tracking-[0.15em] rounded-[1.25rem] md:rounded-[1.5rem] hover:scale-105 transition-transform shadow-2xl shadow-primary/20 whitespace-nowrap"
           >
             Continue Shopping

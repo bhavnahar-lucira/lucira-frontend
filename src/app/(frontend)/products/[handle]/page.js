@@ -70,6 +70,8 @@ const PRODUCT_QUERY = `
             gross_weight: metafield(namespace: "ornaverse", key: "gross_weight") { value }
             top_width: metafield(namespace: "ornaverse", key: "top_width") { value }
             top_height: metafield(namespace: "ornaverse", key: "top_height") { value }
+            in_store_available: metafield(namespace: "ornaverse", key: "in_store_available") { value }
+            custom_in_store_available: metafield(namespace: "custom", key: "in_store_available") { value }
             diamonds_meta: metafield(namespace: "ornaverse", key: "diamonds") { value }
             gemstones_meta: metafield(namespace: "ornaverse", key: "gemstones") { value }
             components: metafield(namespace: "ornaverse", key: "components") { value }
@@ -135,10 +137,35 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  // Return an empty array to prevent Next.js from pre-rendering all 2,600+ product pages during build time.
-  // Instead, the product pages will be generated dynamically on-demand when a user first visits them,
-  // and then cached. This reduces your build time from 30+ minutes to less than 1 minute!
-  return [];
+  // Pre-render the top 50 bestseller product pages at build time.
+  // These are served from Vercel CDN (FREE — no function invocations on first visit).
+  // All 2600+ other product pages still work — rendered on-demand when first visited, then cached.
+  // ISR (revalidate=86400) + webhook revalidation still applies to pre-rendered pages.
+  try {
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
+      ? process.env.NEXT_PUBLIC_BACKEND_URL
+      : "http://127.0.0.1:8080";
+    const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+
+    const res = await fetch(
+      `${base}/api/collection?handle=bestsellers&limit=50&sort=best_selling`,
+      { cache: 'force-cache' }
+    );
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const handles = (data.products || [])
+      .filter(p => p?.handle)
+      .map(p => ({ handle: p.handle }));
+
+    console.log(`[generateStaticParams/products] Pre-rendering ${handles.length} bestseller pages at build time.`);
+    return handles;
+  } catch (err) {
+    // Safe fallback — if backend is unreachable at build time, skip pre-rendering.
+    // All product pages still work via on-demand rendering. Build continues normally.
+    console.warn("[generateStaticParams/products] Could not fetch bestsellers, skipping pre-render:", err.message);
+    return [];
+  }
 }
 
 async function getProduct(handle) {
@@ -175,6 +202,8 @@ async function getProduct(handle) {
     const metalComp = comps?.components?.find(c => c.item_group_name === "Gold");
     const diamondComps = comps?.components?.filter(c => c.item_group_name === "Diamond") || [];
     const gemstoneComps = comps?.components?.filter(c => c.item_group_name === "Gemstone" || c.item_group_name === "Color Stone") || [];
+    const rawStoreData = v.in_store_available?.value || v.custom_in_store_available?.value;
+    const in_store_available = rawStoreData ? JSON.parse(rawStoreData) : [];
 
     let metal_purity = metalComp?.karat_code ? `${metalComp.karat_code}K` : (v.custom_metal_purity?.value || variantConfig?.purity || getOpt(options, ["metal purity", "purity"]));
     let metal_color = metalComp?.stone_color_code && metalComp.stone_color_code !== "NA" ? metalComp.stone_color_code : (v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]));
@@ -260,7 +289,8 @@ async function getProduct(handle) {
         diamonds,
         gemstones,
         components: v.components?.value,
-        variant_config: v.variant_config?.value
+        variant_config: v.variant_config?.value,
+        in_store_available: in_store_available
       }
     };
   });

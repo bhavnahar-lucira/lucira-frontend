@@ -109,9 +109,9 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
         <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
         <div className="md:col-span-2">
           <Input
-            placeholder="Phone (optional)"
+            placeholder="Phone (10 digits) *"
             value={form.phone}
-            onChange={(e) => onChange("phone", e.target.value)}
+            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
             className="h-12 border-zinc-200"
           />
         </div>
@@ -341,7 +341,15 @@ export default function PaymentPage() {
 
   const partialCodDetails = useMemo(() => {
     const total = Math.max(0, Number(finalAmount || 0));
-    const isEligible = total > 0 && total < 50000;
+    
+    const hasGoldCoin = items?.length > 0 && items.some(item => 
+      item.variantId === GOLDCOIN_VARIANT_ID || 
+      (item.handle && item.handle.includes("gold-coin")) ||
+      (item.type && item.type.toLowerCase() === "gold coin") ||
+      (item.title && item.title.toLowerCase().includes("gold coin"))
+    );
+    
+    const isEligible = total > 0 && total < 50000 && !hasGoldCoin;
     const prepaidAmount = isEligible ? total * 0.2 : 0;
     const codAmount = isEligible ? total - prepaidAmount : 0;
 
@@ -350,7 +358,7 @@ export default function PaymentPage() {
       prepaidAmount: Math.round(prepaidAmount),
       codAmount: Math.round(codAmount),
     };
-  }, [finalAmount]);
+  }, [finalAmount, items]);
 
   const paymentGateways = useMemo(() => {
     const gateways = [
@@ -865,6 +873,7 @@ export default function PaymentPage() {
               appliedCoupon: appliedCoupon,
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
+              cartItems: items || [], // Pass items explicitly as fallback for backend
             }, accessToken);
 
             toast.success(
@@ -1143,7 +1152,7 @@ export default function PaymentPage() {
                 <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
                   <div className="p-4 grid grid-cols-[100px_1fr] items-center gap-4 text-sm border-b border-zinc-100">
                     <span className="text-zinc-500 whitespace-nowrap">Contact</span>
-                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || "techamitjha@gmail.com"}</span>
+                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || ""}</span>
                   </div>
                   <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
                     <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Pickup" : "Ship to"}</span>
@@ -1235,7 +1244,7 @@ export default function PaymentPage() {
                 <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
                   <div className="p-4 grid grid-cols-[140px_1fr] items-center gap-4 text-sm border-b border-zinc-100">
                     <span className="text-zinc-500 whitespace-nowrap">Contact</span>
-                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || "techamitjha@gmail.com"}</span>
+                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || ""}</span>
                   </div>
                   <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
                     <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Pickup location" : "Ship to"}</span>

@@ -172,7 +172,7 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
@@ -225,7 +225,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   // Live Pricing Fetch
   useEffect(() => {
-    if (fixedPrice || !pricingVariant?.id) return;
+    if (disableLivePricing || fixedPrice || !pricingVariant?.id) return;
     
     const variantId = String(pricingVariant.id);
     const productId = String(product.shopifyId || product.id);
@@ -475,7 +475,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
     return [...new Set(offers)];
   }, [product, currentVariant]);
-
+  
   return (
     <>
       <div className="space-y-4">
@@ -498,13 +498,29 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   onSwiper={(swiper) => { swiperRef.current = swiper; }}
                   className="w-full h-full custom-product-swiper"
                 >
-                  {galleryImages.map((image, idx) => (
+                  {galleryImages.map((image, idx) => {
+                    const handleWords = product?.handle?.toLowerCase().split("-") || [];
+                    const targetKeywords = ['rings', 'ring', 'earrings', 'earring', 'nosepin', 'nose', 'band', 'bali', 'stud'];                  
+                    const hasMatchingWord = handleWords.some(word => targetKeywords.includes(word));
+                    const shouldZoom = isMobile && hasMatchingWord;
+
+                  return (
                     <SwiperSlide key={`${image.url}-${idx}`}>
-                      <div className="relative w-full h-full">
-                        <LazyImage src={image.url} alt={image.alt || product.title} fill priority={idx === 0} className="object-contain grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-300" />
+                      {/* overflow-hidden keeps the 130% zoomed image contained inside the slide */}
+                      <div className="relative w-full h-full overflow-hidden">
+                        <LazyImage 
+                          src={image.url} 
+                          alt={image.alt || product.title} 
+                          fill 
+                          priority={idx === 0} 
+                          className={`object-contain grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-300 ${
+                            shouldZoom ? 'scale-[1.30]' : 'lg:scale-100'
+                          }`} 
+                        />
                       </div>
                     </SwiperSlide>
-                  ))}
+                  );
+                })}
                   {galleryImages.length > 1 && <div className={`pagination-${swiperId} swiper-pagination bottom-0!`} />}
                 </Swiper>
               ) : <div className="w-full h-full flex items-center justify-center text-zinc-400">No Image</div>}
@@ -553,7 +569,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                                 <div key={item.id} className="space-y-4">
                                   <Link href={`/products/${item.handle}`} prefetch={false} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
                                     <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]">
-                                      <LazyImage src={item.image} alt={item.title} fill className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" />
+                                      <LazyImage src={item.image} alt={item.title} fill className="object-contain transition-transform duration-500 group-hover:scale-105 mix-blend-multiply" />
                                       {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
                                         <button 
                                           onClick={(e) => { 

@@ -290,7 +290,7 @@ export default function JewelryGiftGuideClient() {
             <Link href="/pages/contact-us" className="px-10 py-4 bg-white text-[#5B4740] text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-[#FAF7F5] transition-all rounded-sm shadow-2xl">
               Book a Consultation
             </Link>
-            <Link href="/collections/all" className="px-10 py-4 bg-transparent border border-white/30 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all rounded-sm">
+            <Link href="/collections/jewelry" className="px-10 py-4 bg-transparent border border-white/30 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all rounded-sm">
               Explore All Jewelry
             </Link>
           </div>

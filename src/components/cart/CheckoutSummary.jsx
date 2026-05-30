@@ -5,12 +5,13 @@ import Link from "next/link";
 import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { applyPoints, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import { apiFetch } from "@/lib/api";
+import { getEstimatedDispatchDate } from "@/lib/utils";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
@@ -35,6 +36,14 @@ export default function CheckoutSummary({
 
   const isCheckoutPage = pathname && pathname.startsWith("/checkout") && pathname !== "/checkout/cart";
 
+  // Dispatch Calculation
+  const overallDispatchMessage = useMemo(() => {
+    if (!items || items.length === 0) return "";
+    const maxLeadTime = items.reduce((max, item) => Math.max(max, Number(item.leadTime || 12)), 0);
+    const anyMadeToOrder = items.some(item => !item.inStock && item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift));
+    return getEstimatedDispatchDate(!anyMadeToOrder, maxLeadTime);
+  }, [items]);
+
   // Check if cart contains Diamond Jewellery
   const hasDiamondJewellery = (items || []).some(item => {
     const type = (item.type || item.productType || item.product_type || "").toLowerCase();
@@ -50,7 +59,7 @@ export default function CheckoutSummary({
   const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
 
-  const goldCoinItem = (items || []).find(item => item.variantId === GOLDCOIN_VARIANT_ID);
+  const goldCoinItem = (items || []).find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
   const subtotalValue = (totalAmount || 0) - insuranceValue;
 
   const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
@@ -152,7 +161,7 @@ export default function CheckoutSummary({
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      item.variantId !== GOLDCOIN_VARIANT_ID
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
   );
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
@@ -194,18 +203,13 @@ export default function CheckoutSummary({
                       </div>
                     </div>
                   </div>
-                  {!isInsurance && (
-                   <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2">
-                     <Truck size={14} className="text-black" />
-                     <span className="text-[10px] font-medium text-black">
-                       {item.estDelivery 
-                         ? (item.estDelivery.includes("dispatch by") 
-                             ? item.estDelivery.replace("dispatch by", "delivery by") 
-                             : `Est. Delivery by ${item.estDelivery}`)
-                         : "Est. Delivery by 8-10 Days"}
-                     </span>
-                   </div>
-                  )}
+                  
+                  <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
+                    <Truck size={14} className="text-black" />
+                    <span className="text-[10px] font-medium text-black tracking-tight">
+                      {item.estDelivery || getEstimatedDispatchDate(item.inStock, item.leadTime)}
+                    </span>
+                  </div>
 
                   {index < displayItems.length - 1 && <div className="border-b border-zinc-50 pt-2" />}
                 </div>

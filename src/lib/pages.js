@@ -26,6 +26,7 @@ export async function getPageByHandle(handle) {
           title
           handle
           body
+          bodySummary
           seo { title description }
         }
       }

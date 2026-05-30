@@ -9,7 +9,7 @@ import InvestmentSection from "./InvestmentSection";
 import PriceTable from "./PriceTable";
 import InformationContent from "./InformationContent";
 import { GOLD_RATE_TEMPLATE } from "@/data/goldRateTemplate";
-import { apiFetch } from "@/lib/api";
+import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
     'andaman-and-nicobar-islands': ['Port Blair'],
@@ -77,7 +77,7 @@ export default function GoldRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const data = await apiFetch("/api/gold-rates");
+                const data = await fetchLocalRates();
                 setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
@@ -91,9 +91,9 @@ export default function GoldRatePage({ page }) {
         if (!rates) return base;
         return {
             ...base,
-            rate_today: `₹ ${(Number(rates.gold_price_24k) * 10 || 154002).toLocaleString('en-IN')}`,
-            rate_yesterday: `₹ ${(Number(rates.gold_price_24k_yesterday) * 10 || 155053).toLocaleString('en-IN')}`,
-            rate_avg: `₹ ${(Number(rates.gold_price_22k) * 10 || 141682).toLocaleString('en-IN')}`,
+            rate_today: `₹ ${(Number(rates.gold_price_24k) || 154002).toLocaleString('en-IN')}`,
+            rate_yesterday: `₹ ${(Number(rates.gold_price_24k_yesterday) || 155053).toLocaleString('en-IN')}`,
+            rate_avg: `₹ ${(Number(rates.gold_price_22k) || 141682).toLocaleString('en-IN')}`,
         };
     }, [rates]);
 
@@ -244,7 +244,7 @@ export default function GoldRatePage({ page }) {
                                 <button onClick={handleNavigate} className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
                                     CHECK GOLD RATE <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                                 </button>
-                                <Link href="/collections/all" className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
+                                <Link href="/collections/jewelry" className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
                                     <ShoppingBag size={16} className="group-hover:-translate-y-0.5 group-hover:scale-110 transition-transform" /> EXPLORE LUCIRA
                                 </Link>
                             </div>

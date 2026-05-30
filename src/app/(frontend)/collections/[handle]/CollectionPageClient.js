@@ -26,7 +26,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { pushProductImpression } from "@/lib/gtm";
+import { pushProductImpression, getStandardImpressionProducts } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import { apiFetch } from "@/lib/api";
@@ -461,6 +461,17 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return () => observer.disconnect();
   }, [pagination.hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // Track product impressions when products are loaded
+  const impressionSentRef = useRef(false);
+  useEffect(() => {
+    if (products.length > 0 && !impressionSentRef.current) {
+      impressionSentRef.current = true;
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const impressionProducts = getStandardImpressionProducts(products, currentOrigin);
+      pushProductImpression(impressionProducts);
+    }
+  }, [products]);
+
   const clearAllFilters = () => {
     router.push(pathname, { scroll: false });
     scrollToTop();
@@ -521,6 +532,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             product={selectedColor ? { ...prod, selectedColor } : prod} 
             collectionHandle={handle} 
             index={idx + 1} 
+            disableLivePricing={true}
           />
         </div>
       );
@@ -554,7 +566,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               <BreadcrumbList className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">
                 <BreadcrumbItem><BreadcrumbLink href="/" className="hover:text-[#5a413f] transition-colors">Home</BreadcrumbLink></BreadcrumbItem>
                 <BreadcrumbSeparator className="scale-75" />
-                <BreadcrumbItem><BreadcrumbLink href="/collections/all" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
+                <BreadcrumbItem><BreadcrumbLink href="/collections/jewelry" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
                 <BreadcrumbSeparator className="scale-75" />
                 <BreadcrumbItem><BreadcrumbPage className="text-[#5a413f]">{displayTitle}</BreadcrumbPage></BreadcrumbItem>
               </BreadcrumbList>

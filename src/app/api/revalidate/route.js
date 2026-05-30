@@ -8,15 +8,19 @@ export async function POST(request) {
 
     console.log(`[Next.js Revalidate] Triggered ISR revalidation. Product Handle: ${handle || 'none'}`);
 
-    // Revalidate only the homepage path to update featured products/sections.
-    // We avoid 'layout' revalidation here because revalidating the root layout 
-    // invalidates every single page in the application, leading to a massive 
-    // spike in Vercel ISR writes and exceeding limits.
+    // Revalidate the homepage to update featured products/sections.
     revalidatePath('/');
 
-    // Optionally revalidate specific paths explicitly
     if (handle) {
+      // Revalidate the specific product page that was updated in Shopify.
       revalidatePath(`/products/${handle}`);
+
+      // Revalidate ALL collection pages using the dynamic route pattern.
+      // This ensures product grids reflect stock/price changes after a Shopify webhook.
+      // 'page' scope tells Next.js to revalidate every page matching this dynamic segment.
+      // NOTE: This marks them stale — Vercel re-renders each on the NEXT user visit (ISR write),
+      //       not all 22 at once. So this is cost-efficient — only visited pages get re-rendered.
+      revalidatePath('/collections/[handle]', 'page');
     }
 
     // Ping the Fastify backend to clear its memory cache as well
@@ -34,3 +38,4 @@ export async function POST(request) {
     return NextResponse.json({ revalidated: false, message: 'Error revalidating' }, { status: 500 });
   }
 }
+

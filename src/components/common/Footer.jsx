@@ -86,7 +86,6 @@ export default function Footer() {
                     <li><Link prefetch={false} href="/collections/mens-stud">Men's Studs</Link></li>
                     <li><Link prefetch={false} href="/collections/mens-bracelets">Men's Bracelets</Link></li>
                     <li><Link prefetch={false} href="/collections/hexa">Collections</Link></li>
-                    <li><Link prefetch={false} href="/collections/all">Gifting</Link></li>
                   </ul>
                 </AccordionContent>
               </AccordionItem>

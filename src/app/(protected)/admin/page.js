@@ -240,7 +240,7 @@ export default function CustomerDashboard() {
                 <ShoppingBag size={40} className="mx-auto mb-4 text-zinc-200" />
                 <p className="text-zinc-500 font-bold uppercase tracking-widest text-sm">No orders found yet</p>
                 <Link
-                  href="/collections/all"
+                  href="/collections/jewelry"
                   className="text-primary text-xs font-bold uppercase tracking-widest mt-2 block hover:underline"
                 >
                   Start Shopping

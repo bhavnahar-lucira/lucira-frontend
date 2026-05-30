@@ -9,7 +9,7 @@ import SilverInvestmentSection from "./SilverInvestmentSection";
 import SilverPriceTable from "./SilverPriceTable";
 import SilverInformationContent from "./SilverInformationContent";
 import { SILVER_RATE_TEMPLATE } from "@/data/silverRateTemplate";
-import { apiFetch } from "@/lib/api";
+import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
     'andaman-and-nicobar-islands': ['Port Blair'],
@@ -77,7 +77,7 @@ export default function SilverRatePage({ page }) {
 
         async function fetchRates() {
             try {
-                const data = await apiFetch("/api/silver-rates");
+                const data = await fetchLocalRates();
                 setRates(data);
             } catch (err) {
                 console.error("Failed to fetch rates:", err);
@@ -99,8 +99,8 @@ export default function SilverRatePage({ page }) {
             flip_founder_image: base.flip_founder_image || "shopify://shop_images/612a521c6534a80708c03812f6a24fb301fc6dfa_1.png",
             flip_founder_name: base.flip_founder_name || "Rupesh Jain",
             flip_founder_designation: base.flip_founder_designation || "Founder",
-            rate_today: `₹ ${(Number(rates.silver_price) * 10 || parseInt(base.rate_today.replace(/[^\d]/g, ''))).toLocaleString('en-IN')}`,
-            rate_avg: `₹ ${(Number(rates.silver_price) * 1000 || parseInt(base.rate_avg.replace(/[^\d]/g, ''))).toLocaleString('en-IN')}`,
+            rate_today: `₹ ${(Number(rates.silver_price_10g) || parseInt(base.rate_today.replace(/[^\d]/g, ''))).toLocaleString('en-IN')}`,
+            rate_avg: `₹ ${(Number(rates.silver_price_1kg) || parseInt(base.rate_avg.replace(/[^\d]/g, ''))).toLocaleString('en-IN')}`,
         };
     }, [rates]);
 
@@ -248,7 +248,7 @@ export default function SilverRatePage({ page }) {
                                 <button onClick={handleNavigate} className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
                                     CHECK SILVER RATE <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                                 </button>
-                                <Link href="/collections/all" className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
+                                <Link href="/collections/jewelry" className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
                                     <ShoppingBag size={16} className="group-hover:-translate-y-0.5 group-hover:scale-110 transition-transform" /> EXPLORE LUCIRA
                                 </Link>
                             </div>

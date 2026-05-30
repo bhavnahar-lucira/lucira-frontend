@@ -6,9 +6,9 @@ const SHOP_DOMAIN = rawStore.includes(".") ? rawStore : `${rawStore}.myshopify.c
 
 export async function shopifyStorefrontFetch(query, variables = {}, options = {}) {
   let token = process.env.STOREFRONT_TOKEN;
-  
+
   // Use the RW token specifically for customer and blog queries
-  const isCustomerOrBlog = /customer|blog|article|address/i.test(query);
+  const isCustomerOrBlog = /(customer|blog|article|address|pages?)\s*\(/i.test(query);
   if (isCustomerOrBlog && process.env.SHOPIFY_RW_STOREFRONT_TOKEN) {
     token = process.env.SHOPIFY_RW_STOREFRONT_TOKEN;
   }
@@ -44,7 +44,7 @@ export async function shopifyStorefrontFetch(query, variables = {}, options = {}
       if (isAccessDenied) {
         console.warn("GraphQL Access Denied (Storefront API):", data.errors[0]?.message);
         // Do not throw, return an empty object so it fails gracefully to fallbacks
-        return {}; 
+        return {};
       } else {
         console.error("GraphQL Errors:", JSON.stringify(data.errors, null, 2));
       }
@@ -249,7 +249,7 @@ export async function uploadFileToShopify(buffer, filename, mimeType) {
     stagedTarget.parameters.forEach((param) => {
       formData.append(param.name, param.value);
     });
-    
+
     // Convert Buffer to Blob for Fetch API
     const blob = new Blob([buffer], { type: mimeType });
     formData.append("file", blob, filename);
@@ -310,7 +310,7 @@ async function pollFileStatus(fileId) {
     await new Promise(resolve => setTimeout(resolve, delay));
     attempts++;
   }
-  
+
   throw new Error("Timeout waiting for file to be ready in Shopify");
 }
 
@@ -346,7 +346,7 @@ export async function getAllProductHandles() {
       // (build time). No background revalidation needed — timers here cause Vercel function invocations.
       const data = await shopifyStorefrontFetch(query, { cursor }, { cache: 'force-cache' });
       if (!data?.products) break;
-      
+
       const newHandles = data.products.edges.map(edge => edge.node.handle);
       handles = [...handles, ...newHandles];
       hasNextPage = data.products.pageInfo.hasNextPage;

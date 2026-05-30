@@ -56,10 +56,34 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  // Pre-render only the "/collections/all" page during build time.
-  // The rest of the collections will be generated dynamically on-demand when first requested, 
-  // keeping your build fast and light.
-  return [{ handle: "all" }];
+  // Pre-render the top 21 collections at build time as static HTML.
+  // These are served from Vercel CDN (FREE — no function invocations on first visit).
+  // All other collection handles still work — they are rendered on-demand when first visited.
+  // ISR (revalidate=86400) + webhook revalidation still applies to all of these pages.
+  return [
+    { handle: "all" },
+    { handle: "nosepins" },
+    { handle: "jewelry" },
+    { handle: "all-rings" },
+    { handle: "earrings" },
+    { handle: "necklaces" },
+    { handle: "bracelets" },
+    { handle: "pendants" },
+    { handle: "bangles" },
+    { handle: "mangalsutra" },
+    { handle: "mens-rings" },
+    { handle: "solitaire-rings" },
+    { handle: "engagement-rings" },
+    { handle: "gold-rings" },
+    { handle: "cotton-candy" },
+    { handle: "bestsellers" },
+    { handle: "fast-shipping" },
+    { handle: "gemstone-jewelry" },
+    { handle: "9kt-collection" },
+    { handle: "sports-collection" },
+    { handle: "eterna" },
+    { handle: "hexa" },
+  ];
 }
 
 export default async function Page({ params }) {

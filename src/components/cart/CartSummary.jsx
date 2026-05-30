@@ -37,11 +37,11 @@ export default function CartSummary({ onPlaceOrder }) {
   }, []);
 
   const otherItemsQuantity = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== GOLDCOIN_VARIANT_ID)
+    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift))
     .reduce((acc, item) => acc + (Number(item.quantity || item.qty || 1)), 0);
 
   const diamondTotal = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== GOLDCOIN_VARIANT_ID)
+    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift))
     .reduce((acc, item) => {
         const itemQty = Number(item.quantity || item.qty || 1);
         let charges = Number(item.diamondCharges || 0);
@@ -74,7 +74,7 @@ export default function CartSummary({ onPlaceOrder }) {
   const insuranceItem = items.find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
 
-  const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID);
+  const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
 
   // Auto-sync insurance and gold coin quantities
   useEffect(() => {
@@ -92,12 +92,13 @@ export default function CartSummary({ onPlaceOrder }) {
     }
 
     // Sync Gold Coin
-    if (goldCoinItem) {
+    if (goldCoinItem && goldCoinItem.isFreeGift) {
       const currentCoinQty = Number(goldCoinItem.quantity || goldCoinItem.qty || 0);
       if (eligibleGoldCoins <= 0) {
-        removeFromCart(GOLDCOIN_VARIANT_ID);
+        removeFromCart(goldCoinItem.lineId || GOLDCOIN_VARIANT_ID);
       } else if (currentCoinQty !== eligibleGoldCoins) {
         updateCartItem({
+          lineId: goldCoinItem.lineId,
           currentVariantId: GOLDCOIN_VARIANT_ID,
           quantity: eligibleGoldCoins
         });
