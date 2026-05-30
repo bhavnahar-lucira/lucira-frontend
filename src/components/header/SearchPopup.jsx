@@ -41,12 +41,12 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
 
   // Static Categories for initial state
   const MOCK_CATEGORIES = [
-    { title: "Solitaire Rings", image: "/images/shapes/round.png", href: "/collections/solitaire-rings" },
-    { title: "Solitaire Earrings", image: "/images/styles/dangles.png", href: "/collections/solitaire-earrings" },
-    { title: "Solitaire Pendant", image: "/images/menu/earring.jpg", href: "/collections/solitaire-pendants" },
-    { title: "Solitaire Bracelets", image: "/images/menu/wedding-ring.jpg", href: "/collections/solitaire-bracelets" },
-    { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
-    { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
+    { title: "Solitaire Rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_33902_jpg.jpg?v=1780118511", href: "/collections/solitaire-rings" },
+    { title: "Solitaire Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511", href: "/collections/solitaire-earrings" },
+    { title: "Solitaire Pendant", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511", href: "/collections/solitaire-pendants" },
+    { title: "Solitaire Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511", href: "/collections/solitaire-bracelets" },
+    { title: "Solitaire Nosering", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-NP0012_Creative_8ef40252-309d-4ca3-bdd2-508ae8e041ec.jpg?v=1780118512", href: "/collections/solitaire-noserings" },
+    { title: "Solitaire Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_lot_2_35146_jpg.jpg?v=1780118510", href: "/collections/solitaire-mangalsutras" },
   ];
 
   // Close on Escape
@@ -84,13 +84,13 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                         onClick={onClose}
                         className="group"
                       >
-                        <div className="aspect-4/3 relative bg-[#F9F9F9] rounded-sm overflow-hidden mb-1.5 md:mb-2.5">
+                        <div className="aspect-4/3 relative rounded-md overflow-hidden mb-1.5 md:mb-2.5 bg-transparent">
                           <Image 
                             src={cat.image} 
                             alt={cat.title} 
                             fill 
                             unoptimized={String(cat.image).includes("cdn.shopify.com") || String(cat.image).includes("myshopify.com")}
-                            className="object-contain p-2 md:p-3 group-hover:scale-110 transition-transform duration-500"
+                            className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
                           />
                         </div>
                         <p className="text-xs font-medium text-gray-700 text-center group-hover:text-primary transition-colors leading-tight">
@@ -177,13 +177,13 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                       onClick={onClose}
                       className="group flex gap-3 md:gap-4 items-center"
                     >
-                      <div className="w-12 h-12 md:w-14 md:h-14 relative bg-[#F9F9F9] rounded-sm overflow-hidden shrink-0">
+                      <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
                         <Image 
                           src={item.image || "/images/product/1.jpg"} 
                           alt={item.title} 
                           fill 
                           unoptimized={String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com")}
-                          className="object-contain p-1.5"
+                          className="object-cover w-full h-full"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
