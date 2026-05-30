@@ -127,9 +127,9 @@ export default function CartItem({ item, onAuthRequired }) {
         productType: categoryFallback,
         category: categoryFallback,
         sub_category: item.variantTitle || "",
-        price: Number(item.price || 0),
-        offerPrice: Number(item.comparePrice || item.price || 0),
-        quantity: item.quantity,
+        price: String(item.price || 0),
+        offerPrice: String(item.comparePrice || item.price || 0),
+        quantity: String(item.quantity || 1),
         thumbnail_image: item.image
       });
 
