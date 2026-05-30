@@ -18,14 +18,14 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
           <TabsList className={`grid ${priceBreakup.comparison ? 'grid-cols-2' : 'grid-cols-1'} bg-white p-1 rounded-full mb-6 w-full h-auto!`}>
             <TabsTrigger 
               value="price" 
-              className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-[#A87E6D] data-[state=active]:text-white rounded-full transition-all cursor-pointer"
+              className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-tertiary data-[state=active]:text-white rounded-full transition-all cursor-pointer"
             >
               Price Breakup
             </TabsTrigger>
             {priceBreakup.comparison && (
               <TabsTrigger 
                 value="comparison" 
-                className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-[#A87E6D] data-[state=active]:text-white rounded-full transition-all cursor-pointer"
+                className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-tertiary data-[state=active]:text-white rounded-full transition-all cursor-pointer"
               >
                 Price Comparison
               </TabsTrigger>
