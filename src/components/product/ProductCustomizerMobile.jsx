@@ -111,7 +111,7 @@ export function ProductCustomizerMobile({
             <Sheet.Header />
             <Sheet.Content>
               <div className="px-6 pb-8 flex flex-col h-full">
-                <div className="flex items-center justify-between pb-6 border-b border-gray-100">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                   <h2 className="text-lg font-bold">Customize</h2>
                   <button onClick={() => setIsOpen(false)} className="p-2">
                     <X size={20} className="text-gray-400" />

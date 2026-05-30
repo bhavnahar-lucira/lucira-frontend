@@ -106,7 +106,7 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
 
 function PriceRow({ label, value, oldValue, discount }) {
   return (
-    <div className="flex justify-between items-center text-[13px] pb-1">
+    <div className="flex justify-between items-center text-[13px] pb-1 gap-3">
       <div className="flex items-center gap-2">
         <span className="text-gray-600 font-medium">{label}</span>
         {discount && (

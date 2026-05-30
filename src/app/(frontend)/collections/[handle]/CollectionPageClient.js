@@ -572,7 +572,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="w-full relative h-40">
+          <div className="w-full relative h-34 md:h-54">
             <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner.jpg" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
