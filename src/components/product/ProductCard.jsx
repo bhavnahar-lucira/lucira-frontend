@@ -610,7 +610,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             {/* Video - Bottom Left */}
             {videoMedia && (
-              <button onClick={(e) => { e.preventDefault(); setShowVideoPopup(true); }} className="absolute bottom-4 left-2 lg:left-4 z-10 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300">
+              <button onClick={(e) => { e.preventDefault(); setShowVideoPopup(true); }} className="absolute bottom-4 left-2 lg:left-4 z-10 w-8 h-8 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
                   <path d="M11.084 18.1814V9.81869C11.0842 9.71406 11.1125 9.6114 11.166 9.52147C11.2194 9.43155 11.2961 9.35766 11.388 9.30756C11.4798 9.25745 11.5835 9.23298 11.688 9.2367C11.7926 9.24042 11.8943 9.27219 11.9823 9.32869L18.4877 13.5089C18.57 13.5616 18.6378 13.6343 18.6847 13.7201C18.7317 13.8059 18.7563 13.9022 18.7563 14C18.7563 14.0979 18.7317 14.1941 18.6847 14.2799C18.6378 14.3658 18.57 14.4384 18.4877 14.4912L11.9823 18.6725C11.8943 18.729 11.7926 18.7608 11.688 18.7645C11.5835 18.7682 11.4798 18.7438 11.388 18.6937C11.2961 18.6436 11.2194 18.5697 11.166 18.4797C11.1125 18.3898 11.0842 18.2872 11.084 18.1825V18.1814Z" fill="currentColor"/>
                   <path d="M1.16602 14.0001C1.16602 6.91258 6.91185 1.16675 13.9993 1.16675C21.0868 1.16675 26.8327 6.91258 26.8327 14.0001C26.8327 21.0876 21.0868 26.8334 13.9993 26.8334C6.91185 26.8334 1.16602 21.0876 1.16602 14.0001ZM13.9993 2.91675C11.0599 2.91675 8.24078 4.08445 6.16225 6.16298C4.08372 8.24151 2.91602 11.0606 2.91602 14.0001C2.91602 16.9396 4.08372 19.7587 6.16225 21.8372C8.24078 23.9157 11.0599 25.0834 13.9993 25.0834C16.9388 25.0834 19.7579 23.9157 21.8364 21.8372C23.915 19.7587 25.0827 16.9396 25.0827 14.0001C25.0827 11.0606 23.915 8.24151 21.8364 6.16298C19.7579 4.08445 16.9388 2.91675 13.9993 2.91675Z" fill="currentColor"/>
@@ -733,7 +733,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
                   if (weight) parts.push(weight);
                   if (parts.length === 0) return null;
-                  return <p className="font-figtree text-[10px] lg:text-xs font-medium text-gray-500 uppercase tracking-tight">{parts.join(" · ")}</p>;
+                  return <p className="font-figtree text-[10px] lg:text-xs font-medium text-gray-500 tracking-tight">{parts.join(" · ")}</p>;
                 })()}
               </div>
             </div>

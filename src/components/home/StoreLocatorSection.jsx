@@ -85,6 +85,7 @@ const stores = [
       "Banks Nearby",
       "Parking Available",
       "Exclusive Offers",
+      "Piercing"
     ],
     services: [
       { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
@@ -112,7 +113,8 @@ const stores = [
       "Open on Weekends",
       "Banks Nearby",
       "Parking Availability",
-      "Daily Offers",
+      "Daily Offers",      
+      "Piercing"
     ],
     services: [
       { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
@@ -141,6 +143,7 @@ const stores = [
       "Open Weekends",
       "Parking Available",
       "Exclusive Offers",
+      "Piercing"
     ],
     services: [
       { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
@@ -171,6 +174,7 @@ const stores = [
       "Banks Nearby",
       "Parking Available",
       "Exclusive Offers",
+      "Piercing"
     ],
     services: [
       { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },

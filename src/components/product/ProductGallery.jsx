@@ -262,7 +262,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               
               {isFirst && (
                 <>
-                  <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                  <div className="absolute top-4 left-4 flex flex-row gap-2 z-10">
                     {displayLabels.map((label, index) => (
                       <span key={index} className="bg-[#F1E4D1] px-3 py-1.5 text-[10px] font-semibold uppercase w-fit">{label}</span>
                     ))}
@@ -367,7 +367,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
           </Swiper>
 
           {/* Badges Overlay */}
-          <div className="absolute top-4 left-2 flex flex-col gap-2 z-10 pointer-events-none">
+          <div className="absolute top-4 left-2 flex flex-row gap-2 z-10 pointer-events-none">
             {displayLabels.map((label, index) => (
               <span key={index} className="bg-[#F1E4D1] text-black px-3 py-1.5 text-[10px] font-semibold uppercase w-fit">{label}</span>
             ))}

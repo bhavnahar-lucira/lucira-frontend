@@ -509,7 +509,11 @@ export default function CartItem({ item, onAuthRequired }) {
               <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-tight">
                 {currentVariant?.sku || item.sku || "N/A"}
               </p>
-              
+              {item.engraving && (
+                <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                  Engraving: &quot;{item.engraving}&quot;
+                </p>
+              )}
               <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-tight">
                 Metal: <span className="text-zinc-900">
                   {(() => {
