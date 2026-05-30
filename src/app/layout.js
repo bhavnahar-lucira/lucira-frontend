@@ -25,8 +25,8 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  const isProd = process.env.NODE_ENV === "production";
-
+  //const isProd = process.env.NODE_ENV === "production";
+  const isProd = true; // Temporarily set to true for testing GTM in development
   return (
     <html lang="en">
       <head>

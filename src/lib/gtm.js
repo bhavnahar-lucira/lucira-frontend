@@ -15,9 +15,18 @@ export const pushPageView = (pageData) => {
 };
 
 export const pushPromoClick = (promoClickData) => {
+  const sanitizedData = { ...promoClickData };
+  if (sanitizedData.location_id !== undefined && sanitizedData.location_id !== null) sanitizedData.location_id = String(sanitizedData.location_id);
+  if (sanitizedData.offer_price !== undefined && sanitizedData.offer_price !== null) sanitizedData.offer_price = String(sanitizedData.offer_price);
+  if (sanitizedData.price !== undefined && sanitizedData.price !== null) sanitizedData.price = String(sanitizedData.price);
+  if (sanitizedData.product_id !== undefined && sanitizedData.product_id !== null) sanitizedData.product_id = String(sanitizedData.product_id);
+  if (sanitizedData.promo_id !== undefined && sanitizedData.promo_id !== null) sanitizedData.promo_id = String(sanitizedData.promo_id);
+  if (sanitizedData.promo_position !== undefined && sanitizedData.promo_position !== null) sanitizedData.promo_position = String(sanitizedData.promo_position);
+  if (sanitizedData.variant_id !== undefined && sanitizedData.variant_id !== null) sanitizedData.variant_id = String(sanitizedData.variant_id);
+
   pushToDataLayer({
     event: 'promoClick',
-    promoClick: promoClickData
+    promoClick: sanitizedData
   });
 };
 
@@ -90,17 +99,26 @@ export const getStandardWishlistPayload = (product, variant, currentOrigin, thum
   const productType = product?.type || product?.productType || "";
   const productCategory = product?.category || product?.productCategory || productType || "";
 
+  const imageUrl = thumbnailImage || variant?.image || product?.image?.url || product?.image || "";
+  const finalPrice = variant?.price || product?.price || 0;
+  const comparePrice = variant?.compare_price || variant?.compareAtPrice || product?.compare_price || product?.compareAtPrice || finalPrice;
+  const resolvedVariantId = String(getNumericId(variant?.id || variant?.shopifyId || variant?.variantId || 0));
+
   return {
     sku: sku,
     productId: productId,
+    variantId: resolvedVariantId,
+    variant_id: resolvedVariantId,
     productName: product?.title || product?.productName || "",
     brand: 'LuciraJewelry',
     productCategory: productCategory,
     productType: productType,
-    price: getNumeric(variant?.price || product?.price || 0),
+    price: String(finalPrice),
+    offerPrice: String(comparePrice),
     quantity: 1,
     productUrl: `${currentOrigin}/products/${product?.handle || ""}?variant=${variant?.id || variant?.shopifyId || variant?.variantId || ""}`,
-    thumbnailImage: thumbnailImage || variant?.image || product?.image?.url || product?.image || "",
+    image: imageUrl ? [imageUrl] : [],
+    thumbnailImage: imageUrl,
     currency: "INR"
   };
 };
@@ -198,7 +216,7 @@ export const getStandardImpressionProducts = (products, currentOrigin = "") => {
 export const pushAddToWishlist = (data) => {
   pushToDataLayer({
     event: "addToWishlist",
-    products: data
+    products: Array.isArray(data) ? data : [data]
   });
 };
 
@@ -237,7 +255,7 @@ export const pushRemoveFromCart = (data) => {
 export const pushRemoveFromWishlist = (data) => {
   pushToDataLayer({
     event: "removeFromWishlist",
-    products: data
+    products: Array.isArray(data) ? data : [data]
   });
 };
 

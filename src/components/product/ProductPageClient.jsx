@@ -286,6 +286,10 @@ export default function ProductPageClient({
   const productDetailsRef = useRef(null);
   const reviewsRef = useRef(null);
 
+  const hasFiredProductView = useRef(false);
+  const previousVariantId = useRef(null);
+  const hasFiredPincodePromo = useRef(false);
+
   const [engraving, setEngraving] = useState("");
   const [engravingFont, setEngravingFont] = useState("Lobster");
   const [isEngravingDrawerOpen, setIsEngravingDrawerOpen] = useState(false);
@@ -700,7 +704,7 @@ export default function ProductPageClient({
     return getEstimatedDispatchDate(isInStock, leadTime);
   }, [activeVariant, product.productMetafields]);
 
-  const handlePincodeCheck = useCallback(async (val) => {
+  const handlePincodeCheck = useCallback(async (val, isAutomatic = false) => {
     // If val is a string (like from useEffect), use it. 
     // Otherwise (from button click/event), use the current 'localPincode' state.
     const pincodeToCheck = String(
@@ -718,8 +722,11 @@ export default function ProductPageClient({
     try {
       const data = await apiFetch(`/api/pincodes/check?pincode=${pincodeToCheck}`);
 
-      // GTM tracking for pincode entry
-      handlePromoClick('pincodeEntered', pincodeToCheck, {}, true);
+      // GTM tracking for pincode entry (only for manual user entry)
+      if (!isAutomatic && !hasFiredPincodePromo.current) {
+        handlePromoClick('pincodeEntered', pincodeToCheck, {}, true);
+        hasFiredPincodePromo.current = true;
+      }
       if (data.success && data.deliverable) {
         const dispatchMsg = calculateDispatchDate();
         setDeliveryInfo({
@@ -757,7 +764,7 @@ export default function ProductPageClient({
   // Initial check for persisted pincode - ONLY ON MOUNT
   useEffect(() => {
     if (globalPincode && globalPincode.length === 6) {
-      handlePincodeCheck(globalPincode);
+      handlePincodeCheck(globalPincode, true);
     }
     // We only want this to run once when the page loads
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1152,7 +1159,7 @@ export default function ProductPageClient({
         eventId: `atc_${Date.now()}`,
         products: {
           productId: String(getNumericId(product.shopifyId || product.id)),
-          variantId: getNumericId(activeVariant?.id || activeVariant?.shopifyId),
+          variantId: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId)),
           sku: activeVariant?.sku || product?.sku || activeVariant?.variantSku || product?.variantSku || (product?.variants && product?.variants[0]?.sku) || "",
           productName: product.title,
           productType: product.type || "",
@@ -1160,7 +1167,7 @@ export default function ProductPageClient({
           offerPrice: String(originalPrice.toFixed(2)),
           productUrl: currentUrl,
           image: productImageUrl,
-          price: Number(sellingPrice),
+          price: String(sellingPrice),
           category: "",
           subCategory: "",
           productPersona: ""
@@ -1377,6 +1384,13 @@ export default function ProductPageClient({
   // Product View GTM Trigger
   useEffect(() => {
     if (activeVariant || product) {
+      const currentVariantId = String(activeVariant?.id || activeVariant?.shopifyId || "default");
+      if (hasFiredProductView.current && previousVariantId.current === currentVariantId) {
+        return;
+      }
+      previousVariantId.current = currentVariantId;
+      hasFiredProductView.current = true;
+
       const getNumericId = (gid) => {
         if (!gid) return 0;
         if (typeof gid === 'number') return gid;
@@ -1393,7 +1407,7 @@ export default function ProductPageClient({
       pushProductView({
         productId: getNumericId(product.shopifyId || product.id),
         sku: activeVariant?.sku || "",
-        variantId: getNumericId(activeVariant?.id || activeVariant?.shopifyId),
+        variantId: String(activeVariant?.id || activeVariant?.shopifyId || ""),
         vendorCode: product.vendor || "Lucira Jewelry",
         productName: product.title,
         productType: product.type || "",
@@ -1403,7 +1417,7 @@ export default function ProductPageClient({
         thumbnailImage: productImageUrl,
         image: productImageUrl,
         price: sellingPrice,
-        offerPrice: originalPrice,
+        offerPrice: Number(originalPrice),
       });
     }
   }, [activeVariant, product]);
