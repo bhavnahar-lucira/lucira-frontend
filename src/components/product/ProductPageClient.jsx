@@ -266,7 +266,7 @@ export default function ProductPageClient({
   const searchParams = useSearchParams();
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch();  
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
@@ -586,23 +586,26 @@ export default function ProductPageClient({
   // Robust variant lookup helper
   const findMatchingVariant = useCallback((metal, karat, size) => {
     return product.variants?.find(v => {
-      const vKarat = String(v.metafields?.metal_purity || "").toLowerCase().trim();
-      const vMetal = String(v.metafields?.metal_color || "").toLowerCase().trim();
+      const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
 
-      const targetKarat = String(karat || "").toLowerCase().trim();
-      const targetMetal = String(metal || "").toLowerCase().trim();
+      const vKarat = normalize(v.metafields?.metal_purity || "");
+      const vMetal = normalize(v.metafields?.metal_color || "");
+
+      const targetKarat = normalize(karat || "");
+      const targetMetal = normalize(metal || "");
+
+      const sizeMatch = String(v.size || "").trim() === String(size || "").trim();
 
       // If metafields are present, use them for strict matching
-      if (vKarat && vMetal) {
-        return vKarat === targetKarat && vMetal === targetMetal && String(v.size) === String(size);
+      if (vKarat && vMetal && vKarat === targetKarat && vMetal === targetMetal) {
+        return sizeMatch;
       }
 
       // Fallback to color string matching
-      const vColor = String(v.color || "").toLowerCase().trim();
-      const targetColorFull = `${karat} ${metal}`.toLowerCase().trim();
-      const targetColorSimple = `${metal}`.toLowerCase().trim();
+      const vColor = normalize(v.color);
+      const targetColorFull = normalize(`${karat} ${metal}`);
+      const targetColorSimple = normalize(metal);
 
-      const sizeMatch = String(v.size) === String(size);
       const colorMatch = vColor === targetColorFull || vColor === targetColorSimple;
 
       return colorMatch && sizeMatch;
@@ -1050,9 +1053,26 @@ export default function ProductPageClient({
       const variantOptions = (product.variants || [])
         .filter((variant) => {
           if (!variant?.size || !variant?.color) return false;
-          const vColor = String(variant.color).toLowerCase().trim();
-          const targetColor = `${activeKarat} ${activeColor}`.toLowerCase().trim();
-          return vColor === targetColor;
+          
+          const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+
+          const vKarat = normalize(variant.metafields?.metal_purity || "");
+          const vMetal = normalize(variant.metafields?.metal_color || "");
+
+          const targetKarat = normalize(activeKarat || "");
+          const targetMetal = normalize(activeColor || "");
+
+          // If metafields are present, use them for strict matching
+          if (vKarat && vMetal) {
+            return vKarat === targetKarat && vMetal === targetMetal;
+          }
+
+          // Fallback to color string matching
+          const vColor = normalize(variant.color);
+          const targetColorFull = normalize(`${activeKarat} ${activeColor}`);
+          const targetColorSimple = normalize(activeColor);
+
+          return vColor === targetColorFull || vColor === targetColorSimple;
         })
         .map((variant) => ({
           variantId: variant.id,
@@ -1492,18 +1512,50 @@ export default function ProductPageClient({
   // Helper to check if a specific color/karat combo is in stock (for any size)
   const isColorInStock = (metal, karat) => {
     return product.variants?.some(v => {
-      const vColor = String(v.color || "").toLowerCase().trim();
-      const targetColor = `${karat} ${metal}`.toLowerCase().trim();
-      return vColor === targetColor && v.inStock;
+      const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+
+      const vKarat = normalize(v.metafields?.metal_purity || "");
+      const vMetal = normalize(v.metafields?.metal_color || "");
+
+      const targetKarat = normalize(karat || "");
+      const targetMetal = normalize(metal || "");
+
+      if (vKarat && vMetal && vKarat === targetKarat && vMetal === targetMetal) {
+        return v.inStock;
+      }
+
+      // Fallback to the old Color String match
+      const vColor = normalize(v.color);
+      const targetColorFull = normalize(`${karat} ${metal}`);
+      const targetColorSimple = normalize(metal);
+      return (vColor === targetColorFull || vColor === targetColorSimple) && v.inStock;
     });
   };
 
   // Helper to check if a specific size is in stock (for current color/karat)
   const isSizeInStock = (size) => {
     return product.variants?.some(v => {
-      const vColor = String(v.color || "").toLowerCase().trim();
-      const targetColor = `${activeKarat} ${activeColor}`.toLowerCase().trim();
-      return vColor === targetColor && String(v.size) === String(size) && v.inStock;
+      const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+      
+      const vKarat = normalize(v.metafields?.metal_purity || "");
+      const vMetal = normalize(v.metafields?.metal_color || "");
+
+      const targetKarat = normalize(activeKarat || "");
+      const targetMetal = normalize(activeColor || "");
+
+      const sizeMatch = String(v.size || "").trim() === String(size || "").trim();
+
+      // Metafield Match
+      if (vKarat && vMetal && vKarat === targetKarat && vMetal === targetMetal) {
+        return sizeMatch && v.inStock;
+      }
+
+      // String Match Fallback
+      const vColor = normalize(v.color);
+      const targetColorFull = normalize(`${activeKarat} ${activeColor}`);
+      const targetColorSimple = normalize(activeColor);
+
+      return (vColor === targetColorFull || vColor === targetColorSimple) && sizeMatch && v.inStock;
     });
   };
 
@@ -1843,6 +1895,8 @@ export default function ProductPageClient({
                 availableStoreCount={availableStoreCount}
                 deliveryInfo={deliveryInfo}
                 getStoreDisplayName={getStoreDisplayName}
+                currentPrice={formatPrice(currentPrice)}
+                currentComparePrice={formatPrice(currentComparePrice)}
               />
 
               {/* Desktop Selection Blocks */}
@@ -1896,13 +1950,16 @@ export default function ProductPageClient({
                         if (metal.includes("White")) colorClass = colorMap.white;
                         if (metal.includes("Rose")) colorClass = colorMap.rose;
 
+                        const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+                        const isActive = normalize(activeColor) === normalize(metal) && normalize(activeKarat) === normalize(karat);
+
                         return (
                           <GoldOption
                             key={`${karat}-${metal}`}
                             metal={metal}
                             karat={karat}
                             onClick={handleGoldSelection}
-                            active={activeColor === metal && activeKarat === karat}
+                            active={isActive}
                             color={colorClass}
                             inStock={isColorInStock(metal, karat)}
                           />
@@ -2422,25 +2479,23 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               <div className="border border-gray-200 rounded-md p-4 space-y-2.5 bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <Store size={20} className="text-black" strokeWidth={1.2} />
+                    <span className="text-base font-bold">
+                      {nearestStore ? (
+                        <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
+                      ) : (
+                        <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
+                      )}
+                    </span>
+                  </div>
                 {availableStoreCount > 0 && (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Store size={20} className="text-black" strokeWidth={1.2} />
-                      <span className="text-base font-bold">
-                        {nearestStore ? (
-                          <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
-                        ) : (
-                          <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
-                        )}
-                      </span>
+                  <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
+                    <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
+                      <Check size={9} className="text-white" strokeWidth={4} />
                     </div>
-                    <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
-                      <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
-                        <Check size={9} className="text-white" strokeWidth={4} />
-                      </div>
-                      <span className="text-12px font-semibold tracking-tight">Design Available</span>
-                    </div>
-                  </>
+                    <span className="text-12px font-semibold tracking-tight">Design Available</span>
+                  </div>
                 )}
                 {availableStoreCount > 1 && (
                   <p className="text-sm text-black">
@@ -2820,15 +2875,15 @@ export default function ProductPageClient({
             {!isGoldCoin && (
               <div className="pt-6">
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
-                  <div className="flex items-center gap-2 text-base font-semibold text-black mb-4">
+                  <div className="flex items-start justify-between flex-col md:flex-row gap-2 text-base font-semibold text-black mb-4">
                     Certified Quality Guaranteed.
-                  </div>
-                  <div className="flex items-start justify-between gap-4 xl:flex-nowrap flex-wrap">
-                    <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black mt-1 whitespace-nowrap p-0 h-auto" asChild>
+                    <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black mt-0 whitespace-nowrap p-0 h-auto" asChild>
                       <a href="/images/certificate/SampleCertificate.jpg" alt="Sample Certificate" download>
                         See Sample Certificate
                       </a>
                     </Button>
+                  </div>
+                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">                    
                     <div className="flex items-center gap-7">
                       <div className="w-14 h-14 relative">
                         <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
@@ -2890,7 +2945,7 @@ export default function ProductPageClient({
           <div className="max-w-480 mx-auto px-5 md:px-17">
             <div className="text-center mb-10 md:mb-12">
               <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">From the Same Collection</h2>
-              <p class="text-black font-normal md:text-base text-sm leading-[1.4] tracking-normal align-middle">Discover matching pieces that perfectly complement one another.</p>
+              <p className="text-black font-normal md:text-base text-sm leading-[1.4] tracking-normal align-middle">Discover matching pieces that perfectly complement one another.</p>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-8 md:gap-y-12">
               {youMayAlsoLikeProducts.map((p) => (

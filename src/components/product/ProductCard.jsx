@@ -67,6 +67,11 @@ const formatPrice = (num) => {
   }).format(val);
 };
 
+function formatCdnUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  return url.replace("https://www.lucirajewelry.com", "https://luciraonline.myshopify.com").replace("http://www.lucirajewelry.com", "https://luciraonline.myshopify.com");
+}
+
 function getBaseColor(color = "") {
   const normalized = String(color).toLowerCase();
   if (normalized.includes("rose")) return "rose";
@@ -146,18 +151,11 @@ function getPrioritizedVariant(product, collectionHandle) {
   );
 
   if (collectionHandle === "9kt-collection") {
-    const handles = product.collectionHandles || [];
-    const isStrict9kt = handles.includes("9kt-collection") &&
-                       !handles.some(h => h !== "9kt-collection" && h !== "all" && h !== product.type?.toLowerCase() &&
-                       ["sports-collection", "cotton-candy", "hexa-collection", "solitaire-collection"].includes(h));
-
-    if (isStrict9kt) {
-      const nineKT = variants.filter(v => String(v.color || v.title).includes("9KT"));
-      if (nineKT.length > 0) {
-        const inStock9KT = nineKT.find(v => v.inStock === true || v.inStock === "true");
-        if (inStock9KT) return inStock9KT;
-        return nineKT[0];
-      }
+    const nineKT = variants.filter(v => String(v.color || v.title).includes("9KT"));
+    if (nineKT.length > 0) {
+      const inStock9KT = nineKT.find(v => v.inStock === true || v.inStock === "true");
+      if (inStock9KT) return inStock9KT;
+      return nineKT[0];
     }
   }
 
@@ -475,7 +473,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
     return [...new Set(offers)];
   }, [product, currentVariant]);
-
+  
   return (
     <>
       <div className="space-y-4">
@@ -498,13 +496,29 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   onSwiper={(swiper) => { swiperRef.current = swiper; }}
                   className="w-full h-full custom-product-swiper"
                 >
-                  {galleryImages.map((image, idx) => (
+                  {galleryImages.map((image, idx) => {
+                    const handleWords = product?.handle?.toLowerCase().split("-") || [];
+                    const targetKeywords = ['rings', 'ring', 'earrings', 'earring', 'nosepin', 'nose', 'band', 'bali', 'stud'];                  
+                    const hasMatchingWord = handleWords.some(word => targetKeywords.includes(word));
+                    const shouldZoom = isMobile && hasMatchingWord;
+
+                  return (
                     <SwiperSlide key={`${image.url}-${idx}`}>
-                      <div className="relative w-full h-full">
-                        <LazyImage src={image.url} alt={image.alt || product.title} fill priority={idx === 0} className="object-contain grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-300" />
+                      {/* overflow-hidden keeps the 130% zoomed image contained inside the slide */}
+                      <div className="relative w-full h-full overflow-hidden">
+                        <LazyImage 
+                          src={formatCdnUrl(image.url)} 
+                          alt={image.alt || product.title} 
+                          fill 
+                          priority={idx === 0} 
+                          className={`object-contain grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-300 ${
+                            shouldZoom ? 'scale-[1.30]' : 'lg:scale-100'
+                          }`} 
+                        />
                       </div>
                     </SwiperSlide>
-                  ))}
+                  );
+                })}
                   {galleryImages.length > 1 && <div className={`pagination-${swiperId} swiper-pagination bottom-0!`} />}
                 </Swiper>
               ) : <div className="w-full h-full flex items-center justify-center text-zinc-400">No Image</div>}
@@ -748,13 +762,13 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
           <DialogTitle className="sr-only">Product Video: {product.title}</DialogTitle>
           <DialogDescription className="sr-only">Video preview of the product</DialogDescription>
           <button onClick={() => setShowVideoPopup(false)} className="absolute top-4 right-4 z-[210] p-2 bg-black/50 hover:bg-black text-white rounded-full transition-all shadow-lg border border-white/10"><X size={24} /></button>
-          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain" poster={videoMedia?.preview}>
+          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain" poster={formatCdnUrl(videoMedia?.preview)}>
             {videoMedia?.sources?.length > 0 ? (
               <>
-                {videoMedia.sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={source.url} type={source.mimeType} />)}
-                {videoMedia.sources.filter(s => s.format !== 'mp4').map((source, sIdx) => <source key={sIdx} src={source.url} type={source.mimeType} />)}
+                {videoMedia.sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
+                {videoMedia.sources.filter(s => s.format !== 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
               </>
-            ) : <source src={videoMedia?.url} type={videoMedia?.mimeType || "video/mp4"} />}
+            ) : <source src={formatCdnUrl(videoMedia?.url)} type={videoMedia?.mimeType || "video/mp4"} />}
             Your browser does not support the video tag.
           </video>
         </DialogContent>

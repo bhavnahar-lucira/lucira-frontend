@@ -26,7 +26,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { pushProductImpression } from "@/lib/gtm";
+import { pushProductImpression, getStandardImpressionProducts } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import { apiFetch } from "@/lib/api";
@@ -461,6 +461,17 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return () => observer.disconnect();
   }, [pagination.hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // Track product impressions when products are loaded
+  const impressionSentRef = useRef(false);
+  useEffect(() => {
+    if (products.length > 0 && !impressionSentRef.current) {
+      impressionSentRef.current = true;
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+      const impressionProducts = getStandardImpressionProducts(products, currentOrigin);
+      pushProductImpression(impressionProducts);
+    }
+  }, [products]);
+
   const clearAllFilters = () => {
     router.push(pathname, { scroll: false });
     scrollToTop();
@@ -561,7 +572,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="w-full relative h-40">
+          <div className="w-full relative h-34 md:h-54">
             <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner.jpg" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>

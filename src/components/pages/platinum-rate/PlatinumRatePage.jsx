@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown, ArrowRight, ShoppingBag } from "lucide-react";
 import PlatinumFAQSection from "./PlatinumFAQSection";
@@ -51,14 +52,37 @@ const stateCityMap = {
 };
 
 export default function PlatinumRatePage({ page }) {
+    const router = useRouter();
     const [isFlipped, setIsFlipped] = useState(false);
+    
+    // Extract city from URL handle if available
+    const getInitialCity = () => {
+        if (typeof window !== 'undefined') {
+            const pathname = window.location.pathname;
+            // Extract city slug from URL like /pages/kalyan-platinum-rate-today
+            const match = pathname.match(/\/pages\/(.+?)-platinum-rate-today/);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        return page?.city?.value?.toLowerCase().replace(/\s+/g, '-') || 'mumbai';
+    };
+
     const [selectedState, setSelectedState] = useState(page?.state?.value?.toLowerCase().replace(/\s+/g, '-') || 'maharashtra');
-    const [selectedCity, setSelectedCity] = useState(page?.city?.value?.toLowerCase().replace(/\s+/g, '-') || 'mumbai');
+    const [selectedCity, setSelectedCity] = useState(getInitialCity());
     const [currentDate, setCurrentDate] = useState("");
     const [rates, setRates] = useState(null);
 
-    const cityName = page?.city?.value || selectedCity.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    const stateName = page?.state?.value || selectedState.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const stateName = page?.state?.value || "Maharashtra";
+
+    // Compute the current city and state display names from state variables
+    const cityNameDisplay = useMemo(() => {
+        return selectedCity.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }, [selectedCity]);
+
+    const stateNameDisplay = useMemo(() => {
+        return selectedState.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }, [selectedState]);
 
     useEffect(() => {
         const today = new Date();
@@ -133,7 +157,7 @@ export default function PlatinumRatePage({ page }) {
                         {/* Header Row */}
                         <div className="flex flex-row justify-between items-center w-full gap-4">
                             <h1 className="text-white text-[18px] md:text-[24px] lg:text-[26px] font-medium tracking-tight font-abhaya uppercase whitespace-nowrap">
-                                TODAYS PLATINUM RATE IN {cityName}
+                                TODAYS PLATINUM RATE IN {cityNameDisplay}
                             </h1>
                             <button onClick={() => setIsFlipped(!isFlipped)} className="text-white/80 hover:text-white text-[12px] md:text-[14px] underline underline-offset-4 tracking-wide font-figtree transition-colors text-right whitespace-nowrap shrink-0">
                                 {isFlipped ? "View Todays Platinum Rate" : "Why Invest in Platinum?"}
@@ -254,7 +278,7 @@ export default function PlatinumRatePage({ page }) {
             </section>
 
             {/* Calculator Section */}
-            <PlatinumCalculator cityName={cityName} baseRate={todayRateNum} />
+            <PlatinumCalculator cityName={cityNameDisplay} baseRate={todayRateNum} />
 
             {/* Loop through all sections from template JSON in exact order */}
             <div className="sections-wrapper">
@@ -267,7 +291,7 @@ export default function PlatinumRatePage({ page }) {
                             return (
                                 <div key={sectionId}>
                                     <PlatinumInvestmentSection
-                                        cityName={cityName}
+                                        cityName={cityNameDisplay}
                                         settings={section.settings}
                                     />
                                     {/* Moving PriceTable right after the InvestmentSection as requested */}
@@ -278,7 +302,7 @@ export default function PlatinumRatePage({ page }) {
                             return (
                                 <PlatinumInformationContent
                                     key={sectionId}
-                                    cityName={cityName}
+                                    cityName={cityNameDisplay}
                                     stateName={stateName}
                                     sectionData={section}
                                     todayRate={todayRateNum}
@@ -288,7 +312,7 @@ export default function PlatinumRatePage({ page }) {
                             return (
                                 <PlatinumFAQSection
                                     key={sectionId}
-                                    cityName={cityName}
+                                    cityName={cityNameDisplay}
                                     stateName={stateName}
                                     todayRate={todayRateNum}
                                     sectionData={section}

@@ -8,7 +8,7 @@ const OCCASIONS = [
   { name: "Engagement", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_1.jpg", href: "/collections/engagement-rings" },
   { name: "Wedding", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_2.jpg", href: "/collections/wedding-rings" },
   { name: "Anniversary", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_3.jpg", href: "/collections/anniversary-gifts" },
-  { name: "Valentine's", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_4.jpg", href: "/collections/valentines-gift" },
+  { name: "Valentine's", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_4.jpg", href: "/collections/valentines-gifts" },
 ];
 
 export default function ShopByOccasion() {
@@ -23,14 +23,14 @@ export default function ShopByOccasion() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {OCCASIONS.map((occ, index) => (
-            <Link 
-              key={index} 
+            <Link
+              key={index}
               href={occ.href}
               className="relative aspect-[3/4.2] overflow-hidden group bg-gray-100 rounded-lg shadow-sm"
             >
-              <LazyImage 
-                src={occ.image} 
-                alt={occ.name} 
+              <LazyImage
+                src={occ.image}
+                alt={occ.name}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
                 className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"

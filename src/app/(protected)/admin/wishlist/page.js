@@ -139,6 +139,34 @@ export default function WishlistPage() {
       }
 
       // 3. Add to cart
+      const getVariantSelection = (v) => {
+        if (v.metafields?.metal_purity && v.metafields?.metal_color) {
+          return {
+            karat: String(v.metafields.metal_purity).trim(),
+            color: String(v.metafields.metal_color).trim(),
+          };
+        }
+        if (!v.color) {
+          return {
+            karat: String(v.karat || v.purity || product.karat || product.purity || "").trim(),
+            color: String(product.color || "Yellow Gold").trim(),
+          };
+        }
+        const parts = String(v.color).trim().split(" ");
+        if (parts.length < 2) {
+          return {
+            karat: String(v.karat || v.purity || product.karat || product.purity || "").trim(),
+            color: String(v.color).trim(),
+          };
+        }
+        return {
+          karat: parts[0],
+          color: parts.slice(1).join(" "),
+        };
+      };
+
+      const selection = getVariantSelection(selectedVariant);
+
       const cartProduct = {
         id: product.id || product.shopifyId,
         shopifyId: product.id || product.shopifyId,
@@ -149,8 +177,8 @@ export default function WishlistPage() {
         price: selectedVariant.price || product.price,
         image: getValidSrc(selectedVariant.image || product.image || item.image),
         variantTitle: selectedVariant.title,
-        color: selectedVariant.color || product.color,
-        karat: selectedVariant.karat || selectedVariant.purity || product.karat || product.purity || "",
+        color: selection.color,
+        karat: selection.karat,
         size: String(selectedVariant.size || ""),
         inStock: Boolean(selectedVariant.inStock),
         

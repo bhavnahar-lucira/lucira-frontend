@@ -153,14 +153,13 @@ const HighlightMatch = ({ text, query }) => {
 };
 
 const MOCK_CATEGORIES = [
-  { title: "Solitaire Rings", image: "/images/shapes/round.png", href: "/collections/solitaire-rings" },
-  { title: "Solitaire Earrings", image: "/images/styles/dangles.png", href: "/collections/solitaire-earrings" },
-  { title: "Solitaire Pendant", image: "/images/menu/earring.jpg", href: "/collections/solitaire-pendants" },
-  { title: "Solitaire Bracelets", image: "/images/menu/wedding-ring.jpg", href: "/collections/solitaire-bracelets" },
-  { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
-  { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
-];
-
+    { title: "Solitaire Rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_33902_jpg.jpg?v=1780118511", href: "/collections/solitaire-rings" },
+    { title: "Solitaire Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511", href: "/collections/solitaire-earrings" },
+    { title: "Solitaire Pendant", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511", href: "/collections/solitaire-pendants" },
+    { title: "Solitaire Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511", href: "/collections/solitaire-bracelets" },
+    { title: "Solitaire Nosering", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-NP0012_Creative_8ef40252-309d-4ca3-bdd2-508ae8e041ec.jpg?v=1780118512", href: "/collections/solitaire-noserings" },
+    { title: "Solitaire Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_lot_2_35146_jpg.jpg?v=1780118510", href: "/collections/solitaire-mangalsutras" },
+  ];
 import { transformMenuData } from "@/lib/menus";
 
 export default function MobileHeader({ menuData }) {
@@ -333,14 +332,14 @@ export default function MobileHeader({ menuData }) {
                           <div 
                             key={item.id} 
                             onClick={() => handleResultClick(item.url)}
-                            className="flex items-center gap-4 p-2 rounded-lg active:bg-gray-50 border border-gray-50"
+                            className="flex items-center gap-3 p-2 rounded-md active:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors"
                           >
-                            <div className="w-16 h-16 relative bg-gray-50 rounded-md overflow-hidden shrink-0 border border-gray-100">
+                            <div className="w-16 h-16 relative rounded-md overflow-hidden shrink-0 bg-transparent">
                               <Image 
                                 src={item.image || "/images/product/1.jpg"} 
                                 alt={item.title} 
                                 fill 
-                                className="object-contain p-1 mix-blend-multiply" 
+                                className="object-cover w-full h-full" 
                               />
                             </div>
                             <div className="grow min-w-0">
@@ -381,12 +380,12 @@ export default function MobileHeader({ menuData }) {
                     onClick={() => handleResultClick(cat.href)}
                     className="group flex flex-col items-center"
                   >
-                    <div className="aspect-square w-full relative bg-[#F9F9F9] rounded-lg overflow-hidden mb-2 border border-gray-50">
+                    <div className="aspect-square w-full relative rounded-md overflow-hidden mb-2 bg-transparent border border-transparent hover:border-gray-100 transition-all">
                       <Image 
                         src={cat.image} 
                         alt={cat.title} 
                         fill 
-                        className="object-contain p-2"
+                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-400"
                       />
                     </div>
                     <p className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight leading-tight">

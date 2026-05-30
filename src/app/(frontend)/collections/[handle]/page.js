@@ -1,6 +1,7 @@
 import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
+import { notFound } from "next/navigation";
 
 export const revalidate = 86400; // 24 hours
 
@@ -91,7 +92,7 @@ export default async function Page({ params }) {
   const collection = await getCollectionData(handle);
 
   if (!collection && handle !== "all") {
-    return <CollectionPageClient params={params} initialData={null} />;
+    notFound();
   }
 
   const collectionSchema = collection ? getCollectionSchema(collection, collection.products?.nodes || []) : [];

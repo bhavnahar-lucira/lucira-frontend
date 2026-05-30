@@ -240,7 +240,7 @@ export function OtpSpinAuth({
     setLoading(true);
     try {
       const data = await verifyOtpApi(mobile, otpValue);
-      if (data.status === "REGISTER_REQUIRED" || data.type === "register") {
+      if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         if (pendingRegister) {
           // Verification success, now complete the pending registration
           const regData = await registerCustomer({
@@ -251,7 +251,7 @@ export function OtpSpinAuth({
             wonPrize: wonPrize?.value,
             prizeLabel: wonPrize?.label,
           });
-          if (regData.status === "REGISTER_SUCCESS" || regData.type === "success") {
+          if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
             loginSuccess(regData, true);
             handleStepChange("success");
             setPendingRegister(false);
@@ -322,23 +322,26 @@ export function OtpSpinAuth({
   const handleSpinAndRegister = async () => {
     if (!firstName || !lastName || !email) return toast.error("Please fill all fields");
 
-    setLoading(true);
-    try {
-      const { exists } = await checkCustomerApi({ email, mobile });
-      if (exists) {
-        toast.info("You are already a customer! Please verify OTP to login.");
-        await sendOtpApi(mobile);
-        setPendingRegister(false);
-        handleStepChange("otp");
-        setTimer(30);
+    // Only check customer if mobile is not verified
+    if (!isMobileVerified) {
+      setLoading(true);
+      try {
+        const { exists } = await checkCustomerApi({ email, mobile });
+        if (exists) {
+          toast.info("You are already a customer! Please verify OTP to login.");
+          await sendOtpApi(mobile);
+          setPendingRegister(false);
+          handleStepChange("otp");
+          setTimer(30);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
         setLoading(false);
-        return;
+        return toast.error("Failed to verify customer status.");
       }
-    } catch (err) {
       setLoading(false);
-      return toast.error("Failed to verify customer status.");
     }
-    setLoading(false);
 
     setIsSpinning(true);
     const prize = getWeightedPrize();
@@ -367,7 +370,7 @@ export function OtpSpinAuth({
             wonPrize: prize?.value,
             prizeLabel: prize?.label,
           });
-          if (regData.status === "REGISTER_SUCCESS" || regData.type === "success") {
+          if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
             loginSuccess(regData, true);
             handleStepChange("success");
             setPendingRegister(false);

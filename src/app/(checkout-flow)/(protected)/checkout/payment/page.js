@@ -1152,7 +1152,7 @@ export default function PaymentPage() {
                 <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
                   <div className="p-4 grid grid-cols-[100px_1fr] items-center gap-4 text-sm border-b border-zinc-100">
                     <span className="text-zinc-500 whitespace-nowrap">Contact</span>
-                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || "techamitjha@gmail.com"}</span>
+                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || ""}</span>
                   </div>
                   <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
                     <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Pickup" : "Ship to"}</span>
@@ -1244,7 +1244,7 @@ export default function PaymentPage() {
                 <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
                   <div className="p-4 grid grid-cols-[140px_1fr] items-center gap-4 text-sm border-b border-zinc-100">
                     <span className="text-zinc-500 whitespace-nowrap">Contact</span>
-                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || "techamitjha@gmail.com"}</span>
+                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || ""}</span>
                   </div>
                   <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
                     <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Pickup location" : "Ship to"}</span>

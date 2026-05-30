@@ -10,6 +10,8 @@ import {
 } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
+
 // Helper to get or create Shopify Cart ID
 const getCartId = () => {
   if (typeof window === "undefined") return null;
@@ -64,20 +66,30 @@ const mapShopifyCart = (cart, backendCart = null) => {
         else if (shopifyColor.toLowerCase().includes("white")) fallbackColor = "White Gold";
       }
 
+      const isFreeGift = backendItem?.isFreeGift || false;
+      const backendPrice = Number(backendItem?.finalPrice || backendItem?.price || 0);
+      const shopifyPrice = Number(node.merchandise.price.amount);
+      const finalUnitPrice = isFreeGift ? 0 : (backendPrice > 0 ? backendPrice : shopifyPrice);
+
       return {
         lineId: node.id,
         variantId,
         quantity: node.quantity,
-        title: variantId.includes("47753346973914") ? "100 mg Gold Coin" : node.merchandise.product.title,
-        variantTitle: variantId.includes("47753346973914") ? "Free Gift" : node.merchandise.title,
+        title: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gold Coin" : node.merchandise.product.title,
+        variantTitle: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gift" : node.merchandise.title,
         handle: node.merchandise.product.handle,
         sku: node.merchandise.sku,
-        price: variantId.includes("47753346973914") || backendItem?.isFreeGift ? 0 : Number(node.merchandise.price.amount),
+        price: finalUnitPrice,
         comparePrice: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
         image: node.merchandise.image?.url,
         altText: node.merchandise.image?.altText,
         productId: node.merchandise.product.id,
-        inStock: backendItem?.inStock !== undefined ? backendItem.inStock : true,
+        inStock: backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock),
+        isFreeGift,
+        category: backendItem?.category || backendItem?.type || "",
+        estDelivery: backendItem?.estDelivery || null,
+        leadTime: backendItem?.leadTime || 12,
+        availableSizes: backendItem?.availableSizes || [],
 
         // Dynamic metal / diamond attributes from backend cart
         goldWeight: backendItem?.goldWeight || 0,
@@ -248,6 +260,9 @@ export const addToCart = createAsyncThunk(
     // We treat items with different attributes (engraving, metal, etc.) as distinct
     const existingItems = state.cart?.items || [];
     const isDuplicate = existingItems.some(item => {
+      // Skip duplicate check for Gold Coins to allow multiple quantities
+      if (String(variantId).toLowerCase() === GOLDCOIN_VARIANT_ID.toLowerCase()) return false;
+
       const sameVariant = String(item.variantId).toLowerCase() === variantId.toLowerCase();
       
       const itemEngraving = (item.engraving || "").trim().toLowerCase();
@@ -319,7 +334,8 @@ export const addToCart = createAsyncThunk(
           product: {
             ...product,
             variantId: toShopifyGid(product.shopifyVariantId || product.variantId || product.id, "ProductVariant"),
-            price: Number(product.price || 0),
+            price: Number(product.finalPrice || product.price || 0), // Prefer dynamic finalPrice for calculation
+            finalPrice: Number(product.finalPrice || product.price || 0),
             quantity: product.quantity || 1
           }
         })
@@ -397,7 +413,7 @@ export const removeFromCart = createAsyncThunk(
 
 export const updateCartItem = createAsyncThunk(
   "cart/updateCartItem",
-  async ({ userId, lineId, currentVariantId, nextVariantId, quantity, size, price, variantTitle, inStock, sku }, { getState }) => {
+  async ({ userId, lineId, currentVariantId, nextVariantId, quantity, size, price, finalPrice, variantTitle, inStock, sku, goldWeight, diamondTotalPcs, diamondCarat, leadTime, estDelivery }, { getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
@@ -448,9 +464,15 @@ export const updateCartItem = createAsyncThunk(
             quantity,
             size,
             price,
+            finalPrice,
             variantTitle,
             inStock,
-            sku
+            sku,
+            goldWeight,
+            diamondTotalPcs,
+            diamondCarat,
+            leadTime,
+            estDelivery
           })
         });
       } catch (e) {
@@ -622,6 +644,7 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.loading = false;
@@ -631,36 +654,77 @@ const cartSlice = createSlice({
           state.totalAmount = action.payload.totalAmount || 0;
         }
       })
+      .addCase(fetchCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(addToCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(addToCart.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
+      })
+      .addCase(addToCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(removeFromCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(removeFromCart.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
+      })
+      .addCase(removeFromCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(updateCartItem.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
       .addCase(updateCartItem.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
       })
+      .addCase(updateCartItem.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(repriceCartForCheckout.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(repriceCartForCheckout.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
+      })
+      .addCase(repriceCartForCheckout.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       })
       .addCase(mergeCart.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(mergeCart.fulfilled, (state, action) => {
         state.loading = false;
@@ -669,6 +733,10 @@ const cartSlice = createSlice({
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
         }
+      })
+      .addCase(mergeCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       });
   },
 });
