@@ -715,7 +715,10 @@ export default function MobileHeader({ menuData }) {
                 onClick={() => handleItemClick(item, index)}
                 className="bg-[#f8f8f8] rounded-xl p-2 text-left flex items-center gap-2 active:bg-gray-200 transition-all border border-gray-50/50"
               >
-                <div className="w-11 h-11 relative shrink-0 overflow-hidden rounded-lg flex items-center justify-center p-1">
+                <div className={cn(
+                  "relative shrink-0 overflow-hidden rounded-lg flex items-center justify-center p-1",
+                  isLuciraExpress ? "w-10 h-10" : "w-11 h-11"
+                )}>
                   {icon && (
                     <Image 
                       src={icon} 
