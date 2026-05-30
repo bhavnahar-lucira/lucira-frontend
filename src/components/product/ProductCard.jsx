@@ -67,6 +67,11 @@ const formatPrice = (num) => {
   }).format(val);
 };
 
+function formatCdnUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  return url.replace("https://www.lucirajewelry.com", "https://luciraonline.myshopify.com").replace("http://www.lucirajewelry.com", "https://luciraonline.myshopify.com");
+}
+
 function getBaseColor(color = "") {
   const normalized = String(color).toLowerCase();
   if (normalized.includes("rose")) return "rose";
@@ -502,7 +507,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                       {/* overflow-hidden keeps the 130% zoomed image contained inside the slide */}
                       <div className="relative w-full h-full overflow-hidden">
                         <LazyImage 
-                          src={image.url} 
+                          src={formatCdnUrl(image.url)} 
                           alt={image.alt || product.title} 
                           fill 
                           priority={idx === 0} 
@@ -757,13 +762,13 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
           <DialogTitle className="sr-only">Product Video: {product.title}</DialogTitle>
           <DialogDescription className="sr-only">Video preview of the product</DialogDescription>
           <button onClick={() => setShowVideoPopup(false)} className="absolute top-4 right-4 z-[210] p-2 bg-black/50 hover:bg-black text-white rounded-full transition-all shadow-lg border border-white/10"><X size={24} /></button>
-          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain" poster={videoMedia?.preview}>
+          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain" poster={formatCdnUrl(videoMedia?.preview)}>
             {videoMedia?.sources?.length > 0 ? (
               <>
-                {videoMedia.sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={source.url} type={source.mimeType} />)}
-                {videoMedia.sources.filter(s => s.format !== 'mp4').map((source, sIdx) => <source key={sIdx} src={source.url} type={source.mimeType} />)}
+                {videoMedia.sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
+                {videoMedia.sources.filter(s => s.format !== 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
               </>
-            ) : <source src={videoMedia?.url} type={videoMedia?.mimeType || "video/mp4"} />}
+            ) : <source src={formatCdnUrl(videoMedia?.url)} type={videoMedia?.mimeType || "video/mp4"} />}
             Your browser does not support the video tag.
           </video>
         </DialogContent>
