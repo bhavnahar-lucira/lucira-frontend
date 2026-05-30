@@ -18,29 +18,124 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
 import { apiFetch } from "@/lib/api";
+import { shopifyStorefrontFetch, toShopifyGid } from "@/lib/shopify-client";
+
+// Specific query to get order details with handles via Customer
+const GET_ORDER_WITH_HANDLES = `
+  query getCustomerOrder($customerAccessToken: String!) {
+    customer(customerAccessToken: $customerAccessToken) {
+      orders(first: 50) {
+        edges {
+          node {
+            id
+            orderNumber
+            lineItems(first: 20) {
+              edges {
+                node {
+                  title
+                  variant {
+                    id
+                    product {
+                      handle
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
 
 export default function OrderDetailsPage() {
   const { id } = useParams();
+  const { accessToken } = useSelector((state) => state.user);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [returnLoading, setReturnLoading] = useState(false);
 
   useEffect(() => {
     async function fetchOrderDetails() {
+      if (!id) return;
       try {
         setLoading(true);
-        const data = await apiFetch(`/api/customer/orders/${id}`);
-        setOrder(data.order);
+        
+        // 1. Fetch basic order details from our backend
+        let orderData = null;
+        try {
+          const data = await apiFetch(`/api/customer/orders/${id}`);
+          orderData = data.order;
+        } catch (err) {
+          console.warn("[OrderDetails] Backend fetch failed:", err);
+        }
+
+        // 2. If handles are missing, fetch them from Shopify Storefront API fallback
+        if (orderData && accessToken) {
+          const hasMissingHandles = orderData.lineItems?.some(item => !item.handle && !item.productHandle && !item.product_handle);
+          
+          if (hasMissingHandles) {
+            console.log("[OrderDetails] Fetching missing handles from Storefront API...");
+            try {
+              const sfData = await shopifyStorefrontFetch(GET_ORDER_WITH_HANDLES, {
+                customerAccessToken: accessToken
+              });
+
+              // Find order by exact ID or orderNumber
+              const sfOrder = sfData?.customer?.orders?.edges?.find(e => {
+                const node = e.node;
+                return node.id.includes(id) || String(node.orderNumber) === String(orderData.orderNumber);
+              })?.node;
+              
+              if (sfOrder) {
+                orderData.lineItems = orderData.lineItems.map(item => {
+                  // Match by variant ID first, then by title
+                  const sfItem = sfOrder.lineItems.edges.find(e => {
+                    const sfNode = e.node;
+                    const itemVarId = (item.variantId || item.variant?.id || "").split("/").pop();
+                    const sfVarId = (sfNode.variant?.id || "").split("/").pop();
+                    return (itemVarId && itemVarId === sfVarId) || sfNode.title === item.title;
+                  })?.node;
+
+                  return {
+                    ...item,
+                    handle: sfItem?.variant?.product?.handle || item.handle
+                  };
+                });
+              }
+            } catch (sfErr) {
+              console.warn("[OrderDetails] Storefront fallback failed:", sfErr);
+            }
+          }
+        }
+
+        // 3. Final Fallback: If handle still missing, try a search for each item (limit this to avoid spam)
+        if (orderData?.lineItems) {
+          for (let item of orderData.lineItems) {
+            if (!item.handle) {
+               try {
+                 const searchData = await apiFetch(`/api/products/search?q=${encodeURIComponent(item.title)}&limit=1`);
+                 if (searchData.products?.[0]?.handle) {
+                   item.handle = searchData.products[0].handle;
+                 }
+               } catch (e) {}
+            }
+          }
+        }
+
+        setOrder(orderData);
       } catch (err) {
         console.error("Order details fetch error:", err);
-        toast.error(err.message || "Failed to load order details");
+        toast.error("Failed to load order details");
       } finally {
         setLoading(false);
       }
     }
     fetchOrderDetails();
-  }, [id]);
+  }, [id, accessToken]);
 
   const handleReturnClick = async () => {
     if (order.fulfillmentStatus !== 'FULFILLED') {
@@ -257,9 +352,17 @@ export default function OrderDetailsPage() {
                     </p>
                   </div>
                   <div className="hidden sm:block">
-                    <Link href={item.handle ? `/products/${item.handle}` : "/products/all"} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
-                      View Product
-                    </Link>
+                    {(() => {
+                      const handle = item.handle || item.productHandle || item.product_handle || item.variant?.product?.handle;
+                      const variantId = (item.variantId || item.variant?.id || "").split("/").pop();
+                      const productUrl = handle ? `/products/${handle}${variantId ? `?variant=${variantId}` : ""}` : "/products/all";
+                      
+                      return (
+                        <Link href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
+                          View Product
+                        </Link>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}
