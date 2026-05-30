@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown, ArrowRight, ShoppingBag } from "lucide-react";
 import SilverFAQSection from "./SilverFAQSection";
@@ -51,14 +52,34 @@ const stateCityMap = {
 };
 
 export default function SilverRatePage({ page }) {
+    const router = useRouter();
     const [isFlipped, setIsFlipped] = useState(false);
+    
+    // Extract city from URL handle if available
+    const getInitialCity = () => {
+        if (typeof window !== 'undefined') {
+            const pathname = window.location.pathname;
+            // Extract city slug from URL like /pages/kalyan-silver-rate-today
+            const match = pathname.match(/\/pages\/(.+?)-silver-rate-today/);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        return page?.city?.value?.toLowerCase().replace(/\s+/g, '-') || 'mumbai';
+    };
+
     const [selectedState, setSelectedState] = useState(page?.state?.value?.toLowerCase().replace(/\s+/g, '-') || 'maharashtra');
-    const [selectedCity, setSelectedCity] = useState(page?.city?.value?.toLowerCase().replace(/\s+/g, '-') || 'mumbai');
+    const [selectedCity, setSelectedCity] = useState(getInitialCity());
     const [currentDate, setCurrentDate] = useState("");
     const [rates, setRates] = useState(null);
 
     const cityName = page?.city?.value || "Mumbai";
     const stateName = page?.state?.value || "Maharashtra";
+
+    // Compute the current city display name from selectedCity state
+    const cityNameDisplay = useMemo(() => {
+        return selectedCity.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }, [selectedCity]);
 
     useEffect(() => {
         const today = new Date();
@@ -133,7 +154,7 @@ export default function SilverRatePage({ page }) {
                         {/* Header Row */}
                         <div className="flex flex-row justify-between items-center w-full gap-4">
                             <h1 className="text-white text-[18px] md:text-[24px] lg:text-[26px] font-medium tracking-tight font-abhaya uppercase whitespace-nowrap">
-                                TODAYS SILVER RATE IN {cityName}
+                                TODAYS SILVER RATE IN {cityNameDisplay}
                             </h1>
                             <button onClick={() => setIsFlipped(!isFlipped)} className="text-white/80 hover:text-white text-[12px] md:text-[14px] underline underline-offset-4 tracking-wide font-figtree transition-colors text-right whitespace-nowrap shrink-0">
                                 {isFlipped ? "View Todays Silver Rate" : "Is Silver A Wise Investment?"}
@@ -258,7 +279,7 @@ export default function SilverRatePage({ page }) {
             </section>
 
             {/* Calculator Section */}
-            <SilverCalculator cityName={cityName} baseRate={todayRateNum} />
+            <SilverCalculator cityName={cityNameDisplay} baseRate={todayRateNum} />
 
             {/* Loop through all sections from template JSON in exact order */}
             <div className="sections-wrapper">
@@ -271,7 +292,7 @@ export default function SilverRatePage({ page }) {
                             return (
                                 <div key={sectionId}>
                                     <SilverInvestmentSection
-                                        cityName={cityName}
+                                        cityName={cityNameDisplay}
                                         settings={section.settings}
                                     />
                                     {/* Moving PriceTable right after the InvestmentSection as requested */}
@@ -282,7 +303,7 @@ export default function SilverRatePage({ page }) {
                             return (
                                 <SilverInformationContent
                                     key={sectionId}
-                                    cityName={cityName}
+                                    cityName={cityNameDisplay}
                                     stateName={stateName}
                                     sectionData={section}
                                 />
@@ -291,7 +312,7 @@ export default function SilverRatePage({ page }) {
                             return (
                                 <SilverFAQSection
                                     key={sectionId}
-                                    cityName={cityName}
+                                    cityName={cityNameDisplay}
                                     stateName={stateName}
                                     todayRate={todayRateNum}
                                     sectionData={section}
