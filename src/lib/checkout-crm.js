@@ -55,7 +55,7 @@ export const sendCheckoutCrmEvent = async (type, data) => {
     };
 
     const customerEvent = {
-      Event_Type: "Checkout",
+      Event_Type: type === "add_payment_info" ? "Add Payment Info" : "Checkout",
       Channel: "website",
       Order_Value: data.totalCartValue,
       Currency: "INR",
@@ -72,7 +72,7 @@ export const sendCheckoutCrmEvent = async (type, data) => {
     }
 
     const products = (data.cartItems || []).map(item => {
-      const origin = typeof window !== 'undefined' ? window.location.origin : "https://www.lucira.in";
+      const origin = typeof window !== 'undefined' ? window.location.origin : "https://www.lucirajewelry.com";
       const handle = item.handle || item.productHandle || item.product_handle;
       const productUrl = handle ? `${origin}/products/${handle}${item.variantId ? `?variant=${item.variantId}` : ""}` : "";
 
