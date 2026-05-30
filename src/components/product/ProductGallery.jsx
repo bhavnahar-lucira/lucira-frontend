@@ -18,6 +18,11 @@ import "swiper/css/thumbs";
 import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
+function formatCdnUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  return url.replace("https://www.lucirajewelry.com", "https://luciraonline.myshopify.com").replace("http://www.lucirajewelry.com", "https://luciraonline.myshopify.com");
+}
+
 export default function ProductGallery({ media = [], title = "", activeColor = "", onViewSimilar, hasSimilar = false, product, activeVariant }) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [mounted, setMounted] = useState(false);
@@ -50,6 +55,19 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const sortedMedia = useMemo(() => {
     if (!media || media.length === 0) return [];
 
+    const formattedMedia = media.map(m => {
+      const newM = { ...m };
+      if (newM.url) newM.url = formatCdnUrl(newM.url);
+      if (newM.preview) newM.preview = formatCdnUrl(newM.preview);
+      if (newM.previewImage?.url) {
+        newM.previewImage = { ...newM.previewImage, url: formatCdnUrl(newM.previewImage.url) };
+      }
+      if (newM.sources) {
+        newM.sources = newM.sources.map(s => ({ ...s, url: formatCdnUrl(s.url) }));
+      }
+      return newM;
+    });
+
     // 1. Define color matching logic
     const colorTerms = ["yellow", "white", "rose"];
     const currentBaseColor = activeColor.toLowerCase().split(" ")[0];
@@ -73,7 +91,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       others: []
     };
 
-    media.forEach((item) => {
+    formattedMedia.forEach((item) => {
       const alt = (item.alt || "").toLowerCase();
       if (alt.includes("cert")) groups.cert.push(item);
       else if (alt.includes("mq")) groups.mq.push(item);
