@@ -146,18 +146,11 @@ function getPrioritizedVariant(product, collectionHandle) {
   );
 
   if (collectionHandle === "9kt-collection") {
-    const handles = product.collectionHandles || [];
-    const isStrict9kt = handles.includes("9kt-collection") &&
-                       !handles.some(h => h !== "9kt-collection" && h !== "all" && h !== product.type?.toLowerCase() &&
-                       ["sports-collection", "cotton-candy", "hexa-collection", "solitaire-collection"].includes(h));
-
-    if (isStrict9kt) {
-      const nineKT = variants.filter(v => String(v.color || v.title).includes("9KT"));
-      if (nineKT.length > 0) {
-        const inStock9KT = nineKT.find(v => v.inStock === true || v.inStock === "true");
-        if (inStock9KT) return inStock9KT;
-        return nineKT[0];
-      }
+    const nineKT = variants.filter(v => String(v.color || v.title).includes("9KT"));
+    if (nineKT.length > 0) {
+      const inStock9KT = nineKT.find(v => v.inStock === true || v.inStock === "true");
+      if (inStock9KT) return inStock9KT;
+      return nineKT[0];
     }
   }
 
