@@ -37,6 +37,7 @@ const GET_ORDER_WITH_HANDLES = `
                   title
                   variant {
                     id
+                    sku
                     product {
                       handle
                     }
@@ -75,6 +76,7 @@ export default function OrderDetailsPage() {
 
         // 2. If handles are missing, fetch them from Shopify Storefront API fallback
         if (orderData && accessToken) {
+          console.log("[OrderDetails] Checking handles...");
           const hasMissingHandles = orderData.lineItems?.some(item => !item.handle && !item.productHandle && !item.product_handle);
           
           if (hasMissingHandles) {
@@ -87,17 +89,23 @@ export default function OrderDetailsPage() {
               // Find order by exact ID or orderNumber
               const sfOrder = sfData?.customer?.orders?.edges?.find(e => {
                 const node = e.node;
-                return node.id.includes(id) || String(node.orderNumber) === String(orderData.orderNumber);
+                const nodeNum = String(node.orderNumber);
+                const orderDataNum = String(orderData.orderNumber);
+                return node.id.includes(id) || nodeNum === orderDataNum;
               })?.node;
               
               if (sfOrder) {
                 orderData.lineItems = orderData.lineItems.map(item => {
-                  // Match by variant ID first, then by title
+                  // Match by variant ID first, then by SKU, then by title (case-insensitive)
                   const sfItem = sfOrder.lineItems.edges.find(e => {
                     const sfNode = e.node;
                     const itemVarId = (item.variantId || item.variant?.id || "").split("/").pop();
                     const sfVarId = (sfNode.variant?.id || "").split("/").pop();
-                    return (itemVarId && itemVarId === sfVarId) || sfNode.title === item.title;
+                    
+                    const skuMatch = item.sku && sfNode.variant?.sku && item.sku === sfNode.variant.sku;
+                    const titleMatch = (sfNode.title || "").toLowerCase() === (item.title || "").toLowerCase();
+                    
+                    return (itemVarId && itemVarId === sfVarId) || skuMatch || titleMatch;
                   })?.node;
 
                   return {
@@ -115,7 +123,7 @@ export default function OrderDetailsPage() {
         // 3. Final Fallback: If handle still missing, try a search for each item (limit this to avoid spam)
         if (orderData?.lineItems) {
           for (let item of orderData.lineItems) {
-            if (!item.handle) {
+            if (!item.handle && !item.title.toLowerCase().includes("insurance")) {
                try {
                  const searchData = await apiFetch(`/api/products/search?q=${encodeURIComponent(item.title)}&limit=1`);
                  if (searchData.products?.[0]?.handle) {
@@ -339,33 +347,34 @@ export default function OrderDetailsPage() {
               <h3 className="text-lg font-bold text-primary uppercase tracking-tight">Items in this order</h3>  
             </div>
             <div className="divide-y divide-zinc-100">
-              {sortedLineItems.map((item, index) => (
-                <div key={index} className="p-8 flex gap-6 items-center">
-                  <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
-                    <Image src={item.image || item.variant?.image?.url || "/images/product/1.jpg"} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-zinc-900">{item.title}</h4>
-                    <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>
-                    <p className="text-lg font-bold text-primary mt-2">
-                      {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
-                    </p>
-                  </div>
-                  <div className="hidden sm:block">
-                    {(() => {
-                      const handle = item.handle || item.productHandle || item.product_handle || item.variant?.product?.handle;
-                      const variantId = (item.variantId || item.variant?.id || "").split("/").pop();
-                      const productUrl = handle ? `/products/${handle}${variantId ? `?variant=${variantId}` : ""}` : "/products/all";
-                      
-                      return (
+              {sortedLineItems.map((item, index) => {
+                 const isInsurance = (item.variantId || item.variant?.id) === INSURANCE_VARIANT_ID || (item.title || "").toLowerCase().includes("insurance");
+                 const handle = item.handle || item.productHandle || item.product_handle || item.variant?.product?.handle;
+                 const variantId = (item.variantId || item.variant?.id || "").split("/").pop();
+                 const productUrl = handle ? `/products/${handle}${variantId ? `?variant=${variantId}` : ""}` : `/search?q=${encodeURIComponent(item.title)}`;
+
+                 return (
+                  <div key={index} className="p-8 flex gap-6 items-center">
+                    <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
+                      <Image src={item.image || item.variant?.image?.url || "/images/product/1.jpg"} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-zinc-900">{item.title}</h4>
+                      <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>
+                      <p className="text-lg font-bold text-primary mt-2">
+                        {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
+                      </p>
+                    </div>
+                    {!isInsurance && (
+                      <div className="hidden sm:block">
                         <Link href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
                           View Product
                         </Link>
-                      );
-                    })()}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                 );
+              })}
             </div>
           </div>
 
