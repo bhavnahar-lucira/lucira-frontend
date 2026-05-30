@@ -22,6 +22,8 @@ export function ProductCustomizerMobile({
   availableStoreCount,
   deliveryInfo,
   getStoreDisplayName,
+  currentPrice,
+  currentComparePrice
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const collectionContext = useSelector((state) => state.user.collectionContext);
@@ -117,6 +119,10 @@ export function ProductCustomizerMobile({
                 </div>
 
                 <div className="mt-6 space-y-8 overflow-y-auto custom-scrollbar flex-1 pr-1">
+                  <div className="flex items-center justify-start gap-4 mb-6">
+                    <span className="text-2xl font-bold">&#8377;{currentPrice}</span>
+                    <span className="text-lg text-gray-500 line-through font-medium">&#8377;{currentComparePrice}</span>
+                  </div>
                   {/* Gold Selection */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-bold uppercase tracking-wider">
