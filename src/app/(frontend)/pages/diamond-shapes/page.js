@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import ProductCard from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/product/ProductCardSkeleton";
+import { apiFetch } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Fade-in observer helper
@@ -137,16 +138,14 @@ const CollectionProducts = ({ collectionHandle }) => {
     if (fetched.current) return;
     fetched.current = true;
     try {
-      const res = await fetch(
-        `/api/collection?handle=${collectionHandle}&limit=4&sort=best_selling`
-      );
-      if (!res.ok) throw new Error("API error");
-      const data = await res.json();
+      // use apiFetch so requests are routed to the configured backend
+      const data = await apiFetch(`/api/collection?handle=${collectionHandle}&limit=4&sort=best_selling`);
       if (isMounted.current) {
-        setProducts((data.products || []).slice(0, 4));
+        setProducts((data?.products || []).slice(0, 4));
       }
-    } catch {
-      // fail silently
+    } catch (err) {
+      // Log error for easier debugging in the browser console
+      console.warn(`[diamond-shapes] failed to load products for ${collectionHandle}:`, err.message || err);
     } finally {
       if (isMounted.current) setLoading(false);
     }
