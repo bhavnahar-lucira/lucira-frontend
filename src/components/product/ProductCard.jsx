@@ -476,7 +476,6 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     return [...new Set(offers)];
   }, [product, currentVariant]);
 
-  console.log("product", product)
   return (
     <>
       <div className="space-y-4">
@@ -501,8 +500,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                 >
                   {galleryImages.map((image, idx) => {
                   // 1. Define handles that require a 130% zoom (easy to add/remove here)
-                  const isZoom = collectionHandle || product.type?.toLowerCase().includes('ring') || 
-                     collectionHandle || product.type?.toLowerCase().includes('earring') || collectionHandle || product.type?.toLowerCase().includes('nosepin'); 
+                  const isZoom = collectionHandle?.toLowerCase().includes('ring') || 
+                     collectionHandle?.toLowerCase().includes('earring') || collectionHandle?.toLowerCase().includes('nosepin'); 
 
                   const shouldZoom = isMobile && isZoom;
 
