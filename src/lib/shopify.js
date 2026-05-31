@@ -7,9 +7,10 @@ const SHOP_DOMAIN = rawStore.includes(".") ? rawStore : `${rawStore}.myshopify.c
 export async function shopifyStorefrontFetch(query, variables = {}, options = {}) {
   let token = process.env.STOREFRONT_TOKEN;
 
-  // Use the RW token specifically for customer and blog queries
-  const isCustomerOrBlog = /(customer|blog|article|address|pages?)\s*\(/i.test(query);
-  if (isCustomerOrBlog && process.env.SHOPIFY_RW_STOREFRONT_TOKEN) {
+  // Use the RW token specifically for customer and blog queries if explicitly requested
+  // or if it matches the legacy detection (to maintain existing customer functionality)
+  const isCustomer = /(?:customer|address)\s*\(/i.test(query);
+  if ((options.useRwToken || isCustomer) && process.env.SHOPIFY_RW_STOREFRONT_TOKEN) {
     token = process.env.SHOPIFY_RW_STOREFRONT_TOKEN;
   }
 

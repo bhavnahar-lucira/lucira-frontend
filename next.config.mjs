@@ -95,14 +95,6 @@ const nextConfig = {
         destination: '/api/feeds/products',
       },
       {
-        source: '/sitemap.xml',
-        destination: '/api/sitemap-proxy/sitemap.xml',
-      },
-      {
-        source: '/sitemap_:slug.xml',
-        destination: '/api/sitemap-proxy/sitemap_:slug.xml',
-      },
-      {
         source: '/api/proxy/earn-rewards/:path*',
         destination: 'https://api.lucirajewelry.com/earn-rewards/:path*',
       },

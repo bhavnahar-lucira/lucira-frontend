@@ -35,6 +35,7 @@ export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
 
   const merged = {
     ...baseArticle,
+    title: baseArticle.title || storefrontArticle?.title || adminArticle?.title || liveArticle?.title,
     contentHtml: baseArticle.contentHtml || adminArticle?.contentHtml || liveArticle?.contentHtml || baseArticle.content,
     content: baseArticle.content || adminArticle?.content || stripHtml(baseArticle.contentHtml || adminArticle?.contentHtml || liveArticle?.contentHtml),
     image: baseArticle.image || adminArticle?.image || storefrontArticle?.image || liveArticle?.image,
@@ -64,7 +65,10 @@ export async function getBlogByHandle(blogHandle) {
     }
   `;
 
-  const data = await shopifyStorefrontFetch(query, { blogHandle }, { cache: 'force-cache' });
+  const data = await shopifyStorefrontFetch(query, { blogHandle }, { 
+    cache: 'force-cache',
+    useRwToken: true 
+  });
   return serialize(data?.blog || null);
 }
 
@@ -117,7 +121,8 @@ export async function getArticleByBlogAndHandleStorefront(blogHandle, articleHan
   `;
 
   const data = await shopifyStorefrontFetch(query, { blogHandle, articleHandle }, {
-    cache: 'force-cache'
+    cache: 'force-cache',
+    useRwToken: true
   });
   const article = data?.blog?.articleByHandle;
 
@@ -223,16 +228,23 @@ export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) 
 
   const pageHtml = await res.text();
   const liveContentHtml = extractLiveMainContent(pageHtml);
+  
+  // Extract title from HTML
+  let title = pageHtml.match(/<h1[^>]*>(.*?)<\/h1>/i)?.[1]?.replace(/<[^>]*>?/gm, '').trim();
+  if (!title) {
+    title = pageHtml.match(/<title[^>]*>(.*?)<\/title>/i)?.[1]?.split('|')[0]?.split('-')[0]?.trim();
+  }
 
-  if (!liveContentHtml) return null;
+  if (!liveContentHtml && !title) return null;
 
-  const contentHtml = liveContentHtml
+  const contentHtml = (liveContentHtml || "")
     .replace(/src="\/\//g, 'src="https://')
     .replace(/href="https:\/\/luciraonline\.myshopify\.com\//g, 'href="/')
     .replace(/href="https:\/\/www\.lucirajewelry\.com\//g, 'href="/')
     .replace(/href="\/(products|collections|blogs)\//g, 'href="/$1/');
 
   return {
+    title,
     content: stripHtml(contentHtml),
     contentHtml,
     blogHandle,
@@ -342,7 +354,8 @@ export async function getArticlesByBlogHandleStorefront(blogHandle) {
 
   // force-cache to respect SSG
   const data = await shopifyStorefrontFetch(query, { blogHandle }, {
-    cache: 'force-cache'
+    cache: 'force-cache',
+    useRwToken: true
   });
   const articles = data?.blog?.articles?.edges?.map(edge => ({
     ...edge.node,
@@ -386,7 +399,10 @@ export async function getMostViewedArticles(limit = 4) {
   `;
 
   try {
-    const data = await shopifyStorefrontFetch(query, { limit }, { cache: 'force-cache' });
+    const data = await shopifyStorefrontFetch(query, { limit }, { 
+      cache: 'force-cache',
+      useRwToken: true 
+    });
     const articles = data?.articles?.edges?.map(edge => ({
       ...edge.node,
       blogId: edge.node.blog?.id,
@@ -413,7 +429,10 @@ export async function getAllBlogHandles() {
     }
   `;
   try {
-    const data = await shopifyStorefrontFetch(query, {}, { cache: 'force-cache' });
+    const data = await shopifyStorefrontFetch(query, {}, { 
+      cache: 'force-cache',
+      useRwToken: true 
+    });
     return data?.blogs?.edges?.map(edge => ({ blogHandle: edge.node.handle })) || [];
   } catch (e) {
     console.error("Error fetching all blogs:", e);
@@ -441,7 +460,10 @@ export async function getAllArticleHandles() {
     }
   `;
   try {
-    const data = await shopifyStorefrontFetch(query, {}, { cache: 'force-cache' });
+    const data = await shopifyStorefrontFetch(query, {}, { 
+      cache: 'force-cache',
+      useRwToken: true 
+    });
     const paths = [];
     data?.blogs?.edges?.forEach(blogEdge => {
       const blogHandle = blogEdge.node.handle;
