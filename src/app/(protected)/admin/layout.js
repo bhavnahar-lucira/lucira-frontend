@@ -59,7 +59,7 @@ function SidebarNav({ pathname, handleSignOut, setSheetOpen }) {
           const Icon = link.icon;
 
           return (
-            <Link
+            <Link prefetch={false}
               key={link.name}
               href={link.href}
               onClick={() => setSheetOpen && setSheetOpen(false)}

@@ -135,7 +135,7 @@ export default function PopularSearches() {
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-4">
                     {section.links.map((link, lIdx) => (
                       <React.Fragment key={lIdx}>
-                        <Link
+                        <Link prefetch={false}
                           href={link.href}
                           className="font-figtree text-xs text-gray-600 hover:text-primary transition-colors"
                         >
@@ -161,7 +161,7 @@ export default function PopularSearches() {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   {section.links.map((link, lIdx) => (
                     <React.Fragment key={lIdx}>
-                      <Link
+                      <Link prefetch={false}
                         href={link.href}
                         className="font-figtree text-sm text-gray-600 hover:text-primary transition-colors leading-normal"
                       >

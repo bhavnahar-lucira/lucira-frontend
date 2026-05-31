@@ -61,7 +61,7 @@ export default function SuccessPage() {
         </p>
       )}
       <p className="text-zinc-600 mb-8 max-w-md">Thank you for your purchase. Your order has been placed and is being processed.</p>
-      <Link href="/" className="bg-black text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors">
+      <Link prefetch={false} href="/" className="bg-black text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors">
         Continue Shopping
       </Link>
     </div>

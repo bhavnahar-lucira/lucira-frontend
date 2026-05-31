@@ -56,7 +56,7 @@ export default function TopBar() {
         {announcements.map((item, index) => (
           <SwiperSlide key={index} className="!flex items-center justify-center h-full">
             {item.url ? (
-              <Link 
+              <Link prefetch={false} 
                 href={item.url}
                 className="text-center font-medium text-sm leading-none tracking-[0.7px] flex items-center justify-center h-full w-full px-6 hover:underline transition-all"
               >

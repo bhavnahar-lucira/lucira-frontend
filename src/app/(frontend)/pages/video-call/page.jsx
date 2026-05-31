@@ -416,7 +416,7 @@ export default function VideoCallPage() {
           {/* Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-[6px] md:gap-5 mt-6 md:mt-10">
             {collections.map((item, index) => (
-              <Link
+              <Link prefetch={false}
                 key={item.id}
                 href={item.link}
                 className="group relative block overflow-hidden"

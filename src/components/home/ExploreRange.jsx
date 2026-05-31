@@ -85,7 +85,7 @@ export default function ExploreRange() {
 
 function CategoryCard({ cat }) {
   return (
-    <Link 
+    <Link prefetch={false} 
       href={cat.href}
       className="group relative aspect-313/362 block overflow-hidden rounded-md bg-gray-50"
     >

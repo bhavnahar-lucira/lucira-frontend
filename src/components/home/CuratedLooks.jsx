@@ -270,7 +270,7 @@ export default function CuratedLooks() {
                           {activeHotspot.slideIndex === globalLookIdx && (
                             <div className="absolute bottom-3 left-3 right-3 z-20 animate-in fade-in slide-in-from-bottom-2 duration-300">
                               {look.hotspots?.find(h => h.id === activeHotspot.hotspotId) && (
-                                <Link 
+                                <Link prefetch={false} 
                                   href={look.hotspots.find(h => h.id === activeHotspot.hotspotId).product.href}
                                   onClick={(e) => e.stopPropagation()}
                                   className="flex items-center gap-3 bg-black/70 backdrop-blur-md rounded-[20px] p-2.5 border border-white/10 shadow-2xl"
@@ -341,7 +341,7 @@ export default function CuratedLooks() {
               key={occ._id || index}
               className="relative aspect-3/4 overflow-visible rounded-sm bg-gray-100"
             >
-              <Link href={occ.href} className="block h-full w-full">
+              <Link prefetch={false} href={occ.href} className="block h-full w-full">
                 <LazyImage
                   src={occ.image}
                   alt={occ.name}
@@ -383,7 +383,7 @@ export default function CuratedLooks() {
                           ].join(" ")}
                         >
                           <div className="relative rounded-lg bg-[#4E3A35]/95 p-2 shadow-xl">
-                            <Link
+                            <Link prefetch={false}
                               href={spot.product.href}
                               className="flex items-center gap-3"
                             >

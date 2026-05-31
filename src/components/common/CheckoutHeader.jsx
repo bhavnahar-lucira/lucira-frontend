@@ -26,7 +26,7 @@ export default function CheckoutHeader() {
           
           {/* Left: Logo */}
           <div className="flex-1">
-            <Link href="/">
+            <Link prefetch={false} href="/">
               <Image 
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg" 
                 alt="Lucira" 

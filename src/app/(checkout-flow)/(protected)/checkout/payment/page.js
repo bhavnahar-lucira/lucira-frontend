@@ -1171,7 +1171,7 @@ export default function PaymentPage() {
                         <p>No shipping address selected</p>
                       )}
                     </div>
-                    <Link href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
+                    <Link prefetch={false} href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
                   </div>
                   {!isPickup && (
                     <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
@@ -1263,7 +1263,7 @@ export default function PaymentPage() {
                         <p>No shipping address selected</p>
                       )}
                     </div>
-                    <Link href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
+                    <Link prefetch={false} href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
                   </div>
                   {!isPickup && (
                     <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
@@ -1376,7 +1376,7 @@ export default function PaymentPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-6 pt-4">
-                  <Link href="/checkout/shipping" className="flex items-center gap-2 text-sm font-bold text-accent hover:underline">
+                  <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-2 text-sm font-bold text-accent hover:underline">
                     <ChevronLeft size={16} />
                     Return to shipping
                   </Link>

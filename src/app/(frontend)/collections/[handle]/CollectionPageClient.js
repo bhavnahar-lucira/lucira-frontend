@@ -515,7 +515,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       if (idx === 3 || idx === 7) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
-            <Link href="/collections/bestsellers">
+            <Link prefetch={false} href="/collections/bestsellers">
               <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/inpage_banner.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
             </Link>
           </div>
@@ -775,7 +775,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                                     </div>
                                   )}
                                 </div>
-                                <Link href={`/products/${item.handle}`} className="text-sm  text-gray-900 hover:text-primary transition-colors truncate pr-4">
+                                <Link prefetch={false} href={`/products/${item.handle}`} className="text-sm  text-gray-900 hover:text-primary transition-colors truncate pr-4">
                                   {item.title}
                                 </Link>
                                 <span className="text-sm  text-black-800 text-right">

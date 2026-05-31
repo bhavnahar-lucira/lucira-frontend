@@ -160,7 +160,7 @@ export default function ShopByCategory() {
           {isLoading
             ? Array.from({ length: 8 }).map((_, i) => <FilterSkeleton key={i} />)
             : filters.map((item) => (
-                <Link
+                <Link prefetch={false}
                   key={item.id}
                   href={item.href || `/collections/${activeCategory}?${currentTab === "shapes" ? "shape" : "style"}=${item.id}`}
                   className="flex flex-col items-center gap-3 md:gap-4 group"

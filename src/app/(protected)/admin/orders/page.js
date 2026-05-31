@@ -344,7 +344,7 @@ export default function MyOrdersPage() {
                     )}
                     Return / Exchange
                   </button>
-                  <Link
+                  <Link prefetch={false}
                     href={`/admin/orders/${order.id.split("/").pop()}`}
                     className="font-figtree w-full md:px-8 py-3 md:py-3.5 bg-primary text-white text-xs text-center font-semibold uppercase tracking-[0.15em] rounded-2xl hover:opacity-90 transition-colors shadow-lg shadow-primary/20"
                   >
@@ -370,7 +370,7 @@ export default function MyOrdersPage() {
                 Once you make your first purchase, it will appear here for you to track and manage.
               </p>
             </div>
-            <Link
+            <Link prefetch={false}
               href="/collections/jewelry"
               className="font-figtree inline-block px-8 md:px-10 py-3.5 md:py-4 bg-primary text-white text-xs font-semibold uppercase tracking-[0.15em] rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-transform"
             >
@@ -397,7 +397,7 @@ export default function MyOrdersPage() {
               </p>
             </div>
           </div>
-          <Link
+          <Link prefetch={false}
             href="/collections/jewelry"
             className="font-figtree px-8 md:px-10 py-4 md:py-5 bg-primary text-white text-xs font-semibold uppercase tracking-[0.15em] rounded-[1.25rem] md:rounded-[1.5rem] hover:scale-105 transition-transform shadow-2xl shadow-primary/20 whitespace-nowrap"
           >

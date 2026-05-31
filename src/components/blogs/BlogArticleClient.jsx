@@ -145,7 +145,7 @@ export default function BlogArticleClient({
                   <h3 className="sidebar-heading">Featured Products</h3>
                   <div className="featured-products-list">
                     {featuredProducts.map((product) => (
-                      <Link
+                      <Link prefetch={false}
                         key={product.id}
                         href={`/products/${product.handle}`}
                         className="product-card-sidebar"
@@ -182,7 +182,7 @@ export default function BlogArticleClient({
             <p className="cta-description">
               Step into a new era of sparkle — brilliant, ethical, yours. Shop your first lab grown diamond today.
             </p>
-            <Link href="/collections/jewelry" className="cta-button">
+            <Link prefetch={false} href="/collections/jewelry" className="cta-button">
               Shop Now
             </Link>
           </section>
@@ -195,7 +195,7 @@ export default function BlogArticleClient({
               <h2 className="popular-articles-title">Most Popular Articles</h2>
               <div className="popular-articles-grid">
                 {mostViewed.map((item) => (
-                  <Link
+                  <Link prefetch={false}
                     key={item.id}
                     href={`/blogs/${item.blogHandle}/${item.handle}`}
                     className="popular-article-card group"

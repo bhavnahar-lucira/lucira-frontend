@@ -164,7 +164,7 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
 
             {/* Product Card */}
             {review.productHandle && (
-              <Link 
+              <Link prefetch={false} 
                   href={`/products/${review.productHandle}`} 
                   onClick={onClose}
                   className="mt-auto p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between group hover:bg-gray-100 transition-all"

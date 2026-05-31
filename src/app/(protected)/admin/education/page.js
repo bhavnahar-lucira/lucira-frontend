@@ -163,7 +163,7 @@ export default function EducationPage() {
             >
               {educationSlides.map((slide, idx) => (
                 <SwiperSlide key={idx}>
-                  <Link href={slide.href} className="relative block w-full h-full group">
+                  <Link prefetch={false} href={slide.href} className="relative block w-full h-full group">
                     <div className="w-full h-full relative">
                       <picture className="w-full h-full">
                         <source media="(max-width: 767px)" srcSet={slide.mobileImg} />
@@ -184,7 +184,7 @@ export default function EducationPage() {
         {/* ── Guides Grid ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8 px-1">
           {guides.map((guide, idx) => (
-            <Link
+            <Link prefetch={false}
               key={idx}
               href={guide.href}
               className={`${guide.bgClass} rounded-[1.75rem] md:rounded-[4px] p-7 md:p-12 flex flex-col justify-between group hover:shadow-2xl transition-all duration-500 border border-zinc-100 w-full`}
@@ -214,7 +214,7 @@ export default function EducationPage() {
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {sizeGuides.map((guide, idx) => (
-              <Link
+              <Link prefetch={false}
                 key={idx}
                 href={guide.href}
                 className="font-figtree bg-zinc-50 border border-zinc-100 rounded-2xl p-4 md:p-6 font-semibold text-[10px] md:text-xs uppercase tracking-[0.13em] text-zinc-800 hover:bg-primary hover:text-white transition-all duration-300"
@@ -251,7 +251,7 @@ export default function EducationPage() {
                 <p className="font-figtree text-sm md:text-base text-zinc-500 font-normal leading-relaxed">
                   {section.desc}
                 </p>
-                <Link
+                <Link prefetch={false}
                   href={section.href}
                   className="font-figtree inline-flex items-center gap-2 px-5 md:px-8 py-2.5 md:py-3 bg-primary text-white text-[10px] md:text-xs font-semibold uppercase tracking-[0.13em] rounded-xl hover:opacity-90 transition-opacity w-fit shadow-lg shadow-primary/10"
                 >

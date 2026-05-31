@@ -5,10 +5,10 @@ import { Suspense } from "react";
 import { getArticlesByBlogHandle, getBlogByHandle, getAllBlogHandles } from "@/lib/blogs";
 import BlogListingClient from "@/components/blogs/BlogListingClient";
 
-// SSG: Render once at build, never background-revalidate.
-// Blog content is static — it only changes when an editor publishes a new article.
-export const dynamic = 'force-static';
-export const dynamicParams = false; // Strictly 404 for unknown blogs to avoid any SSR
+// ISR: Allow dynamic parameters for new blogs added in Shopify.
+// We keep a long revalidation time to minimize Vercel function calls.
+export const dynamicParams = true; 
+export const revalidate = 86400; // 24 hours
 
 export async function generateStaticParams() {
   return await getAllBlogHandles();

@@ -57,7 +57,7 @@ const LOVE_STORIES = [
 function LoveStoryCard({ item }) {
   return (
     <div className="overflow-hidden rounded-sm border border-transparent transition-all hover:border-black/5">
-      <Link href={item.href} className="group block overflow-hidden rounded-sm">
+      <Link prefetch={false} href={item.href} className="group block overflow-hidden rounded-sm">
         <div className="relative aspect-[0.78/1] w-full overflow-hidden rounded-sm">
           <LazyImage
             src={item.image}

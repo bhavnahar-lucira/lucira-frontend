@@ -195,7 +195,7 @@
 //                                                     <span className="text-[7px] md:text-[10px] text-primary uppercase tracking-widest">{goldWidgetSettings.flip_founder_designation}</span>
 //                                                 </div>
 //                                                 {goldWidgetSettings.flip_card_link_label && (
-//                                                     <Link href={goldWidgetSettings.flip_card_link_url || "#"} className="text-[9px] md:text-[10px] font-bold text-primary uppercase tracking-widest hover:text-black transition-colors flex items-center gap-1">
+//                                                     <Link prefetch={false} href={goldWidgetSettings.flip_card_link_url || "#"} className="text-[9px] md:text-[10px] font-bold text-primary uppercase tracking-widest hover:text-black transition-colors flex items-center gap-1">
 //                                                         KNOW MORE <ArrowRight size={12} />
 //                                                     </Link>
 //                                                 )}
@@ -246,7 +246,7 @@
 //                                 <button onClick={handleNavigate} className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
 //                                     CHECK GOLD RATE <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
 //                                 </button>
-//                                 <Link href="/collections/all" className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
+//                                 <Link prefetch={false} href="/collections/all" className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
 //                                     <ShoppingBag size={16} className="group-hover:-translate-y-0.5 group-hover:scale-110 transition-transform" /> EXPLORE LUCIRA
 //                                 </Link>
 //                             </div>

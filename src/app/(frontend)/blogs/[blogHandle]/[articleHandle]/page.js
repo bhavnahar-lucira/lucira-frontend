@@ -9,10 +9,10 @@ import BlogArticleClient from "@/components/blogs/BlogArticleClient";
 import "./blog-article.css";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 
-// SSG: Articles are static content. Render once at build, zero ISR background writes.
-// Content only changes when an editor publishes or edits — not on a timer.
-export const dynamic = 'force-static';
-export const dynamicParams = false; // Strictly 404 for unknown articles to avoid any SSR
+// ISR: Allow dynamic parameters for new articles added in Shopify.
+// We keep a long revalidation time to minimize Vercel function calls.
+export const dynamicParams = true;
+export const revalidate = 86400; // 24 hours
 
 export async function generateStaticParams() {
   return await getAllArticleHandles();
