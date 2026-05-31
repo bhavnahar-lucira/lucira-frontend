@@ -63,6 +63,7 @@ export default function RootLayout({ children }) {
           </noscript>
         )}
         <ReduxProvider>
+          <WebEngageRegistration />
           {isProd && (
             <Suspense fallback={null}>
               <GtmPageView />
