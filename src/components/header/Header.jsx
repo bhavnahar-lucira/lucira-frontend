@@ -30,7 +30,7 @@ export default function Header({ menuData }) {
   if (isMobile) {
       return (
         <header 
-          className="w-full z-[100] bg-white sticky"
+          className="w-full z-100 bg-white sticky"
           style={{ top: '-104px' }} // Hides TopBar (40px) + Logo Row (64px) on scroll
         >
           <TopBar />
@@ -46,7 +46,7 @@ export default function Header({ menuData }) {
       {/* Placeholder to prevent layout jump */}
       <div className="h-40" />
 
-      <header className={cn("fixed top-0 left-0 w-full z-[100] bg-white border-b border-gray-100", hideTop && "sticky-header-active")}>
+      <header className={cn("fixed top-0 left-0 w-full z-100 bg-white border-b border-gray-100", hideTop && "sticky-header-active")}>
 
         {/* Announcement Bar */}
         <motion.div
