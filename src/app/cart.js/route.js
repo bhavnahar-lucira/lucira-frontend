@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 /**
  * Mock Shopify Cart AJAX API
  * Trackers like WebEngage often POST to /cart.js to sync session data.
