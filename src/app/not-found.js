@@ -51,6 +51,7 @@ export default async function NotFound() {
             {/* Primary Button */}
             <Link
               href={data.collectionLink}
+              prefetch={false}
               className="px-5 py-4 border border-primary bg-primary text-white rounded-xl text-base w-[90%] md:w-[25%] text-center"
             >
               {data.collectionLabel}
@@ -59,6 +60,7 @@ export default async function NotFound() {
             {/* Secondary Button */}
             <Link
               href={data.homeLink}
+              prefetch={false}
               className="px-5 py-4 border border-primary text-primary rounded-xl text-base w-[90%] md:w-[25%] text-center"
             >
               {data.homeLabel}

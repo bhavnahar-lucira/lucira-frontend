@@ -256,7 +256,7 @@ export default function MainHeader() {
       <div className="container-main grid grid-cols-[1fr_2fr_1fr] items-center py-4 border-b border-[#f2f2f2]">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center">
+        <Link href="/" prefetch={false} className="flex items-center">
           <Image
             src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
             alt="Lucira Jewelry"
@@ -326,14 +326,14 @@ export default function MainHeader() {
         {/* Right Icons */}
         <div className="flex items-center justify-end lg:gap-3 xl:gap-6 text-sm">
 
-           <Link href="/pages/store-locator" className="hidden lg:flex items-center justify-center gap-[6px] cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black">
+           <Link href="/pages/store-locator" prefetch={false} className="hidden lg:flex items-center justify-center gap-[6px] cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black">
             <StoreIcon />
             <span>Find a Store</span>
           </Link>
 
           {user ? (
             <div className="relative group flex items-center">
-              <Link href="/admin">
+              <Link href="/admin" prefetch={false}>
                 <Avatar className="h-9 w-9 cursor-pointer border border-gray-100">
                   {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                   <AvatarFallback className="bg-[#5a413f] text-white font-bold text-xs">{getInitials(user?.name)}</AvatarFallback>
@@ -348,6 +348,7 @@ export default function MainHeader() {
 
                 <Link
                   href="/admin"
+                  prefetch={false}
                   className="flex items-center gap-2 px-4 py-3 text-sm hover:bg-gray-50"
                 >
                   <UserIconCustom /> My Account
@@ -376,7 +377,7 @@ export default function MainHeader() {
           )}
 
           {user ? (
-            <Link href="/admin/wishlist" className="relative group p-1">
+            <Link href="/admin/wishlist" prefetch={false} className="relative group p-1">
               <HeartIcon />
               {wishlistItems.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
@@ -405,6 +406,7 @@ export default function MainHeader() {
           )}
             <Link 
               href="/checkout/cart" 
+              prefetch={false}
               className="relative group p-1"
               onClick={handleCartClick}
             >

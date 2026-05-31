@@ -908,7 +908,7 @@ export default function MobileHeader({ menuData }) {
                   </div>
                   <div className="flex items-center gap-4">
                     {user ? (
-                      <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="p-1">
+                      <Link href="/admin" prefetch={false} onClick={() => setIsMenuOpen(false)} className="p-1">
                         <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                           {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                           <AvatarFallback className="bg-[#5a413f] text-white font-bold text-[10px]">{getInitials(user?.name)}</AvatarFallback>
@@ -919,7 +919,7 @@ export default function MobileHeader({ menuData }) {
                         <UserIconCustom />
                       </button>
                     )}
-                    <Link href="/checkout/cart" onClick={() => setIsMenuOpen(false)} className="relative p-1">
+                      <Link href="/checkout/cart" prefetch={false} onClick={() => setIsMenuOpen(false)} className="relative p-1">
                       <CartIcon />
                       {totalQuantity > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
@@ -962,7 +962,7 @@ export default function MobileHeader({ menuData }) {
             </SheetContent>
           </Sheet>
 
-          <Link href="/" className="flex items-center">
+          <Link href="/" prefetch={false} className="flex items-center">
             <Image
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
               alt="Lucira Jewelry"
@@ -981,7 +981,7 @@ export default function MobileHeader({ menuData }) {
           )}
 
           {user ? (
-            <Link href="/admin" className="p-1">
+            <Link href="/admin" prefetch={false} className="p-1">
               <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                 {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                 <AvatarFallback className="bg-[#5a413f] text-white font-bold text-[10px]">{getInitials(user?.name)}</AvatarFallback>
@@ -992,7 +992,7 @@ export default function MobileHeader({ menuData }) {
               <UserIconCustom />
             </button>
           )}
-          <Link href={user ? "/admin/wishlist" : "#"} onClick={!user ? handleAuthTrigger : undefined} className="relative">
+          <Link href={user ? "/admin/wishlist" : "#"} prefetch={false} onClick={!user ? handleAuthTrigger : undefined} className="relative">
             <HeartIcon />
             {wishlistItems.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
@@ -1000,7 +1000,7 @@ export default function MobileHeader({ menuData }) {
               </span>
             )}
           </Link>
-          <Link href="/checkout/cart" className="relative">
+          <Link href="/checkout/cart" prefetch={false} className="relative">
             <CartIcon />
             {totalQuantity > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
