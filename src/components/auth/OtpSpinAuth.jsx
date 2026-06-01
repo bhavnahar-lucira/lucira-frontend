@@ -114,25 +114,6 @@ export function OtpSpinAuth({
     setIsMobileVerified(false);
   }, [mobile]);
 
-  // WebOTP API listener
-  useEffect(() => {
-    if ("OTPCredential" in window && (step === "otp")) {
-      const ac = new AbortController();
-      navigator.credentials
-        .get({
-          otp: { transport: ["sms"] },
-          signal: ac.signal,
-        })
-        .then((otpData) => {
-          if (otpData && otpData.code) {
-            handleAutoFillOtp(otpData.code);
-          }
-        })
-        .catch((err) => console.log("WebOTP Error:", err));
-      return () => ac.abort();
-    }
-  }, [step]);
-
   // Focus management for different steps
   useEffect(() => {
     if (step === "login") {
@@ -143,15 +124,6 @@ export function OtpSpinAuth({
       setTimeout(() => firstNameRef.current?.focus(), 100);
     }
   }, [step]);
-
-  const handleAutoFillOtp = (code) => {
-    const cleanCode = code.replace(/\D/g, "").slice(0, 4);
-    if (cleanCode.length === 4) {
-      const newOtp = cleanCode.split("");
-      setOtp(newOtp);
-      handleVerifyOtp(cleanCode);
-    }
-  };
 
   const loginSuccess = async (data, isSignup = false, skipRedirect = false) => {
     const target = redirectTargetRef.current || localStorage.getItem("auth_redirect_path") || pathname || "/";
@@ -546,7 +518,7 @@ export function OtpSpinAuth({
                   ref={otpRefs[i]}
                   type="tel"
                   inputMode="numeric"
-                  autoComplete={i === 0 ? "one-time-code" : "off"}
+                  autoComplete="off"
                   maxLength="1"
                   className="w-[20%] h-[50px] text-center text-base md:text-lg border rounded-md border-[#ddd] focus:border-black outline-none font-extrabold"
                   value={digit}
