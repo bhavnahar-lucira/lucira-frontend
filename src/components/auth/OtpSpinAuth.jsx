@@ -191,7 +191,7 @@ export function OtpSpinAuth({
   };
 
   const handleSendOtp = async () => {
-    if (mobile.length !== 10) return toast.error("Enter valid 10-digit mobile");
+    if (mobile.length !== 10) return toast.error("Please enter a valid 10-digit mobile number");
     setLoading(true);
     try {
       await sendOtpApi(mobile);
@@ -291,7 +291,7 @@ export function OtpSpinAuth({
   };
 
   const handleSpinAndRegister = async () => {
-    if (!firstName || !lastName || !email) return toast.error("Please fill all fields");
+    if (!firstName || !lastName || !email || !mobile) return toast.error("Please fill all fields");
 
     // Only check customer if mobile is not verified
     if (!isMobileVerified) {
@@ -314,6 +314,9 @@ export function OtpSpinAuth({
       setLoading(false);
     }
 
+    if (mobile.length !== 10) {
+      return toast.error("Please enter a valid 10-digit mobile number");
+    }
     setIsSpinning(true);
     const prize = getWeightedPrize();
     setWonPrize(prize);

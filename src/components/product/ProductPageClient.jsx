@@ -1781,7 +1781,7 @@ export default function ProductPageClient({
                       if (parts.length === 0) return null;
 
                       return (
-                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 uppercase tracking-tight">
+                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 tracking-tight">
                           {parts.join(" · ")}
                         </p>
                       );
