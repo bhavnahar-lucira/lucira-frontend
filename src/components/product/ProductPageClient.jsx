@@ -334,6 +334,7 @@ export default function ProductPageClient({
           title
           handle
           productType
+          tags
           featuredImage { url altText }
           images(first: 5) { edges { node { url altText } } }
           variants(first: 20) {
@@ -427,6 +428,7 @@ export default function ProductPageClient({
               compare_price: v.compareAtPrice ? Number(v.compareAtPrice.amount) : null,
               inStock: v.availableForSale === true,
               image: v.image?.url,
+              tags: v.selectedOptions.map(o => o.value).join(" "),
               size: options.size || null,
               color: options.color || options.metal || options["metal color"] || null,
               metafields: {
