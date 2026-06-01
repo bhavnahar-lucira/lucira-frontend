@@ -233,7 +233,15 @@ export default function MainHeader() {
           email: user?.email || ""
         });
       //gtm
-      await apiFetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { 
+        method: "POST",
+        body: JSON.stringify({
+          email: user?.email,
+          mobile: user?.mobile,
+          firstName: user?.first_name,
+          lastName: user?.last_name
+        })
+      });
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {

@@ -410,7 +410,15 @@ export default function MobileHeader({ menuData }) {
         last_name: user?.last_name || "",
         email: user?.email || ""
       });
-      await apiFetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { 
+        method: "POST",
+        body: JSON.stringify({
+          email: user?.email,
+          mobile: user?.mobile,
+          firstName: user?.first_name,
+          lastName: user?.last_name
+        })
+      });
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {
