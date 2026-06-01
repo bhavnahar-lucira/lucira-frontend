@@ -7,12 +7,20 @@ export default function robots() {
       // --- ✅ Explicitly Allow OpenAI Bots ---
       {
         userAgent: ["GPTBot", "OAI-SearchBot", "ChatGPT-User"],
-        disallow: "",
+        allow: "/",
       },
       // --- ✅ Explicit Googlebot Instructions ---
       {
-        userAgent: "Googlebot",
-        disallow: "",
+        userAgent: [
+          "Googlebot",
+          "Googlebot-Image",
+          "Googlebot-Mobile",
+          "Googlebot-News",
+          "Googlebot-Video",
+          "Storebot-Google",
+          "Google-InspectionTool",
+        ],
+        allow: "/",
       },
       // --- ✅ Disallow Amazon Bot Completely ---
       {
@@ -22,6 +30,7 @@ export default function robots() {
       // --- ✅ Shopify Default Bot Rules & Catch-all ---
       {
         userAgent: "*",
+        allow: "/",
         disallow: [
           "/a/downloads/-/*",
           "/admin",
@@ -70,7 +79,6 @@ export default function robots() {
           "/*?page=",
           "/*?*section_id=",
         ],
-        crawlDelay: 10,
       },
       // --- ✅ adsbot-google rules ---
       {

@@ -1,7 +1,29 @@
 // src/lib/gtm.js
 
+// Cache for deduplicating rapid events
+const lastPushedEvents = new Map();
+const MIN_EVENT_INTERVAL_MS = 1000; // 1 second between identical events
+
 export const pushToDataLayer = (data) => {
   if (typeof window !== "undefined") {
+    // Basic throttling for identical event types to prevent infinite loops from trackers
+    if (data.event) {
+      const now = Date.now();
+      const lastPush = lastPushedEvents.get(data.event);
+      
+      if (lastPush && (now - lastPush < MIN_EVENT_INTERVAL_MS)) {
+        // For some high-frequency events, we might want to skip or merge
+        // But for things like 'addToCart', we should probably allow them if the data is different
+        // Here we just log for debugging in dev
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[GTM] Throttling rapid event: ${data.event}`);
+        }
+        // If it's a pageView, we definitely want to throttle
+        if (data.event === 'pageView') return;
+      }
+      lastPushedEvents.set(data.event, now);
+    }
+
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push(data);
   }
