@@ -64,7 +64,7 @@ import { SizeGuideSheet } from "@/components/product/SizeGuideSheet";
 import { ProductCustomizerMobile } from "@/components/product/ProductCustomizerMobile";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@/redux/features/cart/cartSlice";
-import { selectUser, setPincode, selectPincode } from "@/redux/features/user/userSlice";
+import { selectUser, setPincode, selectPincode, openAuthModal } from "@/redux/features/user/userSlice";
 import {
   addWishlistItem,
   removeWishlistItem,
@@ -278,6 +278,7 @@ export default function ProductPageClient({
   const user = useSelector(selectUser);
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const wishlistItems = useSelector((state) => state.wishlist.items);
+  const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
   const [addingToCart, setAddingToCart] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [showTopAtc, setShowTopAtc] = useState(false);
@@ -910,9 +911,8 @@ export default function ProductPageClient({
     if (user?.id) {
       return wishlistItems.some(findFn);
     }
-    const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
-    return guestItems.some(findFn);
-  }, [user?.id, wishlistItems, productId]);
+    return guestWishlistItems.some(findFn);
+  }, [user?.id, wishlistItems, guestWishlistItems, productId]);
   const recentlyViewedState = useSelector(selectRecentlyViewed);
 
   const handleSaveEngraving = () => {
@@ -1200,8 +1200,7 @@ export default function ProductPageClient({
       if (isWishlisted) {
         // Remove
         const normProductId = String(getNumericId(rawProductId));
-        const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
-        const targetItem = (user?.id ? wishlistItems : guestItems).find(
+        const targetItem = (user?.id ? wishlistItems : guestWishlistItems).find(
           (item) => String(getNumericId(item.productId)) === normProductId
         );
         
@@ -1250,6 +1249,7 @@ export default function ProductPageClient({
           dispatch(addWishlistItem({ ...payload, userId: finalUserId }));
         } else {
           dispatch(addGuestWishlistItem(payload));
+          dispatch(openAuthModal());
         }
 
         pushAddToWishlist([commonTrackingData]);
