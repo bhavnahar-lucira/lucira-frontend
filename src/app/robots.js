@@ -1,3 +1,5 @@
+export const revalidate = false; // Force SSG - Zero function invocations after build
+
 export default function robots() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
   const sitemapUrl = `${baseUrl}/sitemap.xml`;

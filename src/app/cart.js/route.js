@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 const MOCK_CART = {
-  token: "headless-cart-sync-active",
+  token: "headless_cart_00000000000000000000000000000000",
   note: null,
   attributes: {},
   original_total_price: 0,
@@ -18,37 +18,53 @@ const MOCK_CART = {
   cart_level_discount_applications: []
 };
 
-// Aggressive caching for the Edge CDN to prevent repeated invocations
+// Aggressive caching for the Edge CDN and browser
 const CACHE_HEADERS = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
-  // Cache for 1 hour, serve stale up to 24h
-  'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-  // Explicitly tell Vercel to cache even if cookies are present
+  // Cache for 1 hour in browser and CDN, serve stale up to 24h
+  'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
   'Vercel-CDN-Cache-Control': 'public, s-maxage=3600',
   'CDN-Cache-Control': 'public, s-maxage=3600',
 };
 
 /**
  * Mock Shopify Cart AJAX API
- * Trackers like WebEngage often POST to /cart.js to sync session data.
  */
 export async function GET() {
-  return NextResponse.json(MOCK_CART, {
+  const response = NextResponse.json(MOCK_CART, {
     headers: CACHE_HEADERS
   });
+
+  // Set the standard Shopify cart cookie to stop trackers from looping
+  response.cookies.set('cart', MOCK_CART.token, { 
+    path: '/', 
+    maxAge: 3600 * 24 * 14, // 14 days
+    sameSite: 'lax',
+    httpOnly: false 
+  });
+
+  return response;
 }
 
 /**
- * Shopify's AJAX API returns the full cart object even on POST.
- * Trackers expect this to update their internal state.
+ * Handle POST by returning the same object and setting the cookie.
  */
 export async function POST() {
-  return NextResponse.json(MOCK_CART, {
+  const response = NextResponse.json(MOCK_CART, {
     headers: CACHE_HEADERS
   });
+
+  response.cookies.set('cart', MOCK_CART.token, { 
+    path: '/', 
+    maxAge: 3600 * 24 * 14,
+    sameSite: 'lax',
+    httpOnly: false 
+  });
+
+  return response;
 }
 
 export async function OPTIONS() {
