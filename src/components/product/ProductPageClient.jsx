@@ -266,7 +266,7 @@ export default function ProductPageClient({
   const searchParams = useSearchParams();
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
@@ -324,10 +324,10 @@ export default function ProductPageClient({
 
     const fetchComplementary = async () => {
       if (!product.shopifyId && !product.id) return;
-      
+
       const gid = product.shopifyId?.startsWith("gid://") ? product.shopifyId : `gid://shopify/Product/${product.shopifyId || product.id}`;
       console.log("[fetchComplementary] Starting fetch for GID:", gid);
-      
+
       const PRODUCT_FIELDS = `
         fragment ProductFields on Product {
           id
@@ -414,11 +414,11 @@ export default function ProductPageClient({
 
         const mapProduct = (p) => {
           if (!p || !p.id) return null;
-          
+
           const variants = (p.variants?.edges || []).map(({ node: v }) => {
             const options = {};
             v.selectedOptions?.forEach(o => { options[o.name.toLowerCase()] = o.value; });
-            
+
             return {
               id: v.id.split("/").pop(),
               shopifyId: v.id,
@@ -468,9 +468,9 @@ export default function ProductPageClient({
         // Always fetch metafields to check for matching_product even if recommendations had results
         const metaResult = await shopifyStorefrontFetch(METAFIELD_QUERY, { id: gid });
         const metafields = metaResult?.product?.metafields || [];
-        
+
         console.log("[fetchComplementary] Metafields found:", metafields.length);
-        
+
         const complementaryFromMeta = [];
         const matchingFromMeta = [];
 
@@ -902,11 +902,11 @@ export default function ProductPageClient({
 
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
-  
+
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
     const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
-    
+
     if (user?.id) {
       return wishlistItems.some(findFn);
     }
@@ -1062,7 +1062,7 @@ export default function ProductPageClient({
       const variantOptions = (product.variants || [])
         .filter((variant) => {
           if (!variant?.size || !variant?.color) return false;
-          
+
           const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
 
           const vKarat = normalize(variant.metafields?.metal_purity || "");
@@ -1204,7 +1204,7 @@ export default function ProductPageClient({
         const targetItem = (user?.id ? wishlistItems : guestItems).find(
           (item) => String(getNumericId(item.productId)) === normProductId
         );
-        
+
         if (targetItem) {
           if (user?.id) {
             dispatch(removeWishlistItem({ productId: targetItem.productId, variantId: targetItem.variantId }));
@@ -1552,7 +1552,7 @@ export default function ProductPageClient({
   const isSizeInStock = (size) => {
     return product.variants?.some(v => {
       const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
-      
+
       const vKarat = normalize(v.metafields?.metal_purity || "");
       const vMetal = normalize(v.metafields?.metal_color || "");
 
@@ -2361,7 +2361,7 @@ export default function ProductPageClient({
                                   <span className="text-lg font-extrabold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-1.5 leading-tight font-medium">
-                                  You can redeem this amount after 10 months.
+                                  Redeem on any diamond product after 10 months. Any remaining amount can be paid at checkout.
                                 </p>
                               </div>
                             </div>
@@ -2495,16 +2495,16 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               <div className="border border-gray-200 rounded-md p-4 space-y-2.5 bg-gray-50">
-                  <div className="flex items-center gap-2">
-                    <Store size={20} className="text-black" strokeWidth={1.2} />
-                    <span className="text-base font-bold">
-                      {nearestStore ? (
-                        <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
-                      ) : (
-                        <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
-                      )}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Store size={20} className="text-black" strokeWidth={1.2} />
+                  <span className="text-base font-bold">
+                    {nearestStore ? (
+                      <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
+                    ) : (
+                      <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
+                    )}
+                  </span>
+                </div>
                 {availableStoreCount > 0 && (
                   <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
                     <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
@@ -2899,7 +2899,7 @@ export default function ProductPageClient({
                       </a>
                     </Button>
                   </div>
-                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">                    
+                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">
                     <div className="flex items-center gap-7">
                       <div className="w-14 h-14 relative">
                         <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />

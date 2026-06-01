@@ -265,7 +265,7 @@ export default function PaymentPage() {
   const [makeDefault, setMakeDefault] = useState(false);
 
   const { user, accessToken } = useSelector((state) => state.user);
-  const {items, totalAmount, appliedCoupon, nectorPoints } = useCart();
+  const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -316,13 +316,13 @@ export default function PaymentPage() {
   useEffect(() => {
     const checkDelivery = async () => {
       if (typeof window === "undefined") return;
-      
+
       const selectionStr = localStorage.getItem("checkout_selection");
       if (!selectionStr) {
         router.push("/checkout/shipping");
         return;
       }
-      
+
       const selection = JSON.parse(selectionStr);
       if (selection.deliveryMethod === "ship" && selection.selectedAddress?.zip) {
         try {
@@ -341,14 +341,14 @@ export default function PaymentPage() {
 
   const partialCodDetails = useMemo(() => {
     const total = Math.max(0, Number(finalAmount || 0));
-    
-    const hasGoldCoin = items?.length > 0 && items.some(item => 
-      item.variantId === GOLDCOIN_VARIANT_ID || 
+
+    const hasGoldCoin = items?.length > 0 && items.some(item =>
+      item.variantId === GOLDCOIN_VARIANT_ID ||
       (item.handle && item.handle.includes("gold-coin")) ||
       (item.type && item.type.toLowerCase() === "gold coin") ||
       (item.title && item.title.toLowerCase().includes("gold coin"))
     );
-    
+
     const isEligible = total > 0 && total < 50000 && !hasGoldCoin;
     const prepaidAmount = isEligible ? total * 0.2 : 0;
     const codAmount = isEligible ? total - prepaidAmount : 0;
@@ -412,10 +412,10 @@ export default function PaymentPage() {
         address: addressForm,
         makeDefault,
       }, accessToken);
-      
+
       applyAddressPayload(payload);
-      
-      const newAddress = payload.addresses.find(a => 
+
+      const newAddress = payload.addresses.find(a =>
         a.address1 === addressForm.address1 && a.zip === addressForm.zip
       ) || payload.addresses[payload.addresses.length - 1];
 
@@ -444,11 +444,11 @@ export default function PaymentPage() {
         const type = (item.type || item.productType || item.product_type || "").toLowerCase();
         const title = (item.title || "").toLowerCase();
         const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
-        
-        return type.includes("diamond") || title.includes("diamond") || 
-               type.includes("solitaire") || title.includes("solitaire") ||
-               type.includes("gemstone") || title.includes("gemstone") ||
-               hasDiamondCharges;
+
+        return type.includes("diamond") || title.includes("diamond") ||
+          type.includes("solitaire") || title.includes("solitaire") ||
+          type.includes("gemstone") || title.includes("gemstone") ||
+          hasDiamondCharges;
       });
 
       if (!hasDiamondJewellery) {
@@ -670,18 +670,18 @@ export default function PaymentPage() {
       const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
       const paymentMethodDetails = selectedPaymentGateway === "partial_cod"
         ? {
-            type: "partial_cod",
-            prepaidAmount: partialCodDetails.prepaidAmount,
-            codAmount: partialCodDetails.codAmount,
-            grandTotal: grandTotalValue,
-          }
+          type: "partial_cod",
+          prepaidAmount: partialCodDetails.prepaidAmount,
+          codAmount: partialCodDetails.codAmount,
+          grandTotal: grandTotalValue,
+        }
         : {
-            type: "razorpay",
-            prepaidAmount: grandTotalValue,
-            codAmount: 0,
-            grandTotal: grandTotalValue,
-          };
-      const loyaltyPoints = appliedCoupon?.loyaltyPoints || ""; 
+          type: "razorpay",
+          prepaidAmount: grandTotalValue,
+          codAmount: 0,
+          grandTotal: grandTotalValue,
+        };
+      const loyaltyPoints = appliedCoupon?.loyaltyPoints || "";
 
       const purchaseDataForLater = {
         currency: "INR",
@@ -844,8 +844,8 @@ export default function PaymentPage() {
                   item_name: item.title,
                   price: Number(item.price || 0),
                   item_brand: "Lucira Jewelry",
-                  item_category: "",
-                  category: category,
+                  item_category: category,
+                  // category: category,
                   item_variant: item.variantTitle || "",
                   quantity: item.quantity,
                   index: idx
@@ -881,10 +881,10 @@ export default function PaymentPage() {
                 ? `Order placed successfully: ${completion.shopifyOrderName}`
                 : "Order placed successfully"
             );
-            
+
             // Wait a moment for any background processes or toast to be visible
             setTimeout(() => {
-              const successUrl = completion?.shopifyOrderName 
+              const successUrl = completion?.shopifyOrderName
                 ? `/success?orderName=${encodeURIComponent(completion.shopifyOrderName)}`
                 : "/success";
               router.replace(successUrl);
@@ -935,12 +935,12 @@ export default function PaymentPage() {
         },
       });
 
-       razorpay.on("payment.failed", function handleFailure(response) {
+      razorpay.on("payment.failed", function handleFailure(response) {
         const reason =
           response?.error?.description ||
           response?.error?.reason ||
           "Payment failed. Please try again.";
-        
+
         const getNumericId = (gid) => {
           if (!gid) return 0;
           if (typeof gid === 'number') return gid;
@@ -1018,16 +1018,15 @@ export default function PaymentPage() {
             onClick={() => type === "shipping" ? handleSelectAddress(address.id) : handleSelectBillingAddress(address.id)}
             role="button"
             tabIndex={0}
-            className={`rounded-xl border p-4 text-left transition-all ${
-              isSelected ? "border-accent bg-accent/10" : "border-zinc-200 bg-white"
-            }`}
+            className={`rounded-xl border p-4 text-left transition-all ${isSelected ? "border-accent bg-accent/10" : "border-zinc-200 bg-white"
+              }`}
           >
             <div className="flex items-start gap-3">
               <input
                 type="radio"
                 name={`${type}-addresses`}
                 checked={isSelected}
-                onChange={() => {}}
+                onChange={() => { }}
                 className="mt-1 size-4 accent-black"
               />
               <div className="flex-1">
@@ -1081,10 +1080,10 @@ export default function PaymentPage() {
     <div className="bg-white min-h-screen overflow-x-hidden">
       <div className="max-w-7xl w-full mx-auto relative z-10 px-4">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
-          
+
           {/* Main Content Area (60%) */}
           <div className="grow lg:basis-[60%] lg:shrink-0 py-10 px-0 lg:pr-12 space-y-10 bg-white">
-            
+
             {/* MOBILE ONLY ORDER */}
             {!isDesktop && (
               <div className="space-y-10 px-4">
@@ -1380,10 +1379,10 @@ export default function PaymentPage() {
                     <ChevronLeft size={16} />
                     Return to shipping
                   </Link>
-                  <Button 
-                    type="button" 
-                    onClick={handlePayNow} 
-                    disabled={paymentLoading || !totalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)} 
+                  <Button
+                    type="button"
+                    onClick={handlePayNow}
+                    disabled={paymentLoading || !totalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
                     className="px-14 h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-all text-lg uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {paymentLoading
@@ -1414,14 +1413,14 @@ export default function PaymentPage() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-            <button 
+            <button
               onClick={scrollToSummary}
               className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
             >
               View Order Summary
             </button>
           </div>
-          <Button 
+          <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
             className="grow bg-primary hover:bg-accent text-white font-bold h-12 uppercase tracking-widest rounded-lg text-sm disabled:cursor-not-allowed disabled:opacity-60"

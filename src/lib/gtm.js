@@ -10,7 +10,7 @@ export const pushToDataLayer = (data) => {
     if (data.event) {
       const now = Date.now();
       const lastPush = lastPushedEvents.get(data.event);
-      
+
       if (lastPush && (now - lastPush < MIN_EVENT_INTERVAL_MS)) {
         // For some high-frequency events, we might want to skip or merge
         // But for things like 'addToCart', we should probably allow them if the data is different
@@ -102,14 +102,14 @@ export const getStandardWishlistPayload = (product, variant, currentOrigin, thum
   };
 
   // Robust SKU resolution
-  const sku = 
-    variant?.sku || 
-    product?.sku || 
-    variant?.variantSku || 
-    product?.variantSku || 
+  const sku =
+    variant?.sku ||
+    product?.sku ||
+    variant?.variantSku ||
+    product?.variantSku ||
     variant?.item_sku ||
     product?.item_sku ||
-    (product?.variants && product?.variants[0]?.sku) || 
+    (product?.variants && product?.variants[0]?.sku) ||
     (product?.variantOptions && product?.variantOptions[0]?.sku) ||
     "";
 
@@ -148,7 +148,7 @@ export const getStandardWishlistPayload = (product, variant, currentOrigin, thum
 export const getStandardCartItem = (item, idx = 0) => {
   const prodId = String(getNumericId(item.productId || item.shopifyId || item.id));
   const lowerTitle = (item.title || "").toLowerCase();
-  
+
   let category = item.type || item.productType || "";
   if (!category) {
     if (lowerTitle.includes("ring")) category = "Rings";
@@ -159,18 +159,18 @@ export const getStandardCartItem = (item, idx = 0) => {
 
   // Robust SKU resolution for cart items
   const variantId = item.variantId || item.id || item.shopifyId || "";
-  const currentVariant = item.variantOptions?.find(v => 
+  const currentVariant = item.variantOptions?.find(v =>
     String(getNumericId(v.variantId || v.id || v.shopifyId)) === String(getNumericId(variantId))
   );
 
-  const sku = 
-    item.sku || 
-    currentVariant?.sku || 
-    item.variantSku || 
-    item.item_sku || 
-    (item.variantOptions && item.variantOptions[0]?.sku) || 
+  const sku =
+    item.sku ||
+    currentVariant?.sku ||
+    item.variantSku ||
+    item.item_sku ||
+    (item.variantOptions && item.variantOptions[0]?.sku) ||
     "";
-  
+
   return {
     id: prodId,
     sku: sku,
@@ -195,11 +195,11 @@ export const getStandardImpressionProducts = (products, currentOrigin = "") => {
     };
 
     // Robust SKU resolution
-    const sku = 
-      product?.sku || 
-      product?.variantSku || 
+    const sku =
+      product?.sku ||
+      product?.variantSku ||
       product?.item_sku ||
-      (product?.variants && product?.variants[0]?.sku) || 
+      (product?.variants && product?.variants[0]?.sku) ||
       (product?.variantOptions && product?.variantOptions[0]?.sku) ||
       "";
 
@@ -214,7 +214,7 @@ export const getStandardImpressionProducts = (products, currentOrigin = "") => {
     const baseUrl = currentOrigin || (typeof window !== "undefined" ? window.location.origin : "");
     const handle = product?.handle || "";
     const variantId = product?.variants?.[0]?.id || product?.variantId || "";
-    const itemUrl = variantId 
+    const itemUrl = variantId
       ? `${baseUrl}/products/${handle}?variant=${variantId}`
       : `${baseUrl}/products/${handle}`;
 
@@ -228,8 +228,8 @@ export const getStandardImpressionProducts = (products, currentOrigin = "") => {
       item_sku: sku,
       category: category,
       item_url: itemUrl,
-      price: originalPrice,
-      offer_price: comparePrice,
+      price: String(originalPrice),
+      offer_price: String(comparePrice),
       index: idx + 1
     };
   });
