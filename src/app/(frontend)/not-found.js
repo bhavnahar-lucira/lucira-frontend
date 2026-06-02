@@ -45,7 +45,7 @@ export default function NotFound() {
           <div className="flex justify-center gap-3.75 flex-wrap">
 
             {/* Primary Button */}
-            <Link
+            <Link prefetch={false}
               href={data.collectionLink}
               className="px-5 py-4 border border-primary bg-primary text-white rounded-xl text-base w-[90%] md:w-[25%] text-center"
             >
@@ -53,7 +53,7 @@ export default function NotFound() {
             </Link>
 
             {/* Secondary Button */}
-            <Link
+            <Link prefetch={false}
               href={data.homeLink}
               className="px-5 py-4 border border-primary text-primary rounded-xl text-base w-[90%] md:w-[25%] text-center"
             >

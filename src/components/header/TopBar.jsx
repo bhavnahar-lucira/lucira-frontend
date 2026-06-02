@@ -35,7 +35,7 @@ export default function TopBar() {
 
   return (
     <div className="bg-[#000000] text-white group relative h-10 overflow-hidden">
-      <button className="topbar-prev absolute left-4 z-20 transition-opacity cursor-pointer top-1/2 -translate-y-1/2 flex items-center justify-center">
+      <button className="topbar-prev absolute left-2 z-20 transition-opacity cursor-pointer top-1/2 -translate-y-1/2 flex items-center justify-center">
         <ChevronLeft size={16} />
       </button>
 
@@ -56,9 +56,9 @@ export default function TopBar() {
         {announcements.map((item, index) => (
           <SwiperSlide key={index} className="!flex items-center justify-center h-full">
             {item.url ? (
-              <Link 
+              <Link prefetch={false} 
                 href={item.url}
-                className="text-center font-medium text-sm leading-none tracking-[0.7px] flex items-center justify-center h-full w-full px-12 hover:underline transition-all"
+                className="text-center font-medium text-sm leading-none tracking-[0.7px] flex items-center justify-center h-full w-full px-6 hover:underline transition-all"
               >
                 {item.text}
               </Link>
@@ -71,7 +71,7 @@ export default function TopBar() {
         ))}
       </Swiper>
 
-      <button className="topbar-next absolute right-4 z-20 transition-opacity cursor-pointer top-1/2 -translate-y-1/2 flex items-center justify-center">
+      <button className="topbar-next absolute right-2 z-20 transition-opacity cursor-pointer top-1/2 -translate-y-1/2 flex items-center justify-center">
         <ChevronRight size={16} />
       </button>
     </div>

@@ -108,7 +108,7 @@ export function SizeGuideSheet({ children }) {
               </span>
             </div>
 
-            <Link
+            <Link prefetch={false}
               href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
               target="_blank"
               className="bg-white rounded-xl flex items-center gap-4 p-3 border border-gray-100 shadow-sm"

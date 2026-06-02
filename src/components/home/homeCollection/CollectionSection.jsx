@@ -47,7 +47,7 @@ export default function CollectionSection ({ title, subtitle, tabs = [], childre
         </div>
 
         {page === "home" && colCat && colLink && (
-          <Link href={colLink} className="flex justify-center mt-4 md:mt-2">
+          <Link prefetch={false} href={colLink} className="flex justify-center mt-4 md:mt-2">
             <Button className="w-fit md:w-auto px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors">
               {colCat}
             </Button>

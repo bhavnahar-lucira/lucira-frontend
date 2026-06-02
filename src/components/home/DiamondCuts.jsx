@@ -28,7 +28,7 @@ export default function DiamondShapes() {
 
         <div className="grid grid-cols-4 lg:grid-cols-8 gap-y-10 gap-x-4">
           {SHAPES.map((shape) => (
-            <Link
+            <Link prefetch={false}
               key={shape.slug}
               href={`/collections/${shape.slug}`}
               className="group flex flex-col items-center"

@@ -293,7 +293,7 @@ export default function WishlistPage() {
               <div key={itemKey} className="group space-y-4">
                 {/* Product Image and Icons Container */}
                 <div className="relative aspect-square w-full bg-[#fafafa] overflow-hidden rounded-2xl border border-zinc-100 transition-all duration-300 group-hover:shadow-md">
-                  <Link href={`/products/${item.productHandle || item.productId}${item.variantId ? `?variant=${item.variantId}` : ""}`} className="block w-full h-full mix-blend-multiply relative">
+                  <Link prefetch={false} href={`/products/${item.productHandle || item.productId}${item.variantId ? `?variant=${item.variantId}` : ""}`} className="block w-full h-full mix-blend-multiply relative">
                     {item.image ? (
                       <Image
                         src={getValidSrc(item.image)}
@@ -320,7 +320,7 @@ export default function WishlistPage() {
 
                 {/* Product Info */}
                 <div className="flex flex-col gap-3 px-1">
-                  <Link href={`/products/${item.productHandle || item.productId}${item.variantId ? `?variant=${item.variantId}` : ""}`}>
+                  <Link prefetch={false} href={`/products/${item.productHandle || item.productId}${item.variantId ? `?variant=${item.variantId}` : ""}`}>
                     <h3 className="font-figtree text-base md:text-lg font-bold hover:underline underline-offset-4 decoration-1 leading-snug hover:text-primary transition-colors truncate">
                       {item.title}
                     </h3>
@@ -389,7 +389,7 @@ export default function WishlistPage() {
                         </>
                       )}
                     </button>
-                    <Link
+                    <Link prefetch={false}
                       href={`/products/${item.productHandle || item.productId}${item.variantId ? `?variant=${item.variantId}` : ""}`}
                       className="flex-1 flex items-center justify-center gap-2 bg-zinc-100 text-zinc-900 text-[11px] font-bold uppercase tracking-wider py-3 rounded-xl hover:bg-zinc-200 transition-colors"
                     >
@@ -410,7 +410,7 @@ export default function WishlistPage() {
               <h3 className="font-figtree text-2xl font-black text-primary">Your wishlist is empty</h3>
               <p className="font-figtree text-zinc-500 font-medium max-w-sm mx-auto">Start adding items you love to your wishlist and they’ll appear here.</p>
             </div>
-            <Link href="/collections/jewelry" className="font-figtree inline-block px-10 py-4 bg-primary text-white text-sm font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-transform">
+            <Link prefetch={false} href="/collections/jewelry" className="font-figtree inline-block px-10 py-4 bg-primary text-white text-sm font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-transform">
               Browse Collections
             </Link>
           </div>
@@ -440,7 +440,7 @@ export default function WishlistPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 sm:gap-x-8 gap-x-4 sm:gap-y-12 gap-y-6 pb-10">
                   {similarProducts.slice(0, 10).map((item) => (
                     <div key={item.shopifyId || item._id || item.id} className="space-y-4">
-                      <Link href={`/products/${item.handle}`} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
+                      <Link prefetch={false} href={`/products/${item.handle}`} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
                         <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden transition-all duration-300 group-hover:bg-[#f3f3f3]">
                           <Image
                             src={getValidSrc(item.image)}

@@ -18,6 +18,11 @@ import "swiper/css/thumbs";
 import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
+function formatCdnUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  return url.replace("https://www.lucirajewelry.com", "https://luciraonline.myshopify.com").replace("http://www.lucirajewelry.com", "https://luciraonline.myshopify.com");
+}
+
 export default function ProductGallery({ media = [], title = "", activeColor = "", onViewSimilar, hasSimilar = false, product, activeVariant }) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [mounted, setMounted] = useState(false);
@@ -50,6 +55,19 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const sortedMedia = useMemo(() => {
     if (!media || media.length === 0) return [];
 
+    const formattedMedia = media.map(m => {
+      const newM = { ...m };
+      if (newM.url) newM.url = formatCdnUrl(newM.url);
+      if (newM.preview) newM.preview = formatCdnUrl(newM.preview);
+      if (newM.previewImage?.url) {
+        newM.previewImage = { ...newM.previewImage, url: formatCdnUrl(newM.previewImage.url) };
+      }
+      if (newM.sources) {
+        newM.sources = newM.sources.map(s => ({ ...s, url: formatCdnUrl(s.url) }));
+      }
+      return newM;
+    });
+
     // 1. Define color matching logic
     const colorTerms = ["yellow", "white", "rose"];
     const currentBaseColor = activeColor.toLowerCase().split(" ")[0];
@@ -73,7 +91,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       others: []
     };
 
-    media.forEach((item) => {
+    formattedMedia.forEach((item) => {
       const alt = (item.alt || "").toLowerCase();
       if (alt.includes("cert")) groups.cert.push(item);
       else if (alt.includes("mq")) groups.mq.push(item);
@@ -262,7 +280,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               
               {isFirst && (
                 <>
-                  <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                  <div className="absolute top-4 left-4 flex flex-row gap-2 z-10">
                     {displayLabels.map((label, index) => (
                       <span key={index} className="bg-[#F1E4D1] px-3 py-1.5 text-[10px] font-semibold uppercase w-fit">{label}</span>
                     ))}
@@ -367,7 +385,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
           </Swiper>
 
           {/* Badges Overlay */}
-          <div className="absolute top-4 left-2 flex flex-col gap-2 z-10 pointer-events-none">
+          <div className="absolute top-4 left-2 flex flex-row gap-2 z-10 pointer-events-none">
             {displayLabels.map((label, index) => (
               <span key={index} className="bg-[#F1E4D1] text-black px-3 py-1.5 text-[10px] font-semibold uppercase w-fit">{label}</span>
             ))}

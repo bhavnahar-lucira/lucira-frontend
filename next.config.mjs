@@ -59,6 +59,35 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/cart',
+        destination: '/checkout/cart',
+        permanent: true,
+      },
+      {
+        source: '/account/login',
+        destination: '/login',
+        permanent: true,
+      },
+      {
+        source: '/account/register',
+        destination: '/register',
+        permanent: true,
+      },
+      {
+        source: '/account',
+        destination: '/admin',
+        permanent: true,
+      },
+      {
+        source: '/wishlist',
+        destination: '/admin/wishlist',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
@@ -66,17 +95,17 @@ const nextConfig = {
         destination: '/api/feeds/products',
       },
       {
-        source: '/sitemap.xml',
-        destination: '/api/sitemap-proxy/sitemap.xml',
-      },
-      {
-        source: '/sitemap_:slug.xml',
-        destination: '/api/sitemap-proxy/sitemap_:slug.xml',
-      },
-      {
         source: '/api/proxy/earn-rewards/:path*',
         destination: 'https://api.lucirajewelry.com/earn-rewards/:path*',
       },
+      {
+        source: '/cart.js',
+        destination: '/cart.js', // Serve the static file in public/
+      },
+      {
+        source: '/images/:path*',
+        destination: '/images/:path*', // Ensure images don't hit dynamic routes if missing
+      }
     ];
   },
 };

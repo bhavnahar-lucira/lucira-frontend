@@ -14,7 +14,10 @@ export async function getAllPages() {
         }
       }
     `;
-  const data = await shopifyStorefrontFetch(query);
+  const data = await shopifyStorefrontFetch(query, {}, { 
+    cache: 'force-cache',
+    useRwToken: true 
+  });
   return data?.pages?.edges.map(e => e.node) || [];
 }
 

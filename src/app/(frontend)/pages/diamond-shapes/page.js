@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import ProductCard from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/product/ProductCardSkeleton";
+import { apiFetch } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Fade-in observer helper
@@ -137,16 +138,14 @@ const CollectionProducts = ({ collectionHandle }) => {
     if (fetched.current) return;
     fetched.current = true;
     try {
-      const res = await fetch(
-        `/api/collection?handle=${collectionHandle}&limit=4&sort=best_selling`
-      );
-      if (!res.ok) throw new Error("API error");
-      const data = await res.json();
+      // use apiFetch so requests are routed to the configured backend
+      const data = await apiFetch(`/api/collection?handle=${collectionHandle}&limit=4&sort=best_selling`);
       if (isMounted.current) {
-        setProducts((data.products || []).slice(0, 4));
+        setProducts((data?.products || []).slice(0, 4));
       }
-    } catch {
-      // fail silently
+    } catch (err) {
+      // Log error for easier debugging in the browser console
+      console.warn(`[diamond-shapes] failed to load products for ${collectionHandle}:`, err.message || err);
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -258,7 +257,7 @@ const CollectionProducts = ({ collectionHandle }) => {
           if (product === null) {
             return (
               <div key={`filler-${i}`} className={isHiddenOnMobile ? "hidden md:block" : ""}>
-                <Link
+                <Link prefetch={false}
                   href={`/collections/${collectionHandle}`}
                   className="flex flex-col items-center justify-center h-full min-h-[260px] border border-dashed border-[#c9b9b7] bg-[#faf8f7] hover:bg-[#f3eeec] transition-colors duration-300 group"
                 >
@@ -286,7 +285,7 @@ const CollectionProducts = ({ collectionHandle }) => {
 
       {/* View All CTA — brand primary colour */}
       <div className="mt-6 text-center">
-        <Link
+        <Link prefetch={false}
           href={`/collections/${collectionHandle}`}
           className="inline-block border border-[#5A413F] text-[#5A413F] px-10 py-3 text-[12px] md:text-[13px] font-figtree font-medium tracking-widest uppercase hover:bg-[#5A413F] hover:text-white transition-colors duration-300"
         >
@@ -311,7 +310,7 @@ const CollectionBanner = ({ section }) => {
         <FadeInSection
           className={`w-full flex justify-center ${section.reverse ? "md:order-last" : ""}`}
         >
-          <Link
+          <Link prefetch={false}
             href={`/collections/${section.collection}`}
             className="block relative w-full group overflow-hidden rounded-sm"
           >
@@ -333,7 +332,7 @@ const CollectionBanner = ({ section }) => {
           <p className="text-[14px] md:text-[16px] leading-relaxed text-[#777] max-w-[460px] mb-6">
             {section.subheading}
           </p>
-          <Link
+          <Link prefetch={false}
             href={`/collections/${section.collection}`}
             className="inline-block px-9 py-3 bg-[#5A413F] text-white text-[12px] md:text-[13px] font-figtree font-medium tracking-widest uppercase hover:bg-[#B77767] transition-colors duration-300"
           >

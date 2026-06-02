@@ -18,14 +18,14 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
           <TabsList className={`grid ${priceBreakup.comparison ? 'grid-cols-2' : 'grid-cols-1'} bg-white p-1 rounded-full mb-6 w-full h-auto!`}>
             <TabsTrigger 
               value="price" 
-              className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-[#A87E6D] data-[state=active]:text-white rounded-full transition-all cursor-pointer"
+              className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-tertiary data-[state=active]:text-white rounded-full transition-all cursor-pointer"
             >
               Price Breakup
             </TabsTrigger>
             {priceBreakup.comparison && (
               <TabsTrigger 
                 value="comparison" 
-                className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-[#A87E6D] data-[state=active]:text-white rounded-full transition-all cursor-pointer"
+                className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-tertiary data-[state=active]:text-white rounded-full transition-all cursor-pointer"
               >
                 Price Comparison
               </TabsTrigger>
@@ -105,6 +105,8 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
 }
 
 function PriceRow({ label, value, oldValue, discount }) {
+  const isFree = value === 'FREE';
+
   return (
     <div className="flex justify-between items-center text-[13px] pb-1 gap-3">
       <div className="flex items-center gap-2">
@@ -119,7 +121,7 @@ function PriceRow({ label, value, oldValue, discount }) {
         {oldValue && (
           <span className="text-gray-400 line-through">{oldValue}</span>
         )}
-        <span className="font-semibold text-gray-900">{value}</span>
+        <span className={`font-semibold ${isFree ? 'text-[#1E7D4E]' : 'text-gray-900'}`}>{value}</span>
       </div>
     </div>
   );

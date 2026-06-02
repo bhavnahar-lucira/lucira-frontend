@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { pushCustomerData, pushMarketingData, pushPageView } from "@/lib/gtm";
@@ -25,8 +25,13 @@ export default function GtmPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user, isAuthenticated } = useSelector((state) => state.user);
+  const lastPathRef = useRef("");
 
   useEffect(() => {
+    const currentPath = pathname + searchParams.toString();
+    if (lastPathRef.current === currentPath) return;
+    lastPathRef.current = currentPath;
+
     // 1. Determine Page Info
     const pageType = getPageType(pathname);
     const pageUrl = typeof window !== 'undefined' ? window.location.href : "";
@@ -46,15 +51,6 @@ export default function GtmPageView() {
       utmId: searchParams.get("utm_id") || ""
     });
 
-    // 3. Push Customer Data if authenticated
-    if (isAuthenticated && user) {
-      pushCustomerData({
-        name: user.name || "",
-        mobile: user.mobile || "",
-        email: user.email || "",
-        device_type: window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop'
-      });
-    }
     // 4. Push Marketing Data
     pushMarketingData({
       utmSource: searchParams.get("utm_source") || "",
@@ -65,7 +61,19 @@ export default function GtmPageView() {
       utmId: searchParams.get("utm_id") || ""
     });
 
-  }, [pathname, searchParams, user, isAuthenticated]);
+  }, [pathname, searchParams]);
+
+  useEffect(() => {
+    // 3. Push Customer Data if authenticated
+    if (isAuthenticated && user) {
+      pushCustomerData({
+        name: user.name || "",
+        mobile: user.mobile || "",
+        email: user.email || "",
+        device_type: window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop'
+      });
+    }
+  }, [user?.id, isAuthenticated]);
 
   return null; // This component does not render anything
 }

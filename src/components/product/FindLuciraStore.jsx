@@ -41,6 +41,7 @@ export function FindLuciraStore({
   // The user wants a slider if more stores are there.
   
   const storesToDisplay = availableStores.length > 0 ? availableStores : [];
+  console.log("Stores with mapLink check:", storesToDisplay);
 
   return (
     <section className="w-full py-10 bg-gray-50 mt-10">
@@ -177,10 +178,14 @@ export function FindLuciraStore({
                           variant="outline" 
                           className="h-10 md:h-12 px-4 md:px-6 w-full sm:w-auto hover:cursor-pointer rounded-sm border-primary text-xs md:text-sm font-medium tracking-wider hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-2"
                           onClick={() => {
-                            const lat = store.latitude || store.lat;
-                            const lng = store.longitude || store.lng;
-                            if (lat && lng) {
-                              window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                            if (store.mapLink) {
+                              window.open(store.mapLink, '_blank');
+                            } else {
+                              const lat = store.latitude || store.lat;
+                              const lng = store.longitude || store.lng;
+                              if (lat && lng) {
+                                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                              }
                             }
                           }}
                         >

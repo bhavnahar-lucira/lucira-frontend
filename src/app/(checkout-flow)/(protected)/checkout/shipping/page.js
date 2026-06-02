@@ -1082,7 +1082,7 @@ export default function ShippingPage() {
                 )}
 
                 <div className="hidden lg:flex flex-col md:flex-row items-center justify-between gap-6 pt-4">
-                  <Link href="/checkout/cart" className="flex items-center gap-1.5 text-sm font-semibold text-accent hover:opacity-80 transition-opacity">
+                  <Link prefetch={false} href="/checkout/cart" className="flex items-center gap-1.5 text-sm font-semibold text-accent hover:opacity-80 transition-opacity">
                     <ChevronLeft className="size-4" />
                     Return to cart
                   </Link>
@@ -1147,7 +1147,7 @@ export default function ShippingPage() {
                 </div>
 
                 <div className="hidden lg:flex flex-col md:flex-row items-center justify-between gap-6 pt-4">
-                  <Link href="/checkout/cart" className="flex items-center gap-1.5 text-sm font-semibold text-accent hover:opacity-80 transition-opacity">
+                  <Link prefetch={false} href="/checkout/cart" className="flex items-center gap-1.5 text-sm font-semibold text-accent hover:opacity-80 transition-opacity">
                     <ChevronLeft className="size-4" />
                     Return to cart
                   </Link>
@@ -1189,7 +1189,7 @@ export default function ShippingPage() {
               View Summary
             </button>
           </div>
-          <Link href="/checkout/payment" className={`grow ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
+          <Link prefetch={false} href="/checkout/payment" className={`grow ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
              <Button 
               disabled={isContinueDisabled}
               className="w-full bg-primary hover:bg-accent text-white font-bold h-12 uppercase tracking-widest rounded-lg text-sm"

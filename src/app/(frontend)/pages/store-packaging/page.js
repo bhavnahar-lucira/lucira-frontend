@@ -42,7 +42,7 @@ export default function StorePackagingPage() {
                 Our packaging is designed to hold that emotion, making every reveal deeply personal.
               </p>
             </div>
-            {/* <Link href="#" className="underline text-[14px] md:text-[18px] text-inherit">BOOK AN APPOINTMENT</Link> */}
+            {/* <Link prefetch={false} href="#" className="underline text-[14px] md:text-[18px] text-inherit">BOOK AN APPOINTMENT</Link> */}
           </div>
         </section>
 
@@ -65,7 +65,7 @@ export default function StorePackagingPage() {
                 of authenticity and care.
               </p>
             </div>
-            {/* <Link href="#" className="underline text-[14px] md:text-[18px] text-inherit">BOOK AN APPOINTMENT</Link> */}
+            {/* <Link prefetch={false} href="#" className="underline text-[14px] md:text-[18px] text-inherit">BOOK AN APPOINTMENT</Link> */}
           </div>
         </section>
 
@@ -88,7 +88,7 @@ export default function StorePackagingPage() {
                 elegant, refined, and made to feel as special as what lies inside.
               </p>
             </div>
-            {/* <Link href="#" className="underline text-[14px] md:text-[18px] text-inherit">BOOK AN APPOINTMENT</Link> */}
+            {/* <Link prefetch={false} href="#" className="underline text-[14px] md:text-[18px] text-inherit">BOOK AN APPOINTMENT</Link> */}
           </div>
         </section>
 
@@ -110,7 +110,7 @@ export default function StorePackagingPage() {
                 Because extraordinary moments deserve an experience that feels just as special.
               </p>
             </div>
-            {/* <Link href="#" className="underline text-[14px] md:text-[18px] text-inherit">BOOK AN APPOINTMENT</Link> */}
+            {/* <Link prefetch={false} href="#" className="underline text-[14px] md:text-[18px] text-inherit">BOOK AN APPOINTMENT</Link> */}
           </div>
         </section>
 

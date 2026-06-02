@@ -153,19 +153,19 @@ const HighlightMatch = ({ text, query }) => {
 };
 
 const MOCK_CATEGORIES = [
-    { title: "Solitaire Rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_33902_jpg.jpg?v=1780118511", href: "/collections/solitaire-rings" },
-    { title: "Solitaire Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511", href: "/collections/solitaire-earrings" },
-    { title: "Solitaire Pendant", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511", href: "/collections/solitaire-pendants" },
-    { title: "Solitaire Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511", href: "/collections/solitaire-bracelets" },
-    { title: "Solitaire Nosering", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-NP0012_Creative_8ef40252-309d-4ca3-bdd2-508ae8e041ec.jpg?v=1780118512", href: "/collections/solitaire-noserings" },
-    { title: "Solitaire Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_lot_2_35146_jpg.jpg?v=1780118510", href: "/collections/solitaire-mangalsutras" },
-  ];
+  { title: "Solitaire Rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_33902_jpg.jpg?v=1780118511", href: "/collections/solitaire-rings" },
+  { title: "Solitaire Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511", href: "/collections/solitaire-earrings" },
+  { title: "Solitaire Pendant", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511", href: "/collections/solitaire-pendants" },
+  { title: "Solitaire Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511", href: "/collections/solitaire-bracelets" },
+  { title: "Solitaire Nosering", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-NP0012_Creative_8ef40252-309d-4ca3-bdd2-508ae8e041ec.jpg?v=1780118512", href: "/collections/solitaire-noserings" },
+  { title: "Solitaire Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_lot_2_35146_jpg.jpg?v=1780118510", href: "/collections/solitaire-mangalsutras" },
+];
 import { transformMenuData } from "@/lib/menus";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
   const pathname = usePathname();
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
   const isProductPage = pathname.startsWith('/products/');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -271,7 +271,7 @@ export default function MobileHeader({ menuData }) {
               autoFocus
             />
             {searchQuery && (
-              <button 
+              <button
                 onClick={() => { setSearchQuery(""); setSearchResults([]); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
               >
@@ -304,8 +304,8 @@ export default function MobileHeader({ menuData }) {
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Collections</h3>
                       <div className="space-y-2">
                         {matchedCollections.slice(0, 6).map((col) => (
-                          <div 
-                            key={col.id} 
+                          <div
+                            key={col.id}
                             onClick={() => handleResultClick(col.url)}
                             className="group block p-3 bg-zinc-50 rounded-lg border border-zinc-100 active:bg-white transition-all duration-300"
                           >
@@ -329,17 +329,17 @@ export default function MobileHeader({ menuData }) {
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Products</h3>
                       <div className="grid grid-cols-1 gap-4">
                         {productsOnly.slice(0, 6).map((item) => (
-                          <div 
-                            key={item.id} 
+                          <div
+                            key={item.id}
                             onClick={() => handleResultClick(item.url)}
                             className="flex items-center gap-3 p-2 rounded-md active:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors"
                           >
                             <div className="w-16 h-16 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                              <Image 
-                                src={item.image || "/images/product/1.jpg"} 
-                                alt={item.title} 
-                                fill 
-                                className="object-cover w-full h-full" 
+                              <Image
+                                src={item.image || "/images/product/1.jpg"}
+                                alt={item.title}
+                                fill
+                                className="object-cover w-full h-full"
                               />
                             </div>
                             <div className="grow min-w-0">
@@ -356,7 +356,7 @@ export default function MobileHeader({ menuData }) {
                   )}
 
                   <div className="pt-4 border-t border-gray-100">
-                    <button 
+                    <button
                       onClick={() => handleResultClick(`/search?q=${encodeURIComponent(searchQuery.trim())}`)}
                       className="w-full text-center text-primary font-bold text-sm py-3 uppercase tracking-widest hover:underline decoration-primary/30 underline-offset-4"
                     >
@@ -375,16 +375,16 @@ export default function MobileHeader({ menuData }) {
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Categories</h3>
               <div className="grid grid-cols-3 gap-3">
                 {MOCK_CATEGORIES.map((cat, i) => (
-                  <div 
-                    key={i} 
+                  <div
+                    key={i}
                     onClick={() => handleResultClick(cat.href)}
                     className="group flex flex-col items-center"
                   >
                     <div className="aspect-square w-full relative rounded-md overflow-hidden mb-2 bg-transparent border border-transparent hover:border-gray-100 transition-all">
-                      <Image 
-                        src={cat.image} 
-                        alt={cat.title} 
-                        fill 
+                      <Image
+                        src={cat.image}
+                        alt={cat.title}
+                        fill
                         className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-400"
                       />
                     </div>
@@ -410,7 +410,15 @@ export default function MobileHeader({ menuData }) {
         last_name: user?.last_name || "",
         email: user?.email || ""
       });
-      await apiFetch("/api/auth/logout", { method: "POST" });
+      await apiFetch("/api/auth/logout", { 
+        method: "POST",
+        body: JSON.stringify({
+          email: user?.email,
+          mobile: user?.mobile,
+          firstName: user?.first_name,
+          lastName: user?.last_name
+        })
+      });
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {
@@ -492,17 +500,17 @@ export default function MobileHeader({ menuData }) {
                       const titleLower = col.title.toLowerCase();
                       const isShape = titleLower.includes("shape");
                       const isMetal = titleLower.includes("metal") || titleLower.includes("material") || col.type === "metal";
-                      
+
                       if (isMetal) {
                         return (
-                          <Link 
-                            key={i} 
-                            href={item.href || "#"} 
+                          <Link
+                            key={i}
+                            href={item.href || "#"}
                             prefetch={false}
                             onClick={() => setIsMenuOpen(false)}
                             className="flex flex-col items-center gap-2"
                           >
-                            <div 
+                            <div
                               className="w-12 h-12 rounded-full border border-gray-100"
                               style={{ background: METAL_COLORS[item.label] || "#eee" }}
                             />
@@ -514,9 +522,9 @@ export default function MobileHeader({ menuData }) {
                       const iconPath = item.menuIcon || item.megaMenuImage || item.icon;
                       const isBlogOrPage = item.href?.includes("/blogs/") || item.href?.includes("/pages/");
                       return (
-                        <Link 
-                          key={i} 
-                          href={item.href || "#"} 
+                        <Link
+                          key={i}
+                          href={item.href || "#"}
                           prefetch={false}
                           onClick={() => setIsMenuOpen(false)}
                           className="flex flex-col items-center gap-2"
@@ -525,9 +533,9 @@ export default function MobileHeader({ menuData }) {
                             "relative flex items-center justify-center overflow-hidden",
                             isBlogOrPage ? "w-20 h-20 rounded-lg" : "w-20 h-20"
                           )}>
-                            <SafeImage 
-                              src={iconPath} 
-                              alt={item.label} 
+                            <SafeImage
+                              src={iconPath}
+                              alt={item.label}
                               className={cn(
                                 "w-full h-full",
                                 isBlogOrPage ? "object-cover" : "object-contain"
@@ -541,11 +549,11 @@ export default function MobileHeader({ menuData }) {
                   </div>
                 )}
                 {col.type === "text" && (
-                   <div className="grid grid-cols-2 gap-2 pt-2">
+                  <div className="grid grid-cols-2 gap-2 pt-2">
                     {col.items.map((item, i) => (
-                      <Link 
-                        key={i} 
-                        href={item.href || "#"} 
+                      <Link
+                        key={i}
+                        href={item.href || "#"}
                         prefetch={false}
                         onClick={() => setIsMenuOpen(false)}
                         className="bg-gray-50 px-3 py-2 text-[11px] font-medium text-center rounded-sm"
@@ -562,7 +570,7 @@ export default function MobileHeader({ menuData }) {
           {activeItem.featured && (Array.isArray(activeItem.featured) ? activeItem.featured.length > 0 : activeItem.featured.items?.length > 0) && (
             <>
               <AccordionItem value="featured" className="border-none">
-                 <AccordionTrigger className="text-sm font-bold uppercase tracking-widest hover:no-underline py-4">
+                <AccordionTrigger className="text-sm font-bold uppercase tracking-widest hover:no-underline py-4">
                   {activeItem.featured.title || "Featured"}
                 </AccordionTrigger>
                 <AccordionContent>
@@ -577,9 +585,9 @@ export default function MobileHeader({ menuData }) {
                               "relative flex items-center justify-center bg-gray-50 overflow-hidden shrink-0",
                               isBlogOrPage ? "w-10 h-10 rounded-lg" : "w-8 h-8 rounded-full"
                             )}>
-                              <SafeImage 
-                                src={fIcon} 
-                                alt={f.label} 
+                              <SafeImage
+                                src={fIcon}
+                                alt={f.label}
                                 className={cn(
                                   "w-full h-full",
                                   isBlogOrPage ? "object-cover" : "object-contain p-1"
@@ -597,7 +605,7 @@ export default function MobileHeader({ menuData }) {
 
               {!Array.isArray(activeItem.featured) && activeItem.featured.featuredIn && activeItem.featured.featuredIn.items?.length > 0 && (
                 <AccordionItem value="featuredIn" className="border-none">
-                   <AccordionTrigger className="text-sm font-bold uppercase tracking-widest hover:no-underline py-4">
+                  <AccordionTrigger className="text-sm font-bold uppercase tracking-widest hover:no-underline py-4">
                     {activeItem.featured.featuredIn.title || "Featured In"}
                   </AccordionTrigger>
                   <AccordionContent>
@@ -608,9 +616,9 @@ export default function MobileHeader({ menuData }) {
                           <Link key={i} href={f.href || "#"} prefetch={false} onClick={() => setIsMenuOpen(false)} className="text-sm font-medium text-gray-900 flex items-center gap-3">
                             {fIcon && (
                               <div className="w-8 h-8 relative flex items-center justify-center bg-gray-50 rounded-full overflow-hidden shrink-0">
-                                <SafeImage 
-                                  src={fIcon} 
-                                  alt={f.label} 
+                                <SafeImage
+                                  src={fIcon}
+                                  alt={f.label}
                                   className="w-6 h-6 object-contain"
                                 />
                               </div>
@@ -704,10 +712,10 @@ export default function MobileHeader({ menuData }) {
             const label = item.label || item.title;
             const is9kt = label.toLowerCase().includes('9kt');
             const isLuciraExpress = label.toLowerCase().includes('lucira express');
-            const icon = item.menuIcon || 
-                        (label.toUpperCase() === "GIFTING" ? CATEGORY_IMAGES["GIFTING"] : 
-                        (isLuciraExpress ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/luciraExpress.png?v=1780129196" : null));
-            
+            const icon = item.menuIcon ||
+              (label.toUpperCase() === "GIFTING" ? CATEGORY_IMAGES["GIFTING"] :
+                (isLuciraExpress ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/luciraExpress.png?v=1780129196" : null));
+
             return (
               <button
                 key={index}
@@ -719,14 +727,14 @@ export default function MobileHeader({ menuData }) {
                   isLuciraExpress ? "w-10 h-10" : "w-11 h-11"
                 )}>
                   {icon && (
-                    <Image 
-                      src={icon} 
-                      alt={label} 
-                      fill 
+                    <Image
+                      src={icon}
+                      alt={label}
+                      fill
                       className={cn(
                         "object-contain",
                         isLuciraExpress ? "p-2" : "p-0.5"
-                      )} 
+                      )}
                     />
                   )}
                 </div>
@@ -744,7 +752,7 @@ export default function MobileHeader({ menuData }) {
 
         <div className="mt-4 space-y-6">
           <div className="bg-[#FAF6F3] mx-4 p-4 space-y-4 rounded-lg">
-            <button 
+            <button
               onClick={() => {
                 setIsMenuOpen(false);
                 if (!user) {
@@ -752,7 +760,7 @@ export default function MobileHeader({ menuData }) {
                 } else {
                   router.push("/admin/orders");
                 }
-              }} 
+              }}
               className="w-full text-left block tracking-wider border-b border-gray-200 pb-3 font-figtree font-medium text-sm leading-none align-middle capitalize text-black"
             >
               Track Your Order
@@ -856,7 +864,7 @@ export default function MobileHeader({ menuData }) {
 
           <div className="px-4 pb-8">
             {user ? (
-               <button onClick={handleLogout} className="w-full bg-[#4E3E3E] text-white py-4 rounded font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+              <button onClick={handleLogout} className="w-full bg-[#4E3E3E] text-white py-4 rounded font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2">
                 <LogOut size={20} /> Logout
               </button>
             ) : (
@@ -908,7 +916,7 @@ export default function MobileHeader({ menuData }) {
                   </div>
                   <div className="flex items-center gap-4">
                     {user ? (
-                      <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="p-1">
+                      <Link href="/admin" prefetch={false} onClick={() => setIsMenuOpen(false)} className="p-1">
                         <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                           {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                           <AvatarFallback className="bg-[#5a413f] text-white font-bold text-[10px]">{getInitials(user?.name)}</AvatarFallback>
@@ -919,7 +927,7 @@ export default function MobileHeader({ menuData }) {
                         <UserIconCustom />
                       </button>
                     )}
-                    <Link href="/checkout/cart" onClick={() => setIsMenuOpen(false)} className="relative p-1">
+                      <Link href="/checkout/cart" prefetch={false} onClick={() => setIsMenuOpen(false)} className="relative p-1">
                       <CartIcon />
                       {totalQuantity > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
@@ -962,7 +970,7 @@ export default function MobileHeader({ menuData }) {
             </SheetContent>
           </Sheet>
 
-          <Link href="/" className="flex items-center">
+          <Link href="/" prefetch={false} className="flex items-center">
             <Image
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
               alt="Lucira Jewelry"
@@ -981,7 +989,7 @@ export default function MobileHeader({ menuData }) {
           )}
 
           {user ? (
-            <Link href="/admin" className="p-1">
+            <Link href="/admin" prefetch={false} className="p-1">
               <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                 {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                 <AvatarFallback className="bg-[#5a413f] text-white font-bold text-[10px]">{getInitials(user?.name)}</AvatarFallback>
@@ -992,7 +1000,7 @@ export default function MobileHeader({ menuData }) {
               <UserIconCustom />
             </button>
           )}
-          <Link href={user ? "/admin/wishlist" : "#"} onClick={!user ? handleAuthTrigger : undefined} className="relative">
+          <Link href={user ? "/admin/wishlist" : "#"} prefetch={false} onClick={!user ? handleAuthTrigger : undefined} className="relative">
             <HeartIcon />
             {wishlistItems.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
@@ -1000,7 +1008,7 @@ export default function MobileHeader({ menuData }) {
               </span>
             )}
           </Link>
-          <Link href="/checkout/cart" className="relative">
+          <Link href="/checkout/cart" prefetch={false} className="relative">
             <CartIcon />
             {totalQuantity > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
@@ -1013,7 +1021,7 @@ export default function MobileHeader({ menuData }) {
 
       {!isProductPage && (
         <div className="px-4 py-2 bg-white">
-          <div 
+          <div
             onClick={() => setShowSearch(true)}
             className="relative w-full bg-[#f9f9f9] h-10 pl-10 pr-4 rounded-sm flex items-center cursor-pointer border border-transparent transition-all overflow-hidden"
           >
@@ -1022,27 +1030,27 @@ export default function MobileHeader({ menuData }) {
             </div>
             <div className="relative h-full w-full flex items-center overflow-hidden ml-0.5">
               <span className="text-[14px] text-gray-500 font-medium whitespace-nowrap">Search for&nbsp;</span>
-               <AnimatePresence mode="wait">
-                  <motion.span
-                    key={placeholderIndex}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                    className="text-[14px] text-gray-500 font-medium whitespace-nowrap"
-                  >
-                    {SEARCH_PLACEHOLDERS[placeholderIndex]}...
-                  </motion.span>
-               </AnimatePresence>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={placeholderIndex}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -20, opacity: 0 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="text-[14px] text-gray-500 font-medium whitespace-nowrap"
+                >
+                  {SEARCH_PLACEHOLDERS[placeholderIndex]}...
+                </motion.span>
+              </AnimatePresence>
             </div>
           </div>
         </div>
       )}
 
-      <MobileSheet 
-        isOpen={showSearch} 
+      <MobileSheet
+        isOpen={showSearch}
         onClose={() => setShowSearch(false)}
-        detents={[1]} 
+        detents={[1]}
       >
         <MobileSheet.Container>
           <MobileSheet.Header />

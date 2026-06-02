@@ -77,7 +77,7 @@ export default function FeaturedIn() {
         >
           {logos.map((logo, index) => (
             <div className="marquee-item px-6 md:px-10" key={`logo-${index}`}>
-              <Link href={logo.url} target="_blank" rel="noopener noreferrer" className="block">
+              <Link prefetch={false} href={logo.url} target="_blank" rel="noopener noreferrer" className="block">
                 <img 
                   src={logo.image} 
                   alt={logo.alt} 

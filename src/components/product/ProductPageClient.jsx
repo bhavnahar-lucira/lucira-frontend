@@ -64,7 +64,7 @@ import { SizeGuideSheet } from "@/components/product/SizeGuideSheet";
 import { ProductCustomizerMobile } from "@/components/product/ProductCustomizerMobile";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@/redux/features/cart/cartSlice";
-import { selectUser, setPincode, selectPincode } from "@/redux/features/user/userSlice";
+import { selectUser, setPincode, selectPincode, openAuthModal } from "@/redux/features/user/userSlice";
 import {
   addWishlistItem,
   removeWishlistItem,
@@ -266,7 +266,7 @@ export default function ProductPageClient({
   const searchParams = useSearchParams();
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
@@ -278,6 +278,7 @@ export default function ProductPageClient({
   const user = useSelector(selectUser);
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const wishlistItems = useSelector((state) => state.wishlist.items);
+  const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
   const [addingToCart, setAddingToCart] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [showTopAtc, setShowTopAtc] = useState(false);
@@ -285,6 +286,10 @@ export default function ProductPageClient({
   const mainAtcRef = useRef(null);
   const productDetailsRef = useRef(null);
   const reviewsRef = useRef(null);
+
+  const hasFiredProductView = useRef(false);
+  const previousVariantId = useRef(null);
+  const hasFiredPincodePromo = useRef(false);
 
   const [engraving, setEngraving] = useState("");
   const [engravingFont, setEngravingFont] = useState("Lobster");
@@ -320,16 +325,17 @@ export default function ProductPageClient({
 
     const fetchComplementary = async () => {
       if (!product.shopifyId && !product.id) return;
-      
+
       const gid = product.shopifyId?.startsWith("gid://") ? product.shopifyId : `gid://shopify/Product/${product.shopifyId || product.id}`;
       console.log("[fetchComplementary] Starting fetch for GID:", gid);
-      
+
       const PRODUCT_FIELDS = `
         fragment ProductFields on Product {
           id
           title
           handle
           productType
+          tags
           featuredImage { url altText }
           images(first: 5) { edges { node { url altText } } }
           variants(first: 20) {
@@ -409,11 +415,11 @@ export default function ProductPageClient({
 
         const mapProduct = (p) => {
           if (!p || !p.id) return null;
-          
+
           const variants = (p.variants?.edges || []).map(({ node: v }) => {
             const options = {};
             v.selectedOptions?.forEach(o => { options[o.name.toLowerCase()] = o.value; });
-            
+
             return {
               id: v.id.split("/").pop(),
               shopifyId: v.id,
@@ -423,6 +429,7 @@ export default function ProductPageClient({
               compare_price: v.compareAtPrice ? Number(v.compareAtPrice.amount) : null,
               inStock: v.availableForSale === true,
               image: v.image?.url,
+              tags: v.selectedOptions.map(o => o.value).join(" "),
               size: options.size || null,
               color: options.color || options.metal || options["metal color"] || null,
               metafields: {
@@ -462,9 +469,9 @@ export default function ProductPageClient({
         // Always fetch metafields to check for matching_product even if recommendations had results
         const metaResult = await shopifyStorefrontFetch(METAFIELD_QUERY, { id: gid });
         const metafields = metaResult?.product?.metafields || [];
-        
+
         console.log("[fetchComplementary] Metafields found:", metafields.length);
-        
+
         const complementaryFromMeta = [];
         const matchingFromMeta = [];
 
@@ -700,7 +707,7 @@ export default function ProductPageClient({
     return getEstimatedDispatchDate(isInStock, leadTime);
   }, [activeVariant, product.productMetafields]);
 
-  const handlePincodeCheck = useCallback(async (val) => {
+  const handlePincodeCheck = useCallback(async (val, isAutomatic = false) => {
     // If val is a string (like from useEffect), use it. 
     // Otherwise (from button click/event), use the current 'localPincode' state.
     const pincodeToCheck = String(
@@ -718,8 +725,11 @@ export default function ProductPageClient({
     try {
       const data = await apiFetch(`/api/pincodes/check?pincode=${pincodeToCheck}`);
 
-      // GTM tracking for pincode entry
-      handlePromoClick('pincodeEntered', pincodeToCheck, {}, true);
+      // GTM tracking for pincode entry (only for manual user entry)
+      if (!isAutomatic && !hasFiredPincodePromo.current) {
+        handlePromoClick('pincodeEntered', pincodeToCheck, {}, true);
+        hasFiredPincodePromo.current = true;
+      }
       if (data.success && data.deliverable) {
         const dispatchMsg = calculateDispatchDate();
         setDeliveryInfo({
@@ -757,7 +767,7 @@ export default function ProductPageClient({
   // Initial check for persisted pincode - ONLY ON MOUNT
   useEffect(() => {
     if (globalPincode && globalPincode.length === 6) {
-      handlePincodeCheck(globalPincode);
+      handlePincodeCheck(globalPincode, true);
     }
     // We only want this to run once when the page loads
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -893,17 +903,16 @@ export default function ProductPageClient({
 
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
-  
+
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
     const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
-    
+
     if (user?.id) {
       return wishlistItems.some(findFn);
     }
-    const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
-    return guestItems.some(findFn);
-  }, [user?.id, wishlistItems, productId]);
+    return guestWishlistItems.some(findFn);
+  }, [user?.id, wishlistItems, guestWishlistItems, productId]);
   const recentlyViewedState = useSelector(selectRecentlyViewed);
 
   const handleSaveEngraving = () => {
@@ -1053,7 +1062,7 @@ export default function ProductPageClient({
       const variantOptions = (product.variants || [])
         .filter((variant) => {
           if (!variant?.size || !variant?.color) return false;
-          
+
           const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
 
           const vKarat = normalize(variant.metafields?.metal_purity || "");
@@ -1152,7 +1161,7 @@ export default function ProductPageClient({
         eventId: `atc_${Date.now()}`,
         products: {
           productId: String(getNumericId(product.shopifyId || product.id)),
-          variantId: getNumericId(activeVariant?.id || activeVariant?.shopifyId),
+          variantId: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId)),
           sku: activeVariant?.sku || product?.sku || activeVariant?.variantSku || product?.variantSku || (product?.variants && product?.variants[0]?.sku) || "",
           productName: product.title,
           productType: product.type || "",
@@ -1160,7 +1169,7 @@ export default function ProductPageClient({
           offerPrice: String(originalPrice.toFixed(2)),
           productUrl: currentUrl,
           image: productImageUrl,
-          price: Number(sellingPrice),
+          price: String(sellingPrice),
           category: "",
           subCategory: "",
           productPersona: ""
@@ -1191,11 +1200,10 @@ export default function ProductPageClient({
       if (isWishlisted) {
         // Remove
         const normProductId = String(getNumericId(rawProductId));
-        const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
-        const targetItem = (user?.id ? wishlistItems : guestItems).find(
+        const targetItem = (user?.id ? wishlistItems : guestWishlistItems).find(
           (item) => String(getNumericId(item.productId)) === normProductId
         );
-        
+
         if (targetItem) {
           if (user?.id) {
             dispatch(removeWishlistItem({ productId: targetItem.productId, variantId: targetItem.variantId }));
@@ -1241,6 +1249,7 @@ export default function ProductPageClient({
           dispatch(addWishlistItem({ ...payload, userId: finalUserId }));
         } else {
           dispatch(addGuestWishlistItem(payload));
+          dispatch(openAuthModal());
         }
 
         pushAddToWishlist([commonTrackingData]);
@@ -1377,6 +1386,13 @@ export default function ProductPageClient({
   // Product View GTM Trigger
   useEffect(() => {
     if (activeVariant || product) {
+      const currentVariantId = String(activeVariant?.id || activeVariant?.shopifyId || "default");
+      if (hasFiredProductView.current && previousVariantId.current === currentVariantId) {
+        return;
+      }
+      previousVariantId.current = currentVariantId;
+      hasFiredProductView.current = true;
+
       const getNumericId = (gid) => {
         if (!gid) return 0;
         if (typeof gid === 'number') return gid;
@@ -1393,7 +1409,7 @@ export default function ProductPageClient({
       pushProductView({
         productId: getNumericId(product.shopifyId || product.id),
         sku: activeVariant?.sku || "",
-        variantId: getNumericId(activeVariant?.id || activeVariant?.shopifyId),
+        variantId: String(activeVariant?.id || activeVariant?.shopifyId || ""),
         vendorCode: product.vendor || "Lucira Jewelry",
         productName: product.title,
         productType: product.type || "",
@@ -1403,7 +1419,7 @@ export default function ProductPageClient({
         thumbnailImage: productImageUrl,
         image: productImageUrl,
         price: sellingPrice,
-        offerPrice: originalPrice,
+        offerPrice: Number(originalPrice),
       });
     }
   }, [activeVariant, product]);
@@ -1536,7 +1552,7 @@ export default function ProductPageClient({
   const isSizeInStock = (size) => {
     return product.variants?.some(v => {
       const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
-      
+
       const vKarat = normalize(v.metafields?.metal_purity || "");
       const vMetal = normalize(v.metafields?.metal_color || "");
 
@@ -1765,7 +1781,7 @@ export default function ProductPageClient({
                       if (parts.length === 0) return null;
 
                       return (
-                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 uppercase tracking-tight">
+                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 tracking-tight">
                           {parts.join(" · ")}
                         </p>
                       );
@@ -2345,7 +2361,7 @@ export default function ProductPageClient({
                                   <span className="text-lg font-extrabold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-1.5 leading-tight font-medium">
-                                  You can redeem this amount after 10 months.
+                                  Redeem on any diamond product after 10 months. Any remaining amount can be paid at checkout.
                                 </p>
                               </div>
                             </div>
@@ -2479,16 +2495,16 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               <div className="border border-gray-200 rounded-md p-4 space-y-2.5 bg-gray-50">
-                  <div className="flex items-center gap-2">
-                    <Store size={20} className="text-black" strokeWidth={1.2} />
-                    <span className="text-base font-bold">
-                      {nearestStore ? (
-                        <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
-                      ) : (
-                        <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
-                      )}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Store size={20} className="text-black" strokeWidth={1.2} />
+                  <span className="text-base font-bold">
+                    {nearestStore ? (
+                      <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
+                    ) : (
+                      <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
+                    )}
+                  </span>
+                </div>
                 {availableStoreCount > 0 && (
                   <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
                     <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
@@ -2883,7 +2899,7 @@ export default function ProductPageClient({
                       </a>
                     </Button>
                   </div>
-                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">                    
+                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">
                     <div className="flex items-center gap-7">
                       <div className="w-14 h-14 relative">
                         <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />

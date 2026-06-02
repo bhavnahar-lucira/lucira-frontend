@@ -26,7 +26,7 @@ export default function JewelryBlog({ articles = [] }) {
         </div>
 
         <div className="mt-8 lg:mt-12 flex justify-center pb-10 lg:pb-16">
-          <Link
+          <Link prefetch={false}
             href="/blogs/stories"
             className="inline-flex min-h-11 items-center justify-center rounded-sm bg-primary px-10 text-xs lg:text-sm font-bold uppercase tracking-widest text-white transition hover:opacity-90 shadow-sm"
           >

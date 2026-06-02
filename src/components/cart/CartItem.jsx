@@ -127,9 +127,9 @@ export default function CartItem({ item, onAuthRequired }) {
         productType: categoryFallback,
         category: categoryFallback,
         sub_category: item.variantTitle || "",
-        price: Number(item.price || 0),
-        offerPrice: Number(item.comparePrice || item.price || 0),
-        quantity: item.quantity,
+        price: String(item.price || 0),
+        offerPrice: String(item.comparePrice || item.price || 0),
+        quantity: String(item.quantity || 1),
         thumbnail_image: item.image
       });
 
@@ -290,7 +290,7 @@ export default function CartItem({ item, onAuthRequired }) {
             </div>
           )}
 
-          <Link 
+          <Link prefetch={false} 
             href={productLink}
             className="aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity hover:opacity-90"
           >
@@ -306,7 +306,7 @@ export default function CartItem({ item, onAuthRequired }) {
           <div className="grow space-y-4">
             <div className="flex items-start justify-between">
               <div className="space-y-1">
-                <Link href={productLink}>
+                <Link prefetch={false} href={productLink}>
                   <h3 className="font-abhaya text-lg font-bold text-black hover:text-primary transition-colors">
                     {item.title}
                   </h3>
@@ -475,7 +475,7 @@ export default function CartItem({ item, onAuthRequired }) {
           <div className="flex gap-4">
             {/* Image Container */}
             <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-sm border border-zinc-100 bg-[#F9F9F9]">
-              <Link href={productLink} className="block h-full w-full p-2">
+              <Link prefetch={false} href={productLink} className="block h-full w-full p-2">
                 <Image
                   src={displayImage || "/images/product/1.jpg"}
                   alt={item.title}
@@ -509,7 +509,11 @@ export default function CartItem({ item, onAuthRequired }) {
               <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-tight">
                 {currentVariant?.sku || item.sku || "N/A"}
               </p>
-              
+              {item.engraving && (
+                <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                  Engraving: &quot;{item.engraving}&quot;
+                </p>
+              )}
               <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-tight">
                 Metal: <span className="text-zinc-900">
                   {(() => {

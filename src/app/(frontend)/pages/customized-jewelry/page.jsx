@@ -355,7 +355,7 @@ export default function BespokePage() {
                         className="w-full h-[full] object-cover transition group-hover:scale-105"
                     />
 
-                    <Link href={item.href} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-12.5 py-3 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition">
+                    <Link prefetch={false} href={item.href} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-12.5 py-3 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition">
                         View Similar Designs
                     </Link>
                     </div>

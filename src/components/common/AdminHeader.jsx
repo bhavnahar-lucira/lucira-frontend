@@ -6,13 +6,13 @@ export default function AdminHeader() {
     <header className="bg-white border-b border-zinc-200">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/admin" className="flex items-center gap-2 font-bold text-lg text-zinc-900">
+          <Link prefetch={false} href="/admin" className="flex items-center gap-2 font-bold text-lg text-zinc-900">
             <ShieldCheck size={24} className="text-blue-600" />
             Admin Panel
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-600">
-            <Link href="/admin" className="hover:text-blue-600 transition-colors">Control Center</Link>
-            <Link href="/admin/profile" className="hover:text-blue-600 transition-colors">User Profiles</Link>
+            <Link prefetch={false} href="/admin" className="hover:text-blue-600 transition-colors">Control Center</Link>
+            <Link prefetch={false} href="/admin/profile" className="hover:text-blue-600 transition-colors">User Profiles</Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">

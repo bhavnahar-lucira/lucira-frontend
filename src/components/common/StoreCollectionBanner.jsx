@@ -44,6 +44,7 @@ const STORES_DATA = {
       "Banks Nearby",
       "Parking Available",
       "Exclusive Offers",
+      "Piercing"
     ],
     services: [
       { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
@@ -71,6 +72,7 @@ const STORES_DATA = {
       "Banks Nearby",
       "Parking Availability",
       "Daily Offers",
+      "Piercing"
     ],
     services: [
       { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
@@ -99,6 +101,7 @@ const STORES_DATA = {
       "Open Weekends",
       "Parking Available",
       "Exclusive Offers",
+      "Piercing"
     ],
     services: [
       { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
@@ -128,6 +131,7 @@ const STORES_DATA = {
       "Banks Nearby",
       "Parking Available",
       "Exclusive Offers",
+      "Piercing"
     ],
     services: [
       { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },

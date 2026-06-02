@@ -18,7 +18,7 @@ import {
   addGuestWishlistItem,
   removeGuestWishlistItem,
 } from "@/redux/features/wishlist/wishlistSlice";
-import { setCollectionContext } from "@/redux/features/user/userSlice";
+import { setCollectionContext, openAuthModal } from "@/redux/features/user/userSlice";
 import {
   Drawer,
   DrawerClose,
@@ -105,7 +105,7 @@ function getVariantForBase(product, selectedBase) {
 function getImagesForBase(product, selectedBase) {
   const variant = getVariantForBase(product, selectedBase);
   const variantColor = String(variant?.color || variant?.title || "").toLowerCase();
-  
+
   const allImages = product.images || [];
   let colorSpecificImages = [];
 
@@ -117,7 +117,7 @@ function getImagesForBase(product, selectedBase) {
 
   // 2. Find images whose alt text matches the selected base color (e.g., "yellow")
   if (selectedBase) {
-    const baseImages = allImages.filter(img => 
+    const baseImages = allImages.filter(img =>
       String(img.alt || "").toLowerCase().includes(selectedBase.toLowerCase()) &&
       !colorSpecificImages.some(p => p.url === img.url)
     );
@@ -126,7 +126,7 @@ function getImagesForBase(product, selectedBase) {
 
   // 3. Find images whose alt text matches the specific variant color string
   if (variantColor) {
-    const colorImages = allImages.filter(img => 
+    const colorImages = allImages.filter(img =>
       String(img.alt || "").toLowerCase().includes(variantColor) &&
       !colorSpecificImages.some(p => p.url === img.url)
     );
@@ -183,7 +183,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
     const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
-    
+
     if (user?.id) {
       return wishlist.some(findFn);
     }
@@ -224,11 +224,11 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   // Live Pricing Fetch
   useEffect(() => {
     if (disableLivePricing || fixedPrice || !pricingVariant?.id) return;
-    
+
     const variantId = String(pricingVariant.id);
     const productId = String(product.shopifyId || product.id);
     const cacheKey = `${productId}-${variantId}`;
-    
+
     if (clientPriceCache.has(cacheKey)) {
       const cached = clientPriceCache.get(cacheKey);
       setLivePrice(cached.price);
@@ -308,36 +308,36 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     }
 
     // 2. Search in media array for VIDEO or EXTERNAL_VIDEO
-    const mediaVideo = product.media?.find(m => 
-      m.mediaContentType === "VIDEO" || 
-      m.mediaContentType === "EXTERNAL_VIDEO" || 
-      m.type === "VIDEO" || 
-      m.type === "EXTERNAL_VIDEO" || 
-      m.mimeType?.includes("video") || 
+    const mediaVideo = product.media?.find(m =>
+      m.mediaContentType === "VIDEO" ||
+      m.mediaContentType === "EXTERNAL_VIDEO" ||
+      m.type === "VIDEO" ||
+      m.type === "EXTERNAL_VIDEO" ||
+      m.mimeType?.includes("video") ||
       m.url?.includes(".mp4")
     );
     if (mediaVideo) return mediaVideo;
-    
+
     // 3. Check if any image is actually a video URL or if direct URL fields exist
-    const videoUrl = (product.images || product.media)?.find(img => 
-      img.url?.includes(".mp4") || 
+    const videoUrl = (product.images || product.media)?.find(img =>
+      img.url?.includes(".mp4") ||
       img.url?.includes("video") ||
       img.mediaContentType === "VIDEO"
     )?.url || product.videoUrl || product.video_url || product.productMetafields?.video_url;
 
     if (videoUrl) return { url: videoUrl, mimeType: "video/mp4" };
-    
+
     // 4. Fallback to boolean flags from Shopify/Backend
-    const hasVideoFlag = product.hasVideo === true || product.hasVideo === "true" || 
-                         product.productMetafields?.has_video === true || product.productMetafields?.has_video === "true";
+    const hasVideoFlag = product.hasVideo === true || product.hasVideo === "true" ||
+      product.productMetafields?.has_video === true || product.productMetafields?.has_video === "true";
 
     if (hasVideoFlag) {
-       const sku = currentVariant?.sku || product.variants?.[0]?.sku;
-       if (sku) {
-          // Standard Lucira CDN pattern
-          return { url: `https://luciraonline.myshopify.com/cdn/shop/files/${sku}.mp4`, isPlaceholder: true };
-       }
-       return { url: null, isPlaceholder: true }; 
+      const sku = currentVariant?.sku || product.variants?.[0]?.sku;
+      if (sku) {
+        // Standard Lucira CDN pattern
+        return { url: `https://luciraonline.myshopify.com/cdn/shop/files/${sku}.mp4`, isPlaceholder: true };
+      }
+      return { url: null, isPlaceholder: true };
     }
 
     return null;
@@ -370,7 +370,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
   useEffect(() => {
     if (displayLabels.length > 1) {
-      const interval = setInterval(() => { setCurrentLabelIndex((prev) => (prev + 1) % 2); }, 4000); 
+      const interval = setInterval(() => { setCurrentLabelIndex((prev) => (prev + 1) % 2); }, 4000);
       return () => clearInterval(interval);
     } else { setCurrentLabelIndex(0); }
   }, [displayLabels.length]);
@@ -403,7 +403,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
       // Priority: complementaryProducts > matchingProducts > products
       let products = data.complementaryProducts || data.matchingProducts || data.products || [];
-      
+
       // Fallback: If no related products found, use search API based on product type
       if (products.length === 0 && (product.type || product.category)) {
         const query = product.type || product.category;
@@ -443,16 +443,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const productOffers = useMemo(() => {
     const offers = [];
-    
+
     // 1. Direct fields
     if (product.diamondDiscount > 0) offers.push(`${product.diamondDiscount}% OFF on Diamonds`);
     if (product.makingDiscount > 0) offers.push(`${product.makingDiscount}% OFF on Making Charges`);
-    
+
     // 2. Variants (common in collection API)
     if (product.variants?.length > 0) {
-        const v = product.variants[0];
-        if (v.diamondDiscount > 0) offers.push(`${v.diamondDiscount}% OFF on Diamonds`);
-        if (v.makingDiscount > 0) offers.push(`${v.makingDiscount}% OFF on Making Charges`);
+      const v = product.variants[0];
+      if (v.diamondDiscount > 0) offers.push(`${v.diamondDiscount}% OFF on Diamonds`);
+      if (v.makingDiscount > 0) offers.push(`${v.makingDiscount}% OFF on Making Charges`);
     }
 
     // 3. Price breakup
@@ -461,7 +461,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       if (breakup.diamond?.discount_percent > 0) offers.push(`${breakup.diamond.discount_percent}% OFF on Diamonds`);
       if (breakup.making_charges?.discount_percent > 0) offers.push(`${breakup.making_charges.discount_percent}% OFF on Making Charges`);
     }
-    
+
     // 4. Tags
     const tags = Array.isArray(product.tags) ? product.tags : [];
     tags.forEach(tag => {
@@ -473,7 +473,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
     return [...new Set(offers)];
   }, [product, currentVariant]);
-  
+
   return (
     <>
       <div className="space-y-4">
@@ -498,27 +498,26 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                 >
                   {galleryImages.map((image, idx) => {
                     const handleWords = product?.handle?.toLowerCase().split("-") || [];
-                    const targetKeywords = ['rings', 'ring', 'earrings', 'earring', 'nosepin', 'nose', 'band', 'bali', 'stud'];                  
+                    const targetKeywords = ['rings', 'ring', 'earrings', 'earring', 'nosepin', 'nose', 'band', 'bali', 'stud'];
                     const hasMatchingWord = handleWords.some(word => targetKeywords.includes(word));
                     const shouldZoom = isMobile && hasMatchingWord;
 
-                  return (
-                    <SwiperSlide key={`${image.url}-${idx}`}>
-                      {/* overflow-hidden keeps the 130% zoomed image contained inside the slide */}
-                      <div className="relative w-full h-full overflow-hidden">
-                        <LazyImage 
-                          src={formatCdnUrl(image.url)} 
-                          alt={image.alt || product.title} 
-                          fill 
-                          priority={idx === 0} 
-                          className={`object-contain grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-300 ${
-                            shouldZoom ? 'scale-[1.30]' : 'lg:scale-100'
-                          }`} 
-                        />
-                      </div>
-                    </SwiperSlide>
-                  );
-                })}
+                    return (
+                      <SwiperSlide key={`${image.url}-${idx}`}>
+                        {/* overflow-hidden keeps the 130% zoomed image contained inside the slide */}
+                        <div className="relative w-full h-full overflow-hidden">
+                          <LazyImage
+                            src={formatCdnUrl(image.url)}
+                            alt={image.alt || product.title}
+                            fill
+                            priority={idx === 0}
+                            className={`object-contain grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-300 ${shouldZoom ? 'scale-[1.30]' : 'lg:scale-100'
+                              }`}
+                          />
+                        </div>
+                      </SwiperSlide>
+                    );
+                  })}
                   {galleryImages.length > 1 && <div className={`pagination-${swiperId} swiper-pagination bottom-0!`} />}
                 </Swiper>
               ) : <div className="w-full h-full flex items-center justify-center text-zinc-400">No Image</div>}
@@ -547,9 +546,9 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   <DrawerTrigger asChild>
                     <button onClick={(e) => { e.preventDefault(); fetchSimilar(); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300">
                       <svg width="24" height="24" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                        <path d="M11.4322 10.4118C11.4293 10.2235 11.5012 10.0417 11.6321 9.90627C11.763 9.77087 11.9422 9.69288 12.1305 9.6894L21.4657 9.52505C21.6544 9.5214 21.8368 9.59284 21.9728 9.72366C22.1088 9.85448 22.1872 10.034 22.1909 10.2226L22.4232 23.5881C22.4262 23.7767 22.3542 23.9588 22.223 24.0943C22.0917 24.2299 21.9121 24.3078 21.7234 24.3109L12.3883 24.4752C12.1998 24.4785 12.0177 24.4068 11.882 24.2759C11.7463 24.1451 11.668 23.9657 11.6645 23.7772L11.4322 10.4118Z" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M11.5349 11.5293L6.05123 12.9986C5.89057 13.0417 5.75356 13.1468 5.67029 13.2908C5.58702 13.4348 5.56428 13.606 5.60707 13.7667L8.65801 25.1594C8.70135 25.3201 8.80674 25.457 8.95101 25.5401C9.09527 25.6231 9.26661 25.6455 9.42735 25.6022L13.8263 24.4235" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M22.4632 11.5293L27.9468 12.9986C28.1075 13.0417 28.2445 13.1468 28.3278 13.2908C28.411 13.4348 28.4338 13.606 28.391 13.7667L25.34 25.1594C25.2967 25.3201 25.1913 25.457 25.047 25.5401C24.9028 25.6231 24.7314 25.6455 24.5707 25.6022L19.8192 24.3291" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M11.4322 10.4118C11.4293 10.2235 11.5012 10.0417 11.6321 9.90627C11.763 9.77087 11.9422 9.69288 12.1305 9.6894L21.4657 9.52505C21.6544 9.5214 21.8368 9.59284 21.9728 9.72366C22.1088 9.85448 22.1872 10.034 22.1909 10.2226L22.4232 23.5881C22.4262 23.7767 22.3542 23.9588 22.223 24.0943C22.0917 24.2299 21.9121 24.3078 21.7234 24.3109L12.3883 24.4752C12.1998 24.4785 12.0177 24.4068 11.882 24.2759C11.7463 24.1451 11.668 23.9657 11.6645 23.7772L11.4322 10.4118Z" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M11.5349 11.5293L6.05123 12.9986C5.89057 13.0417 5.75356 13.1468 5.67029 13.2908C5.58702 13.4348 5.56428 13.606 5.60707 13.7667L8.65801 25.1594C8.70135 25.3201 8.80674 25.457 8.95101 25.5401C9.09527 25.6231 9.26661 25.6455 9.42735 25.6022L13.8263 24.4235" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M22.4632 11.5293L27.9468 12.9986C28.1075 13.0417 28.2445 13.1468 28.3278 13.2908C28.411 13.4348 28.4338 13.606 28.391 13.7667L25.34 25.1594C25.2967 25.3201 25.1913 25.457 25.047 25.5401C24.9028 25.6231 24.7314 25.6455 24.5707 25.6022L19.8192 24.3291" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </button>
                   </DrawerTrigger>
@@ -569,16 +568,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                                     <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]">
                                       <LazyImage src={item.image} alt={item.title} fill className="object-contain transition-transform duration-500 group-hover:scale-105 mix-blend-multiply" />
                                       {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
-                                        <button 
-                                          onClick={(e) => { 
-                                            e.preventDefault(); 
+                                        <button
+                                          onClick={(e) => {
+                                            e.preventDefault();
                                             const vMedia = item.media.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
                                             if (vMedia) onVideoPlay?.(vMedia, item.title);
                                           }}
                                           className="absolute bottom-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300"
                                         >
                                           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 ml-0.5">
-                                            <path d="M7 6V18L19 12L7 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                            <path d="M7 6V18L19 12L7 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                           </svg>
                                         </button>
                                       )}
@@ -608,10 +607,10 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             {/* Video - Bottom Left */}
             {videoMedia && (
-              <button onClick={(e) => { e.preventDefault(); setShowVideoPopup(true); }} className="absolute bottom-4 left-2 lg:left-4 z-10 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300">
+              <button onClick={(e) => { e.preventDefault(); setShowVideoPopup(true); }} className="absolute bottom-4 left-2 lg:left-4 z-10 w-8 h-8 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                  <path d="M11.084 18.1814V9.81869C11.0842 9.71406 11.1125 9.6114 11.166 9.52147C11.2194 9.43155 11.2961 9.35766 11.388 9.30756C11.4798 9.25745 11.5835 9.23298 11.688 9.2367C11.7926 9.24042 11.8943 9.27219 11.9823 9.32869L18.4877 13.5089C18.57 13.5616 18.6378 13.6343 18.6847 13.7201C18.7317 13.8059 18.7563 13.9022 18.7563 14C18.7563 14.0979 18.7317 14.1941 18.6847 14.2799C18.6378 14.3658 18.57 14.4384 18.4877 14.4912L11.9823 18.6725C11.8943 18.729 11.7926 18.7608 11.688 18.7645C11.5835 18.7682 11.4798 18.7438 11.388 18.6937C11.2961 18.6436 11.2194 18.5697 11.166 18.4797C11.1125 18.3898 11.0842 18.2872 11.084 18.1825V18.1814Z" fill="currentColor"/>
-                  <path d="M1.16602 14.0001C1.16602 6.91258 6.91185 1.16675 13.9993 1.16675C21.0868 1.16675 26.8327 6.91258 26.8327 14.0001C26.8327 21.0876 21.0868 26.8334 13.9993 26.8334C6.91185 26.8334 1.16602 21.0876 1.16602 14.0001ZM13.9993 2.91675C11.0599 2.91675 8.24078 4.08445 6.16225 6.16298C4.08372 8.24151 2.91602 11.0606 2.91602 14.0001C2.91602 16.9396 4.08372 19.7587 6.16225 21.8372C8.24078 23.9157 11.0599 25.0834 13.9993 25.0834C16.9388 25.0834 19.7579 23.9157 21.8364 21.8372C23.915 19.7587 25.0827 16.9396 25.0827 14.0001C25.0827 11.0606 23.915 8.24151 21.8364 6.16298C19.7579 4.08445 16.9388 2.91675 13.9993 2.91675Z" fill="currentColor"/>
+                  <path d="M11.084 18.1814V9.81869C11.0842 9.71406 11.1125 9.6114 11.166 9.52147C11.2194 9.43155 11.2961 9.35766 11.388 9.30756C11.4798 9.25745 11.5835 9.23298 11.688 9.2367C11.7926 9.24042 11.8943 9.27219 11.9823 9.32869L18.4877 13.5089C18.57 13.5616 18.6378 13.6343 18.6847 13.7201C18.7317 13.8059 18.7563 13.9022 18.7563 14C18.7563 14.0979 18.7317 14.1941 18.6847 14.2799C18.6378 14.3658 18.57 14.4384 18.4877 14.4912L11.9823 18.6725C11.8943 18.729 11.7926 18.7608 11.688 18.7645C11.5835 18.7682 11.4798 18.7438 11.388 18.6937C11.2961 18.6436 11.2194 18.5697 11.166 18.4797C11.1125 18.3898 11.0842 18.2872 11.084 18.1825V18.1814Z" fill="currentColor" />
+                  <path d="M1.16602 14.0001C1.16602 6.91258 6.91185 1.16675 13.9993 1.16675C21.0868 1.16675 26.8327 6.91258 26.8327 14.0001C26.8327 21.0876 21.0868 26.8334 13.9993 26.8334C6.91185 26.8334 1.16602 21.0876 1.16602 14.0001ZM13.9993 2.91675C11.0599 2.91675 8.24078 4.08445 6.16225 6.16298C4.08372 8.24151 2.91602 11.0606 2.91602 14.0001C2.91602 16.9396 4.08372 19.7587 6.16225 21.8372C8.24078 23.9157 11.0599 25.0834 13.9993 25.0834C16.9388 25.0834 19.7579 23.9157 21.8364 21.8372C23.915 19.7587 25.0827 16.9396 25.0827 14.0001C25.0827 11.0606 23.915 8.24151 21.8364 6.16298C19.7579 4.08445 16.9388 2.91675 13.9993 2.91675Z" fill="currentColor" />
                 </svg>
               </button>
             )}
@@ -634,7 +633,10 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                     } else {
                       const payload = { productId, productHandle, title: product.title, image: thumbnailImage, price: displayPrice, comparePrice: displayComparePrice || "", reviews: product.reviews || null, hasVideo: Boolean(videoMedia), hasSimilar: Boolean(product.handle), variantId: String(getNumericId(currentVariant?.id || currentVariant?.shopifyId)), size: currentVariant?.size || "", color: currentVariant?.color || currentVariant?.title || "" };
                       if (user?.id) await dispatch(addWishlistItem(payload)).unwrap();
-                      else dispatch(addGuestWishlistItem(payload));
+                      else {
+                        dispatch(addGuestWishlistItem(payload));
+                        dispatch(openAuthModal());
+                      }
                       pushAddToWishlist(commonTrackingData); toast.success("Saved to wishlist");
                     }
                   } catch (err) { toast.error(err.message || "Wishlist update failed"); } finally { setTimeout(() => setIsWishlistAnimating(false), 250); }
@@ -648,19 +650,19 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             {galleryImages.length > 1 && (
               <>
-                <button 
-                    ref={prevImageBtnRef} 
-                    type="button" 
-                    className={`custom-prev-${swiperId} absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/85 text-black shadow-md opacity-0 group-hover/card:opacity-100 transition-opacity`}
+                <button
+                  ref={prevImageBtnRef}
+                  type="button"
+                  className={`custom-prev-${swiperId} absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/85 text-black shadow-md opacity-0 group-hover/card:opacity-100 transition-opacity`}
                 >
-                    <ChevronLeft size={18} />
+                  <ChevronLeft size={18} />
                 </button>
-                <button 
-                    ref={nextImageBtnRef} 
-                    type="button" 
-                    className={`custom-next-${swiperId} absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/85 text-black shadow-md opacity-0 group-hover/card:opacity-100 transition-opacity`}
+                <button
+                  ref={nextImageBtnRef}
+                  type="button"
+                  className={`custom-next-${swiperId} absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/85 text-black shadow-md opacity-0 group-hover/card:opacity-100 transition-opacity`}
                 >
-                    <ChevronRight size={18} />
+                  <ChevronRight size={18} />
                 </button>
               </>
             )}
@@ -669,16 +671,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
           <div className="flex flex-col gap-1.5 px-1">
             <div className="flex flex-row items-center justify-between gap-2">
               {baseColors.length > 0 && (
-                  <div className="flex gap-3">
-                    {baseColors.map((base) => {
-                      const isActive = base === activeBase;
-                      return (
-                        <button key={`${product.shopifyId}-${base}`} type="button" title={base} onClick={() => setActiveBase(base)} className={`w-5 h-5 lg:w-7 lg:h-7 rounded-full border transition-all flex items-center justify-center hover:scale-110 ${isActive ? "border-black" : "border-transparent"}`}>
-                          <span className="w-full h-full rounded-full" style={{ background: colorMap[base] }} />
-                        </button>
-                      );
-                    })}
-                  </div>
+                <div className="flex gap-3">
+                  {baseColors.map((base) => {
+                    const isActive = base === activeBase;
+                    return (
+                      <button key={`${product.shopifyId}-${base}`} type="button" title={base} onClick={() => setActiveBase(base)} className={`w-5 h-5 lg:w-7 lg:h-7 rounded-full border transition-all flex items-center justify-center hover:scale-110 ${isActive ? "border-black" : "border-transparent"}`}>
+                        <span className="w-full h-full rounded-full" style={{ background: colorMap[base] }} />
+                      </button>
+                    );
+                  })}
+                </div>
               )}
 
               {/* Rating Section */}
@@ -731,26 +733,27 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
                   if (weight) parts.push(weight);
                   if (parts.length === 0) return null;
-                  return <p className="font-figtree text-[10px] lg:text-xs font-medium text-gray-500 uppercase tracking-tight">{parts.join(" · ")}</p>;
+                  return <p className="font-figtree text-[10px] lg:text-xs font-medium text-gray-500 tracking-tight">{parts.join(" · ")}</p>;
                 })()}
               </div>
             </div>
 
             {productOffers.length > 0 && (
-                <div className="inline-flex items-center gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 lg:px-3 py-1 mt-1 w-fit">
-                  <ShieldCheck size={12} />
-                  <div className="overflow-hidden">
-                    <AnimatePresence mode="wait" initial={false}>
-                      <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="text-[8px] lg:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
-                    </AnimatePresence>
-                  </div>
+              <div className="inline-flex items-center gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 lg:px-3 py-1 mt-1 w-fit">
+                <ShieldCheck size={12} />
+                <div className="overflow-hidden">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="text-[8px] lg:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
+                  </AnimatePresence>
                 </div>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .custom-product-swiper .swiper-button-prev, .custom-product-swiper .swiper-button-next { display: none !important; }
         .custom-product-swiper .swiper-pagination-progressbar { background: rgba(0,0,0,0.05) !important; height: 2px !important; bottom: 0 !important; top: auto !important; }
         .custom-product-swiper .swiper-pagination-progressbar-fill { background: #5A413F !important; }

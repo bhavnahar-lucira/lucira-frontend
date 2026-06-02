@@ -27,7 +27,7 @@ export default function MobileCategorySlider() {
               role="listitem" 
               className="flex flex-col items-center text-center min-w-[100px] w-[100px] shrink-0 last:mr-3"
             >
-              <Link 
+              <Link prefetch={false} 
                 href={collection.url} 
                 className="flex flex-col gap-2 no-underline active:opacity-70 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-800"
                 aria-label={`Shop ${collection.name}`}

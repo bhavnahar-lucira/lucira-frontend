@@ -229,7 +229,7 @@ export default function CustomerReview({
           {/* Controls */}
           <div className="mt-8 md:mt-6 px-1 flex items-center justify-between">
             {isMobile ? (
-              <Link 
+              <Link prefetch={false} 
                 href="/reviews"
                 className="font-black text-[10px] tracking-[0.2em] uppercase border-b border-zinc-900 pb-0.5 text-zinc-900"
               >
@@ -261,7 +261,7 @@ export default function CustomerReview({
 
         {!isMobile && (
           <div className="mt-12 text-center">
-              <Link 
+              <Link prefetch={false} 
                   href="/reviews"
                   className="inline-flex items-center justify-center px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors"
               >

@@ -137,7 +137,7 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  // Pre-render the top 50 bestseller product pages at build time.
+  // Pre-render the top 250 bestseller product pages at build time.
   // These are served from Vercel CDN (FREE — no function invocations on first visit).
   // All 2600+ other product pages still work — rendered on-demand when first visited, then cached.
   // ISR (revalidate=86400) + webhook revalidation still applies to pre-rendered pages.
@@ -148,7 +148,7 @@ export async function generateStaticParams() {
     const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
 
     const res = await fetch(
-      `${base}/api/collection?handle=bestsellers&limit=50&sort=best_selling`,
+      `${base}/api/collection?handle=bestsellers&limit=250&sort=best_selling`,
       { cache: 'force-cache' }
     );
     if (!res.ok) return [];

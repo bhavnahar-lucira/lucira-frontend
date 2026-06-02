@@ -109,7 +109,7 @@ export default function SizeGuidePage() {
                         <p className="text-[clamp(14px,3vw,16px)] leading-[1.6] font-light text-[#333]">
                         Finding the perfect fit for your jewelry ensures both comfort and
                         style.&nbsp;
-                        <Link
+                        <Link prefetch={false}
                             href="https://www.lucirajewelry.com/"
                             target="_blank"
                             className="font-bold underline hover:opacity-80 transition"
@@ -196,7 +196,7 @@ export default function SizeGuidePage() {
                             </ul>
                             <h5 className="mt-4 text-[clamp(14px,3vw,16px)]">
                             <strong>Need Help?</strong>{" "}
-                                <Link
+                                <Link prefetch={false}
                                     href="https://lucirajewelry.com/pages/contact-us"
                                     className="underline hover:opacity-80 text-blue-700"
                                 >
@@ -265,7 +265,7 @@ export default function SizeGuidePage() {
                             </div>
                         </div>
                         <div className="flex justify-center mt-6">
-                            <Link
+                            <Link prefetch={false}
                             href="https://lucirajewelry.com/collections/rings"
                             className="uppercase bg-[#a68380] text-white px-6 py-2 rounded-full text-[clamp(.9rem,3vw,1.2rem)] shadow hover:bg-[#95736f] transition hover:-translate-y-1"
                             >
@@ -347,7 +347,7 @@ export default function SizeGuidePage() {
                         </table>
                     </div>
                     <div className="flex justify-center mt-6">
-                        <Link
+                        <Link prefetch={false}
                         href="https://lucirajewelry.com/collections/bracelets"
                         className="bg-[#a68380] hover:bg-[#95736f] text-white text-xs sm:text-sm px-5 py-2 rounded-full uppercase tracking-wide transition-all duration-300 shadow-sm hover:shadow-md"
                         >
@@ -427,7 +427,7 @@ export default function SizeGuidePage() {
                             </table>
                         </div>
                         <div className="flex justify-center mt-6">
-                            <Link
+                            <Link prefetch={false}
                             href="https://lucirajewelry.com/collections/bangles"
                             className="bg-[#a68380] hover:bg-[#95736f] text-white text-sm md:text-base px-6 py-2 rounded-full transition-all duration-300 shadow"
                             >
@@ -491,7 +491,7 @@ export default function SizeGuidePage() {
                         ))}
                     </ol>
                     <div className="flex justify-center">
-                        <Link
+                        <Link prefetch={false}
                             href="https://lucirajewelry.com/collections/necklaces"
                             className="bg-[#a68380] hover:bg-[#95736f] text-white text-sm md:text-base px-6 py-2 rounded-full transition-all duration-300 shadow"
                         >

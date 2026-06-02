@@ -46,10 +46,10 @@ export default function FailurePage() {
       <h1 className="text-3xl font-bold mb-2">Order Failed</h1>
       <p className="text-zinc-600 mb-8 max-w-md">We're sorry, but there was an issue processing your order. Please try again or contact support.</p>
       <div className="flex gap-4">
-        <Link href="/checkout/cart" className="bg-black text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors">
+        <Link prefetch={false} href="/checkout/cart" className="bg-black text-white px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-800 transition-colors">
           Return to Cart
         </Link>
-        <Link href="/" className="border border-zinc-300 px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-100 transition-colors">
+        <Link prefetch={false} href="/" className="border border-zinc-300 px-8 py-3 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-100 transition-colors">
           Back to Home
         </Link>
       </div>

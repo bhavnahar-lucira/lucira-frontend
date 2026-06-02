@@ -218,7 +218,7 @@ export default function FloatingActionButton() {
         )}
 
         {/* Chat */}
-        <Link 
+        <Link prefetch={false} 
           href="#" 
           onClick={handleChatClick}
           className={`w-[50px] h-[50px] rounded-full mb-2.5 flex items-center justify-center bg-[#0066cc] text-white shadow-lg transition-all duration-350 hover:scale-110 ${isFabOpen ? 'translate-y-0 opacity-100' : 'translate-y-[120px] opacity-0'}`}

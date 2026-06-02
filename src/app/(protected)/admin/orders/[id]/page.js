@@ -186,7 +186,7 @@ export default function OrderDetailsPage() {
       <div className="text-center py-20 font-figtree">
         <AlertCircle size={48} className="mx-auto text-zinc-300 mb-4" />
         <h3 className="text-xl font-bold text-zinc-900">Order not found</h3>
-        <Link href="/admin/orders" className="text-primary hover:underline mt-4 block font-bold uppercase tracking-widest text-xs">
+        <Link prefetch={false} href="/admin/orders" className="text-primary hover:underline mt-4 block font-bold uppercase tracking-widest text-xs">
           Back to all orders
         </Link>
       </div>
@@ -255,7 +255,7 @@ export default function OrderDetailsPage() {
   return (
     <div className="font-figtree space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center gap-4">
-        <Link href="/admin/orders" className="size-10 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-900 hover:bg-zinc-50 transition-colors">
+        <Link prefetch={false} href="/admin/orders" className="size-10 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-900 hover:bg-zinc-50 transition-colors">
           <ChevronLeft size={20} />
         </Link>
         <div>
@@ -367,7 +367,7 @@ export default function OrderDetailsPage() {
                     </div>
                     {!isInsurance && (
                       <div className="hidden sm:block">
-                        <Link href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
+                        <Link prefetch={false} href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
                           View Product
                         </Link>
                       </div>
@@ -482,7 +482,7 @@ export default function OrderDetailsPage() {
                   <span className="text-base font-bold">Chat with Support</span>
                   <ChevronLeft className="rotate-180 size-6" />
                 </a>
-                <Link href="/pages/shipping-policy" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
+                <Link prefetch={false} href="/pages/shipping-policy" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
                   <span className="text-base font-bold">Shipping Policy</span>
                   <ChevronLeft className="rotate-180 size-6" />
                 </Link>

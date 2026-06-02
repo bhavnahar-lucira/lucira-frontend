@@ -105,7 +105,7 @@ const RichTextSection = ({ settings, blocks, blockOrder }) => {
                 return (
                   <div key={blockId} className="flex gap-4 mt-4">
                     {block.settings.button_label && (
-                      <Link
+                      <Link prefetch={false}
                         href={resolveShopifyLink(block.settings.button_link)}
                         className="px-10 py-4 bg-[#5B4740] text-white text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-[#4A3934] transition-all rounded-sm shadow-xl"
                       >
@@ -155,7 +155,7 @@ const CollectionSection = ({ settings, products = [], index }) => {
             )}
 
             {settings.button_text && (
-              <Link
+              <Link prefetch={false}
                 href={resolveShopifyLink(settings.button_link)}
                 className="group flex items-center gap-3 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 border-b-2 border-zinc-200 pb-2 hover:border-[#5B4740] transition-all duration-300"
               >
@@ -197,7 +197,7 @@ const CollectionSection = ({ settings, products = [], index }) => {
 
             {settings.show_view_all && (
               <div className="mt-10 md:mt-16 flex justify-center">
-                <Link
+                <Link prefetch={false}
                   href={`/collections/${settings.collection}`}
                   className="px-10 py-4 bg-[#5B4740] text-white text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] hover:bg-[#4A3934] transition-all rounded-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5"
                 >
@@ -287,10 +287,10 @@ export default function JewelryGiftGuideClient() {
             Let our diamond experts help you choose a piece that resonates with her unique spirit.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link href="/pages/contact-us" className="px-10 py-4 bg-white text-[#5B4740] text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-[#FAF7F5] transition-all rounded-sm shadow-2xl">
+            <Link prefetch={false} href="/pages/contact-us" className="px-10 py-4 bg-white text-[#5B4740] text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-[#FAF7F5] transition-all rounded-sm shadow-2xl">
               Book a Consultation
             </Link>
-            <Link href="/collections/jewelry" className="px-10 py-4 bg-transparent border border-white/30 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all rounded-sm">
+            <Link prefetch={false} href="/collections/jewelry" className="px-10 py-4 bg-transparent border border-white/30 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all rounded-sm">
               Explore All Jewelry
             </Link>
           </div>

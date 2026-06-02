@@ -8,9 +8,10 @@ import GoldRatePage from "@/components/pages/gold-rate/GoldRatePage";
 import SilverRatePage from "@/components/pages/silver-rate/SilverRatePage";
 import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage";
 
-// SSG: Static pages (About, Careers, T&C, etc.) are rendered once at build and cached permanently.
-// Zero ISR background writes. Content only changes when an editor manually updates it in Shopify.
-export const dynamic = 'force-static';
+// ISR: Static pages (About, Careers, T&C, etc.) are cached for 1 year.
+// This significantly reduces Vercel function invocations and re-render costs.
+export const revalidate = 31536000; // 1 year
+export const dynamicParams = true;
 
 
 export async function generateMetadata({ params }) {

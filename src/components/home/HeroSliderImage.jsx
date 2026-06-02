@@ -65,7 +65,7 @@ export default function HeroBanner() {
         >
           {slideData.map((slide, index) => (
             <SwiperSlide key={slide.name}>
-              <Link href={slide.url} className="block w-full h-full">
+              <Link prefetch={false} href={slide.url} className="block w-full h-full">
                 <div className="relative w-full h-full">
                   <picture>
                     {/* Desktop Image */}

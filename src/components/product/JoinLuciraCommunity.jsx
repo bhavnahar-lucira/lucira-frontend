@@ -116,7 +116,7 @@ export function JoinLuciraCommunity() {
               </form>
               <p className="text-xs text-black">
                 You can unsubscribe anytime. For more details read our{" "}
-                <Link href="/pages/privacy-policy" className="underline font-bold text-zinc-900 hover:text-black transition-colors">
+                <Link prefetch={false} href="/pages/privacy-policy" className="underline font-bold text-zinc-900 hover:text-black transition-colors">
                   Privacy Policy
                 </Link>
               </p>
