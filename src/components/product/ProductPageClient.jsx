@@ -267,7 +267,6 @@ export default function ProductPageClient({
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
   const dispatch = useDispatch();
-  console.log("products PDP", product)
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
@@ -320,7 +319,6 @@ export default function ProductPageClient({
   });
 
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: false, threshold: 20000, message: "" });
-  console.log("stores", availableStores)
   useEffect(() => {
     if (!product.shopifyId) return;
 

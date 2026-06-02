@@ -41,7 +41,6 @@ export function FindLuciraStore({
   // The user wants a slider if more stores are there.
   
   const storesToDisplay = availableStores.length > 0 ? availableStores : [];
-  console.log("Stores with mapLink check:", storesToDisplay);
 
   return (
     <section className="w-full py-10 bg-gray-50 mt-10">
