@@ -268,6 +268,8 @@ export default function ProductPageClient({
   const collectionContext = useSelector((state) => state.user.collectionContext);
   const dispatch = useDispatch();
 
+  console.log("test", product.tags)
+
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
     return () => {
@@ -1019,7 +1021,7 @@ export default function ProductPageClient({
 
   const getStoreDisplayName = (name) => {
     if (!name) return "";
-    if (name.includes("Divinecarat")) return "Malad";
+    if (name.includes("Divinecarat")) return "Malad Head Office";
     if (name === "BO1") return "Borivali";
     if (name === "CS1") return "Chembur";
     if (name === "PS1") return "Pune";
@@ -2912,7 +2914,15 @@ export default function ProductPageClient({
                     </div>
                   </div>
                   <div className="flex items-center justify-center flex-col mt-5">
-                    <p className="text-sm text-black text-center"><strong>Note:</strong> Our products are handcrafted and personalized for you, hence weight variance may occur.</p>
+                    {product.tags?.includes("Tennis Bracelets") || product.tags?.includes("Eternity") ? (
+                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                       Handcrafted and personalized with care - slight variations in metal weight, diamond weight and quantity are natural with different sizes.
+                      </p>
+                    ) : 
+                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                        Handcrafted and personalized with care - slight variations in metal weight are natural with different sizes.
+                      </p>
+                    }                    
                     {product.tags?.includes("Only Pendant") && (
                       <p className="text-sm text-black text-center mt-1">Chain is not included in the purchase.</p>
                     )}
@@ -3008,8 +3018,14 @@ export default function ProductPageClient({
                       <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
-                            {store.distance !== null && (
+                            {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
+                            <h3 className="font-bold text-lg">
+                              {getStoreDisplayName(store.name) === "Malad Head Office" 
+                                ? "Malad Head Office" 
+                                : `${getStoreDisplayName(store.name)}`
+                              }
+                            </h3>
+                            {store.distance !== null && getStoreDisplayName(store.name) !== "Malad Head Office" && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                                 <MapPin size={14} />
                                 {Math.round(store.distance)} Km away
@@ -3104,7 +3120,7 @@ export default function ProductPageClient({
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
                           <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
-                          {store.distance !== null && (
+                          {store.distance !== null && getStoreDisplayName(store.name) !== "Malad Head Office" && (
                             <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                               <MapPin size={14} />
                               {Math.round(store.distance)} Km away

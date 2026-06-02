@@ -321,7 +321,7 @@ export default function CartSummary({ onPlaceOrder }) {
                 </div>
               </button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 pt-4">
+            <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 pt-4 max-h-[85vh] overflow-y-auto transition-all duration-300 ease-in-out focus-within:mb-0">
               <SheetHeader className="space-y-3">
                 <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-2">
                   <Tag size={24} />
@@ -336,7 +336,7 @@ export default function CartSummary({ onPlaceOrder }) {
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   placeholder="Enter Coupon Code" 
-                  className="h-12 text-center text-lg font-bold tracking-widest uppercase"
+                  className="h-12 text-center text-lg font-bold tracking-widest uppercase focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 />
                 <Button 
                   onClick={() => handleApplyCoupon(true)}
