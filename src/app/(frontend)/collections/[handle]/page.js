@@ -71,7 +71,7 @@ export async function generateStaticParams() {
     return [
       { handle: "all" },
       { handle: "jewelry" },
-      { handle: "all-rings" },
+      { handle: "rings" },
       { handle: "earrings" },
       { handle: "necklaces" },
       { handle: "bracelets" },
