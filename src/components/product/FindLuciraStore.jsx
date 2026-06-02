@@ -41,7 +41,6 @@ export function FindLuciraStore({
   // The user wants a slider if more stores are there.
   
   const storesToDisplay = availableStores.length > 0 ? availableStores : [];
-  console.log("Stores with mapLink check:", storesToDisplay);
 
   return (
     <section className="w-full py-10 bg-gray-50 mt-10">
@@ -196,7 +195,7 @@ export function FindLuciraStore({
                         <Button 
                           variant="outline" 
                           className="h-10 md:h-12 px-4 md:px-6 w-full sm:w-auto hover:cursor-pointer rounded-sm border-primary text-xs md:text-sm font-medium tracking-wider hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-2"
-                          onClick={() => window.open(`tel:${store.phone || "+919172499912"}`, '_self')}
+                          onClick={() => window.open(`tel:${store.phone || "+919004435760"}`, '_self')}
                         >
                           <Phone size={16} />
                           CALL US
@@ -204,7 +203,7 @@ export function FindLuciraStore({
 
                         <Button 
                           className="h-10 md:h-12 px-4 md:px-6 w-full sm:w-auto hover:cursor-pointer rounded-sm text-white text-xs md:text-sm font-medium tracking-wider flex items-center justify-center gap-2"
-                          onClick={() => window.open(`https://wa.me/919172499912?text=I'd like to book an appointment at ${getStoreDisplayName(store.name)} store for ${product?.title}`, '_blank')}
+                          onClick={() => window.open(`https://wa.me/919004435760?text=I'd like to book an appointment at ${getStoreDisplayName(store.name)} store for ${product?.title}`, '_blank')}
                         >
                           <Calendar size={16} />
                           BOOK APPOINTMENT

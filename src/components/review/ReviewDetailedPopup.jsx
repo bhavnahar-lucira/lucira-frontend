@@ -128,8 +128,8 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
                 )}
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 text-xl leading-tight mb-1 capitalize tracking-widest">{review.personName}</h3>
-                <div className="flex items-center gap-1.5 text-xs text-[#A8715A] font-bold uppercase tracking-wide">
+                <h3 className="font-bold text-gray-900 text-xl leading-tight mb-1 capitalize tracking-wide">{review.personName}</h3>
+                <div className="flex items-center gap-1.5 text-xs text-[#A8715A] font-bold uppercase">
                     <BadgeCheck size={16} className="fill-[#A8715A] text-white" />
                     Verified Customer
                 </div>
