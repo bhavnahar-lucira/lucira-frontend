@@ -6,7 +6,7 @@ export default function CartContact() {
       <div className="bg-white border border-zinc-50 rounded-lg p-6 shadow-sm text-center space-y-4">
         <h4 className="text-[11px] font-bold text-black uppercase tracking-[0.2em]">CONTACT US FOR ASSISTANCE</h4>
         <div className="flex justify-around items-center pt-2">
-          <Link prefetch={false} href="tel:+918976773659" className="flex items-center gap-2 bg-zinc-50 px-3 py-2.5 rounded-xl hover:bg-zinc-100 transition-colors">
+          <Link prefetch={false} href="tel:+919004436052" className="flex items-center gap-2 bg-zinc-50 px-3 py-2.5 rounded-xl hover:bg-zinc-100 transition-colors">
             <Phone size={18} className="text-black" />
             <span className="text-xs font-bold text-black">Call</span>
           </Link>

@@ -23,7 +23,7 @@ export function FindLuciraStore({
 
   const getStoreDisplayName = (name) => {
     if (!name) return "";
-    if (name.includes("Divinecarat")) return "Malad";
+    if (name.includes("Divinecarat")) return "Malad Head Office";
     if (name === "BO1") return "Borivali";
     if (name === "CS1") return "Chembur";
     if (name === "PS1") return "Pune";
@@ -115,7 +115,10 @@ export function FindLuciraStore({
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                           <div className="min-w-0 flex-1">
                             <h3 className="text-xl md:text-2xl font-semibold italic mb-2 md:mb-4">
-                              {getStoreDisplayName(store.name)} Lucira Store
+                              {getStoreDisplayName(store.name) === "Malad Head Office" 
+                                ? "Malad Head Office" 
+                                : `${getStoreDisplayName(store.name)} Lucira Store`
+                              }
                             </h3>
                             <p className="text-sm md:text-base leading-relaxed text-gray-600">
                               {store.address1 || store.address}, {store.city}, {store.province || ""} {store.zip || ""}
