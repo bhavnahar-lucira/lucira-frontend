@@ -35,13 +35,59 @@ import {
 
 const allStores = [
   {
+    city: "Malad",
+    name: "Head Office",
+    rating: 5.0,
+    image: "https://luciraonline.myshopify.com/cdn/shop/files/Lucira_contact_us_grid_900x.png?v=1757660196",
+    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
+    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Mumbai/data=!4m2!3m1!1s0x0:0x268fe0bb8a89f9bb?sa=X&ved=1t:2428&ictx=111",
+    whatsappLink: "https://api.whatsapp.com/send?phone=919004435760&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Head%20Office%20and%20explore%20the%20designs.",
+    callLink: "tel:+919004436052",
+    designLink: "/collections/malad",
+    directionsLink: "/collections/malad",
+    lat: 19.1743,
+    lng: 72.8445,
+    address: "Office 1402-2, DLH Park, 14th Floor, SV Rd, Mumbai, Maharashtra 400062",
+  },
+  {
+    city: "Borivali",
+    name: "Borivali Lucira Store",
+    rating: 4.9,
+    image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-Collection-Banner3_jpg_900x.jpg?v=1769237134",
+    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
+    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Borivali+Mumbai/data=!4m2!3m1!1s0x0:0x8e0b915ac78ac1?sa=X&ved=1t:2428&ictx=111",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    callLink: "tel:+918433667238",
+    designLink: "/collections/sky-city-borivali-store",
+    directionsLink: "/collections/sky-city-borivali-store",
+    lat: 19.2307,
+    lng: 72.8567,
+    address: "Sky City Mall, S-40, 2nd Floor, Western Express Hwy, Borivali East, Mumbai - 400066",
+  },
+  {
+    city: "Chembur",
+    name: "Chembur Lucira Store",
+    rating: 4.7,
+    image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-Collection-Banner-2_900x.jpg?v=1760699342",
+    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
+    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Chembur+Mumbai/@19.0576005,72.898121,17z/data=!3m1!4b1!4m6!3m5!1s0x3be7c782f7511b79:0xaa877f3bbd754bfc!8m2!3d19.0575954!4d72.9006959!16s%2Fg%2F11xtgz09vw",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    callLink: "tel:+919004402038",
+    designLink: "/collections/chembur-store",
+    directionsLink: "/collections/chembur-store",
+    lat: 19.0576,
+    lng: 72.9007,
+    address: "Shop No. 3 Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd, Chembur, Mumbai, Maharashtra 400071",
+  },
+  {
     city: "Pune",
     name: "Pune Lucira Store",
     rating: 4.8,
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-PLP-2_900x.jpg?v=1765807125",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+JM+Road+Pune/@18.5233058,73.8452878,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc2c1929b1639f7:0x7d0f5ff74de52a8d!8m2!3d18.5233007!4d73.8478627",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=%2B8433667236&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    callLink: "tel:+918433667236",
     designLink: "/collections/pune-store",
     directionsLink: "https://www.lucirajewelry.com/collections/pune-store",
     lat: 18.5233,
@@ -55,54 +101,13 @@ const allStores = [
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Wave+One+Mall,+Noida/data=!4m2!3m1!1s0x0:0xbdc183588be81689?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send?phone=918657392887&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Noida%20Store%20and%20explore%20the%20designs.",
+    whatsappLink: "https://api.whatsapp.com/send?phone=919004435760&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Noida%20Store%20and%20explore%20the%20designs.",
+    callLink: "tel:+918657392887",
     designLink: "/collections/noida-store",
     directionsLink: "https://www.lucirajewelry.com/collections/noida-store",
     lat: 28.5708,
     lng: 77.3261,
     address: "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh 201301",
-  },
-  {
-    city: "Chembur",
-    name: "Chembur Lucira Store",
-    rating: 4.7,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-Collection-Banner-2_900x.jpg?v=1760699342",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Chembur+Mumbai/@19.0576005,72.898121,17z/data=!3m1!4b1!4m6!3m5!1s0x3be7c782f7511b79:0xaa877f3bbd754bfc!8m2!3d19.0575954!4d72.9006959!16s%2Fg%2F11xtgz09vw",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=%2B+919004402038&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
-    designLink: "/collections/chembur-store",
-    directionsLink: "/collections/chembur-store",
-    lat: 19.0576,
-    lng: 72.9007,
-    address: "Shop No. 3 Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd, Chembur, Mumbai, Maharashtra 400071",
-  },
-  {
-    city: "Borivali",
-    name: "Borivali Lucira Store",
-    rating: 4.9,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-Collection-Banner3_jpg_900x.jpg?v=1769237134",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Borivali+Mumbai/data=!4m2!3m1!1s0x0:0x8e0b915ac78ac1?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=%2B8433667238&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
-    designLink: "/collections/sky-city-borivali-store",
-    directionsLink: "/collections/sky-city-borivali-store",
-    lat: 19.2307,
-    lng: 72.8567,
-    address: "Sky City Mall, S-40, 2nd Floor, Western Express Hwy, Borivali East, Mumbai - 400066",
-  },
-  {
-    city: "Malad",
-    name: "Malad Head Office",
-    rating: 5.0,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Lucira_contact_us_grid_900x.png?v=1757660196",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Mumbai/data=!4m2!3m1!1s0x0:0x268fe0bb8a89f9bb?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send?phone=919004435760&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Head%20Office%20and%20explore%20the%20designs.",
-    designLink: "/collections/malad",
-    directionsLink: "/collections/malad",
-    lat: 19.1743,
-    lng: 72.8445,
-    address: "Office 1402-2, DLH Park, 14th Floor, SV Rd, Mumbai, Maharashtra 400062",
   },
 ];
 
@@ -506,7 +511,7 @@ export default function StoreLocatorPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid md:grid-cols-3 gap-3">
                         {/* Connect with Us — WhatsApp */}
                         <Button asChild variant="outline" className="h-11 rounded-sm border-zinc-200 text-zinc-600 hover:border-[#25D366] hover:text-[#25D366] hover:bg-white font-figtree font-semibold text-sm transition-all">
                           <a href={store.whatsappLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5">
@@ -516,6 +521,12 @@ export default function StoreLocatorPage() {
                               </svg>
                             </span>
                             Connect with Us
+                          </a>
+                        </Button>
+
+                        <Button asChild variant="outline" className="h-11 rounded-sm border-zinc-200 text-zinc-600 hover:border-[#8C5A4C] hover:text-[#8C5A4C] hover:bg-white font-figtree font-semibold text-sm transition-all">
+                          <a href={store.callLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5">
+                            Call Us
                           </a>
                         </Button>
 

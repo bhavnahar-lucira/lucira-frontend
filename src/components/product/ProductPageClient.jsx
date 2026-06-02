@@ -1019,7 +1019,7 @@ export default function ProductPageClient({
 
   const getStoreDisplayName = (name) => {
     if (!name) return "";
-    if (name.includes("Divinecarat")) return "Malad Head Office";
+    if (name.includes("Divinecarat")) return "Head Office";
     if (name === "BO1") return "Borivali";
     if (name === "CS1") return "Chembur";
     if (name === "PS1") return "Pune";
@@ -3018,12 +3018,12 @@ export default function ProductPageClient({
                           <div className="space-y-1">
                             {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
                             <h3 className="font-bold text-lg">
-                              {getStoreDisplayName(store.name) === "Malad Head Office" 
-                                ? "Malad Head Office" 
+                              {getStoreDisplayName(store.name) === "Head Office" 
+                                ? "Head Office" 
                                 : `${getStoreDisplayName(store.name)}`
                               }
                             </h3>
-                            {store.distance !== null && getStoreDisplayName(store.name) !== "Malad Head Office" && (
+                            {store.distance !== null && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                                 <MapPin size={14} />
                                 {Math.round(store.distance)} Km away
@@ -3118,7 +3118,7 @@ export default function ProductPageClient({
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
                           <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
-                          {store.distance !== null && getStoreDisplayName(store.name) !== "Malad Head Office" && (
+                          {store.distance !== null && (
                             <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                               <MapPin size={14} />
                               {Math.round(store.distance)} Km away
