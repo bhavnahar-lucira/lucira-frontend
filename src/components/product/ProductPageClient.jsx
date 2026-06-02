@@ -268,8 +268,6 @@ export default function ProductPageClient({
   const collectionContext = useSelector((state) => state.user.collectionContext);
   const dispatch = useDispatch();
 
-  console.log("test", product.tags)
-
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
     return () => {
@@ -3078,7 +3076,7 @@ export default function ProductPageClient({
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
+                              href={`${store.mapLink}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -3173,7 +3171,7 @@ export default function ProductPageClient({
                         </Button>
                         <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                           <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
+                            href={`${store.mapLink}`}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
