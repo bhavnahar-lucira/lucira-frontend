@@ -267,6 +267,7 @@ export default function ProductPageClient({
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
   const dispatch = useDispatch();
+  console.log("products PDP", product)
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
@@ -319,7 +320,7 @@ export default function ProductPageClient({
   });
 
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: false, threshold: 20000, message: "" });
-
+  console.log("stores", availableStores)
   useEffect(() => {
     if (!product.shopifyId) return;
 
@@ -3047,7 +3048,7 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/919172499912?text=${encodeURIComponent(
+                            href={`https://wa.me/919004435760?text=${encodeURIComponent(
                               `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
@@ -3059,7 +3060,7 @@ export default function ProductPageClient({
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                            <a href={`tel:${store.phone || "+919172499912"}`}>CALL STORE</a>
+                            <a href={`tel:${store.phone || "+919004435760"}`}>CALL STORE</a>
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
@@ -3142,7 +3143,7 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/919172499912?text=${encodeURIComponent(
+                          href={`https://wa.me/919004435760?text=${encodeURIComponent(
                             `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"

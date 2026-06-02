@@ -297,7 +297,7 @@ function ReviewCard({ review, onClick }) {
             {name.charAt(0)}
           </div>
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-start flex-col md:flex-row md:gap-2 gap-1">
               <span className="font-bold text-gray-900 text-base capitalize tracking-tight leading-tight">{name}</span>
               {(review.is_verified || review.verified) && (
                 <div className="flex items-center gap-1 text-[#B17A5D] font-bold uppercase text-[8px] tracking-[0.1em] shrink-0 border border-[#B17A5D]/30 px-1.5 py-0.5 rounded-full">

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, BadgePercent, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 export default function CartSummary({ onPlaceOrder }) {
   const dispatch = useDispatch();
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [isCouponSheetOpen, setIsCouponSheetOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplying, setIsApplying] = useState(false);
   
@@ -155,7 +157,7 @@ export default function CartSummary({ onPlaceOrder }) {
   const shipping = 0; 
   const grandTotal = subtotal + insuranceAmount - discount + shipping;
 
-  const handleApplyCoupon = async () => {
+  const handleApplyCoupon = async (isMobile = false) => {
     if (!couponCode.trim()) return;
     setIsApplying(true);
     try {
@@ -175,7 +177,11 @@ export default function CartSummary({ onPlaceOrder }) {
         valueType: data.valueType
       }));
       toast.success(`Coupon "${data.code}" applied!`);
-      setIsCouponDialogOpen(false);
+      if (isMobile) {
+        setIsCouponSheetOpen(false);
+      } else {
+        setIsCouponDialogOpen(false);
+      }
       setCouponCode("");
     } catch (err) {
       toast.error(err.message);
@@ -293,22 +299,53 @@ export default function CartSummary({ onPlaceOrder }) {
         <div className="space-y-4">
           <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>          
           <GoldCoinOption />
-          <button 
-            onClick={() => setIsCouponDialogOpen(true)}
-            className="flex items-center justify-between w-full p-4 bg-white border border-accent/30 rounded-lg group transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-full shadow-sm">
-                <Tag size={20} className="text-primary" />
+          
+          <Sheet open={isCouponSheetOpen} onOpenChange={setIsCouponSheetOpen}>
+            <SheetTrigger asChild>
+              <button 
+                className="flex items-center justify-between w-full p-4 bg-white border border-accent/30 rounded-lg group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-full shadow-sm">
+                    <Tag size={20} className="text-primary" />
+                  </div>
+                  <span className="text-[15px] font-bold text-[#443360] uppercase font-figtree">
+                    {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
+                  </span>
+                </div>
+                <div className="bg-accent p-1.5 rounded-full">
+                  <ChevronRight size={18} className="text-white" />
+                </div>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 pt-4">
+              <SheetHeader className="space-y-3">
+                <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-2">
+                  <Tag size={24} />
+                </div>
+                <SheetTitle className="text-2xl font-light text-center text-zinc-800 font-abhaya">Apply Coupon</SheetTitle>
+                <SheetDescription className="text-sm text-center text-zinc-500">
+                  Enter your coupon code below to unlock special discounts.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="space-y-4 py-4">
+                <Input 
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Enter Coupon Code" 
+                  className="h-12 text-center text-lg font-bold tracking-widest uppercase"
+                />
+                <Button 
+                  onClick={() => handleApplyCoupon(true)}
+                  disabled={isApplying || !couponCode.trim()}
+                  className="w-full h-12 bg-primary hover:bg-primary/90 uppercase font-bold tracking-widest text-white transition-all shadow-md"
+                >
+                  {isApplying ? <Loader2 className="animate-spin" /> : "Apply Coupon"}
+                </Button>
               </div>
-              <span className="text-[15px] font-bold text-[#443360] uppercase font-figtree">
-                {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
-              </span>
-            </div>
-            <div className="bg-accent p-1.5 rounded-full">
-              <ChevronRight size={18} className="text-white" />
-            </div>
-          </button>
+            </SheetContent>
+          </Sheet>
+
           <InsuranceOption />
         </div>
       </div>
@@ -359,7 +396,7 @@ export default function CartSummary({ onPlaceOrder }) {
                   className="h-12 text-center text-lg font-bold tracking-widest uppercase"
                 />
                 <Button 
-                  onClick={handleApplyCoupon}
+                  onClick={() => handleApplyCoupon(false)}
                   disabled={isApplying || !couponCode.trim()}
                   className="w-full h-12 bg-primary hover:bg-primary/90 uppercase font-bold tracking-widest text-white transition-all shadow-md"
                 >

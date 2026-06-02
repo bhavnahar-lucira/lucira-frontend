@@ -41,8 +41,8 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     
     // Priority order: Fast Shipping > Best Seller > New Arrival > Trending
     if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Fast Shipping");
-    if (lowerTags.some(t => t.includes("best seller"))) labels.push("Best Seller");
-    if (lowerTags.some(t => t.includes("new arrival") || t === "new")) labels.push("New Arrival");
+    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller"))) labels.push("Best Seller");
+    if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
     
     return [...new Set(labels)].slice(0, 2);
