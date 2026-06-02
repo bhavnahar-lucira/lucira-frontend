@@ -131,8 +131,9 @@ export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
   async (params = {}, { getState }) => {
     const userId = params?.userId || getState().user?.user?.id || null;
+    const context = params?.context || "storefront";
     const cartId = getCartId();
-    if (!cartId) return { items: [], totalQuantity: 0, totalAmount: 0 };
+    if (!cartId) return { items: [], totalQuantity: 0, totalAmount: 0, context };
     
     // If there's an ongoing sync, wait for it instead of starting a new one
     // this prevents double-adding in React StrictMode (dev) or rapid transitions
@@ -143,7 +144,7 @@ export const fetchCart = createAsyncThunk(
     const shopifyPromise = shopifyStorefrontFetch(CART_QUERY, { cartId });
     
     const sessionId = getSessionId();
-    const backendPromise = apiFetch(`/api/cart/get?userId=${userId || ""}&sessionId=${sessionId || ""}`)
+    const backendPromise = apiFetch(`/api/cart/get?userId=${userId || ""}&sessionId=${sessionId || ""}&context=${context}`)
       .catch(e => {
         console.error("fetchCart backend error:", e);
         return null;
@@ -175,6 +176,7 @@ export const fetchCart = createAsyncThunk(
           body: JSON.stringify({
             userId,
             sessionId,
+            context,
             items: itemsToSync
           })
         });
@@ -247,7 +249,7 @@ export const fetchCart = createAsyncThunk(
 
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async ({ userId, product }, { rejectWithValue, getState }) => {
+  async ({ userId, product, context = "storefront" }, { rejectWithValue, getState }) => {
     const state = getState();
     const finalUserId = userId || state.user?.user?.id || null;
     const sessionId = getSessionId();
@@ -331,6 +333,7 @@ export const addToCart = createAsyncThunk(
         body: JSON.stringify({
           userId: finalUserId,
           sessionId,
+          context,
           product: {
             ...product,
             variantId: toShopifyGid(product.shopifyVariantId || product.variantId || product.id, "ProductVariant"),
@@ -355,11 +358,11 @@ export const addToCart = createAsyncThunk(
 
 export const removeFromCart = createAsyncThunk(
   "cart/removeFromCart",
-  async ({ userId, lineId }, { getState }) => {
+  async ({ userId, lineId, context = "storefront" }, { getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
-    if (!cartId || !lineId) return { items: [], totalQuantity: 0, totalAmount: 0 };
+    if (!cartId || !lineId) return { items: [], totalQuantity: 0, totalAmount: 0, context };
 
     let targetLineId = lineId;
 
@@ -398,7 +401,8 @@ export const removeFromCart = createAsyncThunk(
           body: JSON.stringify({
             userId: finalUserId,
             sessionId,
-            variantId
+            variantId,
+            context
           })
         });
       } catch (e) {
@@ -413,12 +417,12 @@ export const removeFromCart = createAsyncThunk(
 
 export const updateCartItem = createAsyncThunk(
   "cart/updateCartItem",
-  async ({ userId, lineId, currentVariantId, nextVariantId, quantity, size, price, finalPrice, variantTitle, inStock, sku, goldWeight, diamondTotalPcs, diamondCarat, leadTime, estDelivery }, { getState }) => {
+  async ({ userId, lineId, currentVariantId, nextVariantId, quantity, size, price, finalPrice, variantTitle, inStock, sku, goldWeight, diamondTotalPcs, diamondCarat, leadTime, estDelivery, context = "storefront" }, { getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
     const lookupId = lineId || currentVariantId;
-    if (!cartId || !lookupId) return { items: [], totalQuantity: 0, totalAmount: 0 };
+    if (!cartId || !lookupId) return { items: [], totalQuantity: 0, totalAmount: 0, context };
 
     let targetLineId = lookupId;
     let resolvedVariantId = currentVariantId || null;
@@ -472,7 +476,8 @@ export const updateCartItem = createAsyncThunk(
             diamondTotalPcs,
             diamondCarat,
             leadTime,
-            estDelivery
+            estDelivery,
+            context
           })
         });
       } catch (e) {
@@ -487,7 +492,7 @@ export const updateCartItem = createAsyncThunk(
 
 export const mergeCart = createAsyncThunk(
   "cart/mergeCart",
-  async ({ userId } = {}, { dispatch, getState }) => {
+  async ({ userId, context = "storefront" } = {}, { dispatch, getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
@@ -499,7 +504,8 @@ export const mergeCart = createAsyncThunk(
           method: "POST",
           body: JSON.stringify({
             userId: finalUserId,
-            sessionId
+            sessionId,
+            context
           })
         });
       } catch (e) {
@@ -534,6 +540,7 @@ export const mergeCart = createAsyncThunk(
             body: JSON.stringify({
               userId: finalUserId,
               sessionId,
+              context,
               items: itemsToSync
             })
           }).catch(e => console.error("mergeCart Shopify sync error:", e));
@@ -544,14 +551,14 @@ export const mergeCart = createAsyncThunk(
     }
 
     // Step 3: Fetch the final merged cart state
-    const result = await dispatch(fetchCart({ userId: finalUserId })).unwrap();
+    const result = await dispatch(fetchCart({ userId: finalUserId, context })).unwrap();
     return result;
   }
 );
 
 export const repriceCartForCheckout = createAsyncThunk(
   "cart/repriceCartForCheckout",
-  async ({ userId } = {}, { dispatch, getState }) => {
+  async ({ userId, context = "storefront" } = {}, { dispatch, getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
 
@@ -561,14 +568,15 @@ export const repriceCartForCheckout = createAsyncThunk(
         method: "POST",
         body: JSON.stringify({
           userId: finalUserId,
-          sessionId
+          sessionId,
+          context
         })
       });
     } catch (e) {
       console.error("repriceCartForCheckout backend error:", e);
     }
 
-    const result = await dispatch(fetchCart({ userId: finalUserId })).unwrap();
+    const result = await dispatch(fetchCart({ userId: finalUserId, context })).unwrap();
     return result;
   }
 );
