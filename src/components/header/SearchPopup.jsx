@@ -45,8 +45,8 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
     { title: "Solitaire Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511", href: "/collections/solitaire-earrings" },
     { title: "Solitaire Pendant", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511", href: "/collections/solitaire-pendants" },
     { title: "Solitaire Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511", href: "/collections/solitaire-bracelets" },
-    { title: "Solitaire Nosering", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-NP0012_Creative_8ef40252-309d-4ca3-bdd2-508ae8e041ec.jpg?v=1780118512", href: "/collections/solitaire-noserings" },
-    { title: "Solitaire Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_lot_2_35146_jpg.jpg?v=1780118510", href: "/collections/solitaire-mangalsutras" },
+    { title: "Men's Solitaire", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_men_solitairea.jpg?v=1780382143", href: "/collections/solitaires-for-men" },
+    { title: "Solitaire Necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_necklace.jpg?v=1780382136", href: "/collections/solitaire-necklaces" },
   ];
 
   // Close on Escape
