@@ -152,6 +152,7 @@ export function RegisterForm({ initialMobile = "" }) {
   const handleSpinAndRegister = async () => {
     if (!firstName || !lastName || !email || !mobile) return toast.error("Please fill all fields");
     if (mobile.length !== 10) return toast.error("Enter valid 10-digit mobile");
+    if (!/^[6-9]/.test(mobile)) return toast.error("Please enter a valid Indian mobile number starting with 6, 7, 8 or 9");
     if (!consent) return toast.error("Please accept T&Cs");
 
     try {

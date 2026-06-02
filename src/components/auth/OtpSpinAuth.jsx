@@ -50,7 +50,8 @@ export function OtpSpinAuth({
   overrideHeading = "",
   overrideSubtext = "",
   showCloseButton = true,
-  isPopup = false
+  isPopup = false,
+  hideRegisterLink = false
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -192,6 +193,7 @@ export function OtpSpinAuth({
 
   const handleSendOtp = async () => {
     if (mobile.length !== 10) return toast.error("Please enter a valid 10-digit mobile number");
+    if (!/^[6-9]/.test(mobile)) return toast.error("Please enter a valid Indian mobile number starting with 6, 7, 8 or 9");
     setLoading(true);
     try {
       await sendOtpApi(mobile);
@@ -212,7 +214,19 @@ export function OtpSpinAuth({
     try {
       const data = await verifyOtpApi(mobile, otpValue);
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
-        if (pendingRegister) {
+        if (hideRegisterLink) {
+           // Auto register with mobile number
+           try {
+             const regData = await registerCustomer({ mobile });
+             if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+                loginSuccess(regData, true);
+             } else {
+               toast.error("Auto-registration failed. Please contact support.");
+             }
+           } catch (regErr) {
+             toast.error(regErr.message || "Auto-registration failed");
+           }
+        } else if (pendingRegister) {
           // Verification success, now complete the pending registration
           const regData = await registerCustomer({
             firstName,
@@ -504,9 +518,11 @@ export function OtpSpinAuth({
               </svg>
               <span>100% Secured & Spam Free</span>
             </div>
-            <p className="text-center text-sm md:text-base mt-2.5 text-[#5B5B5B]">
-              New user? <span className="cursor-pointer font-bold underline text-[#5a413f]" onClick={() => handleStepChange("register")}>Register</span>
-            </p>
+            {!hideRegisterLink && (
+              <p className="text-center text-sm md:text-base mt-2.5 text-[#5B5B5B]">
+                New user? <span className="cursor-pointer font-bold underline text-[#5a413f]" onClick={() => handleStepChange("register")}>Register</span>
+              </p>
+            )}
           </>
         )}
 
