@@ -258,16 +258,7 @@ export default function FloatingActionButton() {
       >
         <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_3_1.png?v=1772105856" width={20} height={20} alt="WhatsApp" />
       </a>
-      <a 
-        href="tel:+919004436052" 
-        onClick={handlePhoneClick}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`w-[50px] h-[50px] rounded-full mb-2.5 flex items-center justify-center bg-[#DA3779] text-white shadow-lg transition-all duration-350 hover:scale-110 z-[3] ${isProductPage ? 'flex md:hidden' : 'hidden'} ${isFabOpen ? 'hidden' : 'translate-y-0'}`}
-        title="Call"
-      >
-        <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/phone-call_1.png?v=1772105479" width="20" height="20" alt="Call" />
-      </a>
+
       {/* Main FAB Toggle */}
       <div 
         className={`w-[50px] h-[50px] bg-[#b76f79] text-white rounded-full flex items-center justify-center cursor-pointer shadow-xl relative z-[4] transition-all duration-300 hover:scale-[1.08] ${isFabOpen || isZohoActive ? 'bg-[#B77767]' : ''}`}
