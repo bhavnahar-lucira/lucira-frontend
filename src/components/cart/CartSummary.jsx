@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
 import { useSelector, useDispatch } from "react-redux";
+import { pushPromoClick } from "@/lib/gtm";
+import { useAuth } from "@/hooks/useAuth";
 import InsuranceOption from "./InsuranceOption";
 import GoldCoinOption, { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
 import { useCart } from "@/hooks/useCart";
@@ -28,6 +30,7 @@ export default function CartSummary({ onPlaceOrder }) {
   
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart } = useCart();
   const user = useSelector((state) => state.user.user);
+  const { openLogin } = useAuth();
   const [goldCoinThreshold, setGoldCoinThreshold] = useState(20000);
 
   useEffect(() => {
@@ -353,7 +356,28 @@ export default function CartSummary({ onPlaceOrder }) {
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
         <Button 
-          onClick={onPlaceOrder}
+          onClick={() => {
+            // If user not logged in, fire promoClick and open login modal
+            if (!user) {
+              const firstItem = items && items.length > 0 ? items[0] : null;
+              const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+              const promoData = {
+                creative_name: "cart page login popup",
+                promo_id: firstItem?.sku || variantId || "",
+                item_id: variantId || "",
+                promo_position: "Cart Page",
+              };
+              try {
+                pushPromoClick(promoData);
+              } catch (e) {
+                // swallow errors from analytics
+                console.error('promo push failed', e);
+              }
+              openLogin();
+              return;
+            }
+            onPlaceOrder();
+          }}
           className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 uppercase tracking-[0.2em] shadow-lg shadow-zinc-100 transition-all rounded-lg text-base"
         >
           Place Order

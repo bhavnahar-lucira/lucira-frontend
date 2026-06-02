@@ -12,6 +12,8 @@ import { Sheet } from "react-modal-sheet";
 import { OtpSpinAuth } from "./OtpSpinAuth";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
+import { useSelector } from "react-redux";
+
 export function AuthDialog({ 
   open, 
   onOpenChange, 
@@ -25,6 +27,8 @@ export function AuthDialog({
   const router = useRouter();
   const pathname = usePathname();
   const [currentStep, setCurrentStep] = useState(initialStep);
+  const authRedirectPath = useSelector((state) => state.user.authRedirectPath);
+  const hideRegisterLink = authRedirectPath === "/checkout/shipping" || pathname === "/checkout/cart";
 
   useEffect(() => {
     if (open) {
@@ -33,11 +37,16 @@ export function AuthDialog({
   }, [open, initialStep]);
 
   const handleSuccess = (redirectPath) => {
-    onOpenChange(false);
-    if (onSuccess) onSuccess();
-    if (redirectPath && redirectPath !== pathname) {
+    // 1. Explicitly navigate first if a path is provided
+    if (redirectPath) {
       router.push(redirectPath);
     }
+    
+    // 2. Then close the modal after a short delay to allow navigation to initiate
+    setTimeout(() => {
+      onOpenChange(false);
+      if (onSuccess) onSuccess();
+    }, 50);
   };
 
   const handleStepChange = (step) => {
@@ -65,6 +74,7 @@ export function AuthDialog({
                 forceShowWheel={forceShowWheel}
                 overrideHeading={overrideHeading}
                 overrideSubtext={overrideSubtext}
+                hideRegisterLink={hideRegisterLink}
               />
             </div>
           </Sheet.Content>
@@ -95,6 +105,7 @@ export function AuthDialog({
           overrideHeading={overrideHeading}
           overrideSubtext={overrideSubtext}
           isPopup={true}
+          hideRegisterLink={hideRegisterLink}
         />
       </DialogContent>
     </Dialog>

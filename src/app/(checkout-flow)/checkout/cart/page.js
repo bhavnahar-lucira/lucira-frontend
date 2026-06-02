@@ -20,6 +20,17 @@ export default function CartPage() {
   const { isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
 
+  // Fallback: If user logs in while on cart page, and was trying to checkout, redirect them
+  useEffect(() => {
+    if (isAuthenticated) {
+      const storedRedirect = localStorage.getItem("auth_redirect_path");
+      if (storedRedirect === "/checkout/shipping") {
+        localStorage.removeItem("auth_redirect_path");
+        router.push("/checkout/shipping");
+      }
+    }
+  }, [isAuthenticated, router]);
+
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
