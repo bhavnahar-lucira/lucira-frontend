@@ -164,7 +164,10 @@ export default function FloatingActionButton() {
     setIsFabOpen(nextState);
     setTooltipShown(false);
 
-    pushPromoClick("salesiq");
+    // Only fire the salesiq promoClick when opening the FAB (not on close)
+    if (nextState) {
+      pushPromoClick("salesiq");
+    }
   };
 
   const handleChatClick = (e) => {
