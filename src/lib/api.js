@@ -103,10 +103,10 @@ export const sendOtpApi = (mobile) =>
 
 /* ================= VERIFY OTP ================= */
 
-export const verifyOtpApi = (mobile, otp) =>
+export const verifyOtpApi = (mobile, otp, sessionId = null) =>
   apiFetch("/api/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile, otp }),
+    body: JSON.stringify({ mobile, otp, sessionId }),
   });
 
 /* ================= REGISTER ================= */

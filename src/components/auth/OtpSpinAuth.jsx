@@ -13,7 +13,7 @@ import {
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
-import { mergeCart } from "@/redux/features/cart/cartSlice";
+import { mergeCart, getSessionId } from "@/redux/features/cart/cartSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
 
 const SPIN_PRIZES = [
@@ -127,8 +127,21 @@ export function OtpSpinAuth({
   }, [step]);
 
   const loginSuccess = async (data, isSignup = false, skipRedirect = false) => {
-    const target = redirectTargetRef.current || localStorage.getItem("auth_redirect_path") || pathname || "/";
-    localStorage.removeItem("auth_redirect_path"); // Clean up
+    // 1. Identify where we need to go
+    const reduxPath = authRedirectPath;
+    const localPath = typeof window !== "undefined" ? localStorage.getItem("auth_redirect_path") : null;
+    const refPath = redirectTargetRef.current;
+    
+    // Prioritize intended checkout path over everything else
+    // If hideRegisterLink is true, we ARE in the checkout flow
+    let target = "/";
+    if (hideRegisterLink || refPath === "/checkout/shipping" || reduxPath === "/checkout/shipping" || localPath === "/checkout/shipping") {
+      target = "/checkout/shipping";
+    } else {
+      target = refPath || reduxPath || localPath || pathname || "/";
+    }
+
+    console.log(`[LoginSuccess] Target: ${target}. isSignup: ${isSignup}`);
     
     const user = data.user || data.customer;
     const userId = user?.id;
@@ -184,10 +197,32 @@ export function OtpSpinAuth({
     }
 
     if (!skipRedirect) {
-      toast.success("Login Successful");
-      if (onSuccess) onSuccess(target);
-      else router.push(target);
-      router.refresh();
+      toast.success(isSignup ? "Account created successfully" : "Login Successful");
+      
+      // Small delay to let Redux state settle
+      setTimeout(() => {
+        // Navigate
+        if (onSuccess) {
+          onSuccess(target);
+        } else {
+          router.push(target);
+        }
+
+        // Clean up intent tracking AFTER triggering navigation
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("auth_redirect_path");
+        }
+
+        // Hard fallback for checkout flow
+        if (target === "/checkout/shipping") {
+           setTimeout(() => {
+             if (window.location.pathname !== "/checkout/shipping") {
+                console.log("[LoginSuccess] SPA navigation slow/failed, using window.location");
+                window.location.assign("/checkout/shipping");
+             }
+           }, 1200);
+        }
+      }, 100);
     }
   };
 
@@ -212,14 +247,15 @@ export function OtpSpinAuth({
     if (otpValue.length !== 4) return toast.error("Enter 4-digit OTP");
     setLoading(true);
     try {
-      const data = await verifyOtpApi(mobile, otpValue);
+      const sessionId = getSessionId();
+      const data = await verifyOtpApi(mobile, otpValue, sessionId);
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         if (hideRegisterLink) {
-           // Auto register with mobile number
+           // Auto register with mobile number (Cart Flow)
            try {
-             const regData = await registerCustomer({ mobile });
+             const regData = await registerCustomer({ mobile, sessionId });
              if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-                loginSuccess(regData, true);
+                await loginSuccess(regData, true);
              } else {
                toast.error("Auto-registration failed. Please contact support.");
              }
@@ -233,11 +269,12 @@ export function OtpSpinAuth({
             lastName,
             email,
             mobile,
+            sessionId,
             wonPrize: wonPrize?.value,
             prizeLabel: wonPrize?.label,
           });
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-            loginSuccess(regData, true);
+            await loginSuccess(regData, true);
             handleStepChange("success");
             setPendingRegister(false);
           }
@@ -246,7 +283,7 @@ export function OtpSpinAuth({
           handleStepChange("register");
         }
       } else if (data.status === "LOGIN" || data.type === "success") {
-        loginSuccess(data);
+        await loginSuccess(data);
       }
     } catch (err) {
       toast.error(err.message || "Invalid OTP");
@@ -347,6 +384,7 @@ export function OtpSpinAuth({
 
     // After spin animation
     setTimeout(async () => {
+      const sessionId = getSessionId();
       if (isMobileVerified) {
         try {
           setLoading(true);
@@ -355,6 +393,7 @@ export function OtpSpinAuth({
             lastName,
             email,
             mobile,
+            sessionId,
             wonPrize: prize?.value,
             prizeLabel: prize?.label,
           });

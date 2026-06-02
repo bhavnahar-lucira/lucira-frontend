@@ -24,7 +24,7 @@ const setCartId = (id) => {
 };
 
 // Helper to get or create guest session ID for backend cart syncing
-const getSessionId = () => {
+export const getSessionId = () => {
   if (typeof window === "undefined") return null;
   let sessionId = localStorage.getItem("cart_session_id");
   if (!sessionId) {

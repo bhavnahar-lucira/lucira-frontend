@@ -28,7 +28,7 @@ export function AuthDialog({
   const pathname = usePathname();
   const [currentStep, setCurrentStep] = useState(initialStep);
   const authRedirectPath = useSelector((state) => state.user.authRedirectPath);
-  const hideRegisterLink = authRedirectPath === "/checkout/shipping";
+  const hideRegisterLink = authRedirectPath === "/checkout/shipping" || pathname === "/checkout/cart";
 
   useEffect(() => {
     if (open) {
@@ -37,11 +37,16 @@ export function AuthDialog({
   }, [open, initialStep]);
 
   const handleSuccess = (redirectPath) => {
-    onOpenChange(false);
-    if (onSuccess) onSuccess();
-    if (redirectPath && redirectPath !== pathname) {
+    // 1. Explicitly navigate first if a path is provided
+    if (redirectPath) {
       router.push(redirectPath);
     }
+    
+    // 2. Then close the modal after a short delay to allow navigation to initiate
+    setTimeout(() => {
+      onOpenChange(false);
+      if (onSuccess) onSuccess();
+    }, 50);
   };
 
   const handleStepChange = (step) => {
