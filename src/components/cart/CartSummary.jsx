@@ -326,11 +326,9 @@ export default function CartSummary({ onPlaceOrder }) {
               const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
               const promoData = {
                 creative_name: "cart page login popup",
-                location_id: "cart page",
                 promo_id: firstItem?.sku || variantId || "",
-                variant_id: variantId || "",
+                item_id: variantId || "",
                 promo_position: "Cart Page",
-                product_name: firstItem?.title || ""
               };
               try {
                 pushPromoClick(promoData);
