@@ -15,7 +15,7 @@ const CATEGORIES = [
   { name: "Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Earrings.jpg", href: "/collections/earrings" },
   { name: "Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Bracelets.jpg", href: "/collections/bracelets" },
   { name: "Necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Necklaces.jpg", href: "/collections/necklaces" },
-  { name: "Nosepins", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Nosepin.jpg", href: "/collections/nosepins" },
+  { name: "Nosepins", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/homepage_nosepin.jpg?v=1780380197", href: "/collections/nosepins" },
   { name: "Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Mangalsutra.jpg", href: "/collections/mangalsutra" },
   { name: "Men's Ring", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensRing.jpg", href: "/collections/mens-rings" },
   { name: "Men's Stud", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensStud.jpg", href: "/collections/mens-stud" },
