@@ -14,11 +14,17 @@ const MAX_AMOUNT = 19000;
 const STEP = 500;
 const MONTHS = 9;
 
-export default function EnrollSummary({nominee_name, nominee_age, nominee_relation}) {   
+export default function EnrollSummary({
+  nominee_name,
+  nominee_age,
+  nominee_relation,
+  amount: controlledAmount,
+  onAmountChange,
+}) {   
   
   /* ===================== REDUX ===================== */
   const customer = useSelector((s) => s.user?.user);
-  const enrollment = null;
+  const enrollment = customer?.enrollment_draft || null;
 
   const enrolledAmount =
     enrollment?.amount ??
@@ -41,8 +47,16 @@ export default function EnrollSummary({nominee_name, nominee_age, nominee_relati
     }
   }, [enrolledAmount]);
 
+  useEffect(() => {
+    if (controlledAmount === undefined || controlledAmount === null) return;
+    if (!hasUserInteracted.current) {
+      setAmount(controlledAmount);
+      setInputValue(String(controlledAmount));
+    }
+  }, [controlledAmount]);
+
   /* ===================== FALLBACK (IMPORTANT) ===================== */
-  const displayAmount = amount ?? DEFAULT_AMOUNT;
+  const displayAmount = amount ?? controlledAmount ?? DEFAULT_AMOUNT;
 
   /* ===================== CALCULATIONS ===================== */
   const monthly = displayAmount;
@@ -67,6 +81,7 @@ export default function EnrollSummary({nominee_name, nominee_age, nominee_relati
     setAmount(num);
     setInputValue(String(num));
     setAmountError("");
+    onAmountChange?.(num);
     await saveDraft(num);
     
   };
@@ -78,19 +93,20 @@ export default function EnrollSummary({nominee_name, nominee_age, nominee_relati
 
    /* ===== SAVE TO SESSION ===== */
   const saveDraft = async (value) => {
-    await fetch("/api/session/update-draft", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        enrollment_draft: {
+    try {
+      sessionStorage.setItem(
+        "scheme_enrollment",
+        JSON.stringify({
           amount: value,
           tenure: MONTHS,
-          nominee_name: nominee_name,
-          nominee_age: nominee_age,
-          nominee_relation: nominee_relation,
-        },
-      }),
-    });
+          nominee_name,
+          nominee_age,
+          nominee_relation,
+        })
+      );
+    } catch (error) {
+      // Ignore storage failures in local-only persistence.
+    }
   };
 
   return (
@@ -196,6 +212,7 @@ export default function EnrollSummary({nominee_name, nominee_age, nominee_relati
               setAmount(val);
               setInputValue(String(val));
               setAmountError(""); 
+              onAmountChange?.(val);
               await saveDraft(val);  
                                       
             }}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import EnrollSummary from "@/components/savingCalculator/enrollSumary";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,15 @@ import { toast } from "react-toastify";
 const DEFAULT_AMOUNT = 2000;
 const MONTHS = 9;
 
+function clampAmount(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  return Math.max(2000, Math.min(19000, num));
+}
+
 export default function Enroll() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   
 
   /* ===================== REDUX ===================== */
@@ -33,6 +40,30 @@ export default function Enroll() {
   const nomineeNameRef = useRef(null);
   const nomineeAgeRef = useRef(null);
   const nomineeRelationRef = useRef(null);
+
+  const initialAmount = useMemo(() => {
+    const queryAmount = clampAmount(searchParams.get("amount"));
+    if (queryAmount) return queryAmount;
+
+    const storedAmount = (() => {
+      if (typeof window === "undefined") return null;
+      try {
+        const stored = sessionStorage.getItem("scheme_enrollment");
+        if (!stored) return null;
+        const parsed = JSON.parse(stored);
+        return clampAmount(parsed?.amount);
+      } catch (error) {
+        return null;
+      }
+    })();
+
+    if (storedAmount) return storedAmount;
+
+    const draftAmount = clampAmount(enrollment?.amount || customer?.enrollment_draft?.amount);
+    if (draftAmount) return draftAmount;
+
+    return DEFAULT_AMOUNT;
+  }, [searchParams, customer?.enrollment_draft?.amount, enrollment?.amount]);
 
   /* ===================== SPLIT FIRST AND LAST NAME ===================== */
   function splitFullName(fullName = "") {
@@ -85,37 +116,66 @@ export default function Enroll() {
 
   /* ===================== AMOUNT LOGIC ===================== */
   const hasUserInteracted = useRef(false);
-  const [amount, setAmount] = useState(null);
+  const [amount, setAmount] = useState(initialAmount);
   const [inputValue, setInputValue] = useState("");
-
-  const enrolledAmount =
-    enrollment?.amount ??
-    customer?.enrollment_draft?.amount ??
-    null;
-
-  useEffect(() => {
-    if (enrolledAmount && !hasUserInteracted.current) {
-      setAmount(enrolledAmount);
-      setInputValue(String(enrolledAmount));
-    }
-  }, [enrolledAmount]);
-
   const displayAmount = amount ?? DEFAULT_AMOUNT;
 
+  useEffect(() => {
+    if (!hasUserInteracted.current) {
+      setAmount(initialAmount);
+      setInputValue(String(initialAmount));
+    }
+  }, [initialAmount]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "scheme_enrollment",
+        JSON.stringify({
+          amount: displayAmount,
+          tenure: MONTHS,
+          nominee_name: form.nominee_name,
+          nominee_age: form.nominee_age,
+          nominee_relation: form.nominee_relation,
+          address: form.address,
+          pincode: form.pincode,
+          city: form.city,
+          state: form.state,
+        })
+      );
+    } catch (e) {
+      // Ignore storage failures and keep the UI functional.
+    }
+  }, [
+    displayAmount,
+    form.address,
+    form.city,
+    form.nominee_age,
+    form.nominee_name,
+    form.nominee_relation,
+    form.pincode,
+    form.state,
+  ]);
+
    const saveDraft = async (value) => {
-    await fetch("/api/session/update-draft", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        enrollment_draft: {
+    try {
+      sessionStorage.setItem(
+        "scheme_enrollment",
+        JSON.stringify({
           amount: value,
           tenure: MONTHS,
           nominee_name: form.nominee_name,
           nominee_age: form.nominee_age,
           nominee_relation: form.nominee_relation,
-        },
-      }),
-    });
+          address: form.address,
+          pincode: form.pincode,
+          city: form.city,
+          state: form.state,
+        })
+      );
+    } catch (e) {
+      // Storage is a convenience, not a hard requirement.
+    }
   };
 
   /* ===================== CREATE ENROLLMENT ===================== */
@@ -132,7 +192,6 @@ export default function Enroll() {
       toast.dismiss();
       toast.success("Details saved successfully");
       await saveDraft(displayAmount);
-      try { sessionStorage.setItem("scheme_enrollment", JSON.stringify({ amount: displayAmount, tenure: MONTHS, nominee_name: form.nominee_name, nominee_age: form.nominee_age, nominee_relation: form.nominee_relation, address: form.address, pincode: form.pincode, city: form.city, state: form.state })); } catch(e){}
       router.push("/schemes/payment");
     } catch (err) {
       toast.dismiss();
@@ -257,7 +316,9 @@ export default function Enroll() {
           {/* Right Section */}
           <EnrollSummary nominee_name= {form.nominee_name}
           nominee_age={form.nominee_age}
-          nominee_relation={form.nominee_relation}/>
+          nominee_relation={form.nominee_relation}
+          amount={amount}
+          onAmountChange={setAmount}/>
         </div>
       </section>
     </div>
