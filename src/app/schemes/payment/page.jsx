@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { BadgeCheck, Loader2, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 
 const PAYMENT_METHODS = [
   { id: "upi", label: "UPI", icon: "⚡" },
@@ -59,7 +59,6 @@ export default function SchemePaymentPage() {
       return;
     }
 
-    // Retrieve enrollment data from session storage
     const stored = sessionStorage.getItem("scheme_enrollment");
     if (!stored) {
       toast.error("Enrollment data not found. Please start from enrollment page.");
@@ -83,13 +82,11 @@ export default function SchemePaymentPage() {
 
     setLoading(true);
     try {
-      // Load Razorpay script using the shared helper
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded || !window.Razorpay) {
         throw new Error("Unable to load Razorpay checkout");
       }
 
-      // Step 1: Create subscription with enrollment data
       const subscriptionRes = await apiFetch("/api/schemes/razorpay/subscription", {
         method: "POST",
         body: JSON.stringify({
@@ -112,7 +109,6 @@ export default function SchemePaymentPage() {
         throw new Error("No subscription created");
       }
 
-      // Step 2: Open Razorpay checkout
       const options = {
         key: subscriptionData.key_id,
         subscription_id: subscriptionData.subscription_id,
@@ -126,8 +122,8 @@ export default function SchemePaymentPage() {
         handler: async function handleSuccess(response) {
           try {
             setLoading(true);
-            // Step 3: Verify payment signature
-            const verifyRes = await apiFetch("/api/schemes/razorpay/verify", {
+
+            await apiFetch("/api/schemes/razorpay/verify", {
               method: "POST",
               body: JSON.stringify({
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -136,8 +132,7 @@ export default function SchemePaymentPage() {
               }),
             });
 
-            // Step 4: Create enrollment record
-            const enrollmentRes = await apiFetch("/api/schemes/enrollment", {
+            await apiFetch("/api/schemes/enrollment", {
               method: "POST",
               body: JSON.stringify({
                 customer_id: user?.id,
@@ -155,7 +150,6 @@ export default function SchemePaymentPage() {
               }),
             });
 
-            // Clear session and redirect
             sessionStorage.removeItem("scheme_enrollment");
             toast.success("Payment successful! Your scheme is now active.");
             router.push("/schemes/payment-success");
@@ -175,7 +169,7 @@ export default function SchemePaymentPage() {
       };
 
       const razorpay = new window.Razorpay(options);
-      
+
       razorpay.on("payment.failed", function (response) {
         toast.error(response.error?.description || "Payment failed. Please try again.");
         setLoading(false);
@@ -199,68 +193,216 @@ export default function SchemePaymentPage() {
   }
 
   const monthlyAmount = enrollment.amount;
-  const totalInstallments = 9;
-  const bonus = monthlyAmount;
-  const totalValue = monthlyAmount * 10;
-
   const formatINR = (value) => new Intl.NumberFormat("en-IN").format(value);
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-10">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* LEFT */}
-        <div>
-          <h2 className="text-lg font-semibold mb-4">Payment Methods</h2>
-          <RadioGroup value={method} onValueChange={setMethod} className="space-y-4">
-            {PAYMENT_METHODS.map((m) => (
-              <Card
-                key={m.id}
-                onClick={() => setMethod(m.id)}
-                className={`cursor-pointer border py-4 ${method === m.id ? "border-primary" : ""}`}
-              >
-                <CardContent className="flex justify-between px-4 items-center">
-                  <div className="flex gap-3">
-                    <span className="text-2xl mr-3">{m.icon}</span>
-                    <Label className="cursor-pointer">{m.label}</Label>
-                  </div>
-                  <RadioGroupItem value={m.id} id={m.id} />
-                </CardContent>
-              </Card>
-            ))}
-          </RadioGroup>
-          <div className="mt-8 p-4 border border-primary/30 rounded-lg bg-primary/5 mb-40 md:mb-0">
-            <div className="flex items-start gap-3">
-              <span className="text-primary w-5 h-5 mt-1 shrink-0 font-bold">i</span>
-              <div>
-                <h3 className="font-semibold">Seamless Monthly Auto-Pay</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Your Vault of Dreams contributions will be securely auto-debited each month 
-                  through trusted payment partners — ensuring a seamless, worry-free journey 
-                  towards your dream jewelry.
-                </p>
+    <div className="relative overflow-hidden bg-[linear-gradient(180deg,#fffdfc_0%,#f7f1ee_52%,#ffffff_100%)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top_left,rgba(103,73,67,0.12),transparent_44%),radial-gradient(circle_at_top_right,rgba(154,123,113,0.10),transparent_38%)]" />
+
+      <div className="relative container mx-auto max-w-7xl px-4 pt-6 pb-28 md:py-10">
+        <div className="mb-8 md:mb-20">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[#6f5a55]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#d9cbc5] bg-white/90 px-3 py-1.5 shadow-sm">
+              <ShieldCheck size={14} />
+              Secure monthly auto-debit
+            </span>
+            <span className="hidden items-center gap-2 rounded-full border border-[#d9cbc5] bg-white/90 px-3 py-1.5 shadow-sm md:inline-flex">
+              <BadgeCheck size={14} />
+              Vault of Dreams
+            </span>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-[#201815] md:text-4xl">
+                Complete your scheme payment
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f625f] md:text-base md:leading-7">
+                Choose a payment method and confirm your monthly premium. Your selected amount is locked in for this subscription and will be used for Razorpay checkout.
+              </p>
+            </div>
+
+            <div className="hidden rounded-2xl border border-[#e7dad4] bg-white/90 px-4 py-3 shadow-[0_12px_35px_rgba(98,72,65,0.08)] md:block">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6c524d] text-white">
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-[#8b736d]">Monthly premium</p>
+                  <p className="text-2xl font-semibold text-[#201815]">₹{formatINR(monthlyAmount)}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div className="mb-16">
-          <h2 className="hidden md:block text-lg font-semibold mb-4">Premium Summary</h2>
-          <Card className="bg-[#f7f3f2]">
-            <CardContent className="p-6 space-y-6">
-              <div className="flex justify-between">
-                <span>Monthly Premium</span>
-                <span className="font-semibold">₹{formatINR(monthlyAmount)}</span>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.82fr)]">
+          <div className="space-y-5">
+            <div className="rounded-3xl border border-[#eadfd9] bg-white/95 p-4 shadow-[0_14px_34px_rgba(72,48,42,0.06)] md:hidden">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#8b736d]">Monthly premium</p>
+                  <p className="mt-1 text-lg font-semibold tracking-tight text-[#201815]">₹{formatINR(monthlyAmount)}</p>
+                  <p className="mt-1 text-xs leading-5 text-[#7b6d68]">
+                    Review your amount and pay securely before continuing.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleInitiatePayment}
+                  disabled={loading}
+                  className="h-11 shrink-0 rounded-2xl bg-[#6c524d] px-4 text-sm font-semibold tracking-wide text-white shadow-[0_12px_24px_rgba(108,82,77,0.25)] transition-all hover:bg-[#5f4945] active:scale-[0.99] cursor-pointer"
+                >
+                  {loading ? "..." : "Pay now"}
+                </Button>
               </div>
-              <Button
-                onClick={handleInitiatePayment}
-                disabled={loading}
-                className="w-full h-14 bg-primary text-white cursor-pointer rounded-md"
-              >
-                {loading ? "Processing..." : "PAY SECURELY"}
-              </Button>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-[#211815] md:text-xl">Payment methods</h2>
+                <p className="mt-1 text-sm text-[#756661]">Pick your preferred way to pay now and continue monthly after activation.</p>
+              </div>
+            </div>
+
+            <RadioGroup value={method} onValueChange={setMethod} className="space-y-4">
+              {PAYMENT_METHODS.map((m) => (
+                <Card
+                  key={m.id}
+                  onClick={() => setMethod(m.id)}
+                  className={`group cursor-pointer overflow-hidden border transition-all duration-200 ${
+                    method === m.id
+                      ? "border-[#6c524d] bg-white shadow-[0_18px_40px_rgba(108,82,77,0.12)]"
+                      : "border-[#eadfd9] bg-white shadow-[0_8px_24px_rgba(72,48,42,0.04)] hover:-translate-y-0.5 hover:border-[#cbb7b0] hover:shadow-[0_14px_30px_rgba(72,48,42,0.08)]"
+                  }`}
+                >
+                  <CardContent className="flex items-center justify-between px-4 py-4 md:px-6 md:py-5">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl transition-colors ${
+                          method === m.id ? "bg-[#6c524d] text-white" : "bg-[#f6f0ed] text-[#6c524d]"
+                        }`}
+                      >
+                        <span aria-hidden="true">{m.icon}</span>
+                      </div>
+                      <div>
+                        <Label className="cursor-pointer text-base font-medium text-[#1f1816]">{m.label}</Label>
+                        <p className="mt-1 hidden text-xs text-[#8b7b76] sm:block">
+                          {m.id === "upi" && "Fast and frictionless"}
+                          {m.id === "credit" && "Use your card for instant confirmation"}
+                          {m.id === "debit" && "Pay directly from your bank account"}
+                          {m.id === "netbanking" && "Choose your bank and continue"}
+                        </p>
+                      </div>
+                    </div>
+                    <RadioGroupItem
+                      value={m.id}
+                      id={m.id}
+                      className="border-[#cdbcb5] text-[#6c524d] data-[state=checked]:border-[#6c524d] data-[state=checked]:text-[#6c524d]"
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+            </RadioGroup>
+
+            <div className="hidden gap-4 md:grid md:grid-cols-2">
+              <div className="rounded-3xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_28px_rgba(72,48,42,0.05)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f6f0ed] text-[#6c524d]">
+                    <WalletCards size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#1f1816]">Monthly premium</p>
+                    <p className="text-xs text-[#8a7a75]">Charged today through Razorpay</p>
+                  </div>
+                </div>
+                <div className="mt-4 text-3xl font-semibold tracking-tight text-[#201815]">₹{formatINR(monthlyAmount)}</div>
+              </div>
+
+              <div className="rounded-3xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_28px_rgba(72,48,42,0.05)]">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f6f0ed] text-[#6c524d]">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#1f1816]">Auto-renew</p>
+                    <p className="text-xs text-[#8a7a75]">Recurring monthly subscription</p>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm leading-6 text-[#6f625f]">
+                  After this payment, future deductions continue monthly without you having to re-enter the amount.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-fit lg:sticky lg:top-6">
+            <h2 className="mb-4 hidden text-lg font-semibold tracking-tight text-[#211815] md:block md:text-xl">Premium summary</h2>
+            <Card className="overflow-hidden border-[#eadfd9] bg-[linear-gradient(180deg,#ffffff_0%,#faf6f4_100%)] shadow-[0_20px_55px_rgba(72,48,42,0.08)]">
+              <CardContent className="p-0">
+                <div className="border-b border-[#eee2dc] px-5 py-5 md:px-7 md:py-7">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-[#8c7a75]">Monthly premium</p>
+                      <p className="mt-2 text-2xl font-semibold tracking-tight text-[#201815] md:text-3xl">₹{formatINR(monthlyAmount)}</p>
+                    </div>
+                    <div className="rounded-2xl bg-[#f3e8e4] px-3 py-2 text-xs font-medium text-[#6c524d]">
+                      Locked amount
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-5 py-5 md:px-7 md:py-7">
+                  <div className="space-y-4 rounded-3xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_22px_rgba(72,48,42,0.04)]">
+                    <div className="flex items-center justify-between text-sm md:text-base">
+                      <span className="text-[#6f625f]">Due now</span>
+                      <span className="font-semibold text-[#201815]">₹{formatINR(monthlyAmount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm md:text-base">
+                      <span className="text-[#6f625f]">Payment cycle</span>
+                      <span className="font-semibold text-[#201815]">Monthly subscription</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm md:text-base">
+                      <span className="text-[#6f625f]">Method</span>
+                      <span className="font-semibold text-[#201815]">
+                        {PAYMENT_METHODS.find((item) => item.id === method)?.label || "UPI"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleInitiatePayment}
+                    disabled={loading}
+                    className="mt-6 hidden h-14 w-full rounded-2xl bg-[#6c524d] text-sm font-semibold tracking-wide text-white shadow-[0_14px_32px_rgba(108,82,77,0.28)] transition-all hover:bg-[#5f4945] active:scale-[0.99] cursor-pointer md:flex"
+                  >
+                    {loading ? "Processing..." : "PAY SECURELY"}
+                  </Button>
+
+                  <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[#eadfd9] bg-[#fffdfc] px-4 py-3">
+                    <ShieldCheck className="mt-0.5 shrink-0 text-[#6c524d]" size={18} />
+                    <p className="text-xs leading-6 text-[#7b6d68]">
+                      Secure Razorpay checkout. Your monthly scheme amount stays fixed for this subscription and will be charged automatically each month.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#eadfd9] bg-[rgba(255,252,250,0.96)] px-4 py-3 shadow-[0_-10px_30px_rgba(72,48,42,0.12)] backdrop-blur md:hidden">
+        <div className="mx-auto flex max-w-7xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#8b736d]">Pay securely</p>
+            <p className="mt-1 truncate text-sm font-semibold text-[#201815]">₹{formatINR(monthlyAmount)} monthly premium</p>
+          </div>
+          <Button
+            onClick={handleInitiatePayment}
+            disabled={loading}
+            className="h-12 shrink-0 rounded-2xl bg-[#6c524d] px-5 text-sm font-semibold tracking-wide text-white shadow-[0_14px_32px_rgba(108,82,77,0.28)] transition-all hover:bg-[#5f4945] active:scale-[0.99] cursor-pointer"
+          >
+            {loading ? "Processing..." : "PAY"}
+          </Button>
         </div>
       </div>
     </div>
