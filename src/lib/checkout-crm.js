@@ -55,7 +55,7 @@ export const sendCheckoutCrmEvent = async (type, data) => {
     };
 
     const customerEvent = {
-      Event_Type: type === "add_payment_info" ? "Add Payment Info" : "Checkout",
+      Event_Type: type === "add_payment_info" ? "Payment" : "Checkout",
       Channel: "website",
       Order_Value: data.totalCartValue,
       Currency: "INR",

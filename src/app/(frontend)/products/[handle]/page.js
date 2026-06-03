@@ -209,10 +209,13 @@ async function getProduct(handle) {
     let metal_color = metalComp?.stone_color_code && metalComp.stone_color_code !== "NA" ? metalComp.stone_color_code : (v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]));
     
     if (!metal_color) {
-      if (v.title.toLowerCase().includes('rose')) metal_color = 'Rose Gold';
-      else if (v.title.toLowerCase().includes('white')) metal_color = 'White Gold';
-      else if (v.title.toLowerCase().includes('yellow')) metal_color = 'Yellow Gold';
-      else if (v.title.toLowerCase().includes('platinum')) metal_color = 'Platinum';
+      const lowerTitle = v.title.toLowerCase();
+      if (lowerTitle.includes('yellow') && lowerTitle.includes('white')) metal_color = 'Yellow-White Gold';
+      else if (lowerTitle.includes('rose') && lowerTitle.includes('white')) metal_color = 'Rose-White Gold';
+      else if (lowerTitle.includes('rose')) metal_color = 'Rose Gold';
+      else if (lowerTitle.includes('white')) metal_color = 'White Gold';
+      else if (lowerTitle.includes('yellow')) metal_color = 'Yellow Gold';
+      else if (lowerTitle.includes('platinum')) metal_color = 'Platinum';
     }
 
     let diamonds = diamondComps.map(d => ({

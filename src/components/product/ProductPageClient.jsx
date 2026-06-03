@@ -1919,7 +1919,7 @@ export default function ProductPageClient({
                 {/* Gold Selection */}
                 <div className="space-y-3">
                   <div className="text-base font-bold">
-                    Select Gold Color & Karat: <span className="text-gray-500 font-medium ml-1">{activeKarat} {activeColor}</span>
+                    Select Gold Color & Karat: <span className="text-gray-500 font-medium ml-1">{activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {(() => {
@@ -1962,8 +1962,15 @@ export default function ProductPageClient({
 
                       return combinations.map(({ karat, metal }) => {
                         let colorClass = colorMap.yellow;
-                        if (metal.includes("White")) colorClass = colorMap.white;
-                        if (metal.includes("Rose")) colorClass = colorMap.rose;
+                        if (metal.toLowerCase().includes("yellow") && metal.toLowerCase().includes("white")) {
+                          colorClass = "linear-gradient(to right, #c59922 50%, #dfdfdf 50%)";
+                        } else if (metal.toLowerCase().includes("rose") && metal.toLowerCase().includes("white")) {
+                          colorClass = "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)";
+                        } else if (metal.includes("White")) {
+                          colorClass = colorMap.white;
+                        } else if (metal.includes("Rose")) {
+                          colorClass = colorMap.rose;
+                        }
 
                         const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
                         const isActive = normalize(activeColor) === normalize(metal) && normalize(activeKarat) === normalize(karat);
@@ -1971,9 +1978,9 @@ export default function ProductPageClient({
                         return (
                           <GoldOption
                             key={`${karat}-${metal}`}
-                            metal={metal}
+                            metal={metal.includes("-") ? metal.replace(" Gold", "") : metal}
                             karat={karat}
-                            onClick={handleGoldSelection}
+                            onClick={() => handleGoldSelection(metal, karat)}
                             active={isActive}
                             color={colorClass}
                             inStock={isColorInStock(metal, karat)}
