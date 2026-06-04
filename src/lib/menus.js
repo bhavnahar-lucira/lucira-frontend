@@ -31,9 +31,9 @@ export function transformMenuData(shopifyMenuItems) {
     let href = item.url.replace(/https:\/\/[^/]+/, "");
     const label = item.title.trim();
     if (label === "Engagement & Bridal") {
-      href = "#";
+      href = "/collections/engagement-bridal-rings";
     } else if (label === "Rings") {
-      href = "/collections/all-rings";
+      href = "/collections/rings";
     }
     
     let transformedItem = {

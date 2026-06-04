@@ -29,6 +29,13 @@ export function ProductCustomizerMobile({
   const collectionContext = useSelector((state) => state.user.collectionContext);
 
   const getGoldColor = (metal) => {
+    const lowerMetal = metal.toLowerCase();
+    if (lowerMetal.includes("yellow") && lowerMetal.includes("white")) {
+      return "linear-gradient(to right, #c59922 50%, #dfdfdf 50%)";
+    }
+    if (lowerMetal.includes("rose") && lowerMetal.includes("white")) {
+      return "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)";
+    }
     if (metal.includes("White")) return "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)";
     if (metal.includes("Rose")) return "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)";
     return "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)";
@@ -86,7 +93,7 @@ export function ProductCustomizerMobile({
               style={{ background: getGoldColor(activeColor) }}
             ></div>
             <span className="text-sm font-medium text-gray-900">
-              {activeKarat} {activeColor}
+              {activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}
             </span>
           </div>
           <div className="w-px h-4 bg-gray-300"></div>
@@ -128,7 +135,7 @@ export function ProductCustomizerMobile({
                     <h4 className="text-sm font-bold uppercase tracking-wider">
                       Select Gold Color & Karat:{" "}
                       <span className="text-gray-600 normal-case font-medium ml-1">
-                        {activeKarat} {activeColor}
+                        {activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}
                       </span>
                     </h4>
                     <div className="grid grid-cols-3 gap-3">
@@ -155,7 +162,7 @@ export function ProductCustomizerMobile({
                             ></div>
                             <div className="text-[11px] text-center text-black leading-tight uppercase font-bold flex flex-col gap-0.5">
                               <span>{parseInt(String(karat).replace(/\D/g, ""), 10)}KT</span>
-                              <span>{metal.replace(" Gold", "")}</span>
+                              <span>{metal.includes("-") ? metal.replace(" Gold", "") : metal}</span>
                             </div>
 
                           </div>

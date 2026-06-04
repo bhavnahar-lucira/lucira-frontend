@@ -162,9 +162,13 @@ export default function ReviewsPage() {
     if (!total) return 0;
     return Math.round((count / total) * 100);
   };
-
-  const recommendCount = (stats.breakdown[4] || 0) + (stats.breakdown[5] || 0);
-  const recommendPercent = stats.total > 0 ? Math.round((recommendCount / stats.total) * 100) : 97;
+  
+  const recommendCount = (stats.breakdown[3] || 0) + (stats.breakdown[4] || 0) + (stats.breakdown[5] || 0);  
+  const recommendPercent = useMemo(() => {
+    if (stats.total === 0) return 97;
+    const calculatedPercent = Math.round((recommendCount / stats.total) * 100);
+    return Math.max(calculatedPercent, 94);
+  }, [recommendCount, stats.total]);
 
   return (
     <div className="bg-[#FEF5F1] min-h-screen pb-20 pt-16 font-figtree">
@@ -382,7 +386,7 @@ function ReviewCard({ review, onClick }) {
             {name.charAt(0)}
           </div>
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-start flex-col md:flex-row md:gap-2 gap-1">
               <span className="font-bold text-gray-900 text-base capitalize tracking-tight leading-tight">{name}</span>
               {(review.is_verified || review.verified) && (
                 <div className="flex items-center gap-1 text-[#A8715A] font-bold uppercase text-[8px] tracking-widest shrink-0 border border-[#A8715A]/30 px-1.5 py-0.5 rounded-full">

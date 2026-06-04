@@ -5,10 +5,10 @@ import { Suspense } from "react";
 import { getArticlesByBlogHandle, getBlogByHandle, getAllBlogHandles } from "@/lib/blogs";
 import BlogListingClient from "@/components/blogs/BlogListingClient";
 
-// ISR: Allow dynamic parameters for new blogs added in Shopify.
-// We keep a long revalidation time to minimize Vercel function calls.
+// SSG: Fully static blog listing. Pre-rendered at build time.
+// This eliminates Vercel function invocations and Data Cache reading costs.
 export const dynamicParams = true; 
-export const revalidate = 86400; // 24 hours
+export const revalidate = false; 
 
 export async function generateStaticParams() {
   return await getAllBlogHandles();

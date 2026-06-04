@@ -76,6 +76,7 @@ import { addRecentlyViewed, selectRecentlyViewed } from "@/redux/features/recent
 import AtcBar from "@/components/AtcBar";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushProductView, pushAddToCart, pushAddToWishlist, pushRemoveFromWishlist, pushPromoClick, formatGtmPrice, getNumericId, getStandardWishlistPayload, pushToDataLayer } from "@/lib/gtm";
+import { sendProductViewWebhook, sendAddToCartWebhook } from "@/lib/headless-webhooks";
 
 import {
   Sheet,
@@ -319,7 +320,6 @@ export default function ProductPageClient({
   });
 
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: false, threshold: 20000, message: "" });
-
   useEffect(() => {
     if (!product.shopifyId) return;
 
@@ -1020,7 +1020,7 @@ export default function ProductPageClient({
 
   const getStoreDisplayName = (name) => {
     if (!name) return "";
-    if (name.includes("Divinecarat")) return "Malad";
+    if (name.includes("Divinecarat")) return "Head Office";
     if (name === "BO1") return "Borivali";
     if (name === "CS1") return "Chembur";
     if (name === "PS1") return "Pune";
@@ -1157,24 +1157,29 @@ export default function ProductPageClient({
       const sellingPrice = Number(activeVariant?.price || product.price || 0);
       const originalPrice = Number(activeVariant?.compare_price || activeVariant?.compareAtPrice || product.compare_price || product.compareAtPrice || sellingPrice);
 
+      const atcData = {
+        productId: String(getNumericId(product.shopifyId || product.id)),
+        variantId: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId)),
+        sku: activeVariant?.sku || product?.sku || activeVariant?.variantSku || product?.variantSku || (product?.variants && product?.variants[0]?.sku) || "",
+        productName: product.title,
+        productType: product.type || "",
+        vendor: product.vendor || "Lucira Jewelry",
+        offerPrice: String(originalPrice.toFixed(2)),
+        productUrl: currentUrl,
+        image: productImageUrl,
+        price: String(sellingPrice),
+        category: "",
+        subCategory: "",
+        productPersona: "",
+        quantity: 1
+      };
+
       pushAddToCart({
         eventId: `atc_${Date.now()}`,
-        products: {
-          productId: String(getNumericId(product.shopifyId || product.id)),
-          variantId: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId)),
-          sku: activeVariant?.sku || product?.sku || activeVariant?.variantSku || product?.variantSku || (product?.variants && product?.variants[0]?.sku) || "",
-          productName: product.title,
-          productType: product.type || "",
-          vendor: product.vendor || "Lucira Jewelry",
-          offerPrice: String(originalPrice.toFixed(2)),
-          productUrl: currentUrl,
-          image: productImageUrl,
-          price: String(sellingPrice),
-          category: "",
-          subCategory: "",
-          productPersona: ""
-        }
+        products: atcData
       });
+
+      sendAddToCartWebhook(user, atcData);
       //gtm
 
       toast.success("Added to cart!");
@@ -1406,7 +1411,7 @@ export default function ProductPageClient({
       const sellingPrice = Number(activeVariant?.price || product.price || 0);
       const originalPrice = Number(activeVariant?.compare_price || activeVariant?.compareAtPrice || product.compare_price || product.compareAtPrice || sellingPrice);
 
-      pushProductView({
+      const productViewData = {
         productId: getNumericId(product.shopifyId || product.id),
         sku: activeVariant?.sku || "",
         variantId: String(activeVariant?.id || activeVariant?.shopifyId || ""),
@@ -1420,9 +1425,12 @@ export default function ProductPageClient({
         image: productImageUrl,
         price: sellingPrice,
         offerPrice: Number(originalPrice),
-      });
+      };
+
+      pushProductView(productViewData);
+      sendProductViewWebhook(user, productViewData);
     }
-  }, [activeVariant, product]);
+  }, [activeVariant, product, user]);
 
   // Scroll to top on mount/refresh
   useEffect(() => {
@@ -1920,7 +1928,7 @@ export default function ProductPageClient({
                 {/* Gold Selection */}
                 <div className="space-y-3">
                   <div className="text-base font-bold">
-                    Select Gold Color & Karat: <span className="text-gray-500 font-medium ml-1">{activeKarat} {activeColor}</span>
+                    Select Gold Color & Karat: <span className="text-gray-500 font-medium ml-1">{activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {(() => {
@@ -1963,8 +1971,15 @@ export default function ProductPageClient({
 
                       return combinations.map(({ karat, metal }) => {
                         let colorClass = colorMap.yellow;
-                        if (metal.includes("White")) colorClass = colorMap.white;
-                        if (metal.includes("Rose")) colorClass = colorMap.rose;
+                        if (metal.toLowerCase().includes("yellow") && metal.toLowerCase().includes("white")) {
+                          colorClass = "linear-gradient(to right, #c59922 50%, #dfdfdf 50%)";
+                        } else if (metal.toLowerCase().includes("rose") && metal.toLowerCase().includes("white")) {
+                          colorClass = "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)";
+                        } else if (metal.includes("White")) {
+                          colorClass = colorMap.white;
+                        } else if (metal.includes("Rose")) {
+                          colorClass = colorMap.rose;
+                        }
 
                         const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
                         const isActive = normalize(activeColor) === normalize(metal) && normalize(activeKarat) === normalize(karat);
@@ -1972,9 +1987,9 @@ export default function ProductPageClient({
                         return (
                           <GoldOption
                             key={`${karat}-${metal}`}
-                            metal={metal}
+                            metal={metal.includes("-") ? metal.replace(" Gold", "") : metal}
                             karat={karat}
-                            onClick={handleGoldSelection}
+                            onClick={() => handleGoldSelection(metal, karat)}
                             active={isActive}
                             color={colorClass}
                             inStock={isColorInStock(metal, karat)}
@@ -2913,7 +2928,15 @@ export default function ProductPageClient({
                     </div>
                   </div>
                   <div className="flex items-center justify-center flex-col mt-5">
-                    <p className="text-sm text-black text-center"><strong>Note:</strong> Our products are handcrafted and personalized for you, hence weight variance may occur.</p>
+                    {product.tags?.includes("Tennis Bracelets") || product.tags?.includes("Eternity") ? (
+                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                       Handcrafted and personalized with care - slight variations in metal weight, diamond weight and quantity are natural with different sizes.
+                      </p>
+                    ) : 
+                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                        Handcrafted and personalized with care - slight variations in metal weight are natural with different sizes.
+                      </p>
+                    }                    
                     {product.tags?.includes("Only Pendant") && (
                       <p className="text-sm text-black text-center mt-1">Chain is not included in the purchase.</p>
                     )}
@@ -3009,7 +3032,13 @@ export default function ProductPageClient({
                       <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
+                            {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
+                            <h3 className="font-bold text-lg">
+                              {getStoreDisplayName(store.name) === "Head Office" 
+                                ? "Head Office" 
+                                : `${getStoreDisplayName(store.name)}`
+                              }
+                            </h3>
                             {store.distance !== null && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                                 <MapPin size={14} />
@@ -3047,7 +3076,7 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/919172499912?text=${encodeURIComponent(
+                            href={`https://wa.me/919004435760?text=${encodeURIComponent(
                               `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
@@ -3059,11 +3088,11 @@ export default function ProductPageClient({
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                            <a href={`tel:${store.phone || "+919172499912"}`}>CALL STORE</a>
+                            <a href={`tel:${store.phone || "+919004435760"}`}>CALL STORE</a>
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
+                              href={`${store.mapLink}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -3142,7 +3171,7 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/919172499912?text=${encodeURIComponent(
+                          href={`https://wa.me/919004435760?text=${encodeURIComponent(
                             `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"
@@ -3158,7 +3187,7 @@ export default function ProductPageClient({
                         </Button>
                         <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                           <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
+                            href={`${store.mapLink}`}
                             target="_blank"
                             rel="noopener noreferrer"
                           >

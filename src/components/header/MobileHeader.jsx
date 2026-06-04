@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose 
 import { useMenu } from "@/hooks/useMenu";
 import { MEGA_MENU as STATIC_MENU } from "@/data/megaMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { pushLogout, pushViewCart } from "@/lib/gtm";
+import { pushLogout, pushViewCart, getStandardCartItem } from "@/lib/gtm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LuciraLogo from "./LuciraLogo";
@@ -22,6 +22,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { apiFetch, fetchSearchResults } from "@/lib/api";
+
+const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 const CATEGORY_IMAGES = {
   "BEST SELLERS": "/images/menu/engagement-ring.jpg",
@@ -157,8 +160,8 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511", href: "/collections/solitaire-earrings" },
   { title: "Solitaire Pendant", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511", href: "/collections/solitaire-pendants" },
   { title: "Solitaire Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511", href: "/collections/solitaire-bracelets" },
-  { title: "Solitaire Nosering", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-NP0012_Creative_8ef40252-309d-4ca3-bdd2-508ae8e041ec.jpg?v=1780118512", href: "/collections/solitaire-noserings" },
-  { title: "Solitaire Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_lot_2_35146_jpg.jpg?v=1780118510", href: "/collections/solitaire-mangalsutras" },
+  { title: "Men's Solitaire", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_men_solitairea.jpg?v=1780382143", href: "/collections/solitaires-for-men" },
+  { title: "Solitaire Necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_necklace.jpg?v=1780382136", href: "/collections/solitaire-necklaces" },
 ];
 import { transformMenuData } from "@/lib/menus";
 
@@ -177,12 +180,36 @@ export default function MobileHeader({ menuData }) {
   const MEGA_MENU = useMemo(() => transformMenuData(menuData || []), [menuData]);
 
   const { user, logout: authLogout, openLogin } = useAuth();
-  const { totalQuantity } = useSelector((state) => state.cart);
+  const { totalQuantity, items, totalAmount } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
 
   const [activeMenuPath, setActiveMenuPath] = useState([]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [menuDirection, setMenuDirection] = useState(1);
+
+  //GTM begain
+  const handleCartClick = () => {
+    if (items && items.length > 0) {
+      const getNumericIdLocal = (gid) => {
+        if (!gid) return 0;
+        if (typeof gid === 'number') return gid;
+        const match = String(gid).match(/\d+$/);
+        return match ? Number(match[0]) : 0;
+      };
+
+      pushViewCart({
+        currency: "INR",
+        cart_total: Number(totalAmount),
+        grand_total: Number(totalAmount),
+        discount_amount: 0,
+        total_quantity: totalQuantity,
+        total_product: items.length,
+        coupon_code: "",
+        items: items.map((item, idx) => getStandardCartItem(item, idx))
+      });
+    }
+  };
+  //GTM end
 
   useEffect(() => {
     if (!isMenuOpen) {
@@ -927,7 +954,7 @@ export default function MobileHeader({ menuData }) {
                         <UserIconCustom />
                       </button>
                     )}
-                      <Link href="/checkout/cart" prefetch={false} onClick={() => setIsMenuOpen(false)} className="relative p-1">
+                      <Link href="/checkout/cart" prefetch={false} onClick={() => { setIsMenuOpen(false); handleCartClick(); }} className="relative p-1">
                       <CartIcon />
                       {totalQuantity > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
@@ -1008,7 +1035,7 @@ export default function MobileHeader({ menuData }) {
               </span>
             )}
           </Link>
-          <Link href="/checkout/cart" prefetch={false} className="relative">
+          <Link href="/checkout/cart" prefetch={false} onClick={handleCartClick} className="relative">
             <CartIcon />
             {totalQuantity > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">

@@ -41,8 +41,8 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     
     // Priority order: Fast Shipping > Best Seller > New Arrival > Trending
     if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Fast Shipping");
-    if (lowerTags.some(t => t.includes("best seller"))) labels.push("Best Seller");
-    if (lowerTags.some(t => t.includes("new arrival") || t === "new")) labels.push("New Arrival");
+    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller"))) labels.push("Best Seller");
+    if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
     
     return [...new Set(labels)].slice(0, 2);
@@ -51,6 +51,10 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [activeVariant?.id, activeVariant?.shopifyId, activeColor]);
 
   const sortedMedia = useMemo(() => {
     if (!media || media.length === 0) return [];
@@ -69,104 +73,129 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     });
 
     // 1. Define color matching logic
-    const colorTerms = ["yellow", "white", "rose"];
-    const currentBaseColor = activeColor.toLowerCase().split(" ")[0];
+    const colorTerms = ["yellow", "white", "rose", "plt", "platinum"];
+    
+    const getColorTokens = (text) => {
+      const lower = (text || "").toLowerCase().replace(/[^a-z0-9]/g, " ");
+      const tokens = [];
+      if (lower.includes("yellow")) tokens.push("yellow");
+      if (lower.includes("white")) tokens.push("white");
+      if (lower.includes("rose")) tokens.push("rose");
+      if (lower.includes("platinum") || lower.includes("plt")) tokens.push("plt");
+      return tokens;
+    };
+
+    const targetTokens = getColorTokens(activeColor);
+    const primaryToken = activeColor.includes("-") 
+      ? activeColor.toLowerCase().split("-")[0] 
+      : (targetTokens[0] || "");
 
     const isMatch = (item) => {
       const alt = (item.alt || "").toLowerCase();
-      const mentionsOtherColor = colorTerms.some(color => 
-        color !== currentBaseColor && alt.includes(color)
-      );
-      return alt.includes(currentBaseColor) || !mentionsOtherColor;
+      const itemTokens = getColorTokens(alt);
+      if (itemTokens.length === 0) return true;
+
+      const forbiddenTokens = ["yellow", "white", "rose", "plt"].filter(t => !targetTokens.includes(t));
+      const hasForbidden = forbiddenTokens.some(t => {
+        if (t === "plt") return alt.includes("plt") || alt.includes("platinum");
+        return alt.includes(t);
+      });
+      if (hasForbidden) return false;
+
+      if (activeColor.includes("-")) {
+        return alt.includes(primaryToken);
+      }
+      return itemTokens.some(token => targetTokens.includes(token));
     };
 
-    // 2. Categorization
-    const groups = {
-      mq: [],
-      ci: [],
-      mh: [],
-      mv: [],
+    // 2. Categorization into buckets
+    const buckets = {
+      color: [],
       v360: [],
-      cert: [],
-      others: []
+      rest_videos: [],
+      model: [],
+      cert: []
     };
 
     formattedMedia.forEach((item) => {
-      const alt = (item.alt || "").toLowerCase();
-      if (alt.includes("cert")) groups.cert.push(item);
-      else if (alt.includes("mq")) groups.mq.push(item);
-      else if (alt.includes("ci")) groups.ci.push(item);
-      else if (alt.includes("mh")) groups.mh.push(item);
-      else if (alt.includes("mv")) groups.mv.push(item);
-      else if (alt.includes("v360") || alt.includes("360v")) groups.v360.push(item);
-      else groups.others.push(item);
+      const alt = (item.alt || "").toLowerCase().replace(/_/g, "-");
+      const isM = isMatch(item);
+      const isVideo = item.mediaContentType === "VIDEO" || item.mediaContentType === "EXTERNAL_VIDEO" || item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
+      
+      if (alt.includes("cert")) {
+          buckets.cert.push(item);
+      } else if (isM) {
+          if (alt.includes("v360") || alt.includes("360v") || alt.includes("360°")) {
+              buckets.v360.push(item);
+          } else if (isVideo) {
+              buckets.rest_videos.push(item);
+          } else if (getColorTokens(alt).length > 0) {
+              buckets.color.push(item);
+          } else {
+              buckets.model.push(item);
+          }
+      }
     });
 
-    const pool = [...groups.mq, ...groups.ci, ...groups.mh];
-    const videos = [...groups.mv, ...groups.v360];
-    const others = groups.others;
-    const certificates = groups.cert;
+    // Prioritize Shopify variant image
+    if (activeVariant?.image) {
+        const getCompareUrl = (url) => formatCdnUrl(url).split('?')[0].split('&')[0];
+        const variantImgUrl = getCompareUrl(activeVariant.image);
+        const idx = buckets.color.findIndex(m => {
+            const mUrl = m.url || m.previewImage?.url;
+            return mUrl && getCompareUrl(mUrl) === variantImgUrl;
+        });
+        if (idx !== -1) {
+            const vImg = buckets.color.splice(idx, 1)[0];
+            buckets.color.unshift(vImg);
+        }
+    }
 
-    // Filter categories for the current active color
-    const colorOthers = others.filter(isMatch);
-    const colorPool = pool.filter(isMatch);
-    const colorVideos = videos.filter(isMatch);
-    // Certificates are universal, don't filter them by color
-    const colorCerts = groups.cert;
+    // 3. Final Strict Sequence Pattern
+    // [color, 360, model, color, color, model, model, color, rest_video, cert]
+    const pattern = [
+      "color", "v360", "model", "color", "color", "model", "model", "color", "rest_videos"
+    ];
 
     const result = [];
     
-    // Position 1: First "other" image or "pool" image (in color)
-    const firstItem = colorOthers[0] || colorPool[0] || colorVideos[0];
-    if (firstItem) result.push(firstItem);
+    const takeFrom = (bucketKey) => {
+        if (buckets[bucketKey].length > 0) return buckets[bucketKey].shift();
+        
+        // Fallbacks if a specific slot bucket is empty
+        if (bucketKey === "v360") return buckets.rest_videos.shift() || buckets.color.shift() || buckets.model.shift();
+        if (bucketKey === "rest_videos") return buckets.v360.shift() || buckets.model.shift() || buckets.color.shift();
+        if (bucketKey === "color") return buckets.model.shift() || buckets.rest_videos.shift() || buckets.v360.shift();
+        if (bucketKey === "model") return buckets.color.shift() || buckets.rest_videos.shift() || buckets.v360.shift();
+        
+        return null;
+    };
 
-    // Position 2: Primary Video
-    const mainVideo = colorVideos.find(v => !result.includes(v));
-    if (mainVideo) {
-      result.push(mainVideo);
-    } else {
-      const next = colorPool.find(i => !result.includes(i));
-      if (next) result.push(next);
+    // Fill slots from pattern
+    for (const slot of pattern) {
+        let node = takeFrom(slot);
+        if (node) result.push(node);
     }
 
-    // Position 3: Next from pool
-    const third = colorPool.find(i => !result.includes(i));
-    if (third) result.push(third);
-
-    // Position 4-5: sequential others
-    const remainingOthers = colorOthers.filter(i => !result.includes(i));
-    while (result.length < 5 && remainingOthers.length > 0) {
-      result.push(remainingOthers.shift());
-    }
-
-    // Position 6: next from pool
-    const remainingPool = colorPool.filter(i => !result.includes(i));
-    if (result.length < 6 && remainingPool.length > 0) {
-      result.push(remainingPool.shift());
-    }
-
-    // Position 7: Remaining Videos
-    const extraVideos = colorVideos.filter(v => !result.includes(v));
-    extraVideos.forEach(v => {
-      if (!result.includes(v)) result.push(v);
+    // Append remaining matches
+    ["v360", "rest_videos", "color", "model"].forEach(key => {
+        buckets[key].forEach(m => { if (!result.includes(m)) result.push(m); });
     });
+    
+    // Certificates strictly last
+    buckets.cert.forEach(m => { if (!result.includes(m)) result.push(m); });
 
-    // Add remaining from pool and others
-    const finalImages = [
-      ...remainingPool.filter(i => !result.includes(i)),
-      ...remainingOthers.filter(i => !result.includes(i)),
-    ];
-    finalImages.forEach(img => {
-      if (!result.includes(img)) result.push(img);
-    });
-
-    // Finally, certificates always at the very end
-    colorCerts.forEach(c => {
-      if (!result.includes(c)) result.push(c);
-    });
+    if (result.length === 0 && formattedMedia.length > 0) result.push(formattedMedia[0]);
 
     return result;
-  }, [media, activeColor]);
+  }, [media, activeColor, activeVariant]);
+
+  useEffect(() => {
+    if (sortedMedia.length > 0) {
+      console.log(`[Gallery Debug] Active Color: ${activeColor}`);
+      console.log(`[Gallery Debug] Sorted Media Alt Texts:`, sortedMedia.map(m => m.alt || "NO ALT"));
+    }
+  }, [sortedMedia, activeColor]);
 
   const openLightbox = (index) => {
     setCurrentIndex(index);
@@ -208,7 +237,6 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
         await navigator.share(shareData);
       } else {
         navigator.clipboard.writeText(window.location.href);
-        // We could add a toast here if needed
       }
     } catch (err) {
       console.error("Error sharing:", err);

@@ -94,8 +94,8 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 function normalizeAddressForm(address = {}, customer = {}) {
   return {
     ...emptyAddressForm,
-    firstName: address.firstName || customer.firstName || "",
-    lastName: address.lastName || customer.lastName || "",
+    firstName: address.firstName || customer.firstName || customer.first_name || "",
+    lastName: address.lastName || customer.lastName || customer.last_name || "",
     company: address.company || "",
     address1: address.address1 || "",
     address2: address.address2 || "",
@@ -103,7 +103,7 @@ function normalizeAddressForm(address = {}, customer = {}) {
     province: address.province || "",
     zip: address.zip || "",
     country: address.country || "India",
-    phone: address.phone || "",
+    phone: address.phone || customer.phone || customer.mobile || "",
     gstin: address.gstin || "",
   };
 }
@@ -121,7 +121,7 @@ function formatAddressPreview(address) {
   return pieces.filter(Boolean);
 }
 
-function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, isMobile = false }) {
+function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, isMobile = false, disablePhone = false }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -160,6 +160,7 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
             value={form.phone}
             onChange={(e) => onChange("phone", e.target.value)}
             className="h-12 border-zinc-200"
+            disabled={disablePhone}
           />
         </div>
       </div>
@@ -579,6 +580,11 @@ export default function ShippingPage() {
     setAddresses(payload.addresses || []);
     setCustomer(payload.customer || null);
 
+    // Pre-fill form if no addresses
+    if (!payload.addresses || payload.addresses.length === 0) {
+      setAddressForm(normalizeAddressForm({}, payload.customer || user || {}));
+    }
+
     const nextSelectedId = payload.defaultAddressId || payload.addresses?.[0]?.id || "";
     setSelectedAddressId(nextSelectedId);
 
@@ -592,7 +598,7 @@ export default function ShippingPage() {
         })
       );
     }
-  }, []);
+  }, [user]);
 
   const loadAddresses = useCallback(async () => {
     try {
@@ -1076,6 +1082,7 @@ export default function ShippingPage() {
                         submitLabel="Save address"
                         onSubmit={() => handleCreateAddress(false)}
                         saving={inlineSaving}
+                        disablePhone={true}
                       />
                     </div>
                   </div>
@@ -1232,6 +1239,7 @@ export default function ShippingPage() {
                 submitLabel={dialogMode === "edit" ? "Save changes" : "Save address"}
                 onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
                 saving={dialogSaving}
+                disablePhone={true}
               />
             </DialogContent>
           </Dialog>
@@ -1263,6 +1271,7 @@ export default function ShippingPage() {
               onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
               saving={dialogSaving}
               isMobile={true}
+              disablePhone={true}
             />
           </MobileBottomSheet>
 

@@ -164,7 +164,10 @@ export default function FloatingActionButton() {
     setIsFabOpen(nextState);
     setTooltipShown(false);
 
-    pushPromoClick("salesiq");
+    // Only fire the salesiq promoClick when opening the FAB (not on close)
+    if (nextState) {
+      pushPromoClick("salesiq");
+    }
   };
 
   const handleChatClick = (e) => {
@@ -234,7 +237,7 @@ export default function FloatingActionButton() {
 
         {/* Phone */}
         <a 
-          href="tel:+918976773659" 
+          href="tel:+919004436052" 
           onClick={handlePhoneClick}
           className={`w-[50px] h-[50px] rounded-full mb-2.5 flex items-center justify-center bg-[#DA3779] text-white shadow-lg transition-all duration-350 hover:scale-110 ${isFabOpen ? 'translate-y-0 opacity-100 delay-[50ms]' : 'translate-y-[60px] opacity-0'}`}
           title="Call"

@@ -61,10 +61,10 @@
         },
         {
           "title": "Lucira Express",
-          "url": "https://www.lucirajewelry.com/collections/fast-shipping",
+          "url": "https://www.lucirajewelry.com/collections/lucira-express",
           "resource": {
             "__typename": "Collection",
-            "handle": "fast-shipping",
+            "handle": "lucira-express",
             "productsCount": {
               "count": 1099
             },

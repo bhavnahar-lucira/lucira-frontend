@@ -1,4 +1,4 @@
-import { getPageByHandle, getPageByHandleStorefront } from "@/lib/pages";
+import { getPageByHandle, getPageByHandleStorefront, getAllPages } from "@/lib/pages";
 import { notFound } from "next/navigation";
 
 import ContactSection from "@/components/common/ContactSection";
@@ -8,10 +8,17 @@ import GoldRatePage from "@/components/pages/gold-rate/GoldRatePage";
 import SilverRatePage from "@/components/pages/silver-rate/SilverRatePage";
 import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage";
 
-// ISR: Static pages (About, Careers, T&C, etc.) are cached for 1 year.
-// This significantly reduces Vercel function invocations and re-render costs.
-export const revalidate = 31536000; // 1 year
+// SSG: Fully static pages (About, Careers, T&C, etc.) are pre-rendered at build time.
+// This eliminates Vercel function invocations and Data Cache reading costs.
+export const revalidate = false; 
 export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const pages = await getAllPages();
+  return pages.map((page) => ({
+    handle: page.handle,
+  }));
+}
 
 
 export async function generateMetadata({ params }) {

@@ -345,7 +345,10 @@ export async function getAllProductHandles() {
     while (hasNextPage) {
       // force-cache: reuse build-time cache. These functions only run during generateStaticParams
       // (build time). No background revalidation needed — timers here cause Vercel function invocations.
-      const data = await shopifyStorefrontFetch(query, { cursor }, { cache: 'force-cache' });
+      const data = await shopifyStorefrontFetch(query, { cursor }, { 
+        cache: 'force-cache',
+        useRwToken: true 
+      });
       if (!data?.products) break;
 
       const newHandles = data.products.edges.map(edge => edge.node.handle);
@@ -387,7 +390,10 @@ export async function getAllCollectionHandles() {
   try {
     while (hasNextPage) {
       // force-cache: reuse build-time cache. These functions only run during generateStaticParams.
-      const data = await shopifyStorefrontFetch(query, { cursor }, { cache: 'force-cache' });
+      const data = await shopifyStorefrontFetch(query, { cursor }, { 
+        cache: 'force-cache',
+        useRwToken: true 
+      });
       if (!data?.collections) break;
 
       const newHandles = data.collections.edges.map(edge => edge.node.handle);
