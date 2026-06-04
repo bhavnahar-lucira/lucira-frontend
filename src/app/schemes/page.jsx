@@ -116,27 +116,27 @@ export default function Page() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className={`${item.bg} rounded-3xl p-5 md:p-8 border border-white shadow-sm hover:shadow-xl transition-all duration-500 group relative overflow-hidden`}
+                  className={`${item.bg} rounded-3xl p-4 md:p-8 border border-white shadow-sm hover:shadow-xl transition-all duration-500 group relative overflow-hidden`}
                 >
                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/40 rounded-full blur-2xl group-hover:bg-white/60 transition-colors"></div>
                   
-                  <div className={`w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500`}>
+                  <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4 md:mb-8 group-hover:scale-110 transition-transform duration-500`}>
                     <Icon
-                      size={width < 768 ? 32 : 36}
+                      size={width < 768 ? 24 : 36}
                       strokeWidth={1.5}
                       className={item.iconColor}
                     />
                   </div>
 
-                  <h3 className="text-lg font-bold tracking-tight mb-4 text-gray-900">
+                  <h3 className="text-[14px] md:text-lg font-bold tracking-tight mb-2 md:mb-4 text-gray-900 leading-tight">
                     {item.title}
                   </h3>
 
-                  <p className="text-[14px] md:text-[15px] text-gray-600 leading-relaxed font-medium">
+                  <p className="text-[11px] md:text-[15px] text-gray-600 leading-relaxed font-medium">
                     {item.desc}
                   </p>
 
-                  <div className="mt-8 flex items-center gap-2 text-[12px] font-bold text-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="mt-4 md:mt-8 flex items-center gap-2 text-[10px] md:text-[12px] font-bold text-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     LEARN MORE <ArrowRight size={14} />
                   </div>
                 </motion.div>
