@@ -43,7 +43,7 @@ import {
   updateCustomerAddress,
 } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_UPDATE_MUTATION } from "@/lib/shopify-client";
-import { selectUser } from "@/redux/features/user/userSlice";
+import { selectUser, updateUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { pushAddShippingInfo, pushBeginCheckout } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
@@ -688,6 +688,12 @@ export default function ShippingPage() {
               customer: { firstName: addressForm.firstName, lastName: addressForm.lastName }
             })
           ]);
+
+          // Sync local Redux state for real-time Header reflection
+          dispatch(updateUser({
+            firstName: addressForm.firstName,
+            lastName: addressForm.lastName,
+          }));
         } catch (syncErr) {
           console.warn("[ShippingPage] Failed to sync name with profile:", syncErr);
         }
@@ -736,6 +742,12 @@ export default function ShippingPage() {
               customer: { firstName: addressForm.firstName, lastName: addressForm.lastName }
             })
           ]);
+
+          // Sync local Redux state for real-time Header reflection
+          dispatch(updateUser({
+            firstName: addressForm.firstName,
+            lastName: addressForm.lastName,
+          }));
         } catch (syncErr) {
           console.warn("[ShippingPage] Failed to sync name with profile:", syncErr);
         }
@@ -775,6 +787,12 @@ export default function ShippingPage() {
               customer: { firstName: addressToSelect.firstName, lastName: addressToSelect.lastName }
             })
           ]);
+
+          // Sync local Redux state for real-time Header reflection
+          dispatch(updateUser({
+            firstName: addressToSelect.firstName,
+            lastName: addressToSelect.lastName,
+          }));
         } catch (syncErr) {
           console.warn("[ShippingPage] Failed to sync selected address name with profile:", syncErr);
         }

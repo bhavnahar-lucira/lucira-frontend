@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSelector } from "react-redux";
 import {
   MapPin,
   Plus,
@@ -24,6 +23,8 @@ import {
 import { toast } from "react-toastify";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
+import { useDispatch, useSelector } from "react-redux";
+import { updateUser } from "@/redux/features/user/userSlice";
 import { 
   shopifyStorefrontFetch, 
   CUSTOMER_QUERY,
@@ -222,6 +223,12 @@ export default function SavedAddressesPage() {
               lastName: addressForm.lastName,
             }
           });
+
+          // 3. Update local Redux state for real-time Header reflection
+          dispatch(updateUser({
+            firstName: addressForm.firstName,
+            lastName: addressForm.lastName,
+          }));
           
           if (process.env.NODE_ENV === "development") {
             console.log("[SavedAddressesPage] Successfully synced name with Backend and Shopify profile");
@@ -284,7 +291,13 @@ export default function SavedAddressesPage() {
               customerAccessToken: accessToken,
               customer: { firstName: address.firstName, lastName: address.lastName }
             })
-          ]);
+            ]);
+
+          // 3. Update local Redux state for real-time Header reflection
+          dispatch(updateUser({
+            firstName: address.firstName,
+            lastName: address.lastName,
+          }));
         } catch (syncErr) {
           console.warn("[SavedAddressesPage] Failed to sync name on default change:", syncErr);
         }

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "react-toastify";
-import { logout } from "@/redux/features/user/userSlice";
+import { logout, updateUser } from "@/redux/features/user/userSlice";
 import { apiFetch } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_QUERY, CUSTOMER_UPDATE_MUTATION } from "@/lib/shopify-client";
 
@@ -189,6 +189,14 @@ export default function MyProfilePage() {
           }
         }
       }
+
+      // 3. Update local Redux state so Header reflects changes immediately
+      dispatch(updateUser({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+      }));
 
       toast.success("Profile updated successfully");
     } catch (err) {
