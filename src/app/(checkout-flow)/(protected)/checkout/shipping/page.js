@@ -121,7 +121,7 @@ function formatAddressPreview(address) {
   return pieces.filter(Boolean);
 }
 
-function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, isMobile = false, disablePhone = false }) {
+function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, isMobile = false, disablePhone = false, fetchPincodeDetails }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -148,10 +148,23 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
           <Input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className="h-12 border-zinc-200" />
         </div>
         
+        {/* <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" /> */}
+
         <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
         <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
         
-        <Input placeholder="PIN code" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
+        {/* <Input placeholder="PIN code" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" /> */}
+        <Input
+          placeholder="PIN code"
+          value={form.zip}
+          maxLength={6}
+          onChange={(e) => {
+            const value = e.target.value.replace(/\D/g, "");
+            onChange("zip", value);
+          }}
+          className="h-12 border-zinc-200"
+        />
         <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
         
         <div className="col-span-2">
@@ -256,6 +269,8 @@ const SummarySkeleton = () => (
   </div>
 );
 
+ 
+
 export default function ShippingPage() {
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -284,6 +299,124 @@ export default function ShippingPage() {
   const [addressForm, setAddressForm] = useState(emptyAddressForm);
   const [makeDefault, setMakeDefault] = useState(true);
   const [editingAddressId, setEditingAddressId] = useState("");
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [isPincodeAutofilled, setIsPincodeAutofilled] = useState(false);
+
+  const pincodeCache = useRef({});
+  const lastFetchedPincode = useRef("");
+
+  const fetchPincodeDetails = async (pincode) => {
+    try {
+      if (!pincode || pincode.length !== 6) return;
+
+      // Use cached value
+      if (pincodeCache.current[pincode]) {
+        const cachedData = pincodeCache.current[pincode];
+
+        setAddressForm((prev) => ({
+          ...prev,
+          ...cachedData,
+        }));
+
+        return;
+      }
+
+      setPincodeLoading(true);
+
+      const response = await fetch(
+        `/api/pincode?pincode=${pincode}`
+      );
+
+      const data = await response.json();
+
+      console.log("pincode data", data);
+
+      const result = data?.[0];
+
+      if (
+        !result ||
+        result.Status !== "Success" ||
+        !Array.isArray(result.PostOffice) ||
+        result.PostOffice.length === 0
+      ) {
+        lastFetchedPincode.current = "";
+
+        setAddressForm((prev) => ({
+          ...prev,
+          city: "",
+          province: "",
+        }));
+
+        toast.error(
+          "Unable to verify PIN Code. Please enter City and State manually."
+        );
+
+        return;
+      }
+
+      const office = result.PostOffice[0];
+
+      const addressData = {
+        city: office.District || "",
+        province: office.State || "",
+        country: office.Country || "India",
+
+        // Save original values for validation
+        _pincodeCity: office.District || "",
+        _pincodeProvince: office.State || "",
+      };
+
+      // Store in memory cache
+      pincodeCache.current[pincode] = addressData;
+
+      setAddressForm((prev) => ({
+        ...prev,
+        ...addressData,
+      }));
+    } catch (error) {
+      console.error("Pincode lookup failed:", error);
+
+      toast.error(
+        "Unable to fetch PIN Code details. Please enter City and State manually."
+      );
+    } finally {
+      setPincodeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const pincode = addressForm?.zip?.trim();
+
+    // Clear autofilled values when PIN becomes invalid
+    if (!pincode || pincode.length < 6) {
+      lastFetchedPincode.current = "";
+
+      setAddressForm((prev) => ({
+        ...prev,
+        city: "",
+        province: "",
+        _pincodeCity: "",
+        _pincodeProvince: "",
+      }));
+
+      return;
+    }
+
+    if (!/^\d{6}$/.test(pincode)) {
+      return;
+    }
+
+    if (lastFetchedPincode.current === pincode) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      await fetchPincodeDetails(pincode);
+      lastFetchedPincode.current = pincode;
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [addressForm?.zip]);
 
   useEffect(() => {
     const currentCustomer = customer || user;
@@ -343,6 +476,8 @@ export default function ShippingPage() {
       hasFiredBeginCheckout.current = true;
     }
   }, [cartItems, totalAmount, appliedCoupon, customer, user]);
+
+ 
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (cartItems || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -419,6 +554,8 @@ export default function ShippingPage() {
     () => addresses.find((address) => address.id === selectedAddressId) || null,
     [addresses, selectedAddressId]
   );
+
+  console.log("test", visibleAddresses)
 
   const sortedStores = useMemo(() => {
     let center = searchCoords;
@@ -657,6 +794,30 @@ export default function ShippingPage() {
   const handleCreateAddress = async (useDialog = false) => {
     const validationError = validateForm();
     if (validationError) return toast.error(validationError);
+
+    if (
+      addressForm.zip &&
+      addressForm._pincodeCity &&
+      addressForm._pincodeProvince
+    ) {
+      const cityMismatch =
+        addressForm.city?.trim().toLowerCase() !==
+        addressForm._pincodeCity?.trim().toLowerCase();
+
+      const stateMismatch =
+        addressForm.province?.trim().toLowerCase() !==
+        addressForm._pincodeProvince?.trim().toLowerCase();
+
+      if (cityMismatch || stateMismatch) {
+        const proceed = window.confirm(
+          `The entered City/State does not match the PIN Code.\n\nPIN ${addressForm.zip} belongs to:\n${addressForm._pincodeCity}, ${addressForm._pincodeProvince}\n\nDo you want to continue?`
+        );
+
+        if (!proceed) {
+          return;
+        }
+      }
+    }
 
     try {
       if (useDialog) setDialogSaving(true);
@@ -1083,6 +1244,7 @@ export default function ShippingPage() {
                         onSubmit={() => handleCreateAddress(false)}
                         saving={inlineSaving}
                         disablePhone={true}
+                        fetchPincodeDetails={fetchPincodeDetails}
                       />
                     </div>
                   </div>
@@ -1240,6 +1402,7 @@ export default function ShippingPage() {
                 onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
                 saving={dialogSaving}
                 disablePhone={true}
+                fetchPincodeDetails={fetchPincodeDetails}
               />
             </DialogContent>
           </Dialog>
@@ -1272,6 +1435,7 @@ export default function ShippingPage() {
               saving={dialogSaving}
               isMobile={true}
               disablePhone={true}
+              fetchPincodeDetails={fetchPincodeDetails}
             />
           </MobileBottomSheet>
 
