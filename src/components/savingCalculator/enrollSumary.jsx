@@ -5,7 +5,10 @@ import { useSelector } from "react-redux";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { CircleCheck } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CircleCheck, TrendingUp, Gift, Calendar, ArrowRight, IndianRupee, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 
 const DEFAULT_AMOUNT = 10000;
@@ -110,124 +113,173 @@ export default function EnrollSummary({
   };
 
   return (
-    <div>
-      <h3 className="text-xl font-medium mb-8 tracking-wider text-center">
-        Premium Summary
-      </h3>
-
-      {/* ===================== SUMMARY ===================== */}
-      <div className="bg-[#f6f1ee] rounded-2xl px-4 py-6 md:px-4 md:py-6">
-        <ul className="space-y-3 md:space-y-5 text-gray-800">
-          <li className="flex justify-between items-center text-[14px] md:text-base">
-            <span className="flex items-center gap-2">
-              <CircleCheck
-                size={20}
-                strokeWidth={1.25}
-                className="fill-green-600 stroke-white"
-              />
-              Your Premium amount / month
-            </span>
-            <strong>₹{formatINR(monthly)}</strong>
-          </li>
-
-          <li className="flex justify-between items-center text-[14px] md:text-base">
-            <span className="flex items-center gap-2">
-              <CircleCheck
-                size={20}
-                strokeWidth={1.25}
-                className="fill-green-600 stroke-white"
-              />
-              Total Installment ({MONTHS} months)
-            </span>
-            <strong>₹{formatINR(totalInstallment)}</strong>
-          </li>
-
-          <li className="flex justify-between items-center text-[14px] md:text-base">
-            <span className="flex items-center gap-2">
-              <CircleCheck
-                size={20}
-                strokeWidth={1.25}
-                className="fill-green-600 stroke-white"
-              />
-              We Pay your {MONTHS + 1}th Premium
-            </span>
-            <strong>₹{formatINR(bonus)}</strong>
-          </li>
-        </ul>
-
-        <hr className="my-4 md:my-6 border-gray-300" />
-
-        <div className="flex justify-between items-center text-xl">
-          <span>Your Total Returns</span>
-          <span className="text-green-600 font-semibold">
-            ₹{formatINR(returns)}
-          </span>
-        </div>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-xl font-bold tracking-tight text-gray-900">
+          Premium Summary
+        </h3>
+        <p className="text-gray-500 text-sm">
+          Review your investment and expected returns.
+        </p>
       </div>
 
-      {/* ===================== INPUT + SLIDER ===================== */}
-      <div className="w-full bg-white mt-8">
-        <h3 className="text-xl font-medium mb-8 tracking-wider text-center">Adjust your monthly premium</h3>
-        <section className="text-center mb-12">
-          <div className="flex gap-4 mb-2">
-            {/* Rupee Input */}
-            <div className="relative w-full">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none">
-                ₹
-              </span>
+      {/* ===================== SUMMARY CARD ===================== */}
+      <Card className="border-none bg-gradient-to-br from-[#FDFCFB] to-[#E2D1C3]/20 shadow-sm overflow-hidden">
+        <CardContent className="p-6 md:p-8 space-y-6">
+          <ul className="space-y-4">
+            <motion.li 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex justify-between items-center group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                  <CircleCheck size={18} className="text-green-600" />
+                </div>
+                <span className="text-sm md:text-base text-gray-700 font-medium">Monthly Premium</span>
+              </div>
+              <strong className="text-lg">₹{formatINR(monthly)}</strong>
+            </motion.li>
 
-              <Input
-                ref={inputRef}
-                type="number"
-                value={inputValue || displayAmount}
-                onChange={(e) => setInputValue(e.target.value)}
-                onBlur={() =>
-                  normalizeValue(inputValue || displayAmount)
-                }
-                className="text-lg h-12 pl-10 appearance-none
-                  [&::-webkit-inner-spin-button]:appearance-none
-                  [&::-webkit-outer-spin-button]:appearance-none"
-              />
+            <motion.li 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex justify-between items-center group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                  <Calendar size={18} className="text-blue-600" />
+                </div>
+                <span className="text-sm md:text-base text-gray-700 font-medium">Total Installments ({MONTHS} mo)</span>
+              </div>
+              <strong className="text-lg">₹{formatINR(totalInstallment)}</strong>
+            </motion.li>
+
+            <motion.li 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex justify-between items-center group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                  <Gift size={18} className="text-amber-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm md:text-base text-gray-700 font-medium">10th Month Bonus</span>
+                  <span className="text-[10px] text-amber-600 font-bold uppercase tracking-tighter">We Pay for you!</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <strong className="text-lg text-amber-600">₹{formatINR(bonus)}</strong>
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-[10px] hover:bg-amber-100 border-none">FREE</Badge>
+              </div>
+            </motion.li>
+          </ul>
+
+          <div className="pt-6 mt-6 border-t border-dashed border-gray-300">
+            <div className="flex justify-between items-end bg-white/50 p-4 rounded-xl border border-white">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={16} className="text-green-600" />
+                  <span className="text-sm font-semibold text-gray-600 uppercase tracking-wider">Total Returns</span>
+                </div>
+                <p className="text-[10px] text-gray-400">Total value after 10 months</p>
+              </div>
+              <motion.span 
+                key={returns}
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                className="text-2xl md:text-3xl font-black text-green-600"
+              >
+                ₹{formatINR(returns)}
+              </motion.span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ===================== ADJUSTMENT AREA ===================== */}
+      <Card className="border-none shadow-sm bg-white overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <IndianRupee className="w-4 h-4 text-gray-400" />
+            Adjust Monthly Premium
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 pt-2">
+          <div className="flex flex-col gap-6">
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium pointer-events-none">
+                  ₹
+                </span>
+                <Input
+                  ref={inputRef}
+                  type="number"
+                  value={inputValue || displayAmount}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onBlur={() => normalizeValue(inputValue || displayAmount)}
+                  className="text-lg font-bold h-12 pl-8 border-gray-200 focus:ring-black focus:border-black appearance-none
+                    [&::-webkit-inner-spin-button]:appearance-none
+                    [&::-webkit-outer-spin-button]:appearance-none transition-all"
+                />
+              </div>
+              <Button
+                size="lg"
+                className="h-12 bg-black hover:bg-gray-800 transition-all cursor-pointer px-6"
+                onClick={() => normalizeValue(inputValue || displayAmount)}
+              >
+                UPDATE
+              </Button>
             </div>
 
-            <Button
-              size="lg"
-              className="h-12 cursor-pointer"
-              onClick={() =>
-                normalizeValue(inputValue || displayAmount)
-              }
-            >
-              CHECK
-            </Button>
+            <div className="space-y-4 px-2">
+              <Slider
+                min={MIN_AMOUNT}
+                max={MAX_AMOUNT}
+                step={STEP}
+                value={[displayAmount]}
+                onValueChange={async ([val]) => {
+                  hasUserInteracted.current = true;
+                  setAmount(val);
+                  setInputValue(String(val));
+                  setAmountError(""); 
+                  onAmountChange?.(val);
+                  await saveDraft(val);  
+                }}
+                className="**:data-[slot=slider-thumb]:size-6 **:data-[slot=slider-thumb]:border-4 **:data-[slot=slider-thumb]:border-white **:data-[slot=slider-thumb]:bg-black **:data-[slot=slider-thumb]:shadow-lg **:data-[slot=slider-thumb]:cursor-grab active:**:data-[slot=slider-thumb]:cursor-grabbing"
+              />
+              <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
+                <span>₹{formatINR(MIN_AMOUNT)}</span>
+                <span>₹{formatINR(MAX_AMOUNT)}</span>
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {amountError && (
+                <motion.p 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="text-red-500 text-xs font-medium flex items-center gap-1"
+                >
+                  <CircleCheck size={12} className="rotate-45" />
+                  {amountError}
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
-          {/* Slider */}
-          <div className="mt-8">
-          <Slider
-            min={MIN_AMOUNT}
-            max={MAX_AMOUNT}
-            step={STEP}
-            value={[displayAmount]}
-            onValueChange={async ([val]) => {
-              hasUserInteracted.current = true;
-              setAmount(val);
-              setInputValue(String(val));
-              setAmountError(""); 
-              onAmountChange?.(val);
-              await saveDraft(val);  
-                                      
-            }}
-            className="mb-6
-              **:data-[slot=slider-thumb]:size-6
-              **:data-[slot=slider-thumb]:border-3
-              **:data-[slot=slider-thumb]:cursor-pointer"
-          />
-          </div>
-           {amountError && (
-            <p className="text-red-500 text-sm mt-5">
-              {amountError}
-            </p>
-          )}
-        </section>
+        </CardContent>
+      </Card>
+      
+      <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100 flex gap-3">
+        <Info size={20} className="text-blue-500 shrink-0 mt-0.5" />
+        <p className="text-xs text-blue-700 leading-relaxed">
+          The 10th month installment is completely free! For example, if you pay ₹10,000 for 9 months, we add ₹10,000 bonus, making your total gold value ₹1,00,000.
+        </p>
       </div>
     </div>
   );
