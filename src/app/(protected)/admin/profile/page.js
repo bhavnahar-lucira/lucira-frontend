@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "react-toastify";
 import { logout } from "@/redux/features/user/userSlice";
 import { apiFetch } from "@/lib/api";
-import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
+import { shopifyStorefrontFetch, CUSTOMER_QUERY, CUSTOMER_UPDATE_MUTATION } from "@/lib/shopify-client";
 
 const avatarColors = [
   "bg-blue-500", "bg-rose-500", "bg-emerald-500", "bg-violet-500",
@@ -133,27 +133,63 @@ export default function MyProfilePage() {
   };
 
   const handleSaveChanges = async () => {
-    if (!formData.firstName || !formData.phone) {
-      toast.error("First name and phone are required");
+    if (!formData.firstName || !formData.email || !formData.phone) {
+      toast.error("First name, email and phone are required");
       return;
     }
 
-    const cleanPhone = formData.phone.replace(/\D/g, "");
-    if (cleanPhone.length !== 10) {
-      toast.error("Phone number must be exactly 10 digits");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    let phoneToValidate = formData.phone.replace(/\D/g, "");
+    // If it starts with 91 and has 12 digits, we treat the remaining 10 as the core number
+    if (phoneToValidate.startsWith("91") && phoneToValidate.length === 12) {
+      phoneToValidate = phoneToValidate.substring(2);
+    }
+
+    if (phoneToValidate.length !== 10) {
+      toast.error("Please enter a valid 10-digit phone number");
       return;
     }
 
     try {
       setIsSaving(true);
+      
+      // 1. Update backend (MongoDB + other logic)
       await apiFetch("/api/customer/profile", {
         method: "PATCH",
         body: JSON.stringify({
           firstName: formData.firstName,
           lastName: formData.lastName,
+          email: formData.email,
           phone: formData.phone,
         }),
       });
+
+      // 2. Direct Shopify Update (Mirroring the way first/last name are handled)
+      if (accessToken && !accessToken.startsWith("simulated_")) {
+        const shopifyUpdate = await shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
+          customerAccessToken: accessToken,
+          customer: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+          }
+        });
+
+        if (shopifyUpdate?.customerUpdate?.customerUserErrors?.length > 0) {
+          const error = shopifyUpdate.customerUpdate.customerUserErrors[0];
+          console.error("[MyProfilePage] Shopify Update Error:", error);
+          if (error.field?.includes("email")) {
+            toast.warn(`Profile saved, but email update in Shopify failed: ${error.message}`);
+          }
+        }
+      }
+
       toast.success("Profile updated successfully");
     } catch (err) {
       toast.error(err.message || "Update failed");
@@ -266,15 +302,17 @@ export default function MyProfilePage() {
                 </label>
                 <div className="relative">
                   <Input
+                    type="email"
                     value={formData.email}
-                    disabled
-                    className="font-figtree h-12 md:h-14 rounded-2xl border-zinc-100 bg-zinc-50/50 font-bold text-zinc-400 pl-11 md:pl-12 cursor-not-allowed text-base"
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className="font-figtree h-12 md:h-14 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white transition-all font-bold text-zinc-900 text-base pl-11 md:pl-12"
                   />
                   <Mail
                     className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 text-zinc-300"
                     size={17}
                   />
                 </div>
+                
               </div>
 
               <div className="space-y-2">
@@ -293,7 +331,6 @@ export default function MyProfilePage() {
                     size={17}
                   />
                 </div>
-                <p className="text-[10px] text-zinc-400 font-medium ml-1">To change your phone number, please contact support.</p>
               </div>
             </div>
           </div>
