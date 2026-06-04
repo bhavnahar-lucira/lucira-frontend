@@ -42,6 +42,7 @@ import {
   selectDefaultCustomerAddress,
   updateCustomerAddress,
 } from "@/lib/api";
+import { shopifyStorefrontFetch, CUSTOMER_UPDATE_MUTATION } from "@/lib/shopify-client";
 import { selectUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { pushAddShippingInfo, pushBeginCheckout } from "@/lib/gtm";
@@ -673,6 +674,25 @@ export default function ShippingPage() {
           makeDefault,
         }, accessToken)
       );
+
+      // Sync name changes with Backend Profile & Shopify Customer Profile
+      if (accessToken && !accessToken.startsWith("simulated_")) {
+        try {
+          await Promise.all([
+            apiFetch("/api/customer/profile", {
+              method: "PATCH",
+              body: JSON.stringify({ firstName: addressForm.firstName, lastName: addressForm.lastName }),
+            }),
+            shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
+              customerAccessToken: accessToken,
+              customer: { firstName: addressForm.firstName, lastName: addressForm.lastName }
+            })
+          ]);
+        } catch (syncErr) {
+          console.warn("[ShippingPage] Failed to sync name with profile:", syncErr);
+        }
+      }
+
       toast.success("Address added");
       if (useDialog) setDialogOpen(false);
     } catch (error) {
@@ -702,6 +722,25 @@ export default function ShippingPage() {
           makeDefault,
         }, accessToken)
       );
+
+      // Sync name changes with Backend Profile & Shopify Customer Profile
+      if (accessToken && !accessToken.startsWith("simulated_")) {
+        try {
+          await Promise.all([
+            apiFetch("/api/customer/profile", {
+              method: "PATCH",
+              body: JSON.stringify({ firstName: addressForm.firstName, lastName: addressForm.lastName }),
+            }),
+            shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
+              customerAccessToken: accessToken,
+              customer: { firstName: addressForm.firstName, lastName: addressForm.lastName }
+            })
+          ]);
+        } catch (syncErr) {
+          console.warn("[ShippingPage] Failed to sync name with profile:", syncErr);
+        }
+      }
+
       setDialogOpen(false);
       toast.success("Address updated");
     } catch (error) {
@@ -722,6 +761,24 @@ export default function ShippingPage() {
     setSelectedAddressId(addressId);
     try {
       applyAddressPayload(await selectDefaultCustomerAddress(addressId, accessToken));
+
+      // If we are selecting a new default address, sync that name to the profile too
+      if (addressToSelect && accessToken && !accessToken.startsWith("simulated_")) {
+        try {
+          await Promise.all([
+            apiFetch("/api/customer/profile", {
+              method: "PATCH",
+              body: JSON.stringify({ firstName: addressToSelect.firstName, lastName: addressToSelect.lastName }),
+            }),
+            shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
+              customerAccessToken: accessToken,
+              customer: { firstName: addressToSelect.firstName, lastName: addressToSelect.lastName }
+            })
+          ]);
+        } catch (syncErr) {
+          console.warn("[ShippingPage] Failed to sync selected address name with profile:", syncErr);
+        }
+      }
     } catch (error) {
       toast.error(error.message || "Unable to select address");
       loadAddresses();
