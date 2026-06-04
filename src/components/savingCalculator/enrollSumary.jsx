@@ -165,16 +165,16 @@ export default function EnrollSummary({
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-                  <Gift size={18} className="text-amber-600" />
+                  <Gift size={18} className="text-[#5a413f]" />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm md:text-base text-gray-700 font-medium">10th Month Bonus</span>
-                  <span className="text-[10px] text-amber-600 font-bold uppercase tracking-tighter">We Pay for you!</span>
+                  <span className="text-[10px] text-[#5a413f] font-bold uppercase tracking-tighter">We Pay for you!</span>
                 </div>
               </div>
               <div className="flex flex-col items-end">
-                <strong className="text-lg text-amber-600">₹{formatINR(bonus)}</strong>
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700 text-[10px] hover:bg-amber-100 border-none">FREE</Badge>
+                <strong className="text-lg text-[#5a413f]">₹{formatINR(bonus)}</strong>
+                <Badge variant="secondary" className="bg-[#5a413f]/10 text-[#5a413f] text-[10px] hover:bg-[#5a413f]/10 border-none">FREE</Badge>
               </div>
             </motion.li>
           </ul>

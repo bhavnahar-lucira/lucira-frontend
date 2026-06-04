@@ -357,8 +357,8 @@ export default function Enroll() {
             {/* Nominee Details Card */}
             <Card className="border-none shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
               <CardHeader className="bg-white border-b border-gray-100 flex flex-row items-center gap-3 py-4">
-                <div className="p-2 bg-amber-50 rounded-lg">
-                  <UserPlus className="w-5 h-5 text-amber-600" />
+                <div className="p-2 bg-[#5a413f]/5 rounded-lg">
+                  <UserPlus className="w-5 h-5 text-[#5a413f]" />
                 </div>
                 <CardTitle className="text-lg font-semibold">Nominee Details</CardTitle>
               </CardHeader>
