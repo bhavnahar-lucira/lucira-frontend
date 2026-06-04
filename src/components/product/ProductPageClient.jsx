@@ -2010,7 +2010,7 @@ export default function ProductPageClient({
                           <SizeGuideSheet>
                             <button
                               className="text-sm font-medium underline underline-offset-4 decoration-gray-300 hover:cursor-pointer"
-                              onClick={() => handlePromoClick('Size Guide Clicked', null, {}, true)}
+                              onClick={() => handlePromoClick('Size Guide Clicked', null, { location_id: 'pdp' }, true)}
                             >
                               Size Guide
                             </button>
@@ -2021,7 +2021,10 @@ export default function ProductPageClient({
                       {String(product.type || "").toLowerCase().includes("ring") && (
                         <Dialog>
                           <DialogTrigger asChild>
-                            <div className="bg-[#F8F9FA] rounded-lg flex items-center gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
+                            <div
+                              className="bg-[#F8F9FA] rounded-lg flex items-center gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handlePromoClick('Size guide video bar', null, { location_id: 'pdp' }, true)}
+                            >
                               <div className="bg-white rounded-lg shadow-sm">
                                 <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Sizing_A_ring_thumb_fead0dba-6cb0-4c0c-95d1-e0b673d42401.jpg" alt="Video Icon" aspect-ratio="3/4" width={60} height={25} />
                                 {/* <Video size={16} fill="black" /> */}
@@ -2382,7 +2385,19 @@ export default function ProductPageClient({
                             </div>
 
                             <Button className="w-full h-12 font-bold uppercase tracking-widest bg-tertiary hover:bg-accent text-white rounded-sm shadow-lg shadow-primary/20 transition-all duration-200 active:scale-[0.97]" asChild>
-                              <a href={schemeData.schemeUrl} target="_blank" rel="noopener noreferrer">
+                              <a
+                                href={schemeData.schemeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() =>
+                                  pushPromoClick({
+                                    creative_name: "scheme enroll button clicked",
+                                    location_id: "pdp",
+                                    promo_id: getNumericId(activeVariant?.id),
+                                    promo_position: String(schemeData.monthly)
+                                  })
+                                }
+                              >
                                 ENROLL NOW <ArrowRight size={16} className="ml-2" />
                               </a>
                             </Button>
@@ -2530,11 +2545,42 @@ export default function ProductPageClient({
                 )}
                 {availableStoreCount > 1 && (
                   <p className="text-sm text-black">
-                    Also available in <button onClick={() => setIsStoreDrawerOpen(true)} className="underline underline-offset-2 font-bold">{availableStoreCount - 1} other stores</button>
+                    Also available in <button
+                      onClick={() => {
+                        setIsStoreDrawerOpen(true);
+                        pushToDataLayer({
+                          event: "promoClick",
+                          promoClick: {
+                            creative_name: "find nearest store cta pdp",
+                            promo_id: getNumericId(activeVariant?.id),
+                            promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                            promo_position: "Product Details Section",
+                            location_id: "pdp",
+                            product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                          }
+                        });
+                      }}
+                      className="underline underline-offset-2 font-bold"
+                    >
+                      {availableStoreCount - 1} other stores
+                    </button>
                   </p>
                 )}
                 <Button
-                  onClick={() => setIsStoreDrawerOpen(true)}
+                  onClick={() => {
+                    setIsStoreDrawerOpen(true);
+                    pushToDataLayer({
+                      event: "promoClick",
+                      promoClick: {
+                        creative_name: "find nearest store cta pdp",
+                        promo_id: getNumericId(activeVariant?.id),
+                        promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                        promo_position: "Product Details Section",
+                        location_id: "pdp",
+                        product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                      }
+                    });
+                  }}
                   className="w-full h-12 font-bold rounded-md mt-1 text-sm bg-tertiary uppercase tracking-widest"
                 >
                   {availableStoreCount > 0 ? "FIND IN STORE" : "FIND STORE"}
