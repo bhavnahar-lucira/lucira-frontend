@@ -323,13 +323,7 @@ export default function ShippingPage() {
 
       setPincodeLoading(true);
 
-      const response = await fetch(
-        `/api/pincode?pincode=${pincode}`
-      );
-
-      const data = await response.json();
-
-      console.log("pincode data", data);
+      const data = await apiFetch(`/api/pincode?pincode=${pincode}`);
 
       const result = data?.[0];
 
@@ -554,8 +548,6 @@ export default function ShippingPage() {
     () => addresses.find((address) => address.id === selectedAddressId) || null,
     [addresses, selectedAddressId]
   );
-
-  console.log("test", visibleAddresses)
 
   const sortedStores = useMemo(() => {
     let center = searchCoords;
