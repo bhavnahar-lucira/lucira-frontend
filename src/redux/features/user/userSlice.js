@@ -44,6 +44,15 @@ const userSlice = createSlice({
         state.user.avatar = action.payload;
       }
     },
+    updateUser: (state, action) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+        // Ensure name is updated if firstName/lastName changed
+        if (action.payload.firstName || action.payload.lastName) {
+          state.user.name = `${action.payload.firstName || state.user.firstName || ""} ${action.payload.lastName || state.user.lastName || ""}`.trim();
+        }
+      }
+    },
     openAuthModal: (state, action) => {
       state.isAuthModalOpen = true;
       state.authRedirectPath = action.payload || null;
@@ -74,7 +83,8 @@ export const {
   setPincode, 
   setCollectionContext,
   logout, 
-  setAvatar, 
+  setAvatar,
+  updateUser, 
   openAuthModal, 
   closeAuthModal, 
   toggleAuthModal,

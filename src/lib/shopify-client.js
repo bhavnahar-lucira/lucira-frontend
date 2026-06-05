@@ -274,4 +274,22 @@ export const ADDRESS_DEFAULT_UPDATE_MUTATION = `
   }
 `;
 
+export const CUSTOMER_UPDATE_MUTATION = `
+  mutation customerUpdate($customerAccessToken: String!, $customer: CustomerUpdateInput!) {
+    customerUpdate(customerAccessToken: $customerAccessToken, customer: $customer) {
+      customer {
+        id
+        firstName
+        lastName
+        email
+        phone
+      }
+      customerUserErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 
