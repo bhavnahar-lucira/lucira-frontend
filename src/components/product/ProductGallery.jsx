@@ -59,6 +59,9 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const sortedMedia = useMemo(() => {
     if (!media || media.length === 0) return [];
 
+    const COLOR_TOKENS = ["white", "yellow", "rose", "plt", "platinum"];
+    const ALWAYS_SHOW_CODES = ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v", "360°"];
+
     const formattedMedia = media.map(m => {
       const newM = { ...m };
       if (newM.url) newM.url = formatCdnUrl(newM.url);
@@ -72,120 +75,110 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       return newM;
     });
 
-    // 1. Define color matching logic
-    const colorTerms = ["yellow", "white", "rose", "plt", "platinum"];
-    
-    const getColorTokens = (text) => {
-      const lower = (text || "").toLowerCase().replace(/[^a-z0-9]/g, " ");
-      const tokens = [];
-      if (lower.includes("yellow")) tokens.push("yellow");
-      if (lower.includes("white")) tokens.push("white");
-      if (lower.includes("rose")) tokens.push("rose");
-      if (lower.includes("platinum") || lower.includes("plt")) tokens.push("plt");
-      return tokens;
-    };
-
-    const targetTokens = getColorTokens(activeColor);
-    const primaryToken = activeColor.includes("-") 
-      ? activeColor.toLowerCase().split("-")[0] 
-      : (targetTokens[0] || "");
-
-    const isMatch = (item) => {
-      const alt = (item.alt || "").toLowerCase();
-      const itemTokens = getColorTokens(alt);
-      if (itemTokens.length === 0) return true;
-
-      const forbiddenTokens = ["yellow", "white", "rose", "plt"].filter(t => !targetTokens.includes(t));
-      const hasForbidden = forbiddenTokens.some(t => {
-        if (t === "plt") return alt.includes("plt") || alt.includes("platinum");
-        return alt.includes(t);
-      });
-      if (hasForbidden) return false;
-
-      if (activeColor.includes("-")) {
-        return alt.includes(primaryToken);
+    const getColorFromAlt = (text) => {
+      const lower = (text || "").toLowerCase();
+      const match = lower.match(/(yellow|white|rose|plt|platinum)[\s-]?(yellow|white|rose|plt|platinum)?/);
+      if (match && match[1]) {
+        const firstColor = match[1];
+        if (firstColor === "platinum") return "plt";
+        return firstColor;
       }
-      return itemTokens.some(token => targetTokens.includes(token));
+      return "";
     };
 
-    // 2. Categorization into buckets
+    const targetColor = getColorFromAlt(activeColor) || (activeColor.toLowerCase().includes("plt") ? "plt" : activeColor.toLowerCase());
+
     const buckets = {
       color: [],
-      v360: [],
-      rest_videos: [],
-      model: [],
-      cert: []
+      codes: { mv: [], "mq-ai": [], mq: [], "mh-ai": [], mh: [], "ci-ai": [], ci: [], v360: [] },
+      cert: [],
+      extras: []
     };
 
-    formattedMedia.forEach((item) => {
-      const alt = (item.alt || "").toLowerCase().replace(/_/g, "-");
-      const isM = isMatch(item);
-      const isVideo = item.mediaContentType === "VIDEO" || item.mediaContentType === "EXTERNAL_VIDEO" || item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
-      
+    formattedMedia.forEach(item => {
+      const alt = (item.alt || "").toLowerCase();
+      const itemColor = getColorFromAlt(alt);
+      const isAnyColor = COLOR_TOKENS.some(c => alt.includes(c));
+
       if (alt.includes("cert")) {
-          buckets.cert.push(item);
-      } else if (isM) {
-          if (alt.includes("v360") || alt.includes("360v") || alt.includes("360°")) {
-              buckets.v360.push(item);
-          } else if (isVideo) {
-              buckets.rest_videos.push(item);
-          } else if (getColorTokens(alt).length > 0) {
-              buckets.color.push(item);
-          } else {
-              buckets.model.push(item);
-          }
+        buckets.cert.push(item);
+        return;
+      }
+
+      const isCodeMatch = ALWAYS_SHOW_CODES.some(code => alt.includes(code));
+      
+      if (itemColor === targetColor || (!isAnyColor && isCodeMatch)) {
+        if (alt.includes("mv")) buckets.codes.mv.push(item);
+        else if (alt.includes("mq-ai")) buckets.codes["mq-ai"].push(item);
+        else if (alt.includes("mq")) buckets.codes.mq.push(item);
+        else if (alt.includes("mh-ai")) buckets.codes["mh-ai"].push(item);
+        else if (alt.includes("mh")) buckets.codes.mh.push(item);
+        else if (alt.includes("ci-ai")) buckets.codes["ci-ai"].push(item);
+        else if (alt.includes("ci")) buckets.codes.ci.push(item);
+        else if (alt.includes("360v") || alt.includes("360°")) buckets.codes.v360.push(item);
+        else if (itemColor === targetColor) buckets.color.push(item);
+        else buckets.extras.push(item);
+      } else if (itemColor === "" && !isAnyColor) {
+         // Fallback for items with no color tokens at all
+         buckets.extras.push(item);
       }
     });
 
-    // Prioritize Shopify variant image
+    // Prioritize Shopify variant image if it exists in color bucket
     if (activeVariant?.image) {
-        const getCompareUrl = (url) => formatCdnUrl(url).split('?')[0].split('&')[0];
-        const variantImgUrl = getCompareUrl(activeVariant.image);
-        const idx = buckets.color.findIndex(m => {
-            const mUrl = m.url || m.previewImage?.url;
-            return mUrl && getCompareUrl(mUrl) === variantImgUrl;
-        });
-        if (idx !== -1) {
-            const vImg = buckets.color.splice(idx, 1)[0];
-            buckets.color.unshift(vImg);
-        }
+      const getCompareUrl = (url) => formatCdnUrl(url).split('?')[0].split('&')[0];
+      const variantImgUrl = getCompareUrl(activeVariant.image);
+      const idx = buckets.color.findIndex(m => {
+        const mUrl = m.url || m.previewImage?.url;
+        return mUrl && getCompareUrl(mUrl) === variantImgUrl;
+      });
+      if (idx !== -1) {
+        const vImg = buckets.color.splice(idx, 1)[0];
+        buckets.color.unshift(vImg);
+      }
     }
 
-    // 3. Final Strict Sequence Pattern
-    // [color, 360, model, color, color, model, model, color, rest_video, cert]
-    const pattern = [
-      "color", "v360", "model", "color", "color", "model", "model", "color", "rest_videos"
+    const takeColor = () => buckets.color.shift() || null;
+    const takeCode = () => {
+      for (const key of ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v"]) {
+        const k = key === "360v" ? "v360" : key;
+        if (buckets.codes[k]?.length) return buckets.codes[k].shift();
+      }
+      return null;
+    };
+
+    const slotPattern = [
+      "color", "code", "code",
+      "color", "color", "code", "code",
+      "color", "color", "code", "code",
+      "color"
     ];
 
     const result = [];
-    
-    const takeFrom = (bucketKey) => {
-        if (buckets[bucketKey].length > 0) return buckets[bucketKey].shift();
-        
-        // Fallbacks if a specific slot bucket is empty
-        if (bucketKey === "v360") return buckets.rest_videos.shift() || buckets.color.shift() || buckets.model.shift();
-        if (bucketKey === "rest_videos") return buckets.v360.shift() || buckets.model.shift() || buckets.color.shift();
-        if (bucketKey === "color") return buckets.model.shift() || buckets.rest_videos.shift() || buckets.v360.shift();
-        if (bucketKey === "model") return buckets.color.shift() || buckets.rest_videos.shift() || buckets.v360.shift();
-        
-        return null;
-    };
 
-    // Fill slots from pattern
-    for (const slot of pattern) {
-        let node = takeFrom(slot);
-        if (node) result.push(node);
+    for (const slot of slotPattern) {
+      let node = slot === "color" ? takeColor() : takeCode();
+      if (node) result.push(node);
     }
 
-    // Append remaining matches
-    ["v360", "rest_videos", "color", "model"].forEach(key => {
-        buckets[key].forEach(m => { if (!result.includes(m)) result.push(m); });
+    // Append remaining
+    Object.values(buckets.codes).forEach(arr => {
+      arr.forEach(node => { if (!result.includes(node)) result.push(node); });
     });
-    
-    // Certificates strictly last
-    buckets.cert.forEach(m => { if (!result.includes(m)) result.push(m); });
 
-    if (result.length === 0 && formattedMedia.length > 0) result.push(formattedMedia[0]);
+    buckets.color.forEach(node => {
+      if (!result.includes(node)) result.push(node);
+    });
+
+    buckets.extras.forEach(node => {
+      if (!result.includes(node)) result.push(node);
+    });
+
+    buckets.cert.forEach(node => {
+      if (!result.includes(node)) result.push(node);
+    });
+
+    if (result.length === 0 && formattedMedia.length > 0) return [formattedMedia[0]];
 
     return result;
   }, [media, activeColor, activeVariant]);
