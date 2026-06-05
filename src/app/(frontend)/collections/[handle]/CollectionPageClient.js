@@ -516,7 +516,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} href="/collections/bestsellers">
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/inpage_banner.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/inpage_banner-05062026.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
             </Link>
           </div>
         );
@@ -573,7 +573,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative h-34 md:h-54">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner.jpg" alt={displayTitle} fill className="object-cover" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner-05062026.jpg" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
       ) : (
@@ -588,7 +588,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day free returns</span></div>
               </div>
             </div>
-            <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category_banner.jpg" alt={displayTitle} fill className="object-cover" /></div>
+            <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner-05062026.jpg" alt={displayTitle} fill className="object-cover" /></div>
           </div>
         </div>
       )}
