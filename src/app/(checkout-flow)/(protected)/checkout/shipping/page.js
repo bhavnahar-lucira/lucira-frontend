@@ -64,6 +64,7 @@ const emptyAddressForm = {
   zip: "",
   country: "India",
   phone: "",
+  email: "",
   gstin: "",
 };
 
@@ -105,6 +106,7 @@ function normalizeAddressForm(address = {}, customer = {}) {
     zip: address.zip || "",
     country: address.country || "India",
     phone: address.phone || customer.phone || customer.mobile || "",
+    email: address.email || customer.email || "",
     gstin: address.gstin || "",
   };
 }
@@ -168,15 +170,19 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
         />
         <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
         
-        <div className="col-span-2">
-          <Input
-            placeholder="Phone (optional)"
-            value={form.phone}
-            onChange={(e) => onChange("phone", e.target.value)}
-            className="h-12 border-zinc-200"
-            disabled={disablePhone}
-          />
-        </div>
+        <Input
+          placeholder="Phone (optional)"
+          value={form.phone}
+          onChange={(e) => onChange("phone", e.target.value)}
+          className="h-12 border-zinc-200"
+          disabled={disablePhone}
+        />
+        <Input
+          placeholder="Email address"
+          value={form.email}
+          onChange={(e) => onChange("email", e.target.value)}
+          className="h-12 border-zinc-200"
+        />
       </div>
 
       <div className="flex items-center space-x-2">
@@ -273,6 +279,7 @@ const SummarySkeleton = () => (
  
 
 export default function ShippingPage() {
+  const dispatch = useDispatch();
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const { user, accessToken } = useSelector((state) => state.user);
@@ -821,34 +828,41 @@ export default function ShippingPage() {
         return toast.error("We are not delivering product on this address");
       }
 
+      // Prepare address for saving (exclude email as it's for profile only)
+      const { email: formEmail, ...addressToSave } = addressForm;
+
       applyAddressPayload(
         await createCustomerAddress({
-          address: addressForm,
+          address: addressToSave,
           makeDefault,
         }, accessToken)
       );
 
-      // Sync name changes with Backend Profile & Shopify Customer Profile
-      if (accessToken && !accessToken.startsWith("simulated_")) {
+      // Requirement: Update profile only if addresses.length <= 1 (not greater than one)
+      if (accessToken && !accessToken.startsWith("simulated_") && addresses.length <= 1) {
         try {
+          const profileUpdate = {
+            firstName: addressForm.firstName,
+            lastName: addressForm.lastName,
+            phone: addressForm.phone,
+            email: addressForm.email
+          };
+
           await Promise.all([
             apiFetch("/api/customer/profile", {
               method: "PATCH",
-              body: JSON.stringify({ firstName: addressForm.firstName, lastName: addressForm.lastName }),
+              body: JSON.stringify(profileUpdate),
             }),
             shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
               customerAccessToken: accessToken,
-              customer: { firstName: addressForm.firstName, lastName: addressForm.lastName }
+              customer: profileUpdate
             })
           ]);
 
           // Sync local Redux state for real-time Header reflection
-          dispatch(updateUser({
-            firstName: addressForm.firstName,
-            lastName: addressForm.lastName,
-          }));
+          dispatch(updateUser(profileUpdate));
         } catch (syncErr) {
-          console.warn("[ShippingPage] Failed to sync name with profile:", syncErr);
+          console.warn("[ShippingPage] Failed to sync profile:", syncErr);
         }
       }
 
@@ -874,35 +888,41 @@ export default function ShippingPage() {
         return toast.error("We are not delivering product on this address");
       }
 
+      // Prepare address for saving
+      const { email: formEmail, ...addressToSave } = addressForm;
+
       applyAddressPayload(
         await updateCustomerAddress({
           addressId: editingAddressId,
-          address: addressForm,
+          address: addressToSave,
           makeDefault,
         }, accessToken)
       );
 
-      // Sync name changes with Backend Profile & Shopify Customer Profile
-      if (accessToken && !accessToken.startsWith("simulated_")) {
+      // Sync profile ONLY if addresses.length <= 1
+      if (accessToken && !accessToken.startsWith("simulated_") && addresses.length <= 1) {
         try {
+          const profileUpdate = { 
+            firstName: addressForm.firstName, 
+            lastName: addressForm.lastName,
+            phone: addressForm.phone,
+            email: addressForm.email
+          };
           await Promise.all([
             apiFetch("/api/customer/profile", {
               method: "PATCH",
-              body: JSON.stringify({ firstName: addressForm.firstName, lastName: addressForm.lastName }),
+              body: JSON.stringify(profileUpdate),
             }),
             shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
               customerAccessToken: accessToken,
-              customer: { firstName: addressForm.firstName, lastName: addressForm.lastName }
+              customer: profileUpdate
             })
           ]);
 
           // Sync local Redux state for real-time Header reflection
-          dispatch(updateUser({
-            firstName: addressForm.firstName,
-            lastName: addressForm.lastName,
-          }));
+          dispatch(updateUser(profileUpdate));
         } catch (syncErr) {
-          console.warn("[ShippingPage] Failed to sync name with profile:", syncErr);
+          console.warn("[ShippingPage] Failed to sync profile:", syncErr);
         }
       }
 
@@ -927,25 +947,28 @@ export default function ShippingPage() {
     try {
       applyAddressPayload(await selectDefaultCustomerAddress(addressId, accessToken));
 
-      // If we are selecting a new default address, sync that name to the profile too
-      if (addressToSelect && accessToken && !accessToken.startsWith("simulated_")) {
+      // If we are selecting a new default address, sync that name to the profile too (ONLY if addresses <= 1)
+      if (addressToSelect && accessToken && !accessToken.startsWith("simulated_") && addresses.length <= 1) {
         try {
+          const profileUpdate = { 
+            firstName: addressToSelect.firstName, 
+            lastName: addressToSelect.lastName,
+            phone: addressToSelect.phone,
+            email: customer?.email || user?.email || ""
+          };
           await Promise.all([
             apiFetch("/api/customer/profile", {
               method: "PATCH",
-              body: JSON.stringify({ firstName: addressToSelect.firstName, lastName: addressToSelect.lastName }),
+              body: JSON.stringify(profileUpdate),
             }),
             shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
               customerAccessToken: accessToken,
-              customer: { firstName: addressToSelect.firstName, lastName: addressToSelect.lastName }
+              customer: profileUpdate
             })
           ]);
 
           // Sync local Redux state for real-time Header reflection
-          dispatch(updateUser({
-            firstName: addressToSelect.firstName,
-            lastName: addressToSelect.lastName,
-          }));
+          dispatch(updateUser(profileUpdate));
         } catch (syncErr) {
           console.warn("[ShippingPage] Failed to sync selected address name with profile:", syncErr);
         }
