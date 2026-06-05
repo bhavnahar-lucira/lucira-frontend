@@ -76,6 +76,7 @@ import { addRecentlyViewed, selectRecentlyViewed } from "@/redux/features/recent
 import AtcBar from "@/components/AtcBar";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushProductView, pushAddToCart, pushAddToWishlist, pushRemoveFromWishlist, pushPromoClick, formatGtmPrice, getNumericId, getStandardWishlistPayload, pushToDataLayer } from "@/lib/gtm";
+import { sendProductViewWebhook, sendAddToCartWebhook } from "@/lib/headless-webhooks";
 
 import {
   Sheet,
@@ -1156,24 +1157,29 @@ export default function ProductPageClient({
       const sellingPrice = Number(activeVariant?.price || product.price || 0);
       const originalPrice = Number(activeVariant?.compare_price || activeVariant?.compareAtPrice || product.compare_price || product.compareAtPrice || sellingPrice);
 
+      const atcData = {
+        productId: String(getNumericId(product.shopifyId || product.id)),
+        variantId: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId)),
+        sku: activeVariant?.sku || product?.sku || activeVariant?.variantSku || product?.variantSku || (product?.variants && product?.variants[0]?.sku) || "",
+        productName: product.title,
+        productType: product.type || "",
+        vendor: product.vendor || "Lucira Jewelry",
+        offerPrice: String(originalPrice.toFixed(2)),
+        productUrl: currentUrl,
+        image: productImageUrl,
+        price: String(sellingPrice),
+        category: "",
+        subCategory: "",
+        productPersona: "",
+        quantity: 1
+      };
+
       pushAddToCart({
         eventId: `atc_${Date.now()}`,
-        products: {
-          productId: String(getNumericId(product.shopifyId || product.id)),
-          variantId: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId)),
-          sku: activeVariant?.sku || product?.sku || activeVariant?.variantSku || product?.variantSku || (product?.variants && product?.variants[0]?.sku) || "",
-          productName: product.title,
-          productType: product.type || "",
-          vendor: product.vendor || "Lucira Jewelry",
-          offerPrice: String(originalPrice.toFixed(2)),
-          productUrl: currentUrl,
-          image: productImageUrl,
-          price: String(sellingPrice),
-          category: "",
-          subCategory: "",
-          productPersona: ""
-        }
+        products: atcData
       });
+
+      sendAddToCartWebhook(user, atcData);
       //gtm
 
       toast.success("Added to cart!");
@@ -1405,7 +1411,7 @@ export default function ProductPageClient({
       const sellingPrice = Number(activeVariant?.price || product.price || 0);
       const originalPrice = Number(activeVariant?.compare_price || activeVariant?.compareAtPrice || product.compare_price || product.compareAtPrice || sellingPrice);
 
-      pushProductView({
+      const productViewData = {
         productId: getNumericId(product.shopifyId || product.id),
         sku: activeVariant?.sku || "",
         variantId: String(activeVariant?.id || activeVariant?.shopifyId || ""),
@@ -1419,9 +1425,12 @@ export default function ProductPageClient({
         image: productImageUrl,
         price: sellingPrice,
         offerPrice: Number(originalPrice),
-      });
+      };
+
+      pushProductView(productViewData);
+      sendProductViewWebhook(user, productViewData);
     }
-  }, [activeVariant, product]);
+  }, [activeVariant, product, user]);
 
   // Scroll to top on mount/refresh
   useEffect(() => {
