@@ -24,7 +24,7 @@ const slideData = [
   {
     name: "Solitaire",
     alt: "Solitaire Twist Ring",
-    url: "/products/modern-round-solitaire-ring",
+    url: "/products/round-diamond-solitaire-twist-ring",
   },
 ];
 
