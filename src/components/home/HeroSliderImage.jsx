@@ -12,19 +12,19 @@ import "swiper/css/pagination";
 
 const slideData = [
   {
-    name: "Birthday",
-    alt: "Birthday",
-    url: "/collections/birthday-gifts",
+    name: "Baarish",
+    alt: "Baarish",
+    url: "/collections/jewelry",
   },
   {
-    name: "Eterna-Band",
-    alt: "Eterna Band Collection",
-    url: "/collections/eterna",
-  },
-  {
-    name: "NineKT",
+    name: "9KT",
     alt: "9KT Collection",
     url: "/collections/9kt-collection",
+  },
+  {
+    name: "Solitaire",
+    alt: "Solitaire Twist Ring",
+    url: "/products/modern-round-solitaire-ring",
   },
 ];
 
