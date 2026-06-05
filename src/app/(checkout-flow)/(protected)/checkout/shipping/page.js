@@ -124,7 +124,7 @@ function formatAddressPreview(address) {
   return pieces.filter(Boolean);
 }
 
-function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, isMobile = false, disablePhone = false, fetchPincodeDetails }) {
+function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, isMobile = false, disablePhone = false, fetchPincodeDetails, hideEmail = false }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -177,12 +177,14 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
           className="h-12 border-zinc-200"
           disabled={disablePhone}
         />
-        <Input
-          placeholder="Email address"
-          value={form.email}
-          onChange={(e) => onChange("email", e.target.value)}
-          className="h-12 border-zinc-200"
-        />
+        {!hideEmail && (
+          <Input
+            placeholder="Email address"
+            value={form.email}
+            onChange={(e) => onChange("email", e.target.value)}
+            className="h-12 border-zinc-200"
+          />
+        )}
       </div>
 
       <div className="flex items-center space-x-2">
@@ -1481,7 +1483,9 @@ export default function ShippingPage() {
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>{dialogMode === "edit" ? "Edit address" : "Add new address"}</DialogTitle>
-                <DialogDescription>Email and phone stay tied to your account.</DialogDescription>
+                <DialogDescription>
+                  {addresses.length > 0 ? "Phone stays tied to your account." : "Email and phone stay tied to your account."}
+                </DialogDescription>
               </DialogHeader>
               <AddressFields
                 form={addressForm}
@@ -1493,6 +1497,7 @@ export default function ShippingPage() {
                 saving={dialogSaving}
                 disablePhone={true}
                 fetchPincodeDetails={fetchPincodeDetails}
+                hideEmail={addresses.length > 0}
               />
             </DialogContent>
           </Dialog>
@@ -1526,6 +1531,7 @@ export default function ShippingPage() {
               isMobile={true}
               disablePhone={true}
               fetchPincodeDetails={fetchPincodeDetails}
+              hideEmail={addresses.length > 0}
             />
           </MobileBottomSheet>
 
