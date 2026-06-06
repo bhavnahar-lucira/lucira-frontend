@@ -97,9 +97,9 @@ export default function Page() {
         <SchemeHowItWorks />
 
         {/* Benefits Section */}
-        <section className="w-full max-w-7xl mx-auto px-6 py-20">
+        <section className="w-full max-w-7xl mx-auto px-4 md:px-6 py-12">
           <div className="text-center mb-16 space-y-4">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-gray-900">
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-gray-900">
               Why Choose Vault of Dreams?
             </h2>
             <div className="w-24 h-1 bg-[#5a413f] mx-auto rounded-full"></div>
@@ -136,9 +136,9 @@ export default function Page() {
                     {item.desc}
                   </p>
 
-                  <div className="mt-4 md:mt-8 flex items-center gap-2 text-[10px] md:text-[12px] font-bold text-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {/* <div className="mt-4 md:mt-8 flex items-center gap-2 text-[10px] md:text-[12px] font-bold text-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     LEARN MORE <ArrowRight size={14} />
-                  </div>
+                  </div> */}
                 </motion.div>
               );
             })}

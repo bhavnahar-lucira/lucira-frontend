@@ -54,7 +54,7 @@ export default function MobileSavingCalculator() {
   ];
 
   return (
-    <section className="px-4 pt-4 pb-5 space-y-6">
+    <section className="px-4 pt-4 pb-40 md:pb-5 space-y-6">
       {/* MAIN CARD */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 space-y-7">
         {/* HEADER */}
@@ -300,44 +300,45 @@ export default function MobileSavingCalculator() {
       )}
 
       {/* FIXED BOTTOM BAR */}
-      <div className="fixed bottom-16 left-0 w-full bg-white border-t px-4 py-3 z-[100]">
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-              Monthly Enrollment
-            </span>
-            <span className="text-xl font-bold text-gray-900">₹{formatINR(amount)}</span>
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-5 z-30 md:hidden">
+        <div className="max-w-7xl mx-auto flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                Monthly Premium
+              </span>
+              <span className="text-xl font-bold text-black">₹{formatINR(amount)}</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                Total Returns
+              </span>
+              <span className="text-xl font-bold text-green-600 block">
+                ₹{formatINR(totalReturns)}
+              </span>
+            </div>
           </div>
-          <div className="text-right">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-              Total Returns
-            </span>
-            <span className="text-xl font-bold text-green-600 block">
-              ₹{formatINR(totalReturns)}
-            </span>
-          </div>
-        </div>
 
-        <button
-          disabled={!!amountError || !isAgreed}
-          onClick={async () => {
-            if (amountError || !isAgreed) return;
+          <button
+            disabled={!!amountError || !isAgreed}
+            onClick={async () => {
+              if (amountError || !isAgreed) return;
 
-            if (isAuthenticated) {
-              router.push(`/schemes/enroll?amount=${amount}`);
-            } else {
-              openLogin(`/schemes/enroll?amount=${amount}`);
-            }
-          }}
-          className={`mt-3 w-full h-12 rounded-xl text-sm font-medium transition
-            ${
+              if (isAuthenticated) {
+                router.push(`/schemes/enroll?amount=${amount}`);
+              } else {
+                openLogin(`/schemes/enroll?amount=${amount}`);
+              }
+            }}
+            className={`w-full rounded-xl h-14 text-base font-bold tracking-wide shadow-lg active:scale-[0.98] transition-all disabled:opacity-60 ${
               amountError || !isAgreed
                 ? "bg-gray-300 text-gray-500"
-                : "bg-black text-white active:scale-[0.98]"
+                : "bg-black text-white"
             }`}
-        >
-          Continue
-        </button>
+          >
+            CONTINUE
+          </button>
+        </div>
       </div>
     </section>
   );

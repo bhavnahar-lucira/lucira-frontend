@@ -32,9 +32,8 @@ function StatusBadge({ status }) {
   const isActive = status === 1;
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-        isActive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
-      }`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${isActive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
+        }`}
     >
       {isActive ? "Active" : "Inactive"}
     </span>
@@ -44,9 +43,8 @@ function StatusBadge({ status }) {
 function PaymentBadge({ made }) {
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-        made ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-      }`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${made ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+        }`}
     >
       {made ? "Paid" : "Pending"}
     </span>
@@ -285,7 +283,7 @@ export default function SchemesPage() {
 
   // Build enroll URL (phone + timestamp + HMAC are generated server-side in prod;
   // here we just deep-link to the public enrollment page)
-  const enrollUrl = `https://schemes.lucirajewelry.com`;
+  const enrollUrl = `/schemes`;
 
   useEffect(() => {
     async function load() {

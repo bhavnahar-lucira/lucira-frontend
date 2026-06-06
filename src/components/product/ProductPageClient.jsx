@@ -640,8 +640,8 @@ export default function ProductPageClient({
     const remainder = rawMonthly % 500;
     const monthly = rawMonthly - remainder;
 
-    // Use base URL with amount only as requested
-    const schemeUrl = `https://schemes.lucirajewelry.com/?amount=${monthly}`;
+    // Route to the in-app scheme page with the product-specific monthly amount.
+    const schemeUrl = `/schemes?amount=${monthly}`;
 
     return {
       monthly,

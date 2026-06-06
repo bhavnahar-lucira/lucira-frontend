@@ -806,7 +806,7 @@ export default function MobileHeader({ menuData }) {
               <ChevronRight size={18} className="text-black" />
             </a>
 
-            <Link href="https://schemes.lucirajewelry.com/" prefetch={false} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
+            <Link href="/schemes" prefetch={false} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
               <div className="flex items-center gap-4">
                 <div className="flex items-center justify-center">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
