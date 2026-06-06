@@ -1,31 +1,32 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 const steps = [
   {
     step: 1,
-    title: 'CHOOSE SETTING',
-    buttonText: 'Start With Setting',
-    description: 'Select your favorite ring style and metal.',
-    image: '/images/menu/engagement-ring.jpg',
-    href: '/collections/engagement-rings'
+    title: 'CHOOSE CHAIN',
+    buttonText: 'Start With Chain',
+    description: 'Select your base chain for a bracelet, necklace, or anklet.',
+    image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3dd9e9ad-9062-4fb1-95e2-25e8cd6c10f7.png',
+    href: '/build-your-jewelry?type=bracelets'
   },
   {
     step: 2,
-    title: 'CHOOSE DIAMOND',
-    buttonText: 'Start With Diamond',
-    description: 'Find the perfect diamond for your setting.',
+    title: 'CHOOSE CHARMS',
+    buttonText: 'Add Charms',
+    description: 'Pick meaningful charms to personalize your jewelry.',
     image: '/images/icons/diamond.svg',
-    href: '/collections/solitaires'
+    href: '/build-your-jewelry?type=bracelets#charms'
   },
   {
     step: 3,
-    title: 'COMPLETE RING',
-    buttonText: 'View Completed Ring',
+    title: 'COMPLETE JEWELRY',
+    buttonText: 'Review Selection',
     description: 'Review and add your unique creation to cart.',
-    image: '/images/menu/wedding-ring.jpg',
-    href: '#'
+    image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3dd9e9ad-9062-4fb1-95e2-25e8cd6c10f7_1.png',
+    href: '/build-your-jewelry?type=bracelets#charms'
   }
 ];
 
@@ -36,11 +37,11 @@ const BuildYourJewelry = () => {
         {/* Header Section */}
         <div className="text-center mb-16 md:mb-20">
           <h1 className="text-3xl md:text-5xl font-abhaya font-bold mb-4 tracking-wide uppercase text-[#5A413F]">
-            BUILD YOUR OWN RING
+            BUILD YOUR OWN JEWELRY
           </h1>
           <div className="w-20 h-[2px] bg-[#B77767] mx-auto mb-6"></div>
           <p className="text-zinc-600 font-figtree text-lg md:text-xl max-w-2xl mx-auto">
-            Design the perfect ring in 3 simple steps.
+            Design your chain and charms in 3 simple steps.
           </p>
         </div>
 
@@ -83,8 +84,8 @@ const BuildYourJewelry = () => {
               </div>
 
               {/* Action Button */}
-              <Button className="w-full md:w-auto px-10 py-7 bg-[#5A413F] text-white hover:bg-[#4A3934] rounded-sm font-bold tracking-[0.2em] uppercase text-[10px] md:text-xs transition-colors border-none">
-                {item.buttonText}
+              <Button asChild className="w-full md:w-auto px-10 py-7 bg-[#5A413F] text-white hover:bg-[#4A3934] rounded-sm font-bold tracking-[0.2em] uppercase text-[10px] md:text-xs transition-colors border-none">
+                <Link href={item.href}>{item.buttonText}</Link>
               </Button>
             </div>
           ))}
