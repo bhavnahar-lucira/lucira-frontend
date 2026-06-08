@@ -192,7 +192,7 @@ export default function EnrollSummary({
                 key={returns}
                 initial={{ scale: 0.95 }}
                 animate={{ scale: 1 }}
-                className="text-2xl md:text-3xl font-black text-green-600"
+                className="text-2xl md:text-2xl font-black text-black-500"
               >
                 ₹{formatINR(returns)}
               </motion.span>
