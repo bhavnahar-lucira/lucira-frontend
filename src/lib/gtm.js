@@ -39,8 +39,14 @@ export const pushPageView = (pageData) => {
 export const pushPromoClick = (promoClickData) => {
   const sanitizedData = { ...promoClickData };
   if (sanitizedData.location_id !== undefined && sanitizedData.location_id !== null) sanitizedData.location_id = String(sanitizedData.location_id);
-  if (sanitizedData.offer_price !== undefined && sanitizedData.offer_price !== null) sanitizedData.offer_price = String(sanitizedData.offer_price);
-  if (sanitizedData.price !== undefined && sanitizedData.price !== null) sanitizedData.price = String(sanitizedData.price);
+  const coerceNumericField = (value) => {
+    if (value === undefined || value === null || value === "") return value;
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : value;
+  };
+  if (sanitizedData.offer_price !== undefined && sanitizedData.offer_price !== null) sanitizedData.offer_price = coerceNumericField(sanitizedData.offer_price);
+  if (sanitizedData.offerPrice !== undefined && sanitizedData.offerPrice !== null) sanitizedData.offerPrice = coerceNumericField(sanitizedData.offerPrice);
+  if (sanitizedData.price !== undefined && sanitizedData.price !== null) sanitizedData.price = coerceNumericField(sanitizedData.price);
   if (sanitizedData.product_id !== undefined && sanitizedData.product_id !== null) sanitizedData.product_id = String(sanitizedData.product_id);
   if (sanitizedData.promo_id !== undefined && sanitizedData.promo_id !== null) sanitizedData.promo_id = String(sanitizedData.promo_id);
   if (sanitizedData.promo_position !== undefined && sanitizedData.promo_position !== null) sanitizedData.promo_position = String(sanitizedData.promo_position);

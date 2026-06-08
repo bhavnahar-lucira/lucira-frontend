@@ -34,6 +34,7 @@ import {
   selectDefaultCustomerAddress,
   createCustomerAddress,
 } from "@/lib/api";
+import { getCookie } from "@/lib/utils";
 import { selectUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
@@ -779,6 +780,7 @@ export default function PaymentPage() {
         nectorPoints: nectorPoints,
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
+        gclid: getCookie("gclid") || "",
       }, accessToken);
 
       const razorpay = new window.Razorpay({
@@ -874,6 +876,7 @@ export default function PaymentPage() {
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
               cartItems: items || [], // Pass items explicitly as fallback for backend
+              gclid: getCookie("gclid") || "",
             }, accessToken);
 
             toast.success(

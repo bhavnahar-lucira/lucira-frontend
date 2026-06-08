@@ -25,7 +25,7 @@ export function getCookie(name) {
     let c = ca[i];
     while (c.charAt(0) === " ") c = c.substring(1, c.length);
     if (c.indexOf(nameEQ) === 0) {
-      const val = c.substring(nameEQ.length, c.length);
+      const val = decodeURIComponent(c.substring(nameEQ.length, c.length));
       try {
         return JSON.parse(val);
       } catch (e) {
