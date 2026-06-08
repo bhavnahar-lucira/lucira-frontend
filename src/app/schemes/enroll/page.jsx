@@ -22,6 +22,7 @@ import { fetchCustomerAddresses } from "@/lib/api";
 
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
+import { pushPromoClick } from "@/lib/gtm";
 
 /* ===================== CONSTANTS ===================== */
 const DEFAULT_AMOUNT = 2000;
@@ -236,6 +237,19 @@ export default function Enroll() {
     try {
       setLoading(true);
       toast.dismiss();
+
+      // Fire dataLayer promoClick event
+      try {
+        pushPromoClick({
+          creative_name: "Continue To Payment Cta in enroll scheme page",
+          location_id: "/schemes/enroll",
+          promo_id: String(displayAmount),
+          promo_name: mobile || "",
+        });
+      } catch (error) {
+        console.error("Error pushing to dataLayer:", error);
+      }
+
       toast.success("Details saved successfully");
       await saveDraft(displayAmount);
       router.push("/schemes/payment");

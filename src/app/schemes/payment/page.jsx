@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/lib/api";
+import { pushPromoClick } from "@/lib/gtm";
 import { BadgeCheck, Loader2, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 
 const PAYMENT_METHODS = [
@@ -82,6 +83,18 @@ export default function SchemePaymentPage() {
 
     setLoading(true);
     try {
+      // Fire dataLayer promoClick event
+      try {
+        pushPromoClick({
+          creative_name: "Pay Securely Cta in schemes payment page",
+          location_id: "/schemes/payment",
+          promo_id: String(enrollment?.amount || ""),
+          promo_name: user?.mobile || user?.phone || "",
+        });
+      } catch (error) {
+        console.error("Error pushing to dataLayer:", error);
+      }
+
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded || !window.Razorpay) {
         throw new Error("Unable to load Razorpay checkout");

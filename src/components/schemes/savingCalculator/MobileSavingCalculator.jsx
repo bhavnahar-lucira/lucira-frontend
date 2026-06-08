@@ -16,6 +16,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useAuth } from "@/hooks/useAuth";
+import { pushPromoClick } from "@/lib/gtm";
 
 const PRESETS = [2000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
@@ -26,7 +27,7 @@ export default function MobileSavingCalculator() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const amountParam = searchParams.get("amount");
-  const { isAuthenticated, openLogin } = useAuth();
+  const { isAuthenticated, openLogin, user } = useAuth();
 
   const getInitialAmount = () => {
     if (amountParam && !isNaN(Number(amountParam))) {
@@ -323,6 +324,18 @@ export default function MobileSavingCalculator() {
             disabled={!!amountError || !isAgreed}
             onClick={async () => {
               if (amountError || !isAgreed) return;
+
+              // Fire dataLayer promoClick event
+              try {
+                pushPromoClick({
+                  creative_name: "scheme page Continue cta",
+                  location_id: "schemes page",
+                  promo_id: String(amount),
+                  promo_name: user?.mobile || "",
+                });
+              } catch (error) {
+                console.error("Error pushing to dataLayer:", error);
+              }
 
               if (isAuthenticated) {
                 router.push(`/schemes/enroll?amount=${amount}`);
