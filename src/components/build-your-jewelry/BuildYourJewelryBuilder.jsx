@@ -315,8 +315,12 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
     const flat = [];
     selectedCharms.forEach(c => {
+      // Always find the version matching the current material/length for rendering
+      const charmData = charms.find(g => g.base === c.base);
+      const version = getActiveVersion(charmData, material, length) || c;
+      
       for (let i = 0; i < c.qty; i++) {
-        flat.push({ src: c.img, handle: c.handle, base: c.base });
+        flat.push({ src: version.img, handle: version.handle, base: version.base });
       }
     });
 
