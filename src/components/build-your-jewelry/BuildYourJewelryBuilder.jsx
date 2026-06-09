@@ -65,7 +65,17 @@ const formatPrice = (value) => {
   }).format(value / 100); // Assuming price is in subunits (cents/paise) based on script
 };
 
+const normalizeType = (value) => {
+  const type = String(value || '').toLowerCase();
+  if (type.includes('neck')) return 'necklaces';
+  if (type.includes('anklet')) return 'anklets';
+  return 'bracelets';
+};
+
 export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
+  const category = normalizeType(initialType);
+  const categoryConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.bracelets;
+
   const [material, setMaterial] = useState('9k-gold');
   const [length, setLength] = useState('14KT');
   const [chains, setChains] = useState([]);
@@ -120,8 +130,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                 variantTitle: v.title,
                 fullTitle,
                 price: v.price,
-                img: v.image?.src || p.featured_image?.src || '',
-                thumb: v.image?.src || p.featured_image?.src || '',
+                img: v.image?.src || p.featured_image?.src || null,
+                thumb: v.image?.src || p.featured_image?.src || null,
                 alt: v.image?.alt || p.featured_image?.alt || ''
               };
 
