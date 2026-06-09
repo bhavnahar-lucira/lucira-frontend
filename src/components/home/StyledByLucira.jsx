@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api";
 import "swiper/css";
 import "swiper/css/navigation";
 
-export default function StyledByLucira({ tags = [] }) {
+export default function StyledByLucira() {
   const [videoData, setVideoData] = useState([]);
   const [popupState, setPopupState] = useState({ isOpen: false, index: 0 });
   const swiperRef = useRef(null);
@@ -18,19 +18,16 @@ export default function StyledByLucira({ tags = [] }) {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const queryParams = tags.length > 0 ? `?tags=${encodeURIComponent(tags.join(','))}` : '';
-        const data = await apiFetch(`/api/styled-videos${queryParams}`, { cache: "no-store" });
+        const data = await apiFetch("/api/styled-videos", { cache: "no-store" });
         if (data.success && data.videos?.length > 0) {
           setVideoData(data.videos);
-        } else {
-          setVideoData([]);
         }
       } catch (err) {
         console.error("Failed to fetch styled videos:", err);
       }
     };
     fetchVideos();
-  }, [tags]);
+  }, []);
 
   if (videoData.length === 0) return null;
 
