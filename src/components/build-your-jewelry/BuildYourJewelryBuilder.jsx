@@ -7,6 +7,7 @@ import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import Konva from 'konva';
 import { shopifyStorefrontFetch } from '@/lib/shopify-client';
+import { useCart } from '@/hooks/useCart';
 
 const CHAIN_COLLECTION_HANDLE = 'byj-chains';
 const CHARM_COLLECTION_HANDLE = 'byj-faraways-charms';
@@ -121,8 +122,11 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   const [selectedCharms, setSelectedCharms] = useState([]);
   const [activeDesktopStep, setActiveStep] = useState('length');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [canvasPreview, setCanvasPreview] = useState(null);
   const [currentDrawerKey, setCurrentDrawerKey] = useState('');
   const [loading, setLoading] = useState(true);
+  const [addingToBag, setAddingToBag] = useState(false);
 
   // Konva Refs
   const stageRef = useRef(null);
@@ -131,6 +135,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   const productImgRef = useRef(null);
   const charmGroupRef = useRef(null);
   const [zoom, setZoom] = useState(1);
+
+  const { addToCart } = useCart();
 
   useEffect(() => {
     async function loadData() {
@@ -527,6 +533,43 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     setIsDrawerOpen(true);
   };
 
+  const handleConfirm = () => {
+    if (!stageRef.current) return;
+    const dataURL = stageRef.current.toDataURL({ pixelRatio: 2 });
+    setCanvasPreview(dataURL);
+    setIsSummaryOpen(true);
+  };
+
+  const handleAddToBag = async () => {
+    if (!selectedStyle || selectedCharms.length === 0) return;
+    setAddingToBag(true);
+    try {
+      const styleV = getActiveVersion(selectedStyle, material, length);
+      const charmDetails = selectedCharms.map((c, i) => `${i + 1}. ${c.fullTitle}`).join(', ');
+      
+      const properties = {
+        'Product Type': categoryConfig.label,
+        'Style': styleV.fullTitle,
+        'Length': length,
+        'Material': MATERIALS.find(m => m.id === material)?.label,
+        'Charms': charmDetails,
+        '_byj_preview': canvasPreview
+      };
+
+      await addToCart({
+        id: styleV.id,
+        quantity: 1,
+        properties
+      });
+      
+      setIsSummaryOpen(false);
+    } catch (err) {
+      console.error('Add to bag failed:', err);
+    } finally {
+      setAddingToBag(false);
+    }
+  };
+
   const containerStyle = {
   };
 
@@ -762,7 +805,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                 <span className="byj-total-label">Total</span>
                 <span className="byj-total-price">{formatPrice(totalPrice)}</span>
               </div>
-              <button className="byj-confirm-btn" disabled={!isReady}>
+              <button className="byj-confirm-btn" disabled={!isReady} onClick={handleConfirm}>
                 <span>Confirm</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
@@ -821,13 +864,13 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
             <div className="byj-mob-confirm-bar">
               <span className="byj-mob-total">{formatPrice(totalPrice)}</span>
-              <button className="byj-confirm-btn" disabled={!isReady}>Confirm</button>
+              <button className="byj-confirm-btn" disabled={!isReady} onClick={handleConfirm}>Confirm</button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Drawer */}
+      {/* Configuration Drawer (Length, Style, Charms) */}
       <div className={`byj-drawer-overlay ${isDrawerOpen ? 'active' : ''}`} onClick={() => setIsDrawerOpen(false)}></div>
       <div className={`byj-right-drawer ${isDrawerOpen ? 'open' : ''}`}>
         <div className="byj-drawer-header">
@@ -898,6 +941,93 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
           <button className="byj-drawer-done" onClick={() => setIsDrawerOpen(false)}>Done</button>
         </div>
       </div>
+
+      {/* Summary / Mini Cart Drawer */}
+      <div className={`byj-drawer-overlay ${isSummaryOpen ? 'active' : ''}`} onClick={() => setIsSummaryOpen(false)}></div>
+      <div className={`byj-right-drawer ${isSummaryOpen ? 'open' : ''}`}>
+        <div className="byj-drawer-header">
+           <span className="byj-drawer-title font-bold text-sm tracking-widest">HERE'S YOUR SUMMARY</span>
+          <button onClick={() => setIsSummaryOpen(false)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="byj-drawer-body !p-0">
+          <div className="byj-summary-scroll px-6 py-4">
+            {canvasPreview && (
+              <div className="byj-summary-preview mb-6">
+                <img src={canvasPreview} alt="BYJ Preview" className="w-full aspect-square object-contain" />
+              </div>
+            )}
+            
+            <div className="byj-summary-details space-y-6">
+              <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
+                  <span className="text-xs text-gray-400">N/A</span>
+                </div>
+                <div className="text-sm font-medium">{categoryConfig.label}</div>
+              </div>
+
+              <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                  <span className="text-sm font-bold">{formatPrice(getActiveVersion(selectedStyle, material, length)?.price)}</span>
+                </div>
+                <div className="text-sm font-medium">{getActiveVersion(selectedStyle, material, length)?.fullTitle}</div>
+              </div>
+
+              <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
+                  <span className="text-xs text-gray-400">N/A</span>
+                </div>
+                <div className="text-sm font-medium">{length}</div>
+              </div>
+
+              <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                </div>
+                <div className="space-y-2 mt-2">
+                  {(() => {
+                    const flatList = [];
+                    selectedCharms.forEach(c => {
+                      for (let i = 0; i < c.qty; i++) flatList.push(c);
+                    });
+                    return flatList.map((c, i) => (
+                      <div key={`${c.base}-${i}`} className="flex justify-between items-start">
+                        <span className="text-sm font-medium flex-1">{i + 1}. {c.fullTitle}</span>
+                        <span className="text-sm font-bold ml-2">{formatPrice(c.price)}</span>
+                      </div>
+                    ));
+                  })()}
+                  <div className="flex justify-between items-center text-xs text-gray-500 pt-1">
+                    <span>Spacing: 2.5cm</span>
+                    <span>N/A</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="byj-drawer-footer border-t-0 bg-[#fef5f1]">
+          <div className="flex justify-between items-center mb-4 px-4">
+            <span className="text-sm text-[#5c4f3a]">Subtotal</span>
+            <span className="text-lg font-bold">{formatPrice(totalPrice)}</span>
+          </div>
+          <button 
+            className="byj-confirm-btn w-full rounded-none h-14 uppercase tracking-widest" 
+            disabled={addingToBag}
+            onClick={handleAddToBag}
+          >
+            {addingToBag ? 'Adding...' : 'Add to Bag'}
+            {!addingToBag && <svg width="16" height="16" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg" className="ml-2">
+              <path d="M4.22112 5.35692C4.22112 5.35692 3.81759 0.589355 7.85288 0.589355C11.8882 0.589355 11.4846 5.35692 11.4846 5.35692M0.589355 17.2758L1.33747 4.90168C1.37058 4.35392 1.82446 3.92665 2.37322 3.92665H13.3371C13.884 3.92665 14.3369 4.34892 14.3722 4.89468C14.654 9.25047 15.1164 16.5686 15.1164 17.2758C15.1164 18.0386 14.5784 18.2294 14.3094 18.2294C10.2741 18.2294 2.04206 18.2294 1.39641 18.2294C0.750767 18.2294 0.589355 17.5937 0.589355 17.2758Z" stroke="white" strokeWidth="1.17914" strokeLinecap="round"></path>
+            </svg>}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
+
