@@ -3000,7 +3000,7 @@ export default function ProductPageClient({
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
       <ProductStory description={product.description} />
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <StyledByLucira />
+        <StyledByLucira tags={product.tags || []} />
       </Suspense>
       <OurProcess />
       <div ref={reviewsRef}>
