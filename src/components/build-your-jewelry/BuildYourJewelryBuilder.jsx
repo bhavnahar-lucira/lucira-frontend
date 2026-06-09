@@ -553,7 +553,10 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         'Length': length,
         'Material': MATERIALS.find(m => m.id === material)?.label,
         'Charms': charmDetails,
-        '_byj_preview': canvasPreview
+        '_byj_preview': canvasPreview,
+        '_byj_style_img': styleV.img,
+        '_byj_style_price': styleV.price,
+        '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ title: c.fullTitle, price: c.price, qty: c.qty, img: c.img })))
       };
 
       await addToCart({

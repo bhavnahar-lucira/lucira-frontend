@@ -28,8 +28,19 @@ export default function CartItem({ item, onAuthRequired }) {
   const [removing, setRemoving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [movingToWishlist, setMovingToWishlist] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   if (!item) return null;
+
+  const isBYJ = item.properties?.['_byj_preview'];
+  const byjCharms = useMemo(() => {
+    if (!item.properties?.['_byj_charms_json']) return [];
+    try {
+      return JSON.parse(item.properties['_byj_charms_json']);
+    } catch (e) {
+      return [];
+    }
+  }, [item.properties]);
 
   const productId = item.id || item.productId || item.handle || item.shopifyId;
   const isWishlisted = useMemo(() => {
@@ -97,7 +108,7 @@ export default function CartItem({ item, onAuthRequired }) {
   const statusLabel = isInStock ? "In Stock" : "Made to Order";
   const statusClass = isInStock ? "text-green-500" : "text-primary";
 
-  const displayImage = currentVariant?.image || item.image;
+  const displayImage = isBYJ ? item.properties['_byj_preview'] : (currentVariant?.image || item.image);
 
   const handleRemove = async () => {
     setRemoving(true);
@@ -319,6 +330,15 @@ export default function CartItem({ item, onAuthRequired }) {
                     Engraving: &quot;{item.engraving}&quot;
                   </p>
                 )}
+                {isBYJ && (
+                  <button 
+                    onClick={() => setShowBreakdown(!showBreakdown)}
+                    className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-1"
+                  >
+                    {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
+                    <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
               </div>
               <div className="flex flex-col items-end whitespace-nowrap">
                 <div className="text-xl font-bold text-zinc-900">
@@ -331,6 +351,35 @@ export default function CartItem({ item, onAuthRequired }) {
                 )}
               </div>
             </div>
+
+            {isBYJ && showBreakdown && (
+              <div className="mt-4 space-y-4 pl-4 border-l-2 border-[#e0d0ba] bg-zinc-50/50 p-4 rounded-sm">
+                {/* Base Style */}
+                <div className="flex gap-4 items-center">
+                  <div className="w-16 h-16 bg-white border border-zinc-100 rounded-sm overflow-hidden shrink-0 p-1">
+                    <img src={item.properties['_byj_style_img']} alt="Style" className="w-full h-full object-contain mix-blend-multiply" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-zinc-800 truncate">{item.properties['Style']}</p>
+                    <p className="text-[11px] text-zinc-500 uppercase font-medium">Finish: {item.properties['Material']}, Length: {item.properties['Length']}</p>
+                    <p className="text-sm font-bold mt-0.5 text-zinc-900">₹ {(parseFloat(item.properties['_byj_style_price']) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                  </div>
+                </div>
+                {/* Charms */}
+                {byjCharms.map((charm, idx) => (
+                  <div key={idx} className="flex gap-4 items-center">
+                    <div className="w-16 h-16 bg-white border border-zinc-100 rounded-sm overflow-hidden shrink-0 p-1">
+                      <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-zinc-800 truncate">{charm.title}</p>
+                      {charm.qty > 1 && <p className="text-[11px] text-zinc-500 uppercase font-medium">Quantity: {charm.qty}</p>}
+                      <p className="text-sm font-bold mt-0.5 text-zinc-900">₹ {(parseFloat(charm.price * charm.qty) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[13px] font-medium text-zinc-800">
               
@@ -580,8 +629,47 @@ export default function CartItem({ item, onAuthRequired }) {
                   )}
                 </div>
               </div>
+
+              {isBYJ && (
+                <button 
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                  className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-2"
+                >
+                  {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
+                  <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
+                </button>
+              )}
             </div>
           </div>
+
+          {isBYJ && showBreakdown && (
+            <div className="mt-4 space-y-4 px-2 py-4 border-t border-zinc-50 bg-zinc-50/30 rounded-sm">
+              {/* Base Style */}
+              <div className="flex gap-4 items-center">
+                <div className="w-14 h-14 bg-white border border-zinc-100 rounded-sm overflow-hidden shrink-0 p-1">
+                  <img src={item.properties['_byj_style_img']} alt="Style" className="w-full h-full object-contain mix-blend-multiply" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold text-zinc-800 truncate">{item.properties['Style']}</p>
+                  <p className="text-[10px] text-zinc-500 uppercase font-medium">Finish: {item.properties['Material']}, Size: {item.properties['Length']}</p>
+                  <p className="text-[13px] font-bold mt-0.5 text-zinc-900">₹ {(parseFloat(item.properties['_byj_style_price']) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                </div>
+              </div>
+              {/* Charms */}
+              {byjCharms.map((charm, idx) => (
+                <div key={idx} className="flex gap-4 items-center">
+                  <div className="w-14 h-14 bg-white border border-zinc-100 rounded-sm overflow-hidden shrink-0 p-1">
+                    <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-zinc-800 truncate">{charm.title}</p>
+                    {charm.qty > 1 && <p className="text-[10px] text-zinc-500 uppercase font-medium">Quantity: {charm.qty}</p>}
+                    <p className="text-[13px] font-bold mt-0.5 text-zinc-900">₹ {(parseFloat(charm.price * charm.qty) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           
           {/* Mobile Actions - JUSTIFY BETWEEN */}
           <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center justify-between px-2">
