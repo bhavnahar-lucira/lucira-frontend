@@ -26,9 +26,9 @@ export default function BackToTop() {
     /^\/search$/,
   ];
 
-  const shouldShowOnPage = allowedRoutes.some((route) =>
-    route.test(pathname)
-  );
+  const shouldShowOnPage = 
+    pathname !== "/build-your-jewelry" && 
+    allowedRoutes.some((route) => route.test(pathname));
 
   useEffect(() => {
     const handleScroll = () => {
