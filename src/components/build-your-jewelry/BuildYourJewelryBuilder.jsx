@@ -1081,7 +1081,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
           <div className="byj-summary-scroll px-6 py-4">
             {canvasPreview && (
               <div className="byj-summary-preview mb-6">
-                <img src={canvasPreview} alt="BYJ Preview" className="w-full aspect-square object-contain" />
+                <img src={canvasPreview} alt="BYJ Preview" className="w-full h-auto aspect-square object-contain" />
               </div>
             )}
             
@@ -1089,7 +1089,6 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
               <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
                 <div className="flex justify-between items-end mb-1">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
-                  <span className="text-xs text-gray-400">N/A</span>
                 </div>
                 <div className="text-sm font-medium">{categoryConfig.label}</div>
               </div>
@@ -1105,7 +1104,6 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
               <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
                 <div className="flex justify-between items-end mb-1">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
-                  <span className="text-xs text-gray-400">N/A</span>
                 </div>
                 <div className="text-sm font-medium">{length}</div>
               </div>
@@ -1129,7 +1127,6 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                   })()}
                   <div className="flex justify-between items-center text-xs text-gray-500 pt-1">
                     <span>Spacing: 2.5cm</span>
-                    <span>N/A</span>
                   </div>
                 </div>
               </div>
