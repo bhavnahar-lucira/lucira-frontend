@@ -54,6 +54,13 @@ const mapShopifyCart = (cart, backendCart = null) => {
       const shopifySize = shopifyOptions.find(o => o.name.toLowerCase() === "size" || o.name.toLowerCase().includes("ring"))?.value;
       const parsedTitle = node.merchandise.title !== "Default Title" ? node.merchandise.title : "";
 
+      // Extract attributes from Shopify CartLine
+      const shopifyAttributes = node.attributes || [];
+      const shopifyProperties = shopifyAttributes.reduce((acc, attr) => ({
+        ...acc,
+        [attr.key]: attr.value
+      }), {});
+
       // Try to intelligently parse color/karat if Shopify option just returned "14KT Rose Gold"
       let fallbackKarat = null;
       let fallbackColor = null;
@@ -108,7 +115,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
         karat: backendItem?.karat || fallbackKarat || null,
         size: backendItem?.size || shopifySize || parsedTitle,
         variantOptions: backendItem?.variantOptions || [],
-        properties: backendItem?.properties || {},
+        properties: { ...shopifyProperties, ...(backendItem?.properties || {}) },
       };
     }) || [];
 
@@ -250,47 +257,51 @@ export const fetchCart = createAsyncThunk(
 
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async ({ userId, product, context = "storefront" }, { rejectWithValue, getState }) => {
+  async (args, { rejectWithValue, getState }) => {
+    const { userId, product, products, context = "storefront" } = args || {};
     const state = getState();
     const finalUserId = userId || state.user?.user?.id || null;
     const sessionId = getSessionId();
     let cartId = getCartId();
     
-    const rawVariantId = product.shopifyVariantId || product.variantId || product.id;
-    const variantId = toShopifyGid(rawVariantId, "ProductVariant");
+    // Support multiple formats: 
+    // 1. { products: [...] }
+    // 2. { product: { ... } }
+    // 3. { variantId: ..., ... } (unwrapped product)
+    let productsToAdd = [];
+    if (products && Array.isArray(products)) {
+      productsToAdd = products;
+    } else if (product) {
+      productsToAdd = [product];
+    } else if (args && (args.variantId || args.id || args.shopifyVariantId)) {
+      // If args itself looks like a product (has variantId/id), use it
+      productsToAdd = [args];
+    }
 
-    // Enforce Quantity of 1 and avoid duplicates with same attributes
-    // We treat items with different attributes (engraving, metal, etc.) as distinct
-    const existingItems = state.cart?.items || [];
-    const isDuplicate = existingItems.some(item => {
-      // Skip duplicate check for Gold Coins to allow multiple quantities
-      if (String(variantId).toLowerCase() === GOLDCOIN_VARIANT_ID.toLowerCase()) return false;
+    // Filter out any potential undefined/null items
+    productsToAdd = productsToAdd.filter(Boolean);
+    
+    if (productsToAdd.length === 0) return state.cart;
 
-      const sameVariant = String(item.variantId).toLowerCase() === variantId.toLowerCase();
-      
-      const itemEngraving = (item.engraving || "").trim().toLowerCase();
-      const productEngraving = (product.engraving || "").trim().toLowerCase();
-      const sameEngraving = itemEngraving === productEngraving;
+    const lines = productsToAdd.map(p => {
+      const rawId = p.shopifyVariantId || p.variantId || p.id;
+      const attributes = p.properties ? Object.entries(p.properties).map(([key, value]) => ({
+        key,
+        value: String(value)
+      })) : [];
 
-      const sameKarat = String(item.karat || "").toLowerCase() === String(product.karat || "").toLowerCase();
-      const sameColor = String(item.color || "").toLowerCase() === String(product.color || "").toLowerCase();
-      const sameSize = String(item.size || "").toLowerCase() === String(product.size || "").toLowerCase();
-      
-      return sameVariant && sameEngraving && sameKarat && sameColor && sameSize;
+      return {
+        merchandiseId: toShopifyGid(rawId, "ProductVariant"),
+        quantity: p.quantity || 1,
+        attributes
+      };
     });
 
-    if (isDuplicate) {
-      console.log("[addToCart] Item already in cart with same attributes. Skipping add.");
-      return state.cart; // Return existing cart state
-    }
-    
     // 1. Shopify Storefront Mutation
     let shopifyCartData = null;
     if (!cartId) {
       const data = await shopifyStorefrontFetch(CART_CREATE_MUTATION, {
-        input: {
-          lines: [{ merchandiseId: variantId, quantity: product.quantity || 1 }]
-        }
+        input: { lines }
       });
       
       const userErrors = data?.cartCreate?.userErrors;
@@ -308,13 +319,12 @@ export const addToCart = createAsyncThunk(
     } else {
       const data = await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
         cartId,
-        lines: [{ merchandiseId: variantId, quantity: product.quantity || 1 }]
+        lines
       });
 
       const userErrors = data?.cartLinesAdd?.userErrors;
       if (userErrors && userErrors.length > 0) {
         console.error("Shopify cartLinesAdd UserErrors:", userErrors);
-        // If cart not found, clear local cartId and retry once
         if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
           localStorage.removeItem("shopify_cart_id");
           return rejectWithValue("Cart not found, please try adding again.");
@@ -329,22 +339,32 @@ export const addToCart = createAsyncThunk(
     // 2. Parallel Fastify Backend Call
     let backendCart = null;
     try {
+      // If adding multiple, we might need a batch endpoint, but for now we loop or send the first one
+      // For BYJ, the backend might handle the "main" item. 
+      // Let's assume the backend cart can handle a batch if we send it correctly or just sync later.
       backendCart = await apiFetch("/api/cart/add", {
         method: "POST",
         body: JSON.stringify({
           userId: finalUserId,
           sessionId,
           context,
+          products: productsToAdd.map(p => ({
+            ...p,
+            variantId: toShopifyGid(p.shopifyVariantId || p.variantId || p.id, "ProductVariant"),
+            price: Number(p.finalPrice || p.price || 0),
+            finalPrice: Number(p.finalPrice || p.price || 0),
+            quantity: p.quantity || 1
+          })),
+          // Fallback for single product
           product: {
-            ...product,
-            variantId: toShopifyGid(product.shopifyVariantId || product.variantId || product.id, "ProductVariant"),
-            price: Number(product.finalPrice || product.price || 0), // Prefer dynamic finalPrice for calculation
-            finalPrice: Number(product.finalPrice || product.price || 0),
-            quantity: product.quantity || 1
+            ...productsToAdd[0],
+            variantId: toShopifyGid(productsToAdd[0].shopifyVariantId || productsToAdd[0].variantId || productsToAdd[0].id, "ProductVariant"),
+            price: Number(productsToAdd[0].finalPrice || productsToAdd[0].price || 0),
+            finalPrice: Number(productsToAdd[0].finalPrice || productsToAdd[0].price || 0),
+            quantity: productsToAdd[0].quantity || 1
           }
         })
       });
-      console.log("[addToCart] Backend Cart updated successfully:", backendCart);
     } catch (e) {
       console.error("[addToCart] Backend Cart update failed:", e);
     }

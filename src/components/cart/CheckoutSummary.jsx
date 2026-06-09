@@ -161,7 +161,9 @@ export default function CheckoutSummary({
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.properties?.['_byj_parent'] &&
+      !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
@@ -180,6 +182,9 @@ export default function CheckoutSummary({
                 if (!item.properties?.['_byj_charms_json']) return [];
                 try { return JSON.parse(item.properties['_byj_charms_json']); } catch (e) { return []; }
               })();
+              const byjStylePrice = isBYJ ? parseFloat(item.properties?.['_byj_style_price'] || 0) / 100 : 0;
+              const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
+              const displayPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
               const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
 
               return (
@@ -204,7 +209,7 @@ export default function CheckoutSummary({
                         <p className="text-xs text-zinc-500">Quantity: {item.quantity}</p>
                       </div>
                       <div className="flex items-center gap-2 pt-1">
-                        <span className="text-sm font-bold text-zinc-900">₹{(item.price || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        <span className="text-sm font-bold text-zinc-900">₹{(displayPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         {item.comparePrice > item.price && (
                           <span className="text-xs text-zinc-400 line-through">₹{(item.comparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         )}

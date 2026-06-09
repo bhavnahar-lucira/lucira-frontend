@@ -653,6 +653,14 @@ export default function PaymentPage() {
         return match ? Number(match[0]) : 0;
       };
 
+      const filteredItemsForGtm = (items || []).filter(
+        (item) =>
+          item.variantId !== INSURANCE_VARIANT_ID &&
+          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.properties?.['_byj_parent'] &&
+          !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+      );
+
       const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
       const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
       const subtotalValue = (totalAmount || 0) - insuranceValue;
@@ -693,7 +701,7 @@ export default function PaymentPage() {
         transaction_id: `temp_${Date.now()}`,
         coupon: couponDetails?.code || "NA",
         send_to: "G-K6H0NZ4YJ8",
-        items: (items || []).map((item, idx) => {
+        items: filteredItemsForGtm.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -728,7 +736,7 @@ export default function PaymentPage() {
         coupon: couponDetails?.code || "NA",
         loyalty_points: loyaltyPoints,
         send_to: "G-K6H0NZ4YJ8",
-        items: (items || []).map((item, idx) => {
+        items: filteredItemsForGtm.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -828,7 +836,7 @@ export default function PaymentPage() {
               transaction_id: response.razorpay_payment_id,
               coupon: couponDetails?.code || "NA",
               send_to: "G-K6H0NZ4YJ8",
-              items: (items || []).map((item, idx) => {
+              items: filteredItemsForGtm.map((item, idx) => {
                 const lowerTitle = (item.title || "").toLowerCase();
                 let category = item.type || item.productType || "";
                 if (!category) {
@@ -973,7 +981,7 @@ export default function PaymentPage() {
           error_message: reason,
           coupon: couponDetails?.code || "NA",
           send_to: "G-K6H0NZ4YJ8",
-          items: (items || []).map((item, idx) => {
+          items: filteredItemsForGtm.map((item, idx) => {
             const lowerTitle = (item.title || "").toLowerCase();
             let category = item.type || item.productType || "";
             if (!category) {

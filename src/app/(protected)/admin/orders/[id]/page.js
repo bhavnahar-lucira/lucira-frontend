@@ -236,11 +236,19 @@ export default function OrderDetailsPage() {
 
   // Sorting logic for items
   const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-  const sortedLineItems = [...(order.lineItems || [])].sort((a, b) => {
-    const priceA = parseFloat(a.price?.amount || a.price || 0);
-    const priceB = parseFloat(b.price?.amount || b.price || 0);
-    return priceB - priceA;
-  });
+  const sortedLineItems = [...(order.lineItems || [])]
+   .filter(item => {
+     const rawProps = item.properties || item.customAttributes || [];
+     const props = Array.isArray(rawProps)
+       ? rawProps.reduce((acc, p) => ({ ...acc, [p.key || p.name]: p.value }), {})
+       : rawProps;
+     return !props['_byj_parent'] && !(props['_byj_group_id'] && !props['_byj_preview']);
+   })
+   .sort((a, b) => {
+     const priceA = parseFloat(a.price?.amount || a.price || 0);
+     const priceB = parseFloat(b.price?.amount || b.price || 0);
+     return priceB - priceA;
+   });
 
   const insuranceIdx = sortedLineItems.findIndex(item => 
     (item.variantId || item.variant?.id) === INSURANCE_VARIANT_ID || 

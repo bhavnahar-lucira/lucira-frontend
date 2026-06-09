@@ -24,6 +24,7 @@ import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check } fr
 export default function CartItem({ item, onAuthRequired }) {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.user);
+  const { items: allCartItems } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const [removing, setRemoving] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -101,7 +102,11 @@ export default function CartItem({ item, onAuthRequired }) {
   const canEditSize = !isInStock && sizeOptions.length > 1;
   const canEditQuantity = !isInStock && !item.isFreeGift; 
 
-  const lineAmount = (item.price || 0) * (item.quantity || 1);
+  const byjStylePrice = isBYJ ? parseFloat(item.properties?.['_byj_style_price'] || 0) / 100 : 0;
+  const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
+  
+  const baseUnitPrice = isBYJ ? byjStylePrice : (item.price || 0);
+  const lineAmount = (baseUnitPrice + byjCharmsPrice) * (item.quantity || 1);
   const lineCompareAmount = (item.comparePrice || 0) * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
@@ -143,6 +148,19 @@ export default function CartItem({ item, onAuthRequired }) {
         quantity: String(item.quantity || 1),
         thumbnail_image: item.image
       });
+
+      // If it's a BYJ item, we should remove all linked items too
+      if (isBYJ) {
+        const groupId = item.properties?.['_byj_group_id'];
+        if (groupId) {
+          const linkedItems = allCartItems.filter(i => 
+            i.properties?.['_byj_group_id'] === groupId && i.lineId !== item.lineId
+          );
+          for (const linked of linkedItems) {
+            await dispatch(removeFromCart({ userId: user?.id, lineId: linked.lineId || linked.variantId })).unwrap();
+          }
+        }
+      }
 
       await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Removed from cart", {
@@ -358,7 +376,6 @@ export default function CartItem({ item, onAuthRequired }) {
                   <div className="border-b border-[#e0d0ba] pb-2">
                     <div className="flex justify-between items-end mb-1">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
-                      <span className="text-xs text-gray-400">N/A</span>
                     </div>
                     <div className="text-sm font-medium">{item.properties['Product Type']}</div>
                   </div>
@@ -374,7 +391,6 @@ export default function CartItem({ item, onAuthRequired }) {
                   <div className="border-b border-[#e0d0ba] pb-2">
                     <div className="flex justify-between items-end mb-1">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
-                      <span className="text-xs text-gray-400">N/A</span>
                     </div>
                     <div className="text-sm font-medium">{item.properties['Length']}</div>
                   </div>
@@ -395,10 +411,6 @@ export default function CartItem({ item, onAuthRequired }) {
                           <span className="text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between items-center text-xs text-[#5c4f3a] pt-1 border-t border-[#e0d0ba]/30 mt-2">
-                        <span>Spacing: 2.5cm</span>
-                        <span>N/A</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -677,7 +689,6 @@ export default function CartItem({ item, onAuthRequired }) {
                 <div className="border-b border-[#e0d0ba] pb-2">
                   <div className="flex justify-between items-end mb-1">
                     <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
-                    <span className="text-[10px] text-gray-400">N/A</span>
                   </div>
                   <div className="text-xs font-medium">{item.properties['Product Type']}</div>
                 </div>
@@ -693,7 +704,6 @@ export default function CartItem({ item, onAuthRequired }) {
                 <div className="border-b border-[#e0d0ba] pb-2">
                   <div className="flex justify-between items-end mb-1">
                     <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
-                    <span className="text-[10px] text-gray-400">N/A</span>
                   </div>
                   <div className="text-xs font-medium">{item.properties['Length']}</div>
                 </div>
@@ -714,10 +724,6 @@ export default function CartItem({ item, onAuthRequired }) {
                         <span className="text-[11px] font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between items-center text-[10px] text-[#5c4f3a] pt-1 border-t border-[#e0d0ba]/30 mt-2">
-                      <span>Spacing: 2.5cm</span>
-                      <span>N/A</span>
-                    </div>
                   </div>
                 </div>
               </div>

@@ -150,12 +150,14 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         const groupProducts = (data) => {
           const products = data?.collection?.products?.edges || [];
           const groups = {};
+          const order = [];
           products.forEach(({ node: p }) => {
             const variants = p.variants?.edges || [];
             variants.forEach(({ node: v }) => {
               const fullTitle = `${p.title} - ${v.title}`;
               const base = getBaseName(fullTitle);
               if (!groups[base]) {
+                order.push(base);
                 groups[base] = { 
                   base,
                   master: null,
@@ -185,11 +187,11 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
               if (!groups[base].master) groups[base].master = versionData;
             });
           });
-          return Object.values(groups);
+          return order.map(base => groups[base]);
         };
 
         setChains(groupProducts(chainRes));
-        setCharms(groupProducts(charmRes));
+        setCharms(groupProducts(charmRes).sort((a, b) => a.base.localeCompare(b.base)));
       } catch (err) {
         console.error('Failed to load BYJ data:', err);
       } finally {
@@ -480,6 +482,16 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     renderCharms();
   }, [selectedCharms, material, length]);
 
+  useEffect(() => {
+    if (selectedCharms.length > 0) {
+      setSelectedCharms(prev => prev.map(c => {
+        const group = charms.find(g => g.base === c.base);
+        const version = getActiveVersion(group, material, length);
+        return version ? { ...version, base: c.base, qty: c.qty } : c;
+      }));
+    }
+  }, [material, length]);
+
   const handleZoom = (factor) => {
     const stage = stageRef.current;
     if (!stage) return;
@@ -492,14 +504,62 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       y: (center.y - stage.y()) / oldScale,
     };
 
-    stage.scale({ x: newScale, y: newScale });
-    stage.position({
+    stage.to({
+      scaleX: newScale,
+      scaleY: newScale,
       x: center.x - relatedToCenter.x * newScale,
       y: center.y - relatedToCenter.y * newScale,
+      duration: 0.3,
+      easing: Konva.Easings.EaseOut,
+      onUpdate: () => setZoom(stage.scaleX())
     });
-    setZoom(newScale);
-    stage.batchDraw();
   };
+
+  const zoomToCharms = () => {
+    const stage = stageRef.current;
+    const img = productImgRef.current;
+    if (!stage || !img) return;
+
+    const width = stage.width();
+    const height = stage.height();
+    const targetScale = 1.8;
+    
+    // Focus on bottom center where charms are placed
+    const targetX = img.x();
+    const targetY = img.y() + (img.height() * 0.35);
+
+    stage.to({
+      scaleX: targetScale,
+      scaleY: targetScale,
+      x: width / 2 - targetX * targetScale,
+      y: height / 2 - targetY * targetScale,
+      duration: 0.8,
+      easing: Konva.Easings.EaseInOut,
+      onUpdate: () => setZoom(stage.scaleX())
+    });
+  };
+
+  const zoomReset = () => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    stage.to({
+      scaleX: 1,
+      scaleY: 1,
+      x: 0,
+      y: 0,
+      duration: 0.5,
+      easing: Konva.Easings.EaseInOut,
+      onUpdate: () => setZoom(1)
+    });
+  };
+
+  useEffect(() => {
+    if (selectedCharms.length === 1 && selectedCharms[0].qty === 1) {
+      zoomToCharms();
+    } else if (selectedCharms.length === 0) {
+      zoomReset();
+    }
+  }, [selectedCharms.length]);
 
   const toggleCharmSelection = (charmGroup) => {
     const version = getActiveVersion(charmGroup, material, length);
@@ -583,6 +643,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     setAddingToBag(true);
     try {
       const styleV = getActiveVersion(selectedStyle, material, length);
+      const groupId = `BYJ-${Date.now()}`; // Unique group ID for this bespoke item
       const charmDetails = selectedCharms.map((c, i) => `${i + 1}. ${c.fullTitle}`).join(', ');
       
       const properties = {
@@ -591,19 +652,36 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         'Length': length,
         'Material': MATERIALS.find(m => m.id === material)?.label,
         'Charms': charmDetails,
+        '_byj_group_id': groupId,
         '_byj_preview': canvasPreview,
         '_byj_style_img': styleV.img,
         '_byj_style_price': styleV.price,
         '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ title: c.fullTitle, price: c.price, qty: c.qty, img: c.img })))
       };
 
-      await addToCart({
+      const mainItem = {
         id: styleV.id,
         title: 'Bespoke Story Chain',
         quantity: 1,
-        price: totalPrice / 100, // Send total price in main currency units
-        finalPrice: totalPrice / 100,
+        price: styleV.price / 100,
+        finalPrice: styleV.price / 100,
         properties
+      };
+
+      const charmItems = selectedCharms.map(c => ({
+        id: c.id,
+        title: `Charm: ${c.fullTitle}`,
+        quantity: c.qty,
+        price: c.price / 100,
+        finalPrice: c.price / 100,
+        properties: {
+          '_byj_group_id': groupId,
+          '_byj_parent': styleV.id
+        }
+      }));
+
+      await addToCart({
+        products: [mainItem, ...charmItems]
       });
       
       setIsSummaryOpen(false);
@@ -620,7 +698,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   return (
     <div className="build-your-jewelry-bracelets">
       <style jsx global>{`
-        .build-your-jewelry-bracelets { color: #1c1810; background: #fef5f1; font-family: Figtree, sans-serif; }
+        .build-your-jewelry-bracelets { color: #1c1810; font-family: Figtree, sans-serif; }
         .byj-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "canvas panel"; min-height: 100vh; }
         .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 0px 24px; min-height: 60vh; }
         .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Q1PartB2953_37dd8896-3ea2-4c65-8c86-707f5cacb9b3.webp?v=1780657459); background-size: cover; background-position: center; }

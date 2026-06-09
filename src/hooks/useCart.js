@@ -30,9 +30,10 @@ export const useCart = () => {
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
 
-  const addToCart = async (product) => {
+  const addToCart = async (payload) => {
     try {
-      await dispatch(addToCartThunk({ product })).unwrap();
+      // payload can be { product } or { products }
+      await dispatch(addToCartThunk(payload)).unwrap();
       // dispatch(openCart());
     } catch (err) {
       console.error("Add to cart error:", err);
