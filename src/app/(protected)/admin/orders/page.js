@@ -57,7 +57,15 @@ export default function MyOrdersPage() {
                   return priceB - priceA;
                 });
                 displayProduct = sortedItems[0]?.title || displayProduct;
-                displayImage = sortedItems[0]?.image || sortedItems[0]?.variant?.image?.url || displayImage;
+                
+                // BYJ Preview Priority
+                const mainItem = sortedItems[0];
+                const rawProps = mainItem?.properties || mainItem?.customAttributes || [];
+                const props = Array.isArray(rawProps) 
+                  ? rawProps.reduce((acc, p) => ({ ...acc, [p.key || p.name]: p.value }), {})
+                  : rawProps;
+                
+                displayImage = props['_byj_preview'] || sortedItems[0]?.image || sortedItems[0]?.variant?.image?.url || displayImage;
               }
 
               const fStatus = (order.fulfillmentStatus || "").toUpperCase();
@@ -112,6 +120,10 @@ export default function MyOrdersPage() {
               const mainItem = sortedItems[0];
               const fStatus = (node.fulfillmentStatus || "").toUpperCase();
 
+              // BYJ Preview Priority
+              const props = mainItem?.customAttributes?.reduce((acc, a) => ({ ...acc, [a.key]: a.value }), {}) || {};
+              const displayImage = props['_byj_preview'] || mainItem?.variant?.image?.url || "/images/product/1.jpg";
+
               return {
                 id: node.id,
                 orderNumber: node.orderNumber.toString(),
@@ -127,7 +139,7 @@ export default function MyOrdersPage() {
                   currency: node.totalPrice.currencyCode,
                 }).format(node.totalPrice.amount),
                 product: mainItem?.title || "Jewelry Item",
-                image: mainItem?.variant?.image?.url || "/images/product/1.jpg",
+                image: displayImage,
                 customerEmail: data?.customer?.email || ""
               };
             }) || [];

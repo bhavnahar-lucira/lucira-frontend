@@ -224,6 +224,10 @@ export const CUSTOMER_ORDERS_QUERY = `
                 node {
                   title
                   quantity
+                  customAttributes {
+                    key
+                    value
+                  }
                   variant {
                     id
                     image { url altText }

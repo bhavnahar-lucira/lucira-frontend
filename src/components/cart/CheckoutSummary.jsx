@@ -175,18 +175,26 @@ export default function CheckoutSummary({
           <div className="bg-white border border-zinc-100 rounded-lg p-4 space-y-4 shadow-sm">
             {displayItems.map((item, index) => {
               const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
+              const isBYJ = item.properties?.['_byj_preview'];
+              const byjCharms = (() => {
+                if (!item.properties?.['_byj_charms_json']) return [];
+                try { return JSON.parse(item.properties['_byj_charms_json']); } catch (e) { return []; }
+              })();
+              const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
+
               return (
                 <div key={index} className="space-y-3">
                   <div className="flex gap-4">
                     <div className="w-20 h-20 bg-zinc-50 rounded-md border border-zinc-100 p-1 shrink-0 block">
                       <Image
-                        src={item.image || "/images/product/1.jpg"}
+                        src={displayImage || "/images/product/1.jpg"}
                         alt={item.title}
                         width={80}
                         height={80}
-                        unoptimized={String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com")}
+                        unoptimized={String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com") || String(displayImage).startsWith("data:")}
                         className="w-full h-full object-contain mix-blend-multiply"
-                      />                    </div>
+                      />
+                    </div>
                     <div className="flex-grow space-y-1">
                       <h3 className="text-sm font-medium text-zinc-800 leading-tight transition-colors">{item.title}</h3>
                       <div className="flex flex-col gap-0.5">
@@ -203,6 +211,34 @@ export default function CheckoutSummary({
                       </div>
                     </div>
                   </div>
+
+                  {isBYJ && (
+                    <div className="bg-[#fef5f1] p-4 rounded-md space-y-4 border border-[#e0d0ba]/30 mt-2">
+                      <div className="space-y-4">
+                        <div className="border-b border-[#e0d0ba] pb-1.5">
+                          <div className="flex justify-between items-end mb-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                            <span className="text-[11px] font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                          </div>
+                          <div className="text-[11px] font-medium text-zinc-800">{item.properties['Style']}</div>
+                        </div>
+
+                        <div className="pb-1">
+                          <div className="flex justify-between items-end mb-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                          </div>
+                          <div className="space-y-2 mt-2">
+                            {byjCharms.map((charm, idx) => (
+                              <div key={idx} className="flex justify-between items-start gap-3">
+                                <span className="text-[11px] font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                                <span className="text-[11px] font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
                     <Truck size={14} className="text-black" />

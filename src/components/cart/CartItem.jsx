@@ -353,31 +353,60 @@ export default function CartItem({ item, onAuthRequired }) {
             </div>
 
             {isBYJ && showBreakdown && (
-              <div className="mt-4 space-y-4 pl-4 border-l-2 border-[#e0d0ba] bg-zinc-50/50 p-4 rounded-sm">
-                {/* Base Style */}
-                <div className="flex gap-4 items-center">
-                  <div className="w-16 h-16 bg-white border border-zinc-100 rounded-sm overflow-hidden shrink-0 p-1">
-                    <img src={item.properties['_byj_style_img']} alt="Style" className="w-full h-full object-contain mix-blend-multiply" />
+              <div className="mt-4 bg-[#fef5f1] p-6 rounded-md space-y-6 border border-[#e0d0ba]/30">
+                <div className="space-y-6">
+                  <div className="border-b border-[#e0d0ba] pb-2">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
+                      <span className="text-xs text-gray-400">N/A</span>
+                    </div>
+                    <div className="text-sm font-medium">{item.properties['Product Type']}</div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-zinc-800 truncate">{item.properties['Style']}</p>
-                    <p className="text-[11px] text-zinc-500 uppercase font-medium">Finish: {item.properties['Material']}, Length: {item.properties['Length']}</p>
-                    <p className="text-sm font-bold mt-0.5 text-zinc-900">₹ {parseFloat(item.properties['_byj_style_price']).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+
+                  <div className="border-b border-[#e0d0ba] pb-2">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                      <span className="text-sm font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                    </div>
+                    <div className="text-sm font-medium text-zinc-800">{item.properties['Style']}</div>
+                  </div>
+
+                  <div className="border-b border-[#e0d0ba] pb-2">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
+                      <span className="text-xs text-gray-400">N/A</span>
+                    </div>
+                    <div className="text-sm font-medium">{item.properties['Length']}</div>
+                  </div>
+
+                  <div className="pb-2">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                    </div>
+                    <div className="space-y-3 mt-3">
+                      {byjCharms.map((charm, idx) => (
+                        <div key={idx} className="flex justify-between items-start gap-4">
+                          <div className="flex gap-3 items-center flex-1">
+                            <div className="w-10 h-10 bg-white border border-[#e0d0ba]/50 rounded-sm overflow-hidden shrink-0 p-1">
+                              <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
+                            </div>
+                            <span className="text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                          </div>
+                          <span className="text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center text-xs text-[#5c4f3a] pt-1 border-t border-[#e0d0ba]/30 mt-2">
+                        <span>Spacing: 2.5cm</span>
+                        <span>N/A</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                {/* Charms */}
-                {byjCharms.map((charm, idx) => (
-                  <div key={idx} className="flex gap-4 items-center">
-                    <div className="w-16 h-16 bg-white border border-zinc-100 rounded-sm overflow-hidden shrink-0 p-1">
-                      <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-zinc-800 truncate">{charm.title}</p>
-                      {charm.qty > 1 && <p className="text-[11px] text-zinc-500 uppercase font-medium">Quantity: {charm.qty}</p>}
-                      <p className="text-sm font-bold mt-0.5 text-zinc-900">₹ {parseFloat(charm.price * charm.qty).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                    </div>
-                  </div>
-                ))}
+                
+                <div className="pt-4 border-t border-[#e0d0ba] flex justify-between items-center">
+                  <span className="text-sm font-medium text-[#5c4f3a]">Subtotal</span>
+                  <span className="text-lg font-bold text-[#1c1810]">₹ {lineAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                </div>
               </div>
             )}
 
@@ -643,31 +672,60 @@ export default function CartItem({ item, onAuthRequired }) {
           </div>
 
           {isBYJ && showBreakdown && (
-            <div className="mt-4 space-y-4 px-2 py-4 border-t border-zinc-50 bg-zinc-50/30 rounded-sm">
-              {/* Base Style */}
-              <div className="flex gap-4 items-center">
-                <div className="w-14 h-14 bg-white border border-zinc-100 rounded-sm overflow-hidden shrink-0 p-1">
-                  <img src={item.properties['_byj_style_img']} alt="Style" className="w-full h-full object-contain mix-blend-multiply" />
+            <div className="mt-4 bg-[#fef5f1] p-4 rounded-md space-y-5 border border-[#e0d0ba]/30">
+              <div className="space-y-5">
+                <div className="border-b border-[#e0d0ba] pb-2">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
+                    <span className="text-[10px] text-gray-400">N/A</span>
+                  </div>
+                  <div className="text-xs font-medium">{item.properties['Product Type']}</div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold text-zinc-800 truncate">{item.properties['Style']}</p>
-                  <p className="text-[10px] text-zinc-500 uppercase font-medium">Finish: {item.properties['Material']}, Size: {item.properties['Length']}</p>
-                  <p className="text-[13px] font-bold mt-0.5 text-zinc-900">₹ {parseFloat(item.properties['_byj_style_price']).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+
+                <div className="border-b border-[#e0d0ba] pb-2">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                    <span className="text-[11px] font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                  </div>
+                  <div className="text-xs font-medium text-zinc-800">{item.properties['Style']}</div>
+                </div>
+
+                <div className="border-b border-[#e0d0ba] pb-2">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
+                    <span className="text-[10px] text-gray-400">N/A</span>
+                  </div>
+                  <div className="text-xs font-medium">{item.properties['Length']}</div>
+                </div>
+
+                <div className="pb-1">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                  </div>
+                  <div className="space-y-3 mt-3">
+                    {byjCharms.map((charm, idx) => (
+                      <div key={idx} className="flex justify-between items-start gap-3">
+                        <div className="flex gap-2.5 items-center flex-1">
+                          <div className="w-8 h-8 bg-white border border-[#e0d0ba]/50 rounded-sm overflow-hidden shrink-0 p-1">
+                            <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
+                          </div>
+                          <span className="text-[11px] font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center text-[10px] text-[#5c4f3a] pt-1 border-t border-[#e0d0ba]/30 mt-2">
+                      <span>Spacing: 2.5cm</span>
+                      <span>N/A</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              {/* Charms */}
-              {byjCharms.map((charm, idx) => (
-                <div key={idx} className="flex gap-4 items-center">
-                  <div className="w-14 h-14 bg-white border border-zinc-100 rounded-sm overflow-hidden shrink-0 p-1">
-                    <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-zinc-800 truncate">{charm.title}</p>
-                    {charm.qty > 1 && <p className="text-[10px] text-zinc-500 uppercase font-medium">Quantity: {charm.qty}</p>}
-                    <p className="text-[13px] font-bold mt-0.5 text-zinc-900">₹ {parseFloat(charm.price * charm.qty).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
-                  </div>
-                </div>
-              ))}
+              
+              <div className="pt-3 border-t border-[#e0d0ba] flex justify-between items-center">
+                <span className="text-xs font-medium text-[#5c4f3a]">Subtotal</span>
+                <span className="text-base font-bold text-[#1c1810]">₹ {lineAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              </div>
             </div>
           )}
           

@@ -91,7 +91,8 @@ const getMaterialKeyword = (title, alt) => {
 
 const getKaratValue = (title) => {
   const t = (title || '').toLowerCase();
-  if (t.includes('18k') || t.includes('18ct')) return '18KT';
+  if (t.includes('18k') || t.includes('18ct') || t.includes('18kt')) return '18KT';
+  if (t.includes('9k') || t.includes('9ct') || t.includes('9kt')) return '9KT';
   return '14KT';
 };
 
@@ -445,8 +446,28 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     const keyword = mat?.keyword || 'yellow';
     const colorVersions = group.versions[keyword] || group.versions['yellow'] || Object.values(group.versions)[0];
     if (!colorVersions) return null;
-    return colorVersions[karat] || Object.values(colorVersions)[0];
+    return colorVersions[karat] || null;
   };
+
+  const availableLengths = useMemo(() => {
+    if (loading) return ['14KT', '18KT'];
+    
+    if (selectedStyle) {
+      return [...selectedStyle.karats].sort((a, b) => parseInt(a) - parseInt(b));
+    }
+
+    const k = new Set();
+    chains.forEach(c => c.karats.forEach(kt => k.add(kt)));
+    charms.forEach(c => c.karats.forEach(kt => k.add(kt)));
+    if (k.size === 0) return ['14KT', '18KT'];
+    return Array.from(k).sort((a, b) => parseInt(a) - parseInt(b));
+  }, [chains, charms, selectedStyle, loading]);
+
+  useEffect(() => {
+    if (availableLengths.length > 0 && !availableLengths.includes(length)) {
+      setLength(availableLengths[0]);
+    }
+  }, [availableLengths, length]);
 
   useEffect(() => {
     if (selectedStyle) {
@@ -530,13 +551,13 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     const styleV = getActiveVersion(selectedStyle, material, length);
     if (!styleV) return 0;
     
-    let total = parseFloat(styleV.price || 0) * 100; // Work in subunits (paise)
+    let total = parseFloat(styleV.price || 0); // Already in subunits
     
     selectedCharms.forEach(c => {
       const group = charms.find(g => g.base === c.base);
       const version = getActiveVersion(group, material, length);
       if (version) {
-        total += parseFloat(version.price || 0) * 100 * c.qty;
+        total += parseFloat(version.price || 0) * c.qty; // Already in subunits
       }
     });
     
@@ -722,7 +743,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                   </div>
                   <div className="byj-step-body">
                     <div className="byj-option-grid">
-                      {LENGTHS.map(l => (
+                      {availableLengths.map(l => (
                         <button key={l} className={`byj-opt-btn ${length === l ? 'active' : ''}`} onClick={() => setLength(l)}>{l}</button>
                       ))}
                     </div>
@@ -906,7 +927,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         <div className="byj-drawer-body">
           {currentDrawerKey === 'length' && (
             <div className="byj-option-grid">
-              {LENGTHS.map(l => (
+              {availableLengths.map(l => (
                 <button key={l} className={`byj-opt-btn ${length === l ? 'active' : ''}`} onClick={() => setLength(l)}>{l}</button>
               ))}
             </div>
