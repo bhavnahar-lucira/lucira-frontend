@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import Konva from 'konva';
 
 const CHAIN_COLLECTION_HANDLE = 'byj-chains';
 const CHARM_COLLECTION_HANDLE = 'byj-faraways-charms';
-const MAX_CHARMS = 7;
+const MIN_CHARMS = 5;
+const MAX_CHARMS = 5;
 
 const CATEGORY_CONFIG = {
   bracelets: { label: 'Bracelet', plural: 'Bracelets', keywords: ['bracelet', 'bracelets'] },
@@ -17,323 +19,838 @@ const CATEGORY_CONFIG = {
 };
 
 const MATERIALS = [
-  { id: '9k-gold', label: '9k Gold', swatch: 'linear-gradient(147deg, #C59922 18%, #EAD59E 48%, #C59922 84%)' },
-  { id: 'silver', label: 'Silver', swatch: 'linear-gradient(143deg, #DFDFDF 30%, #F3F3F3 49%, #DFDFDF 66%)' },
-  { id: 'rose-gold', label: 'Rose Gold', swatch: 'linear-gradient(154deg, #F2B5B5 10%, #F8DBDB 68%)' },
+  { id: '9k-gold', label: 'Yellow', keyword: 'yellow', swatch: 'linear-gradient(147.45deg, #C59922 17.98%, #EAD59E 48.14%, #C59922 83.84%)' },
+  { id: 'silver', label: 'White', keyword: 'white', swatch: 'linear-gradient(143.06deg, #DFDFDF 29.61%, #F3F3F3 48.83%, #DFDFDF 66.43%)' },
+  { id: 'rose-gold', label: 'Rose', keyword: 'rose', swatch: 'linear-gradient(154.36deg, #F2B5B5 10.36%, #F8DBDB 68.09%)' },
 ];
 
 const LENGTHS = ['14KT', '18KT'];
 
-const normalizeType = (value) => {
-  const type = String(value || '').toLowerCase();
-  if (type.includes('neck')) return 'necklaces';
-  if (type.includes('anklet')) return 'anklets';
-  return 'bracelets';
+const getBaseName = (name) => {
+  if (!name) return '';
+  let n = name.toUpperCase();
+  const stopWords = [
+    '9K GOLD', '14K GOLD', '18K GOLD', 'SOLID GOLD', 'YELLOW GOLD', 'WHITE GOLD', 'ROSE GOLD',
+    'YELLOW', 'WHITE', 'ROSE', 'GOLD', 'SILVER', 'PLATINUM', 'PLT',
+    ' IN ', ' - ', '9K', '14K', '18K', '9CT', '18CT',
+    '14KT', '18KT',
+    '14 INCH', '16 INCH', '18 INCH', '20 INCH', '22 INCH', '24 INCH'
+  ];
+  stopWords.forEach(word => {
+    n = n.split(word).join(' ');
+  });
+  return n.replace(/\s+/g, ' ').trim();
 };
 
-const getProductImage = (product) => {
-  if (!product) return '';
-  if (typeof product.image === 'string') return product.image;
-  if (product.image?.url) return product.image.url;
-  if (product.featuredImage) return product.featuredImage;
-  if (product.featured_image) return product.featured_image;
-  if (product.images?.[0]?.url) return product.images[0].url;
-  if (typeof product.images?.[0] === 'string') return product.images[0];
-  if (product.variants?.[0]?.image) return product.variants[0].image;
-  return '';
+const getMaterialKeyword = (title, alt) => {
+  const t = (title || '').toLowerCase();
+  const a = (alt || '').toLowerCase();
+  if (t.includes('white') || t.includes('silver') || a.includes('white') || a.includes('silver')) return 'white';
+  if (t.includes('rose') || a.includes('rose')) return 'rose';
+  if (t.includes('platinum') || t.includes('plt') || a.includes('platinum') || a.includes('plt')) return 'plt';
+  return 'yellow';
 };
 
-const getProductPrice = (product) => {
-  const raw = product?.price_breakup?.total || product?.price || product?.variants?.[0]?.price || 0;
-  const numeric = Number(String(raw).replace(/[^0-9.]/g, ''));
-  return Number.isFinite(numeric) ? numeric : 0;
+const getKaratValue = (title) => {
+  const t = (title || '').toLowerCase();
+  if (t.includes('18k') || t.includes('18ct')) return '18KT';
+  return '14KT';
 };
 
 const formatPrice = (value) => {
-  const amount = Number(value || 0);
-  return `?${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(amount))}`;
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(value / 100); // Assuming price is in subunits (cents/paise) based on script
 };
-
-const normalizeProduct = (product) => ({
-  id: product.id || product.shopifyId || product.handle || product.title,
-  handle: product.handle || '',
-  title: product.title || 'Untitled Product',
-  image: getProductImage(product),
-  price: getProductPrice(product),
-  productType: product.productType || product.product_type || product.type || product.category || '',
-  tags: Array.isArray(product.tags) ? product.tags : [],
-});
-
-const productMatchesCategory = (product, category) => {
-  const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.bracelets;
-  const searchable = [
-    product.productType,
-    product.title,
-    product.handle,
-    ...product.tags,
-  ].join(' ').toLowerCase();
-
-  return config.keywords.some((keyword) => searchable.includes(keyword));
-};
-
-const fetchCollection = async (handle) => {
-  const data = await apiFetch(`/api/collection?handle=${handle}&limit=100&sort=best_selling`);
-  return (data?.products || []).map(normalizeProduct);
-};
-
-const ProductTile = ({ product, selected, onClick, disabled }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    className={`group text-left rounded-2xl border bg-white p-2 transition hover:border-[#5A413F] hover:shadow-sm disabled:opacity-50 ${selected ? 'border-[#5A413F] ring-1 ring-[#5A413F]' : 'border-[#E9DDD7]'}`}
-  >
-    <div className="relative aspect-square overflow-hidden rounded-xl bg-[#FBF5F2]">
-      {product.image ? (
-        <Image src={product.image} alt={product.title} fill sizes="(max-width: 1024px) 50vw, 220px" unoptimized className="object-cover transition duration-300 group-hover:scale-105" />
-      ) : (
-        <div className="flex h-full items-center justify-center text-xs uppercase tracking-widest text-[#8C7C75]">No Image</div>
-      )}
-      {selected && (
-        <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#5A413F] text-xs text-white">?</span>
-      )}
-    </div>
-    <div className="mt-3 space-y-1 px-1">
-      <div className="line-clamp-2 min-h-10 text-sm font-medium leading-tight text-[#31211F]">{product.title}</div>
-      <div className="text-sm font-semibold text-[#8A5B4F]">+{formatPrice(product.price)}</div>
-    </div>
-  </button>
-);
 
 export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
-  const [material, setMaterial] = useState(MATERIALS[0].id);
-  const [length, setLength] = useState(LENGTHS[0]);
+  const [material, setMaterial] = useState('9k-gold');
+  const [length, setLength] = useState('14KT');
   const [chains, setChains] = useState([]);
   const [charms, setCharms] = useState([]);
-  const [selectedChainId, setSelectedChainId] = useState('');
-  const [selectedCharmIds, setSelectedCharmIds] = useState([]);
-  const [activeStep, setActiveStep] = useState('style');
+  const [selectedStyle, setSelectedStyle] = useState(null);
+  const [selectedCharms, setSelectedCharms] = useState([]);
+  const [activeDesktopStep, setActiveStep] = useState('length');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [currentDrawerKey, setCurrentDrawerKey] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
+  // Konva Refs
+  const stageRef = useRef(null);
+  const containerRef = useRef(null);
+  const layerRef = useRef(null);
+  const productImgRef = useRef(null);
+  const charmGroupRef = useRef(null);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
-    let ignore = false;
-
-    async function loadBuilderProducts() {
-      setLoading(true);
-      setError('');
+    async function loadData() {
       try {
-        const [chainProducts, charmProducts] = await Promise.all([
-          fetchCollection(CHAIN_COLLECTION_HANDLE),
-          fetchCollection(CHARM_COLLECTION_HANDLE),
+        const [chainRes, charmRes] = await Promise.all([
+          apiFetch(`/api/collection?handle=${CHAIN_COLLECTION_HANDLE}&limit=250`),
+          apiFetch(`/api/collection?handle=${CHARM_COLLECTION_HANDLE}&limit=250`)
         ]);
 
-        if (!ignore) {
-          setChains(chainProducts);
-          setCharms(charmProducts);
-        }
+        const groupProducts = (products) => {
+          const groups = {};
+          products.forEach(p => {
+            p.variants.forEach(v => {
+              const fullTitle = `${p.title} - ${v.title}`;
+              const base = getBaseName(fullTitle);
+              if (!groups[base]) {
+                groups[base] = { 
+                  base,
+                  master: null,
+                  versions: {},
+                  karats: []
+                };
+              }
+              const mKey = getMaterialKeyword(fullTitle, v.image?.alt || p.featured_image?.alt || '');
+              const kKey = getKaratValue(fullTitle);
+              
+              if (!groups[base].karats.includes(kKey)) groups[base].karats.push(kKey);
+              if (!groups[base].versions[mKey]) groups[base].versions[mKey] = {};
+              
+              const versionData = {
+                id: v.id,
+                handle: p.handle,
+                title: p.title,
+                variantTitle: v.title,
+                fullTitle,
+                price: v.price,
+                img: v.image?.src || p.featured_image?.src || '',
+                thumb: v.image?.src || p.featured_image?.src || '',
+                alt: v.image?.alt || p.featured_image?.alt || ''
+              };
+
+              groups[base].versions[mKey][kKey] = versionData;
+              if (!groups[base].master) groups[base].master = versionData;
+            });
+          });
+          return Object.values(groups);
+        };
+
+        setChains(groupProducts(chainRes.products || []));
+        setCharms(groupProducts(charmRes.products || []));
       } catch (err) {
-        if (!ignore) setError(err.message || 'Unable to load builder products.');
+        console.error('Failed to load BYJ data:', err);
       } finally {
-        if (!ignore) setLoading(false);
+        setLoading(false);
       }
     }
-
-    loadBuilderProducts();
-    return () => {
-      ignore = true;
-    };
+    loadData();
   }, []);
 
-  const category = normalizeType(initialType);
-  const categoryConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.bracelets;
+  // Konva Initialization
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const container = containerRef.current;
+    const width = container.offsetWidth || 400;
 
-  const visibleChains = useMemo(() => {
-    const matched = chains.filter((product) => productMatchesCategory(product, category));
-    return matched.length > 0 ? matched : chains;
-  }, [chains, category]);
+    const stage = new Konva.Stage({
+      container: container,
+      width: width,
+      height: width,
+      draggable: true
+    });
 
-  const selectedChain = useMemo(() => {
-    return visibleChains.find((product) => product.id === selectedChainId) || visibleChains[0] || null;
-  }, [visibleChains, selectedChainId]);
+    const layer = new Konva.Layer();
+    stage.add(layer);
 
+    // Background rect to catch events
+    layer.add(new Konva.Rect({
+      width: width,
+      height: width,
+      fill: 'rgba(255,255,255,0)'
+    }));
 
-  const selectedCharms = useMemo(() => {
-    return selectedCharmIds
-      .map((id) => charms.find((product) => product.id === id))
-      .filter(Boolean);
-  }, [charms, selectedCharmIds]);
+    const productImg = new Konva.Image({
+      x: width / 2,
+      y: width / 2,
+      offsetX: 0,
+      offsetY: 0
+    });
+    layer.add(productImg);
 
-  const total = (selectedChain?.price || 0) + selectedCharms.reduce((sum, charm) => sum + charm.price, 0);
+    const charmGroup = new Konva.Group({ name: 'byj-charm-group' });
+    layer.add(charmGroup);
 
-  const toggleCharm = (charmId) => {
-    setSelectedCharmIds((current) => {
-      if (current.includes(charmId)) return current.filter((id) => id !== charmId);
-      if (current.length >= MAX_CHARMS) return current;
-      return [...current, charmId];
+    stageRef.current = stage;
+    layerRef.current = layer;
+    productImgRef.current = productImg;
+    charmGroupRef.current = charmGroup;
+
+    // Zoom handling
+    stage.on('wheel', (e) => {
+      e.evt.preventDefault();
+      const scaleBy = 1.1;
+      const oldScale = stage.scaleX();
+      const pointer = stage.getPointerPosition();
+
+      const mousePointTo = {
+        x: (pointer.x - stage.x()) / oldScale,
+        y: (pointer.y - stage.y()) / oldScale,
+      };
+
+      const newScale = e.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
+      const clampedScale = Math.max(0.5, Math.min(4, newScale));
+      
+      stage.scale({ x: clampedScale, y: clampedScale });
+
+      const newPos = {
+        x: pointer.x - mousePointTo.x * clampedScale,
+        y: pointer.y - mousePointTo.y * clampedScale,
+      };
+      stage.position(newPos);
+      setZoom(clampedScale);
+    });
+
+    const handleResize = () => {
+      const newWidth = container.offsetWidth || 400;
+      stage.width(newWidth);
+      stage.height(newWidth);
+      layer.findOne('Rect').setAttrs({ width: newWidth, height: newWidth });
+      stage.batchDraw();
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      stage.destroy();
+    };
+  }, [loading]);
+
+  const updateCanvasImage = (src) => {
+    if (!src || !productImgRef.current) return;
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const stage = stageRef.current;
+      const width = stage.width();
+      const height = stage.height();
+      const scale = Math.min(width / img.width, height / img.height) * 0.90;
+      const nw = img.width * scale;
+      const nh = img.height * scale;
+
+      productImgRef.current.setAttrs({
+        image: img,
+        x: width / 2,
+        y: height / 2,
+        width: nw,
+        height: nh,
+        offsetX: nw / 2,
+        offsetY: nh / 2
+      });
+      layerRef.current.batchDraw();
+      renderCharms();
+    };
+    img.src = src;
+  };
+
+  const renderCharms = () => {
+    const group = charmGroupRef.current;
+    if (!group || !productImgRef.current) return;
+    group.destroyChildren();
+
+    const flat = [];
+    selectedCharms.forEach(c => {
+      for (let i = 0; i < c.qty; i++) {
+        flat.push({ src: c.img, handle: c.handle, base: c.base });
+      }
+    });
+
+    if (flat.length === 0) {
+      layerRef.current.batchDraw();
+      return;
+    }
+
+    const img = productImgRef.current;
+    const imgCX = img.x();
+    const imgCY = img.y();
+    const imgW = img.width();
+    const imgH = img.height();
+    const imgLeft = imgCX - imgW / 2;
+    const imgTop = imgCY - imgH / 2;
+
+    const circleX = imgLeft + imgW * 0.50;
+    const circleY = imgTop + imgH * 0.47;
+    const radius = imgW * 0.450;
+    const angularGap = 14;
+    const totalSpan = (flat.length - 1) * angularGap;
+    const startAngle = 90 - totalSpan / 2;
+    const stageWidth = stageRef.current.width();
+
+    const slots = flat.map((_, idx) => {
+      const angleDeg = startAngle + idx * angularGap;
+      const angleRad = angleDeg * Math.PI / 180;
+      return {
+        x: circleX + radius * Math.cos(angleRad),
+        y: circleY + radius * Math.sin(angleRad),
+        angleDeg: angleDeg,
+        idx: idx
+      };
+    });
+
+    flat.forEach((item, idx) => {
+      const charmImg = new window.Image();
+      charmImg.crossOrigin = 'anonymous';
+      charmImg.onload = () => {
+        const s = (stageWidth * 0.055) / Math.max(charmImg.width, charmImg.height);
+        const iw = charmImg.width * s;
+        const ih = charmImg.height * s;
+        const slot = slots[idx];
+
+        const ci = new Konva.Image({
+          image: charmImg,
+          x: slot.x,
+          y: slot.y,
+          width: iw,
+          height: ih,
+          offsetX: iw / 2,
+          offsetY: 0,
+          rotation: slot.angleDeg - 90,
+          draggable: true,
+          name: 'charm-node'
+        });
+
+        ci._slotIdx = idx;
+
+        ci.on('dragstart', function() {
+          this.moveToTop();
+          this._origSlot = slots[this._slotIdx];
+        });
+
+        ci.on('dragend', function() {
+          const self = this;
+          const selfIdx = self._slotIdx;
+          const cx = self.x();
+          const cy = self.y();
+
+          let nearestIdx = -1;
+          let nearestDist = Infinity;
+          slots.forEach((s, i) => {
+            if (i === selfIdx) return;
+            const dist = Math.hypot(cx - s.x, cy - s.y);
+            if (dist < nearestDist) {
+              nearestDist = dist;
+              nearestIdx = i;
+            }
+          });
+
+          const threshold = iw * 2;
+          if (nearestIdx !== -1 && nearestDist < threshold) {
+            // Swap logic
+            setSelectedCharms(prev => {
+              const flatHandles = [];
+              prev.forEach(c => {
+                for(let j=0; j<c.qty; j++) flatHandles.push(c.base);
+              });
+              
+              const tmp = flatHandles[selfIdx];
+              flatHandles[selfIdx] = flatHandles[nearestIdx];
+              flatHandles[nearestIdx] = tmp;
+
+              const newCharms = [];
+              flatHandles.forEach(base => {
+                const charmData = charms.find(c => c.base === base);
+                const version = getActiveVersion(charmData, material, length);
+                const last = newCharms[newCharms.length - 1];
+                if (last && last.base === base) {
+                  last.qty++;
+                } else {
+                  newCharms.push({ ...version, base, qty: 1 });
+                }
+              });
+              return newCharms;
+            });
+          } else {
+            self.to({
+              x: self._origSlot.x,
+              y: self._origSlot.y,
+              rotation: self._origSlot.angleDeg - 90,
+              duration: 0.18,
+              easing: Konva.Easings.EaseOut
+            });
+          }
+        });
+
+        group.add(ci);
+        layerRef.current.batchDraw();
+      };
+      charmImg.src = item.src;
     });
   };
 
+  const getActiveVersion = (group, matId, karat) => {
+    if (!group) return null;
+    const mat = MATERIALS.find(m => m.id === matId);
+    const keyword = mat?.keyword || 'yellow';
+    const colorVersions = group.versions[keyword] || group.versions['yellow'] || Object.values(group.versions)[0];
+    if (!colorVersions) return null;
+    return colorVersions[karat] || Object.values(colorVersions)[0];
+  };
+
+  useEffect(() => {
+    if (selectedStyle) {
+      const v = getActiveVersion(selectedStyle, material, length);
+      updateCanvasImage(v?.img);
+    }
+  }, [selectedStyle, material, length]);
+
+  useEffect(() => {
+    renderCharms();
+  }, [selectedCharms, material, length]);
+
+  const handleZoom = (factor) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const oldScale = stage.scaleX();
+    const newScale = Math.max(0.5, Math.min(4, oldScale * factor));
+    
+    const center = { x: stage.width() / 2, y: stage.height() / 2 };
+    const relatedToCenter = {
+      x: (center.x - stage.x()) / oldScale,
+      y: (center.y - stage.y()) / oldScale,
+    };
+
+    stage.scale({ x: newScale, y: newScale });
+    stage.position({
+      x: center.x - relatedToCenter.x * newScale,
+      y: center.y - relatedToCenter.y * newScale,
+    });
+    setZoom(newScale);
+    stage.batchDraw();
+  };
+
+  const toggleCharmSelection = (charmGroup) => {
+    const version = getActiveVersion(charmGroup, material, length);
+    const existing = selectedCharms.find(c => c.base === charmGroup.base);
+    const totalCount = selectedCharms.reduce((acc, c) => acc + c.qty, 0);
+
+    if (existing) {
+      setSelectedCharms(prev => prev.filter(c => c.base !== charmGroup.base));
+    } else {
+      if (totalCount >= MAX_CHARMS) {
+        alert(`Max ${MAX_CHARMS} charms allowed`);
+        return;
+      }
+      setSelectedCharms(prev => [...prev, { ...version, base: charmGroup.base, qty: 1 }]);
+    }
+  };
+
+  const updateCharmQty = (base, delta) => {
+    setSelectedCharms(prev => {
+      const totalCount = prev.reduce((acc, c) => acc + c.qty, 0);
+      if (delta > 0 && totalCount >= MAX_CHARMS) {
+        alert(`Max ${MAX_CHARMS} charms allowed`);
+        return prev;
+      }
+
+      return prev.map(c => {
+        if (c.base === base) {
+          const newQty = Math.max(0, c.qty + delta);
+          return newQty === 0 ? null : { ...c, qty: newQty };
+        }
+        return c;
+      }).filter(Boolean);
+    });
+  };
+
+  const totalPrice = useMemo(() => {
+    const styleV = getActiveVersion(selectedStyle, material, length);
+    const sPrice = parseFloat(styleV?.price || 0);
+    const cPrice = selectedCharms.reduce((acc, c) => {
+      // Find the group to get updated price based on current state
+      const group = charms.find(g => g.base === c.base);
+      const v = getActiveVersion(group, material, length);
+      return acc + (parseFloat(v?.price || 0) * c.qty);
+    }, 0);
+    return sPrice + cPrice;
+  }, [selectedStyle, selectedCharms, material, length, charms]);
+
+  const isReady = selectedStyle && selectedCharms.reduce((acc, c) => acc + c.qty, 0) >= MIN_CHARMS;
+
+  const openDrawer = (key) => {
+    setCurrentDrawerKey(key);
+    setIsDrawerOpen(true);
+  };
+
+  const containerStyle = {
+    filter: material === 'rose-gold' ? 'sepia(0.4) saturate(1.6) hue-rotate(330deg) brightness(1.05)' :
+            material === 'silver' ? 'grayscale(0.5) brightness(1.12) saturate(0.75)' :
+            'sepia(0.25) saturate(1.35) brightness(1.05)'
+  };
+
   return (
-    <section className="min-h-screen bg-[#FBF1ED] py-6 md:py-10">
-      <div className="mx-auto max-w-[1440px] px-4 md:px-8">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[#8A5B4F]">Build Your Jewelry</p>
-            <h1 className="mt-2 font-abhaya text-3xl font-bold text-[#481A19] md:text-5xl">Build Your {categoryConfig.plural}</h1>
-          </div>
-          <div className="flex rounded-full bg-white p-1 shadow-sm">
-            {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
-              <Link
-                key={key}
-                href={`/build-your-jewelry?type=${key}`}
-                className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition ${category === key ? 'bg-[#481A19] text-white' : 'text-[#5A413F] hover:bg-[#F7E8E2]'}`}
-              >
-                {config.plural}
-              </Link>
-            ))}
-          </div>
-        </div>
+    <div className="build-your-jewelry-bracelets">
+      <style jsx global>{`
+        .build-your-jewelry-bracelets { color: #1c1810; background: #fef5f1; font-family: Figtree, sans-serif; }
+        .byj-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "canvas panel"; min-height: 100vh; }
+        .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; padding: 0px 24px; min-height: 60vh; }
+        #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 12px; overflow: hidden; touch-action: none; background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Q1PartB2953_37dd8896-3ea2-4c65-8c86-707f5cacb9b3.webp?v=1780657459); background-size: cover; background-position: center; }
+        .byj-canvas-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.92); border: 1px solid #e0d0ba; border-radius: 100px; padding: 6px 14px; box-shadow: 0 2px 16px rgba(0,0,0,.08); backdrop-filter: blur(4px); z-index: 20; }
+        .byj-ctrl-btn { width: 30px; height: 30px; border: none; background: transparent; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; transition: background .15s; }
+        .byj-zoom-track { width: 80px; height: 4px; background: #e0d0ba; border-radius: 2px; position: relative; }
+        .byj-zoom-thumb { width: 12px; height: 12px; border-radius: 50%; background: #1c1810; position: absolute; top: 50%; transform: translate(-50%,-50%); transition: left .15s; display: block; }
+        .byj-config-panel { grid-area: panel; background: #fff; border-left: 1px solid #e0d0ba; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; }
+        .byj-panel-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; }
+        .byj-material-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e0d0ba; background: #fef5f1; }
+        .byj-material-label, .byj-mat-name { font-size: 14px; color: #000; font-weight: 500; }
+        .byj-mat-btn { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid transparent; padding: 0; background: transparent; cursor: pointer; transition: border-color .2s; }
+        .byj-mat-btn.active { border-color: #1c1810; }
+        .byj-mat-swatch { display: block; width: 100%; height: 100%; border-radius: 50%; }
+        .byj-step { border-bottom: 1px solid #e0d0ba; }
+        .byj-step-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; cursor: pointer; user-select: none; transition: background .15s; }
+        .byj-step-header:hover { background: #fef5f1; }
+        .byj-step-left { display: flex; align-items: flex-start; gap: 11px; }
+        .byj-step-check { width: 20px; height: 20px; border-radius: 50%; background: #5a413f; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+        .byj-step-check.pending { background: transparent; color: #5a413f; border: 1.5px solid #e0d0ba; }
+        .byj-step-label { font-size: 12px; color: #000; font-weight: 600; margin-bottom: 2px; letter-spacing: .05em; }
+        .byj-step-value { font-size: 12px; color: #5a413f; }
+        .byj-chevron { transition: transform .28s ease; color: #5a413f; }
+        .byj-step.open .byj-chevron { transform: rotate(180deg); }
+        .byj-step-body { padding: 0 20px 20px; display: none; }
+        .byj-step.open .byj-step-body { display: block; }
+        .byj-confirm-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-top: 1px solid #e0d0ba; background: #fff; z-index: 10; width: 100%; }
+        .byj-total-wrap { display: flex; flex-direction: column; }
+        .byj-total-label { font-size: 10px; color: #5a413f; text-transform: uppercase; letter-spacing: .05em; }
+        .byj-total-price { font-size: 18px; font-weight: 700; color: #1c1810; }
+        .byj-confirm-btn { flex: 1; height: 46px; background: #1c1810; color: #fff; border: none; border-radius: 100px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; transition: all .2s; }
+        .byj-confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .byj-option-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .byj-opt-btn { padding: 6px 16px; border: 1px solid #e0d0ba; border-radius: 100px; font-size: 12px; cursor: pointer; background: #fff; transition: all .2s; }
+        .byj-opt-btn.active { background: #5a413f; border-color: #5a413f; color: #fff; }
+        .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .byj-style-card, .byj-charm-item { border: 1px solid transparent; border-radius: 10px; overflow: hidden; cursor: pointer; background: #ffffff; transition: all .25s ease; display: flex; flex-direction: column; position: relative; }
+        .byj-style-card:hover, .byj-charm-item:hover { border-color: #d4a853; box-shadow: 0 4px 15px rgba(201,148,58,.12); transform: translateY(-2px); }
+        .byj-style-card.active, .byj-charm-item.selected { border-color: #5a413f; }
+        .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #fff; border-bottom: 1px solid #f9f0ea; padding: 12px; }
+        .byj-style-img-wrap img { width: 100%; height: 100%; object-fit: contain; }
+        .byj-style-check-badge { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #e0d0ba; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 2; color: transparent; }
+        .byj-style-card.active .byj-style-check-badge, .byj-charm-item.selected .byj-style-check-badge { background: #5a413f; border-color: #5a413f; color: #fff; }
+        .byj-style-info { padding: 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: space-between; }
+        .byj-style-name { font-size: 12px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .byj-style-price { font-size: 14px; font-weight: 700; margin-top: auto; }
+        .byj-charm-qty-wrap { display: flex; align-items: center; justify-content: space-between; width: 100%; background: #fafafa; margin-top: 5px; border-radius: 8px; overflow: hidden; }
+        .byj-qty-btn { background: transparent; border: none; width: 32px; height: 32px; font-size: 18px; color: #1c1810; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .byj-qty-btn:hover { background: #e0d0ba; }
+        .byj-qty-num { font-size: 13px; font-weight: 700; min-width: 24px; text-align: center; }
+        .byj-mobile-steps { display: none; }
+        .byj-mob-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #fff; border-bottom: 1px solid #e0d0ba; }
+        .byj-mob-check { width: 20px; height: 20px; border-radius: 50%; background: #4e8a56; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .byj-mob-check.pending { background: transparent; color: #e0d0ba; border: 1.5px solid #e0d0ba; }
+        .byj-right-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 88vw; max-width: 400px; background: #fff; z-index: 1101; display: flex; flex-direction: column; transform: translateX(100%); transition: transform .38s cubic-bezier(.32,.72,0,1); }
+        .byj-right-drawer.open { transform: translateX(0); }
+        .byj-drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1100; }
+        .byj-drawer-overlay.active { display: block; }
+        .byj-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #e0d0ba; background: #fef5f1; }
+        .byj-drawer-body { flex: 1; overflow-y: auto; padding: 16px; }
+        .byj-drawer-footer { padding: 16px; border-top: 1px solid #e0d0ba; background: #fff; }
+        .byj-drawer-done { width: 100%; height: 46px; background: #1c1810; color: #fff; border: none; border-radius: 100px; cursor: pointer; font-weight: 600; }
+        
+        @media (max-width: 860px) {
+          .byj-layout { grid-template-columns: 1fr; grid-template-areas: "canvas" "mobile-steps"; min-height: unset; }
+          .byj-canvas-area { padding: 0 0 16px; }
+          .byj-config-panel { display: none !important; }
+          .byj-mobile-steps { display: block; grid-area: mobile-steps; background: #fff; }
+          .byj-mobile-mat-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #fef5f1; border-bottom: 1px solid #e0d0ba; }
+          .byj-mob-swatches { display: flex; gap: 8px; }
+          .byj-mob-confirm-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fff; border-top: 2px solid #e0d0ba; }
+        }
+      `}</style>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_440px]">
-          <div className="rounded-[28px] bg-white p-4 shadow-sm md:p-6">
-            <div className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[#8C7C75] md:hidden">
-              Tap charms to add or remove
+      <div className="build-your-jewelry-wrapper">
+        <div className="byj-layout">
+          <div className="byj-canvas-area">
+            <div id="byj-konva-container" ref={containerRef} style={containerStyle}></div>
+            <div className="byj-canvas-controls">
+              <button className="byj-ctrl-btn" onClick={() => handleZoom(0.8)} aria-label="Zoom out">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </button>
+              <div className="byj-zoom-track">
+                <div className="byj-zoom-thumb" style={{ left: `${((zoom - 0.5) / 3.5) * 100}%` }}></div>
+              </div>
+              <button className="byj-ctrl-btn" onClick={() => handleZoom(1.2)} aria-label="Zoom in">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              </button>
             </div>
-            <div className="relative aspect-square overflow-hidden rounded-[24px] bg-[#FFFCFA]">
-              {selectedChain?.image ? (
-                <Image src={selectedChain.image} alt={selectedChain.title} fill sizes="(max-width: 1024px) 100vw, 900px" unoptimized className="object-contain p-8" />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm uppercase tracking-widest text-[#8C7C75]">Choose a chain</div>
-              )}
+          </div>
 
-              {selectedCharms.length > 0 && (
-                <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-[#E8D8D1] bg-white/90 p-3 shadow-sm backdrop-blur">
-                  <div className="mb-2 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A5B4F]">Selected Charms</div>
-                  <div className="flex justify-center gap-2 overflow-x-auto">
-                    {selectedCharms.map((charm) => (
-                      <button key={charm.id} type="button" onClick={() => toggleCharm(charm.id)} className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-[#E8D8D1] bg-[#FBF5F2]">
-                        {charm.image ? <Image src={charm.image} alt={charm.title} fill sizes="56px" unoptimized className="object-cover" /> : null}
-                      </button>
-                    ))}
+          {/* Desktop Panel */}
+          <div className="byj-config-panel">
+            <div className="byj-panel-scroll">
+              <div className="byj-material-bar">
+                <span className="byj-material-label">Material:</span>
+                {MATERIALS.map(m => (
+                  <button key={m.id} className={`byj-mat-btn ${material === m.id ? 'active' : ''}`} onClick={() => setMaterial(m.id)}>
+                    <span className="byj-mat-swatch" style={{ background: m.swatch }}></span>
+                  </button>
+                ))}
+                <span className="byj-mat-name">{MATERIALS.find(m => m.id === material)?.label}</span>
+              </div>
+
+              <div id="byj-desktop-steps">
+                {/* Length Step */}
+                <div className={`byj-step ${activeDesktopStep === 'length' ? 'open' : ''}`}>
+                  <div className="byj-step-header" onClick={() => setActiveStep(activeDesktopStep === 'length' ? '' : 'length')}>
+                    <div className="byj-step-left">
+                      <span className="byj-step-check">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      </span>
+                      <div>
+                        <div className="byj-step-label">LENGTH</div>
+                        <div className="byj-step-value">{length}</div>
+                      </div>
+                    </div>
+                    <svg className="byj-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div className="byj-step-body">
+                    <div className="byj-option-grid">
+                      {LENGTHS.map(l => (
+                        <button key={l} className={`byj-opt-btn ${length === l ? 'active' : ''}`} onClick={() => setLength(l)}>{l}</button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              )}
+
+                {/* Style Step */}
+                <div className={`byj-step ${activeDesktopStep === 'style' ? 'open' : ''}`}>
+                  <div className="byj-step-header" onClick={() => setActiveStep(activeDesktopStep === 'style' ? '' : 'style')}>
+                    <div className="byj-step-left">
+                      <span className={`byj-step-check ${!selectedStyle ? 'pending' : ''}`}>
+                        {!selectedStyle ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        )}
+                      </span>
+                      <div>
+                        <div className="byj-step-label">STYLE</div>
+                        <div className="byj-step-value">{selectedStyle ? getActiveVersion(selectedStyle, material, length)?.fullTitle : `Choose your ${categoryConfig.label}`}</div>
+                      </div>
+                    </div>
+                    <svg className="byj-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div className="byj-step-body">
+                    <div className="byj-style-grid">
+                      {chains.map(group => {
+                        const version = getActiveVersion(group, material, length);
+                        if (!version) return null;
+                        const isActive = selectedStyle?.base === group.base;
+                        return (
+                          <div key={group.base} className={`byj-style-card ${isActive ? 'active' : ''}`} onClick={() => setSelectedStyle(group)}>
+                            <div className="byj-style-img-wrap">
+                              <img src={version.img} alt={version.alt} loading="lazy" />
+                              <div className="byj-style-check-badge">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                              </div>
+                            </div>
+                            <div className="byj-style-info">
+                              <span className="byj-style-name">{version.fullTitle}</span>
+                              <span className="byj-style-price">+{formatPrice(version.price)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Charms Step */}
+                <div className={`byj-step ${activeDesktopStep === 'charms' ? 'open' : ''}`}>
+                  <div className="byj-step-header" onClick={() => setActiveStep(activeDesktopStep === 'charms' ? '' : 'charms')}>
+                    <div className="byj-step-left">
+                      <span className={`byj-step-check ${selectedCharms.length === 0 ? 'pending' : ''}`}>
+                        {selectedCharms.length === 0 ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        )}
+                      </span>
+                      <div>
+                        <div className="byj-step-label">CHARMS</div>
+                        <div className="byj-step-value">{selectedCharms.reduce((acc, c) => acc + c.qty, 0)} SELECTED</div>
+                      </div>
+                    </div>
+                    <svg className="byj-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                  <div className="byj-step-body">
+                    <div className="byj-charm-grid">
+                      {charms.map(group => {
+                        const version = getActiveVersion(group, material, length);
+                        if (!version) return null;
+                        const charmState = selectedCharms.find(c => c.base === group.base);
+                        const qty = charmState?.qty || 0;
+                        return (
+                          <div key={group.base} className={`byj-charm-item ${qty > 0 ? 'selected' : ''}`} onClick={() => toggleCharmSelection(group)}>
+                            <div className="byj-style-img-wrap">
+                              <img src={version.img} alt={version.alt} loading="lazy" />
+                              <div className="byj-style-check-badge">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                              </div>
+                            </div>
+                            <div className="byj-style-info">
+                              <span className="byj-style-name">{version.fullTitle}</span>
+                              <span className="byj-style-price">+{formatPrice(version.price)}</span>
+                              <div className="byj-charm-qty-wrap" onClick={(e) => e.stopPropagation()}>
+                                <button className="byj-qty-btn minus" onClick={() => updateCharmQty(group.base, -1)}>-</button>
+                                <span className="byj-qty-num">{qty}</span>
+                                <button className="byj-qty-btn plus" onClick={() => updateCharmQty(group.base, 1)}>+</button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="byj-confirm-bar">
+              <div className="byj-total-wrap">
+                <span className="byj-total-label">Total</span>
+                <span className="byj-total-price">{formatPrice(totalPrice)}</span>
+              </div>
+              <button className="byj-confirm-btn" disabled={!isReady}>
+                <span>Confirm</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
             </div>
           </div>
 
-          <aside className="overflow-hidden rounded-[28px] bg-white shadow-sm">
-            <div className="flex items-center gap-3 border-b border-[#EFE2DC] p-4">
-              <span className="text-sm font-semibold text-[#5A413F]">Material:</span>
-              <div className="flex gap-2">
-                {MATERIALS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setMaterial(item.id)}
-                    aria-label={item.label}
-                    className={`grid h-8 w-8 place-items-center rounded-full border ${material === item.id ? 'border-[#5A413F]' : 'border-transparent'}`}
-                  >
-                    <span className="h-6 w-6 rounded-full" style={{ background: item.swatch }} />
+          {/* Mobile UI */}
+          <div className="byj-mobile-steps">
+            <div className="byj-mobile-mat-row">
+              <span className="byj-mobile-mat-label">Material: <strong>{MATERIALS.find(m => m.id === material)?.label}</strong></span>
+              <div className="byj-mob-swatches">
+                {MATERIALS.map(m => (
+                  <button key={m.id} className={`byj-mat-btn ${material === m.id ? 'active' : ''}`} onClick={() => setMaterial(m.id)}>
+                    <span className="byj-mat-swatch" style={{ background: m.swatch }}></span>
                   </button>
                 ))}
               </div>
-              <span className="ml-auto text-sm font-medium text-[#5A413F]">{MATERIALS.find((item) => item.id === material)?.label}</span>
             </div>
 
-            {error && <div className="m-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-
-            <div className="max-h-none space-y-3 overflow-y-auto p-4 lg:max-h-[calc(100vh-220px)]">
-              <div className="rounded-2xl border border-[#EFE2DC]">
-                <button type="button" onClick={() => setActiveStep(activeStep === 'style' ? '' : 'style')} className="flex w-full items-center justify-between p-4 text-left">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A5B4F]">Style</div>
-                    <div className="mt-1 text-sm font-medium text-[#30211F]">{selectedChain?.title || `Choose your ${categoryConfig.label}`}</div>
-                  </div>
-                  <span>{activeStep === 'style' ? '-' : '+'}</span>
-                </button>
-                {activeStep === 'style' && (
-                  <div className="grid grid-cols-2 gap-3 border-t border-[#EFE2DC] p-3">
-                    {loading ? (
-                      Array.from({ length: 4 }).map((_, index) => <div key={index} className="aspect-[0.75] animate-pulse rounded-2xl bg-[#F5EAE5]" />)
-                    ) : (
-                      visibleChains.map((product) => (
-                        <ProductTile
-                          key={product.id}
-                          product={product}
-                          selected={selectedChain?.id === product.id}
-                          onClick={() => setSelectedChainId(product.id)}
-                        />
-                      ))
-                    )}
-                  </div>
-                )}
+            <div className="byj-mob-row" onClick={() => openDrawer('length')}>
+              <div className="flex items-center gap-3">
+                <span className="byj-mob-check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</div>
+                  <div className="text-xs font-bold">{length}</div>
+                </div>
               </div>
-
-              <div className="rounded-2xl border border-[#EFE2DC]">
-                <button type="button" onClick={() => setActiveStep(activeStep === 'length' ? '' : 'length')} className="flex w-full items-center justify-between p-4 text-left">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A5B4F]">Length</div>
-                    <div className="mt-1 text-sm font-medium text-[#30211F]">{length}</div>
-                  </div>
-                  <span>{activeStep === 'length' ? '-' : '+'}</span>
-                </button>
-                {activeStep === 'length' && (
-                  <div className="flex gap-3 border-t border-[#EFE2DC] p-3">
-                    {LENGTHS.map((item) => (
-                      <button key={item} type="button" onClick={() => setLength(item)} className={`flex-1 rounded-xl border px-4 py-3 text-sm font-bold ${length === item ? 'border-[#5A413F] bg-[#5A413F] text-white' : 'border-[#E9DDD7] text-[#5A413F]'}`}>
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div id="charms" className="rounded-2xl border border-[#EFE2DC]">
-                <button type="button" onClick={() => setActiveStep(activeStep === 'charms' ? '' : 'charms')} className="flex w-full items-center justify-between p-4 text-left">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8A5B4F]">Charms</div>
-                    <div className="mt-1 text-sm font-medium text-[#30211F]">{selectedCharmIds.length}/{MAX_CHARMS} selected</div>
-                  </div>
-                  <span>{activeStep === 'charms' ? '-' : '+'}</span>
-                </button>
-                {activeStep === 'charms' && (
-                  <div className="grid grid-cols-2 gap-3 border-t border-[#EFE2DC] p-3">
-                    {loading ? (
-                      Array.from({ length: 6 }).map((_, index) => <div key={index} className="aspect-[0.75] animate-pulse rounded-2xl bg-[#F5EAE5]" />)
-                    ) : (
-                      charms.map((product) => {
-                        const selected = selectedCharmIds.includes(product.id);
-                        return (
-                          <ProductTile
-                            key={product.id}
-                            product={product}
-                            selected={selected}
-                            disabled={!selected && selectedCharmIds.length >= MAX_CHARMS}
-                            onClick={() => toggleCharm(product.id)}
-                          />
-                        );
-                      })
-                    )}
-                    <p className="col-span-2 text-center text-xs font-semibold uppercase tracking-[0.2em] text-[#8A5B4F]">Select up to {MAX_CHARMS} charms</p>
-                  </div>
-                )}
-              </div>
+              <button className="text-[#5a413f]">+</button>
             </div>
 
-            <div className="flex items-center justify-between border-t border-[#EFE2DC] p-4">
-              <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-[#8A5B4F]">Total</div>
-                <div className="text-2xl font-bold text-[#481A19]">{formatPrice(total)}</div>
+            <div className="byj-mob-row" onClick={() => openDrawer('style')}>
+              <div className="flex items-center gap-3">
+                <span className={`byj-mob-check ${!selectedStyle ? 'pending' : ''}`}>
+                  {!selectedStyle ? '!' : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                </span>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</div>
+                  <div className="text-xs font-bold truncate max-w-[200px]">{selectedStyle ? getActiveVersion(selectedStyle, material, length)?.fullTitle : `Choose your ${categoryConfig.label}`}</div>
+                </div>
               </div>
-              <Button className="rounded-full bg-[#481A19] px-7 py-6 text-xs font-bold uppercase tracking-[0.2em] text-white hover:bg-[#5a211f]">
-                Confirm
-              </Button>
+              <button className="text-[#5a413f]">+</button>
             </div>
-          </aside>
+
+            <div className="byj-mob-row" onClick={() => openDrawer('charms')}>
+              <div className="flex items-center gap-3">
+                <span className={`byj-mob-check ${selectedCharms.length === 0 ? 'pending' : ''}`}>
+                  {selectedCharms.length === 0 ? '!' : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>}
+                </span>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</div>
+                  <div className="text-xs font-bold">{selectedCharms.reduce((acc, c) => acc + c.qty, 0)} Selected</div>
+                </div>
+              </div>
+              <button className="text-[#5a413f]">+</button>
+            </div>
+
+            <div className="byj-mob-confirm-bar">
+              <span className="byj-mob-total">{formatPrice(totalPrice)}</span>
+              <button className="byj-confirm-btn" disabled={!isReady}>Confirm</button>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+
+      {/* Drawer */}
+      <div className={`byj-drawer-overlay ${isDrawerOpen ? 'active' : ''}`} onClick={() => setIsDrawerOpen(false)}></div>
+      <div className={`byj-right-drawer ${isDrawerOpen ? 'open' : ''}`}>
+        <div className="byj-drawer-header">
+          <button onClick={() => setIsDrawerOpen(false)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <span className="byj-drawer-title">{currentDrawerKey.toUpperCase()}</span>
+          <div style={{ width: '20px' }}></div>
+        </div>
+        <div className="byj-drawer-body">
+          {currentDrawerKey === 'length' && (
+            <div className="byj-option-grid">
+              {LENGTHS.map(l => (
+                <button key={l} className={`byj-opt-btn ${length === l ? 'active' : ''}`} onClick={() => setLength(l)}>{l}</button>
+              ))}
+            </div>
+          )}
+          {currentDrawerKey === 'style' && (
+            <div className="byj-style-grid">
+              {chains.map(group => {
+                const version = getActiveVersion(group, material, length);
+                if (!version) return null;
+                const isActive = selectedStyle?.base === group.base;
+                return (
+                  <div key={group.base} className={`byj-style-card ${isActive ? 'active' : ''}`} onClick={() => setSelectedStyle(group)}>
+                    <div className="byj-style-img-wrap">
+                      <img src={version.img} alt={version.alt} loading="lazy" />
+                      <div className="byj-style-check-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    </div>
+                    <div className="byj-style-info">
+                      <span className="byj-style-name">{version.fullTitle}</span>
+                      <span className="byj-style-price">+{formatPrice(version.price)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {currentDrawerKey === 'charms' && (
+            <div className="byj-charm-grid">
+              {charms.map(group => {
+                const version = getActiveVersion(group, material, length);
+                if (!version) return null;
+                const charmState = selectedCharms.find(c => c.base === group.base);
+                const qty = charmState?.qty || 0;
+                return (
+                  <div key={group.base} className={`byj-charm-item ${qty > 0 ? 'selected' : ''}`} onClick={() => toggleCharmSelection(group)}>
+                    <div className="byj-style-img-wrap">
+                      <img src={version.img} alt={version.alt} loading="lazy" />
+                      <div className="byj-style-check-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    </div>
+                    <div className="byj-style-info">
+                      <span className="byj-style-name">{version.fullTitle}</span>
+                      <span className="byj-style-price">+{formatPrice(version.price)}</span>
+                      <div className="byj-charm-qty-wrap" onClick={(e) => e.stopPropagation()}>
+                        <button className="byj-qty-btn minus" onClick={() => updateCharmQty(group.base, -1)}>-</button>
+                        <span className="byj-qty-num">{qty}</span>
+                        <button className="byj-qty-btn plus" onClick={() => updateCharmQty(group.base, 1)}>+</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div className="byj-drawer-footer">
+          <button className="byj-drawer-done" onClick={() => setIsDrawerOpen(false)}>Done</button>
+        </div>
+      </div>
+    </div>
   );
 }
