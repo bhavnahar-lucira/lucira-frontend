@@ -108,6 +108,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
         karat: backendItem?.karat || fallbackKarat || null,
         size: backendItem?.size || shopifySize || parsedTitle,
         variantOptions: backendItem?.variantOptions || [],
+        properties: backendItem?.properties || {},
       };
     }) || [];
 

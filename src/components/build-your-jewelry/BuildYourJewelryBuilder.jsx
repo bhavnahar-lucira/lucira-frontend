@@ -498,32 +498,49 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
   const updateCharmQty = (base, delta) => {
     setSelectedCharms(prev => {
+      const existing = prev.find(c => c.base === base);
+      if (!existing && delta < 0) return prev;
+
       const totalCount = prev.reduce((acc, c) => acc + c.qty, 0);
       if (delta > 0 && totalCount >= MAX_CHARMS) {
         alert(`Max ${MAX_CHARMS} charms allowed`);
         return prev;
       }
 
-      return prev.map(c => {
+      const newCharms = prev.map(c => {
         if (c.base === base) {
           const newQty = Math.max(0, c.qty + delta);
           return newQty === 0 ? null : { ...c, qty: newQty };
         }
         return c;
       }).filter(Boolean);
+
+      // If it's a new charm being added via + button (not possible in current UI but for safety)
+      if (delta > 0 && !existing) {
+        const charmData = charms.find(c => c.base === base);
+        const version = getActiveVersion(charmData, material, length);
+        newCharms.push({ ...version, base, qty: 1 });
+      }
+
+      return newCharms;
     });
   };
 
   const totalPrice = useMemo(() => {
     const styleV = getActiveVersion(selectedStyle, material, length);
-    const sPrice = parseFloat(styleV?.price || 0);
-    const cPrice = selectedCharms.reduce((acc, c) => {
-      // Find the group to get updated price based on current state
+    if (!styleV) return 0;
+    
+    let total = parseFloat(styleV.price || 0) * 100; // Work in subunits (paise)
+    
+    selectedCharms.forEach(c => {
       const group = charms.find(g => g.base === c.base);
-      const v = getActiveVersion(group, material, length);
-      return acc + (parseFloat(v?.price || 0) * c.qty);
-    }, 0);
-    return sPrice + cPrice;
+      const version = getActiveVersion(group, material, length);
+      if (version) {
+        total += parseFloat(version.price || 0) * 100 * c.qty;
+      }
+    });
+    
+    return total;
   }, [selectedStyle, selectedCharms, material, length, charms]);
 
   const isReady = selectedStyle && selectedCharms.reduce((acc, c) => acc + c.qty, 0) >= MIN_CHARMS;
@@ -561,7 +578,10 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
       await addToCart({
         id: styleV.id,
+        title: 'Bespoke Story Chain',
         quantity: 1,
+        price: totalPrice / 100, // Send total price in main currency units
+        finalPrice: totalPrice / 100,
         properties
       });
       

@@ -362,7 +362,7 @@ export default function CartItem({ item, onAuthRequired }) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-zinc-800 truncate">{item.properties['Style']}</p>
                     <p className="text-[11px] text-zinc-500 uppercase font-medium">Finish: {item.properties['Material']}, Length: {item.properties['Length']}</p>
-                    <p className="text-sm font-bold mt-0.5 text-zinc-900">₹ {(parseFloat(item.properties['_byj_style_price']) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    <p className="text-sm font-bold mt-0.5 text-zinc-900">₹ {parseFloat(item.properties['_byj_style_price']).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
                   </div>
                 </div>
                 {/* Charms */}
@@ -374,7 +374,7 @@ export default function CartItem({ item, onAuthRequired }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-zinc-800 truncate">{charm.title}</p>
                       {charm.qty > 1 && <p className="text-[11px] text-zinc-500 uppercase font-medium">Quantity: {charm.qty}</p>}
-                      <p className="text-sm font-bold mt-0.5 text-zinc-900">₹ {(parseFloat(charm.price * charm.qty) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                      <p className="text-sm font-bold mt-0.5 text-zinc-900">₹ {parseFloat(charm.price * charm.qty).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
                     </div>
                   </div>
                 ))}
@@ -652,7 +652,7 @@ export default function CartItem({ item, onAuthRequired }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-bold text-zinc-800 truncate">{item.properties['Style']}</p>
                   <p className="text-[10px] text-zinc-500 uppercase font-medium">Finish: {item.properties['Material']}, Size: {item.properties['Length']}</p>
-                  <p className="text-[13px] font-bold mt-0.5 text-zinc-900">₹ {(parseFloat(item.properties['_byj_style_price']) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                  <p className="text-[13px] font-bold mt-0.5 text-zinc-900">₹ {parseFloat(item.properties['_byj_style_price']).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
                 </div>
               </div>
               {/* Charms */}
@@ -664,7 +664,7 @@ export default function CartItem({ item, onAuthRequired }) {
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-zinc-800 truncate">{charm.title}</p>
                     {charm.qty > 1 && <p className="text-[10px] text-zinc-500 uppercase font-medium">Quantity: {charm.qty}</p>}
-                    <p className="text-[13px] font-bold mt-0.5 text-zinc-900">₹ {(parseFloat(charm.price * charm.qty) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                    <p className="text-[13px] font-bold mt-0.5 text-zinc-900">₹ {parseFloat(charm.price * charm.qty).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
                   </div>
                 </div>
               ))}
