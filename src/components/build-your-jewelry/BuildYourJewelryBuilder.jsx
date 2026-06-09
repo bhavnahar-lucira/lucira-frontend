@@ -720,99 +720,78 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     <div className="build-your-jewelry-bracelets">
       <style jsx global>{`
         .build-your-jewelry-bracelets { color: #1c1810; font-family: Figtree, sans-serif; }
-        .byj-layout { display: grid; grid-template-columns: 1fr 420px; grid-template-areas: "canvas panel"; min-height: 100vh; background: #fff; }
-        .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 40px 24px; min-height: 60vh; }
+        .byj-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "canvas panel"; min-height: 100vh; }
+        .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 0px 24px; min-height: 60vh; }
         .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Q1PartB2953_37dd8896-3ea2-4c65-8c86-707f5cacb9b3.webp?v=1780657459); background-size: cover; background-position: center; }
-        #byj-konva-container { width: 100%; max-width: 580px; aspect-ratio: 1; cursor: grab; border-radius: 12px; overflow: hidden; touch-action: none;}
-        .byj-canvas-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.95); border: 1px solid #e0d0ba; border-radius: 100px; padding: 8px 18px; box-shadow: 0 4px 20px rgba(0,0,0,.08); backdrop-filter: blur(8px); z-index: 20; }
-        .byj-ctrl-btn { width: 34px; height: 34px; border: none; background: transparent; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; transition: all .2s; }
-        .byj-ctrl-btn:hover { background: #fef5f1; color: #5a413f; }
-        .byj-zoom-track { width: 100px; height: 4px; background: #e0d0ba; border-radius: 2px; position: relative; margin: 0 4px; }
-        .byj-zoom-thumb { width: 14px; height: 14px; border-radius: 50%; background: #5a413f; border: 2px solid #fff; position: absolute; top: 50%; transform: translate(-50%,-50%); transition: left .15s; display: block; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .byj-config-panel { grid-area: panel; background: #fff; border-left: 1px solid #f0f0f0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; box-shadow: -4px 0 30px rgba(0,0,0,0.03); }
-        .byj-panel-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; scroll-behavior: smooth; }
-        .byj-panel-scroll::-webkit-scrollbar { width: 5px; }
-        .byj-panel-scroll::-webkit-scrollbar-track { background: #fff; }
-        .byj-panel-scroll::-webkit-scrollbar-thumb { background: #e0d0ba; border-radius: 10px; }
-        .byj-panel-scroll::-webkit-scrollbar-thumb:hover { background: #5a413f; }
-        .byj-material-bar { display: flex; align-items: center; gap: 12px; padding: 20px 24px; border-bottom: 1px solid #f0f0f0; background: #fff; }
-        .byj-material-label { font-size: 11px; color: #5a413f; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
-        .byj-mat-name { font-size: 13px; color: #000; font-weight: 600; }
-        .byj-mat-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; padding: 2px; background: transparent; cursor: pointer; transition: all .2s ease; }
-        .byj-mat-btn.active { border-color: #5a413f; transform: scale(1.1); }
-        .byj-mat-swatch { display: block; width: 100%; height: 100%; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); }
-        .byj-step { border-bottom: 1px solid #f0f0f0; transition: all .3s; }
-        .byj-step.open { background: #fff; }
-        .byj-step-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px; cursor: pointer; user-select: none; transition: background .2s; }
-        .byj-step-header:hover { background: #fcfcfc; }
-        .byj-step-left { display: flex; align-items: center; gap: 14px; }
-        .byj-step-check { width: 22px; height: 22px; border-radius: 50%; background: #5a413f; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .3s; }
-        .byj-step-check.pending { background: transparent; color: #e0d0ba; border: 1.5px solid #e0d0ba; }
-        .byj-step-label { font-size: 11px; color: #5a413f; font-weight: 700; margin-bottom: 3px; letter-spacing: .1em; text-transform: uppercase; }
-        .byj-step-value { font-size: 13px; color: #1c1810; font-weight: 500; }
-        .byj-chevron { transition: transform .3s cubic-bezier(.4,0,.2,1); color: #5a413f; opacity: 0.6; }
-        .byj-step.open .byj-chevron { transform: rotate(180deg); opacity: 1; }
-        .byj-step-body { padding: 0 24px 24px; display: none; }
-        .byj-step.open .byj-step-body { display: block; animation: byjSlideDown .3s ease-out; }
-        @keyframes byjSlideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .byj-confirm-bar { display: flex; align-items: center; gap: 16px; padding: 20px 24px; border-top: 1px solid #f0f0f0; background: #fff; z-index: 10; width: 100%; }
+        #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 12px; overflow: hidden; touch-action: none; }
+        .byj-canvas-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.92); border: 1px solid #e0d0ba; border-radius: 100px; padding: 6px 14px; box-shadow: 0 2px 16px rgba(0,0,0,.08); backdrop-filter: blur(4px); z-index: 20; }
+        .byj-ctrl-btn { width: 30px; height: 30px; border: none; background: transparent; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; transition: background .15s; }
+        .byj-zoom-track { width: 80px; height: 4px; background: #e0d0ba; border-radius: 2px; position: relative; }
+        .byj-zoom-thumb { width: 12px; height: 12px; border-radius: 50%; background: #1c1810; position: absolute; top: 50%; transform: translate(-50%,-50%); transition: left .15s; display: block; }
+        .byj-config-panel { grid-area: panel; background: transparent; border-left: 1px solid #e0d0ba; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; }
+        .byj-panel-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; }
+        .byj-material-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e0d0ba; background: transparent; }
+        .byj-material-label, .byj-mat-name { font-size: 14px; color: #000; font-weight: 500; }
+        .byj-mat-btn { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid transparent; padding: 0; background: transparent; cursor: pointer; transition: border-color .2s; }
+        .byj-mat-btn.active { border-color: #1c1810; }
+        .byj-mat-swatch { display: block; width: 100%; height: 100%; border-radius: 50%; }
+        .byj-step { border-bottom: 1px solid #e0d0ba; }
+        .byj-step-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; cursor: pointer; user-select: none; transition: background .15s; }
+        .byj-step-header:hover { background: rgba(0,0,0,0.03); }
+        .byj-step-left { display: flex; align-items: flex-start; gap: 11px; }
+        .byj-step-check { width: 20px; height: 20px; border-radius: 50%; background: #5a413f; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+        .byj-step-check.pending { background: transparent; color: #5a413f; border: 1.5px solid #e0d0ba; }
+        .byj-step-label { font-size: 12px; color: #000; font-weight: 600; margin-bottom: 2px; letter-spacing: .05em; }
+        .byj-step-value { font-size: 12px; color: #5a413f; }
+        .byj-chevron { transition: transform .28s ease; color: #5a413f; }
+        .byj-step.open .byj-chevron { transform: rotate(180deg); }
+        .byj-step-body { padding: 0 20px 20px; display: none; }
+        .byj-step.open .byj-step-body { display: block; }
+        .byj-confirm-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-top: 1px solid #e0d0ba; background: transparent; z-index: 10; width: 100%; }
         .byj-total-wrap { display: flex; flex-direction: column; }
-        .byj-total-label { font-size: 10px; color: #5a413f; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
-        .byj-total-price { font-size: 20px; font-weight: 800; color: #1c1810; }
-        .byj-confirm-btn { flex: 1; height: 50px; background: #1c1810; color: #fff; border: none; border-radius: 100px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; transition: all .3s cubic-bezier(.16,1,.3,1); text-transform: uppercase; letter-spacing: 0.05em; font-size: 14px; }
-        .byj-confirm-btn:hover:not(:disabled) { background: #5a413f; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90,65,63,0.2); }
-        .byj-confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .byj-option-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-        .byj-opt-btn { padding: 8px 20px; border: 1.5px solid #e0d0ba; border-radius: 100px; font-size: 12px; cursor: pointer; background: transparent; transition: all .2s; font-weight: 600; }
-        .byj-opt-btn.active { background: #5a413f; border-color: #5a413f; color: #fff; transform: scale(1.05); }
-        .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .byj-style-card, .byj-charm-item { border: 1px solid #f0f0f0; border-radius: 12px; overflow: hidden; cursor: pointer; background: #fff; transition: all .3s cubic-bezier(.16,1,.3,1); display: flex; flex-direction: column; position: relative; }
-        .byj-style-card:hover, .byj-charm-item:hover { border-color: #e0d0ba; box-shadow: 0 8px 25px rgba(0,0,0,.06); transform: translateY(-4px); }
-        .byj-style-card.active, .byj-charm-item.selected { border-color: #5a413f; border-width: 1.5px; }
-        .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: transparent; border-bottom: 1px solid #f0f0f0; padding: 16px; }
-        .byj-style-img-wrap img { width: 100%; height: 100%; object-fit: contain; transition: transform .5s cubic-bezier(.16,1,.3,1); }
-        .byj-style-card:hover img { transform: scale(1.1); }
-        .byj-style-check-badge { position: absolute; top: 12px; left: 12px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #e0d0ba; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 2; color: transparent; transition: all .3s; }
+        .byj-total-label { font-size: 10px; color: #5a413f; text-transform: uppercase; letter-spacing: .05em; }
+        .byj-total-price { font-size: 18px; font-weight: 700; color: #1c1810; }
+        .byj-confirm-btn { flex: 1; height: 46px; background: #1c1810; color: #fff; border: none; border-radius: 100px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; transition: all .2s; }
+        .byj-confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .byj-option-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .byj-opt-btn { padding: 6px 16px; border: 1px solid #e0d0ba; border-radius: 100px; font-size: 12px; cursor: pointer; background: transparent; transition: all .2s; }
+        .byj-opt-btn.active { background: #5a413f; border-color: #5a413f; color: #fff; }
+        .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .byj-style-card, .byj-charm-item { border: 1px solid transparent; border-radius: 10px; overflow: hidden; cursor: pointer; background: rgba(255,255,255,0.4); transition: all .25s ease; display: flex; flex-direction: column; position: relative; }
+        .byj-style-card:hover, .byj-charm-item:hover { border-color: #d4a853; box-shadow: 0 4px 15px rgba(201,148,58,.12); transform: translateY(-2px); }
+        .byj-style-card.active, .byj-charm-item.selected { border-color: #5a413f; }
+        .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: transparent; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 12px; }
+        .byj-style-img-wrap img { width: 100%; height: 100%; object-fit: contain; }
+        .byj-style-check-badge { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #e0d0ba; background: transparent; display: flex; align-items: center; justify-content: center; z-index: 2; color: transparent; }
         .byj-style-card.active .byj-style-check-badge, .byj-charm-item.selected .byj-style-check-badge { background: #5a413f; border-color: #5a413f; color: #fff; }
-        .byj-style-info { padding: 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: space-between; }
-        .byj-style-name { font-size: 13px; font-weight: 600; line-height: 1.4; color: #1c1810; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .byj-style-price { font-size: 14px; font-weight: 700; color: #5a413f; }
-        .byj-charm-qty-wrap { display: flex; align-items: center; justify-content: space-between; width: 100%; background: #fef5f1; margin-top: 8px; border-radius: 100px; overflow: hidden; border: 1px solid #f0e0d0; }
-        .byj-qty-btn { background: transparent; border: none; width: 34px; height: 34px; font-size: 20px; color: #5a413f; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .2s; }
-        .byj-qty-btn:hover { background: #e0d0ba; color: #fff; }
-        .byj-qty-num { font-size: 14px; font-weight: 700; min-width: 24px; text-align: center; color: #5a413f; }
+        .byj-style-info { padding: 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: space-between; }
+        .byj-style-name { font-size: 12px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .byj-style-price { font-size: 14px; font-weight: 700; margin-top: auto; }
+        .byj-charm-qty-wrap { display: flex; align-items: center; justify-content: space-between; width: 100%; background: rgba(0,0,0,0.05); margin-top: 5px; border-radius: 8px; overflow: hidden; }
+        .byj-qty-btn { background: transparent; border: none; width: 32px; height: 32px; font-size: 18px; color: #1c1810; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .byj-qty-btn:hover { background: #e0d0ba; }
+        .byj-qty-num { font-size: 13px; font-weight: 700; min-width: 24px; text-align: center; }
         .byj-mobile-steps { display: none; }
-        .byj-right-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 90vw; max-width: 420px; background: #fff; z-index: 1101; display: flex; flex-direction: column; transform: translateX(100%); transition: transform .5s cubic-bezier(.16,1,.3,1); box-shadow: -15px 0 50px rgba(0,0,0,0.1); }
+        .byj-mob-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: transparent; border-bottom: 1px solid #e0d0ba; }
+        .byj-mob-check { width: 20px; height: 20px; border-radius: 50%; background: #4e8a56; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .byj-mob-check.pending { background: transparent; color: #e0d0ba; border: 1.5px solid #e0d0ba; }
+        .byj-right-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 88vw; max-width: 400px; background: #fef5f1; z-index: 1101; display: flex; flex-direction: column; transform: translateX(100%); transition: transform .38s cubic-bezier(.32,.72,0,1); }
         .byj-right-drawer.open { transform: translateX(0); }
-        .byj-drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1100; backdrop-filter: blur(4px); }
+        .byj-drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1100; }
         .byj-drawer-overlay.active { display: block; }
-        .byj-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid #f0f0f0; background: #fff; }
-        .byj-drawer-title { font-size: 13px; font-weight: 700; letter-spacing: 0.15em; color: #5a413f; text-transform: uppercase; }
-        .byj-drawer-body { flex: 1; overflow-y: auto; padding: 24px; scroll-behavior: smooth; }
-        .byj-drawer-body::-webkit-scrollbar { width: 4px; }
-        .byj-drawer-body::-webkit-scrollbar-track { background: transparent; }
-        .byj-drawer-body::-webkit-scrollbar-thumb { background: #e0d0ba; border-radius: 10px; }
-        .byj-summary-scroll::-webkit-scrollbar { width: 4px; }
-        .byj-summary-scroll::-webkit-scrollbar-track { background: transparent; }
-        .byj-summary-scroll::-webkit-scrollbar-thumb { background: #e0d0ba; border-radius: 10px; }
-        .byj-drawer-footer { padding: 24px; border-top: 1px solid #f0f0f0; background: #fff; }
-        .byj-drawer-done { width: 100%; height: 50px; background: #1c1810; color: #fff; border: none; border-radius: 100px; cursor: pointer; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; transition: all .3s; }
-        .byj-drawer-done:hover { background: #5a413f; transform: translateY(-2px); }
+        .byj-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #e0d0ba; background: transparent; }
+        .byj-drawer-body { flex: 1; overflow-y: auto; padding: 16px; }
+        .byj-drawer-footer { padding: 16px; border-top: 1px solid #e0d0ba; background: transparent; }
+        .byj-drawer-done { width: 100%; height: 46px; background: #1c1810; color: #fff; border: none; border-radius: 100px; cursor: pointer; font-weight: 600; }
         
         @media (max-width: 860px) {
-          .byj-layout { grid-template-columns: 1fr; grid-template-areas: "canvas" "mobile-steps"; min-height: unset; background: #fff; }
-          .byj-canvas-area { padding: 20px 16px; min-height: 50vh; }
-          .byj-canvas-controls { bottom: 15px; scale: 0.9; }
+          .byj-layout { grid-template-columns: 1fr; grid-template-areas: "canvas" "mobile-steps"; min-height: unset; }
+          .byj-canvas-area { padding: 0 0 16px; }
           .byj-config-panel { display: none !important; }
-          .byj-mobile-steps { display: block; grid-area: mobile-steps; background: #fff; }
-          .byj-mobile-mat-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #fff; border-bottom: 1px solid #f0f0f0; border-top: 1px solid #f0f0f0; }
-          .byj-mobile-mat-label { font-size: 11px; color: #5a413f; font-weight: 700; text-transform: uppercase; }
-          .byj-mob-swatches { display: flex; gap: 10px; }
-          .byj-mob-row { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; background: #fff; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
-          .byj-mob-check { width: 22px; height: 22px; border-radius: 50%; background: #5a413f; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-          .byj-mob-check.pending { background: transparent; color: #e0d0ba; border: 1.5px solid #e0d0ba; }
-          .byj-mob-confirm-bar { display: flex; align-items: center; gap: 16px; padding: 18px 20px; background: #fff; border-top: 1px solid #f0f0f0; position: sticky; bottom: 0; z-index: 50; box-shadow: 0 -10px 20px rgba(0,0,0,0.03); }
-          .byj-mob-total { font-size: 18px; font-weight: 800; color: #1c1810; }
+          .byj-mobile-steps { display: block; grid-area: mobile-steps; background: transparent; }
+          .byj-mobile-mat-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: transparent; border-bottom: 1px solid #e0d0ba; }
+          .byj-mob-swatches { display: flex; gap: 8px; }
+          .byj-mob-confirm-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: transparent; border-top: 2px solid #e0d0ba; }
         }
       `}</style>
 
@@ -1111,81 +1090,79 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       <div className={`byj-right-drawer ${isSummaryOpen ? 'open' : ''}`}>
         <div className="byj-drawer-header">
            <span className="byj-drawer-title font-bold text-sm tracking-widest">HERE'S YOUR SUMMARY</span>
-          <button onClick={() => setIsSummaryOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <button onClick={() => setIsSummaryOpen(false)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <div className="byj-drawer-body !p-0">
-          <div className="byj-summary-scroll px-6 py-6">
+          <div className="byj-summary-scroll px-6 py-4">
             {canvasPreview && (
-              <div className="byj-summary-preview mb-8 bg-[#fafafa] p-4 rounded-2xl border border-[#f0f0f0] shadow-inner">
+              <div className="byj-summary-preview mb-6">
                 <img src={canvasPreview} alt="BYJ Preview" className="w-full h-auto aspect-square object-contain" />
               </div>
             )}
             
             <div className="byj-summary-details space-y-6">
-              <div className="byj-summary-row border-b border-[#f0f0f0] pb-3">
+              <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5a413f] opacity-80">Product Type</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
                 </div>
-                <div className="text-[15px] font-semibold text-[#1c1810]">{categoryConfig.label}</div>
+                <div className="text-sm font-medium">{categoryConfig.label}</div>
               </div>
 
-              <div className="byj-summary-row border-b border-[#f0f0f0] pb-3">
+              <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5a413f] opacity-80">Style Selection</span>
-                  <span className="text-sm font-bold text-[#5a413f]">{formatPrice(getActiveVersion(selectedStyle, material, length)?.price)}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                  <span className="text-sm font-bold">{formatPrice(getActiveVersion(selectedStyle, material, length)?.price)}</span>
                 </div>
-                <div className="text-[15px] font-semibold text-[#1c1810]">{getActiveVersion(selectedStyle, material, length)?.fullTitle}</div>
+                <div className="text-sm font-medium">{getActiveVersion(selectedStyle, material, length)?.fullTitle}</div>
               </div>
 
-              <div className="byj-summary-row border-b border-[#f0f0f0] pb-3">
+              <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
                 <div className="flex justify-between items-end mb-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5a413f] opacity-80">Size / Length</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
                 </div>
-                <div className="text-[15px] font-semibold text-[#1c1810]">{length}</div>
+                <div className="text-sm font-medium">{length}</div>
               </div>
 
-              <div className="byj-summary-row border-b border-[#f0f0f0] pb-4">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5a413f] opacity-80">Charms Added</span>
-                  <span className="text-xs font-bold text-gray-400">{selectedCharms.reduce((acc, c) => acc + c.qty, 0)} Items</span>
+              <div className="byj-summary-row border-b border-[#e0d0ba] pb-2">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
                 </div>
-                <div className="space-y-3 mt-3">
+                <div className="space-y-2 mt-2">
                   {(() => {
                     const flatList = [];
                     selectedCharms.forEach(c => {
                       for (let i = 0; i < c.qty; i++) flatList.push(c);
                     });
                     return flatList.map((c, i) => (
-                      <div key={`${c.base}-${i}`} className="flex justify-between items-start group">
-                        <span className="text-sm font-medium text-[#1c1810] flex-1">{i + 1}. {c.fullTitle}</span>
-                        <span className="text-sm font-bold text-[#5a413f] ml-3">{formatPrice(c.price)}</span>
+                      <div key={`${c.base}-${i}`} className="flex justify-between items-start">
+                        <span className="text-sm font-medium flex-1">{i + 1}. {c.fullTitle}</span>
+                        <span className="text-sm font-bold ml-2">{formatPrice(c.price)}</span>
                       </div>
                     ));
                   })()}
-                  <div className="flex justify-between items-center text-[10px] text-gray-400 pt-2 uppercase tracking-widest font-bold">
-                    <span>Standard Spacing Applied</span>
-                    <span>~2.5cm</span>
+                  <div className="flex justify-between items-center text-xs text-gray-500 pt-1">
+                    <span>Spacing: 2.5cm</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="byj-drawer-footer border-t border-[#f0f0f0] bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-          <div className="flex justify-between items-center mb-6 px-2">
-            <span className="text-xs font-bold text-[#5a413f] uppercase tracking-widest">Subtotal Estimate</span>
-            <span className="text-2xl font-extrabold text-[#1c1810]">{formatPrice(totalPrice)}</span>
+        <div className="byj-drawer-footer border-t-0 bg-[#fef5f1]">
+          <div className="flex justify-between items-center mb-4 px-4">
+            <span className="text-sm text-[#5c4f3a]">Subtotal</span>
+            <span className="text-lg font-bold">{formatPrice(totalPrice)}</span>
           </div>
           <button 
-            className="byj-confirm-btn w-full !rounded-xl h-14 uppercase tracking-widest shadow-xl shadow-[#5a413f]/10" 
+            className="byj-confirm-btn w-full rounded-none h-14 uppercase tracking-widest" 
             disabled={addingToBag}
             onClick={handleAddToBag}
           >
-            {addingToBag ? 'Adding to Bag...' : 'Add to Bag'}
-            {!addingToBag && <svg width="18" height="18" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg" className="ml-2">
-              <path d="M4.22112 5.35692C4.22112 5.35692 3.81759 0.589355 7.85288 0.589355C11.8882 0.589355 11.4846 5.35692 11.4846 5.35692M0.589355 17.2758L1.33747 4.90168C1.37058 4.35392 1.82446 3.92665 2.37322 3.92665H13.3371C13.884 3.92665 14.3369 4.34892 14.3722 4.89468C14.654 9.25047 15.1164 16.5686 15.1164 17.2758C15.1164 18.0386 14.5784 18.2294 14.3094 18.2294C10.2741 18.2294 2.04206 18.2294 1.39641 18.2294C0.750767 18.2294 0.589355 17.5937 0.589355 17.2758Z" stroke="white" strokeWidth="1.5" strokeLinecap="round"></path>
+            {addingToBag ? 'Adding...' : 'Add to Bag'}
+            {!addingToBag && <svg width="16" height="16" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg" className="ml-2">
+              <path d="M4.22112 5.35692C4.22112 5.35692 3.81759 0.589355 7.85288 0.589355C11.8882 0.589355 11.4846 5.35692 11.4846 5.35692M0.589355 17.2758L1.33747 4.90168C1.37058 4.35392 1.82446 3.92665 2.37322 3.92665H13.3371C13.884 3.92665 14.3369 4.34892 14.3722 4.89468C14.654 9.25047 15.1164 16.5686 15.1164 17.2758C15.1164 18.0386 14.5784 18.2294 14.3094 18.2294C10.2741 18.2294 2.04206 18.2294 1.39641 18.2294C0.750767 18.2294 0.589355 17.5937 0.589355 17.2758Z" stroke="white" strokeWidth="1.17914" strokeLinecap="round"></path>
             </svg>}
           </button>
         </div>

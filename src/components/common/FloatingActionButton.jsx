@@ -7,10 +7,6 @@ import Link from "next/link";
 
 export default function FloatingActionButton() {
   const pathname = usePathname();
-
-  // Hide on BYJ page
-  if (pathname === "/build-your-jewelry") return null;
-
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [tooltipShown, setTooltipShown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);

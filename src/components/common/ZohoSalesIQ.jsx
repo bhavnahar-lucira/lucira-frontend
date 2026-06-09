@@ -1,15 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
 
 export default function ZohoSalesIQ() {
-  const pathname = usePathname();
-
   useEffect(() => {
-    // Skip on BYJ page
-    if (pathname === "/build-your-jewelry") return;
-
     // 1. Initial setup for $zoho object
     window.$zoho = window.$zoho || {};
     window.$zoho.salesiq = window.$zoho.salesiq || { ready: function() {} };
