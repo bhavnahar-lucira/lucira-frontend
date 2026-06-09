@@ -6,10 +6,47 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import Konva from 'konva';
+import { shopifyStorefrontFetch } from '@/lib/shopify-client';
 
 const CHAIN_COLLECTION_HANDLE = 'byj-chains';
 const CHARM_COLLECTION_HANDLE = 'byj-faraways-charms';
-const MIN_CHARMS = 5;
+
+const GET_COLLECTION_QUERY = `
+  query getCollectionByHandle($handle: String!, $first: Int!) {
+    collection(handle: $handle) {
+      products(first: $first) {
+        edges {
+          node {
+            id
+            title
+            handle
+            featuredImage {
+              url
+              altText
+            }
+            variants(first: 100) {
+              edges {
+                node {
+                  id
+                  title
+                  price {
+                    amount
+                  }
+                  image {
+                    url
+                    altText
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const MIN_CHARMS = 1;
 const MAX_CHARMS = 5;
 
 const CATEGORY_CONFIG = {
@@ -99,14 +136,16 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     async function loadData() {
       try {
         const [chainRes, charmRes] = await Promise.all([
-          apiFetch(`/api/collection?handle=${CHAIN_COLLECTION_HANDLE}&limit=250`),
-          apiFetch(`/api/collection?handle=${CHARM_COLLECTION_HANDLE}&limit=250`)
+          shopifyStorefrontFetch(GET_COLLECTION_QUERY, { handle: CHAIN_COLLECTION_HANDLE, first: 250 }),
+          shopifyStorefrontFetch(GET_COLLECTION_QUERY, { handle: CHARM_COLLECTION_HANDLE, first: 250 })
         ]);
 
-        const groupProducts = (products) => {
+        const groupProducts = (data) => {
+          const products = data?.collection?.products?.edges || [];
           const groups = {};
-          products.forEach(p => {
-            p.variants.forEach(v => {
+          products.forEach(({ node: p }) => {
+            const variants = p.variants?.edges || [];
+            variants.forEach(({ node: v }) => {
               const fullTitle = `${p.title} - ${v.title}`;
               const base = getBaseName(fullTitle);
               if (!groups[base]) {
@@ -117,7 +156,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                   karats: []
                 };
               }
-              const mKey = getMaterialKeyword(fullTitle, v.image?.alt || p.featured_image?.alt || '');
+              const mKey = getMaterialKeyword(fullTitle, v.image?.altText || p.featuredImage?.altText || '');
               const kKey = getKaratValue(fullTitle);
               
               if (!groups[base].karats.includes(kKey)) groups[base].karats.push(kKey);
@@ -129,10 +168,10 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                 title: p.title,
                 variantTitle: v.title,
                 fullTitle,
-                price: v.price,
-                img: v.image?.src || p.featured_image?.src || null,
-                thumb: v.image?.src || p.featured_image?.src || null,
-                alt: v.image?.alt || p.featured_image?.alt || ''
+                price: parseFloat(v.price.amount) * 100, // convert to subunits
+                img: v.image?.url || p.featuredImage?.url || null,
+                thumb: v.image?.url || p.featuredImage?.url || null,
+                alt: v.image?.altText || p.featuredImage?.altText || ''
               };
 
               groups[base].versions[mKey][kKey] = versionData;
@@ -142,8 +181,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
           return Object.values(groups);
         };
 
-        setChains(groupProducts(chainRes.products || []));
-        setCharms(groupProducts(charmRes.products || []));
+        setChains(groupProducts(chainRes));
+        setCharms(groupProducts(charmRes));
       } catch (err) {
         console.error('Failed to load BYJ data:', err);
       } finally {
@@ -489,9 +528,6 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   };
 
   const containerStyle = {
-    filter: material === 'rose-gold' ? 'sepia(0.4) saturate(1.6) hue-rotate(330deg) brightness(1.05)' :
-            material === 'silver' ? 'grayscale(0.5) brightness(1.12) saturate(0.75)' :
-            'sepia(0.25) saturate(1.35) brightness(1.05)'
   };
 
   return (
@@ -499,22 +535,23 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       <style jsx global>{`
         .build-your-jewelry-bracelets { color: #1c1810; background: #fef5f1; font-family: Figtree, sans-serif; }
         .byj-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "canvas panel"; min-height: 100vh; }
-        .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; padding: 0px 24px; min-height: 60vh; }
-        #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 12px; overflow: hidden; touch-action: none; background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Q1PartB2953_37dd8896-3ea2-4c65-8c86-707f5cacb9b3.webp?v=1780657459); background-size: cover; background-position: center; }
+        .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 0px 24px; min-height: 60vh; }
+        .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Q1PartB2953_37dd8896-3ea2-4c65-8c86-707f5cacb9b3.webp?v=1780657459); background-size: cover; background-position: center; }
+        #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 12px; overflow: hidden; touch-action: none; }
         .byj-canvas-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.92); border: 1px solid #e0d0ba; border-radius: 100px; padding: 6px 14px; box-shadow: 0 2px 16px rgba(0,0,0,.08); backdrop-filter: blur(4px); z-index: 20; }
         .byj-ctrl-btn { width: 30px; height: 30px; border: none; background: transparent; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; transition: background .15s; }
         .byj-zoom-track { width: 80px; height: 4px; background: #e0d0ba; border-radius: 2px; position: relative; }
         .byj-zoom-thumb { width: 12px; height: 12px; border-radius: 50%; background: #1c1810; position: absolute; top: 50%; transform: translate(-50%,-50%); transition: left .15s; display: block; }
-        .byj-config-panel { grid-area: panel; background: #fff; border-left: 1px solid #e0d0ba; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; }
+        .byj-config-panel { grid-area: panel; background: transparent; border-left: 1px solid #e0d0ba; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; }
         .byj-panel-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; }
-        .byj-material-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e0d0ba; background: #fef5f1; }
+        .byj-material-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e0d0ba; background: transparent; }
         .byj-material-label, .byj-mat-name { font-size: 14px; color: #000; font-weight: 500; }
         .byj-mat-btn { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid transparent; padding: 0; background: transparent; cursor: pointer; transition: border-color .2s; }
         .byj-mat-btn.active { border-color: #1c1810; }
         .byj-mat-swatch { display: block; width: 100%; height: 100%; border-radius: 50%; }
         .byj-step { border-bottom: 1px solid #e0d0ba; }
         .byj-step-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; cursor: pointer; user-select: none; transition: background .15s; }
-        .byj-step-header:hover { background: #fef5f1; }
+        .byj-step-header:hover { background: rgba(0,0,0,0.03); }
         .byj-step-left { display: flex; align-items: flex-start; gap: 11px; }
         .byj-step-check { width: 20px; height: 20px; border-radius: 50%; background: #5a413f; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
         .byj-step-check.pending { background: transparent; color: #5a413f; border: 1.5px solid #e0d0ba; }
@@ -524,57 +561,57 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-step.open .byj-chevron { transform: rotate(180deg); }
         .byj-step-body { padding: 0 20px 20px; display: none; }
         .byj-step.open .byj-step-body { display: block; }
-        .byj-confirm-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-top: 1px solid #e0d0ba; background: #fff; z-index: 10; width: 100%; }
+        .byj-confirm-bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-top: 1px solid #e0d0ba; background: transparent; z-index: 10; width: 100%; }
         .byj-total-wrap { display: flex; flex-direction: column; }
         .byj-total-label { font-size: 10px; color: #5a413f; text-transform: uppercase; letter-spacing: .05em; }
         .byj-total-price { font-size: 18px; font-weight: 700; color: #1c1810; }
         .byj-confirm-btn { flex: 1; height: 46px; background: #1c1810; color: #fff; border: none; border-radius: 100px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; transition: all .2s; }
         .byj-confirm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .byj-option-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-        .byj-opt-btn { padding: 6px 16px; border: 1px solid #e0d0ba; border-radius: 100px; font-size: 12px; cursor: pointer; background: #fff; transition: all .2s; }
+        .byj-opt-btn { padding: 6px 16px; border: 1px solid #e0d0ba; border-radius: 100px; font-size: 12px; cursor: pointer; background: transparent; transition: all .2s; }
         .byj-opt-btn.active { background: #5a413f; border-color: #5a413f; color: #fff; }
         .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .byj-style-card, .byj-charm-item { border: 1px solid transparent; border-radius: 10px; overflow: hidden; cursor: pointer; background: #ffffff; transition: all .25s ease; display: flex; flex-direction: column; position: relative; }
+        .byj-style-card, .byj-charm-item { border: 1px solid transparent; border-radius: 10px; overflow: hidden; cursor: pointer; background: rgba(255,255,255,0.4); transition: all .25s ease; display: flex; flex-direction: column; position: relative; }
         .byj-style-card:hover, .byj-charm-item:hover { border-color: #d4a853; box-shadow: 0 4px 15px rgba(201,148,58,.12); transform: translateY(-2px); }
         .byj-style-card.active, .byj-charm-item.selected { border-color: #5a413f; }
-        .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #fff; border-bottom: 1px solid #f9f0ea; padding: 12px; }
+        .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: transparent; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 12px; }
         .byj-style-img-wrap img { width: 100%; height: 100%; object-fit: contain; }
-        .byj-style-check-badge { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #e0d0ba; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 2; color: transparent; }
+        .byj-style-check-badge { position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #e0d0ba; background: transparent; display: flex; align-items: center; justify-content: center; z-index: 2; color: transparent; }
         .byj-style-card.active .byj-style-check-badge, .byj-charm-item.selected .byj-style-check-badge { background: #5a413f; border-color: #5a413f; color: #fff; }
         .byj-style-info { padding: 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; justify-content: space-between; }
         .byj-style-name { font-size: 12px; font-weight: 600; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .byj-style-price { font-size: 14px; font-weight: 700; margin-top: auto; }
-        .byj-charm-qty-wrap { display: flex; align-items: center; justify-content: space-between; width: 100%; background: #fafafa; margin-top: 5px; border-radius: 8px; overflow: hidden; }
+        .byj-charm-qty-wrap { display: flex; align-items: center; justify-content: space-between; width: 100%; background: rgba(0,0,0,0.05); margin-top: 5px; border-radius: 8px; overflow: hidden; }
         .byj-qty-btn { background: transparent; border: none; width: 32px; height: 32px; font-size: 18px; color: #1c1810; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .byj-qty-btn:hover { background: #e0d0ba; }
         .byj-qty-num { font-size: 13px; font-weight: 700; min-width: 24px; text-align: center; }
         .byj-mobile-steps { display: none; }
-        .byj-mob-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #fff; border-bottom: 1px solid #e0d0ba; }
+        .byj-mob-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: transparent; border-bottom: 1px solid #e0d0ba; }
         .byj-mob-check { width: 20px; height: 20px; border-radius: 50%; background: #4e8a56; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .byj-mob-check.pending { background: transparent; color: #e0d0ba; border: 1.5px solid #e0d0ba; }
-        .byj-right-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 88vw; max-width: 400px; background: #fff; z-index: 1101; display: flex; flex-direction: column; transform: translateX(100%); transition: transform .38s cubic-bezier(.32,.72,0,1); }
+        .byj-right-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 88vw; max-width: 400px; background: #fef5f1; z-index: 1101; display: flex; flex-direction: column; transform: translateX(100%); transition: transform .38s cubic-bezier(.32,.72,0,1); }
         .byj-right-drawer.open { transform: translateX(0); }
         .byj-drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1100; }
         .byj-drawer-overlay.active { display: block; }
-        .byj-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #e0d0ba; background: #fef5f1; }
+        .byj-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #e0d0ba; background: transparent; }
         .byj-drawer-body { flex: 1; overflow-y: auto; padding: 16px; }
-        .byj-drawer-footer { padding: 16px; border-top: 1px solid #e0d0ba; background: #fff; }
+        .byj-drawer-footer { padding: 16px; border-top: 1px solid #e0d0ba; background: transparent; }
         .byj-drawer-done { width: 100%; height: 46px; background: #1c1810; color: #fff; border: none; border-radius: 100px; cursor: pointer; font-weight: 600; }
         
         @media (max-width: 860px) {
           .byj-layout { grid-template-columns: 1fr; grid-template-areas: "canvas" "mobile-steps"; min-height: unset; }
           .byj-canvas-area { padding: 0 0 16px; }
           .byj-config-panel { display: none !important; }
-          .byj-mobile-steps { display: block; grid-area: mobile-steps; background: #fff; }
-          .byj-mobile-mat-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #fef5f1; border-bottom: 1px solid #e0d0ba; }
+          .byj-mobile-steps { display: block; grid-area: mobile-steps; background: transparent; }
+          .byj-mobile-mat-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: transparent; border-bottom: 1px solid #e0d0ba; }
           .byj-mob-swatches { display: flex; gap: 8px; }
-          .byj-mob-confirm-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fff; border-top: 2px solid #e0d0ba; }
+          .byj-mob-confirm-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: transparent; border-top: 2px solid #e0d0ba; }
         }
       `}</style>
 
       <div className="build-your-jewelry-wrapper">
         <div className="byj-layout">
-          <div className="byj-canvas-area">
+          <div className={`byj-canvas-area ${!selectedStyle ? 'has-bg' : ''}`}>
             <div id="byj-konva-container" ref={containerRef} style={containerStyle}></div>
             <div className="byj-canvas-controls">
               <button className="byj-ctrl-btn" onClick={() => handleZoom(0.8)} aria-label="Zoom out">
