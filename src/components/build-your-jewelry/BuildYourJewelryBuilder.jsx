@@ -636,8 +636,25 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   };
 
   const handleConfirm = () => {
-    if (!stageRef.current) return;
-    const dataURL = stageRef.current.toDataURL({ pixelRatio: 2 });
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Save current state to restore after capture
+    const oldScale = stage.scaleX();
+    const oldPos = stage.position();
+
+    // Reset to default view for the summary capture
+    stage.scale({ x: 1, y: 1 });
+    stage.position({ x: 0, y: 0 });
+    stage.batchDraw();
+
+    const dataURL = stage.toDataURL({ pixelRatio: 2 });
+
+    // Restore the user's zoom/pan state
+    stage.scale({ x: oldScale, y: oldScale });
+    stage.position(oldPos);
+    stage.batchDraw();
+
     setCanvasPreview(dataURL);
     setIsSummaryOpen(true);
   };
