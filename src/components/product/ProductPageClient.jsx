@@ -2798,7 +2798,7 @@ export default function ProductPageClient({
 
                 {/* Single Diamond Card */}
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1 && (
-                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
+                  <div className={`bg-[#F9F9F9] rounded-2xl p-5 space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                       <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
@@ -2813,7 +2813,7 @@ export default function ProductPageClient({
                       {activeVariant.metafields.diamonds[0].shape && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Shape</span>
-                          <span className="font-medium uppercase">{mapShapeCode(activeVariant.metafields.diamonds[0].shape) || activeVariant.metafields.diamonds[0].shape}</span>
+                          <span className="font-medium">{mapShapeCode(activeVariant.metafields.diamonds[0].shape) || activeVariant.metafields.diamonds[0].shape}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
@@ -2828,9 +2828,39 @@ export default function ProductPageClient({
                   </div>
                 )}
 
+                {/* Multiple Diamond Card */}
+                {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length > 1 && (
+                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5 col-span-2">
+                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
+                      Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
+                    </div>
+
+                    <div className="flex gap-4 md:gap-6 overflow-x-auto pb-2 scrollbar-hide">
+                      {/* Labels Column */}
+                      <div className="space-y-1 shrink-0">
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quality :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Carat :</div>
+                      </div>
+
+                      {/* Values Columns */}
+                      {activeVariant.metafields.diamonds.map((d, i) => (
+                        <div key={`dia-col-${i}`} className="space-y-1 shrink-0">
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.quality || ""}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{mapShapeCode(d.shape) || d.shape || "-"}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.pieces || "1"}pcs</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.weight}ct</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Single Gemstone Card */}
                 {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1 && (
-                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
+                  <div className={`bg-[#F9F9F9] rounded-2xl p-5 space-y-4 ${(activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1) ? "" : "col-span-2"}`}>
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                       <Image src="/images/icons/gemstone.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
                       Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("gemstone")} />
@@ -2839,13 +2869,13 @@ export default function ProductPageClient({
                       {activeVariant.metafields.gemstones[0].color && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Color</span>
-                          <span className="font-medium uppercase">{activeVariant.metafields.gemstones[0].color}</span>
+                          <span className="font-medium">{activeVariant.metafields.gemstones[0].color}</span>
                         </div>
                       )}
                       {activeVariant.metafields.gemstones[0].shape && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Shape</span>
-                          <span className="font-medium uppercase">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
+                          <span className="font-medium">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
@@ -2859,67 +2889,37 @@ export default function ProductPageClient({
                     </div>
                   </div>
                 )}
+
+                {/* Multiple Gemstone Card */}
+                {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length > 1 && (
+                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5 col-span-2">
+                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                      <Image src="/images/icons/gemstone.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
+                      Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" />
+                    </div>
+
+                    <div className="flex gap-10 md:gap-16 overflow-x-auto pb-2 scrollbar-hide">
+                      {/* Labels Column */}
+                      <div className="space-y-3 shrink-0">
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Color :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Carat :</div>
+                      </div>
+
+                      {/* Values Columns */}
+                      {activeVariant.metafields.gemstones.map((g, i) => (
+                        <div key={`gem-col-${i}`} className="space-y-3 shrink-0">
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.color || "-"}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{mapShapeCode(g.shape) || g.shape || "-"}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.pieces || "1"}pcs</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.weight || "0"}ct</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* Multiple Diamond Card - Full Width */}
-              {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length > 1 && (
-                <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5">
-                  <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
-                    Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
-                  </div>
-
-                  <div className="flex gap-4 md:gap-6 overflow-x-auto pb-2 scrollbar-hide">
-                    {/* Labels Column */}
-                    <div className="space-y-1 shrink-0">
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quality :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Carat :</div>
-                    </div>
-
-                    {/* Values Columns */}
-                    {activeVariant.metafields.diamonds.map((d, i) => (
-                      <div key={`dia-col-${i}`} className="space-y-1 shrink-0">
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.quality || "VVS-VS, EF"}</div>
-                        <div className="text-sm font-semibold h-5 flex items-center uppercase text-gray-900 whitespace-nowrap">{mapShapeCode(d.shape) || d.shape || "-"}</div>
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.pieces || "1"}pcs</div>
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.weight}ct</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Multiple Gemstone Card - Full Width */}
-              {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length > 1 && (
-                <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5">
-                  <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
-                    Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" />
-                  </div>
-
-                  <div className="flex gap-10 md:gap-16 overflow-x-auto pb-2 scrollbar-hide">
-                    {/* Labels Column */}
-                    <div className="space-y-3 shrink-0">
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Color :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Carat :</div>
-                    </div>
-
-                    {/* Values Columns */}
-                    {activeVariant.metafields.gemstones.map((g, i) => (
-                      <div key={`gem-col-${i}`} className="space-y-3 shrink-0">
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap uppercase">{g.color || "-"}</div>
-                        <div className="text-sm font-semibold h-5 flex items-center uppercase text-gray-900 whitespace-nowrap">{mapShapeCode(g.shape) || g.shape || "-"}</div>
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.pieces || "1"}pcs</div>
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.weight || "0"}ct</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
 
