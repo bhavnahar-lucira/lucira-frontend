@@ -799,17 +799,19 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         <div className="byj-layout">
           <div className={`byj-canvas-area ${!selectedStyle ? 'has-bg' : ''}`}>
             <div id="byj-konva-container" ref={containerRef} style={containerStyle}></div>
-            <div className="byj-canvas-controls">
-              <button className="byj-ctrl-btn" onClick={() => handleZoom(0.8)} aria-label="Zoom out">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-              </button>
-              <div className="byj-zoom-track">
-                <div className="byj-zoom-thumb" style={{ left: `${((zoom - 0.5) / 3.5) * 100}%` }}></div>
+            {(selectedStyle || selectedCharms.length > 0) && (
+              <div className="byj-canvas-controls">
+                <button className="byj-ctrl-btn" onClick={() => handleZoom(0.8)} aria-label="Zoom out">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                </button>
+                <div className="byj-zoom-track">
+                  <div className="byj-zoom-thumb" style={{ left: `${((zoom - 0.5) / 3.5) * 100}%` }}></div>
+                </div>
+                <button className="byj-ctrl-btn" onClick={() => handleZoom(1.2)} aria-label="Zoom in">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                </button>
               </div>
-              <button className="byj-ctrl-btn" onClick={() => handleZoom(1.2)} aria-label="Zoom in">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-              </button>
-            </div>
+            )}
           </div>
 
           {/* Desktop Panel */}
