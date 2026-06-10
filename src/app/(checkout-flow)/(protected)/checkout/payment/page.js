@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   clearCart,
   removePoints,
+  removeCoupon,
 } from "@/redux/features/cart/cartSlice";
 import {
   Dialog,
@@ -307,8 +308,16 @@ export default function PaymentPage() {
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
 
-  // Remove points when leaving the payment page
+  // Remove points and coupons on page reload, and points when leaving
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const navEntries = window.performance.getEntriesByType("navigation");
+      if (navEntries.length > 0 && navEntries[0].type === "reload") {
+        dispatch(removePoints());
+        dispatch(removeCoupon());
+      }
+    }
+
     return () => {
       dispatch(removePoints());
     };

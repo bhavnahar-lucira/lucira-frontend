@@ -5,6 +5,7 @@ import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useId } from "react";
 import Link from "next/link";
+import { pushPromoClick } from "@/lib/gtm";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -34,6 +35,15 @@ export default function HeroBanner() {
 
   const bannerHeightClasses =
     "h-auto aspect-4/5 md:aspect-auto md:h-[calc(100dvh-14rem)] md:min-h-[450px]";
+
+  const handleBannerClick = (slide) => {
+    pushPromoClick({
+      creative_name: "homepage banner images clicked",
+      location_id: "homepage",
+      promo_id: slide.alt,
+      promo_name: slide.name,
+    });
+  };
 
   return (
     <div className="w-full bg-white">
@@ -65,7 +75,12 @@ export default function HeroBanner() {
         >
           {slideData.map((slide, index) => (
             <SwiperSlide key={slide.name}>
-              <Link prefetch={false} href={slide.url} className="block w-full h-full">
+              <Link 
+                prefetch={false} 
+                href={slide.url} 
+                className="block w-full h-full"
+                onClick={() => handleBannerClick(slide)}
+              >
                 <div className="relative w-full h-full">
                   <picture>
                     {/* Desktop Image */}
