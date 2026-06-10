@@ -43,6 +43,8 @@ import { pushAddPaymentInfo } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { verifyPaymentIntegrity } from "@/utils/security";
+import { fetchCart } from "@/redux/features/cart/cartSlice";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -636,24 +638,33 @@ export default function PaymentPage() {
     }
 
     try {
-      // Trigger CRM Webhook for Add Payment Info on click
-      sendCheckoutCrmEvent("add_payment_info", {
-        email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
-        mobile: customer?.phone || user?.mobile || selectedAddress?.phone || "",
-        firstName: customer?.firstName || user?.name?.split(' ')[0] || "",
-        lastName: customer?.lastName || user?.name?.split(' ')[1] || "",
-        totalCartValue: Number(finalAmount),
-        cartItems: items,
-        paymentType: selectedPaymentGateway === "partial_cod" ? "Partial COD" : "Razorpay",
-        billingPincode: selectedBillingAddress?.zip || "",
-        billingCity: selectedBillingAddress?.city || "",
-        billingState: selectedBillingAddress?.province || "",
-        shippingPincode: isPickup ? checkoutSelection?.selectedStore?.zip : (selectedAddress?.zip || ""),
-        shippingCity: isPickup ? checkoutSelection?.selectedStore?.city : (selectedAddress?.city || ""),
-        shippingState: isPickup ? (checkoutSelection?.selectedStore?.state || checkoutSelection?.selectedStore?.province) : (selectedAddress?.province || "")
+      setPaymentLoading(true);
+
+      // 1. FRESH FETCH: Get latest cart and points from server before any calculations
+      const freshCartResponse = await dispatch(fetchCart({ userId: user?.id })).unwrap();
+      
+      // Use the raw response items or fall back to current items if the fetch failed to return them
+      const latestItems = (freshCartResponse && freshCartResponse.items && freshCartResponse.items.length > 0) 
+        ? freshCartResponse.items 
+        : items;
+      
+      const latestTotal = (freshCartResponse && typeof freshCartResponse.totalAmount === 'number')
+        ? freshCartResponse.totalAmount
+        : totalAmount;
+
+      // 2. INTEGRITY CHECK: Verify points balance via Nector Proxy
+      const integrity = await verifyPaymentIntegrity({
+        userId: user?.id,
+        nectorPoints: nectorPoints,
+        appliedCoupon: appliedCoupon,
+        items: latestItems
       });
 
-      setPaymentLoading(true);
+      if (!integrity.isValid) {
+        toast.error(integrity.reason || "Security verification failed.");
+        setPaymentLoading(false);
+        return;
+      }
 
       const getNumericId = (gid) => {
         if (!gid) return 0;
@@ -662,9 +673,10 @@ export default function PaymentPage() {
         return match ? Number(match[0]) : 0;
       };
 
-      const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
+      // Calculate base values from verified data
+      const insuranceItem = (latestItems || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
       const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
-      const subtotalValue = (totalAmount || 0) - insuranceValue;
+      const subtotalValue = (latestTotal || 0) - insuranceValue;
 
       const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
       let couponDiscountAmount = 0;
@@ -677,12 +689,25 @@ export default function PaymentPage() {
       }
 
       const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
-      const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
-      const paymentMethodDetails = selectedPaymentGateway === "partial_cod"
+      const grandTotalValue = Math.max(subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount, 1);
+      
+      // SANITY GUARD: If the final price is suspiciously low (< 10% of cart) AND no points are applied
+      if (grandTotalValue < (latestTotal * 0.1) && pointsDiscountAmount === 0 && latestTotal > 1000) {
+        toast.error("Price discrepancy detected. Please refresh your page.");
+        setPaymentLoading(false);
+        return;
+      }
+
+      // 3. RESTORE PARTIAL COD LOGIC: Calculate based on verified grandTotal
+      const isEligibleForPartialCod = grandTotalValue > 0 && grandTotalValue < 50000 && !latestItems.some(item => 
+        item.variantId === GOLDCOIN_VARIANT_ID || (item.handle && item.handle.includes("gold-coin"))
+      );
+
+      const paymentMethodDetails = (selectedPaymentGateway === "partial_cod" && isEligibleForPartialCod)
         ? {
           type: "partial_cod",
-          prepaidAmount: partialCodDetails.prepaidAmount,
-          codAmount: partialCodDetails.codAmount,
+          prepaidAmount: Math.round(grandTotalValue * 0.2), // Standard 20% prepaid
+          codAmount: grandTotalValue - Math.round(grandTotalValue * 0.2),
           grandTotal: grandTotalValue,
         }
         : {
@@ -691,6 +716,25 @@ export default function PaymentPage() {
           codAmount: 0,
           grandTotal: grandTotalValue,
         };
+
+      const loyaltyPoints = appliedCoupon?.loyaltyPoints || "";
+
+      // Trigger CRM Webhook with VERIFIED data
+      sendCheckoutCrmEvent("add_payment_info", {
+        email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
+        mobile: customer?.phone || user?.mobile || selectedAddress?.phone || "",
+        firstName: customer?.firstName || user?.name?.split(' ')[0] || "",
+        lastName: customer?.lastName || user?.name?.split(' ')[1] || "",
+        totalCartValue: Number(grandTotalValue),
+        cartItems: latestItems,
+        paymentType: paymentMethodDetails.type === "partial_cod" ? "Partial COD" : "Razorpay",
+        billingPincode: selectedBillingAddress?.zip || "",
+        billingCity: selectedBillingAddress?.city || "",
+        billingState: selectedBillingAddress?.province || "",
+        shippingPincode: isPickup ? checkoutSelection?.selectedStore?.zip : (selectedAddress?.zip || ""),
+        shippingCity: isPickup ? checkoutSelection?.selectedStore?.city : (selectedAddress?.city || ""),
+        shippingState: isPickup ? (checkoutSelection?.selectedStore?.state || checkoutSelection?.selectedStore?.province) : (selectedAddress?.province || "")
+      });
       const loyaltyPoints = appliedCoupon?.loyaltyPoints || "";
 
       const purchaseDataForLater = {
@@ -702,7 +746,7 @@ export default function PaymentPage() {
         transaction_id: `temp_${Date.now()}`,
         coupon: couponDetails?.code || "NA",
         send_to: "G-K6H0NZ4YJ8",
-        items: (items || []).map((item, idx) => {
+        items: (latestItems || []).map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -737,7 +781,7 @@ export default function PaymentPage() {
         coupon: couponDetails?.code || "NA",
         loyalty_points: loyaltyPoints,
         send_to: "G-K6H0NZ4YJ8",
-        items: (items || []).map((item, idx) => {
+        items: (latestItems || []).map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -777,7 +821,7 @@ export default function PaymentPage() {
       const order = await createRazorpayOrder({
         userId: user?.id || "",
         sessionId: getCartSessionId(),
-        items: items,
+        items: latestItems,
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
@@ -790,6 +834,12 @@ export default function PaymentPage() {
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
         gclid: getCookie("gclid") || "",
+        // CRITICAL: Include metadata for backend verification
+        verification: {
+          promotionId: nectorPoints?.id || "",
+          claimedPoints: nectorPoints?.coin_value || 0,
+          claimedDiscount: nectorPoints?.fiat_value || 0
+        }
       }, accessToken);
 
       const razorpay = new window.Razorpay({
