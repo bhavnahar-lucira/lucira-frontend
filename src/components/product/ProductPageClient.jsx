@@ -1167,7 +1167,7 @@ export default function ProductPageClient({
         offerPrice: Number(originalPrice.toFixed(2)),
         productUrl: currentUrl,
         image: productImageUrl,
-        price: Number(sellingPrice),
+        Price: Number(sellingPrice),
         category: "",
         subCategory: "",
         productPersona: "",

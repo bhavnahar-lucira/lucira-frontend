@@ -34,7 +34,7 @@ export default function HeroBanner() {
   const paginationElClass = `pagination-${id}`;
 
   const bannerHeightClasses =
-    "h-auto aspect-4/5 md:aspect-auto md:h-[calc(100dvh-14rem)] md:min-h-[450px]";
+    "h-auto aspect-4/5 md:aspect-auto md:h-[calc(100dvh-14rem)] md:min-h-[520px]";
 
   const handleBannerClick = (slide) => {
     pushPromoClick({

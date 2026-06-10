@@ -33,13 +33,13 @@ export const sendProductViewWebhook = async (user, productData) => {
       customerevent: {
         Event_Type: "ProductView",
         Channel: "website",
-        Order_Value: String(productData.offerPrice || productData.price || 0),
+        Order_Value: String(productData.offerPrice || productData.Price || productData.price || 0),
         Currency: "INR"
       },
       products: [
         {
           product_name: productData.productName || productData.title || "",
-          price: String(productData.price || 0),
+          price: String(productData.Price || productData.price || 0),
           product_sku: productData.sku || "",
           product_url: productData.productUrl || "",
           product_type: productData.productType || productData.type || "",
@@ -70,13 +70,13 @@ export const sendAddToCartWebhook = async (user, productData) => {
       customerevent: {
         Event_Type: "ATC",
         Channel: "website",
-        Order_Value: String(productData.offerPrice || productData.price || 0),
+        Order_Value: String(productData.offerPrice || productData.Price || productData.price || 0),
         Currency: "INR"
       },
       products: [
         {
           product_name: productData.productName || productData.title || "",
-          price: String(productData.price || 0),
+          price: String(productData.Price || productData.price || 0),
           product_sku: productData.sku || "",
           product_url: productData.productUrl || "",
           quantity: String(productData.quantity || 1),
