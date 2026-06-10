@@ -735,7 +735,6 @@ export default function PaymentPage() {
         shippingCity: isPickup ? checkoutSelection?.selectedStore?.city : (selectedAddress?.city || ""),
         shippingState: isPickup ? (checkoutSelection?.selectedStore?.state || checkoutSelection?.selectedStore?.province) : (selectedAddress?.province || "")
       });
-      const loyaltyPoints = appliedCoupon?.loyaltyPoints || "";
 
       const purchaseDataForLater = {
         currency: "INR",
@@ -775,7 +774,7 @@ export default function PaymentPage() {
       window.localStorage.setItem("gtm_purchase_data", JSON.stringify(purchaseDataForLater));
 
       pushAddPaymentInfo({
-        payment_type: selectedPaymentGateway === "partial_cod" ? "Partial COD" : "Razorpay",
+        payment_type: paymentMethodDetails.type === "partial_cod" ? "Partial COD" : "Razorpay",
         value: paymentMethodDetails.prepaidAmount,
         currency: "INR",
         coupon: couponDetails?.code || "NA",
