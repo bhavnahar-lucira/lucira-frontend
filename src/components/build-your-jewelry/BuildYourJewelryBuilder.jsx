@@ -885,7 +885,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                             </div>
                             <div className="byj-style-info">
                               <span className="byj-style-name">{version.fullTitle}</span>
-                              <span className="byj-style-price">+{formatPrice(version.price)}</span>
+                              <span className="byj-style-price">{formatPrice(version.price)}</span>
                             </div>
                           </div>
                         );
@@ -929,7 +929,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                             </div>
                             <div className="byj-style-info">
                               <span className="byj-style-name">{version.fullTitle}</span>
-                              <span className="byj-style-price">+{formatPrice(version.price)}</span>
+                              <span className="byj-style-price">{formatPrice(version.price)}</span>
                               <div className="byj-charm-qty-wrap" onClick={(e) => e.stopPropagation()}>
                                 <button className="byj-qty-btn minus" onClick={() => updateCharmQty(group.base, -1)}>-</button>
                                 <span className="byj-qty-num">{qty}</span>
@@ -1047,7 +1047,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                     </div>
                     <div className="byj-style-info">
                       <span className="byj-style-name">{version.fullTitle}</span>
-                      <span className="byj-style-price">+{formatPrice(version.price)}</span>
+                      <span className="byj-style-price">{formatPrice(version.price)}</span>
                     </div>
                   </div>
                 );
@@ -1069,7 +1069,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                     </div>
                     <div className="byj-style-info">
                       <span className="byj-style-name">{version.fullTitle}</span>
-                      <span className="byj-style-price">+{formatPrice(version.price)}</span>
+                      <span className="byj-style-price">{formatPrice(version.price)}</span>
                       <div className="byj-charm-qty-wrap" onClick={(e) => e.stopPropagation()}>
                         <button className="byj-qty-btn minus" onClick={() => updateCharmQty(group.base, -1)}>-</button>
                         <span className="byj-qty-num">{qty}</span>
