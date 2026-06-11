@@ -14,11 +14,21 @@ import { useRouter } from 'next/navigation';
 import { Check, ChevronRight } from 'lucide-react';
 
 const CHAIN_COLLECTION_HANDLE = 'byj-chains';
-const CHARM_COLLECTION_HANDLE = 'byj-faraways-charms';
+const CHARM_COLLECTIONS = [
+  { handle: 'byj-faraways-charms', title: 'Faraways Charms' },
+  { handle: 'byj-fairytrails-charm', title: 'Fairytrails Charm' },
+  { handle: 'byj-initials-charm', title: 'Initials Charm' },
+];
 
 const GET_COLLECTION_QUERY = `
   query getCollectionByHandle($handle: String!, $first: Int!) {
     collection(handle: $handle) {
+      title
+      handle
+      image {
+        url
+        altText
+      }
       products(first: $first) {
         edges {
           node {
@@ -124,6 +134,9 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   const [material, setMaterial] = useState('9k-gold');
   const [length, setLength] = useState('14KT');
   const [chains, setChains] = useState([]);
+  const [allCharmCollections, setAllCharmCollections] = useState({});
+  const [charmCollectionsInfo, setCharmCollectionsInfo] = useState([]);
+  const [activeCharmCollection, setActiveCharmCollection] = useState('byj-faraways-charms');
   const [charms, setCharms] = useState([]);
   const [selectedStyle, setSelectedStyle] = useState(null);
   const [selectedCharms, setSelectedCharms] = useState([]);
@@ -149,9 +162,9 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   useEffect(() => {
     async function loadData() {
       try {
-        const [chainRes, charmRes] = await Promise.all([
+        const [chainRes, ...charmResponses] = await Promise.all([
           shopifyStorefrontFetch(GET_COLLECTION_QUERY, { handle: CHAIN_COLLECTION_HANDLE, first: 250 }),
-          shopifyStorefrontFetch(GET_COLLECTION_QUERY, { handle: CHARM_COLLECTION_HANDLE, first: 250 })
+          ...CHARM_COLLECTIONS.map(c => shopifyStorefrontFetch(GET_COLLECTION_QUERY, { handle: c.handle, first: 250 }))
         ]);
 
         const groupProducts = (data) => {
@@ -198,8 +211,28 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
           return order.map(base => groups[base]);
         };
 
+        const charmDataMap = {};
+        const charmInfoList = [];
+
+        charmResponses.forEach((res, index) => {
+          const handle = CHARM_COLLECTIONS[index].handle;
+          const groupedCharms = groupProducts(res).sort((a, b) => a.base.localeCompare(b.base));
+          charmDataMap[handle] = groupedCharms;
+          
+          // Use first product image as collection thumbnail if collection image is missing
+          const firstProductImg = res?.collection?.products?.edges?.[0]?.node?.featuredImage?.url;
+          
+          charmInfoList.push({
+            handle,
+            title: res?.collection?.title || CHARM_COLLECTIONS[index].title,
+            img: firstProductImg || res?.collection?.image?.url
+          });
+        });
+
         setChains(groupProducts(chainRes));
-        setCharms(groupProducts(charmRes).sort((a, b) => a.base.localeCompare(b.base)));
+        setAllCharmCollections(charmDataMap);
+        setCharmCollectionsInfo(charmInfoList);
+        setCharms(charmDataMap[activeCharmCollection] || []);
       } catch (err) {
         console.error('Failed to load BYJ data:', err);
       } finally {
@@ -208,6 +241,12 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (allCharmCollections[activeCharmCollection]) {
+      setCharms(allCharmCollections[activeCharmCollection]);
+    }
+  }, [activeCharmCollection, allCharmCollections]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -810,6 +849,15 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-opt-btn:hover { border-color: #e0d0ba; background: #fdfaf7; }
         .byj-opt-btn.active { background: #59403f; border-color: #59403f; color: #fff; transform: scale(1.05); }
 
+        .byj-collection-circles { display: flex; gap: 20px; overflow-x: auto; padding: 5px 5px 20px; margin-bottom: 10px; scrollbar-width: none; -ms-overflow-style: none; }
+        .byj-collection-circles::-webkit-scrollbar { display: none; }
+        .byj-collection-circle-item { flex-shrink: 0; width: 85px; text-align: center; cursor: pointer; transition: all 0.3s cubic-bezier(.4,0,.2,1); }
+        .byj-collection-circle-img-wrap { width: 75px; height: 75px; border-radius: 50%; border: 2px solid #f0ebe4; overflow: hidden; margin: 0 auto 10px; transition: all 0.3s; background: #fff; padding: 2px; }
+        .byj-collection-circle-item.active .byj-collection-circle-img-wrap { border-color: #5a413f; box-shadow: 0 4px 15px rgba(90,65,63,0.15); transform: translateY(-2px); }
+        .byj-collection-circle-img-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+        .byj-collection-circle-title { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #8a8a8a; letter-spacing: 0.05em; line-height: 1.2; }
+        .byj-collection-circle-item.active .byj-collection-circle-title { color: #5a413f; }
+
         .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .byj-style-card, .byj-charm-item { border: 1.5px solid #f0ebe4; border-radius: 14px; overflow: hidden; cursor: pointer; background: #fff; transition: all .3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; position: relative; }
         .byj-style-card:hover, .byj-charm-item:hover { border-color: #e0d0ba; transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
@@ -1020,6 +1068,20 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                       <svg className="byj-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
                     </div>
                     <div className="byj-step-body">
+                      <div className="byj-collection-circles">
+                        {charmCollectionsInfo.map((col) => (
+                          <div 
+                            key={col.handle} 
+                            className={cn("byj-collection-circle-item", activeCharmCollection === col.handle && "active")}
+                            onClick={() => setActiveCharmCollection(col.handle)}
+                          >
+                            <div className="byj-collection-circle-img-wrap">
+                              <img src={col.img} alt={col.title} />
+                            </div>
+                            <div className="byj-collection-circle-title">{col.title}</div>
+                          </div>
+                        ))}
+                      </div>
                       <div className="byj-charm-grid">
                         {charms.map(group => {
                           const version = getActiveVersion(group, material, length);
@@ -1173,8 +1235,23 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
               </div>
             )}
             {currentDrawerKey === 'charms' && (
-              <div className="byj-charm-grid">
-                {charms.map(group => {
+              <>
+                <div className="byj-collection-circles">
+                  {charmCollectionsInfo.map((col) => (
+                    <div 
+                      key={col.handle} 
+                      className={cn("byj-collection-circle-item", activeCharmCollection === col.handle && "active")}
+                      onClick={() => setActiveCharmCollection(col.handle)}
+                    >
+                      <div className="byj-collection-circle-img-wrap">
+                        <img src={col.img} alt={col.title} />
+                      </div>
+                      <div className="byj-collection-circle-title">{col.title}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="byj-charm-grid">
+                  {charms.map(group => {
                   const version = getActiveVersion(group, material, length);
                   if (!version) return null;
                   const charmState = selectedCharms.find(c => c.base === group.base);
@@ -1197,7 +1274,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                     </div>
                   );
                 })}
-              </div>
+                </div>
+              </>
             )}
           </div>
         </div>
