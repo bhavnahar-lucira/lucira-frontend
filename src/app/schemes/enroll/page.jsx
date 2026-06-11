@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, UserPlus, Info, CheckCircle2, ChevronRight } from "lucide-react";
 
-import { fetchCustomerAddresses } from "@/lib/api";
+import { fetchCustomerAddresses, fetchOrnaverseCustomer, updateOrnaverseCustomer } from "@/lib/api";
 
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
@@ -49,13 +49,30 @@ export default function Enroll() {
   const customer = useSelector((s) => s.user.user);
   const accessToken = useSelector((s) => s.user.accessToken);
   const enrollment = useSelector((s) => s.user.user?.enrollment_draft);
-  const mobile = customer?.mobile;
+  const mobile = customer?.mobile || customer?.phone;
 
-  const profile = customer || {};
+  const [profile, setProfile] = useState({});
 
   const nomineeNameRef = useRef(null);
   const nomineeAgeRef = useRef(null);
   const nomineeRelationRef = useRef(null);
+
+  /* ===================== ORNAVERSE CUSTOMER FETCH ===================== */
+  useEffect(() => {
+    if (!mobile) return;
+
+    const loadOrnaverseProfile = async () => {
+      try {
+        const data = await fetchOrnaverseCustomer(mobile);
+        const ornaProfile = data?.Entities?.[0] || {};
+        setProfile(ornaProfile);
+      } catch (error) {
+        console.error("[Ornaverse] Failed to fetch customer:", error);
+      }
+    };
+
+    loadOrnaverseProfile();
+  }, [mobile]);
 
   const initialAmount = useMemo(() => {
     const queryAmount = clampAmount(searchParams.get("amount"));
@@ -97,7 +114,7 @@ export default function Enroll() {
     };
   }
 
-  const party_name = profile.name || profile.party_name || "";
+  const party_name = profile.party_name || customer?.name || "";
   const { first_name, last_name } = splitFullName(party_name);
 
   /* ===================== FORM STATE ===================== */
@@ -144,16 +161,16 @@ export default function Enroll() {
     loadShopifyAddress();
   }, [accessToken]);
 
-  /* ===================== PREFILL ===================== */
+  /* ===================== PREFILL FROM ORNAVERSE ===================== */
   useEffect(() => {
-    if (!profile || (form.address && form.pincode)) return;
+    if (!profile.party_id) return;
 
     setForm(prev => ({
       ...prev,
       address: prev.address || profile.address || profile.address_1 || "",
-      pincode: prev.pincode || profile.pincode || profile.pin_code || "",
-      city: prev.city || profile.city || profile.city_name || "",
-      state: prev.state || profile.state || profile.state_name || "",
+      pincode: prev.pincode || profile.pin_code || profile.pincode || "",
+      city: prev.city || profile.city_name || profile.city || "",
+      state: prev.state || profile.state_name || profile.state || "",
     }));
   }, [profile]);
 
@@ -188,6 +205,8 @@ export default function Enroll() {
           pincode: form.pincode,
           city: form.city,
           state: form.state,
+          party_id: profile.party_id,
+          party_name: party_name
         })
       );
     } catch (e) {
@@ -202,6 +221,8 @@ export default function Enroll() {
     form.nominee_relation,
     form.pincode,
     form.state,
+    profile.party_id,
+    party_name
   ]);
 
    const saveDraft = async (value) => {
@@ -218,6 +239,8 @@ export default function Enroll() {
           pincode: form.pincode,
           city: form.city,
           state: form.state,
+          party_id: profile.party_id,
+          party_name: party_name
         })
       );
     } catch (e) {
@@ -236,7 +259,26 @@ export default function Enroll() {
 
     try {
       setLoading(true);
-      toast.dismiss();
+      toast.loading("Updating your details...");
+
+      // ✅ Update Ornaverse Customer
+      if (profile.party_id) {
+        const payload = {
+          id: profile.party_id,
+          first_name: first_name,
+          last_name: last_name,
+          email: profile.email || customer?.email || "",
+          phone: mobile,
+          address: form.address,
+          address1: "",
+          city: form.city,
+          state: form.state,
+          country: "India",
+          zip: form.pincode,
+        };
+
+        await updateOrnaverseCustomer(payload);
+      }
 
       // Fire dataLayer promoClick event
       try {
@@ -250,16 +292,19 @@ export default function Enroll() {
         console.error("Error pushing to dataLayer:", error);
       }
 
+      toast.dismiss();
       toast.success("Details saved successfully");
       await saveDraft(displayAmount);
       router.push("/schemes/payment");
     } catch (err) {
       toast.dismiss();
       toast.error("Failed to update customer details");
+      console.error("Update error:", err);
     } finally {
       setLoading(false);
     }
   };
+
   const formatINR = (value) =>
     new Intl.NumberFormat("en-IN").format(value);
 

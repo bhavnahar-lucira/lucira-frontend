@@ -15,10 +15,13 @@ import {
   sendOtpApi,
   verifyOtpApi,
   registerCustomer,
+  fetchOrnaverseCustomer,
+  createOrnaverseCustomer,
 } from "@/lib/api";
 
 export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login" }) {
   const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useDispatch();
 
   const [step, setStep] = useState(initialStep);
@@ -31,7 +34,11 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
   const [consent, setConsent] = useState(true);
   const [countdown, setCountdown] = useState(5);
   const [timer, setTimer] = useState(0);
+  const [otpVerified, setOtpVerified] = useState(false);
   const timerRef = useRef();
+
+  const isSchemeFlow = pathname?.startsWith("/schemes") || 
+                       (typeof window !== "undefined" && localStorage.getItem("auth_redirect_path")?.startsWith("/schemes"));
 
   useEffect(() => {
     if (timer > 0) {
@@ -102,7 +109,7 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
     }
   }, [step]);
 
-  const loginSuccess = async (data, isSignup = false) => {
+  const loginSuccess = async (data, isSignup = false, ornaUser = null) => {
     const user = data.user || data.customer;
     const userId = user?.id;
     
@@ -123,6 +130,7 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
           email: user?.email,
           first_name: user?.first_name,
           last_name: user?.last_name,
+          party_id: ornaUser?.party_id || null,
           name:
             user?.first_name && user?.last_name
               ? `${user.first_name} ${user.last_name}`
@@ -185,12 +193,26 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
       const data = await verifyOtpApi(mobile, otpValue);
 
       if (data.status === "REGISTER_REQUIRED" || data.type === "register") {
+        setOtpVerified(true);
         setStep("register");
         return;
       }
 
       if (data.status === "LOGIN" || data.type === "success") {
-        loginSuccess(data);
+        setOtpVerified(true);
+        
+        // 🔍 Ornaverse: Check customer (ONLY during Scheme flow)
+        let ornaUser = null;
+        if (isSchemeFlow) {
+          try {
+            const ornaData = await fetchOrnaverseCustomer(mobile);
+            ornaUser = ornaData?.Entities?.[0];
+          } catch (error) {
+            console.error("[Ornaverse] Fetch error:", error);
+          }
+        }
+
+        loginSuccess(data, false, ornaUser);
       }
     } catch (err) {
       toast.error(err.message || "OTP verification failed");
@@ -207,6 +229,29 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
 
     try {
       setLoading(true);
+
+      // 1. Create in Ornaverse first (ONLY during Scheme flow)
+      let ornaUser = null;
+      if (isSchemeFlow) {
+        try {
+          const checkOrna = await fetchOrnaverseCustomer(mobile);
+          ornaUser = checkOrna?.Entities?.[0];
+
+          if (!ornaUser?.party_id) {
+            const createOrna = await createOrnaverseCustomer({
+              first_name: firstName,
+              last_name: lastName,
+              phone: mobile,
+              email: email,
+            });
+            ornaUser = { party_id: createOrna?.EntityId };
+          }
+        } catch (error) {
+          console.error("[Ornaverse] Registration link error:", error);
+        }
+      }
+
+      // 2. Create in Shopify
       const data = await registerCustomer({
         firstName,
         lastName,
@@ -223,7 +268,7 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
           name: `${firstName} ${lastName}`.trim()
         });
 
-        loginSuccess(data, true);
+        loginSuccess(data, true, ornaUser);
       }
     } catch (err) {
       toast.error(err.message || "Register failed");
@@ -316,20 +361,69 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
       )}
 
       {step === "register" && (
-        <>
-          {/* ... existing register fields ... */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-900">First Name <span className="text-red-500">*</span></label>
+              <Input
+                ref={firstNameRef}
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="h-11 border-gray-200 focus:border-black transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-900">Last Name <span className="text-red-500">*</span></label>
+              <Input
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="h-11 border-gray-200 focus:border-black transition-all"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-900">Email Address <span className="text-red-500">*</span></label>
+            <Input
+              type="email"
+              placeholder="Email Address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11 border-gray-200 focus:border-black transition-all"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-900">Phone Number</label>
+            <div className="flex items-center border border-gray-200 rounded-md h-11 px-3 bg-gray-50">
+              <span className="text-sm text-gray-500 mr-2 border-r border-gray-200 pr-2">+91</span>
+              <input
+                type="tel"
+                disabled
+                value={mobile}
+                className="w-full h-full text-sm outline-none bg-transparent text-gray-500"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={registerUser}
+            disabled={loading}
+            className="h-12 w-full bg-[#5f4745] hover:bg-[#4a3634] text-white font-semibold transition-colors mt-2"
+          >
+            {loading ? "Registering..." : "COMPLETE REGISTRATION"}
+          </Button>
           <p
             className="text-center text-sm text-gray-600 mt-4"
           >
             Already registered?{" "}
             <span 
               className="text-[#5a413f] font-bold underline cursor-pointer"
-              onClick={() => router.push("/login")}
+              onClick={() => setStep("login")}
             >
               Login
             </span>
           </p>
-        </>
+        </div>
       )}
     </div>
   );

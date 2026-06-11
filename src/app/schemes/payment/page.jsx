@@ -8,7 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "react-toastify";
-import { apiFetch } from "@/lib/api";
+import { 
+  apiFetch, 
+  createOrnaverseEnrollment, 
+  fetchOrnaverseEnrollments, 
+  createOrnaverseReceipt 
+} from "@/lib/api";
 import { pushPromoClick } from "@/lib/gtm";
 import { BadgeCheck, Loader2, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 
@@ -18,6 +23,8 @@ const PAYMENT_METHODS = [
   { id: "debit", label: "Debit Card", icon: "💳" },
   { id: "netbanking", label: "Net Banking", icon: "🏦" },
 ];
+
+const MAX_INSTALLMENT_AMOUNT = 19000;
 
 function loadRazorpayScript() {
   if (typeof window === "undefined") {
@@ -136,6 +143,7 @@ export default function SchemePaymentPage() {
           try {
             setLoading(true);
 
+            /* 1️⃣ VERIFY SIGNATURE */
             await apiFetch("/api/schemes/razorpay/verify", {
               method: "POST",
               body: JSON.stringify({
@@ -145,7 +153,98 @@ export default function SchemePaymentPage() {
               }),
             });
 
-            await apiFetch("/api/schemes/enrollment", {
+            /* 2️⃣ ORNAVERSE: CREATE ENROLLMENT */
+            const now = new Date();
+            const tenure = 9;
+            const amount = enrollment.amount;
+            const partyId = enrollment.party_id;
+
+            const months = Array.from({ length: tenure }).map((_, i) => {
+              const d = new Date(now);
+              d.setMonth(d.getMonth() + i);
+              return {
+                month_id: d.getMonth() + 1,
+                month_amount: amount,
+                due_date: d.toISOString(),
+              };
+            });
+
+            const enrollmentPayload = {
+              document_date: now.toISOString(),
+              party_id: partyId.toString(),
+              scheme_id: 3,
+              scheme_amount: amount,
+              total_amount: amount * 10,
+              scheme_bonus_value: amount,
+              tenure,
+              scheme_monthly_details: months,
+              bonus_value: amount,
+              mobile: user?.phone || user?.mobile,
+              party_name: enrollment.party_name || user?.name,
+              scheme_code: "9+1",
+              max_installment_amount: MAX_INSTALLMENT_AMOUNT,
+              nominee: !!enrollment.nominee_name,
+              nominee_age: enrollment.nominee_age,
+              subscription_id: response.razorpay_subscription_id
+            };
+
+            const ornaEnrollRes = await createOrnaverseEnrollment(enrollmentPayload);
+            const ornaEnrollId = ornaEnrollRes?.EntityId;
+
+            /* 3️⃣ ORNAVERSE: GET ENROLLED SCHEME TO FIND NEXT UNPAID MONTH */
+            const ornaSchemesRes = await fetchOrnaverseEnrollments(partyId);
+            const ornaSchemes = ornaSchemesRes?.Entities ?? [];
+            const matchedScheme = ornaSchemes.find(s => String(s.scheme_enrollment_id) === String(ornaEnrollId));
+
+            if (!matchedScheme) throw new Error("Enrolled scheme not found in Ornaverse");
+
+            const unpaidMonth = matchedScheme.scheme_monthly_details.find(m => !m.payment_made);
+            if (!unpaidMonth) throw new Error("No pending installment found");
+
+            /* 4️⃣ ORNAVERSE: CREATE SCHEME RECEIPT */
+            const receiptPayload = {
+              Entity: {
+                document_no: 123, // Placeholder as in original
+                document_date: new Date().toISOString(),
+                document_id: 99, // Placeholder as in original
+                mobile: user?.phone || user?.mobile,
+                party_id: partyId.toString(),
+                party_name: enrollment.party_name || user?.name,
+                email: user?.email || "",
+                phone_code: "91",
+                pan_no: null,
+                address: enrollment.address,
+                scheme_enrollment_id: ornaEnrollId.toString(),
+                month_ids: [String(unpaidMonth.month_id)],
+                amount,
+                gold_rate: 0,
+                weight: 0,
+                scheme_receipt_details: [{
+                  mode_id: 4, // ONLINE
+                  card_type: null,
+                  amount,
+                  cheque_no: null,
+                  cheque_date: null,
+                  ref_no: response.razorpay_payment_id,
+                  ledger_id: 154,
+                  bank_pos: 5,
+                  code: response.razorpay_payment_id,
+                  mode_name: method.toUpperCase(),
+                  mode_type: 2, // DIGITAL
+                }],
+                currency_id: "103",
+                exchange_rate: 1,
+                ledger_id: 154,
+                company_id: 2,
+                scheme_type: "1",
+                scheme_unique_code: matchedScheme.scheme_unique_code,
+              }
+            };
+
+            await createOrnaverseReceipt(receiptPayload);
+
+            /* 5️⃣ MONGODB: SAVE ENROLLMENT */
+            const mongoEnrollRes = await apiFetch("/api/schemes/enrollment", {
               method: "POST",
               body: JSON.stringify({
                 customer_id: user?.id,
@@ -160,7 +259,47 @@ export default function SchemePaymentPage() {
                 state: enrollment.state,
                 razorpay_subscription_id: response.razorpay_subscription_id,
                 razorpay_payment_id: response.razorpay_payment_id,
+                ornaverse_enrollment_id: ornaEnrollId,
               }),
+            });
+
+            /* 6️⃣ WEBHOOK (WebEngage sync) */
+            try {
+              await apiFetch("/api/webhook", {
+                method: "POST",
+                body: JSON.stringify({
+                  event_type: "scheme_success",
+                  user: {
+                    phone: `+91${user?.phone || user?.mobile}`,
+                    name: user?.name,
+                    email: user?.email,
+                  },
+                  scheme: {
+                    id: ornaEnrollId,
+                    amount: enrollment.amount,
+                    tenure: 9,
+                    subscription_id: response.razorpay_subscription_id,
+                    payment_id: response.razorpay_payment_id,
+                  },
+                  timestamp: new Date().toISOString(),
+                }),
+              });
+            } catch (webhookErr) {
+              console.error("Webhook sync failed:", webhookErr);
+            }
+
+            /* 7️⃣ LOG FULL SUCCESS */
+            await savePaymentRecord({
+              customer: { ...user, party_id: enrollment.party_id },
+              payment_status: "success",
+              payment_verified: true,
+              subscription: { id: response.razorpay_subscription_id },
+              razorpay_payment: response,
+              enrollment_payload: enrollmentPayload,
+              enrollment_result: ornaEnrollRes,
+              enrolled_scheme: matchedScheme,
+              receipt_create_payload: receiptPayload,
+              receipt_create_result: "success",
             });
 
             sessionStorage.removeItem("scheme_enrollment");
@@ -195,6 +334,7 @@ export default function SchemePaymentPage() {
       setLoading(false);
     }
   };
+
 
   if (!enrollment) {
     return (
