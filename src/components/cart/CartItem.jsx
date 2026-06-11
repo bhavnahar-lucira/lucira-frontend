@@ -105,8 +105,9 @@ export default function CartItem({ item, onAuthRequired }) {
   const byjStylePrice = isBYJ ? parseFloat(item.properties?.['_byj_style_price'] || 0) / 100 : 0;
   const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
   
-  const baseUnitPrice = isBYJ ? byjStylePrice : (item.price || 0);
-  const lineAmount = (baseUnitPrice + byjCharmsPrice) * (item.quantity || 1);
+  // For BYJ items, the unit price displayed should be the total of style + all charms
+  const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
+  const lineAmount = baseUnitPrice * (item.quantity || 1);
   const lineCompareAmount = (item.comparePrice || 0) * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
@@ -546,14 +547,16 @@ export default function CartItem({ item, onAuthRequired }) {
             {removing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             Remove
           </button>
-          <button
-            onClick={handleMoveToWishlist}
-            disabled={movingToWishlist}
-            className="flex flex-1 items-center justify-center gap-2 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-all hover:bg-zinc-50 hover:text-primary disabled:opacity-50"
-          >
-            {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} />}
-            Move to Wishlist
-          </button>
+          {!isBYJ && (
+            <button
+              onClick={handleMoveToWishlist}
+              disabled={movingToWishlist}
+              className="flex flex-1 items-center justify-center gap-2 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-all hover:bg-zinc-50 hover:text-primary disabled:opacity-50"
+            >
+              {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} />}
+              Move to Wishlist
+            </button>
+          )}
         </div>
       </div>
 
@@ -728,7 +731,7 @@ export default function CartItem({ item, onAuthRequired }) {
                             {charm.sku && <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
                           </div>
                         </div>
-                        <span className="text-[11px] font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        <span className="text-[11px] font-bold text-[#1c1810] whitespace-nowrap">₹ {((parseFloat(charm.price) * (charm.qty || 1)) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                       </div>
                     ))}
                   </div>
@@ -753,16 +756,19 @@ export default function CartItem({ item, onAuthRequired }) {
               Remove
             </button>
             
-            <div className="w-px h-4 bg-zinc-100" />
-
-            <button
-              onClick={handleMoveToWishlist}
-              disabled={movingToWishlist}
-              className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#443360] transition-all active:scale-95 disabled:opacity-50"
-            >
-              {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} className={isWishlisted ? "fill-primary text-primary" : ""} />}
-              Move to Wishlist
-            </button>
+            {!isBYJ && (
+              <>
+                <div className="w-px h-4 bg-zinc-100" />
+                <button
+                  onClick={handleMoveToWishlist}
+                  disabled={movingToWishlist}
+                  className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#443360] transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} className={isWishlisted ? "fill-primary text-primary" : ""} />}
+                  Move to Wishlist
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
