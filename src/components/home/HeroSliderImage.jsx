@@ -11,25 +11,7 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-const slideData = [
-  {
-    name: "Baarish",
-    alt: "Baarish",
-    url: "/collections/jewelry",
-  },
-  {
-    name: "9KT",
-    alt: "9KT Collection",
-    url: "/collections/9kt-collection",
-  },
-  {
-    name: "Solitaire",
-    alt: "Solitaire Twist Ring",
-    url: "/products/round-diamond-solitaire-twist-ring",
-  },
-];
-
-export default function HeroBanner() {
+export default function HeroBanner({ initialData = [] }) {
   const id = useId().replace(/:/g, "");
   const paginationElClass = `pagination-${id}`;
 
@@ -40,10 +22,70 @@ export default function HeroBanner() {
     pushPromoClick({
       creative_name: "homepage banner images clicked",
       location_id: "homepage",
-      promo_id: slide.alt,
+      promo_id: slide.alt || slide.name,
       promo_name: slide.name,
     });
   };
+
+  if (!initialData || initialData.length === 0) return null;
+
+  // Check if there is any video in the data
+  const videoSlide = initialData.find(slide => slide.type === 'video');
+
+  // If a video is present, show ONLY the first video and remove Swiper
+  if (videoSlide) {
+    return (
+      <div className="w-full bg-white">
+        <div className={`relative w-full overflow-hidden ${bannerHeightClasses}`}>
+          <Link 
+            prefetch={false} 
+            href={videoSlide.url || '/'} 
+            className="block w-full h-full"
+            onClick={() => handleBannerClick(videoSlide)}
+          >
+            <div className="relative w-full h-full">
+              {/* Desktop Video */}
+              <video
+                src={videoSlide.desktopImage}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="hidden lg:block w-full h-full object-cover object-center"
+              />
+              {/* Mobile Video */}
+              <video
+                src={videoSlide.mobileImage || videoSlide.desktopImage}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="block lg:hidden w-full h-full object-cover object-center"
+              />
+
+              {/* Text Overlay */}
+              {(videoSlide.title || videoSlide.subtitle) && (
+                <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 md:pb-24 bg-black/5">
+                  <div className="text-center text-white px-4">
+                    {videoSlide.title && (
+                      <h2 className="text-3xl md:text-5xl font-semibold uppercase tracking-[0.1em] mb-4 drop-shadow-2xl font-abhaya">
+                        {videoSlide.title}
+                      </h2>
+                    )}
+                    {videoSlide.subtitle && (
+                      <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] underline underline-offset-[12px] decoration-white/60 hover:decoration-white transition-all drop-shadow-xl cursor-pointer">
+                        {videoSlide.subtitle}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-white">
@@ -73,11 +115,11 @@ export default function HeroBanner() {
           }}
           className="h-full w-full"
         >
-          {slideData.map((slide, index) => (
-            <SwiperSlide key={slide.name}>
+          {initialData.map((slide, index) => (
+            <SwiperSlide key={slide.id || index}>
               <Link 
                 prefetch={false} 
-                href={slide.url} 
+                href={slide.url || '/'} 
                 className="block w-full h-full"
                 onClick={() => handleBannerClick(slide)}
               >
@@ -86,19 +128,37 @@ export default function HeroBanner() {
                     {/* Desktop Image */}
                     <source
                       media="(min-width: 1024px)"
-                      srcSet={`https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-${slide.name}-Desktop.jpg`}
+                      srcSet={slide.desktopImage}
                     />
 
                     {/* Mobile Image */}
                     <img
-                      src={`https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-${slide.name}-Mobile.jpg`}
-                      alt={slide.alt}
+                      src={slide.mobileImage || slide.desktopImage}
+                      alt={slide.alt || slide.name}
                       className="w-full h-full object-cover object-center"
                       loading={index === 0 ? "eager" : "lazy"}
                       fetchPriority={index === 0 ? "high" : "auto"}
                       draggable={false}
                     />
                   </picture>
+
+                  {/* Text Overlay for Image Slides */}
+                  {(slide.title || slide.subtitle) && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 md:pb-24 bg-black/5">
+                      <div className="text-center text-white px-4">
+                        {slide.title && (
+                          <h2 className="text-3xl md:text-5xl font-semibold uppercase tracking-[0.1em] mb-4 drop-shadow-2xl font-abhaya">
+                            {slide.title}
+                          </h2>
+                        )}
+                        {slide.subtitle && (
+                          <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] underline underline-offset-[12px] decoration-white/60 hover:decoration-white transition-all drop-shadow-xl cursor-pointer">
+                            {slide.subtitle}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Link>
             </SwiperSlide>
