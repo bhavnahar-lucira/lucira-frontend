@@ -11,25 +11,7 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-const slideData = [
-  {
-    name: "Baarish",
-    alt: "Baarish",
-    url: "/collections/jewelry",
-  },
-  {
-    name: "9KT",
-    alt: "9KT Collection",
-    url: "/collections/9kt-collection",
-  },
-  {
-    name: "Solitaire",
-    alt: "Solitaire Twist Ring",
-    url: "/products/round-diamond-solitaire-twist-ring",
-  },
-];
-
-export default function HeroBanner() {
+export default function HeroBanner({ initialData = [] }) {
   const id = useId().replace(/:/g, "");
   const paginationElClass = `pagination-${id}`;
 
@@ -40,10 +22,12 @@ export default function HeroBanner() {
     pushPromoClick({
       creative_name: "homepage banner images clicked",
       location_id: "homepage",
-      promo_id: slide.alt,
+      promo_id: slide.alt || slide.name,
       promo_name: slide.name,
     });
   };
+
+  if (!initialData || initialData.length === 0) return null;
 
   return (
     <div className="w-full bg-white">
@@ -73,32 +57,55 @@ export default function HeroBanner() {
           }}
           className="h-full w-full"
         >
-          {slideData.map((slide, index) => (
-            <SwiperSlide key={slide.name}>
+          {initialData.map((slide, index) => (
+            <SwiperSlide key={slide.id || index}>
               <Link 
                 prefetch={false} 
-                href={slide.url} 
+                href={slide.url || '/'} 
                 className="block w-full h-full"
                 onClick={() => handleBannerClick(slide)}
               >
                 <div className="relative w-full h-full">
-                  <picture>
-                    {/* Desktop Image */}
-                    <source
-                      media="(min-width: 1024px)"
-                      srcSet={`https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-${slide.name}-Desktop.jpg`}
-                    />
+                  {slide.type === 'video' ? (
+                    <>
+                      {/* Desktop Video */}
+                      <video
+                        src={slide.desktopImage}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="hidden lg:block w-full h-full object-cover object-center"
+                      />
+                      {/* Mobile Video */}
+                      <video
+                        src={slide.mobileImage || slide.desktopImage}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="block lg:hidden w-full h-full object-cover object-center"
+                      />
+                    </>
+                  ) : (
+                    <picture>
+                      {/* Desktop Image */}
+                      <source
+                        media="(min-width: 1024px)"
+                        srcSet={slide.desktopImage}
+                      />
 
-                    {/* Mobile Image */}
-                    <img
-                      src={`https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_homeSlider-${slide.name}-Mobile.jpg`}
-                      alt={slide.alt}
-                      className="w-full h-full object-cover object-center"
-                      loading={index === 0 ? "eager" : "lazy"}
-                      fetchPriority={index === 0 ? "high" : "auto"}
-                      draggable={false}
-                    />
-                  </picture>
+                      {/* Mobile Image */}
+                      <img
+                        src={slide.mobileImage || slide.desktopImage}
+                        alt={slide.alt || slide.name}
+                        className="w-full h-full object-cover object-center"
+                        loading={index === 0 ? "eager" : "lazy"}
+                        fetchPriority={index === 0 ? "high" : "auto"}
+                        draggable={false}
+                      />
+                    </picture>
+                  )}
                 </div>
               </Link>
             </SwiperSlide>

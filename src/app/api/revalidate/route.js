@@ -15,6 +15,13 @@ export async function POST(request) {
       return NextResponse.json({ revalidated: true, type: 'all' });
     }
 
+    if (type === 'path' && body.path) {
+      // Revalidate a specific path
+      revalidatePath(body.path);
+      console.log(`[Next.js Revalidate] Path revalidation triggered for: ${body.path}`);
+      return NextResponse.json({ revalidated: true, type: 'path', path: body.path });
+    }
+
     // Always revalidate the homepage for any product change to keep featured sections fresh.
     revalidatePath('/');
 
