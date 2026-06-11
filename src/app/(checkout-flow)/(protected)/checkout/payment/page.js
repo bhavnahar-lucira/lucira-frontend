@@ -787,6 +787,7 @@ export default function PaymentPage() {
         sessionId: getCartSessionId(),
         items: items,
         byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        byj_preview: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
         metafields: [
           {
             namespace: "custom",
@@ -795,6 +796,9 @@ export default function PaymentPage() {
             type: "file_reference"
           }
         ],
+        order_metafields: {
+          "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || ""
+        },
         "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
         customer: {
           name: customerName,
@@ -892,6 +896,7 @@ export default function PaymentPage() {
               razorpaySignature: response.razorpay_signature,
               draftId: order.draftId,
               byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        byj_preview: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
         metafields: [
           {
             namespace: "custom",
@@ -900,6 +905,9 @@ export default function PaymentPage() {
             type: "file_reference"
           }
         ],
+        order_metafields: {
+          "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || ""
+        },
         "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
               customer: {
                 id: customer?.id || "",

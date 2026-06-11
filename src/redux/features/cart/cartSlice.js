@@ -6,7 +6,8 @@ import {
   CART_CREATE_MUTATION, 
   CART_LINES_ADD_MUTATION, 
   CART_LINES_UPDATE_MUTATION, 
-  CART_LINES_REMOVE_MUTATION 
+  CART_LINES_REMOVE_MUTATION,
+  CART_ATTRIBUTES_UPDATE_MUTATION
 } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 
@@ -255,9 +256,22 @@ export const fetchCart = createAsyncThunk(
   }
 );
 
+export const updateCartAttributes = createAsyncThunk(
+  "cart/updateCartAttributes",
+  async ({ attributes }) => {
+    const cartId = getCartId();
+    if (!cartId || !attributes) return;
+
+    await shopifyStorefrontFetch(CART_ATTRIBUTES_UPDATE_MUTATION, {
+      cartId,
+      attributes
+    });
+  }
+);
+
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async (args, { rejectWithValue, getState }) => {
+  async (args, { rejectWithValue, getState, dispatch }) => {
     const { userId, product, products, context = "storefront" } = args || {};
     const state = getState();
     const finalUserId = userId || state.user?.user?.id || null;
@@ -334,6 +348,17 @@ export const addToCart = createAsyncThunk(
 
       const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
       shopifyCartData = fullData?.cart;
+    }
+
+    // After adding to cart, check if we have a BYJ image to sync as a cart attribute
+    const byjProduct = productsToAdd.find(p => p.properties?.['byj_image'] || p.properties?.['_byj_preview']);
+    if (byjProduct && shopifyCartData?.id) {
+       const img = byjProduct.properties['byj_image'] || byjProduct.properties['_byj_preview'];
+       if (img) {
+         dispatch(updateCartAttributes({
+           attributes: [{ key: "byj_image", value: img }]
+         }));
+       }
     }
 
     // 2. Parallel Fastify Backend Call
