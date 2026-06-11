@@ -1,5 +1,5 @@
 import React from 'react';
-import { BuildYourJewelryBuilder, BuildYourJewelryHero, BuildYourJewelrySteps } from '@/components/build-your-jewelry';
+import { BuildYourJewelryBuilder, BuildYourJewelryHero } from '@/components/build-your-jewelry';
 
 export const metadata = {
   title: 'Build Your Own Jewelry | Lucira',
@@ -21,7 +21,6 @@ const Page = async ({ searchParams }) => {
   return (
     <main>
       <BuildYourJewelryHero />
-      <BuildYourJewelrySteps />
     </main>
   );
 };

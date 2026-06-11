@@ -356,7 +356,13 @@ export const addToCart = createAsyncThunk(
        const img = byjProduct.properties['byj_image'] || byjProduct.properties['_byj_preview'];
        if (img) {
          dispatch(updateCartAttributes({
-           attributes: [{ key: "byj_image", value: img }]
+           attributes: [
+             { key: "byj_image", value: img },
+             { key: "custom.byj_image", value: img },
+             { key: "metafield:custom.byj_image", value: img },
+             { key: "_byj_image", value: img },
+             { key: "Preview Image", value: img }
+           ]
          }));
        }
     }
