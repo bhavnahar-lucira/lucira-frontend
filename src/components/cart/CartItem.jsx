@@ -321,14 +321,15 @@ export default function CartItem({ item, onAuthRequired }) {
 
           <Link prefetch={false} 
             href={productLink}
-            className="aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity hover:opacity-90"
+            className="aspect-square w-full shrink-0 overflow-hidden rounded-sm border-0 bg-transparent md:w-48 block transition-opacity hover:opacity-90"
           >
             <Image
               src={displayImage || "/images/product/1.jpg"}
               alt={item.title}
               width={200}
               height={200}
-              className="h-full w-full object-contain mix-blend-multiply"
+              className="h-auto w-full object-contain mix-blend-multiply"
+              style={{ color: 'transparent' }}
             />
           </Link>
 
@@ -406,7 +407,10 @@ export default function CartItem({ item, onAuthRequired }) {
                             <div className="w-10 h-10 bg-white border border-[#e0d0ba]/50 rounded-sm overflow-hidden shrink-0 p-1">
                               <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
                             </div>
-                            <span className="text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                              {charm.sku && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
+                            </div>
                           </div>
                           <span className="text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         </div>
@@ -597,7 +601,7 @@ export default function CartItem({ item, onAuthRequired }) {
                 )}
               </div>
               <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-tight">
-                {currentVariant?.sku || item.sku || "N/A"}
+                SKU: {currentVariant?.sku || item.sku || "N/A"}
               </p>
               {item.engraving && (
                 <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
@@ -719,7 +723,10 @@ export default function CartItem({ item, onAuthRequired }) {
                           <div className="w-8 h-8 bg-white border border-[#e0d0ba]/50 rounded-sm overflow-hidden shrink-0 p-1">
                             <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
                           </div>
-                          <span className="text-[11px] font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[11px] font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                            {charm.sku && <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
+                          </div>
                         </div>
                         <span className="text-[11px] font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                       </div>

@@ -10,6 +10,7 @@ import { shopifyStorefrontFetch } from '@/lib/shopify-client';
 import { useCart } from '@/hooks/useCart';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 const CHAIN_COLLECTION_HANDLE = 'byj-chains';
 const CHARM_COLLECTION_HANDLE = 'byj-faraways-charms';
@@ -32,6 +33,7 @@ const GET_COLLECTION_QUERY = `
                 node {
                   id
                   title
+                  sku
                   price {
                     amount
                   }
@@ -141,6 +143,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   const [zoom, setZoom] = useState(1);
 
   const { addToCart } = useCart();
+  const router = useRouter();
 
   useEffect(() => {
     async function loadData() {
@@ -180,6 +183,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                 title: p.title,
                 variantTitle: v.title,
                 fullTitle,
+                sku: v.sku || '',
                 price: parseFloat(v.price.amount) * 100, 
                 img: v.image?.url || p.featuredImage?.url || null,
                 thumb: v.image?.url || p.featuredImage?.url || null,
@@ -517,6 +521,52 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     });
   };
 
+  const zoomToCharms = () => {
+    const stage = stageRef.current;
+    const img = productImgRef.current;
+    if (!stage || !img) return;
+
+    const width = stage.width();
+    const height = stage.height();
+    const targetScale = 1.8;
+    
+    const targetX = img.x();
+    const targetY = img.y() + (img.height() * 0.35);
+
+    stage.to({
+      scaleX: targetScale,
+      scaleY: targetScale,
+      x: width / 2 - targetX * targetScale,
+      y: height / 2 - targetY * targetScale,
+      duration: 0.8,
+      easing: Konva.Easings.EaseInOut,
+      onUpdate: () => setZoom(stage.scaleX())
+    });
+  };
+
+  const zoomReset = () => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    stage.to({
+      scaleX: 1,
+      scaleY: 1,
+      x: 0,
+      y: 0,
+      duration: 0.5,
+      easing: Konva.Easings.EaseInOut,
+      onUpdate: () => setZoom(1)
+    });
+  };
+
+  useEffect(() => {
+    const totalQty = selectedCharms.reduce((acc, c) => acc + c.qty, 0);
+    if (totalQty === 1) {
+      zoomToCharms();
+    } else if (totalQty === 0) {
+      zoomReset();
+    }
+  }, [selectedCharms.length]);
+
   const toggleCharmSelection = (charmGroup) => {
     const version = getActiveVersion(charmGroup, material, length);
     const existing = selectedCharms.find(c => c.base === charmGroup.base);
@@ -625,7 +675,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         '_byj_preview': canvasPreview,
         '_byj_style_img': styleV.img,
         '_byj_style_price': styleV.price,
-        '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ title: c.fullTitle, price: c.price, qty: c.qty, img: c.img })))
+        '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ title: c.fullTitle, price: c.price, qty: c.qty, img: c.img, sku: c.sku })))
       };
 
       const mainItem = {
@@ -634,6 +684,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         quantity: 1,
         price: styleV.price / 100,
         finalPrice: styleV.price / 100,
+        sku: styleV.sku,
         properties
       };
 
@@ -643,6 +694,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         quantity: c.qty,
         price: c.price / 100,
         finalPrice: c.price / 100,
+        sku: c.sku,
         properties: {
           '_byj_group_id': groupId,
           '_byj_parent': styleV.id
@@ -654,6 +706,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       });
       
       setIsSummaryOpen(false);
+      router.push('/cart');
     } catch (err) {
       console.error('Add to bag failed:', err);
     } finally {
@@ -669,9 +722,16 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       <style jsx global>{`
         .build-your-jewelry-bracelets { color: #1c1810; font-family: var(--font-figtree), sans-serif; background: #fffcf9; }
         .byj-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "canvas panel"; min-height: 100vh; max-width: 1600px; margin: 0 auto; }
+        
+        /* Hide global sticky elements and footer on this page */
+        footer, 
+        .zsiq_float_main, 
+        #zsiq_float_container,
+        .fixed.z-\[499\] { display: none !important; }
+
         .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 40px 24px; min-height: 60vh; }
         .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Q1PartB2953_37dd8896-3ea2-4c65-8c86-707f5cacb9b3.webp?v=1780657459); background-size: cover; background-position: center; }
-        #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 20px; overflow: hidden; touch-action: none; background: rgba(255,255,255,0.4); backdrop-filter: blur(10px); box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
+        #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 20px; overflow: hidden; touch-action: none;}
         
         .byj-canvas-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; z-index: 20; }
         .byj-zoom-bar { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 100px; padding: 6px 18px; box-shadow: 0 4px 25px rgba(0,0,0,.08); border: 1px solid rgba(224,208,186,0.5); }
@@ -698,7 +758,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
         .byj-step { border-bottom: 1px solid #f0ebe4; transition: background .3s; }
         .byj-step.open { background: #fdfaf7; }
-        .byj-step-header { display: flex; align-items: center; justify-content: space-between; padding: 22px 25px; cursor: pointer; user-select: none; }
+        .byj-step-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 25px; cursor: pointer; user-select: none; }
         .byj-step-left { display: flex; align-items: center; gap: 14px; }
         .byj-step-check { width: 22px; height: 22px; border-radius: 50%; background: #1c1810; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .3s; }
         .byj-step-check.pending { background: transparent; color: #e0d0ba; border: 1.5px solid #e0d0ba; }
@@ -706,7 +766,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-step-value { font-size: 13px; color: #1c1810; font-weight: 500; }
         .byj-chevron { transition: transform .4s cubic-bezier(.4,0,.2,1); color: #5a413f; opacity: 0.6; }
         .byj-step.open .byj-chevron { transform: rotate(180deg); opacity: 1; }
-        .byj-step-body { padding: 0 25px 30px; display: none; }
+        .byj-step-body { padding: 0 25px 20px; display: none; }
         .byj-step.open .byj-step-body { display: block; animation: fadeIn .4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -716,7 +776,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-total-price { font-size: 24px; font-weight: 800; color: #1c1810; font-family: var(--font-abhaya), serif; }
 
         .byj-option-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-        .byj-opt-btn { padding: 8px 20px; border: 1.5px solid #f0ebe4; border-radius: 100px; font-size: 13px; font-weight: 600; cursor: pointer; background: #fff; transition: all .2s; color: #5a413f; }
+        .byj-opt-btn { padding: 8px 20px; border: 1.5px solid #f0ebe4; border-radius: 100px; padding: 4px 18px; font-size: 12px; font-weight: 600; transition: all .2s; color: #5a413f; }
         .byj-opt-btn:hover { border-color: #e0d0ba; background: #fdfaf7; }
         .byj-opt-btn.active { background: #1c1810; border-color: #1c1810; color: #fff; transform: scale(1.05); }
 
@@ -724,14 +784,14 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-style-card, .byj-charm-item { border: 1.5px solid #f0ebe4; border-radius: 14px; overflow: hidden; cursor: pointer; background: #fff; transition: all .3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; position: relative; }
         .byj-style-card:hover, .byj-charm-item:hover { border-color: #e0d0ba; transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .byj-style-card.active, .byj-charm-item.selected { border-color: #1c1810; background: #fdfaf7; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
-        .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #fcf9f6; padding: 15px; overflow: hidden; }
+        .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 6px; overflow: hidden; }
         .byj-style-img-wrap img { width: 100%; height: 100%; object-fit: contain; transition: transform .5s ease; }
         .byj-style-card:hover .byj-style-img-wrap img, .byj-charm-item:hover .byj-style-img-wrap img { transform: scale(1.08); }
         .byj-style-check-badge { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #f0ebe4; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 2; color: transparent; transition: all .3s; }
         .byj-style-card.active .byj-style-check-badge, .byj-charm-item.selected .byj-style-check-badge { background: #1c1810; border-color: #1c1810; color: #fff; }
         
         .byj-style-info { padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-        .byj-style-name { font-size: 13px; font-weight: 700; line-height: 1.3; color: #1c1810; min-height: 34px; }
+        .byj-style-name { font-size: 13px; font-weight: 700; line-height: 1.3; color: #1c1810; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .byj-style-price { font-size: 15px; font-weight: 800; color: #1c1810; margin-top: auto; }
         
         .byj-charm-qty-wrap { display: flex; align-items: center; justify-content: space-between; width: 100%; background: #f0ebe4; margin-top: 10px; border-radius: 100px; overflow: hidden; padding: 2px; }
@@ -767,10 +827,10 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-sum-charm-name { font-size: 13px; font-weight: 600; display: block; color: #1c1810; }
         .byj-sum-charm-qty { font-size: 11px; color: #5a413f; font-weight: 500; }
 
-        .byj-drawer-footer { padding: 10px 30px; background: #fff; border-top: 1px solid #f0ebe4; }
+        .byj-drawer-footer { padding: 10px 20px; background: #fff; border-top: 1px solid #f0ebe4; }
         .byj-subtotal-row {justify-content: space-between; align-items: baseline; margin-bottom: 10px; display: flex;}
         .byj-subtotal-label { font-size: 13px; font-weight: 600; color: #5a413f; }
-        .byj-subtotal-price {color: #1c1810; font-family: figtree, sans-serif; font-size: 18px; font-weight: 700;}
+        .byj-subtotal-price { color: #1c1810; font-family: var(--font-abhaya), serif;     font-size: 16px; font-weight: 700; font-family: 'Figtree', sans-serif; }
 
         @media (max-width: 1024px) {
           .byj-layout { grid-template-columns: 1fr 360px; }

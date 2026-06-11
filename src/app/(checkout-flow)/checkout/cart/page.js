@@ -116,7 +116,7 @@ export default function CartPage() {
               <div className="space-y-4">
                 {filteredItems.map((item, index) => (
                   <CartItem 
-                    key={item.variantId || index} 
+                    key={item.id || `${item.variantId}-${index}`} 
                     item={item} 
                     onAuthRequired={openLogin}
                   />

@@ -9,6 +9,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { usePathname } from "next/navigation";
 
 const SEARCH_DATA = [
   {
@@ -115,7 +116,10 @@ const SEARCH_DATA = [
 ];
 
 export default function PopularSearches() {
+  const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
+
+  if (pathname === "/build-your-jewelry") return null;
 
   return (
     <div className="w-full bg-white pb-12 lg:pb-16 lg:pt-4 pt-2">
