@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
-import { removeFromCart, updateCartItem } from "@/redux/features/cart/cartSlice";
+import { removeFromCart, removeMultipleFromCart, updateCartItem } from "@/redux/features/cart/cartSlice";
 import { 
   addWishlistItem, 
   removeWishlistItem,
@@ -111,8 +111,8 @@ export default function CartItem({ item, onAuthRequired }) {
   const lineCompareAmount = (item.comparePrice || 0) * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
-  const statusLabel = isInStock ? "In Stock" : "Made to Order";
-  const statusClass = isInStock ? "text-green-500" : "text-primary";
+  const statusLabel = (isInStock && !isBYJ) ? "In Stock" : "Made to Order";
+  const statusClass = (isInStock && !isBYJ) ? "text-green-500" : "text-primary";
 
   const displayImage = isBYJ ? item.properties['_byj_preview'] : (currentVariant?.image || item.image);
 
@@ -157,8 +157,21 @@ export default function CartItem({ item, onAuthRequired }) {
           const linkedItems = allCartItems.filter(i => 
             i.properties?.['_byj_group_id'] === groupId && i.lineId !== item.lineId
           );
-          for (const linked of linkedItems) {
-            await dispatch(removeFromCart({ userId: user?.id, lineId: linked.lineId || linked.variantId })).unwrap();
+          
+          if (linkedItems.length > 0) {
+            const lineIds = [item.lineId, ...linkedItems.map(i => i.lineId)].filter(Boolean);
+            const variantIds = [item.variantId, ...linkedItems.map(i => i.variantId)].filter(Boolean);
+            
+            await dispatch(removeMultipleFromCart({ 
+              userId: user?.id, 
+              lineIds, 
+              variantIds 
+            })).unwrap();
+            
+            toast.error("Removed from cart", {
+              icon: <Check className="w-4 h-4" />
+            });
+            return;
           }
         }
       }

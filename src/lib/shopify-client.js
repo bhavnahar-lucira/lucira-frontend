@@ -35,8 +35,12 @@ export async function shopifyStorefrontFetch(query, variables = {}, retries = 3,
       const hasConflict = data.errors.some(e => e.extensions?.code === "CONFLICT");
       
       if (hasConflict && retries > 0) {
-        console.warn(`[shopifyStorefrontFetch] Cart conflict detected. Retrying in ${delayMs}ms... (${retries} retries left)`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        // Add random jitter to delay to prevent concurrent retries from conflicting again
+        const jitter = Math.floor(Math.random() * 200);
+        const nextDelay = delayMs + jitter;
+        
+        console.warn(`[shopifyStorefrontFetch] Cart conflict detected. Retrying in ${nextDelay}ms... (${retries} retries left)`);
+        await new Promise(resolve => setTimeout(resolve, nextDelay));
         return shopifyStorefrontFetch(query, variables, retries - 1, delayMs * 2);
       }
 

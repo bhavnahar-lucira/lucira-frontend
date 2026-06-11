@@ -161,7 +161,11 @@ export const fetchCart = createAsyncThunk(
 
     const [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
     
-    // Quantity correction logic removed to allow quantity > 1
+    // Heal stale cart if shopifyPromise returned nothing but we had a cartId
+    if (!data?.cart && cartId) {
+      console.warn("[fetchCart] Cart ID not found on Shopify, clearing...");
+      localStorage.removeItem("shopify_cart_id");
+    }
     
     // Auto-heal/sync backend cart from storefront lines if backend cart has no items
     let finalBackendCart = backendCart;
@@ -331,23 +335,54 @@ export const addToCart = createAsyncThunk(
         shopifyCartData = fullData?.cart;
       }
     } else {
-      const data = await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
-        cartId,
-        lines
-      });
+      let retries = 3;
+      let delayMs = 500;
+      
+      while (retries >= 0) {
+        let data = await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
+          cartId,
+          lines
+        });
 
-      const userErrors = data?.cartLinesAdd?.userErrors;
-      if (userErrors && userErrors.length > 0) {
-        console.error("Shopify cartLinesAdd UserErrors:", userErrors);
-        if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
-          localStorage.removeItem("shopify_cart_id");
-          return rejectWithValue("Cart not found, please try adding again.");
+        let userErrors = data?.cartLinesAdd?.userErrors || [];
+        
+        // If conflict, retry with jitter
+        const isConflict = userErrors.some(e => e.code === "CONFLICT" || e.message.includes("conflicted"));
+        if (isConflict && retries > 0) {
+          const jitter = Math.floor(Math.random() * 200);
+          console.warn(`[addToCart] User-level conflict detected, retrying in ${delayMs + jitter}ms...`);
+          await new Promise(r => setTimeout(r, delayMs + jitter));
+          retries--;
+          delayMs *= 2;
+          continue;
         }
-        return rejectWithValue(userErrors[0].message);
-      }
 
-      const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-      shopifyCartData = fullData?.cart;
+        // If cart not found, clear ID and try to create a new one instead of failing
+        if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+          console.warn("[addToCart] Cart ID stale, creating new cart...");
+          localStorage.removeItem("shopify_cart_id");
+          const newData = await shopifyStorefrontFetch(CART_CREATE_MUTATION, {
+            input: { lines }
+          });
+          const newCart = newData?.cartCreate?.cart;
+          if (newCart) {
+            setCartId(newCart.id);
+            const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId: newCart.id });
+            shopifyCartData = fullData?.cart;
+            break;
+          } else {
+            const createErrors = newData?.cartCreate?.userErrors;
+            return rejectWithValue(createErrors?.[0]?.message || "Failed to create new cart");
+          }
+        } else if (userErrors.length > 0) {
+          console.error("Shopify cartLinesAdd UserErrors:", userErrors);
+          return rejectWithValue(userErrors[0].message);
+        } else {
+          const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+          shopifyCartData = fullData?.cart;
+          break;
+        }
+      }
     }
 
     // After adding to cart, check if we have a BYJ image to sync as a cart attribute
@@ -421,7 +456,6 @@ export const removeFromCart = createAsyncThunk(
     // Check if the lineId passed is actually a variantId or productId
     const state = getState();
     const items = state.cart?.items || [];
-    const hasLineId = items.some(item => item.lineId === lineId);
 
     let variantId = null;
 
@@ -439,10 +473,17 @@ export const removeFromCart = createAsyncThunk(
     }
 
     // 1. Shopify storefront remove
-    await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
+    let data = await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
       cartId,
       lineIds: [targetLineId]
     });
+
+    // Heal stale cart
+    const userErrors = data?.cartLinesRemove?.userErrors || [];
+    if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+      localStorage.removeItem("shopify_cart_id");
+      return { items: [], totalQuantity: 0, totalAmount: 0, context };
+    }
 
     // 2. Fastify backend remove
     let backendCart = null;
@@ -462,8 +503,57 @@ export const removeFromCart = createAsyncThunk(
       }
     }
 
-    const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-    return mapShopifyCart(data?.cart, backendCart);
+    const finalData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+    return mapShopifyCart(finalData?.cart, backendCart);
+  }
+);
+
+export const removeMultipleFromCart = createAsyncThunk(
+  "cart/removeMultipleFromCart",
+  async ({ userId, lineIds, variantIds, context = "storefront" }, { getState }) => {
+    const finalUserId = userId || getState().user?.user?.id || null;
+    const sessionId = getSessionId();
+    const cartId = getCartId();
+    if (!cartId || !lineIds || lineIds.length === 0) {
+      const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+      return mapShopifyCart(data?.cart);
+    }
+
+    // 1. Shopify storefront remove (supports bulk)
+    let data = await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
+      cartId,
+      lineIds
+    });
+
+    // Heal stale cart
+    const userErrors = data?.cartLinesRemove?.userErrors || [];
+    if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+      localStorage.removeItem("shopify_cart_id");
+      return { items: [], totalQuantity: 0, totalAmount: 0, context };
+    }
+
+    // 2. Fastify backend remove (sequential to avoid backend race conditions if any)
+    let backendCart = null;
+    if (variantIds && variantIds.length > 0) {
+      for (const vId of variantIds) {
+        try {
+          backendCart = await apiFetch("/api/cart/remove", {
+            method: "POST",
+            body: JSON.stringify({
+              userId: finalUserId,
+              sessionId,
+              variantId: vId,
+              context
+            })
+          });
+        } catch (e) {
+          console.error("removeMultipleFromCart backend error:", e);
+        }
+      }
+    }
+
+    const finalData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+    return mapShopifyCart(finalData?.cart, backendCart);
   }
 );
 
@@ -501,10 +591,17 @@ export const updateCartItem = createAsyncThunk(
     if (quantity !== undefined) lineUpdate.quantity = quantity;
     if (nextVariantId) lineUpdate.merchandiseId = toShopifyGid(nextVariantId, "ProductVariant");
 
-    await shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
+    let data = await shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
       cartId,
       lines: [lineUpdate]
     });
+
+    // Heal stale cart
+    const userErrors = data?.cartLinesUpdate?.userErrors || [];
+    if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+      localStorage.removeItem("shopify_cart_id");
+      return { items: [], totalQuantity: 0, totalAmount: 0, context };
+    }
 
     // 2. Fastify backend update
     let backendCart = null;
@@ -537,8 +634,8 @@ export const updateCartItem = createAsyncThunk(
       }
     }
 
-    const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-    return mapShopifyCart(data?.cart, backendCart);
+    const finalData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+    return mapShopifyCart(finalData?.cart, backendCart);
   }
 );
 
@@ -747,6 +844,22 @@ const cartSlice = createSlice({
         }
       })
       .addCase(removeFromCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(removeMultipleFromCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(removeMultipleFromCart.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          state.items = action.payload.items || [];
+          state.totalQuantity = action.payload.totalQuantity || 0;
+          state.totalAmount = action.payload.totalAmount || 0;
+        }
+      })
+      .addCase(removeMultipleFromCart.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })

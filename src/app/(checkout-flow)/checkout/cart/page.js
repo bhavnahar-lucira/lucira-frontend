@@ -10,7 +10,7 @@ import { ShoppingBag, ArrowRight, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { pushViewCart } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
-import { removeFromCart } from "@/redux/features/cart/cartSlice";
+import { removeFromCart, removeMultipleFromCart } from "@/redux/features/cart/cartSlice";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
@@ -21,6 +21,7 @@ export default function CartPage() {
   const { items, totalQuantity, totalAmount, appliedCoupon } = useSelector((state) => state.cart);  
   const { user, isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
+  const cleanupInProgress = useRef(false);
 
   // Fallback: If user logs in while on cart page, and was trying to checkout, redirect them
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function CartPage() {
 
   // Effect to cleanup orphaned BYJ charms
   useEffect(() => {
-    if (items.length > 0) {
+    if (items.length > 0 && !cleanupInProgress.current) {
       const parentGroupIds = new Set(
         items
           .filter(item => item.properties?.['_byj_preview'])
@@ -94,12 +95,21 @@ export default function CartPage() {
       });
 
       if (orphanedCharms.length > 0) {
-        orphanedCharms.forEach(async (charm) => {
-          try {
-            await dispatch(removeFromCart({ userId: user?.id, lineId: charm.lineId || charm.variantId })).unwrap();
-          } catch (e) {
-            console.error("Failed to cleanup orphaned charm:", e);
-          }
+        cleanupInProgress.current = true;
+        const lineIds = orphanedCharms.map(c => c.lineId).filter(Boolean);
+        const variantIds = orphanedCharms.map(c => c.variantId).filter(Boolean);
+
+        dispatch(removeMultipleFromCart({ 
+          userId: user?.id, 
+          lineIds, 
+          variantIds 
+        }))
+        .unwrap()
+        .catch((e) => {
+          console.error("Failed to cleanup orphaned charms:", e);
+        })
+        .finally(() => {
+          cleanupInProgress.current = false;
         });
       }
     }
