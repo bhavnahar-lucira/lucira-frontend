@@ -11,6 +11,7 @@ import { useCart } from '@/hooks/useCart';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { Check, ChevronRight } from 'lucide-react';
 
 const CHAIN_COLLECTION_HANDLE = 'byj-chains';
 const CHARM_COLLECTION_HANDLE = 'byj-faraways-charms';
@@ -720,26 +721,33 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   return (
     <div className="build-your-jewelry-bracelets">
       <style jsx global>{`
-        .build-your-jewelry-bracelets { color: #1c1810; font-family: var(--font-figtree), sans-serif; background: #fffcf9; }
-        .byj-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "canvas panel"; min-height: 100vh; max-width: 1600px; margin: 0 auto; }
+        .build-your-jewelry-bracelets {color: #1c1810; font-family: var(--font-figtree), sans-serif; background: #ffffff;}
+        .byj-layout { display: grid; grid-template-columns: 1fr auto 400px; grid-template-areas: "canvas summary panel"; min-height: 100vh; max-width: 100vw; margin: 0 auto; overflow: hidden;}
         
-        /* Hide global sticky elements and footer on this page */
         footer, 
         .zsiq_float_main, 
         #zsiq_float_container,
         .fixed.z-\[499\] { display: none !important; }
 
-        .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 40px 24px; min-height: 60vh; }
+        .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 0px 24px; min-height: 60vh; }
         .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Q1PartB2953_37dd8896-3ea2-4c65-8c86-707f5cacb9b3.webp?v=1780657459); background-size: cover; background-position: center; }
         #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 20px; overflow: hidden; touch-action: none;}
         
-        .byj-canvas-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; z-index: 20; }
-        .byj-zoom-bar { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 100px; padding: 6px 18px; box-shadow: 0 4px 25px rgba(0,0,0,.08); border: 1px solid rgba(224,208,186,0.5); }
-        .byj-ctrl-btn { width: 34px; height: 34px; border: none; background: #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; transition: all .2s cubic-bezier(.4,0,.2,1); box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+        .byj-canvas-controls { position: absolute; bottom: 30px; right: 30px; display: flex; align-items: center; gap: 12px; z-index: 20; }
+        .byj-zoom-bar { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 100px; padding: 6px 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #f0ebe4; }
+        .byj-ctrl-btn { width: 34px; height: 34px; border: none; background: #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; transition: all .2s cubic-bezier(.4,0,.2,1); }
         .byj-ctrl-btn:hover { background: #fdfaf7; transform: translateY(-1px) scale(1.05); }
         .byj-zoom-track { width: 100px; height: 3px; background: #f0ebe4; border-radius: 10px; position: relative; cursor: pointer; }
         .byj-zoom-thumb { width: 14px; height: 14px; border-radius: 50%; background: #1c1810; position: absolute; top: 50%; transform: translate(-50%,-50%); transition: left .2s cubic-bezier(.4,0,.2,1); display: block; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
         
+        .byj-selection-summary-bar { grid-area: summary; width: 180px; background: #fdfaf7; border-left: 1px solid #f0ebe4; display: flex; flex-direction: column; padding: 60px 25px; gap: 40px; position: sticky; top: 0; height: 100vh; }
+        .byj-summary-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .byj-summary-label { font-size: 11px; font-weight: 700; color: #8a8a8a; letter-spacing: 0.1em; margin-bottom: 6px; }
+        .byj-summary-value { font-size: 13px; font-weight: 700; color: #1c1810; text-transform: uppercase; line-height: 1.4; }
+        .byj-summary-status { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #e0d0ba; display: flex; align-items: center; justify-content: center; color: transparent; flex-shrink: 0; }
+        .byj-summary-status.checked { background: #4e8a56; border-color: #4e8a56; color: #fff; }
+        .byj-summary-arrow { color: #e0d0ba; margin-top: 15px; }
+
         .byj-help-btn-wrap { position: relative; }
         .byj-help-btn { width: 34px; height: 34px; border: 1px solid rgba(224,208,186,0.8); background: #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; box-shadow: 0 4px 20px rgba(0,0,0,.06); font-size: 15px; font-weight: 600; transition: all .2s; }
         .byj-help-btn:hover { background: #fdfaf7; border-color: #5a413f; }
@@ -750,9 +758,9 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-config-panel { grid-area: panel; background: #fff; border-left: 1px solid #e0d0ba; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; box-shadow: -10px 0 50px rgba(0,0,0,0.02); }
         .byj-panel-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; scroll-behavior: smooth; }
         .byj-material-bar { display: flex; align-items: center; gap: 15px; padding: 24px 25px; border-bottom: 1px solid #f0ebe4; background: #fff; }
-        .byj-material-label { font-size: 11px; color: #5a413f; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
-        .byj-mat-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; padding: 2px; background: transparent; cursor: pointer; transition: all .2s; }
-        .byj-mat-btn.active { border-color: #1c1810; transform: scale(1.1); }
+        .byj-material-label {color: #5a413f; letter-spacing: .2px; text-transform: uppercase; margin-bottom: 3px; font-size: 12px; font-weight: 700;}
+        .byj-mat-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid transparent; padding: 2px; background: transparent; cursor: pointer; transition: all .2s; }
+        .byj-mat-btn.active { border-color: #1c1810; transform: scale(1); width: 32px; height: 32px;}
         .byj-mat-swatch { display: block; width: 100%; height: 100%; border-radius: 50%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
         .byj-mat-name { font-size: 13px; color: #1c1810; font-weight: 600; margin-left: auto; }
 
@@ -760,41 +768,41 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-step.open { background: #fdfaf7; }
         .byj-step-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 25px; cursor: pointer; user-select: none; }
         .byj-step-left { display: flex; align-items: center; gap: 14px; }
-        .byj-step-check { width: 22px; height: 22px; border-radius: 50%; background: #1c1810; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .3s; }
+        .byj-step-check { width: 22px; height: 22px; border-radius: 50%; background: #59403e; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .3s; }
         .byj-step-check.pending { background: transparent; color: #e0d0ba; border: 1.5px solid #e0d0ba; }
-        .byj-step-label { font-size: 11px; color: #5a413f; font-weight: 700; margin-bottom: 3px; letter-spacing: .12em; text-transform: uppercase; }
-        .byj-step-value { font-size: 13px; color: #1c1810; font-weight: 500; }
+        .byj-step-label { font-size: 11px; color: #5a413f; font-weight: 700; margin-bottom: 3px; letter-spacing: 0.2px; text-transform: uppercase; }
+        .byj-step-value { font-size: 12px; color: #1c1810; font-weight: 500; }
         .byj-chevron { transition: transform .4s cubic-bezier(.4,0,.2,1); color: #5a413f; opacity: 0.6; }
         .byj-step.open .byj-chevron { transform: rotate(180deg); opacity: 1; }
         .byj-step-body { padding: 0 25px 20px; display: none; }
         .byj-step.open .byj-step-body { display: block; animation: fadeIn .4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .byj-confirm-bar { display: flex; align-items: center; gap: 15px; padding: 24px 25px; border-top: 1px solid #f0ebe4; background: #fff; z-index: 10; width: 100%; box-shadow: 0 -10px 30px rgba(0,0,0,0.02); }
+        .byj-confirm-bar { display: flex; align-items: center; gap: 15px; padding: 14px 25px; border-top: 1px solid #f0ebe4; background: #fff; z-index: 10; width: 100%; box-shadow: 0 -10px 30px rgba(0,0,0,0.02); }
         .byj-total-wrap { display: flex; flex-direction: column; min-width: 120px; }
         .byj-total-label { font-size: 10px; color: #5a413f; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; margin-bottom: 2px; }
-        .byj-total-price { font-size: 24px; font-weight: 800; color: #1c1810; font-family: var(--font-abhaya), serif; }
+        .byj-total-price {color: #1c1810; font-weight: 700; font-family: 'Figtree', sans-serif; font-size: 18px;}
 
         .byj-option-grid { display: flex; flex-wrap: wrap; gap: 10px; }
         .byj-opt-btn { padding: 8px 20px; border: 1.5px solid #f0ebe4; border-radius: 100px; padding: 4px 18px; font-size: 12px; font-weight: 600; transition: all .2s; color: #5a413f; }
         .byj-opt-btn:hover { border-color: #e0d0ba; background: #fdfaf7; }
-        .byj-opt-btn.active { background: #1c1810; border-color: #1c1810; color: #fff; transform: scale(1.05); }
+        .byj-opt-btn.active { background: #59403f; border-color: #59403f; color: #fff; transform: scale(1.05); }
 
         .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .byj-style-card, .byj-charm-item { border: 1.5px solid #f0ebe4; border-radius: 14px; overflow: hidden; cursor: pointer; background: #fff; transition: all .3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; position: relative; }
         .byj-style-card:hover, .byj-charm-item:hover { border-color: #e0d0ba; transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .byj-style-card.active, .byj-charm-item.selected { border-color: #1c1810; background: #fdfaf7; box-shadow: 0 8px 20px rgba(0,0,0,0.04); }
+        .byj-style-card.active, .byj-charm-item.selected { border-color: #5a413f; background: #fff;  border-color: #5a413f;}
         .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 6px; overflow: hidden; }
         .byj-style-img-wrap img { width: 100%; height: 100%; object-fit: contain; transition: transform .5s ease; }
         .byj-style-card:hover .byj-style-img-wrap img, .byj-charm-item:hover .byj-style-img-wrap img { transform: scale(1.08); }
         .byj-style-check-badge { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #f0ebe4; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 2; color: transparent; transition: all .3s; }
-        .byj-style-card.active .byj-style-check-badge, .byj-charm-item.selected .byj-style-check-badge { background: #1c1810; border-color: #1c1810; color: #fff; }
+        .byj-style-card.active .byj-style-check-badge, .byj-charm-item.selected .byj-style-check-badge {background: #59403f; border-color: #59403f; color: #fff; }
         
         .byj-style-info { padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-        .byj-style-name { font-size: 13px; font-weight: 700; line-height: 1.3; color: #1c1810; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-        .byj-style-price { font-size: 15px; font-weight: 800; color: #1c1810; margin-top: auto; }
+        .byj-style-name { font-size: 13px; font-weight: 500; line-height: 1.3; color: #1c1810; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .byj-style-price { font-size: 15px; font-weight: 700; color: #1c1810; margin-top: auto; }
         
-        .byj-charm-qty-wrap { display: flex; align-items: center; justify-content: space-between; width: 100%; background: #f0ebe4; margin-top: 10px; border-radius: 100px; overflow: hidden; padding: 2px; }
+        .byj-charm-qty-wrap {background: #fafafa; border-radius: 8px; justify-content: space-between; align-items: center; width: 100%; margin-top: 0; padding: 2px; display: flex; overflow: hidden;}
         .byj-qty-btn { background: transparent; border: none; width: 32px; height: 32px; font-size: 18px; color: #1c1810; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .2s; border-radius: 50%; }
         .byj-qty-btn:hover { background: #fff; }
         .byj-qty-num { font-size: 14px; font-weight: 800; min-width: 28px; text-align: center; color: #1c1810; }
@@ -891,6 +899,48 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
               </div>
             )}
           </div>
+
+          {!isMobile && (
+            <div className="byj-selection-summary-bar">
+              <div className="byj-summary-item">
+                <div className="byj-summary-info">
+                  <div className="byj-summary-label">PRODUCT TYPE</div>
+                  <div className="byj-summary-value">{categoryConfig.label}</div>
+                </div>
+                <div className="byj-summary-status checked">
+                  <Check size={14} strokeWidth={3} />
+                </div>
+              </div>
+
+              <div className="byj-summary-item">
+                <div className="byj-summary-info">
+                  <div className="byj-summary-label">STYLE</div>
+                  <div className="byj-summary-value truncate max-w-[120px]">{selectedStyle ? getActiveVersion(selectedStyle, material, length)?.fullTitle : '...'}</div>
+                </div>
+                <div className={cn("byj-summary-status", selectedStyle && "checked")}>
+                  {selectedStyle && <Check size={14} strokeWidth={3} />}
+                </div>
+              </div>
+
+              <div className="byj-summary-item">
+                <div className="byj-summary-info">
+                  <div className="byj-summary-label">LENGTH</div>
+                  <div className="byj-summary-value">{length}</div>
+                </div>
+                <div className="byj-summary-status checked">
+                   <Check size={14} strokeWidth={3} />
+                </div>
+              </div>
+
+              <div className="byj-summary-item charms mt-auto">
+                <div className="byj-summary-info">
+                  <div className="byj-summary-label">CHARMS</div>
+                  <div className="byj-summary-value">{selectedCharms.reduce((acc, c) => acc + c.qty, 0)} Selected</div>
+                </div>
+                <ChevronRight size={20} className="byj-summary-arrow" />
+              </div>
+            </div>
+          )}
 
           {!isMobile && (
             <div className="byj-config-panel">
