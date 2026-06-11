@@ -87,6 +87,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import StyledByLucira from "../home/StyledByLucira";
+import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
 import { loadNectorReviews } from "@/lib/nector";
 
@@ -2999,9 +3000,15 @@ export default function ProductPageClient({
       </div>
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
       <ProductStory description={product.description} />
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <StyledByLucira/>
-      </Suspense>
+      
+      {product.tags?.includes("Sports Collection") ? (
+        <StyledByLuciraCollection/>
+      ) : (
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+          <StyledByLucira />
+        </Suspense>
+      )}
+
       <OurProcess />
       <div ref={reviewsRef}>
         <CustomerReviews
