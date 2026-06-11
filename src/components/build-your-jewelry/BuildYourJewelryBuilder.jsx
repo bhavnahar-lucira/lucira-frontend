@@ -215,17 +215,35 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         const charmInfoList = [];
 
         charmResponses.forEach((res, index) => {
-          const handle = CHARM_COLLECTIONS[index].handle;
+          const colDef = CHARM_COLLECTIONS[index];
+          const handle = colDef.handle;
+          
+          if (!res || !res.collection) {
+            console.warn(`[BYJ] Collection not found in Storefront: ${handle}`);
+            charmDataMap[handle] = [];
+            charmInfoList.push({
+              handle,
+              title: colDef.title,
+              img: null
+            });
+            return;
+          }
+
           const groupedCharms = groupProducts(res).sort((a, b) => a.base.localeCompare(b.base));
           charmDataMap[handle] = groupedCharms;
           
-          // Use first product image as collection thumbnail if collection image is missing
-          const firstProductImg = res?.collection?.products?.edges?.[0]?.node?.featuredImage?.url;
-          
+          // Image Selection Strategy:
+          // 1. Collection image (if set)
+          // 2. First product's featured image
+          // 3. First product's first variant image
+          const firstProductNode = res.collection.products?.edges?.[0]?.node;
+          const firstProductImg = firstProductNode?.featuredImage?.url || firstProductNode?.variants?.edges?.[0]?.node?.image?.url;
+          const collectionImg = res.collection.image?.url;
+
           charmInfoList.push({
             handle,
-            title: res?.collection?.title || CHARM_COLLECTIONS[index].title,
-            img: firstProductImg || res?.collection?.image?.url
+            title: res.collection.title || colDef.title,
+            img: collectionImg || firstProductImg || 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg?v=1781175000' // Placeholder
           });
         });
 
