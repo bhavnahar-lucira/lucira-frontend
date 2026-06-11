@@ -316,7 +316,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       };
 
       const newScale = e.evt.deltaY < 0 ? oldScale * scaleBy : oldScale / scaleBy;
-      const clampedScale = Math.max(0.5, Math.min(4, newScale));
+      const clampedScale = Math.max(0.5, Math.min(2.5, newScale));
       
       stage.scale({ x: clampedScale, y: clampedScale });
 
@@ -595,7 +595,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     const stage = stageRef.current;
     if (!stage) return;
     const oldScale = stage.scaleX();
-    const newScale = Math.max(0.5, Math.min(4, oldScale * factor));
+    const newScale = Math.max(0.5, Math.min(2.5, oldScale * factor));
     
     const center = { x: stage.width() / 2, y: stage.height() / 2 };
     const relatedToCenter = {
@@ -977,7 +977,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
                   </button>
                   <div className="byj-zoom-track">
-                    <div className="byj-zoom-thumb" style={{ left: `${((zoom - 0.5) / 3.5) * 100}%` }}></div>
+                    <div className="byj-zoom-thumb" style={{ left: `${((zoom - 0.5) / 2.0) * 100}%` }}></div>
                   </div>
                   <button className="byj-ctrl-btn" onClick={() => handleZoom(1.2)} aria-label="Zoom in">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
