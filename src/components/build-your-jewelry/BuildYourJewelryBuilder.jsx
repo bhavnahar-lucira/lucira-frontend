@@ -752,9 +752,9 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         
         .byj-confirm-bar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 30px; border-top: 1px solid #f0ebe4; background: #fff; z-index: 10; width: 100%; box-shadow: 0 -10px 40px rgba(0,0,0,0.04); }
         .byj-total-wrap { display: flex; flex-direction: column; }
-        .byj-total-label { font-size: 11px; color: #8a8a8a; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: 4px; }
-        .byj-total-price {color: #1c1810; font-weight: 800; font-family: 'Figtree', sans-serif; font-size: 22px; line-height: 1;}
-        .byj-confirm-btn { background: #5a413f !important; color: #fff !important; padding: 0 40px !important; height: 54px !important; border-radius: 100px !important; font-weight: 800 !important; font-size: 12px !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; display: flex !important; align-items: center !important; gap: 10px !important; transition: all 0.3s ease !important; }
+        .byj-total-label { font-size: 8px; color: #8a8a8a; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: 4px; }
+        .byj-total-price {color: #1c1810; font-weight: 800; font-family: 'Figtree', sans-serif; font-size: 16px; line-height: 1;}
+        .byj-confirm-btn {color: #fff !important; letter-spacing: .12em !important; text-transform: uppercase !important; background: #5a413f !important; border-radius: 100px !important; align-items: center !important; gap: 10px !important; height: 40px !important; padding: 0 40px !important; font-size: 12px !important; font-weight: 700 !important; transition: all .3s !important; display: flex !important;}
         .byj-confirm-btn:hover:not(:disabled) { background: #4a312f !important; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90,65,63,0.2); }
         .byj-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 

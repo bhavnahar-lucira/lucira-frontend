@@ -63,6 +63,8 @@ export default function CartPage() {
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
 
+  const displayQuantity = filteredItems.reduce((acc, item) => acc + item.quantity, 0);
+
   const handlePlaceOrder = () => {
     if (isAuthenticated) {
       router.push("/checkout/shipping");
@@ -98,7 +100,7 @@ export default function CartPage() {
       <div className="lg:hidden pt-6 px-4 bg-white">
         <div className="flex items-baseline gap-2">
           <h1 className="text-xl font-bold text-zinc-800 font-abhaya">My Shopping Cart</h1>
-          <span className="text-sm text-zinc-500 font-medium">({totalQuantity} Item{totalQuantity !== 1 ? 's' : ''})</span>
+          <span className="text-sm text-zinc-500 font-medium">({displayQuantity} Item{displayQuantity !== 1 ? 's' : ''})</span>
         </div>
       </div>
 
@@ -110,7 +112,7 @@ export default function CartPage() {
             <div className="lg:sticky lg:top-10">
               <div className="hidden lg:flex items-baseline gap-2 mb-5">
                 <h1 className="text-xl font-bold text-zinc-800 font-abhaya">My Shopping Cart</h1>
-                <span className="text-sm text-zinc-500 font-medium">({totalQuantity} Item{totalQuantity !== 1 ? 's' : ''})</span>
+                <span className="text-sm text-zinc-500 font-medium">({displayQuantity} Item{displayQuantity !== 1 ? 's' : ''})</span>
               </div>
 
               <div className="space-y-4">
