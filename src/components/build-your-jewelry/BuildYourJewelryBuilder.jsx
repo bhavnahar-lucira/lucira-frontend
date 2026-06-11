@@ -722,7 +722,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     <div className="build-your-jewelry-bracelets">
       <style jsx global>{`
         .build-your-jewelry-bracelets {color: #1c1810; font-family: var(--font-figtree), sans-serif; background: #ffffff;}
-        .byj-layout { display: grid; grid-template-columns: 1fr auto 400px; grid-template-areas: "canvas summary panel"; min-height: 100vh; max-width: 100vw; margin: 0 auto; overflow: hidden;}
+        .byj-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "canvas panel"; min-height: 100vh; max-width: 100vw; margin: 0 auto; overflow: hidden;}
         
         footer, 
         .zsiq_float_main, 
@@ -740,16 +740,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-zoom-track { width: 100px; height: 3px; background: #f0ebe4; border-radius: 10px; position: relative; cursor: pointer; }
         .byj-zoom-thumb { width: 14px; height: 14px; border-radius: 50%; background: #1c1810; position: absolute; top: 50%; transform: translate(-50%,-50%); transition: left .2s cubic-bezier(.4,0,.2,1); display: block; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
         
-        .byj-selection-summary-bar { grid-area: summary; width: 180px; background: #fdfaf7; border-left: 1px solid #f0ebe4; display: flex; flex-direction: column; padding: 60px 25px; gap: 40px; position: sticky; top: 0; height: 100vh; }
-        .byj-summary-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-        .byj-summary-label { font-size: 11px; font-weight: 700; color: #8a8a8a; letter-spacing: 0.1em; margin-bottom: 6px; }
-        .byj-summary-value { font-size: 13px; font-weight: 700; color: #1c1810; text-transform: uppercase; line-height: 1.4; }
-        .byj-summary-status { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #e0d0ba; display: flex; align-items: center; justify-content: center; color: transparent; flex-shrink: 0; }
-        .byj-summary-status.checked { background: #4e8a56; border-color: #4e8a56; color: #fff; }
-        .byj-summary-arrow { color: #e0d0ba; margin-top: 15px; }
-
         .byj-help-btn-wrap { position: relative; }
-        .byj-help-btn { width: 34px; height: 34px; border: 1px solid rgba(224,208,186,0.8); background: #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; box-shadow: 0 4px 20px rgba(0,0,0,.06); font-size: 15px; font-weight: 600; transition: all .2s; }
+        .byj-help-btn { width: 44px; height: 44px; border: 1px solid rgba(224,208,186,0.8); background: #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; box-shadow: 0 4px 20px rgba(0,0,0,.06); font-size: 15px; font-weight: 600; transition: all .2s; }
         .byj-help-btn:hover { background: #fdfaf7; border-color: #5a413f; }
         .byj-help-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(10px); margin-bottom: 12px; background: #1c1810; color: #fff; padding: 10px 18px; border-radius: 6px; font-size: 9px; font-weight: 700; width: max-content; max-width: 220px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.2); pointer-events: none; transition: all .3s cubic-bezier(.4,0,.2,1); opacity: 0; visibility: hidden; z-index: 100; letter-spacing: 0.1em; line-height: 1.5; }
         .byj-help-tooltip.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
@@ -757,6 +749,15 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
         .byj-config-panel { grid-area: panel; background: #fff; border-left: 1px solid #e0d0ba; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; box-shadow: -10px 0 50px rgba(0,0,0,0.02); }
         .byj-panel-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; scroll-behavior: smooth; }
+        
+        .byj-confirm-bar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 30px; border-top: 1px solid #f0ebe4; background: #fff; z-index: 10; width: 100%; box-shadow: 0 -10px 40px rgba(0,0,0,0.04); }
+        .byj-total-wrap { display: flex; flex-direction: column; }
+        .byj-total-label { font-size: 11px; color: #8a8a8a; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: 4px; }
+        .byj-total-price {color: #1c1810; font-weight: 800; font-family: 'Figtree', sans-serif; font-size: 22px; line-height: 1;}
+        .byj-confirm-btn { background: #5a413f !important; color: #fff !important; padding: 0 40px !important; height: 54px !important; border-radius: 100px !important; font-weight: 800 !important; font-size: 12px !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; display: flex !important; align-items: center !important; gap: 10px !important; transition: all 0.3s ease !important; }
+        .byj-confirm-btn:hover:not(:disabled) { background: #4a312f !important; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90,65,63,0.2); }
+        .byj-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
         .byj-material-bar { display: flex; align-items: center; gap: 15px; padding: 24px 25px; border-bottom: 1px solid #f0ebe4; background: #fff; }
         .byj-material-label {color: #5a413f; letter-spacing: .2px; text-transform: uppercase; margin-bottom: 3px; font-size: 12px; font-weight: 700;}
         .byj-mat-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid transparent; padding: 2px; background: transparent; cursor: pointer; transition: all .2s; }
@@ -777,11 +778,6 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-step-body { padding: 0 25px 20px; display: none; }
         .byj-step.open .byj-step-body { display: block; animation: fadeIn .4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-        .byj-confirm-bar { display: flex; align-items: center; gap: 15px; padding: 14px 25px; border-top: 1px solid #f0ebe4; background: #fff; z-index: 10; width: 100%; box-shadow: 0 -10px 30px rgba(0,0,0,0.02); }
-        .byj-total-wrap { display: flex; flex-direction: column; min-width: 120px; }
-        .byj-total-label { font-size: 10px; color: #5a413f; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; margin-bottom: 2px; }
-        .byj-total-price {color: #1c1810; font-weight: 700; font-family: 'Figtree', sans-serif; font-size: 18px;}
 
         .byj-option-grid { display: flex; flex-wrap: wrap; gap: 10px; }
         .byj-opt-btn { padding: 8px 20px; border: 1.5px solid #f0ebe4; border-radius: 100px; padding: 4px 18px; font-size: 12px; font-weight: 600; transition: all .2s; color: #5a413f; }
@@ -899,48 +895,6 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
               </div>
             )}
           </div>
-
-          {!isMobile && (
-            <div className="byj-selection-summary-bar">
-              <div className="byj-summary-item">
-                <div className="byj-summary-info">
-                  <div className="byj-summary-label">PRODUCT TYPE</div>
-                  <div className="byj-summary-value">{categoryConfig.label}</div>
-                </div>
-                <div className="byj-summary-status checked">
-                  <Check size={14} strokeWidth={3} />
-                </div>
-              </div>
-
-              <div className="byj-summary-item">
-                <div className="byj-summary-info">
-                  <div className="byj-summary-label">STYLE</div>
-                  <div className="byj-summary-value truncate max-w-[120px]">{selectedStyle ? getActiveVersion(selectedStyle, material, length)?.fullTitle : '...'}</div>
-                </div>
-                <div className={cn("byj-summary-status", selectedStyle && "checked")}>
-                  {selectedStyle && <Check size={14} strokeWidth={3} />}
-                </div>
-              </div>
-
-              <div className="byj-summary-item">
-                <div className="byj-summary-info">
-                  <div className="byj-summary-label">LENGTH</div>
-                  <div className="byj-summary-value">{length}</div>
-                </div>
-                <div className="byj-summary-status checked">
-                   <Check size={14} strokeWidth={3} />
-                </div>
-              </div>
-
-              <div className="byj-summary-item charms mt-auto">
-                <div className="byj-summary-info">
-                  <div className="byj-summary-label">CHARMS</div>
-                  <div className="byj-summary-value">{selectedCharms.reduce((acc, c) => acc + c.qty, 0)} Selected</div>
-                </div>
-                <ChevronRight size={20} className="byj-summary-arrow" />
-              </div>
-            </div>
-          )}
 
           {!isMobile && (
             <div className="byj-config-panel">
@@ -1078,12 +1032,12 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                   <span className="byj-total-price">{formatPrice(totalPrice)}</span>
                 </div>
                 <Button 
-                  className="flex-1 rounded-full h-13 uppercase tracking-widest font-bold text-xs" 
+                  className="byj-confirm-btn" 
                   disabled={!isReady} 
                   onClick={handleConfirm}
                 >
                   Review Summary
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </Button>
               </div>
             </div>
