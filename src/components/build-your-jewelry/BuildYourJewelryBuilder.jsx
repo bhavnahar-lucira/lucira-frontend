@@ -674,6 +674,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         'Charms': charmDetails,
         '_byj_group_id': groupId,
         '_byj_preview': canvasPreview,
+        'byj_image': canvasPreview,
         '_byj_style_img': styleV.img,
         '_byj_style_price': styleV.price,
         '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ title: c.fullTitle, price: c.price, qty: c.qty, img: c.img, sku: c.sku })))

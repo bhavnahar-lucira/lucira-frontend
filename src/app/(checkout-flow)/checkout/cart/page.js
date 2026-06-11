@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import Link from "next/link";
 import CartItem from "@/components/cart/CartItem";
 import CartSummary from "@/components/cart/CartSummary";
@@ -10,14 +10,16 @@ import { ShoppingBag, ArrowRight, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { pushViewCart } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
+import { removeFromCart } from "@/redux/features/cart/cartSlice";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 export default function CartPage() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const { items, totalQuantity, totalAmount, appliedCoupon } = useSelector((state) => state.cart);  
-  const { isAuthenticated, openLogin } = useAuth();
+  const { user, isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
 
   // Fallback: If user logs in while on cart page, and was trying to checkout, redirect them
@@ -75,7 +77,35 @@ export default function CartPage() {
     }
   };
 
-  if (items.length === 0) {
+  // Effect to cleanup orphaned BYJ charms
+  useEffect(() => {
+    if (items.length > 0) {
+      const parentGroupIds = new Set(
+        items
+          .filter(item => item.properties?.['_byj_preview'])
+          .map(item => item.properties?.['_byj_group_id'])
+          .filter(Boolean)
+      );
+
+      const orphanedCharms = items.filter(item => {
+        const groupId = item.properties?.['_byj_group_id'];
+        const isCharm = item.properties?.['_byj_parent'] || item.properties?.[' _byj_parent'] || (groupId && !item.properties?.['_byj_preview']);
+        return isCharm && groupId && !parentGroupIds.has(groupId);
+      });
+
+      if (orphanedCharms.length > 0) {
+        orphanedCharms.forEach(async (charm) => {
+          try {
+            await dispatch(removeFromCart({ userId: user?.id, lineId: charm.lineId || charm.variantId })).unwrap();
+          } catch (e) {
+            console.error("Failed to cleanup orphaned charm:", e);
+          }
+        });
+      }
+    }
+  }, [items, user?.id, dispatch]);
+
+  if (items.length === 0 || displayQuantity === 0) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 space-y-6 bg-white">
         <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100 shadow-inner mb-2">

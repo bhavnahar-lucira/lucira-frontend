@@ -786,6 +786,16 @@ export default function PaymentPage() {
         userId: user?.id || "",
         sessionId: getCartSessionId(),
         items: items,
+        byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        metafields: [
+          {
+            namespace: "custom",
+            key: "byj_image",
+            value: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+            type: "file_reference"
+          }
+        ],
+        "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
@@ -881,6 +891,16 @@ export default function PaymentPage() {
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,
               draftId: order.draftId,
+              byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        metafields: [
+          {
+            namespace: "custom",
+            key: "byj_image",
+            value: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+            type: "file_reference"
+          }
+        ],
+        "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
               customer: {
                 id: customer?.id || "",
                 name: customerName,
