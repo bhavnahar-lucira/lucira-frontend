@@ -690,16 +690,17 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       };
 
       const charmItems = selectedCharms.map(c => ({
-        id: c.id,
-        title: `Charm: ${c.fullTitle}`,
-        quantity: c.qty,
-        price: c.price / 100,
-        finalPrice: c.price / 100,
-        sku: c.sku,
-        properties: {
-          '_byj_group_id': groupId,
-          '_byj_parent': styleV.id
-        }
+       id: c.id,
+       title: `Charm: ${c.fullTitle}`,
+       quantity: c.qty,
+       price: c.price / 100,
+       finalPrice: c.price / 100,
+       sku: c.sku,
+       properties: {
+         '_byj_group_id': groupId,
+         '_byj_parent': styleV.id,
+         ' _byj_parent': styleV.id
+       }
       }));
 
       await addToCart({

@@ -189,6 +189,7 @@ export default function MobileHeader({ menuData }) {
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       !item.properties?.['_byj_parent'] &&
+      !item.properties?.[' _byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
 
@@ -213,6 +214,7 @@ export default function MobileHeader({ menuData }) {
           item.variantId !== INSURANCE_VARIANT_ID &&
           !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
           !item.properties?.['_byj_parent'] &&
+          !item.properties?.[' _byj_parent'] &&
           !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
       );
 

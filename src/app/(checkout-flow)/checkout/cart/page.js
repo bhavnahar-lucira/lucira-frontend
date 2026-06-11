@@ -60,10 +60,11 @@ export default function CartPage() {
       item.variantId !== INSURANCE_VARIANT_ID && 
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       !item.properties?.['_byj_parent'] &&
+      !item.properties?.[' _byj_parent'] && // Handle potential space in key
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
 
-  const displayQuantity = filteredItems.reduce((acc, item) => acc + item.quantity, 0);
+  const displayQuantity = filteredItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const handlePlaceOrder = () => {
     if (isAuthenticated) {

@@ -412,7 +412,7 @@ export default function CartItem({ item, onAuthRequired }) {
                               {charm.sku && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
                             </div>
                           </div>
-                          <span className="text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                          <span className="text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {((parseFloat(charm.price) * (charm.qty || 1)) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         </div>
                       ))}
                     </div>
