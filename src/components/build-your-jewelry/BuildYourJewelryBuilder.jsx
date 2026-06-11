@@ -370,6 +370,28 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     img.src = src;
   };
 
+  const getActiveVersion = (group, matId, karat) => {
+    if (!group) return null;
+    const mat = MATERIALS.find(m => m.id === matId);
+    const keyword = mat?.keyword || 'yellow';
+    const colorVersions = group.versions[keyword] || group.versions['yellow'] || Object.values(group.versions)[0];
+    if (!colorVersions) return null;
+    return colorVersions[karat] || null;
+  };
+
+  const findCharmGroup = (base) => {
+    // Search in currently active collection first (optimization)
+    const activeMatch = charms.find(c => c.base === base);
+    if (activeMatch) return activeMatch;
+    
+    // Search in all other collections
+    for (const handle in allCharmCollections) {
+      const found = allCharmCollections[handle].find(c => c.base === base);
+      if (found) return found;
+    }
+    return null;
+  };
+
   const renderCharms = () => {
     const group = charmGroupRef.current;
     if (!group || !productImgRef.current) return;
@@ -377,7 +399,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
     const flat = [];
     selectedCharms.forEach(c => {
-      const charmData = charms.find(g => g.base === c.base);
+      const charmData = findCharmGroup(c.base);
       const version = getActiveVersion(charmData, material, length) || c;
       
       for (let i = 0; i < c.qty; i++) {
@@ -477,7 +499,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
               const newCharms = [];
               flatHandles.forEach(base => {
-                const charmData = charms.find(c => c.base === base);
+                const charmData = findCharmGroup(base);
                 const version = getActiveVersion(charmData, material, length);
                 const last = newCharms[newCharms.length - 1];
                 if (last && last.base === base) {
@@ -508,7 +530,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
             flatHandles.splice(idx, 1);
             const newCharms = [];
             flatHandles.forEach(base => {
-              const charmData = charms.find(c => c.base === base);
+              const charmData = findCharmGroup(base);
               const version = getActiveVersion(charmData, material, length);
               const last = newCharms[newCharms.length - 1];
               if (last && last.base === base) {
@@ -526,15 +548,6 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       };
       charmImg.src = item.src;
     });
-  };
-
-  const getActiveVersion = (group, matId, karat) => {
-    if (!group) return null;
-    const mat = MATERIALS.find(m => m.id === matId);
-    const keyword = mat?.keyword || 'yellow';
-    const colorVersions = group.versions[keyword] || group.versions['yellow'] || Object.values(group.versions)[0];
-    if (!colorVersions) return null;
-    return colorVersions[karat] || null;
   };
 
   const availableLengths = useMemo(() => {
@@ -571,7 +584,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   useEffect(() => {
     if (selectedCharms.length > 0) {
       setSelectedCharms(prev => prev.map(c => {
-        const group = charms.find(g => g.base === c.base);
+        const group = findCharmGroup(c.base);
         const version = getActiveVersion(group, material, length);
         return version ? { ...version, base: c.base, qty: c.qty } : c;
       }));
@@ -683,7 +696,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       }).filter(Boolean);
 
       if (delta > 0 && !existing) {
-        const charmData = charms.find(c => c.base === base);
+        const charmData = findCharmGroup(base);
         const version = getActiveVersion(charmData, material, length);
         newCharms.push({ ...version, base, qty: 1 });
       }
@@ -699,7 +712,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     let total = parseFloat(styleV.price || 0); 
     
     selectedCharms.forEach(c => {
-      const group = charms.find(g => g.base === c.base);
+      const group = findCharmGroup(c.base);
       const version = getActiveVersion(group, material, length);
       if (version) {
         total += parseFloat(version.price || 0) * c.qty; 
@@ -707,7 +720,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     });
     
     return total;
-  }, [selectedStyle, selectedCharms, material, length, charms]);
+  }, [selectedStyle, selectedCharms, material, length, allCharmCollections]);
 
   const isReady = selectedStyle && selectedCharms.reduce((acc, c) => acc + c.qty, 0) >= MIN_CHARMS;
 
