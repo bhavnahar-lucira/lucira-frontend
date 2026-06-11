@@ -442,6 +442,28 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
           }
         });
 
+        ci.on('click tap', function() {
+          setSelectedCharms(prev => {
+            const flatHandles = [];
+            prev.forEach(c => {
+              for (let j = 0; j < c.qty; j++) flatHandles.push(c.base);
+            });
+            flatHandles.splice(idx, 1);
+            const newCharms = [];
+            flatHandles.forEach(base => {
+              const charmData = charms.find(c => c.base === base);
+              const version = getActiveVersion(charmData, material, length);
+              const last = newCharms[newCharms.length - 1];
+              if (last && last.base === base) {
+                last.qty++;
+              } else {
+                newCharms.push({ ...version, base, qty: 1 });
+              }
+            });
+            return newCharms;
+          });
+        });
+
         group.add(ci);
         layerRef.current.batchDraw();
       };
