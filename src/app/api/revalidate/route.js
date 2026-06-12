@@ -1,6 +1,16 @@
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'https://dashboard.lucirajewelry.com',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -12,14 +22,14 @@ export async function POST(request) {
       // Global revalidation - use sparingly as this triggers many background renders
       revalidatePath('/', 'layout');
       console.log(`[Next.js Revalidate] Global layout revalidation triggered`);
-      return NextResponse.json({ revalidated: true, type: 'all' });
+      return NextResponse.json({ revalidated: true, type: 'all' }, { headers: corsHeaders });
     }
 
     if (type === 'path' && body.path) {
       // Revalidate a specific path
       revalidatePath(body.path);
       console.log(`[Next.js Revalidate] Path revalidation triggered for: ${body.path}`);
-      return NextResponse.json({ revalidated: true, type: 'path', path: body.path });
+      return NextResponse.json({ revalidated: true, type: 'path', path: body.path }, { headers: corsHeaders });
     }
 
     // Always revalidate the homepage for any product change to keep featured sections fresh.
@@ -28,13 +38,6 @@ export async function POST(request) {
     if (handle) {
       // Revalidate only the specific product page.
       revalidatePath(`/products/${handle}`);
-
-      // OPTIMIZATION: Removed revalidatePath('/collections/[handle]', 'page')
-      // Instead of marking ALL collections as stale on every single product update,
-      // we rely on either:
-      // 1. Live pricing in the ProductCard (client-side)
-      // 2. A separate 'collection' type revalidation when specifically needed.
-      // 3. The default 24h background revalidation.
     }
 
     if (type === 'collection' && handle) {
@@ -52,10 +55,10 @@ export async function POST(request) {
       console.error('[Next.js Revalidate] Failed to ping backend cache clear:', e);
     }
 
-    return NextResponse.json({ revalidated: true, now: Date.now(), handle });
+    return NextResponse.json({ revalidated: true, now: Date.now(), handle }, { headers: corsHeaders });
   } catch (error) {
     console.error('[Next.js Revalidate] Error during revalidation:', error);
-    return NextResponse.json({ revalidated: false, message: 'Error revalidating' }, { status: 500 });
+    return NextResponse.json({ revalidated: false, message: 'Error revalidating' }, { status: 500, headers: corsHeaders });
   }
 }
 
