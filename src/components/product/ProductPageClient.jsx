@@ -87,6 +87,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import StyledByLucira from "../home/StyledByLucira";
+import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
 import { loadNectorReviews } from "@/lib/nector";
 
@@ -318,6 +319,28 @@ export default function ProductPageClient({
     average: product.reviews?.average || product.reviewStats?.average || 0,
     count: product.reviews?.count || product.reviewStats?.count || 0,
   });
+
+  const [matchedCollectionTag, setMatchedCollectionTag] = useState(null);
+
+  useEffect(() => {
+    const checkStyledCollections = async () => {
+      try {
+        const data = await apiFetch('/api/styled-videos-collection');
+        if (data.success && data.videos) {
+          // Get unique collection handles (Product Tags) from the dashboard
+          const dashboardTags = [...new Set(data.videos.map(v => v.collectionHandle).filter(Boolean))];
+          // Find if any of these tags are present in the current product's tags
+          const match = dashboardTags.find(tag => product.tags?.includes(tag));
+          if (match) {
+            setMatchedCollectionTag(match);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check styled collections:", err);
+      }
+    };
+    checkStyledCollections();
+  }, [product.tags]);
 
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: false, threshold: 20000, message: "" });
   useEffect(() => {
@@ -2999,9 +3022,15 @@ export default function ProductPageClient({
       </div>
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
       <ProductStory description={product.description} />
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <StyledByLucira/>
-      </Suspense>
+      
+      {matchedCollectionTag ? (
+        <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
+      ) : (
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+          <StyledByLucira />
+        </Suspense>
+      )}
+
       <OurProcess />
       <div ref={reviewsRef}>
         <CustomerReviews

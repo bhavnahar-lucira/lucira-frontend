@@ -46,7 +46,7 @@ export default function LuxuryMarquee({ prop = [] }) {
         autoFill={true}
       >
         {items.map((item, i) => (
-          <div key={`item-${i}`} className="flex items-center gap-10 pr-10 whitespace-nowrap">
+          <div key={`item-${i}`} className="flex items-center gap-10 pr-10 whitespace-nowrap overflow-hidden">
             <span className="font-semibold italic text-xl leading-[100%] tracking-normal">
               {item}
             </span>
