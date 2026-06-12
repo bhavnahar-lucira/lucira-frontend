@@ -511,7 +511,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                             alt={image.alt || product.title}
                             fill
                             priority={idx === 0}
-                            className={`object-contain grayscale-[0.2] group-hover/card:grayscale-0 transition-all duration-300 ${shouldZoom ? 'scale-[1.30]' : 'lg:scale-100'
+                            className={`object-contain transition-all duration-300 ${shouldZoom ? 'scale-[1.30]' : 'lg:scale-100'
                               }`}
                           />
                         </div>
@@ -565,7 +565,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                               {similarProducts.slice(0, 10).map((item) => (
                                 <div key={item.id} className="space-y-4">
                                   <Link href={`/products/${item.handle}`} prefetch={false} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
-                                    <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden group-hover:bg-[#f3f3f3]">
+                                    <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden">
                                       <LazyImage src={item.image} alt={item.title} fill className="object-contain transition-transform duration-500 group-hover:scale-105 mix-blend-multiply" />
                                       {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
                                         <button
