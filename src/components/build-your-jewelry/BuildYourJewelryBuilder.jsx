@@ -818,7 +818,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     <div className="build-your-jewelry-bracelets">
       <style jsx global>{`
         .build-your-jewelry-bracelets {color: #1c1810; font-family: var(--font-figtree), sans-serif; background: #ffffff;}
-        .byj-layout { display: grid; grid-template-columns: 1fr 400px; grid-template-areas: "canvas panel"; min-height: 100vh; max-width: 100vw; margin: 0 auto; overflow: hidden;}
+        .byj-layout { display: grid; grid-template-columns: 1fr 500px; grid-template-areas: "canvas panel"; min-height: 100vh; max-width: 100vw; margin: 0 auto; overflow: hidden;}
         
         footer, 
         .zsiq_float_main, 
@@ -826,7 +826,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .fixed.z-\[499\] { display: none !important; }
 
         .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 0px 24px; min-height: 60vh; }
-        .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Q1PartB2953_37dd8896-3ea2-4c65-8c86-707f5cacb9b3.webp?v=1780657459); background-size: cover; background-position: center; }
+        .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pexels_Photo_by_Maryam.jpg?v=1781247551); background-size: cover; background-position: center; }
         #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 20px; overflow: hidden; touch-action: none;}
         
         .byj-canvas-controls { position: absolute; bottom: 30px; right: 30px; display: flex; align-items: center; gap: 12px; z-index: 20; }
