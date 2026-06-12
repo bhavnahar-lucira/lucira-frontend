@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CircleCheck, TrendingUp, Gift, Calendar, ArrowRight, IndianRupee, Info } from "lucide-react";
+import { CircleCheck, TrendingUp, Gift, Calendar, ArrowRight, IndianRupee, Info, Gem } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 
@@ -65,7 +65,13 @@ export default function EnrollSummary({
   const monthly = displayAmount;
   const totalInstallment = monthly * MONTHS;
   const bonus = monthly;
-  const returns = totalInstallment + bonus;
+  let giftValue = 0;
+  if (monthly >= 5000) {
+    giftValue = 10000;
+  } else if (monthly >= 3000) {
+    giftValue = 5000;
+  }
+  const returns = totalInstallment + bonus + giftValue;
 
   /* ===================== HELPERS ===================== */
   const normalizeValue = async (val) => {
@@ -177,6 +183,29 @@ export default function EnrollSummary({
                 <Badge variant="secondary" className="bg-[#5a413f]/10 text-[#5a413f] text-[10px] hover:bg-[#5a413f]/10 border-none">FREE</Badge>
               </div>
             </motion.li>
+
+            {giftValue > 0 && (
+              <motion.li 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="flex justify-between items-center group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
+                    <Gem size={18} className="text-[#E67E22]" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm md:text-base text-gray-700 font-medium">Promotional Gift</span>
+                    <span className="text-[10px] text-[#E67E22] font-bold uppercase tracking-tighter">Free Diamond Pendant!</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <strong className="text-lg text-[#E67E22]">₹{formatINR(giftValue)}</strong>
+                  <Badge variant="secondary" className="bg-[#E67E22]/10 text-[#E67E22] text-[10px] hover:bg-[#E67E22]/10 border-none">FREE</Badge>
+                </div>
+              </motion.li>
+            )}
           </ul>
 
           <div className="pt-6 mt-6 border-t border-dashed border-gray-300">
@@ -278,7 +307,7 @@ export default function EnrollSummary({
       <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100 flex gap-3">
         <Info size={20} className="text-blue-500 shrink-0 mt-0.5" />
         <p className="text-xs text-blue-700 leading-relaxed">
-          The 10th month installment is completely free! For example, if you pay ₹10,000 for 9 months, we add ₹10,000 bonus, making your total gold value ₹1,00,000.
+          The 10th month installment is completely free! {giftValue > 0 ? `Plus you get a free diamond pendant worth ₹${formatINR(giftValue)}!` : "Start saving today to unlock more benefits."} For example, if you pay ₹10,000 for 9 months, we add a ₹10,000 bonus and a ₹10,000 gift, making your total gold value ₹1,10,000.
         </p>
       </div>
     </div>

@@ -14,42 +14,44 @@ import Image from "next/image";
 const PRESETS = [2000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
 
-const GiftMilestone = ({ label, value, currentAmount, min, max }) => {
+const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top" }) => {
   const isActive = currentAmount >= value;
   const left = ((value - min) / (max - min)) * 100;
   
   return (
     <div 
-      className="absolute -top-16 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10"
+      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10 pointer-events-none"
       style={{ left: `${left}%` }}
     >
-      <div className={`px-2 py-1 rounded-lg text-[9px] font-bold whitespace-nowrap mb-1.5 transition-all duration-300 transform shadow-sm border ${
+      <div className={`absolute px-2 py-1 rounded-lg text-[9px] font-bold whitespace-nowrap transition-all duration-300 transform shadow-sm border ${
+        labelPosition === "top" ? "bottom-full mb-1" : "top-full mt-1"
+      } ${
         isActive 
           ? "bg-[#D1EAD0] text-[#008000] border-[#B8DAB6] scale-105" 
-          : "bg-gray-50 text-gray-400 border-gray-200 scale-100"
+          : "bg-white text-gray-500 border-gray-200 scale-100"
       }`}>
         {label}
-        <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rotate-45 border-r border-b transition-colors duration-300 ${
-          isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-gray-50 border-gray-200"
+        <div className={`absolute left-1/2 -translate-x-1/2 w-1.5 h-1.5 rotate-45 border transition-colors duration-300 ${
+          labelPosition === "top" 
+            ? "-bottom-1 border-r border-b" 
+            : "-top-1 border-l border-t"
+        } ${
+          isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-white border-gray-200"
         }`} />
       </div>
-      <div className="relative w-8 h-8 transition-transform duration-300 group-hover:scale-110">
-        <Image
-          src={isActive 
-            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1410103946.jpg?v=1781247057" 
-            : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1410103947.jpg?v=1781247013"
-          }
-          alt={label}
-          fill
-          className="object-contain rounded-full shadow-sm"
-        />
+      <div className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 pointer-events-auto ${
+        isActive
+          ? "bg-[#009245] border-[#009245] text-white scale-110"
+          : "bg-white border-[#009245] text-[#009245] scale-100"
+      }`}>
+        <Gift size={16} strokeWidth={isActive ? 2 : 1.5} />
       </div>
     </div>
   );
 };
 
 const getTotalValue = (month, amount, rate) => {
-  const giftValue = amount > 5000 ? 10000 : 5000;
+  const giftValue = amount >= 5000 ? 10000 : amount >= 3000 ? 5000 : 0;
   if (month === 10) {
     return amount * 9 + amount + giftValue; // 9 paid + 1 bonus + gift
   }
@@ -66,7 +68,7 @@ const getTotalValue = (month, amount, rate) => {
 };
 
 const RedemptionTooltip = ({ month, amount, discountPercent }) => {
-  const giftValue = amount > 5000 ? 10000 : 5000;
+  const giftValue = amount >= 5000 ? 10000 : amount >= 3000 ? 5000 : 0;
   const daysArrayMap = {
     7: [181, 150, 122, 91, 61, 30],
     8: [212, 181, 150, 122, 91, 61, 30],
@@ -185,7 +187,7 @@ const DesktpSavingCalculator = () => {
 
   const totalInstallment = amount * 9;
   const bonus = amount;
-  const giftValue = amount > 5000 ? 10000 : 5000;
+  const giftValue = amount >= 5000 ? 10000 : amount >= 3000 ? 5000 : 0;
   const totalReturns = totalInstallment + bonus + giftValue;
 
   const normalizeValue = (val) => {
@@ -219,20 +221,22 @@ const DesktpSavingCalculator = () => {
             </div>
           </div>
 
-          <div className="relative mt-24 mb-12">
+          <div className="relative mt-24 mb-12 h-6 flex items-center w-full">
             <GiftMilestone 
               label="Free Gift Worth 5k" 
-              value={2000} 
+              value={3000} 
               currentAmount={amount} 
               min={2000} 
               max={19000} 
+              labelPosition="top"
             />
             <GiftMilestone 
               label="Free Gift Worth 10k" 
-              value={5500} 
+              value={5000} 
               currentAmount={amount} 
               min={2000} 
               max={19000} 
+              labelPosition="bottom"
             />
             <Slider
               min={2000}
@@ -244,7 +248,7 @@ const DesktpSavingCalculator = () => {
                 setInputValue(String(val));
                 setAmountError("");
               }}
-              className="mb-6"
+              className=""
             />
           </div>
 
@@ -372,17 +376,20 @@ const DesktpSavingCalculator = () => {
                 <p className="text-xl font-semibold text-gray-900">₹{formatINR(bonus)}</p>
               </div>
 
-              <div className="relative w-full aspect-[4/1] rounded-xl overflow-hidden my-4">
-                <Image
-                  src={amount > 5000 
-                    ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_10k.jpg?v=1781241879" 
-                    : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_5k.jpg?v=1781241879"
-                  }
-                  alt="Free Gift Banner"
-                  fill
-                  className="object-contain object-center"
-                />
-              </div>
+              {giftValue > 0 && (
+                <div className="w-full my-4">
+                  <Image
+                    src={amount >= 5000 
+                      ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_10k.jpg?v=1781241879" 
+                      : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_5k.jpg?v=1781241879"
+                    }
+                    alt="Free Gift Banner"
+                    width={1200}
+                    height={300}
+                    className="w-full h-auto rounded-xl object-contain shadow-sm"
+                  />
+                </div>
+              )}
 
               <div className="h-px bg-gray-200" />
 

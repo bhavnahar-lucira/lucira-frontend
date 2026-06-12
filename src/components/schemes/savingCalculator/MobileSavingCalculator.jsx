@@ -22,35 +22,37 @@ import Image from "next/image";
 const PRESETS = [2000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
 
-const GiftMilestone = ({ label, value, currentAmount, min, max }) => {
+const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top" }) => {
   const isActive = currentAmount >= value;
   const left = ((value - min) / (max - min)) * 100;
   
   return (
     <div 
-      className="absolute -top-14 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10"
+      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10 pointer-events-none"
       style={{ left: `${left}%` }}
     >
-      <div className={`px-1.5 py-0.5 rounded-lg text-[7px] font-bold whitespace-nowrap mb-1 transition-all duration-300 shadow-sm border ${
+      <div className={`absolute px-1.5 py-0.5 rounded-lg text-[7px] font-bold whitespace-nowrap transition-all duration-300 shadow-sm border ${
+        labelPosition === "top" ? "bottom-full mb-1" : "top-full mt-1"
+      } ${
         isActive 
           ? "bg-[#D1EAD0] text-[#008000] border-[#B8DAB6] scale-105" 
-          : "bg-gray-50 text-gray-400 border-gray-200 scale-100"
+          : "bg-white text-gray-500 border-gray-200 scale-100"
       }`}>
         {label}
-        <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rotate-45 border-r border-b transition-colors duration-300 ${
-          isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-gray-50 border-gray-200"
+        <div className={`absolute left-1/2 -translate-x-1/2 w-1 h-1 rotate-45 border transition-colors duration-300 ${
+          labelPosition === "top" 
+            ? "-bottom-1 border-r border-b" 
+            : "-top-1 border-l border-t"
+        } ${
+          isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-white border-gray-200"
         }`} />
       </div>
-      <div className="relative w-7 h-7 transition-transform duration-300 group-hover:scale-110">
-        <Image
-          src={isActive 
-            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1410103946.jpg?v=1781247057" 
-            : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1410103947.jpg?v=1781247013"
-          }
-          alt={label}
-          fill
-          className="object-contain rounded-full shadow-sm"
-        />
+      <div className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 pointer-events-auto ${
+        isActive
+          ? "bg-[#009245] border-[#009245] text-white scale-110"
+          : "bg-white border-[#009245] text-[#009245] scale-100"
+      }`}>
+        <Gift size={14} strokeWidth={isActive ? 2 : 1.5} />
       </div>
     </div>
   );
@@ -78,7 +80,12 @@ export default function MobileSavingCalculator() {
   const [amount, setAmount] = useState(initialAmount);
   const totalInstallment = amount * 9;
   const bonus = amount;
-  const giftValue = amount > 5000 ? 10000 : 5000;
+  let giftValue = 0;
+  if (amount >= 5000) {
+    giftValue = 10000;
+  } else if (amount >= 3000) {
+    giftValue = 5000;
+  }
   const totalReturns = totalInstallment + bonus + giftValue;
 
   const formatINR = (value) => new Intl.NumberFormat("en-IN").format(value);
@@ -106,33 +113,35 @@ export default function MobileSavingCalculator() {
         </div>
 {/* SLIDER */}
 <div className="space-y-4 px-1 pt-20">
-  <div className="relative mb-10">
+  <div className="relative mb-10 h-6 flex items-center w-full">
     <GiftMilestone 
       label="Free Gift Worth 5k" 
-      value={2000} 
+      value={3000} 
       currentAmount={amount} 
       min={2000} 
       max={19000} 
+      labelPosition="top"
     />
     <GiftMilestone 
       label="Free Gift Worth 10k" 
-      value={5500} 
+      value={5000} 
       currentAmount={amount} 
       min={2000} 
       max={19000} 
+      labelPosition="bottom"
     />
     <Slider
-
-              min={2000}
-              max={19000}
-              step={500}
-              value={[amount]}
-              onValueChange={([val]) => {
-                setAmount(val);
-                setAmountError("");
-              }}
-            />
-          </div>
+      min={2000}
+      max={19000}
+      step={500}
+      value={[amount]}
+      onValueChange={([val]) => {
+        setAmount(val);
+        setAmountError("");
+      }}
+      className=""
+    />
+  </div>
           <div className="flex justify-between text-[10px] text-gray-400 font-medium uppercase tracking-wider">
             <span>Min ₹2,000</span>
             <span>Max ₹19,000</span>
@@ -198,17 +207,20 @@ export default function MobileSavingCalculator() {
             <p className="text-sm font-bold text-gray-900">₹{formatINR(bonus)}</p>
           </div>
 
-          <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden my-3">
-            <Image
-              src={amount > 5000 
-                ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_10k.jpg?v=1781241879" 
-                : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_5k.jpg?v=1781241879"
-              }
-              alt="Free Gift Banner"
-              fill
-              className="object-contain"
-            />
-          </div>
+          {giftValue > 0 && (
+            <div className="w-full my-3">
+              <Image
+                src={amount >= 5000 
+                  ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_10k.jpg?v=1781241879" 
+                  : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_5k.jpg?v=1781241879"
+                }
+                alt="Free Gift Banner"
+                width={900}
+                height={300}
+                className="w-full h-auto rounded-xl object-contain shadow-sm"
+              />
+            </div>
+          )}
 
           <div className="h-px bg-gray-200/60" />
 
@@ -275,11 +287,18 @@ export default function MobileSavingCalculator() {
                     return sum + (d / 365) * (item.discount / 100) * amount;
                   }, 0)
                 );
-              }
+                }
 
-              const totalValue = totalPayment + discountAmount + giftValue;
+                let currentGiftValue = 0;
+                if (amount >= 5000) {
+                currentGiftValue = 10000;
+                } else if (amount >= 3000) {
+                currentGiftValue = 5000;
+                }
 
-              return (
+                const totalValue = totalPayment + discountAmount + currentGiftValue;
+
+                return (
                 <div
                   key={item.month}
                   className="bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-4"

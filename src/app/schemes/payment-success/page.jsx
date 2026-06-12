@@ -7,11 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { handleReceiptDownload } from "@/lib/schemeReceiptClient";
+import { toast } from "react-toastify";
 
 export default function SchemePaymentSuccessPage() {
   const router = useRouter();
   const user = useSelector((state) => state.user.user);
   const [enrollment, setEnrollment] = useState(null);
+  const [successData, setSuccessData] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -28,13 +32,40 @@ export default function SchemePaymentSuccessPage() {
         console.error("Failed to parse enrollment data");
       }
     }
+
+    const storedSuccess = sessionStorage.getItem("scheme_payment_success_data");
+    if (storedSuccess) {
+      try {
+        setSuccessData(JSON.parse(storedSuccess));
+      } catch (e) {
+        console.error("Failed to parse success data");
+      }
+    }
   }, [user, router]);
 
   const handleViewMySchemes = () => {
     // Clear session storage
     sessionStorage.removeItem("scheme_enrollment");
+    sessionStorage.removeItem("scheme_payment_success_data");
     // Redirect to admin/schemes page
     router.push("/admin/schemes");
+  };
+
+  const onDownloadReceipt = async () => {
+    if (!successData) return;
+    try {
+      setDownloading(true);
+      await handleReceiptDownload({
+        customer: successData.customer,
+        receiptEntityId: successData.receiptEntityId,
+        enrollmentEntityId: successData.enrollmentEntityId,
+      });
+      toast.success("Receipt downloaded successfully.");
+    } catch (e) {
+      // toast is already shown inside handleReceiptDownload
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -129,6 +160,15 @@ export default function SchemePaymentSuccessPage() {
           {/* Action Buttons */}
           <div className="space-y-3">
             <Button
+              onClick={onDownloadReceipt}
+              disabled={downloading || !successData}
+              variant="outline"
+              className="w-full h-12 border-2 border-primary text-primary font-bold uppercase tracking-wider rounded-lg hover:bg-primary/5"
+            >
+              {downloading ? "Preparing Receipt..." : "Download Receipt PDF"}
+            </Button>
+
+            <Button
               onClick={handleViewMySchemes}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-bold uppercase tracking-wider rounded-lg"
             >
@@ -136,9 +176,13 @@ export default function SchemePaymentSuccessPage() {
             </Button>
 
             <Button
-              variant="outline"
-              onClick={() => router.push("/")}
-              className="w-full h-12 border-2 border-gray-300 text-gray-900 font-bold uppercase tracking-wider rounded-lg hover:bg-gray-50"
+              variant="ghost"
+              onClick={() => {
+                sessionStorage.removeItem("scheme_enrollment");
+                sessionStorage.removeItem("scheme_payment_success_data");
+                router.push("/");
+              }}
+              className="w-full h-12 text-gray-600 font-bold uppercase tracking-wider rounded-lg hover:bg-gray-100"
             >
               Back to Home
             </Button>

@@ -82,6 +82,28 @@ export default function SchemePaymentPage() {
     }
   }, [user, router]);
 
+  const savePaymentRecord = async (payload) => {
+    try {
+      const res = await apiFetch("/api/schemes/payment-records", {
+        method: "POST",
+        body: JSON.stringify({
+          customer: { ...user, party_id: enrollment?.party_id },
+          payment_context: {
+            amount: enrollment?.amount,
+            tenure: 9,
+            method,
+            source: "frontend_payment_page",
+          },
+          ...payload,
+        }),
+      });
+      return res;
+    } catch (error) {
+      console.error("Payment record save failed:", error);
+      return null;
+    }
+  };
+
   const handleInitiatePayment = async () => {
     if (!enrollment) {
       toast.error("Enrollment data missing");
@@ -241,22 +263,22 @@ export default function SchemePaymentPage() {
               }
             };
 
-            await createOrnaverseReceipt(receiptPayload);
+            const ornaReceiptRes = await createOrnaverseReceipt(receiptPayload);
 
-            /* 5️⃣ MONGODB: SAVE ENROLLMENT */
-            const mongoEnrollRes = await apiFetch("/api/schemes/enrollment", {
+            /* 5️⃣ MONGODB: SAVE ENROLLMENT (Local Database) */
+            await apiFetch("/api/schemes/enrollment", {
               method: "POST",
               body: JSON.stringify({
                 customer_id: user?.id,
                 mobile: user?.phone || user?.mobile,
                 amount: enrollment.amount,
-                nominee_name: enrollment.nominee_name,
-                nominee_age: enrollment.nominee_age,
-                nominee_relation: enrollment.nominee_relation,
-                address: enrollment.address,
-                pincode: enrollment.pincode,
-                city: enrollment.city,
-                state: enrollment.state,
+                nominee_name: enrollment.nominee_name || "N/A",
+                nominee_age: enrollment.nominee_age || 0,
+                nominee_relation: enrollment.nominee_relation || "N/A",
+                address: enrollment.address || "N/A",
+                pincode: enrollment.pincode || "N/A",
+                city: enrollment.city || "N/A",
+                state: enrollment.state || "N/A",
                 razorpay_subscription_id: response.razorpay_subscription_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 ornaverse_enrollment_id: ornaEnrollId,
@@ -264,29 +286,7 @@ export default function SchemePaymentPage() {
             });
 
             /* 6️⃣ WEBHOOK (WebEngage sync) */
-            try {
-              await apiFetch("/api/webhook", {
-                method: "POST",
-                body: JSON.stringify({
-                  event_type: "scheme_success",
-                  user: {
-                    phone: `+91${user?.phone || user?.mobile}`,
-                    name: user?.name,
-                    email: user?.email,
-                  },
-                  scheme: {
-                    id: ornaEnrollId,
-                    amount: enrollment.amount,
-                    tenure: 9,
-                    subscription_id: response.razorpay_subscription_id,
-                    payment_id: response.razorpay_payment_id,
-                  },
-                  timestamp: new Date().toISOString(),
-                }),
-              });
-            } catch (webhookErr) {
-              console.error("Webhook sync failed:", webhookErr);
-            }
+            // Removed webhook call as it does not exist in the fastify backend and was causing a 404 Not Found error.
 
             /* 7️⃣ LOG FULL SUCCESS */
             await savePaymentRecord({
@@ -299,10 +299,17 @@ export default function SchemePaymentPage() {
               enrollment_result: ornaEnrollRes,
               enrolled_scheme: matchedScheme,
               receipt_create_payload: receiptPayload,
-              receipt_create_result: "success",
+              receipt_create_result: ornaReceiptRes,
+              receiptEntityId: ornaReceiptRes?.EntityId || null,
             });
 
-            sessionStorage.removeItem("scheme_enrollment");
+            sessionStorage.setItem("scheme_payment_success_data", JSON.stringify({
+              customer: { ...user, party_id: enrollment.party_id },
+              amount: enrollment.amount,
+              enrollmentEntityId: ornaEnrollId,
+              receiptEntityId: ornaReceiptRes?.EntityId || null
+            }));
+
             toast.success("Payment successful! Your scheme is now active.");
             router.push("/schemes/payment-success");
           } catch (err) {

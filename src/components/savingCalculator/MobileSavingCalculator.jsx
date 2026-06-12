@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
-import { CircleCheck, Info, ChevronRight } from "lucide-react";
+import { CircleCheck, Info, ChevronRight, Gift } from "lucide-react";
 import { EnrollModal } from "./enrollModal";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,9 +18,46 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
+import Image from "next/image";
 
 const PRESETS = [2000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
+
+const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top" }) => {
+  const isActive = currentAmount >= value;
+  const left = ((value - min) / (max - min)) * 100;
+  
+  return (
+    <div 
+      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10 pointer-events-none"
+      style={{ left: `${left}%` }}
+    >
+      <div className={`absolute px-1.5 py-0.5 rounded-lg text-[7px] font-bold whitespace-nowrap transition-all duration-300 shadow-sm border ${
+        labelPosition === "top" ? "bottom-full mb-1" : "top-full mt-1"
+      } ${
+        isActive 
+          ? "bg-[#D1EAD0] text-[#008000] border-[#B8DAB6] scale-105" 
+          : "bg-white text-gray-500 border-gray-200 scale-100"
+      }`}>
+        {label}
+        <div className={`absolute left-1/2 -translate-x-1/2 w-1 h-1 rotate-45 border transition-colors duration-300 ${
+          labelPosition === "top" 
+            ? "-bottom-1 border-r border-b" 
+            : "-top-1 border-l border-t"
+        } ${
+          isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-white border-gray-200"
+        }`} />
+      </div>
+      <div className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 pointer-events-auto ${
+        isActive
+          ? "bg-[#009245] border-[#009245] text-white scale-110"
+          : "bg-white border-[#009245] text-[#009245] scale-100"
+      }`}>
+        <Gift size={14} strokeWidth={isActive ? 2 : 1.5} />
+      </div>
+    </div>
+  );
+};
 
 export default function MobileSavingCalculator() {
   const [isAgreed, setIsAgreed] = useState(true);
@@ -48,7 +85,13 @@ export default function MobileSavingCalculator() {
   const [inputValue, setInputValue] = useState(String(initialAmount));
   const totalInstallment = amount * 9;
   const bonus = amount;
-  const totalReturns = totalInstallment + bonus;
+  let giftValue = 0;
+  if (amount >= 5000) {
+    giftValue = 10000;
+  } else if (amount >= 3000) {
+    giftValue = 5000;
+  }
+  const totalReturns = totalInstallment + bonus + giftValue;
   
 
   const formatINR = (value) =>
@@ -62,7 +105,7 @@ export default function MobileSavingCalculator() {
   ];
 
   return (
-    <section className="px-4 pt-4 pb-5 space-y-6">
+    <section className="px-4 pt-4 pb-40 md:pb-5 space-y-6">
       {/* MAIN CARD */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 space-y-7">
 
@@ -80,22 +123,40 @@ export default function MobileSavingCalculator() {
         </div>
 
         {/* SLIDER */}
-        <div className="space-y-4 px-1">
-          <Slider
-            min={2000}
-            max={19000}
-            step={500}
-            value={[amount]}
-            onValueChange={([val]) => {
-              setAmount(val);
-              setInputValue(String(val));
-              setAmountError("");
-            }}
-            className="
+        <div className="space-y-4 px-1 pt-20">
+          <div className="relative mb-10 h-6 flex items-center w-full">
+            <GiftMilestone 
+              label="Free Gift Worth 5k" 
+              value={3000} 
+              currentAmount={amount} 
+              min={2000} 
+              max={19000} 
+              labelPosition="top"
+            />
+            <GiftMilestone 
+              label="Free Gift Worth 10k" 
+              value={5000} 
+              currentAmount={amount} 
+              min={2000} 
+              max={19000} 
+              labelPosition="bottom"
+            />
+            <Slider
+              min={2000}
+              max={19000}
+              step={500}
+              value={[amount]}
+              onValueChange={([val]) => {
+                setAmount(val);
+                setInputValue(String(val));
+                setAmountError("");
+              }}
+              className="
                **:data-[slot=slider-thumb]:size-7
                 **:data-[slot=slider-thumb]:border-4
                 **:data-[slot=slider-thumb]:cursor-pointer"
-          />
+            />
+          </div>
           <div className="flex justify-between text-[10px] text-gray-400 font-medium uppercase tracking-wider">
             <span>Min ₹2,000</span>
             <span>Max ₹19,000</span>
@@ -150,6 +211,21 @@ export default function MobileSavingCalculator() {
             <p className="text-sm font-bold text-gray-900">₹{formatINR(bonus)}</p>
           </div>
 
+          {giftValue > 0 && (
+            <div className="w-full my-3">
+              <Image
+                src={amount >= 5000 
+                  ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_10k.jpg?v=1781241879" 
+                  : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_5k.jpg?v=1781241879"
+                }
+                alt="Free Gift Banner"
+                width={900}
+                height={300}
+                className="w-full h-auto rounded-xl object-contain shadow-sm"
+              />
+            </div>
+          )}
+
           <div className="h-px bg-gray-200/60" />
 
           <div className="flex justify-between items-start">
@@ -165,8 +241,8 @@ export default function MobileSavingCalculator() {
         </div>
       </div>
 
-      {/* REDEMPTION DRAWER TRIGGER */}
-      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+       {/* REDEMPTION DRAWER */}
+       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
         <DrawerTrigger asChild>
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex justify-between items-center active:bg-gray-50 transition-colors">
             <div className="flex flex-col gap-1">
@@ -199,7 +275,6 @@ export default function MobileSavingCalculator() {
               let discountAmount;
 
               if (item.month === 10) {
-                // ✅ Fixed bonus
                 discountAmount = amount;
               } else {
                 const daysArray = daysArrayMap[item.month] || [];
@@ -211,15 +286,19 @@ export default function MobileSavingCalculator() {
                 );
               }
 
-              const totalValue = totalPayment + discountAmount;
-              
+              let currentGiftValue = 0;
+              if (amount >= 5000) {
+                currentGiftValue = 10000;
+              } else if (amount >= 3000) {
+                currentGiftValue = 5000;
+              }
+
+              const totalValue = totalPayment + discountAmount + currentGiftValue;
+
               return (
                 <div key={item.month} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-4">
                   <div className="flex justify-between items-center border-b border-gray-200/60 pb-3">
                     <span className="text-primary font-bold text-sm">{item.month}th Month Redemption</span>
-                    {/* <span className="bg-[#002B5B]/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full">
-                      {item.month === 10 ? "Guaranteed Bonus" : `${item.discount}% Interest`}
-                    </span> */}
                   </div>
                   
                   <div className="space-y-3">
@@ -252,8 +331,8 @@ export default function MobileSavingCalculator() {
         <p>If jewellery is more than ₹{formatINR(totalReturns)}, you just need to pay the difference amount at the time of purchase</p>
       </div>
 
-      {/* TERMS & CONDITIONS */}
-      <div className="px-2">
+       {/* TERMS & CONDITIONS */}
+       <div className="px-2">
         <label className="flex items-start gap-3 text-[11px] text-gray-500 leading-relaxed hover:cursor-pointer">
           <Checkbox
             checked={isAgreed}
@@ -271,66 +350,45 @@ export default function MobileSavingCalculator() {
       </div>
 
       {amountError && (
-        <p className="text-xs text-red-500 text-center font-medium">
-          {amountError}
-        </p>
+        <p className="text-xs text-red-500 text-center font-medium">{amountError}</p>
       )}
 
       {/* FIXED BOTTOM BAR */}
-      <div className="fixed bottom-16 left-0 w-full bg-white border-t px-4 py-3 z-15">
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-              Monthly Enrollment
-            </span>
-            <span className="text-xl font-bold text-gray-900">
-              ₹{formatINR(amount)}
-            </span>
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-5 z-30 md:hidden">
+        <div className="max-w-7xl mx-auto flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Monthly Premium</span>
+              <span className="text-xl font-bold text-black">₹{formatINR(amount)}</span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Total Returns</span>
+              <span className="text-xl font-bold text-green-600 block">₹{formatINR(totalReturns)}</span>
+            </div>
           </div>
-          <div className="text-right">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-              Total Returns
-            </span>
-            <span className="text-xl font-bold text-green-600 block">
-              ₹{formatINR(totalReturns)}
-            </span>
-          </div>
+          
+          <button
+            disabled={!!amountError || !isAgreed}
+            onClick={() => {
+                if (amountError || !isAgreed) return;
+                if (customer) {
+                  dispatch(setEnrollment({ amount }));
+                  router.push("/enroll");
+                } else {
+                  setOpen(true);
+                }
+              }}
+            className={`w-full rounded-xl h-14 text-base font-bold tracking-wide shadow-lg active:scale-[0.98] transition-all disabled:opacity-60 ${
+                amountError || !isAgreed
+                  ? "bg-gray-300 text-gray-500"
+                  : "bg-black text-white"
+              }`}
+          >
+            CONTINUE
+          </button>
         </div>
-
-        <button
-          disabled={amountError || !isAgreed}
-          onClick={async () => {
-            if (amountError || !isAgreed) return;
-
-            if (customer?.mobile) {
-              dispatch(setEnrollment({ amount, tenure: 9 }));
-
-              await fetch("/api/session/update-draft", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  enrollment_draft: { amount, tenure: 9 },
-                }),
-              });
-
-              router.push("/enroll");
-            } else {
-              setOpen(true);
-            }
-          }}
-          className={`mt-3 w-full h-12 rounded-xl text-sm font-medium transition
-            ${
-              amountError || !isAgreed
-                ? "bg-gray-300 text-gray-500"
-                : "bg-black text-white active:scale-[0.98]"
-            }`}
-        >
-          Continue
-        </button>
       </div>
-
       <EnrollModal open={open} onOpenChange={setOpen} amount={amount} />
     </section>
   );
 }
-
