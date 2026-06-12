@@ -2558,7 +2558,21 @@ export default function ProductPageClient({
                     )}
                   </span>
                 </div>
-                {availableStoreCount > 0 && (
+                {nearestStore ? (
+                  nearestStore.isInStock ? (
+                    <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
+                      <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
+                        <Check size={9} className="text-white" strokeWidth={4} />
+                      </div>
+                      <span className="text-12px font-semibold tracking-tight">Design Available</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full w-fit border border-amber-100">
+                      <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                      <span className="text-12px font-bold uppercase tracking-tight">Ships to Store</span>
+                    </div>
+                  )
+                ) : availableStoreCount > 0 && (
                   <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
                     <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
                       <Check size={9} className="text-white" strokeWidth={4} />
@@ -2566,29 +2580,36 @@ export default function ProductPageClient({
                     <span className="text-12px font-semibold tracking-tight">Design Available</span>
                   </div>
                 )}
-                {availableStoreCount > 1 && (
-                  <p className="text-sm text-black">
-                    Also available in <button
-                      onClick={() => {
-                        setIsStoreDrawerOpen(true);
-                        pushToDataLayer({
-                          event: "promoClick",
-                          promoClick: {
-                            creative_name: "find nearest store cta pdp",
-                            promo_id: getNumericId(activeVariant?.id),
-                            promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
-                            promo_position: "Product Details Section",
-                            location_id: "pdp",
-                            product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                          }
-                        });
-                      }}
-                      className="underline underline-offset-2 font-bold"
-                    >
-                      {availableStoreCount - 1} other stores
-                    </button>
-                  </p>
-                )}
+                {(() => {
+                  if (!nearestStore) return null;
+                  const otherCount = nearestStore.isInStock ? availableStoreCount - 1 : availableStoreCount;
+                  if (otherCount <= 0) return null;
+
+                  return (
+                    <p className="text-sm text-black">
+                      {nearestStore.isInStock ? "Also available in " : "Available in "}
+                      <button
+                        onClick={() => {
+                          setIsStoreDrawerOpen(true);
+                          pushToDataLayer({
+                            event: "promoClick",
+                            promoClick: {
+                              creative_name: "find nearest store cta pdp",
+                              promo_id: getNumericId(activeVariant?.id),
+                              promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                              promo_position: "Product Details Section",
+                              location_id: "pdp",
+                              product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                            }
+                          });
+                        }}
+                        className="underline underline-offset-2 font-bold"
+                      >
+                        {otherCount} {otherCount === 1 ? "other store" : "other stores"}
+                      </button>
+                    </p>
+                  );
+                })()}
                 <Button
                   onClick={() => {
                     setIsStoreDrawerOpen(true);
