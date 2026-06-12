@@ -4,18 +4,54 @@ import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Info } from "lucide-react";
+import { Gift, Info } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { pushPromoClick } from "@/lib/gtm";
+import Image from "next/image";
 
 const PRESETS = [2000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
 
+const GiftMilestone = ({ label, value, currentAmount, min, max }) => {
+  const isActive = currentAmount >= value;
+  const left = ((value - min) / (max - min)) * 100;
+  
+  return (
+    <div 
+      className="absolute -top-16 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10"
+      style={{ left: `${left}%` }}
+    >
+      <div className={`px-2 py-1 rounded-lg text-[9px] font-bold whitespace-nowrap mb-1.5 transition-all duration-300 transform shadow-sm border ${
+        isActive 
+          ? "bg-[#D1EAD0] text-[#008000] border-[#B8DAB6] scale-105" 
+          : "bg-gray-50 text-gray-400 border-gray-200 scale-100"
+      }`}>
+        {label}
+        <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rotate-45 border-r border-b transition-colors duration-300 ${
+          isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-gray-50 border-gray-200"
+        }`} />
+      </div>
+      <div className="relative w-8 h-8 transition-transform duration-300 group-hover:scale-110">
+        <Image
+          src={isActive 
+            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1410103946.jpg?v=1781247057" 
+            : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1410103947.jpg?v=1781247013"
+          }
+          alt={label}
+          fill
+          className="object-contain rounded-full shadow-sm"
+        />
+      </div>
+    </div>
+  );
+};
+
 const getTotalValue = (month, amount, rate) => {
+  const giftValue = amount > 5000 ? 10000 : 5000;
   if (month === 10) {
-    return amount * 9 + amount; // 9 paid + 1 bonus
+    return amount * 9 + amount + giftValue; // 9 paid + 1 bonus + gift
   }
   const daysArrayMap = {
     7: [181, 150, 122, 91, 61, 30],
@@ -26,10 +62,11 @@ const getTotalValue = (month, amount, rate) => {
   const interest = Math.ceil(
     daysArray.reduce((sum, d) => sum + (d / 365) * (rate / 100) * amount, 0)
   );
-  return amount * (month - 1) + interest;
+  return amount * (month - 1) + interest + giftValue;
 };
 
 const RedemptionTooltip = ({ month, amount, discountPercent }) => {
+  const giftValue = amount > 5000 ? 10000 : 5000;
   const daysArrayMap = {
     7: [181, 150, 122, 91, 61, 30],
     8: [212, 181, 150, 122, 91, 61, 30],
@@ -53,7 +90,7 @@ const RedemptionTooltip = ({ month, amount, discountPercent }) => {
     );
   }
 
-  const totalValue = totalPayment + discountAmount;
+  const totalValue = totalPayment + discountAmount + giftValue;
 
   return (
     <div className="absolute bottom-full mb-4 left-1/2 -translate-x-1/2 w-72 bg-white rounded-lg shadow-2xl p-6 z-50 pointer-events-none group-hover:pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -85,6 +122,20 @@ const RedemptionTooltip = ({ month, amount, discountPercent }) => {
           </div>
           <p className="text-gray-800 font-semibold text-[13px]">
             ₹{new Intl.NumberFormat("en-IN").format(discountAmount)}
+          </p>
+        </div>
+
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-gray-600 text-[13px] font-medium">
+              Promotional Gift
+            </p>
+            <p className="text-gray-400 text-[11px] font-light mt-0.5">
+              (Free Diamond Pendant)
+            </p>
+          </div>
+          <p className="text-gray-800 font-semibold text-[13px]">
+            ₹{new Intl.NumberFormat("en-IN").format(giftValue)}
           </p>
         </div>
 
@@ -134,7 +185,8 @@ const DesktpSavingCalculator = () => {
 
   const totalInstallment = amount * 9;
   const bonus = amount;
-  const totalReturns = totalInstallment + bonus;
+  const giftValue = amount > 5000 ? 10000 : 5000;
+  const totalReturns = totalInstallment + bonus + giftValue;
 
   const normalizeValue = (val) => {
     const num = Math.max(2000, Math.min(19000, Number(val)));
@@ -162,23 +214,39 @@ const DesktpSavingCalculator = () => {
           <div className="flex gap-4 mb-8 justify-center items-center">
             <div className="bg-gray-100 rounded-2xl px-8 py-4">
               <p className="text-3xl font-semibold text-gray-900">
-                ₹{formatINR(inputValue)}
+                ₹{formatINR(amount)}
               </p>
             </div>
           </div>
 
-          <Slider
-            min={2000}
-            max={19000}
-            step={500}
-            value={[amount]}
-            onValueChange={([val]) => {
-              setAmount(val);
-              setInputValue(String(val));
-              setAmountError("");
-            }}
-            className="mb-6"
-          />
+          <div className="relative mt-24 mb-12">
+            <GiftMilestone 
+              label="Free Gift Worth 5k" 
+              value={2000} 
+              currentAmount={amount} 
+              min={2000} 
+              max={19000} 
+            />
+            <GiftMilestone 
+              label="Free Gift Worth 10k" 
+              value={5500} 
+              currentAmount={amount} 
+              min={2000} 
+              max={19000} 
+            />
+            <Slider
+              min={2000}
+              max={19000}
+              step={500}
+              value={[amount]}
+              onValueChange={([val]) => {
+                setAmount(val);
+                setInputValue(String(val));
+                setAmountError("");
+              }}
+              className="mb-6"
+            />
+          </div>
 
           <div className="text-center my-6 text-gray-500">Or</div>
 
@@ -302,6 +370,18 @@ const DesktpSavingCalculator = () => {
                   </div>
                 </div>
                 <p className="text-xl font-semibold text-gray-900">₹{formatINR(bonus)}</p>
+              </div>
+
+              <div className="relative w-full aspect-[4/1] rounded-xl overflow-hidden my-4">
+                <Image
+                  src={amount > 5000 
+                    ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_10k.jpg?v=1781241879" 
+                    : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_5k.jpg?v=1781241879"
+                  }
+                  alt="Free Gift Banner"
+                  fill
+                  className="object-contain object-center"
+                />
               </div>
 
               <div className="h-px bg-gray-200" />

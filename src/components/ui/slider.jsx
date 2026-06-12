@@ -17,9 +17,9 @@ const Slider = React.forwardRef(
           step={step}
           value={value?.[0] || min}
           onChange={handleChange}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#5f4745]"
           style={{
-            background: `linear-gradient(to right, rgb(37, 99, 235) 0%, rgb(37, 99, 235) ${
+            background: `linear-gradient(to right, rgb(95, 71, 69) 0%, rgb(95, 71, 69) ${
               ((value?.[0] || min) - min) / (max - min) * 100
             }%, rgb(229, 231, 235) ${((value?.[0] || min) - min) / (max - min) * 100}%, rgb(229, 231, 235) 100%)`,
           }}
