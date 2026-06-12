@@ -849,7 +849,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-confirm-bar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 30px; border-top: 1px solid #f0ebe4; background: #fff; z-index: 10; width: 100%; box-shadow: 0 -10px 40px rgba(0,0,0,0.04); }
         .byj-total-wrap { display: flex; flex-direction: column; }
         .byj-total-label { font-size: 8px; color: #8a8a8a; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: 4px; }
-        .byj-total-price {color: #1c1810; font-weight: 800; font-family: 'Figtree', sans-serif; font-size: 16px; line-height: 1;}
+        .byj-total-price {color: #1c1810; font-weight: 700; font-family: 'Figtree', sans-serif; font-size: 16px; line-height: 1;}
         .byj-confirm-btn {color: #fff !important; letter-spacing: .12em !important; text-transform: uppercase !important; background: #5a413f !important; border-radius: 100px !important; align-items: center !important; gap: 10px !important; height: 40px !important; padding: 0 40px !important; font-size: 12px !important; font-weight: 700 !important; transition: all .3s !important; display: flex !important;}
         .byj-confirm-btn:hover:not(:disabled) { background: #4a312f !important; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(90,65,63,0.2); }
         .byj-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -889,8 +889,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-collection-circle-title { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #8a8a8a; letter-spacing: 0.05em; line-height: 1.2; }
         .byj-collection-circle-item.active .byj-collection-circle-title { color: #5a413f; }
 
-        .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .byj-style-card, .byj-charm-item { border: 1.5px solid #f0ebe4; border-radius: 14px; overflow: hidden; cursor: pointer; background: #fff; transition: all .3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; position: relative; }
+        .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 16px; border-top: 1px solid #eaeaea;}
+        .byj-style-card, .byj-charm-item { border: 1px solid #f0ebe4; border-radius: 4px; overflow: hidden; cursor: pointer; background: #fff; transition: all .3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; position: relative; }
         .byj-style-card:hover, .byj-charm-item:hover { border-color: #e0d0ba; transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .byj-style-card.active, .byj-charm-item.selected { border-color: #5a413f; background: #fff;  border-color: #5a413f;}
         .byj-style-img-wrap { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 6px; overflow: hidden; }
@@ -950,7 +950,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
           .byj-canvas-area { padding: 20px 16px 40px; min-height: 50vh; }
           #byj-konva-container { max-width: 100%; border-radius: 16px; }
           .byj-config-panel { display: none !important; }
-          .byj-mobile-steps { display: block !important; grid-area: mobile-steps; background: #fff; border-top: 1px solid #f0ebe4; padding-bottom: 20px; }
+          .byj-mobile-steps { display: block !important; grid-area: mobile-steps; background: #fff; border-top: 1px solid #f0ebe4; padding-bottom: 0px; }
           .byj-mobile-mat-row { display: flex; align-items: center; justify-content: space-between; padding: 20px; border-bottom: 1px solid #f0ebe4; }
           .byj-mob-swatches { display: flex; gap: 10px; align-items: center; }
           .byj-mat-btn { width: 30px; height: 30px; }
