@@ -365,6 +365,8 @@ export const createOrnaverseReceipt = (payload) =>
     body: JSON.stringify(payload),
   });
 
+export const fetchSchemeOfferSettings = () => apiFetch("/api/settings/scheme-offer");
+
 export const createSchemeRazorpayPlan = (amount, tenure) =>
   apiFetch("/api/schemes/razorpay/plan", {
     method: "POST",

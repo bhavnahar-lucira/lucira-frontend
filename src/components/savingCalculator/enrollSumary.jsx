@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CircleCheck, TrendingUp, Gift, Calendar, ArrowRight, IndianRupee, Info, Gem } from "lucide-react";
+import { CircleCheck, TrendingUp, Gift, Calendar, ArrowRight, IndianRupee, Info, Gem, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 
 
 const DEFAULT_AMOUNT = 10000;
@@ -42,6 +43,8 @@ export default function EnrollSummary({
   const [inputValue, setInputValue] = useState("");
   const [amountError, setAmountError] = useState("");
 
+  const { calculateGift, loading: settingsLoading } = useSchemeSettings();
+
   /* ===================== SYNC REDUX → LOCAL ===================== */
   useEffect(() => {
     if (enrolledAmount && !hasUserInteracted.current) {
@@ -61,16 +64,19 @@ export default function EnrollSummary({
   /* ===================== FALLBACK (IMPORTANT) ===================== */
   const displayAmount = amount ?? controlledAmount ?? DEFAULT_AMOUNT;
 
+  if (settingsLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="animate-spin text-primary" size={32} />
+      </div>
+    );
+  }
+
   /* ===================== CALCULATIONS ===================== */
   const monthly = displayAmount;
   const totalInstallment = monthly * MONTHS;
   const bonus = monthly;
-  let giftValue = 0;
-  if (monthly >= 5000) {
-    giftValue = 10000;
-  } else if (monthly >= 3000) {
-    giftValue = 5000;
-  }
+  const giftValue = calculateGift(monthly);
   const returns = totalInstallment + bonus + giftValue;
 
   /* ===================== HELPERS ===================== */

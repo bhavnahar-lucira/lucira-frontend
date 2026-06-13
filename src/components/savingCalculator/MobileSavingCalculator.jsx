@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
-import { CircleCheck, Info, ChevronRight, Gift } from "lucide-react";
+import { CircleCheck, Info, ChevronRight, Gift, Loader2 } from "lucide-react";
 import { EnrollModal } from "./enrollModal";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,6 +19,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import Image from "next/image";
+import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 
 const PRESETS = [2000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
@@ -65,6 +66,7 @@ export default function MobileSavingCalculator() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const amountParam = searchParams.get("amount");
+  const { settings, loading: settingsLoading, calculateGift, getActiveIntervals } = useSchemeSettings();
 
   const getInitialAmount = () => {
     if (amountParam && !isNaN(Number(amountParam))) {
@@ -83,19 +85,25 @@ export default function MobileSavingCalculator() {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(initialAmount);
   const [inputValue, setInputValue] = useState(String(initialAmount));
+
+  if (settingsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="animate-spin text-primary" size={32} />
+      </div>
+    );
+  }
+
+  const giftValue = calculateGift(amount);
   const totalInstallment = amount * 9;
   const bonus = amount;
-  let giftValue = 0;
-  if (amount >= 5000) {
-    giftValue = 10000;
-  } else if (amount >= 3000) {
-    giftValue = 5000;
-  }
   const totalReturns = totalInstallment + bonus + giftValue;
   
 
   const formatINR = (value) =>
     new Intl.NumberFormat("en-IN").format(value);
+
+  const activeIntervals = getActiveIntervals();
 
   const redemptionData = [
     { month: 7, discount: 25 },
@@ -125,22 +133,17 @@ export default function MobileSavingCalculator() {
         {/* SLIDER */}
         <div className="space-y-4 px-1 pt-20">
           <div className="relative mb-10 h-6 flex items-center w-full">
-            <GiftMilestone 
-              label="Free Gift Worth 5k" 
-              value={3000} 
-              currentAmount={amount} 
-              min={2000} 
-              max={19000} 
-              labelPosition="top"
-            />
-            <GiftMilestone 
-              label="Free Gift Worth 10k" 
-              value={5000} 
-              currentAmount={amount} 
-              min={2000} 
-              max={19000} 
-              labelPosition="bottom"
-            />
+            {activeIntervals.map((inv, idx) => (
+              <GiftMilestone 
+                key={idx}
+                label={inv.label} 
+                value={inv.min} 
+                currentAmount={amount} 
+                min={2000} 
+                max={19000} 
+                labelPosition={idx % 2 === 0 ? "top" : "bottom"}
+              />
+            ))}
             <Slider
               min={2000}
               max={19000}
@@ -214,7 +217,7 @@ export default function MobileSavingCalculator() {
           {giftValue > 0 && (
             <div className="w-full my-3">
               <Image
-                src={amount >= 5000 
+                src={giftValue >= 10000 
                   ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_10k.jpg?v=1781241879" 
                   : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_5k.jpg?v=1781241879"
                 }
@@ -286,12 +289,7 @@ export default function MobileSavingCalculator() {
                 );
               }
 
-              let currentGiftValue = 0;
-              if (amount >= 5000) {
-                currentGiftValue = 10000;
-              } else if (amount >= 3000) {
-                currentGiftValue = 5000;
-              }
+              let currentGiftValue = calculateGift(amount);
 
               const totalValue = totalPayment + discountAmount + currentGiftValue;
 

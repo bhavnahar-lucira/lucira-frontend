@@ -4,12 +4,13 @@ import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Gift, Info } from "lucide-react";
+import { Gift, Info, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { pushPromoClick } from "@/lib/gtm";
 import Image from "next/image";
+import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 
 const PRESETS = [2000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
@@ -50,25 +51,7 @@ const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = 
   );
 };
 
-const getTotalValue = (month, amount, rate) => {
-  const giftValue = amount >= 5000 ? 10000 : amount >= 3000 ? 5000 : 0;
-  if (month === 10) {
-    return amount * 9 + amount + giftValue; // 9 paid + 1 bonus + gift
-  }
-  const daysArrayMap = {
-    7: [181, 150, 122, 91, 61, 30],
-    8: [212, 181, 150, 122, 91, 61, 30],
-    9: [242, 212, 181, 150, 122, 91, 61, 30],
-  };
-  const daysArray = daysArrayMap[month] || [];
-  const interest = Math.ceil(
-    daysArray.reduce((sum, d) => sum + (d / 365) * (rate / 100) * amount, 0)
-  );
-  return amount * (month - 1) + interest + giftValue;
-};
-
-const RedemptionTooltip = ({ month, amount, discountPercent }) => {
-  const giftValue = amount >= 5000 ? 10000 : amount >= 3000 ? 5000 : 0;
+const RedemptionTooltip = ({ month, amount, discountPercent, giftValue }) => {
   const daysArrayMap = {
     7: [181, 150, 122, 91, 61, 30],
     8: [212, 181, 150, 122, 91, 61, 30],
@@ -127,19 +110,21 @@ const RedemptionTooltip = ({ month, amount, discountPercent }) => {
           </p>
         </div>
 
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-gray-600 text-[13px] font-medium">
-              Promotional Gift
-            </p>
-            <p className="text-gray-400 text-[11px] font-light mt-0.5">
-              (Free Diamond Pendant)
+        {giftValue > 0 && (
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-gray-600 text-[13px] font-medium">
+                Promotional Gift
+              </p>
+              <p className="text-gray-400 text-[11px] font-light mt-0.5">
+                (Free Diamond Pendant)
+              </p>
+            </div>
+            <p className="text-gray-800 font-semibold text-[13px]">
+              ₹{new Intl.NumberFormat("en-IN").format(giftValue)}
             </p>
           </div>
-          <p className="text-gray-800 font-semibold text-[13px]">
-            ₹{new Intl.NumberFormat("en-IN").format(giftValue)}
-          </p>
-        </div>
+        )}
 
         <div className="h-px bg-gray-100 my-1" />
 
@@ -168,6 +153,7 @@ const DesktpSavingCalculator = () => {
   const searchParams = useSearchParams();
   const amountParam = searchParams.get("amount");
   const { isAuthenticated, openLogin, user } = useAuth();
+  const { settings, loading: settingsLoading, calculateGift, getActiveIntervals } = useSchemeSettings();
 
   const getInitialAmount = () => {
     if (amountParam && !isNaN(Number(amountParam))) {
@@ -185,10 +171,35 @@ const DesktpSavingCalculator = () => {
   const [inputValue, setInputValue] = useState(String(initialAmount));
   const [isAgreed, setIsAgreed] = useState(true);
 
+  if (settingsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="animate-spin text-primary" size={32} />
+      </div>
+    );
+  }
+
+  const giftValue = calculateGift(amount);
   const totalInstallment = amount * 9;
   const bonus = amount;
-  const giftValue = amount >= 5000 ? 10000 : amount >= 3000 ? 5000 : 0;
   const totalReturns = totalInstallment + bonus + giftValue;
+
+  const getTotalValue = (month, amt, rate) => {
+    const gv = calculateGift(amt);
+    if (month === 10) {
+      return amt * 9 + amt + gv;
+    }
+    const daysArrayMap = {
+      7: [181, 150, 122, 91, 61, 30],
+      8: [212, 181, 150, 122, 91, 61, 30],
+      9: [242, 212, 181, 150, 122, 91, 61, 30],
+    };
+    const daysArray = daysArrayMap[month] || [];
+    const interest = Math.ceil(
+      daysArray.reduce((sum, d) => sum + (d / 365) * (rate / 100) * amt, 0)
+    );
+    return amt * (month - 1) + interest + gv;
+  };
 
   const normalizeValue = (val) => {
     const num = Math.max(2000, Math.min(19000, Number(val)));
@@ -206,6 +217,8 @@ const DesktpSavingCalculator = () => {
 
   const formatINR = (value) => new Intl.NumberFormat("en-IN").format(value);
 
+  const activeIntervals = getActiveIntervals();
+
   return (
     <section className="w-full max-w-7xl mx-auto px-6 mt-6 min-[1024px]:mt-20">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-10 md:gap-20 items-start">
@@ -222,22 +235,17 @@ const DesktpSavingCalculator = () => {
           </div>
 
           <div className="relative mt-24 mb-12 h-6 flex items-center w-full">
-            <GiftMilestone 
-              label="Free Gift Worth 5k" 
-              value={3000} 
-              currentAmount={amount} 
-              min={2000} 
-              max={19000} 
-              labelPosition="top"
-            />
-            <GiftMilestone 
-              label="Free Gift Worth 10k" 
-              value={5000} 
-              currentAmount={amount} 
-              min={2000} 
-              max={19000} 
-              labelPosition="bottom"
-            />
+            {activeIntervals.map((inv, idx) => (
+              <GiftMilestone 
+                key={idx}
+                label={inv.label} 
+                value={inv.min} 
+                currentAmount={amount} 
+                min={2000} 
+                max={19000} 
+                labelPosition={idx % 2 === 0 ? "top" : "bottom"}
+              />
+            ))}
             <Slider
               min={2000}
               max={19000}
@@ -379,7 +387,7 @@ const DesktpSavingCalculator = () => {
               {giftValue > 0 && (
                 <div className="w-full my-4">
                   <Image
-                    src={amount >= 5000 
+                    src={giftValue >= 10000 
                       ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_10k.jpg?v=1781241879" 
                       : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_5k.jpg?v=1781241879"
                     }
@@ -455,6 +463,7 @@ const DesktpSavingCalculator = () => {
                     month={item.month}
                     amount={amount}
                     discountPercent={item.discount}
+                    giftValue={giftValue}
                   />
                 </div>
               ))}
