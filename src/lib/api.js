@@ -329,3 +329,47 @@ export const fetchProductReviews = async (productId) => {
 /* ================= LOCAL RATES ================= */
 
 export const fetchLocalRates = () => apiFetch("/api/local-rates");
+
+/* ================= ORNAVERSE SCHEMES ================= */
+
+export const fetchOrnaverseCustomer = (mobile) =>
+  apiFetch("/api/schemes/customer/get", {
+    method: "POST",
+    body: JSON.stringify({ mobile }),
+  });
+
+export const updateOrnaverseCustomer = (payload) =>
+  apiFetch("/api/schemes/customer/update", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const createOrnaverseCustomer = (payload) =>
+  apiFetch("/api/schemes/customer/create", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const createOrnaverseEnrollment = (payload) =>
+  apiFetch("/api/schemes/enrollments/create", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const fetchOrnaverseEnrollments = (partyId) =>
+  apiFetch(`/api/schemes/enrollments?party_id=${partyId}`);
+
+export const createOrnaverseReceipt = (payload) =>
+  apiFetch("/api/schemes/receipt/create", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const fetchSchemeOfferSettings = () => apiFetch("/api/settings/scheme-offer");
+
+export const createSchemeRazorpayPlan = (amount, tenure) =>
+  apiFetch("/api/schemes/razorpay/plan", {
+    method: "POST",
+    body: JSON.stringify({ amount, tenure }),
+  });
+

@@ -19,6 +19,7 @@
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.35.1",
     "imagesloaded": "^5.0.0",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.575.0",
     "masonry-layout": "^4.2.2",
     "mongodb": "^7.1.1",
