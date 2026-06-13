@@ -843,6 +843,12 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-help-tooltip.show { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
         .byj-help-tooltip::after { content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 6px; border-style: solid; border-color: #1c1810 transparent transparent transparent; }
 
+        @media (max-width: 860px) {
+          .byj-help-tooltip { left: auto; right: 0; transform: translateY(10px); }
+          .byj-help-tooltip.show { transform: translateY(0); }
+          .byj-help-tooltip::after { left: auto; right: 15px; transform: none; }
+        }
+
         .byj-config-panel { grid-area: panel; background: #fff; border-left: 1px solid #e0d0ba; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; box-shadow: -10px 0 50px rgba(0,0,0,0.02); }
         .byj-panel-scroll { flex: 1; overflow-y: auto; scrollbar-width: thin; scroll-behavior: smooth; }
         
@@ -936,7 +942,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-sum-charm-name { font-size: 13px; font-weight: 600; display: block; color: #1c1810; }
         .byj-sum-charm-qty { font-size: 11px; color: #5a413f; font-weight: 500; }
 
-        .byj-drawer-footer { padding: 10px 20px; background: #fff; border-top: 1px solid #f0ebe4; }
+        .byj-drawer-footer { padding: 10px 20px 10px; background: #fff; border-top: 1px solid #f0ebe4; }
         .byj-subtotal-row {justify-content: space-between; align-items: baseline; margin-bottom: 10px; display: flex;}
         .byj-subtotal-label { font-size: 13px; font-weight: 600; color: #5a413f; }
         .byj-subtotal-price { color: #1c1810; font-family: var(--font-abhaya), serif;     font-size: 16px; font-weight: 700; font-family: 'Figtree', sans-serif; }
@@ -960,9 +966,10 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
           .byj-mob-check.pending { background: transparent; color: #e0d0ba; border: 1.5px solid #e0d0ba; }
           .byj-mob-label { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #5a413f; letter-spacing: 0.12em; margin-bottom: 4px; }
           .byj-mob-val { font-size: 14px; font-weight: 700; color: #1c1810; }
-          .byj-mob-confirm-bar { display: flex; align-items: center; gap: 20px; padding: 20px; border-top: 1px solid #f0ebe4; background: #fff; position: sticky; bottom: 0; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.03); }
-          .byj-right-drawer { width: 100%; border-left: none; border-radius: 24px 24px 0 0; top: 10vh; height: 90vh; transform: translateY(100%); }
+          .byj-mob-confirm-bar { display: flex; align-items: center; gap: 20px; padding: 20px 20px calc(20px + env(safe-area-inset-bottom)); border-top: 1px solid #f0ebe4; background: #fff; position: sticky; bottom: 0; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.03); }
+          .byj-right-drawer { width: 100%; border-left: none; border-radius: 24px 24px 0 0; top: 10vh; top: 10dvh; height: 90vh; height: 90dvh; transform: translateY(100%); }
           .byj-right-drawer.open { transform: translateY(0); }
+          .byj-drawer-footer { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
         }
       `}</style>
 
