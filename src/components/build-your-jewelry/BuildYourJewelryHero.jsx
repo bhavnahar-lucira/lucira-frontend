@@ -56,7 +56,7 @@ const BuildYourJewelryHero = () => {
               Design your own personalized lab-grown diamond chain — whether it’s a necklace, bracelet, or anklet — with our online builder, and celebrate every chapter of your journey with timeless brilliance and meaningful charms.
             </p>
             
-            <div className="grid grid-cols-3 gap-3 md:gap-5 mt-11 pr-0 md:pr-[4.4rem] pl-0 md:pl-[30px]">
+            <div className="grid grid-cols-3 gap-3 md:gap-5 mt-0 md:mt-11 pr-0 md:pr-[4.4rem] pl-0 md:pl-[30px]">
               {categories.map((cat, index) => (
                 <Link key={index} href={cat.href} className="flex flex-col items-center group">
                   <div className="w-full h-[120px] md:h-[220px] relative overflow-hidden rounded-[5px]">

@@ -170,6 +170,7 @@ export default function MobileHeader({ menuData }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const isProductPage = pathname.startsWith('/products/');
+  const isBYJPage = pathname.startsWith('/build-your-jewelry');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -1067,7 +1068,7 @@ export default function MobileHeader({ menuData }) {
         </div>
       </div>
 
-      {!isProductPage && (
+      {!isProductPage && !isBYJPage && (
         <div className="px-4 py-2 bg-white">
           <div
             onClick={() => setShowSearch(true)}

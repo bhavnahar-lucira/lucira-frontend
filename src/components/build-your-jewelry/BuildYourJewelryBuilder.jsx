@@ -614,6 +614,26 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     });
   };
 
+  const handleSliderChange = (e) => {
+    const newScale = parseFloat(e.target.value);
+    const stage = stageRef.current;
+    if (!stage) return;
+    
+    const oldScale = stage.scaleX();
+    const center = { x: stage.width() / 2, y: stage.height() / 2 };
+    const relatedToCenter = {
+      x: (center.x - stage.x()) / oldScale,
+      y: (center.y - stage.y()) / oldScale,
+    };
+
+    stage.scaleX(newScale);
+    stage.scaleY(newScale);
+    stage.x(center.x - relatedToCenter.x * newScale);
+    stage.y(center.y - relatedToCenter.y * newScale);
+    stage.batchDraw();
+    setZoom(newScale);
+  };
+
   const zoomToCharms = () => {
     const stage = stageRef.current;
     const img = productImgRef.current;
@@ -755,7 +775,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     setAddingToBag(true);
     try {
       const styleV = getActiveVersion(selectedStyle, material, length);
-      const groupId = `BYJ-${Date.now()}`; 
+      const groupId = `BYJ-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; 
       const charmDetails = selectedCharms.map((c, i) => `${i + 1}. ${c.fullTitle}`).join(', ');
       
       const properties = {
@@ -793,8 +813,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
        sku: c.sku,
        properties: {
          '_byj_group_id': groupId,
-         '_byj_parent': styleV.id,
-         ' _byj_parent': styleV.id
+         '_byj_parent': styleV.id
        }
       }));
 
@@ -833,8 +852,11 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-zoom-bar { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 100px; padding: 6px 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #f0ebe4; }
         .byj-ctrl-btn { width: 34px; height: 34px; border: none; background: #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; transition: all .2s cubic-bezier(.4,0,.2,1); }
         .byj-ctrl-btn:hover { background: #fdfaf7; transform: translateY(-1px) scale(1.05); }
-        .byj-zoom-track { width: 100px; height: 3px; background: #f0ebe4; border-radius: 10px; position: relative; cursor: pointer; }
-        .byj-zoom-thumb { width: 14px; height: 14px; border-radius: 50%; background: #1c1810; position: absolute; top: 50%; transform: translate(-50%,-50%); transition: left .2s cubic-bezier(.4,0,.2,1); display: block; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        .byj-zoom-slider { -webkit-appearance: none; width: 100px; height: 3px; background: #f0ebe4; border-radius: 10px; outline: none; cursor: pointer; }
+        .byj-zoom-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #1c1810; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: transform 0.2s; }
+        .byj-zoom-slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #1c1810; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: none; transition: transform 0.2s; }
+        .byj-zoom-slider:active::-webkit-slider-thumb { transform: scale(1.2); }
+        .byj-zoom-slider:active::-moz-range-thumb { transform: scale(1.2); }
         
         .byj-help-btn-wrap { position: relative; }
         .byj-help-btn { width: 44px; height: 44px; border: 1px solid rgba(224,208,186,0.8); background: #fff; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #1c1810; box-shadow: 0 4px 20px rgba(0,0,0,.06); font-size: 15px; font-weight: 600; transition: all .2s; }
@@ -981,13 +1003,20 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
               <div className="byj-canvas-controls">
                 <div className="byj-zoom-bar">
                   <button className="byj-ctrl-btn" onClick={() => handleZoom(0.8)} aria-label="Zoom out">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   </button>
-                  <div className="byj-zoom-track">
-                    <div className="byj-zoom-thumb" style={{ left: `${((zoom - 0.5) / 2.0) * 100}%` }}></div>
-                  </div>
+                  <input 
+                    type="range" 
+                    className="byj-zoom-slider" 
+                    min="0.5" 
+                    max="2.5" 
+                    step="0.01" 
+                    value={zoom} 
+                    onChange={handleSliderChange}
+                    onInput={handleSliderChange}
+                  />
                   <button className="byj-ctrl-btn" onClick={() => handleZoom(1.2)} aria-label="Zoom in">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   </button>
                 </div>
                 <div className="byj-help-btn-wrap">
