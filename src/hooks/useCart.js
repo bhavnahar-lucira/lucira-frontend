@@ -9,6 +9,7 @@ import {
   removeCoupon,
   addToCart as addToCartThunk,
   removeFromCart as removeFromCartThunk,
+  removeMultipleFromCart as removeMultipleFromCartThunk,
   updateCartItem as updateCartItemThunk
 } from "@/redux/features/cart/cartSlice";
 import { selectCart } from "@/redux/features/cart/cartSelectors";
@@ -30,9 +31,10 @@ export const useCart = () => {
   const user = useSelector((state) => state.user.user);
   const userId = user?.id;
 
-  const addToCart = async (product) => {
+  const addToCart = async (payload) => {
     try {
-      await dispatch(addToCartThunk({ product })).unwrap();
+      // payload can be { product } or { products }
+      await dispatch(addToCartThunk(payload)).unwrap();
       // dispatch(openCart());
     } catch (err) {
       console.error("Add to cart error:", err);
@@ -63,6 +65,14 @@ export const useCart = () => {
     ...cart,
     addToCart,
     removeFromCart,
+    removeMultipleFromCart: async (payload) => {
+      try {
+        await dispatch(removeMultipleFromCartThunk(payload)).unwrap();
+      } catch (err) {
+        console.error("Remove multiple from cart error:", err);
+        toast.error("Failed to remove items from cart");
+      }
+    },
     updateCartItem,
     removeCoupon: () => dispatch(removeCoupon()),
     openCart: () => dispatch(openCart()),

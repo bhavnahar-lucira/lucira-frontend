@@ -23,7 +23,7 @@ export default function MetalEducationPage() {
         </h1>
         <div className="space-y-4 text-lg text-gray-600 ">
           <p>
-            At <Link href="/" className="text-primary no-underline font-medium">Lucira Jewelry</Link>, 
+            At <Link prefetch={false} href="/" className="text-primary no-underline font-medium">Lucira Jewelry</Link>, 
             we meticulously source our metals to ensure exceptional quality, longevity, and comfort, so every piece remains as timeless as the moments it represents. 
             Jewellery is not just a product, but a lifelong connection with the milestones achieved and the occasions celebrated.
           </p>
@@ -88,7 +88,7 @@ export default function MetalEducationPage() {
                 <p className="text-sm italic">Always check for a hallmark or a karat stamp to ensure authenticity. Choose 18K or 14K for daily wear.</p>
               </div>
               <div className='flex justify-center align-center'>
-                <Link href="/collections/engagement-rings-yellow-gold" className="inline-block bg-primary text-white px-8 py-3 shadow-md rounded-lg hover:opacity-90 transition-opacity">Browse Gold</Link>
+                <Link prefetch={false} href="/collections/engagement-rings-yellow-gold" className="inline-block bg-primary text-white px-8 py-3 shadow-md rounded-lg hover:opacity-90 transition-opacity">Browse Gold</Link>
               </div>
             </div>
           </div>
@@ -127,7 +127,7 @@ export default function MetalEducationPage() {
                 <p className="text-sm italic">Look for &apos;925&apos; stamp to ensure genuine sterling silver.</p>
               </div>
               <div className='flex justify-center align-center'>
-                <Link href="/collections/engagement-rings-silver" className="inline-block bg-primary text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity">Browse Silver</Link>
+                <Link prefetch={false} href="/collections/engagement-rings-silver" className="inline-block bg-primary text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity">Browse Silver</Link>
               </div>
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function MetalEducationPage() {
                 <p className="text-sm italic">Ensure it is certified and has a purity stamp such as &quot;PT950&quot;</p>
               </div>
               <div className='flex justify-center align-center'>
-                <Link href="/collections/platinum-engagement-bridal-rings" className="inline-block bg-primary text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity">Browse Platinum</Link>
+                <Link prefetch={false} href="/collections/platinum-engagement-bridal-rings" className="inline-block bg-primary text-white px-8 py-3 rounded-lg hover:opacity-90 transition-opacity">Browse Platinum</Link>
                 </div>
             </div>
           </div>

@@ -118,7 +118,7 @@ export default function VideoPopup({ isOpen, onClose, videoData, initialIndex })
                    <div className="absolute bottom-14 left-0 w-full z-[510]">
                       <div className="flex gap-4 overflow-x-auto no-scrollbar px-6 pb-4">
                          {item.products.map((product, pIdx) => (
-                           <Link href={product.url} key={pIdx} className="min-w-[85vw] bg-white rounded-[20px] p-4 flex gap-4 shadow-2xl relative items-center">
+                           <Link prefetch={false} href={product.url} key={pIdx} className="min-w-[85vw] bg-white rounded-[20px] p-4 flex gap-4 shadow-2xl relative items-center">
                               <div className="w-18 h-18 bg-zinc-50 rounded-xl overflow-hidden shrink-0 relative border border-zinc-100">
                                  <LazyImage src={product.image} alt={product.title} fill className="object-cover" />
                               </div>
@@ -234,7 +234,7 @@ export default function VideoPopup({ isOpen, onClose, videoData, initialIndex })
                   <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
                     <div className="space-y-8 mt-4 md:mt-0">
                         {item.products && item.products.map((product, pIdx) => (
-                        <Link href={product.url} key={pIdx} className="flex items-center gap-6 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
+                        <Link prefetch={false} href={product.url} key={pIdx} className="flex items-center gap-6 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
                             <div className="w-24 h-24 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100 relative">
                             <LazyImage src={product.image} alt={product.title} fill className="object-cover" />
                             </div>

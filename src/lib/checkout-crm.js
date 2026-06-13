@@ -7,6 +7,24 @@ const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 export const getStoredUtms = () => {
   if (typeof window === 'undefined') return {};
   try {
+    const getCookie = (name) => {
+      const nameEQ = name + "=";
+      const ca = document.cookie.split(';');
+      for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+      }
+      return null;
+    };
+
+    const cookieUtmsStr = getCookie("lucira_utms");
+    if (cookieUtmsStr) {
+      try {
+        return JSON.parse(decodeURIComponent(cookieUtmsStr));
+      } catch(e) {}
+    }
+
     return JSON.parse(localStorage.getItem("lucira_utms") || "{}");
   } catch (e) {
     return {};
@@ -33,7 +51,13 @@ export const saveUtmsFromUrl = (searchParams) => {
   });
   
   if (changed) {
-    localStorage.setItem("lucira_utms", JSON.stringify(newUtms));
+    const strUtms = JSON.stringify(newUtms);
+    localStorage.setItem("lucira_utms", strUtms);
+
+    // Save in cookie for 30 days
+    const date = new Date();
+    date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
+    document.cookie = "lucira_utms=" + encodeURIComponent(strUtms) + "; expires=" + date.toUTCString() + "; path=/; SameSite=Lax";
   }
 };
 
@@ -55,7 +79,7 @@ export const sendCheckoutCrmEvent = async (type, data) => {
     };
 
     const customerEvent = {
-      Event_Type: type === "add_payment_info" ? "Add Payment Info" : "Checkout",
+      Event_Type: type === "add_payment_info" ? "Payment" : "Checkout",
       Channel: "website",
       Order_Value: data.totalCartValue,
       Currency: "INR",
@@ -85,11 +109,17 @@ export const sendCheckoutCrmEvent = async (type, data) => {
       };
     });
 
+    const byjImage = (data.cartItems || []).find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || 
+                     (data.cartItems || []).find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "";
+
     const payload = {
       leaddetails: leadDetails,
       customerevent: customerEvent,
       products: products,
-      order: {}
+      order: {
+        byj_image: byjImage,
+        "custom.byj_image": byjImage
+      }
     };
 
     await apiFetch("/api/webhooks/checkout-crm", {

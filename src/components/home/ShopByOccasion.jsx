@@ -23,7 +23,7 @@ export default function ShopByOccasion() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {OCCASIONS.map((occ, index) => (
-            <Link
+            <Link prefetch={false}
               key={index}
               href={occ.href}
               className="relative aspect-[3/4.2] overflow-hidden group bg-gray-100 rounded-lg shadow-sm"

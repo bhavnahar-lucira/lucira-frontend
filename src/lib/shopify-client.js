@@ -35,8 +35,12 @@ export async function shopifyStorefrontFetch(query, variables = {}, retries = 3,
       const hasConflict = data.errors.some(e => e.extensions?.code === "CONFLICT");
       
       if (hasConflict && retries > 0) {
-        console.warn(`[shopifyStorefrontFetch] Cart conflict detected. Retrying in ${delayMs}ms... (${retries} retries left)`);
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        // Add random jitter to delay to prevent concurrent retries from conflicting again
+        const jitter = Math.floor(Math.random() * 200);
+        const nextDelay = delayMs + jitter;
+        
+        console.warn(`[shopifyStorefrontFetch] Cart conflict detected. Retrying in ${nextDelay}ms... (${retries} retries left)`);
+        await new Promise(resolve => setTimeout(resolve, nextDelay));
         return shopifyStorefrontFetch(query, variables, retries - 1, delayMs * 2);
       }
 
@@ -83,6 +87,10 @@ export const CART_QUERY = `
           node {
             id
             quantity
+            attributes {
+              key
+              value
+            }
             merchandise {
               ... on ProductVariant {
                 id
@@ -173,6 +181,24 @@ export const CART_LINES_REMOVE_MUTATION = `
   }
 `;
 
+export const CART_ATTRIBUTES_UPDATE_MUTATION = `
+  mutation cartAttributesUpdate($cartId: ID!, $attributes: [AttributeInput!]!) {
+    cartAttributesUpdate(cartId: $cartId, attributes: $attributes) {
+      cart {
+        id
+        attributes {
+          key
+          value
+        }
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 export const CUSTOMER_QUERY = `
   query getCustomer($customerAccessToken: String!) {
     customer(customerAccessToken: $customerAccessToken) {
@@ -224,6 +250,10 @@ export const CUSTOMER_ORDERS_QUERY = `
                 node {
                   title
                   quantity
+                  customAttributes {
+                    key
+                    value
+                  }
                   variant {
                     id
                     image { url altText }
@@ -270,6 +300,24 @@ export const ADDRESS_DEFAULT_UPDATE_MUTATION = `
     customerDefaultAddressUpdate(customerAccessToken: $customerAccessToken, addressId: $addressId) {
       customer { id }
       customerUserErrors { field message }
+    }
+  }
+`;
+
+export const CUSTOMER_UPDATE_MUTATION = `
+  mutation customerUpdate($customerAccessToken: String!, $customer: CustomerUpdateInput!) {
+    customerUpdate(customerAccessToken: $customerAccessToken, customer: $customer) {
+      customer {
+        id
+        firstName
+        lastName
+        email
+        phone
+      }
+      customerUserErrors {
+        field
+        message
+      }
     }
   }
 `;

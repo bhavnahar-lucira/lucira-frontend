@@ -18,7 +18,7 @@ import {
   addGuestWishlistItem,
   removeGuestWishlistItem,
 } from "@/redux/features/wishlist/wishlistSlice";
-import { setCollectionContext } from "@/redux/features/user/userSlice";
+import { setCollectionContext, openAuthModal } from "@/redux/features/user/userSlice";
 import {
   Drawer,
   DrawerClose,
@@ -633,7 +633,10 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                     } else {
                       const payload = { productId, productHandle, title: product.title, image: thumbnailImage, price: displayPrice, comparePrice: displayComparePrice || "", reviews: product.reviews || null, hasVideo: Boolean(videoMedia), hasSimilar: Boolean(product.handle), variantId: String(getNumericId(currentVariant?.id || currentVariant?.shopifyId)), size: currentVariant?.size || "", color: currentVariant?.color || currentVariant?.title || "" };
                       if (user?.id) await dispatch(addWishlistItem(payload)).unwrap();
-                      else dispatch(addGuestWishlistItem(payload));
+                      else {
+                        dispatch(addGuestWishlistItem(payload));
+                        dispatch(openAuthModal());
+                      }
                       pushAddToWishlist(commonTrackingData); toast.success("Saved to wishlist");
                     }
                   } catch (err) { toast.error(err.message || "Wishlist update failed"); } finally { setTimeout(() => setIsWishlistAnimating(false), 250); }

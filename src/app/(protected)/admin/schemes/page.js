@@ -357,7 +357,7 @@ export default function SchemesPage() {
           </div>
           <p className="text-zinc-600 font-medium whitespace-pre-line">{error}</p>
           {error.includes("phone") && (
-            <Link
+            <Link prefetch={false}
               href="/admin/profile"
               className="inline-block mt-2 px-8 py-3 bg-primary text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity"
             >

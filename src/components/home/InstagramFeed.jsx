@@ -108,7 +108,7 @@ export default function InstagramFeed() {
           <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">Follow Our Journey</h2>
           <p className="text-black font-normal md:text-base text-sm leading-[1.4] tracking-normal align-middle">
             Tag us{" "}
-            <Link
+            <Link prefetch={false}
               href="https://www.instagram.com/lucirajewelry"
               target="_blank"
               className="text-accent underline hover:no-underline underline-offset-2 decoration-2"

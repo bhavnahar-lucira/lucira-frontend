@@ -48,20 +48,27 @@ export default async function Home() {
   let gemstoneInitial = null;
   let gemstoneCategoriesInitial = null;
   let exploreInitial = null;
+  let bannersInitial = [];
 
   try {
     // Use force-cache so these fetches inherit the page-level revalidate=21600
-    const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes] = await Promise.all([
+    const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes, bannersRes] = await Promise.all([
       fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { cache: 'force-cache' }),
       fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { cache: 'force-cache' }),
       fetch(`${base}/api/products/filters?q=gemstone`, { cache: 'force-cache' }),
-      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { cache: 'force-cache' })
+      fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { cache: 'force-cache' }),
+      fetch(`${base}/api/settings/hero-banners`, { cache: 'force-cache' })
     ]);
 
     if (bestsellersRes.ok) bestsellersInitial = await bestsellersRes.json();
     if (gemstoneRes.ok) gemstoneInitial = await gemstoneRes.json();
     if (gemstoneCatRes.ok) gemstoneCategoriesInitial = await gemstoneCatRes.json();
     if (exploreRes.ok) exploreInitial = await exploreRes.json();
+
+    if (bannersRes.ok) {
+      const bData = await bannersRes.json();
+      bannersInitial = bData.banners || [];
+    }
 
     // Helper to strip heavy fields and save Vercel bandwidth
     const stripData = (data) => {
@@ -90,7 +97,7 @@ export default async function Home() {
   return (
     <div className="w-full">
       <MobileCategorySlider />
-      <HeroSliderImage />
+      <HeroSliderImage initialData={bannersInitial} />
       <FeatureBar />
       <ExploreRange />
 

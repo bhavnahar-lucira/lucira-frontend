@@ -4,8 +4,10 @@ import { useEffect } from "react";
 
 const PINCODE_COOKIE = "user_pincode";
 const FBC_COOKIE = "_fbc";
+const GCLID_COOKIE = "gclid";
 const PINCODE_MAX_AGE = 60 * 60 * 24 * 30;
 const FBC_MAX_AGE = 60 * 60 * 24 * 90;
+const GCLID_MAX_AGE = 60 * 60 * 24 * 30;
 
 function getCookie(name) {
   const value = document.cookie
@@ -36,6 +38,17 @@ function storeFacebookClickId() {
 
   if (fbclid) {
     setCookie(FBC_COOKIE, `fb.1.${Date.now()}.${fbclid}`, FBC_MAX_AGE);
+  }
+}
+
+function storeGoogleClickId() {
+  if (getCookie(GCLID_COOKIE)) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const gclid = params.get("gclid");
+
+  if (gclid) {
+    setCookie(GCLID_COOKIE, gclid, GCLID_MAX_AGE);
   }
 }
 
@@ -82,6 +95,7 @@ function requestAndStorePincode() {
 export default function VisitorTracking() {
   useEffect(() => {
     storeFacebookClickId();
+    storeGoogleClickId();
     requestAndStorePincode();
   }, []);
 

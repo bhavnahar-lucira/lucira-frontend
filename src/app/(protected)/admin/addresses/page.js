@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSelector } from "react-redux";
 import {
   MapPin,
   Plus,
@@ -24,13 +23,16 @@ import {
 import { toast } from "react-toastify";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
+import { useDispatch, useSelector } from "react-redux";
+import { updateUser } from "@/redux/features/user/userSlice";
 import { 
   shopifyStorefrontFetch, 
   CUSTOMER_QUERY,
   ADDRESS_CREATE_MUTATION,
   ADDRESS_UPDATE_MUTATION,
   ADDRESS_DELETE_MUTATION,
-  ADDRESS_DEFAULT_UPDATE_MUTATION
+  ADDRESS_DEFAULT_UPDATE_MUTATION,
+  CUSTOMER_UPDATE_MUTATION
 } from "@/lib/shopify-client";
 
 const emptyAddressForm = {
@@ -199,6 +201,43 @@ export default function SavedAddressesPage() {
         });
         toast.success("Address updated successfully");
       }
+
+      // Sync name changes with Backend Profile & Shopify Customer Profile
+      if (accessToken && !accessToken.startsWith("simulated_")) {
+        try {
+          // 1. Sync with Backend Profile
+          await apiFetch("/api/customer/profile", {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({
+              firstName: addressForm.firstName,
+              lastName: addressForm.lastName,
+            }),
+          });
+
+          // 2. Sync with Shopify Profile
+          await shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
+            customerAccessToken: accessToken,
+            customer: {
+              firstName: addressForm.firstName,
+              lastName: addressForm.lastName,
+            }
+          });
+
+          // 3. Update local Redux state for real-time Header reflection
+          dispatch(updateUser({
+            firstName: addressForm.firstName,
+            lastName: addressForm.lastName,
+          }));
+          
+          if (process.env.NODE_ENV === "development") {
+            console.log("[SavedAddressesPage] Successfully synced name with Backend and Shopify profile");
+          }
+        } catch (syncErr) {
+          console.warn("[SavedAddressesPage] Failed to sync name with profile:", syncErr);
+        }
+      }
+
       setDialogOpen(false);
       loadAddresses();
     } catch (error) {
@@ -237,6 +276,33 @@ export default function SavedAddressesPage() {
         headers: { Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ addressId: id, mode: "default" })
       });
+
+      // Sync name of the new default address to the profile
+      const address = addresses.find(a => a.id === id);
+      if (address && accessToken && !accessToken.startsWith("simulated_")) {
+        try {
+          await Promise.all([
+            apiFetch("/api/customer/profile", {
+              method: "PATCH",
+              headers: { Authorization: `Bearer ${accessToken}` },
+              body: JSON.stringify({ firstName: address.firstName, lastName: address.lastName }),
+            }),
+            shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
+              customerAccessToken: accessToken,
+              customer: { firstName: address.firstName, lastName: address.lastName }
+            })
+            ]);
+
+          // 3. Update local Redux state for real-time Header reflection
+          dispatch(updateUser({
+            firstName: address.firstName,
+            lastName: address.lastName,
+          }));
+        } catch (syncErr) {
+          console.warn("[SavedAddressesPage] Failed to sync name on default change:", syncErr);
+        }
+      }
+
       toast.success("Default address updated");
       loadAddresses();
     } catch (error) {

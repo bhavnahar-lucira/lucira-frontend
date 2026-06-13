@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import Link from "next/link";
 import CartItem from "@/components/cart/CartItem";
 import CartSummary from "@/components/cart/CartSummary";
@@ -10,15 +10,29 @@ import { ShoppingBag, ArrowRight, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { pushViewCart } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
+import { removeFromCart, removeMultipleFromCart } from "@/redux/features/cart/cartSlice";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 export default function CartPage() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const { items, totalQuantity, totalAmount, appliedCoupon } = useSelector((state) => state.cart);  
-  const { isAuthenticated, openLogin } = useAuth();
+  const { user, isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
+  const cleanupInProgress = useRef(false);
+
+  // Fallback: If user logs in while on cart page, and was trying to checkout, redirect them
+  useEffect(() => {
+    if (isAuthenticated) {
+      const storedRedirect = localStorage.getItem("auth_redirect_path");
+      if (storedRedirect === "/checkout/shipping") {
+        localStorage.removeItem("auth_redirect_path");
+        router.push("/checkout/shipping");
+      }
+    }
+  }, [isAuthenticated, router]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -47,8 +61,13 @@ export default function CartPage() {
   const filteredItems = items.filter(
     (item) => 
       item.variantId !== INSURANCE_VARIANT_ID && 
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.properties?.['_byj_parent'] &&
+      !item.properties?.[' _byj_parent'] && // Handle potential space in key
+      !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
+
+  const displayQuantity = filteredItems.reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const handlePlaceOrder = () => {
     if (isAuthenticated) {
@@ -59,7 +78,44 @@ export default function CartPage() {
     }
   };
 
-  if (items.length === 0) {
+  // Effect to cleanup orphaned BYJ charms
+  useEffect(() => {
+    if (items.length > 0 && !cleanupInProgress.current) {
+      const parentGroupIds = new Set(
+        items
+          .filter(item => item.properties?.['_byj_preview'])
+          .map(item => item.properties?.['_byj_group_id'])
+          .filter(Boolean)
+      );
+
+      const orphanedCharms = items.filter(item => {
+        const groupId = item.properties?.['_byj_group_id'];
+        const isCharm = item.properties?.['_byj_parent'] || item.properties?.[' _byj_parent'] || (groupId && !item.properties?.['_byj_preview']);
+        return isCharm && groupId && !parentGroupIds.has(groupId);
+      });
+
+      if (orphanedCharms.length > 0) {
+        cleanupInProgress.current = true;
+        const lineIds = orphanedCharms.map(c => c.lineId).filter(Boolean);
+        const variantIds = orphanedCharms.map(c => c.variantId).filter(Boolean);
+
+        dispatch(removeMultipleFromCart({ 
+          userId: user?.id, 
+          lineIds, 
+          variantIds 
+        }))
+        .unwrap()
+        .catch((e) => {
+          console.error("Failed to cleanup orphaned charms:", e);
+        })
+        .finally(() => {
+          cleanupInProgress.current = false;
+        });
+      }
+    }
+  }, [items, user?.id, dispatch]);
+
+  if (items.length === 0 || displayQuantity === 0) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 space-y-6 bg-white">
         <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100 shadow-inner mb-2">
@@ -69,7 +125,7 @@ export default function CartPage() {
           <h1 className="text-2xl font-bold text-zinc-800 font-abhaya">Your cart is empty</h1>
           <p className="text-zinc-500 max-w-xs mx-auto">Looks like you haven&apos;t added anything to your cart yet.</p>
         </div>
-        <Link href="/collections/jewelry">
+        <Link prefetch={false} href="/collections/jewelry">
           <Button className="bg-primary hover:bg-primary/90 text-white font-bold h-12 px-8 uppercase tracking-widest rounded-sm flex items-center gap-2">
             Shop Now
             <ArrowRight size={18} />
@@ -85,7 +141,7 @@ export default function CartPage() {
       <div className="lg:hidden pt-6 px-4 bg-white">
         <div className="flex items-baseline gap-2">
           <h1 className="text-xl font-bold text-zinc-800 font-abhaya">My Shopping Cart</h1>
-          <span className="text-sm text-zinc-500 font-medium">({totalQuantity} Item{totalQuantity !== 1 ? 's' : ''})</span>
+          <span className="text-sm text-zinc-500 font-medium">({displayQuantity} Item{displayQuantity !== 1 ? 's' : ''})</span>
         </div>
       </div>
 
@@ -97,13 +153,13 @@ export default function CartPage() {
             <div className="lg:sticky lg:top-10">
               <div className="hidden lg:flex items-baseline gap-2 mb-5">
                 <h1 className="text-xl font-bold text-zinc-800 font-abhaya">My Shopping Cart</h1>
-                <span className="text-sm text-zinc-500 font-medium">({totalQuantity} Item{totalQuantity !== 1 ? 's' : ''})</span>
+                <span className="text-sm text-zinc-500 font-medium">({displayQuantity} Item{displayQuantity !== 1 ? 's' : ''})</span>
               </div>
 
               <div className="space-y-4">
                 {filteredItems.map((item, index) => (
                   <CartItem 
-                    key={item.variantId || index} 
+                    key={item.id || `${item.variantId}-${index}`} 
                     item={item} 
                     onAuthRequired={openLogin}
                   />

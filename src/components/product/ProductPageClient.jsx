@@ -64,7 +64,7 @@ import { SizeGuideSheet } from "@/components/product/SizeGuideSheet";
 import { ProductCustomizerMobile } from "@/components/product/ProductCustomizerMobile";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@/redux/features/cart/cartSlice";
-import { selectUser, setPincode, selectPincode } from "@/redux/features/user/userSlice";
+import { selectUser, setPincode, selectPincode, openAuthModal } from "@/redux/features/user/userSlice";
 import {
   addWishlistItem,
   removeWishlistItem,
@@ -76,6 +76,7 @@ import { addRecentlyViewed, selectRecentlyViewed } from "@/redux/features/recent
 import AtcBar from "@/components/AtcBar";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushProductView, pushAddToCart, pushAddToWishlist, pushRemoveFromWishlist, pushPromoClick, formatGtmPrice, getNumericId, getStandardWishlistPayload, pushToDataLayer } from "@/lib/gtm";
+import { sendProductViewWebhook, sendAddToCartWebhook } from "@/lib/headless-webhooks";
 
 import {
   Sheet,
@@ -266,7 +267,7 @@ export default function ProductPageClient({
   const searchParams = useSearchParams();
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
@@ -278,6 +279,7 @@ export default function ProductPageClient({
   const user = useSelector(selectUser);
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const wishlistItems = useSelector((state) => state.wishlist.items);
+  const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
   const [addingToCart, setAddingToCart] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [showTopAtc, setShowTopAtc] = useState(false);
@@ -318,22 +320,22 @@ export default function ProductPageClient({
   });
 
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: false, threshold: 20000, message: "" });
-
   useEffect(() => {
     if (!product.shopifyId) return;
 
     const fetchComplementary = async () => {
       if (!product.shopifyId && !product.id) return;
-      
+
       const gid = product.shopifyId?.startsWith("gid://") ? product.shopifyId : `gid://shopify/Product/${product.shopifyId || product.id}`;
       console.log("[fetchComplementary] Starting fetch for GID:", gid);
-      
+
       const PRODUCT_FIELDS = `
         fragment ProductFields on Product {
           id
           title
           handle
           productType
+          tags
           featuredImage { url altText }
           images(first: 5) { edges { node { url altText } } }
           variants(first: 20) {
@@ -413,11 +415,11 @@ export default function ProductPageClient({
 
         const mapProduct = (p) => {
           if (!p || !p.id) return null;
-          
+
           const variants = (p.variants?.edges || []).map(({ node: v }) => {
             const options = {};
             v.selectedOptions?.forEach(o => { options[o.name.toLowerCase()] = o.value; });
-            
+
             return {
               id: v.id.split("/").pop(),
               shopifyId: v.id,
@@ -427,6 +429,7 @@ export default function ProductPageClient({
               compare_price: v.compareAtPrice ? Number(v.compareAtPrice.amount) : null,
               inStock: v.availableForSale === true,
               image: v.image?.url,
+              tags: v.selectedOptions.map(o => o.value).join(" "),
               size: options.size || null,
               color: options.color || options.metal || options["metal color"] || null,
               metafields: {
@@ -466,9 +469,9 @@ export default function ProductPageClient({
         // Always fetch metafields to check for matching_product even if recommendations had results
         const metaResult = await shopifyStorefrontFetch(METAFIELD_QUERY, { id: gid });
         const metafields = metaResult?.product?.metafields || [];
-        
+
         console.log("[fetchComplementary] Metafields found:", metafields.length);
-        
+
         const complementaryFromMeta = [];
         const matchingFromMeta = [];
 
@@ -900,17 +903,16 @@ export default function ProductPageClient({
 
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
-  
+
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
     const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
-    
+
     if (user?.id) {
       return wishlistItems.some(findFn);
     }
-    const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
-    return guestItems.some(findFn);
-  }, [user?.id, wishlistItems, productId]);
+    return guestWishlistItems.some(findFn);
+  }, [user?.id, wishlistItems, guestWishlistItems, productId]);
   const recentlyViewedState = useSelector(selectRecentlyViewed);
 
   const handleSaveEngraving = () => {
@@ -1018,7 +1020,7 @@ export default function ProductPageClient({
 
   const getStoreDisplayName = (name) => {
     if (!name) return "";
-    if (name.includes("Divinecarat")) return "Malad";
+    if (name.includes("Divinecarat")) return "Head Office";
     if (name === "BO1") return "Borivali";
     if (name === "CS1") return "Chembur";
     if (name === "PS1") return "Pune";
@@ -1060,7 +1062,7 @@ export default function ProductPageClient({
       const variantOptions = (product.variants || [])
         .filter((variant) => {
           if (!variant?.size || !variant?.color) return false;
-          
+
           const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
 
           const vKarat = normalize(variant.metafields?.metal_purity || "");
@@ -1155,24 +1157,29 @@ export default function ProductPageClient({
       const sellingPrice = Number(activeVariant?.price || product.price || 0);
       const originalPrice = Number(activeVariant?.compare_price || activeVariant?.compareAtPrice || product.compare_price || product.compareAtPrice || sellingPrice);
 
+      const atcData = {
+        productId: String(getNumericId(product.shopifyId || product.id)),
+        variantId: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId)),
+        sku: activeVariant?.sku || product?.sku || activeVariant?.variantSku || product?.variantSku || (product?.variants && product?.variants[0]?.sku) || "",
+        productName: product.title,
+        productType: product.type || "",
+        vendor: product.vendor || "Lucira Jewelry",
+        offerPrice: Number(originalPrice.toFixed(2)),
+        productUrl: currentUrl,
+        image: productImageUrl,
+        price: Number(sellingPrice),
+        category: "",
+        subCategory: "",
+        productPersona: "",
+        quantity: 1
+      };
+
       pushAddToCart({
         eventId: `atc_${Date.now()}`,
-        products: {
-          productId: String(getNumericId(product.shopifyId || product.id)),
-          variantId: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId)),
-          sku: activeVariant?.sku || product?.sku || activeVariant?.variantSku || product?.variantSku || (product?.variants && product?.variants[0]?.sku) || "",
-          productName: product.title,
-          productType: product.type || "",
-          vendor: product.vendor || "Lucira Jewelry",
-          offerPrice: String(originalPrice.toFixed(2)),
-          productUrl: currentUrl,
-          image: productImageUrl,
-          price: String(sellingPrice),
-          category: "",
-          subCategory: "",
-          productPersona: ""
-        }
+        products: atcData
       });
+
+      sendAddToCartWebhook(user, atcData);
       //gtm
 
       toast.success("Added to cart!");
@@ -1198,11 +1205,10 @@ export default function ProductPageClient({
       if (isWishlisted) {
         // Remove
         const normProductId = String(getNumericId(rawProductId));
-        const guestItems = JSON.parse(localStorage.getItem("lucira_guest_wishlist") || "[]");
-        const targetItem = (user?.id ? wishlistItems : guestItems).find(
+        const targetItem = (user?.id ? wishlistItems : guestWishlistItems).find(
           (item) => String(getNumericId(item.productId)) === normProductId
         );
-        
+
         if (targetItem) {
           if (user?.id) {
             dispatch(removeWishlistItem({ productId: targetItem.productId, variantId: targetItem.variantId }));
@@ -1248,6 +1254,7 @@ export default function ProductPageClient({
           dispatch(addWishlistItem({ ...payload, userId: finalUserId }));
         } else {
           dispatch(addGuestWishlistItem(payload));
+          dispatch(openAuthModal());
         }
 
         pushAddToWishlist([commonTrackingData]);
@@ -1404,7 +1411,7 @@ export default function ProductPageClient({
       const sellingPrice = Number(activeVariant?.price || product.price || 0);
       const originalPrice = Number(activeVariant?.compare_price || activeVariant?.compareAtPrice || product.compare_price || product.compareAtPrice || sellingPrice);
 
-      pushProductView({
+      const productViewData = {
         productId: getNumericId(product.shopifyId || product.id),
         sku: activeVariant?.sku || "",
         variantId: String(activeVariant?.id || activeVariant?.shopifyId || ""),
@@ -1418,9 +1425,12 @@ export default function ProductPageClient({
         image: productImageUrl,
         price: sellingPrice,
         offerPrice: Number(originalPrice),
-      });
+      };
+
+      pushProductView(productViewData);
+      sendProductViewWebhook(user, productViewData);
     }
-  }, [activeVariant, product]);
+  }, [activeVariant, product, user]);
 
   // Scroll to top on mount/refresh
   useEffect(() => {
@@ -1550,7 +1560,7 @@ export default function ProductPageClient({
   const isSizeInStock = (size) => {
     return product.variants?.some(v => {
       const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
-      
+
       const vKarat = normalize(v.metafields?.metal_purity || "");
       const vMetal = normalize(v.metafields?.metal_color || "");
 
@@ -1779,7 +1789,7 @@ export default function ProductPageClient({
                       if (parts.length === 0) return null;
 
                       return (
-                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 uppercase tracking-tight">
+                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 tracking-tight">
                           {parts.join(" · ")}
                         </p>
                       );
@@ -1918,7 +1928,7 @@ export default function ProductPageClient({
                 {/* Gold Selection */}
                 <div className="space-y-3">
                   <div className="text-base font-bold">
-                    Select Gold Color & Karat: <span className="text-gray-500 font-medium ml-1">{activeKarat} {activeColor}</span>
+                    Select Gold Color & Karat: <span className="text-gray-500 font-medium ml-1">{activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {(() => {
@@ -1961,8 +1971,15 @@ export default function ProductPageClient({
 
                       return combinations.map(({ karat, metal }) => {
                         let colorClass = colorMap.yellow;
-                        if (metal.includes("White")) colorClass = colorMap.white;
-                        if (metal.includes("Rose")) colorClass = colorMap.rose;
+                        if (metal.toLowerCase().includes("yellow") && metal.toLowerCase().includes("white")) {
+                          colorClass = "linear-gradient(to right, #c59922 50%, #dfdfdf 50%)";
+                        } else if (metal.toLowerCase().includes("rose") && metal.toLowerCase().includes("white")) {
+                          colorClass = "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)";
+                        } else if (metal.includes("White")) {
+                          colorClass = colorMap.white;
+                        } else if (metal.includes("Rose")) {
+                          colorClass = colorMap.rose;
+                        }
 
                         const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
                         const isActive = normalize(activeColor) === normalize(metal) && normalize(activeKarat) === normalize(karat);
@@ -1970,9 +1987,9 @@ export default function ProductPageClient({
                         return (
                           <GoldOption
                             key={`${karat}-${metal}`}
-                            metal={metal}
+                            metal={metal.includes("-") ? metal.replace(" Gold", "") : metal}
                             karat={karat}
-                            onClick={handleGoldSelection}
+                            onClick={() => handleGoldSelection(metal, karat)}
                             active={isActive}
                             color={colorClass}
                             inStock={isColorInStock(metal, karat)}
@@ -1993,7 +2010,7 @@ export default function ProductPageClient({
                           <SizeGuideSheet>
                             <button
                               className="text-sm font-medium underline underline-offset-4 decoration-gray-300 hover:cursor-pointer"
-                              onClick={() => handlePromoClick('Size Guide Clicked', null, {}, true)}
+                              onClick={() => handlePromoClick('Size Guide Clicked', null, { location_id: 'pdp' }, true)}
                             >
                               Size Guide
                             </button>
@@ -2004,7 +2021,10 @@ export default function ProductPageClient({
                       {String(product.type || "").toLowerCase().includes("ring") && (
                         <Dialog>
                           <DialogTrigger asChild>
-                            <div className="bg-[#F8F9FA] rounded-lg flex items-center gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
+                            <div
+                              className="bg-[#F8F9FA] rounded-lg flex items-center gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+                              onClick={() => handlePromoClick('Size guide video bar', null, { location_id: 'pdp' }, true)}
+                            >
                               <div className="bg-white rounded-lg shadow-sm">
                                 <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Sizing_A_ring_thumb_fead0dba-6cb0-4c0c-95d1-e0b673d42401.jpg" alt="Video Icon" aspect-ratio="3/4" width={60} height={25} />
                                 {/* <Video size={16} fill="black" /> */}
@@ -2359,13 +2379,25 @@ export default function ProductPageClient({
                                   <span className="text-lg font-extrabold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-1.5 leading-tight font-medium">
-                                  You can redeem this amount after 10 months.
+                                  Redeem on any diamond product after 10 months. Any remaining amount can be paid at checkout.
                                 </p>
                               </div>
                             </div>
 
                             <Button className="w-full h-12 font-bold uppercase tracking-widest bg-tertiary hover:bg-accent text-white rounded-sm shadow-lg shadow-primary/20 transition-all duration-200 active:scale-[0.97]" asChild>
-                              <a href={schemeData.schemeUrl} target="_blank" rel="noopener noreferrer">
+                              <a
+                                href={schemeData.schemeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() =>
+                                  pushPromoClick({
+                                    creative_name: "scheme enroll button clicked",
+                                    location_id: "pdp",
+                                    promo_id: getNumericId(activeVariant?.id),
+                                    promo_position: String(schemeData.monthly)
+                                  })
+                                }
+                              >
                                 ENROLL NOW <ArrowRight size={16} className="ml-2" />
                               </a>
                             </Button>
@@ -2493,16 +2525,16 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               <div className="border border-gray-200 rounded-md p-4 space-y-2.5 bg-gray-50">
-                  <div className="flex items-center gap-2">
-                    <Store size={20} className="text-black" strokeWidth={1.2} />
-                    <span className="text-base font-bold">
-                      {nearestStore ? (
-                        <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
-                      ) : (
-                        <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
-                      )}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Store size={20} className="text-black" strokeWidth={1.2} />
+                  <span className="text-base font-bold">
+                    {nearestStore ? (
+                      <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
+                    ) : (
+                      <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
+                    )}
+                  </span>
+                </div>
                 {availableStoreCount > 0 && (
                   <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
                     <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
@@ -2513,11 +2545,42 @@ export default function ProductPageClient({
                 )}
                 {availableStoreCount > 1 && (
                   <p className="text-sm text-black">
-                    Also available in <button onClick={() => setIsStoreDrawerOpen(true)} className="underline underline-offset-2 font-bold">{availableStoreCount - 1} other stores</button>
+                    Also available in <button
+                      onClick={() => {
+                        setIsStoreDrawerOpen(true);
+                        pushToDataLayer({
+                          event: "promoClick",
+                          promoClick: {
+                            creative_name: "find nearest store cta pdp",
+                            promo_id: getNumericId(activeVariant?.id),
+                            promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                            promo_position: "Product Details Section",
+                            location_id: "pdp",
+                            product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                          }
+                        });
+                      }}
+                      className="underline underline-offset-2 font-bold"
+                    >
+                      {availableStoreCount - 1} other stores
+                    </button>
                   </p>
                 )}
                 <Button
-                  onClick={() => setIsStoreDrawerOpen(true)}
+                  onClick={() => {
+                    setIsStoreDrawerOpen(true);
+                    pushToDataLayer({
+                      event: "promoClick",
+                      promoClick: {
+                        creative_name: "find nearest store cta pdp",
+                        promo_id: getNumericId(activeVariant?.id),
+                        promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                        promo_position: "Product Details Section",
+                        location_id: "pdp",
+                        product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                      }
+                    });
+                  }}
                   className="w-full h-12 font-bold rounded-md mt-1 text-sm bg-tertiary uppercase tracking-widest"
                 >
                   {availableStoreCount > 0 ? "FIND IN STORE" : "FIND STORE"}
@@ -2735,7 +2798,7 @@ export default function ProductPageClient({
 
                 {/* Single Diamond Card */}
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1 && (
-                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
+                  <div className={`bg-[#F9F9F9] rounded-2xl p-5 space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                       <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
@@ -2750,7 +2813,7 @@ export default function ProductPageClient({
                       {activeVariant.metafields.diamonds[0].shape && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Shape</span>
-                          <span className="font-medium uppercase">{mapShapeCode(activeVariant.metafields.diamonds[0].shape) || activeVariant.metafields.diamonds[0].shape}</span>
+                          <span className="font-medium">{mapShapeCode(activeVariant.metafields.diamonds[0].shape) || activeVariant.metafields.diamonds[0].shape}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
@@ -2765,9 +2828,39 @@ export default function ProductPageClient({
                   </div>
                 )}
 
+                {/* Multiple Diamond Card */}
+                {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length > 1 && (
+                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5 col-span-2">
+                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
+                      Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
+                    </div>
+
+                    <div className="flex gap-4 md:gap-6 overflow-x-auto pb-2 scrollbar-hide">
+                      {/* Labels Column */}
+                      <div className="space-y-1 shrink-0">
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quality :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Carat :</div>
+                      </div>
+
+                      {/* Values Columns */}
+                      {activeVariant.metafields.diamonds.map((d, i) => (
+                        <div key={`dia-col-${i}`} className="space-y-1 shrink-0">
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.quality || ""}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{mapShapeCode(d.shape) || d.shape || "-"}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.pieces || "1"}pcs</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.weight}ct</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Single Gemstone Card */}
                 {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1 && (
-                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
+                  <div className={`bg-[#F9F9F9] rounded-2xl p-5 space-y-4 ${(activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1) ? "" : "col-span-2"}`}>
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                       <Image src="/images/icons/gemstone.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
                       Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("gemstone")} />
@@ -2776,13 +2869,13 @@ export default function ProductPageClient({
                       {activeVariant.metafields.gemstones[0].color && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Color</span>
-                          <span className="font-medium uppercase">{activeVariant.metafields.gemstones[0].color}</span>
+                          <span className="font-medium">{activeVariant.metafields.gemstones[0].color}</span>
                         </div>
                       )}
                       {activeVariant.metafields.gemstones[0].shape && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Shape</span>
-                          <span className="font-medium uppercase">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
+                          <span className="font-medium">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
@@ -2796,67 +2889,37 @@ export default function ProductPageClient({
                     </div>
                   </div>
                 )}
+
+                {/* Multiple Gemstone Card */}
+                {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length > 1 && (
+                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5 col-span-2">
+                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                      <Image src="/images/icons/gemstone.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
+                      Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" />
+                    </div>
+
+                    <div className="flex gap-10 md:gap-16 overflow-x-auto pb-2 scrollbar-hide">
+                      {/* Labels Column */}
+                      <div className="space-y-3 shrink-0">
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Color :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Carat :</div>
+                      </div>
+
+                      {/* Values Columns */}
+                      {activeVariant.metafields.gemstones.map((g, i) => (
+                        <div key={`gem-col-${i}`} className="space-y-3 shrink-0">
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.color || "-"}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{mapShapeCode(g.shape) || g.shape || "-"}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.pieces || "1"}pcs</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.weight || "0"}ct</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* Multiple Diamond Card - Full Width */}
-              {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length > 1 && (
-                <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5">
-                  <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
-                    Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
-                  </div>
-
-                  <div className="flex gap-4 md:gap-6 overflow-x-auto pb-2 scrollbar-hide">
-                    {/* Labels Column */}
-                    <div className="space-y-1 shrink-0">
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quality :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Carat :</div>
-                    </div>
-
-                    {/* Values Columns */}
-                    {activeVariant.metafields.diamonds.map((d, i) => (
-                      <div key={`dia-col-${i}`} className="space-y-1 shrink-0">
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.quality || "VVS-VS, EF"}</div>
-                        <div className="text-sm font-semibold h-5 flex items-center uppercase text-gray-900 whitespace-nowrap">{mapShapeCode(d.shape) || d.shape || "-"}</div>
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.pieces || "1"}pcs</div>
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{d.weight}ct</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Multiple Gemstone Card - Full Width */}
-              {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length > 1 && (
-                <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5">
-                  <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
-                    Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" />
-                  </div>
-
-                  <div className="flex gap-10 md:gap-16 overflow-x-auto pb-2 scrollbar-hide">
-                    {/* Labels Column */}
-                    <div className="space-y-3 shrink-0">
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Color :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
-                      <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Carat :</div>
-                    </div>
-
-                    {/* Values Columns */}
-                    {activeVariant.metafields.gemstones.map((g, i) => (
-                      <div key={`gem-col-${i}`} className="space-y-3 shrink-0">
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap uppercase">{g.color || "-"}</div>
-                        <div className="text-sm font-semibold h-5 flex items-center uppercase text-gray-900 whitespace-nowrap">{mapShapeCode(g.shape) || g.shape || "-"}</div>
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.pieces || "1"}pcs</div>
-                        <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.weight || "0"}ct</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
 
@@ -2897,7 +2960,7 @@ export default function ProductPageClient({
                       </a>
                     </Button>
                   </div>
-                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">                    
+                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">
                     <div className="flex items-center gap-7">
                       <div className="w-14 h-14 relative">
                         <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
@@ -2911,7 +2974,15 @@ export default function ProductPageClient({
                     </div>
                   </div>
                   <div className="flex items-center justify-center flex-col mt-5">
-                    <p className="text-sm text-black text-center"><strong>Note:</strong> Our products are handcrafted and personalized for you, hence weight variance may occur.</p>
+                    {product.tags?.includes("Tennis Bracelets") || product.tags?.includes("Eternity") ? (
+                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                       Handcrafted and personalized with care - slight variations in metal weight, diamond weight and quantity are natural with different sizes.
+                      </p>
+                    ) : 
+                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                        Handcrafted and personalized with care - slight variations in metal weight are natural with different sizes.
+                      </p>
+                    }                    
                     {product.tags?.includes("Only Pendant") && (
                       <p className="text-sm text-black text-center mt-1">Chain is not included in the purchase.</p>
                     )}
@@ -2929,7 +3000,7 @@ export default function ProductPageClient({
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
       <ProductStory description={product.description} />
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <StyledByLucira />
+        <StyledByLucira/>
       </Suspense>
       <OurProcess />
       <div ref={reviewsRef}>
@@ -3007,7 +3078,13 @@ export default function ProductPageClient({
                       <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
+                            {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
+                            <h3 className="font-bold text-lg">
+                              {getStoreDisplayName(store.name) === "Head Office" 
+                                ? "Head Office" 
+                                : `${getStoreDisplayName(store.name)}`
+                              }
+                            </h3>
                             {store.distance !== null && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                                 <MapPin size={14} />
@@ -3045,7 +3122,7 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/919172499912?text=${encodeURIComponent(
+                            href={`https://wa.me/919004435760?text=${encodeURIComponent(
                               `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
@@ -3057,11 +3134,11 @@ export default function ProductPageClient({
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                            <a href={`tel:${store.phone || "+919172499912"}`}>CALL STORE</a>
+                            <a href={`tel:${store.phone || "+919004435760"}`}>CALL STORE</a>
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
+                              href={`${store.mapLink}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -3140,7 +3217,7 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/919172499912?text=${encodeURIComponent(
+                          href={`https://wa.me/919004435760?text=${encodeURIComponent(
                             `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"
@@ -3156,7 +3233,7 @@ export default function ProductPageClient({
                         </Button>
                         <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                           <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
+                            href={`${store.mapLink}`}
                             target="_blank"
                             rel="noopener noreferrer"
                           >

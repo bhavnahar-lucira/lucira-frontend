@@ -82,29 +82,6 @@ export function RegisterForm({ initialMobile = "" }) {
     return () => clearTimeout(timerRef.current);
   }, [timer]);
 
-  // WebOTP API listener
-  useEffect(() => {
-    if ("OTPCredential" in window && step === "verify-otp") {
-      const ac = new AbortController();
-      navigator.credentials
-        .get({
-          otp: { transport: ["sms"] },
-          signal: ac.signal,
-        })
-        .then((otpData) => {
-          if (otpData && otpData.code) {
-            const cleanCode = otpData.code.replace(/\D/g, "").slice(0, 4);
-            if (cleanCode.length === 4) {
-              setOtp(cleanCode);
-              verifyExistingOtp(cleanCode);
-            }
-          }
-        })
-        .catch((err) => console.log("WebOTP Error:", err));
-      return () => ac.abort();
-    }
-  }, [step]);
-
   useEffect(() => {
     if (initialMobile) {
       setMobile(initialMobile);
@@ -175,6 +152,7 @@ export function RegisterForm({ initialMobile = "" }) {
   const handleSpinAndRegister = async () => {
     if (!firstName || !lastName || !email || !mobile) return toast.error("Please fill all fields");
     if (mobile.length !== 10) return toast.error("Enter valid 10-digit mobile");
+    if (!/^[6-9]/.test(mobile)) return toast.error("Please enter a valid Indian mobile number starting with 6, 7, 8 or 9");
     if (!consent) return toast.error("Please accept T&Cs");
 
     try {

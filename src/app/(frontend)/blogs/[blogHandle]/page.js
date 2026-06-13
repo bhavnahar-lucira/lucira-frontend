@@ -5,10 +5,10 @@ import { Suspense } from "react";
 import { getArticlesByBlogHandle, getBlogByHandle, getAllBlogHandles } from "@/lib/blogs";
 import BlogListingClient from "@/components/blogs/BlogListingClient";
 
-// SSG: Render once at build, never background-revalidate.
-// Blog content is static — it only changes when an editor publishes a new article.
-export const dynamic = 'force-static';
-export const dynamicParams = false; // Strictly 404 for unknown blogs to avoid any SSR
+// SSG: Fully static blog listing. Pre-rendered at build time.
+// This eliminates Vercel function invocations and Data Cache reading costs.
+export const dynamicParams = true; 
+export const revalidate = false; 
 
 export async function generateStaticParams() {
   return await getAllBlogHandles();

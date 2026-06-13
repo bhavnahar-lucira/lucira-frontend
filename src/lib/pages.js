@@ -14,7 +14,10 @@ export async function getAllPages() {
         }
       }
     `;
-  const data = await shopifyStorefrontFetch(query);
+  const data = await shopifyStorefrontFetch(query, {}, { 
+    cache: 'force-cache',
+    useRwToken: true 
+  });
   return data?.pages?.edges.map(e => e.node) || [];
 }
 
@@ -32,7 +35,10 @@ export async function getPageByHandle(handle) {
       }
     `;
   // force-cache to respect SSG
-  const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'force-cache' });
+  const data = await shopifyStorefrontFetch(query, { handle }, { 
+    cache: 'force-cache',
+    useRwToken: true 
+  });
   return data?.page;
 }
 

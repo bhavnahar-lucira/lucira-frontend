@@ -23,7 +23,7 @@ export function FindLuciraStore({
 
   const getStoreDisplayName = (name) => {
     if (!name) return "";
-    if (name.includes("Divinecarat")) return "Malad";
+    if (name.includes("Divinecarat")) return "Head Office";
     if (name === "BO1") return "Borivali";
     if (name === "CS1") return "Chembur";
     if (name === "PS1") return "Pune";
@@ -115,7 +115,10 @@ export function FindLuciraStore({
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                           <div className="min-w-0 flex-1">
                             <h3 className="text-xl md:text-2xl font-semibold italic mb-2 md:mb-4">
-                              {getStoreDisplayName(store.name)} Lucira Store
+                              {getStoreDisplayName(store.name) === "Head Office" 
+                                ? "Head Office" 
+                                : `${getStoreDisplayName(store.name)} Lucira Store`
+                              }
                             </h3>
                             <p className="text-sm md:text-base leading-relaxed text-gray-600">
                               {store.address1 || store.address}, {store.city}, {store.province || ""} {store.zip || ""}
@@ -177,10 +180,14 @@ export function FindLuciraStore({
                           variant="outline" 
                           className="h-10 md:h-12 px-4 md:px-6 w-full sm:w-auto hover:cursor-pointer rounded-sm border-primary text-xs md:text-sm font-medium tracking-wider hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-2"
                           onClick={() => {
-                            const lat = store.latitude || store.lat;
-                            const lng = store.longitude || store.lng;
-                            if (lat && lng) {
-                              window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                            if (store.mapLink) {
+                              window.open(store.mapLink, '_blank');
+                            } else {
+                              const lat = store.latitude || store.lat;
+                              const lng = store.longitude || store.lng;
+                              if (lat && lng) {
+                                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
+                              }
                             }
                           }}
                         >
@@ -191,7 +198,7 @@ export function FindLuciraStore({
                         <Button 
                           variant="outline" 
                           className="h-10 md:h-12 px-4 md:px-6 w-full sm:w-auto hover:cursor-pointer rounded-sm border-primary text-xs md:text-sm font-medium tracking-wider hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-2"
-                          onClick={() => window.open(`tel:${store.phone || "+919172499912"}`, '_self')}
+                          onClick={() => window.open(`tel:${store.phone || "+919004435760"}`, '_self')}
                         >
                           <Phone size={16} />
                           CALL US
@@ -199,7 +206,7 @@ export function FindLuciraStore({
 
                         <Button 
                           className="h-10 md:h-12 px-4 md:px-6 w-full sm:w-auto hover:cursor-pointer rounded-sm text-white text-xs md:text-sm font-medium tracking-wider flex items-center justify-center gap-2"
-                          onClick={() => window.open(`https://wa.me/919172499912?text=I'd like to book an appointment at ${getStoreDisplayName(store.name)} store for ${product?.title}`, '_blank')}
+                          onClick={() => window.open(`https://wa.me/919004435760?text=I'd like to book an appointment at ${getStoreDisplayName(store.name)} store for ${product?.title}`, '_blank')}
                         >
                           <Calendar size={16} />
                           BOOK APPOINTMENT

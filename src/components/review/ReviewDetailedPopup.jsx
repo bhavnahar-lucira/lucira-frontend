@@ -4,6 +4,13 @@ import { X, ChevronLeft, ChevronRight, Star, BadgeCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination } from "swiper/modules";
+
+// Import Swiper styles
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 
 // Helper to ensure image src is a valid string URL
 const getValidSrc = (src, fallback = null) => {
@@ -56,13 +63,13 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
       {/* Navigation */}
       <button 
         onClick={handlePrev}
-        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-[500] text-white hover:text-gray-300 transition-colors cursor-pointer outline-none bg-black/20 hover:bg-black/40 rounded-full p-2"
+        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-[500] text-white hover:text-gray-300 transition-colors cursor-pointer outline-none bg-black/20 hover:bg-black/40 rounded-full p-2 hidden md:block"
       >
         <ChevronLeft size={36} strokeWidth={1} />
       </button>
       <button 
         onClick={handleNext}
-        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-[500] text-white hover:text-gray-300 transition-colors cursor-pointer outline-none bg-black/20 hover:bg-black/40 rounded-full p-2"
+        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-[500] text-white hover:text-gray-300 transition-colors cursor-pointer outline-none bg-black/20 hover:bg-black/40 rounded-full p-2 hidden md:block"
       >
         <ChevronRight size={36} strokeWidth={1} />
       </button>
@@ -82,13 +89,64 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
           
           {/* Left Side: Image Gallery */}
           {currentImage && (
-            <div className="w-full md:w-1/2 relative bg-gray-50 flex items-center justify-center overflow-hidden border-r border-gray-100">
-              {!isLoaded && (
-                  <div className="absolute inset-0 flex items-center justify-center z-[5]">
-                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/loader.gif" alt="Loading..." width={64} height={64} className="object-contain" unoptimized />
-                  </div>
-              )}
-              <div className="relative w-full h-full aspect-square md:aspect-auto">
+            <div className="w-full md:w-1/2 relative bg-gray-50 flex items-center justify-center overflow-hidden border-r border-gray-100 group/gallery">
+              {review.images && review.images.length > 1 ? (
+                <Swiper
+                  key={`review-swiper-${review.id || activeIndex}`}
+                  modules={[Navigation, Pagination]}
+                  navigation={{
+                    nextEl: '.swiper-button-next-custom',
+                    prevEl: '.swiper-button-prev-custom',
+                  }}
+                  pagination={{
+                    clickable: true,
+                  }}
+                  onSlideChange={(swiper) => setCurrentImageIndex(swiper.activeIndex)}
+                  className="w-full h-full review-swiper"
+                >
+                  {review.images.map((img, i) => (
+                    <SwiperSlide key={`review-slide-${i}`}>
+                      <div className="relative w-full h-full aspect-square md:aspect-auto">
+                        {!isLoaded && (
+                            <div className="absolute inset-0 flex items-center justify-center z-[5]">
+                                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/loader.gif" alt="Loading..." width={64} height={64} className="object-contain" unoptimized />
+                            </div>
+                        )}
+                        <Image
+                          src={getValidSrc(img)}
+                          alt={review.personName}
+                          fill
+                          onLoad={() => setIsLoaded(true)}
+                          className={`object-cover transition-opacity duration-500 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+                          unoptimized={true}
+                        />
+                      </div>
+                    </SwiperSlide>
+                  ))}
+                  
+                  {/* Custom Navigation Arrows */}
+                  <button className="swiper-button-prev-custom absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-black shadow-lg rounded-full p-2 transition-all opacity-0 group-hover/gallery:opacity-100 hidden md:flex items-center justify-center cursor-pointer">
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button className="swiper-button-next-custom absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-white text-black shadow-lg rounded-full p-2 transition-all opacity-0 group-hover/gallery:opacity-100 hidden md:flex items-center justify-center cursor-pointer">
+                    <ChevronRight size={20} />
+                  </button>
+                  
+                  {/* Mobile Image Navigation Arrows */}
+                  <button className="swiper-button-prev-custom absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white rounded-full p-2 flex md:hidden items-center justify-center cursor-pointer">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button className="swiper-button-next-custom absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white rounded-full p-2 flex md:hidden items-center justify-center cursor-pointer">
+                    <ChevronRight size={18} />
+                  </button>
+                </Swiper>
+              ) : (
+                <div className="relative w-full h-full aspect-square md:aspect-auto">
+                  {!isLoaded && (
+                      <div className="absolute inset-0 flex items-center justify-center z-[5]">
+                          <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/loader.gif" alt="Loading..." width={64} height={64} className="object-contain" unoptimized />
+                      </div>
+                  )}
                   <Image
                       src={currentImage}
                       alt={review.personName}
@@ -98,19 +156,7 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
                       priority
                       unoptimized={true}
                   />
-              </div>
-
-              {/* Multiple Images Dots */}
-              {review.images && review.images.length > 1 && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                      {review.images.map((_, i) => (
-                          <button 
-                              key={`popup-dot-${i}`} 
-                              onClick={() => { setCurrentImageIndex(i); setIsLoaded(false); }}
-                              className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === i ? "bg-white w-6" : "bg-white/50"}`}
-                          />
-                      ))}
-                  </div>
+                </div>
               )}
             </div>
           )}
@@ -119,20 +165,40 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
           <div className={`w-full ${currentImage ? 'md:w-1/2' : 'md:w-full'} p-6 md:p-10 flex flex-col bg-white overflow-y-auto custom-scrollbar font-figtree`}>
             
             {/* User Info */}
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-16 h-16 rounded-full bg-[#5A413F] text-white flex items-center justify-center font-bold text-2xl uppercase border-4 border-white shadow-md relative overflow-hidden flex-shrink-0">
-                {review.personImage ? (
-                    <Image src={getValidSrc(review.personImage)} alt={review.personName} fill className="object-cover" unoptimized={true} />
-                ) : (
-                    (review.personName || "C").charAt(0)
-                )}
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-xl leading-tight mb-1 capitalize tracking-widest">{review.personName}</h3>
-                <div className="flex items-center gap-1.5 text-xs text-[#A8715A] font-bold uppercase tracking-wide">
-                    <BadgeCheck size={16} className="fill-[#A8715A] text-white" />
-                    Verified Customer
+            <div className="flex items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-[#5A413F] text-white flex items-center justify-center font-bold text-2xl uppercase border-4 border-white shadow-md relative overflow-hidden flex-shrink-0">
+                  {review.personImage ? (
+                      <Image src={getValidSrc(review.personImage)} alt={review.personName} fill className="object-cover" unoptimized={true} />
+                  ) : (
+                      (review.personName || "C").charAt(0)
+                  )}
                 </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-xl leading-tight mb-1 capitalize tracking-wide">{review.personName}</h3>
+                  <div className="flex items-center gap-1.5 text-xs text-[#A8715A] font-bold uppercase">
+                      <BadgeCheck size={16} className="fill-[#A8715A] text-white" />
+                      Verified Customer
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Review Navigation Arrows */}
+              <div className="flex md:hidden items-center gap-1">
+                <button 
+                  onClick={handlePrev}
+                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-black transition-colors shadow-sm"
+                  aria-label="Previous review"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={handleNext}
+                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-black transition-colors shadow-sm"
+                  aria-label="Next review"
+                >
+                  <ChevronRight size={20} />
+                </button>
               </div>
             </div>
 
@@ -164,7 +230,7 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
 
             {/* Product Card */}
             {review.productHandle && (
-              <Link 
+              <Link prefetch={false} 
                   href={`/products/${review.productHandle}`} 
                   onClick={onClose}
                   className="mt-auto p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between group hover:bg-gray-100 transition-all"
@@ -197,6 +263,19 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #ccc;
+        }
+
+        .review-swiper .swiper-pagination-bullet {
+          background: white !important;
+          opacity: 0.5 !important;
+          width: 8px !important;
+          height: 8px !important;
+          transition: all 0.3s ease !important;
+        }
+        .review-swiper .swiper-pagination-bullet-active {
+          opacity: 1 !important;
+          width: 24px !important;
+          border-radius: 4px !important;
         }
       `}</style>
     </div>

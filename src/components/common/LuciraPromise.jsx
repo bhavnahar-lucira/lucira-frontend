@@ -43,7 +43,7 @@ export default function LuciraPromise({ title, description }) {
         
         <div className="flex flex-wrap lg:flex-nowrap justify-center lg:justify-between gap-y-6 md:gap-y-0 w-full">
           {promiseData.map((item, index) => (
-            <Link
+            <Link prefetch={false}
               href={item.href}
               key={index}
               className="text-center rounded w-1/2 sm:w-1/3 md:w-auto"

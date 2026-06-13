@@ -88,7 +88,7 @@ const RingSection = ({ item, index }) => {
     >
       {/* Image Block */}
       <div className={`w-full flex justify-center ${isReverse ? "md:order-last" : ""}`}>
-        <Link href={item.url || "#"} className="cursor-pointer block relative w-full">
+        <Link prefetch={false} href={item.url || "#"} className="cursor-pointer block relative w-full">
           <img
             src={item.img}
             alt={item.title}

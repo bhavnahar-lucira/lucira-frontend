@@ -19,7 +19,7 @@ export default function BlogListingClient({ articles, allTags, blogHandle }) {
       <section className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-100">
         <div className="container-main">
           <div className="flex items-center lg:justify-center overflow-x-auto no-scrollbar py-4 lg:py-6 gap-6 lg:gap-12 px-4 lg:px-0">
-            <Link
+            <Link prefetch={false}
               href={`/blogs/${blogHandle}`}
               className={`whitespace-nowrap text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.2em] transition-all relative pb-1 ${
                 !tag ? "text-[#a68380]" : "text-zinc-400 hover:text-zinc-600"
@@ -31,7 +31,7 @@ export default function BlogListingClient({ articles, allTags, blogHandle }) {
               )}
             </Link>
             {allTags.map((t) => (
-              <Link
+              <Link prefetch={false}
                 key={t}
                 href={`/blogs/${blogHandle}?tag=${encodeURIComponent(t)}`}
                 className={`whitespace-nowrap text-[10px] lg:text-[11px] font-bold uppercase tracking-[0.2em] transition-all relative pb-1 ${
@@ -64,7 +64,7 @@ export default function BlogListingClient({ articles, allTags, blogHandle }) {
           <div className="py-24 text-center">
             <h3 className="font-abhaya text-3xl font-bold text-zinc-900 mb-4">No stories found</h3>
             <p className="text-zinc-500 mb-8 font-light">We haven't shared any stories under "{tag}" yet.</p>
-            <Link
+            <Link prefetch={false}
               href={`/blogs/${blogHandle}`}
               className="inline-block px-8 py-3 border border-[#a68380] text-[#a68380] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-[#a68380] hover:text-white transition-all duration-300"
             >

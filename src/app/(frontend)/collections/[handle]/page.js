@@ -57,34 +57,29 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  // Pre-render the top 21 collections at build time as static HTML.
+  // Pre-render ALL collection pages at build time as static HTML.
   // These are served from Vercel CDN (FREE — no function invocations on first visit).
-  // All other collection handles still work — they are rendered on-demand when first visited.
   // ISR (revalidate=86400) + webhook revalidation still applies to all of these pages.
-  return [
-    { handle: "all" },
-    { handle: "nosepins" },
-    { handle: "jewelry" },
-    { handle: "all-rings" },
-    { handle: "earrings" },
-    { handle: "necklaces" },
-    { handle: "bracelets" },
-    { handle: "pendants" },
-    { handle: "bangles" },
-    { handle: "mangalsutra" },
-    { handle: "mens-rings" },
-    { handle: "solitaire-rings" },
-    { handle: "engagement-rings" },
-    { handle: "gold-rings" },
-    { handle: "cotton-candy" },
-    { handle: "bestsellers" },
-    { handle: "fast-shipping" },
-    { handle: "gemstone-jewelry" },
-    { handle: "9kt-collection" },
-    { handle: "sports-collection" },
-    { handle: "eterna" },
-    { handle: "hexa" },
-  ];
+  try {
+    const handles = await getAllCollectionHandles();
+    return [
+      { handle: "all" },
+      ...handles.map(handle => ({ handle }))
+    ];
+  } catch (error) {
+    console.warn("[generateStaticParams/collections] Failed to fetch all handles, falling back to basic set.", error.message);
+    return [
+      { handle: "all" },
+      { handle: "jewelry" },
+      { handle: "rings" },
+      { handle: "earrings" },
+      { handle: "necklaces" },
+      { handle: "bracelets" },
+      { handle: "pendants" },
+      { handle: "bangles" },
+      { handle: "bestsellers" },
+    ];
+  }
 }
 
 export default async function Page({ params }) {

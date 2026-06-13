@@ -515,8 +515,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       if (idx === 3 || idx === 7) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
-            <Link href="/collections/bestsellers">
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/inpage_banner.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+            <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
+              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/inpage_banner-new-05062026.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
             </Link>
           </div>
         );
@@ -532,7 +532,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             product={selectedColor ? { ...prod, selectedColor } : prod} 
             collectionHandle={handle} 
             index={idx + 1} 
-            disableLivePricing={true}
+            disableLivePricing={false}
           />
         </div>
       );
@@ -568,12 +568,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                 <BreadcrumbSeparator className="scale-75" />
                 <BreadcrumbItem><BreadcrumbLink href="/collections/jewelry" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
                 <BreadcrumbSeparator className="scale-75" />
-                <BreadcrumbItem><BreadcrumbPage className="text-[#5a413f]">{displayTitle}</BreadcrumbPage></BreadcrumbItem>
+                <BreadcrumbItem className="truncate line-clamp-1 whitespace-nowrap"><BreadcrumbPage className="text-[#5a413f]">{displayTitle}</BreadcrumbPage></BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
           <div className="w-full relative h-34 md:h-54">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner.jpg" alt={displayTitle} fill className="object-cover" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner-05062026.jpg" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
       ) : (
@@ -588,7 +588,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day free returns</span></div>
               </div>
             </div>
-            <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category_banner.jpg" alt={displayTitle} fill className="object-cover" /></div>
+            <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner-05062026.jpg" alt={displayTitle} fill className="object-cover" /></div>
           </div>
         </div>
       )}
@@ -775,7 +775,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                                     </div>
                                   )}
                                 </div>
-                                <Link href={`/products/${item.handle}`} className="text-sm  text-gray-900 hover:text-primary transition-colors truncate pr-4">
+                                <Link prefetch={false} href={`/products/${item.handle}`} className="text-sm  text-gray-900 hover:text-primary transition-colors truncate pr-4">
                                   {item.title}
                                 </Link>
                                 <span className="text-sm  text-black-800 text-right">

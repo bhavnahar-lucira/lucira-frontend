@@ -7,6 +7,9 @@ import Link from "next/link";
 
 export default function FloatingActionButton() {
   const pathname = usePathname();
+
+  if (pathname === "/pages/store-giveaway") return null;
+
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [tooltipShown, setTooltipShown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -164,7 +167,10 @@ export default function FloatingActionButton() {
     setIsFabOpen(nextState);
     setTooltipShown(false);
 
-    pushPromoClick("salesiq");
+    // Only fire the salesiq promoClick when opening the FAB (not on close)
+    if (nextState) {
+      pushPromoClick("salesiq");
+    }
   };
 
   const handleChatClick = (e) => {
@@ -187,6 +193,8 @@ export default function FloatingActionButton() {
 
   const isProductPage = pathname.startsWith('/products');
   const isCollectionPage = pathname.startsWith('/collections');
+
+  if (pathname === "/build-your-jewelry") return null;
 
   return (
     <div className={`fixed 
@@ -218,7 +226,7 @@ export default function FloatingActionButton() {
         )}
 
         {/* Chat */}
-        <Link 
+        <Link prefetch={false} 
           href="#" 
           onClick={handleChatClick}
           className={`w-[50px] h-[50px] rounded-full mb-2.5 flex items-center justify-center bg-[#0066cc] text-white shadow-lg transition-all duration-350 hover:scale-110 ${isFabOpen ? 'translate-y-0 opacity-100' : 'translate-y-[120px] opacity-0'}`}
@@ -234,7 +242,7 @@ export default function FloatingActionButton() {
 
         {/* Phone */}
         <a 
-          href="tel:+918976773659" 
+          href="tel:+919004436052" 
           onClick={handlePhoneClick}
           className={`w-[50px] h-[50px] rounded-full mb-2.5 flex items-center justify-center bg-[#DA3779] text-white shadow-lg transition-all duration-350 hover:scale-110 ${isFabOpen ? 'translate-y-0 opacity-100 delay-[50ms]' : 'translate-y-[60px] opacity-0'}`}
           title="Call"

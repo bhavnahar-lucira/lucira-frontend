@@ -22,7 +22,7 @@ export function CommonBreadcrumb({ handle }) {
         {/* Home */}
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href="/" className="text-[10px]">Home</Link>
+            <Link prefetch={false} href="/" className="text-[10px]">Home</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
 
@@ -31,7 +31,7 @@ export function CommonBreadcrumb({ handle }) {
         {/* Collections */}
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link href="/collections" className="text-[10px]">Collections</Link>
+            <Link prefetch={false} href="/collections" className="text-[10px]">Collections</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
 

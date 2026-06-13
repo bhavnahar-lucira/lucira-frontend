@@ -1,7 +1,29 @@
 // src/lib/gtm.js
 
+// Cache for deduplicating rapid events
+const lastPushedEvents = new Map();
+const MIN_EVENT_INTERVAL_MS = 1000; // 1 second between identical events
+
 export const pushToDataLayer = (data) => {
   if (typeof window !== "undefined") {
+    // Basic throttling for identical event types to prevent infinite loops from trackers
+    if (data.event) {
+      const now = Date.now();
+      const lastPush = lastPushedEvents.get(data.event);
+
+      if (lastPush && (now - lastPush < MIN_EVENT_INTERVAL_MS)) {
+        // For some high-frequency events, we might want to skip or merge
+        // But for things like 'addToCart', we should probably allow them if the data is different
+        // Here we just log for debugging in dev
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[GTM] Throttling rapid event: ${data.event}`);
+        }
+        // If it's a pageView, we definitely want to throttle
+        if (data.event === 'pageView') return;
+      }
+      lastPushedEvents.set(data.event, now);
+    }
+
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push(data);
   }
@@ -17,8 +39,14 @@ export const pushPageView = (pageData) => {
 export const pushPromoClick = (promoClickData) => {
   const sanitizedData = { ...promoClickData };
   if (sanitizedData.location_id !== undefined && sanitizedData.location_id !== null) sanitizedData.location_id = String(sanitizedData.location_id);
-  if (sanitizedData.offer_price !== undefined && sanitizedData.offer_price !== null) sanitizedData.offer_price = String(sanitizedData.offer_price);
-  if (sanitizedData.price !== undefined && sanitizedData.price !== null) sanitizedData.price = String(sanitizedData.price);
+  const coerceNumericField = (value) => {
+    if (value === undefined || value === null || value === "") return value;
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : value;
+  };
+  if (sanitizedData.offer_price !== undefined && sanitizedData.offer_price !== null) sanitizedData.offer_price = coerceNumericField(sanitizedData.offer_price);
+  if (sanitizedData.offerPrice !== undefined && sanitizedData.offerPrice !== null) sanitizedData.offerPrice = coerceNumericField(sanitizedData.offerPrice);
+  if (sanitizedData.price !== undefined && sanitizedData.price !== null) sanitizedData.price = coerceNumericField(sanitizedData.price);
   if (sanitizedData.product_id !== undefined && sanitizedData.product_id !== null) sanitizedData.product_id = String(sanitizedData.product_id);
   if (sanitizedData.promo_id !== undefined && sanitizedData.promo_id !== null) sanitizedData.promo_id = String(sanitizedData.promo_id);
   if (sanitizedData.promo_position !== undefined && sanitizedData.promo_position !== null) sanitizedData.promo_position = String(sanitizedData.promo_position);
@@ -80,14 +108,14 @@ export const getStandardWishlistPayload = (product, variant, currentOrigin, thum
   };
 
   // Robust SKU resolution
-  const sku = 
-    variant?.sku || 
-    product?.sku || 
-    variant?.variantSku || 
-    product?.variantSku || 
+  const sku =
+    variant?.sku ||
+    product?.sku ||
+    variant?.variantSku ||
+    product?.variantSku ||
     variant?.item_sku ||
     product?.item_sku ||
-    (product?.variants && product?.variants[0]?.sku) || 
+    (product?.variants && product?.variants[0]?.sku) ||
     (product?.variantOptions && product?.variantOptions[0]?.sku) ||
     "";
 
@@ -126,7 +154,7 @@ export const getStandardWishlistPayload = (product, variant, currentOrigin, thum
 export const getStandardCartItem = (item, idx = 0) => {
   const prodId = String(getNumericId(item.productId || item.shopifyId || item.id));
   const lowerTitle = (item.title || "").toLowerCase();
-  
+
   let category = item.type || item.productType || "";
   if (!category) {
     if (lowerTitle.includes("ring")) category = "Rings";
@@ -137,18 +165,18 @@ export const getStandardCartItem = (item, idx = 0) => {
 
   // Robust SKU resolution for cart items
   const variantId = item.variantId || item.id || item.shopifyId || "";
-  const currentVariant = item.variantOptions?.find(v => 
+  const currentVariant = item.variantOptions?.find(v =>
     String(getNumericId(v.variantId || v.id || v.shopifyId)) === String(getNumericId(variantId))
   );
 
-  const sku = 
-    item.sku || 
-    currentVariant?.sku || 
-    item.variantSku || 
-    item.item_sku || 
-    (item.variantOptions && item.variantOptions[0]?.sku) || 
+  const sku =
+    item.sku ||
+    currentVariant?.sku ||
+    item.variantSku ||
+    item.item_sku ||
+    (item.variantOptions && item.variantOptions[0]?.sku) ||
     "";
-  
+
   return {
     id: prodId,
     sku: sku,
@@ -173,11 +201,11 @@ export const getStandardImpressionProducts = (products, currentOrigin = "") => {
     };
 
     // Robust SKU resolution
-    const sku = 
-      product?.sku || 
-      product?.variantSku || 
+    const sku =
+      product?.sku ||
+      product?.variantSku ||
       product?.item_sku ||
-      (product?.variants && product?.variants[0]?.sku) || 
+      (product?.variants && product?.variants[0]?.sku) ||
       (product?.variantOptions && product?.variantOptions[0]?.sku) ||
       "";
 
@@ -192,7 +220,7 @@ export const getStandardImpressionProducts = (products, currentOrigin = "") => {
     const baseUrl = currentOrigin || (typeof window !== "undefined" ? window.location.origin : "");
     const handle = product?.handle || "";
     const variantId = product?.variants?.[0]?.id || product?.variantId || "";
-    const itemUrl = variantId 
+    const itemUrl = variantId
       ? `${baseUrl}/products/${handle}?variant=${variantId}`
       : `${baseUrl}/products/${handle}`;
 
@@ -206,8 +234,8 @@ export const getStandardImpressionProducts = (products, currentOrigin = "") => {
       item_sku: sku,
       category: category,
       item_url: itemUrl,
-      price: originalPrice,
-      offer_price: comparePrice,
+      price: String(originalPrice),
+      offer_price: String(comparePrice),
       index: idx + 1
     };
   });

@@ -105,6 +105,8 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
 }
 
 function PriceRow({ label, value, oldValue, discount }) {
+  const isFree = value === 'FREE';
+
   return (
     <div className="flex justify-between items-center text-[13px] pb-1 gap-3">
       <div className="flex items-center gap-2">
@@ -119,7 +121,7 @@ function PriceRow({ label, value, oldValue, discount }) {
         {oldValue && (
           <span className="text-gray-400 line-through">{oldValue}</span>
         )}
-        <span className="font-semibold text-gray-900">{value}</span>
+        <span className={`font-semibold ${isFree ? 'text-[#1E7D4E]' : 'text-gray-900'}`}>{value}</span>
       </div>
     </div>
   );

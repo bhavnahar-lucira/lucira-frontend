@@ -13,11 +13,11 @@ export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
   // 1. Try Storefront API first (most reliable, supports caching)
   const storefrontArticle = await getArticleByBlogAndHandleStorefront(blogHandle, articleHandle);
 
-  // 2. Try Admin API if Storefront content is missing (Shopify 2.0 sections hide content from Storefront API)
+  // 2. Try Admin API if Storefront article or content is missing (Shopify 2.0 sections hide content from Storefront API)
   let adminArticle = null;
-  if (storefrontArticle && !storefrontArticle.contentHtml) {
+  if (!storefrontArticle || !storefrontArticle.contentHtml) {
     try {
-      adminArticle = await getArticleByBlogAndHandleAdminRest(blogHandle, articleHandle, storefrontArticle.blogId);
+      adminArticle = await getArticleByBlogAndHandleAdminRest(blogHandle, articleHandle, storefrontArticle?.blogId);
     } catch (e) {
       console.warn("Admin API fallback failed:", e.message);
     }
@@ -26,7 +26,11 @@ export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
   // 3. Last resort: Live site scraping
   let liveArticle = null;
   if (!storefrontArticle?.contentHtml && !adminArticle?.contentHtml) {
-    liveArticle = await getArticleRenderedFromLiveSite(blogHandle, articleHandle);
+    try {
+      liveArticle = await getArticleRenderedFromLiveSite(blogHandle, articleHandle);
+    } catch (e) {
+      console.warn("Live site scraping fallback failed:", e.message);
+    }
   }
 
   // Merge sources
@@ -35,6 +39,7 @@ export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
 
   const merged = {
     ...baseArticle,
+    title: baseArticle.title || storefrontArticle?.title || adminArticle?.title || liveArticle?.title,
     contentHtml: baseArticle.contentHtml || adminArticle?.contentHtml || liveArticle?.contentHtml || baseArticle.content,
     content: baseArticle.content || adminArticle?.content || stripHtml(baseArticle.contentHtml || adminArticle?.contentHtml || liveArticle?.contentHtml),
     image: baseArticle.image || adminArticle?.image || storefrontArticle?.image || liveArticle?.image,
@@ -64,7 +69,10 @@ export async function getBlogByHandle(blogHandle) {
     }
   `;
 
-  const data = await shopifyStorefrontFetch(query, { blogHandle }, { cache: 'force-cache' });
+  const data = await shopifyStorefrontFetch(query, { blogHandle }, { 
+    cache: 'force-cache',
+    useRwToken: true 
+  });
   return serialize(data?.blog || null);
 }
 
@@ -117,7 +125,8 @@ export async function getArticleByBlogAndHandleStorefront(blogHandle, articleHan
   `;
 
   const data = await shopifyStorefrontFetch(query, { blogHandle, articleHandle }, {
-    cache: 'force-cache'
+    cache: 'force-cache',
+    useRwToken: true
   });
   const article = data?.blog?.articleByHandle;
 
@@ -223,16 +232,23 @@ export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) 
 
   const pageHtml = await res.text();
   const liveContentHtml = extractLiveMainContent(pageHtml);
+  
+  // Extract title from HTML
+  let title = pageHtml.match(/<h1[^>]*>(.*?)<\/h1>/i)?.[1]?.replace(/<[^>]*>?/gm, '').trim();
+  if (!title) {
+    title = pageHtml.match(/<title[^>]*>(.*?)<\/title>/i)?.[1]?.split('|')[0]?.split('-')[0]?.trim();
+  }
 
-  if (!liveContentHtml) return null;
+  if (!liveContentHtml && !title) return null;
 
-  const contentHtml = liveContentHtml
+  const contentHtml = (liveContentHtml || "")
     .replace(/src="\/\//g, 'src="https://')
     .replace(/href="https:\/\/luciraonline\.myshopify\.com\//g, 'href="/')
     .replace(/href="https:\/\/www\.lucirajewelry\.com\//g, 'href="/')
     .replace(/href="\/(products|collections|blogs)\//g, 'href="/$1/');
 
   return {
+    title,
     content: stripHtml(contentHtml),
     contentHtml,
     blogHandle,
@@ -294,17 +310,67 @@ function extractDivsByClass(html, className) {
 }
 
 export async function getArticlesByBlogHandle(blogHandle) {
-  // Try Storefront API first to get tags and latest data
+  // 1. Try Storefront API first to get tags and latest data
+  let storefrontArticles = [];
   try {
-    const storefrontArticles = await getArticlesByBlogHandleStorefront(blogHandle);
-    if (storefrontArticles && storefrontArticles.length > 0) {
-      return serialize(storefrontArticles);
-    }
+    storefrontArticles = await getArticlesByBlogHandleStorefront(blogHandle);
   } catch (error) {
     console.error("Error fetching articles from Storefront:", error);
   }
 
-  return [];
+  // 2. Try Admin API fallback if Storefront returns nothing or partial data
+  // (Shopify 2.0 sections can sometimes hide articles from Storefront listing)
+  if (!storefrontArticles || storefrontArticles.length === 0) {
+    try {
+      const adminArticles = await getArticlesByBlogHandleAdminRest(blogHandle);
+      if (adminArticles && adminArticles.length > 0) {
+        return serialize(adminArticles);
+      }
+    } catch (error) {
+      console.warn("Admin API listing fallback failed:", error.message);
+    }
+  }
+
+  return serialize(storefrontArticles || []);
+}
+
+export async function getArticlesByBlogHandleAdminRest(blogHandle, blogId) {
+  const adminBlogId = await getAdminBlogId(blogHandle, blogId);
+  if (!adminBlogId) return [];
+
+  let allArticles = [];
+  let pageInfo = null;
+
+  do {
+    const params = pageInfo ? { limit: 250, page_info: pageInfo } : { limit: 250 };
+    const { data, linkHeader } = await shopifyAdminRestFetch(
+      `blogs/${adminBlogId}/articles.json`,
+      params
+    );
+    
+    if (data.articles) {
+      const formatted = data.articles.map(article => ({
+        id: `gid://shopify/Article/${article.id}`,
+        title: article.title,
+        handle: article.handle,
+        content: stripHtml(article.body_html),
+        contentHtml: article.body_html,
+        publishedAt: article.published_at,
+        excerpt: stripHtml(article.summary_html),
+        excerptHtml: article.summary_html,
+        authorV2: article.author ? { name: article.author } : null,
+        image: article.image?.src ? { url: article.image.src, altText: article.image.alt || article.title } : null,
+        tags: article.tags ? article.tags.split(",").map(t => t.trim()) : [],
+        blogId: `gid://shopify/Blog/${adminBlogId}`,
+        blogHandle
+      }));
+      allArticles = [...allArticles, ...formatted];
+    }
+
+    pageInfo = parseNextPageInfo(linkHeader);
+  } while (pageInfo);
+
+  return allArticles;
 }
 
 export async function getArticlesByBlogHandleStorefront(blogHandle) {
@@ -342,7 +408,8 @@ export async function getArticlesByBlogHandleStorefront(blogHandle) {
 
   // force-cache to respect SSG
   const data = await shopifyStorefrontFetch(query, { blogHandle }, {
-    cache: 'force-cache'
+    cache: 'force-cache',
+    useRwToken: true
   });
   const articles = data?.blog?.articles?.edges?.map(edge => ({
     ...edge.node,
@@ -386,7 +453,10 @@ export async function getMostViewedArticles(limit = 4) {
   `;
 
   try {
-    const data = await shopifyStorefrontFetch(query, { limit }, { cache: 'force-cache' });
+    const data = await shopifyStorefrontFetch(query, { limit }, { 
+      cache: 'force-cache',
+      useRwToken: true 
+    });
     const articles = data?.articles?.edges?.map(edge => ({
       ...edge.node,
       blogId: edge.node.blog?.id,
@@ -413,7 +483,10 @@ export async function getAllBlogHandles() {
     }
   `;
   try {
-    const data = await shopifyStorefrontFetch(query, {}, { cache: 'force-cache' });
+    const data = await shopifyStorefrontFetch(query, {}, { 
+      cache: 'force-cache',
+      useRwToken: true 
+    });
     return data?.blogs?.edges?.map(edge => ({ blogHandle: edge.node.handle })) || [];
   } catch (e) {
     console.error("Error fetching all blogs:", e);
@@ -441,7 +514,10 @@ export async function getAllArticleHandles() {
     }
   `;
   try {
-    const data = await shopifyStorefrontFetch(query, {}, { cache: 'force-cache' });
+    const data = await shopifyStorefrontFetch(query, {}, { 
+      cache: 'force-cache',
+      useRwToken: true 
+    });
     const paths = [];
     data?.blogs?.edges?.forEach(blogEdge => {
       const blogHandle = blogEdge.node.handle;

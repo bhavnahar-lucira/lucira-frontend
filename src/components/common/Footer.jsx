@@ -25,7 +25,7 @@ export default function Footer() {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  if (pathname?.startsWith("/dashboard")) return null;
+  if (pathname?.startsWith("/dashboard") || pathname === "/build-your-jewelry" || pathname === "/pages/store-giveaway") return null;
 
   if (isMobile) {
     return (
@@ -330,6 +330,7 @@ export default function Footer() {
                   <li><Link prefetch={false} href="/pages/franchise-page">Franchise</Link></li>
                   <li><Link prefetch={false} href="/pages/customized-jewelry">Bespoke</Link></li>
                   <li><Link prefetch={false} href="/pages/store-packaging">Packaging</Link></li>
+                  <li><Link prefetch={false} href="/pages/video-call">Video Call</Link></li>
                 </ul>
               </div>
             </div>

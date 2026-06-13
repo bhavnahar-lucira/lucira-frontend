@@ -9,10 +9,10 @@ import BlogArticleClient from "@/components/blogs/BlogArticleClient";
 import "./blog-article.css";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 
-// SSG: Articles are static content. Render once at build, zero ISR background writes.
-// Content only changes when an editor publishes or edits — not on a timer.
-export const dynamic = 'force-static';
-export const dynamicParams = false; // Strictly 404 for unknown articles to avoid any SSR
+// SSG: Fully static blog articles. Pre-rendered at build time.
+// This eliminates Vercel function invocations and Data Cache reading costs.
+export const dynamicParams = true;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   return await getAllArticleHandles();

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   clearCart,
   removePoints,
+  removeCoupon,
 } from "@/redux/features/cart/cartSlice";
 import {
   Dialog,
@@ -34,6 +35,7 @@ import {
   selectDefaultCustomerAddress,
   createCustomerAddress,
 } from "@/lib/api";
+import { getCookie } from "@/lib/utils";
 import { selectUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
@@ -265,7 +267,7 @@ export default function PaymentPage() {
   const [makeDefault, setMakeDefault] = useState(false);
 
   const { user, accessToken } = useSelector((state) => state.user);
-  const {items, totalAmount, appliedCoupon, nectorPoints } = useCart();
+  const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -306,8 +308,16 @@ export default function PaymentPage() {
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
 
-  // Remove points when leaving the payment page
+  // Remove points and coupons on page reload, and points when leaving
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const navEntries = window.performance.getEntriesByType("navigation");
+      if (navEntries.length > 0 && navEntries[0].type === "reload") {
+        dispatch(removePoints());
+        dispatch(removeCoupon());
+      }
+    }
+
     return () => {
       dispatch(removePoints());
     };
@@ -316,13 +326,13 @@ export default function PaymentPage() {
   useEffect(() => {
     const checkDelivery = async () => {
       if (typeof window === "undefined") return;
-      
+
       const selectionStr = localStorage.getItem("checkout_selection");
       if (!selectionStr) {
         router.push("/checkout/shipping");
         return;
       }
-      
+
       const selection = JSON.parse(selectionStr);
       if (selection.deliveryMethod === "ship" && selection.selectedAddress?.zip) {
         try {
@@ -341,14 +351,14 @@ export default function PaymentPage() {
 
   const partialCodDetails = useMemo(() => {
     const total = Math.max(0, Number(finalAmount || 0));
-    
-    const hasGoldCoin = items?.length > 0 && items.some(item => 
-      item.variantId === GOLDCOIN_VARIANT_ID || 
+
+    const hasGoldCoin = items?.length > 0 && items.some(item =>
+      item.variantId === GOLDCOIN_VARIANT_ID ||
       (item.handle && item.handle.includes("gold-coin")) ||
       (item.type && item.type.toLowerCase() === "gold coin") ||
       (item.title && item.title.toLowerCase().includes("gold coin"))
     );
-    
+
     const isEligible = total > 0 && total < 50000 && !hasGoldCoin;
     const prepaidAmount = isEligible ? total * 0.2 : 0;
     const codAmount = isEligible ? total - prepaidAmount : 0;
@@ -412,10 +422,10 @@ export default function PaymentPage() {
         address: addressForm,
         makeDefault,
       }, accessToken);
-      
+
       applyAddressPayload(payload);
-      
-      const newAddress = payload.addresses.find(a => 
+
+      const newAddress = payload.addresses.find(a =>
         a.address1 === addressForm.address1 && a.zip === addressForm.zip
       ) || payload.addresses[payload.addresses.length - 1];
 
@@ -444,11 +454,11 @@ export default function PaymentPage() {
         const type = (item.type || item.productType || item.product_type || "").toLowerCase();
         const title = (item.title || "").toLowerCase();
         const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
-        
-        return type.includes("diamond") || title.includes("diamond") || 
-               type.includes("solitaire") || title.includes("solitaire") ||
-               type.includes("gemstone") || title.includes("gemstone") ||
-               hasDiamondCharges;
+
+        return type.includes("diamond") || title.includes("diamond") ||
+          type.includes("solitaire") || title.includes("solitaire") ||
+          type.includes("gemstone") || title.includes("gemstone") ||
+          hasDiamondCharges;
       });
 
       if (!hasDiamondJewellery) {
@@ -652,6 +662,14 @@ export default function PaymentPage() {
         return match ? Number(match[0]) : 0;
       };
 
+      const filteredItemsForGtm = (items || []).filter(
+        (item) =>
+          item.variantId !== INSURANCE_VARIANT_ID &&
+          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.properties?.['_byj_parent'] &&
+          !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+      );
+
       const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
       const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
       const subtotalValue = (totalAmount || 0) - insuranceValue;
@@ -670,18 +688,18 @@ export default function PaymentPage() {
       const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
       const paymentMethodDetails = selectedPaymentGateway === "partial_cod"
         ? {
-            type: "partial_cod",
-            prepaidAmount: partialCodDetails.prepaidAmount,
-            codAmount: partialCodDetails.codAmount,
-            grandTotal: grandTotalValue,
-          }
+          type: "partial_cod",
+          prepaidAmount: partialCodDetails.prepaidAmount,
+          codAmount: partialCodDetails.codAmount,
+          grandTotal: grandTotalValue,
+        }
         : {
-            type: "razorpay",
-            prepaidAmount: grandTotalValue,
-            codAmount: 0,
-            grandTotal: grandTotalValue,
-          };
-      const loyaltyPoints = appliedCoupon?.loyaltyPoints || ""; 
+          type: "razorpay",
+          prepaidAmount: grandTotalValue,
+          codAmount: 0,
+          grandTotal: grandTotalValue,
+        };
+      const loyaltyPoints = appliedCoupon?.loyaltyPoints || "";
 
       const purchaseDataForLater = {
         currency: "INR",
@@ -692,7 +710,7 @@ export default function PaymentPage() {
         transaction_id: `temp_${Date.now()}`,
         coupon: couponDetails?.code || "NA",
         send_to: "G-K6H0NZ4YJ8",
-        items: (items || []).map((item, idx) => {
+        items: filteredItemsForGtm.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -727,7 +745,7 @@ export default function PaymentPage() {
         coupon: couponDetails?.code || "NA",
         loyalty_points: loyaltyPoints,
         send_to: "G-K6H0NZ4YJ8",
-        items: (items || []).map((item, idx) => {
+        items: filteredItemsForGtm.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -768,6 +786,20 @@ export default function PaymentPage() {
         userId: user?.id || "",
         sessionId: getCartSessionId(),
         items: items,
+        byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        byj_preview: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        metafields: [
+          {
+            namespace: "custom",
+            key: "byj_image",
+            value: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+            type: "file_reference"
+          }
+        ],
+        order_metafields: {
+          "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || ""
+        },
+        "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
@@ -779,6 +811,7 @@ export default function PaymentPage() {
         nectorPoints: nectorPoints,
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
+        gclid: getCookie("gclid") || "",
       }, accessToken);
 
       const razorpay = new window.Razorpay({
@@ -826,7 +859,7 @@ export default function PaymentPage() {
               transaction_id: response.razorpay_payment_id,
               coupon: couponDetails?.code || "NA",
               send_to: "G-K6H0NZ4YJ8",
-              items: (items || []).map((item, idx) => {
+              items: filteredItemsForGtm.map((item, idx) => {
                 const lowerTitle = (item.title || "").toLowerCase();
                 let category = item.type || item.productType || "";
                 if (!category) {
@@ -844,8 +877,8 @@ export default function PaymentPage() {
                   item_name: item.title,
                   price: Number(item.price || 0),
                   item_brand: "Lucira Jewelry",
-                  item_category: "",
-                  category: category,
+                  item_category: category,
+                  // category: category,
                   item_variant: item.variantTitle || "",
                   quantity: item.quantity,
                   index: idx
@@ -862,6 +895,20 @@ export default function PaymentPage() {
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,
               draftId: order.draftId,
+              byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        byj_preview: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        metafields: [
+          {
+            namespace: "custom",
+            key: "byj_image",
+            value: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+            type: "file_reference"
+          }
+        ],
+        order_metafields: {
+          "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || ""
+        },
+        "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
               customer: {
                 id: customer?.id || "",
                 name: customerName,
@@ -874,6 +921,7 @@ export default function PaymentPage() {
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
               cartItems: items || [], // Pass items explicitly as fallback for backend
+              gclid: getCookie("gclid") || "",
             }, accessToken);
 
             toast.success(
@@ -881,10 +929,10 @@ export default function PaymentPage() {
                 ? `Order placed successfully: ${completion.shopifyOrderName}`
                 : "Order placed successfully"
             );
-            
+
             // Wait a moment for any background processes or toast to be visible
             setTimeout(() => {
-              const successUrl = completion?.shopifyOrderName 
+              const successUrl = completion?.shopifyOrderName
                 ? `/success?orderName=${encodeURIComponent(completion.shopifyOrderName)}`
                 : "/success";
               router.replace(successUrl);
@@ -935,12 +983,12 @@ export default function PaymentPage() {
         },
       });
 
-       razorpay.on("payment.failed", function handleFailure(response) {
+      razorpay.on("payment.failed", function handleFailure(response) {
         const reason =
           response?.error?.description ||
           response?.error?.reason ||
           "Payment failed. Please try again.";
-        
+
         const getNumericId = (gid) => {
           if (!gid) return 0;
           if (typeof gid === 'number') return gid;
@@ -970,7 +1018,7 @@ export default function PaymentPage() {
           error_message: reason,
           coupon: couponDetails?.code || "NA",
           send_to: "G-K6H0NZ4YJ8",
-          items: (items || []).map((item, idx) => {
+          items: filteredItemsForGtm.map((item, idx) => {
             const lowerTitle = (item.title || "").toLowerCase();
             let category = item.type || item.productType || "";
             if (!category) {
@@ -1018,16 +1066,15 @@ export default function PaymentPage() {
             onClick={() => type === "shipping" ? handleSelectAddress(address.id) : handleSelectBillingAddress(address.id)}
             role="button"
             tabIndex={0}
-            className={`rounded-xl border p-4 text-left transition-all ${
-              isSelected ? "border-accent bg-accent/10" : "border-zinc-200 bg-white"
-            }`}
+            className={`rounded-xl border p-4 text-left transition-all ${isSelected ? "border-accent bg-accent/10" : "border-zinc-200 bg-white"
+              }`}
           >
             <div className="flex items-start gap-3">
               <input
                 type="radio"
                 name={`${type}-addresses`}
                 checked={isSelected}
-                onChange={() => {}}
+                onChange={() => { }}
                 className="mt-1 size-4 accent-black"
               />
               <div className="flex-1">
@@ -1081,10 +1128,10 @@ export default function PaymentPage() {
     <div className="bg-white min-h-screen overflow-x-hidden">
       <div className="max-w-7xl w-full mx-auto relative z-10 px-4">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
-          
+
           {/* Main Content Area (60%) */}
           <div className="grow lg:basis-[60%] lg:shrink-0 py-10 px-0 lg:pr-12 space-y-10 bg-white">
-            
+
             {/* MOBILE ONLY ORDER */}
             {!isDesktop && (
               <div className="space-y-10 px-4">
@@ -1171,7 +1218,7 @@ export default function PaymentPage() {
                         <p>No shipping address selected</p>
                       )}
                     </div>
-                    <Link href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
+                    <Link prefetch={false} href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
                   </div>
                   {!isPickup && (
                     <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
@@ -1263,7 +1310,7 @@ export default function PaymentPage() {
                         <p>No shipping address selected</p>
                       )}
                     </div>
-                    <Link href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
+                    <Link prefetch={false} href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
                   </div>
                   {!isPickup && (
                     <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
@@ -1376,14 +1423,14 @@ export default function PaymentPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-6 pt-4">
-                  <Link href="/checkout/shipping" className="flex items-center gap-2 text-sm font-bold text-accent hover:underline">
+                  <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-2 text-sm font-bold text-accent hover:underline">
                     <ChevronLeft size={16} />
                     Return to shipping
                   </Link>
-                  <Button 
-                    type="button" 
-                    onClick={handlePayNow} 
-                    disabled={paymentLoading || !totalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)} 
+                  <Button
+                    type="button"
+                    onClick={handlePayNow}
+                    disabled={paymentLoading || !totalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
                     className="px-14 h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-all text-lg uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {paymentLoading
@@ -1414,14 +1461,14 @@ export default function PaymentPage() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-            <button 
+            <button
               onClick={scrollToSummary}
               className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
             >
               View Order Summary
             </button>
           </div>
-          <Button 
+          <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
             className="grow bg-primary hover:bg-accent text-white font-bold h-12 uppercase tracking-widest rounded-lg text-sm disabled:cursor-not-allowed disabled:opacity-60"

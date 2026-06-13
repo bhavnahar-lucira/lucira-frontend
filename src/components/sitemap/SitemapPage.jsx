@@ -2,7 +2,6 @@
 // Usage: add `if (handle === "sitemap") return <SitemapPage />;` in your pages/[handle]/page.js
 
 import Link from "next/link";
-import clientPromise from "@/lib/mongodb";
 
 // ─── Hardcoded/Manual Sections (kept from original) ─────────────────────────
 
@@ -627,7 +626,7 @@ function SitemapColumn({ title, links }) {
       <ul className="space-y-2">
         {links.map((link, idx) => (
           <li key={`${link.href}-${idx}`}>
-            <Link
+            <Link prefetch={false}
               href={link.href}
               className="text-[12px] text-zinc-500 hover:text-zinc-900 transition-colors duration-150 leading-relaxed block"
             >
@@ -646,7 +645,7 @@ function SitemapSection({ section, url, columns }) {
       <div className="mb-8">
         <h2 className="text-[13px] font-semibold tracking-[0.25em] uppercase text-zinc-900 pb-3 border-b border-zinc-900 inline-block">
           {url ? (
-            <Link href={url} className="hover:opacity-60 transition-opacity">
+            <Link prefetch={false} href={url} className="hover:opacity-60 transition-opacity">
               {section}
             </Link>
           ) : (
@@ -665,20 +664,12 @@ function SitemapSection({ section, url, columns }) {
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export default async function SitemapPage() {
-  const client = await clientPromise;
-  const db = client.db();
-  const sitemapData = await db.collection("sitemaps").findOne({ type: "main" });
-
-  if (!sitemapData) {
-    return (
-      <div className="w-full bg-white min-h-screen flex items-center justify-center">
-        <p className="text-zinc-500">Sitemap data not found. Please sync it from the dashboard.</p>
-      </div>
-    );
-  }
-
-  const { collections = [], pages = [], articles = [], products = [] } = sitemapData;
+export default function SitemapPage() {
+  // If you ever want to fetch dynamic data during build time from an API or other source, you can populate these arrays.
+  const collections = [];
+  const pages = [];
+  const articles = [];
+  const products = [];
 
   // Transform data into sections
   const splitIntoColumns = (items, type, perColumn = 15) => {

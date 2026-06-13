@@ -7,9 +7,10 @@ const SHOP_DOMAIN = rawStore.includes(".") ? rawStore : `${rawStore}.myshopify.c
 export async function shopifyStorefrontFetch(query, variables = {}, options = {}) {
   let token = process.env.STOREFRONT_TOKEN;
 
-  // Use the RW token specifically for customer and blog queries
-  const isCustomerOrBlog = /(customer|blog|article|address|pages?)\s*\(/i.test(query);
-  if (isCustomerOrBlog && process.env.SHOPIFY_RW_STOREFRONT_TOKEN) {
+  // Use the RW token specifically for customer and blog queries if explicitly requested
+  // or if it matches the legacy detection (to maintain existing customer functionality)
+  const isCustomer = /(?:customer|address)\s*\(/i.test(query);
+  if ((options.useRwToken || isCustomer) && process.env.SHOPIFY_RW_STOREFRONT_TOKEN) {
     token = process.env.SHOPIFY_RW_STOREFRONT_TOKEN;
   }
 
@@ -344,7 +345,10 @@ export async function getAllProductHandles() {
     while (hasNextPage) {
       // force-cache: reuse build-time cache. These functions only run during generateStaticParams
       // (build time). No background revalidation needed — timers here cause Vercel function invocations.
-      const data = await shopifyStorefrontFetch(query, { cursor }, { cache: 'force-cache' });
+      const data = await shopifyStorefrontFetch(query, { cursor }, { 
+        cache: 'force-cache',
+        useRwToken: true 
+      });
       if (!data?.products) break;
 
       const newHandles = data.products.edges.map(edge => edge.node.handle);
@@ -386,7 +390,10 @@ export async function getAllCollectionHandles() {
   try {
     while (hasNextPage) {
       // force-cache: reuse build-time cache. These functions only run during generateStaticParams.
-      const data = await shopifyStorefrontFetch(query, { cursor }, { cache: 'force-cache' });
+      const data = await shopifyStorefrontFetch(query, { cursor }, { 
+        cache: 'force-cache',
+        useRwToken: true 
+      });
       if (!data?.collections) break;
 
       const newHandles = data.collections.edges.map(edge => edge.node.handle);

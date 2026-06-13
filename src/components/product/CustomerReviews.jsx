@@ -265,7 +265,7 @@ export default function CustomerReviews({
 
         <div className="mt-15 md:mt-20 text-center flex flex-col items-center gap-6">
            <button onClick={() => setIsWriteReviewOpen(true)} className="text-xs font-bold uppercase tracking-widest border-b border-black pb-1 hover:text-gray-500 hover:border-gray-500 transition-colors font-figtree">Write a Review</button>
-           <Link href="/reviews" target="_blank" className="w-full md:w-auto px-10 py-4 text-sm font-bold uppercase bg-[#5A413F] hover:bg-[#4A3934] text-white transition-colors font-figtree tracking-widest">View All Reviews</Link>
+           <Link prefetch={false} href="/reviews" target="_blank" className="w-full md:w-auto px-10 py-4 text-sm font-bold uppercase bg-[#5A413F] hover:bg-[#4A3934] text-white transition-colors font-figtree tracking-widest">View All Reviews</Link>
         </div>
       </div>
 
@@ -297,7 +297,7 @@ function ReviewCard({ review, onClick }) {
             {name.charAt(0)}
           </div>
           <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-start flex-col md:flex-row md:gap-2 gap-1">
               <span className="font-bold text-gray-900 text-base capitalize tracking-tight leading-tight">{name}</span>
               {(review.is_verified || review.verified) && (
                 <div className="flex items-center gap-1 text-[#B17A5D] font-bold uppercase text-[8px] tracking-[0.1em] shrink-0 border border-[#B17A5D]/30 px-1.5 py-0.5 rounded-full">

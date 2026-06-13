@@ -25,7 +25,7 @@ export default function BlogCard({ article, blogHandle }) {
   const href = `/blogs/${blogHandle}/${article.handle}`;
 
   return (
-    <Link
+    <Link prefetch={false}
       href={href}
       className="group block overflow-hidden rounded-sm border border-[#ddd6d2] bg-white h-full"
     >

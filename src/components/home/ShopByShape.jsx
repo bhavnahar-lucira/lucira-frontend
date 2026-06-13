@@ -45,7 +45,7 @@ export default function ShopByShape() {
 
         <div className="grid grid-cols-4 md:grid-cols-8 gap-8 items-center justify-items-center">
           {SHAPES.map((shape, index) => (
-            <Link
+            <Link prefetch={false}
               key={index}
               href={`/collections/all?shape=${shape.name.toLowerCase()}`}
               className="flex flex-col items-center gap-4 group"

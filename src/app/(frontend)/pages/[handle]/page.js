@@ -1,4 +1,4 @@
-import { getPageByHandle, getPageByHandleStorefront } from "@/lib/pages";
+import { getPageByHandle, getPageByHandleStorefront, getAllPages } from "@/lib/pages";
 import { notFound } from "next/navigation";
 
 import ContactSection from "@/components/common/ContactSection";
@@ -8,9 +8,17 @@ import GoldRatePage from "@/components/pages/gold-rate/GoldRatePage";
 import SilverRatePage from "@/components/pages/silver-rate/SilverRatePage";
 import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage";
 
-// SSG: Static pages (About, Careers, T&C, etc.) are rendered once at build and cached permanently.
-// Zero ISR background writes. Content only changes when an editor manually updates it in Shopify.
-export const dynamic = 'force-static';
+// SSG: Fully static pages (About, Careers, T&C, etc.) are pre-rendered at build time.
+// This eliminates Vercel function invocations and Data Cache reading costs.
+export const revalidate = false; 
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const pages = await getAllPages();
+  return pages.map((page) => ({
+    handle: page.handle,
+  }));
+}
 
 
 export async function generateMetadata({ params }) {

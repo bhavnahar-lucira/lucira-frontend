@@ -35,6 +35,10 @@ const GET_ORDER_WITH_HANDLES = `
               edges {
                 node {
                   title
+                  customAttributes {
+                    key
+                    value
+                  }
                   variant {
                     id
                     sku
@@ -186,7 +190,7 @@ export default function OrderDetailsPage() {
       <div className="text-center py-20 font-figtree">
         <AlertCircle size={48} className="mx-auto text-zinc-300 mb-4" />
         <h3 className="text-xl font-bold text-zinc-900">Order not found</h3>
-        <Link href="/admin/orders" className="text-primary hover:underline mt-4 block font-bold uppercase tracking-widest text-xs">
+        <Link prefetch={false} href="/admin/orders" className="text-primary hover:underline mt-4 block font-bold uppercase tracking-widest text-xs">
           Back to all orders
         </Link>
       </div>
@@ -232,11 +236,19 @@ export default function OrderDetailsPage() {
 
   // Sorting logic for items
   const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-  const sortedLineItems = [...(order.lineItems || [])].sort((a, b) => {
-    const priceA = parseFloat(a.price?.amount || a.price || 0);
-    const priceB = parseFloat(b.price?.amount || b.price || 0);
-    return priceB - priceA;
-  });
+  const sortedLineItems = [...(order.lineItems || [])]
+   .filter(item => {
+     const rawProps = item.properties || item.customAttributes || [];
+     const props = Array.isArray(rawProps)
+       ? rawProps.reduce((acc, p) => ({ ...acc, [p.key || p.name]: p.value }), {})
+       : rawProps;
+     return !props['_byj_parent'] && !(props['_byj_group_id'] && !props['_byj_preview']);
+   })
+   .sort((a, b) => {
+     const priceA = parseFloat(a.price?.amount || a.price || 0);
+     const priceB = parseFloat(b.price?.amount || b.price || 0);
+     return priceB - priceA;
+   });
 
   const insuranceIdx = sortedLineItems.findIndex(item => 
     (item.variantId || item.variant?.id) === INSURANCE_VARIANT_ID || 
@@ -255,7 +267,7 @@ export default function OrderDetailsPage() {
   return (
     <div className="font-figtree space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center gap-4">
-        <Link href="/admin/orders" className="size-10 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-900 hover:bg-zinc-50 transition-colors">
+        <Link prefetch={false} href="/admin/orders" className="size-10 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-900 hover:bg-zinc-50 transition-colors">
           <ChevronLeft size={20} />
         </Link>
         <div>
@@ -353,23 +365,70 @@ export default function OrderDetailsPage() {
                  const variantId = (item.variantId || item.variant?.id || "").split("/").pop();
                  const productUrl = handle ? `/products/${handle}${variantId ? `?variant=${variantId}` : ""}` : `/search?q=${encodeURIComponent(item.title)}`;
 
+                 // BYJ Logic
+                 const rawProps = item.properties || item.customAttributes || [];
+                 const properties = Array.isArray(rawProps) 
+                   ? rawProps.reduce((acc, p) => ({ ...acc, [p.key || p.name]: p.value }), {})
+                   : rawProps;
+                 
+                 const isBYJ = properties['_byj_preview'];
+                 const byjCharms = properties['_byj_charms_json'] ? JSON.parse(properties['_byj_charms_json']) : [];
+                 const displayImage = isBYJ ? properties['_byj_preview'] : (item.image || item.variant?.image?.url || "/images/product/1.jpg");
+
                  return (
-                  <div key={index} className="p-8 flex gap-6 items-center">
-                    <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
-                      <Image src={item.image || item.variant?.image?.url || "/images/product/1.jpg"} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
+                  <div key={index} className="p-8 flex flex-col gap-6">
+                    <div className="flex gap-6 items-center">
+                      <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
+                        <Image src={displayImage} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-zinc-900">{item.title}</h4>
+                        <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>
+                        <p className="text-lg font-bold text-primary mt-2">
+                          {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
+                        </p>
+                      </div>
+                      {!isInsurance && (
+                        <div className="hidden sm:block">
+                          <Link prefetch={false} href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
+                            View Product
+                          </Link>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-zinc-900">{item.title}</h4>
-                      <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>
-                      <p className="text-lg font-bold text-primary mt-2">
-                        {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
-                      </p>
-                    </div>
-                    {!isInsurance && (
-                      <div className="hidden sm:block">
-                        <Link href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
-                          View Product
-                        </Link>
+
+                    {isBYJ && (
+                      <div className="mt-4 bg-[#fef5f1] p-6 rounded-md space-y-4 border border-[#e0d0ba]/30">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-b border-[#e0d0ba] pb-4">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a] mb-1">Style</p>
+                            <p className="text-sm font-medium text-zinc-800">{properties['Style']}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a] mb-1">Material</p>
+                            <p className="text-sm font-medium text-zinc-800">{properties['Material']}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a] mb-1">Length</p>
+                            <p className="text-sm font-medium text-zinc-800">{properties['Length']}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a] mb-3">Charms Selection</p>
+                          <div className="space-y-3">
+                            {byjCharms.map((charm, idx) => (
+                              <div key={idx} className="flex justify-between items-center gap-4">
+                                <div className="flex gap-3 items-center">
+                                  <div className="w-8 h-8 bg-white border border-[#e0d0ba]/50 rounded-sm overflow-hidden p-1">
+                                    <img src={charm.img} alt={charm.title} className="w-full h-full object-contain" />
+                                  </div>
+                                  <span className="text-sm font-medium text-zinc-800">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                                </div>
+                                <span className="text-sm font-bold text-[#1c1810]">₹ {(parseFloat(charm.price * charm.qty / 100)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -482,7 +541,7 @@ export default function OrderDetailsPage() {
                   <span className="text-base font-bold">Chat with Support</span>
                   <ChevronLeft className="rotate-180 size-6" />
                 </a>
-                <Link href="/pages/shipping-policy" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
+                <Link prefetch={false} href="/pages/shipping-policy" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
                   <span className="text-base font-bold">Shipping Policy</span>
                   <ChevronLeft className="rotate-180 size-6" />
                 </Link>

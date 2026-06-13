@@ -4,23 +4,43 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { handle } = body;
+    const { handle, type } = body;
 
-    console.log(`[Next.js Revalidate] Triggered ISR revalidation. Product Handle: ${handle || 'none'}`);
+    console.log(`[Next.js Revalidate] Triggered ISR revalidation. Type: ${type || 'single'}, Handle: ${handle || 'none'}`);
 
-    // Revalidate the homepage to update featured products/sections.
+    if (type === 'all') {
+      // Global revalidation - use sparingly as this triggers many background renders
+      revalidatePath('/', 'layout');
+      console.log(`[Next.js Revalidate] Global layout revalidation triggered`);
+      return NextResponse.json({ revalidated: true, type: 'all' });
+    }
+
+    if (type === 'path' && body.path) {
+      // Revalidate a specific path
+      revalidatePath(body.path);
+      console.log(`[Next.js Revalidate] Path revalidation triggered for: ${body.path}`);
+      return NextResponse.json({ revalidated: true, type: 'path', path: body.path });
+    }
+
+    // Always revalidate the homepage for any product change to keep featured sections fresh.
     revalidatePath('/');
 
     if (handle) {
-      // Revalidate the specific product page that was updated in Shopify.
+      // Revalidate only the specific product page.
       revalidatePath(`/products/${handle}`);
 
-      // Revalidate ALL collection pages using the dynamic route pattern.
-      // This ensures product grids reflect stock/price changes after a Shopify webhook.
-      // 'page' scope tells Next.js to revalidate every page matching this dynamic segment.
-      // NOTE: This marks them stale — Vercel re-renders each on the NEXT user visit (ISR write),
-      //       not all 22 at once. So this is cost-efficient — only visited pages get re-rendered.
-      revalidatePath('/collections/[handle]', 'page');
+      // OPTIMIZATION: Removed revalidatePath('/collections/[handle]', 'page')
+      // Instead of marking ALL collections as stale on every single product update,
+      // we rely on either:
+      // 1. Live pricing in the ProductCard (client-side)
+      // 2. A separate 'collection' type revalidation when specifically needed.
+      // 3. The default 24h background revalidation.
+    }
+
+    if (type === 'collection' && handle) {
+       revalidatePath(`/collections/${handle}`);
+    } else if (type === 'collections') {
+       revalidatePath('/collections/[handle]', 'page');
     }
 
     // Ping the Fastify backend to clear its memory cache as well

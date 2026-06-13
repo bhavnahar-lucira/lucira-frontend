@@ -2,12 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, BadgePercent, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
 import { useSelector, useDispatch } from "react-redux";
+import { pushPromoClick } from "@/lib/gtm";
+import { useAuth } from "@/hooks/useAuth";
 import InsuranceOption from "./InsuranceOption";
 import GoldCoinOption, { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
 import { useCart } from "@/hooks/useCart";
@@ -21,11 +24,13 @@ const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 export default function CartSummary({ onPlaceOrder }) {
   const dispatch = useDispatch();
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [isCouponSheetOpen, setIsCouponSheetOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplying, setIsApplying] = useState(false);
   
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart } = useCart();
   const user = useSelector((state) => state.user.user);
+  const { openLogin } = useAuth();
   const [goldCoinThreshold, setGoldCoinThreshold] = useState(20000);
 
   useEffect(() => {
@@ -37,11 +42,23 @@ export default function CartSummary({ onPlaceOrder }) {
   }, []);
 
   const otherItemsQuantity = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift))
+    .filter(item => 
+      item.variantId !== INSURANCE_VARIANT_ID && 
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.properties?.['_byj_parent'] &&
+      !item.properties?.[' _byj_parent'] &&
+      !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+    )
     .reduce((acc, item) => acc + (Number(item.quantity || item.qty || 1)), 0);
 
   const diamondTotal = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift))
+    .filter(item => 
+      item.variantId !== INSURANCE_VARIANT_ID && 
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.properties?.['_byj_parent'] &&
+      !item.properties?.[' _byj_parent'] &&
+      !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+    )
     .reduce((acc, item) => {
         const itemQty = Number(item.quantity || item.qty || 1);
         let charges = Number(item.diamondCharges || 0);
@@ -141,7 +158,7 @@ export default function CartSummary({ onPlaceOrder }) {
     }
   }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
 
-  const subtotal = totalAmount - insuranceAmount;
+  const subtotal = otherItemsQuantity > 0 ? (totalAmount - insuranceAmount) : 0;
   let couponDiscountAmount = 0;
   if (appliedCoupon) {
     if (couponDetails.valueType === "FIXED_AMOUNT") {
@@ -155,7 +172,7 @@ export default function CartSummary({ onPlaceOrder }) {
   const shipping = 0; 
   const grandTotal = subtotal + insuranceAmount - discount + shipping;
 
-  const handleApplyCoupon = async () => {
+  const handleApplyCoupon = async (isMobile = false) => {
     if (!couponCode.trim()) return;
     setIsApplying(true);
     try {
@@ -175,7 +192,11 @@ export default function CartSummary({ onPlaceOrder }) {
         valueType: data.valueType
       }));
       toast.success(`Coupon "${data.code}" applied!`);
-      setIsCouponDialogOpen(false);
+      if (isMobile) {
+        setIsCouponSheetOpen(false);
+      } else {
+        setIsCouponDialogOpen(false);
+      }
       setCouponCode("");
     } catch (err) {
       toast.error(err.message);
@@ -293,22 +314,65 @@ export default function CartSummary({ onPlaceOrder }) {
         <div className="space-y-4">
           <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>          
           <GoldCoinOption />
-          <button 
-            onClick={() => setIsCouponDialogOpen(true)}
-            className="flex items-center justify-between w-full p-4 bg-white border border-accent/30 rounded-lg group transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-full shadow-sm">
-                <Tag size={20} className="text-primary" />
+          
+          <Sheet open={isCouponSheetOpen} onOpenChange={setIsCouponSheetOpen}>
+            <SheetTrigger asChild>
+              <button 
+                className="flex items-center justify-between w-full p-4 bg-white border border-accent/30 rounded-lg group transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-full shadow-sm">
+                    <Tag size={20} className="text-primary" />
+                  </div>
+                  <span className="text-[15px] font-bold text-[#443360] uppercase font-figtree">
+                    {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
+                  </span>
+                </div>
+                <div className="bg-accent p-1.5 rounded-full">
+                  <ChevronRight size={18} className="text-white" />
+                </div>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()} className="rounded-t-2xl px-6 pb-8 pt-4 max-h-[85vh] overflow-y-auto [&>button]:hidden transition-all duration-300 ease-in-out focus-within:mb-0">
+              <div className="absolute top-4 right-4">
+                <SheetClose asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 rounded-full bg-zinc-100 text-zinc-500 hover:bg-zinc-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+                    aria-label="Close coupon panel"
+                  >
+                    <X size={16} />
+                  </Button>
+                </SheetClose>
               </div>
-              <span className="text-[15px] font-bold text-[#443360] uppercase font-figtree">
-                {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
-              </span>
-            </div>
-            <div className="bg-accent p-1.5 rounded-full">
-              <ChevronRight size={18} className="text-white" />
-            </div>
-          </button>
+              <SheetHeader className="space-y-3">
+                <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-2">
+                  <Tag size={24} />
+                </div>
+                <SheetTitle className="text-2xl font-light text-center text-zinc-800 font-abhaya">Apply Coupon</SheetTitle>
+                <SheetDescription className="text-sm text-center text-zinc-500">
+                  Enter your coupon code below to unlock special discounts.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="space-y-4 py-4">
+                <Input 
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Enter Coupon Code" 
+                  className="h-12 text-center text-lg font-bold tracking-widest uppercase focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                />
+                <Button 
+                  onClick={() => handleApplyCoupon(true)}
+                  disabled={isApplying || !couponCode.trim()}
+                  className="w-full h-12 bg-primary hover:bg-primary/90 uppercase font-bold tracking-widest text-white transition-all shadow-md"
+                >
+                  {isApplying ? <Loader2 className="animate-spin" /> : "Apply Coupon"}
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
           <InsuranceOption />
         </div>
       </div>
@@ -316,7 +380,28 @@ export default function CartSummary({ onPlaceOrder }) {
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
         <Button 
-          onClick={onPlaceOrder}
+          onClick={() => {
+            // If user not logged in, fire promoClick and open login modal
+            if (!user) {
+              const firstItem = items && items.length > 0 ? items[0] : null;
+              const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+              const promoData = {
+                creative_name: "cart page login popup",
+                promo_id: firstItem?.sku || variantId || "",
+                item_id: variantId || "",
+                promo_position: "Cart Page",
+              };
+              try {
+                pushPromoClick(promoData);
+              } catch (e) {
+                // swallow errors from analytics
+                console.error('promo push failed', e);
+              }
+              openLogin();
+              return;
+            }
+            onPlaceOrder();
+          }}
           className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 uppercase tracking-[0.2em] shadow-lg shadow-zinc-100 transition-all rounded-lg text-base"
         >
           Place Order
@@ -359,7 +444,7 @@ export default function CartSummary({ onPlaceOrder }) {
                   className="h-12 text-center text-lg font-bold tracking-widest uppercase"
                 />
                 <Button 
-                  onClick={handleApplyCoupon}
+                  onClick={() => handleApplyCoupon(false)}
                   disabled={isApplying || !couponCode.trim()}
                   className="w-full h-12 bg-primary hover:bg-primary/90 uppercase font-bold tracking-widest text-white transition-all shadow-md"
                 >
