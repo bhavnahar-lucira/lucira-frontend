@@ -43,6 +43,7 @@ const STORE_IMAGES = {
 };
 
 const SORT_OPTIONS = [
+  { value: "manual", label: "Featured" },
   { value: "best_selling", label: "Best selling" },
   { value: "discount_desc", label: "Discount: High to Low" },
   { value: "created_at_desc", label: "Date: New to Old" },
@@ -365,9 +366,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       if (isFirstRender.current && initialData) {
         isFirstRender.current = false;
         
-        // Ensure we are on the default path (no params or only sort=best_selling)
+        // Ensure we are on the default path (no params or only sort=manual)
         const paramsString = searchParams.toString();
-        if (paramsString === "" || paramsString === "sort=best_selling") {
+        if (paramsString === "" || paramsString === "sort=manual") {
           return; // Skip API fetch, initialData holds exactly what we need!
         }
       }
@@ -377,7 +378,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       setFiltersLoading(true);
 
       try {
-        const sort = searchParams.get("sort") || "best_selling";
+        const sort = searchParams.get("sort") || "manual";
         
         // 1. Fetch filters first to ensure we have mappings for products fetch
         const filtersData = await apiFetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
@@ -425,7 +426,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     if (isFetchingNextPage || !pagination.hasNextPage) return;
     setIsFetchingNextPage(true);
     try {
-      const sort = searchParams.get("sort") || "best_selling";
+      const sort = searchParams.get("sort") || "manual";
       const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
       const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
       const data = await apiFetch(`/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
@@ -483,14 +484,14 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const handleSort = (value) => {
     const p = new URLSearchParams(searchParams.toString());
-    if (value === "best_selling") p.delete("sort");
+    if (value === "manual") p.delete("sort");
     else p.set("sort", value);
     p.delete("cursor");
     router.push(`${pathname}?${p.toString()}`, { scroll: false });
     scrollToTop();
   };
 
-  const activeSort = searchParams.get("sort") || "best_selling";
+  const activeSort = searchParams.get("sort") || "manual";
 
   // Extract selected color from filters to pass to ProductCard
   const selectedColor = useMemo(() => {
