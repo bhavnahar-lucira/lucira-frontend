@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { pushPromoClick } from "@/lib/gtm";
 import Image from "next/image";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
+import { fetchOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
 
 const PRESETS = [2000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
@@ -80,6 +81,7 @@ export default function MobileSavingCalculator() {
 
   const [amountError, setAmountError] = useState("");
   const [amount, setAmount] = useState(initialAmount);
+  const [localLoading, setLocalLoading] = useState(false);
 
   if (settingsLoading) {
     return (
@@ -93,6 +95,12 @@ export default function MobileSavingCalculator() {
   const totalInstallment = amount * 9;
   const bonus = amount;
   const totalReturns = totalInstallment + bonus + giftValue;
+
+  const get10DigitMobile = (raw) => {
+    if (!raw) return "";
+    let cleaned = raw.replace(/\D/g, "");
+    return cleaned.length > 10 ? cleaned.slice(-10) : cleaned;
+  };
 
   const formatINR = (value) => new Intl.NumberFormat("en-IN").format(value);
 
@@ -402,9 +410,9 @@ export default function MobileSavingCalculator() {
           </div>
 
           <button
-            disabled={!!amountError || !isAgreed}
+            disabled={!!amountError || !isAgreed || localLoading}
             onClick={async () => {
-              if (amountError || !isAgreed) return;
+              if (amountError || !isAgreed || localLoading) return;
 
               // Fire dataLayer promoClick event
               try {
@@ -419,18 +427,48 @@ export default function MobileSavingCalculator() {
               }
 
               if (isAuthenticated) {
-                router.push(`/schemes/enroll?amount=${amount}`);
+                try {
+                  setLocalLoading(true);
+                  const mobile10 = get10DigitMobile(user.mobile || user.phone);
+                  if (mobile10) {
+                    // Check if customer exists in Ornaverse
+                    const ornaData = await fetchOrnaverseCustomer(mobile10);
+                    const ornaProfile = ornaData?.Entities?.[0];
+
+                    if (!ornaProfile?.party_id) {
+                      // Create customer in Ornaverse in background
+                      await createOrnaverseCustomer({
+                        first_name: user.first_name || "User",
+                        last_name: user.last_name || "Customer",
+                        phone: mobile10,
+                        email: user.email || `${mobile10}@lucira.internal`,
+                      });
+                    }
+                  }
+                  router.push(`/schemes/enroll?amount=${amount}`);
+                } catch (err) {
+                  console.error("[Scheme Flow] Background Ornaverse Error:", err);
+                  // Still push forward to let the enrollment page handle it if possible
+                  router.push(`/schemes/enroll?amount=${amount}`);
+                } finally {
+                  setLocalLoading(false);
+                }
               } else {
                 openLogin(`/schemes/enroll?amount=${amount}`);
               }
             }}
-            className={`w-full rounded-xl h-14 text-base font-bold tracking-wide shadow-lg active:scale-[0.98] transition-all disabled:opacity-60 ${
-              amountError || !isAgreed
+            className={`w-full rounded-xl h-14 text-base font-bold tracking-wide shadow-lg active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center ${
+              amountError || !isAgreed || localLoading
                 ? "bg-gray-300 text-gray-500"
                 : "bg-black text-white"
             }`}
           >
-            CONTINUE
+            {localLoading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 size={18} className="animate-spin" />
+                <span>PLEASE WAIT...</span>
+              </div>
+            ) : "CONTINUE"}
           </button>
         </div>
       </div>

@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, UserPlus, Info, CheckCircle2, ChevronRight } from "lucide-react";
 
-import { fetchCustomerAddresses, fetchOrnaverseCustomer, updateOrnaverseCustomer } from "@/lib/api";
+import { fetchCustomerAddresses, fetchOrnaverseCustomer, updateOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
 
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
@@ -261,7 +261,7 @@ export default function Enroll() {
       setLoading(true);
       toast.loading("Updating your details...");
 
-      // ✅ Update Ornaverse Customer
+      // ✅ Update or Create Ornaverse Customer
       if (profile.party_id) {
         const payload = {
           id: profile.party_id,
@@ -278,6 +278,18 @@ export default function Enroll() {
         };
 
         await updateOrnaverseCustomer(payload);
+      } else {
+        // Fallback: Create if not exists (extra safety)
+        await createOrnaverseCustomer({
+          first_name: first_name || "User",
+          last_name: last_name || "Customer",
+          email: customer?.email || `${mobile}@lucira.internal`,
+          phone: mobile,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          zip: form.pincode,
+        });
       }
 
       // Fire dataLayer promoClick event
