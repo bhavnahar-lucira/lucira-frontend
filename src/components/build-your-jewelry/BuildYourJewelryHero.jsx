@@ -26,7 +26,7 @@ const BuildYourJewelryHero = () => {
   return (
     <section className="bg-[#FEF5F1] w-full">
       <div 
-        className="py-[60px] md:bg-[url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/4298bdee-8fdd-49be-859e-300dc1a1c7aew.png?v=1780381414')] bg-no-repeat bg-left-top bg-contain"
+        className="pt-0 pb-[60px] md:py-[60px] md:bg-[url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/4298bdee-8fdd-49be-859e-300dc1a1c7aew.png?v=1780381414')] bg-no-repeat bg-left-top bg-contain"
       >
         <div className="grid grid-cols-1 md:grid-cols-[45%_55%] max-w-[1440px] mx-auto">
           {/* Image Column - Hidden on desktop (using background instead), visible on mobile */}
