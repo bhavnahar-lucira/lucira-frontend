@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,7 +19,7 @@ import PriceSavingsDetails from "@/components/product/PriceSavingsDetails";
 import ProductAccordion from "@/components/product/ProductAccordion";
 import LuxuryMarquee from "@/components/product/LuxuryMarquee";
 import ProductStory from "@/components/product/ProductStory";
-import OnTheMoveStory from "@/components/product/OnTheMoveStory";
+const OnTheMoveStory = dynamic(() => import("@/components/product/OnTheMoveStory"), { suspense: true });
 import OurProcess from "@/components/product/OurProcess";
 import CategorySlider from "@/components/product/CategorySlider";
 import CustomerReviews from "@/components/product/CustomerReviews";
@@ -3043,7 +3044,9 @@ export default function ProductPageClient({
         </div>
       </div>
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
-      <OnTheMoveStory tags={product.tags} />
+      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+        <OnTheMoveStory tags={product.tags} /> 
+      </Suspense>      
       <ProductStory description={product.description} />
       
       {matchedCollectionTag ? (
