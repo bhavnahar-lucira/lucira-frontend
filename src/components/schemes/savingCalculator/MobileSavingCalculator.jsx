@@ -390,7 +390,7 @@ export default function MobileSavingCalculator() {
       )}
 
       {/* FIXED BOTTOM BAR */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-5 z-30 md:hidden">
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-5 z-[50] md:hidden">
         <div className="max-w-7xl mx-auto flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
