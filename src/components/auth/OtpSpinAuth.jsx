@@ -132,7 +132,7 @@ export function OtpSpinAuth({
   }, [step]);
 
 
-  const loginSuccess = async (data, isSignup = false, skipRedirect = false) => {
+  const loginSuccess = async (data, isSignup = false, skipRedirect = false, ornaUser = null) => {
     // 1. Identify where we need to go
     const reduxPath = authRedirectPath;
     const localPath = typeof window !== "undefined" ? localStorage.getItem("auth_redirect_path") : null;
@@ -147,13 +147,10 @@ export function OtpSpinAuth({
       target = refPath || reduxPath || localPath || pathname || "/";
     }
 
-    console.log(`[LoginSuccess] Target: ${target}. isSignup: ${isSignup}`);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_redirect_path"); // Clean up
+    }
 
-  const loginSuccess = async (data, isSignup = false, skipRedirect = false, ornaUser = null) => {
-    const target = redirectTargetRef.current || localStorage.getItem("auth_redirect_path") || pathname || "/";
-    localStorage.removeItem("auth_redirect_path"); // Clean up
-
-    
     const user = data.user || data.customer;
     const userId = user?.id;
 
@@ -220,11 +217,6 @@ export function OtpSpinAuth({
           router.push(target);
         }
 
-        // Clean up intent tracking AFTER triggering navigation
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("auth_redirect_path");
-        }
-
         // Hard fallback for checkout flow
         if (target === "/checkout/shipping") {
            setTimeout(() => {
@@ -262,24 +254,20 @@ export function OtpSpinAuth({
       const sessionId = getSessionId();
       const data = await verifyOtpApi(mobile, otpValue, sessionId);
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
-
         if (hideRegisterLink) {
-           // Auto register with mobile number (Cart Flow)
-           try {
-             const regData = await registerCustomer({ mobile, sessionId });
-             if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-                await loginSuccess(regData, true);
-             } else {
-               toast.error("Auto-registration failed. Please contact support.");
-             }
-           } catch (regErr) {
-             toast.error(regErr.message || "Auto-registration failed");
-           }
+          // Auto register with mobile number (Cart Flow)
+          try {
+            const regData = await registerCustomer({ mobile, sessionId });
+            if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+              await loginSuccess(regData, true);
+            } else {
+              toast.error("Auto-registration failed. Please contact support.");
+            }
+          } catch (regErr) {
+            toast.error(regErr.message || "Auto-registration failed");
+          }
         } else if (pendingRegister) {
-
-        setIsMobileVerified(true);
-        if (pendingRegister) {
-
+          setIsMobileVerified(true);
           // Verification success, now complete the pending registration
           
           // 🔍 Ornaverse: Create customer during registration (ONLY during Scheme flow)
@@ -312,12 +300,9 @@ export function OtpSpinAuth({
             wonPrize: wonPrize?.value,
             prizeLabel: wonPrize?.label,
           });
+
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-
-            await loginSuccess(regData, true);
-
-            loginSuccess(regData, true, false, ornaUser);
-
+            await loginSuccess(regData, true, false, ornaUser);
             handleStepChange("success");
             setPendingRegister(false);
           }
@@ -325,9 +310,6 @@ export function OtpSpinAuth({
           handleStepChange("register");
         }
       } else if (data.status === "LOGIN" || data.type === "success") {
-
-        await loginSuccess(data);
-
         // 🔍 Ornaverse: Check customer (ONLY during Scheme flow)
         let ornaUser = null;
         if (isSchemeFlow) {
@@ -338,9 +320,7 @@ export function OtpSpinAuth({
             console.error("[Ornaverse] Fetch error:", error);
           }
         }
-
-        loginSuccess(data, false, false, ornaUser);
-
+        await loginSuccess(data, false, false, ornaUser);
       }
     } catch (err) {
       toast.error(err.message || "Invalid OTP");
@@ -477,7 +457,7 @@ export function OtpSpinAuth({
             prizeLabel: prize?.label,
           });
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-            loginSuccess(regData, true, false, ornaUser);
+            await loginSuccess(regData, true, false, ornaUser);
             handleStepChange("success");
             setPendingRegister(false);
           }

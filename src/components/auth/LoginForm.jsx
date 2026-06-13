@@ -212,7 +212,7 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
           }
         }
 
-        loginSuccess(data, false, ornaUser);
+        await loginSuccess(data, false, ornaUser);
       }
     } catch (err) {
       toast.error(err.message || "OTP verification failed");
@@ -268,7 +268,7 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
           name: `${firstName} ${lastName}`.trim()
         });
 
-        loginSuccess(data, true, ornaUser);
+        await loginSuccess(data, true, ornaUser);
       }
     } catch (err) {
       toast.error(err.message || "Register failed");
