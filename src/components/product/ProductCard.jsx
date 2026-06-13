@@ -170,7 +170,7 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
@@ -510,7 +510,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                             src={formatCdnUrl(image.url)}
                             alt={image.alt || product.title}
                             fill
-                            priority={idx === 0}
+                            priority={idx === 0 && priority}
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                             className={`object-contain transition-all duration-300 ${shouldZoom ? 'scale-[1.30]' : 'lg:scale-100'
                               }`}
                           />

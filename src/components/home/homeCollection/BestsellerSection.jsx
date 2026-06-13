@@ -70,6 +70,7 @@ export default function BestsellerSection({ initialData }) {
       <CollectionSlider 
         products={products.length > 0 ? products : (loading ? [] : undefined)} 
         loading={loading}
+        priorityCount={4}
       />
     </CollectionSection>
   );

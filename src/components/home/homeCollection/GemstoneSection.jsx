@@ -121,6 +121,7 @@ export default function GemstoneSection({ initialProducts, initialCategories }) 
       <CollectionSlider
         products={products.length > 0 ? products : (loading ? [] : null)}
         loading={loading}
+        priorityCount={2}
       />
     </CollectionSection>
   );

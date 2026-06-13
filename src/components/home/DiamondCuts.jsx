@@ -1,5 +1,8 @@
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
+import shopifyLoader from '@/utils/shopifyLoader';
 
 // Move data outside the component to prevent re-creation on every render
 const SHAPES = [
@@ -35,13 +38,13 @@ export default function DiamondShapes() {
             >
               <div className="w-14 md:w-full lg:w-18 relative aspect-square max-w-24 mb-4">
                 <Image
+                  loader={shopifyLoader}
                   src={`https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_diamondCuts_${shape.imgId}.png`}
                   alt={`${shape.name} cut diamond shape`}
                   fill
                   sizes="(max-width: 768px) 80px, 100px"
                   className="object-contain transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
-                  unoptimized={true}
                 />
               </div>
               

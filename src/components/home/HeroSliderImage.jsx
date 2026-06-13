@@ -5,6 +5,8 @@ import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useId } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { pushPromoClick } from "@/lib/gtm";
 
 import "swiper/css";
@@ -124,27 +126,39 @@ export default function HeroBanner({ initialData = [] }) {
                 onClick={() => handleBannerClick(slide)}
               >
                 <div className="relative w-full h-full">
-                  <picture>
-                    {/* Desktop Image */}
-                    <source
-                      media="(min-width: 1024px)"
-                      srcSet={slide.desktopImage}
-                    />
-
-                    {/* Mobile Image */}
-                    <img
-                      src={slide.mobileImage || slide.desktopImage}
-                      alt={slide.alt || slide.name}
-                      className="w-full h-full object-cover object-center"
+                  {/* Desktop Image */}
+                  <div className="hidden lg:block relative w-full h-full">
+                    <Image
+                      loader={shopifyLoader}
+                      src={slide.desktopImage}
+                      alt={slide.alt || slide.name || "Hero Banner"}
+                      fill
+                      priority={index === 0}
                       loading={index === 0 ? "eager" : "lazy"}
-                      fetchPriority={index === 0 ? "high" : "auto"}
+                      className="object-cover object-center"
+                      sizes="(max-width: 480px) 450px, (max-width: 576px) 560px, (max-width: 768px) 600px, (max-width: 992px) 800px, (max-width: 1200px) 1000px, (max-width: 1440px) 1400px, (max-width: 1600px) 1600px, 2000px"
                       draggable={false}
                     />
-                  </picture>
+                  </div>
+
+                  {/* Mobile Image */}
+                  <div className="block lg:hidden relative w-full h-full">
+                    <Image
+                      loader={shopifyLoader}
+                      src={slide.mobileImage || slide.desktopImage}
+                      alt={slide.alt || slide.name || "Hero Banner Mobile"}
+                      fill
+                      priority={index === 0}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      className="object-cover object-center"
+                      sizes="(max-width: 480px) 450px, (max-width: 576px) 560px, (max-width: 768px) 600px, (max-width: 992px) 800px, (max-width: 1200px) 1000px, (max-width: 1440px) 1400px, (max-width: 1600px) 1600px, 2000px"
+                      draggable={false}
+                    />
+                  </div>
 
                   {/* Text Overlay for Image Slides */}
                   {(slide.title || slide.subtitle) && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 md:pb-24 bg-black/5">
+                    <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 md:pb-24 bg-black/5 z-10">
                       <div className="text-center text-white px-4">
                         {slide.title && (
                           <h2 className="text-3xl md:text-5xl font-semibold uppercase tracking-[0.1em] mb-4 drop-shadow-2xl font-abhaya">
