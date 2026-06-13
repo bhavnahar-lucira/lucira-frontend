@@ -25,7 +25,7 @@ export default function Footer() {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  if (pathname?.startsWith("/dashboard") || pathname === "/build-your-jewelry") return null;
+  if (pathname?.startsWith("/dashboard") || pathname === "/build-your-jewelry" || pathname === "/pages/store-giveaway") return null;
 
   if (isMobile) {
     return (

@@ -7,7 +7,7 @@ export default function ZohoSalesIQ() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname === "/build-your-jewelry") {
+    if (pathname === "/build-your-jewelry" || pathname === "/pages/store-giveaway") {
       // If already loaded, hide it
       if (window.$zoho && window.$zoho.salesiq && window.$zoho.salesiq.floatwindow) {
         window.$zoho.salesiq.floatwindow.visible('hide');
