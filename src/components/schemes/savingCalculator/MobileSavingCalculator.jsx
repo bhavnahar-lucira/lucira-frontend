@@ -33,29 +33,27 @@ const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = 
       className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10 pointer-events-none"
       style={{ left: `${left}%` }}
     >
-      <div className={`absolute px-1.5 py-0.5 rounded-lg text-[7px] font-bold whitespace-nowrap transition-all duration-300 shadow-sm border ${
-        labelPosition === "top" ? "bottom-full mb-1" : "top-full mt-1"
+      <div className={`absolute px-2 py-0.5 rounded-full text-[6px] font-bold whitespace-nowrap transition-all duration-300 shadow-sm border ${
+        labelPosition === "top" ? "bottom-full mb-2.5" : "top-full mt-2.5"
       } ${
         isActive 
-          ? "bg-[#D1EAD0] text-[#008000] border-[#B8DAB6] scale-105" 
-          : "bg-white text-gray-500 border-gray-200 scale-100"
+          ? "bg-[#D1EAD0] text-black border-[#B8DAB6] scale-105" 
+          : "bg-white text-black border-gray-200 scale-95"
       }`}>
         {label}
-        <div className={`absolute left-1/2 -translate-x-1/2 w-1 h-1 rotate-45 border transition-colors duration-300 ${
-          labelPosition === "top" 
-            ? "-bottom-1 border-r border-b" 
-            : "-top-1 border-l border-t"
-        } ${
-          isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-white border-gray-200"
-        }`} />
       </div>
-      <div className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 pointer-events-auto ${
+
+      <div className={`relative flex items-center justify-center transition-all duration-300 rounded-full shadow-md border-2 pointer-events-auto ${
         isActive
-          ? "bg-[#009245] border-[#009245] text-white scale-110"
-          : "bg-white border-[#009245] text-[#009245] scale-100"
+          ? "w-6 h-6 bg-[#009245] border-white text-white z-20 scale-110"
+          : "w-5.5 h-5.5 bg-white border-gray-100 text-gray-300 z-10 scale-100"
       }`}>
-        <Gift size={14} strokeWidth={isActive ? 2 : 1.5} />
+        <Gift size={isActive ? 12 : 10} strokeWidth={isActive ? 2.5 : 1.5} />
       </div>
+
+      <div className={`w-0.5 h-2 bg-gray-200 absolute ${
+        labelPosition === "top" ? "bottom-full mb-0.5" : "top-full mt-0.5"
+      }`} />
     </div>
   );
 };
@@ -390,7 +388,7 @@ export default function MobileSavingCalculator() {
       )}
 
       {/* FIXED BOTTOM BAR */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-5 z-30 md:hidden">
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-5 z-[50] md:hidden">
         <div className="max-w-7xl mx-auto flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <div className="flex flex-col">

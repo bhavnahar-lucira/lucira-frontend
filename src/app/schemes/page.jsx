@@ -80,7 +80,7 @@ export default function Page() {
       </motion.div>
 
       {/* Calculator Section */}
-      <section className="relative mt-12 md:mt-20 z-10 px-4">
+      <section className="relative mt-12 md:mt-20 z-[60] px-4">
         <Suspense fallback={<div className="text-center py-20 bg-white rounded-3xl shadow-xl max-w-7xl mx-auto flex items-center justify-center gap-3"><Loader2 className="animate-spin" /> Loading calculator...</div>}>
           <motion.div
             initial={{ y: 30, opacity: 0 }}
