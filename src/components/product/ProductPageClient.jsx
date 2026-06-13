@@ -18,6 +18,7 @@ import PriceSavingsDetails from "@/components/product/PriceSavingsDetails";
 import ProductAccordion from "@/components/product/ProductAccordion";
 import LuxuryMarquee from "@/components/product/LuxuryMarquee";
 import ProductStory from "@/components/product/ProductStory";
+import OnTheMoveStory from "@/components/product/OnTheMoveStory";
 import OurProcess from "@/components/product/OurProcess";
 import CategorySlider from "@/components/product/CategorySlider";
 import CustomerReviews from "@/components/product/CustomerReviews";
@@ -3042,6 +3043,7 @@ export default function ProductPageClient({
         </div>
       </div>
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
+      <OnTheMoveStory tags={product.tags} />
       <ProductStory description={product.description} />
       
       {matchedCollectionTag ? (
