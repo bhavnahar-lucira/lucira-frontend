@@ -105,7 +105,7 @@ export default async function Page({ params }) {
   let initialData = null;
   try {
     const [collRes, filterRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=best_selling`, { cache: 'force-cache' }),
+      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=manual`, { cache: 'force-cache' }),
       fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' })
     ]);
     if (collRes.ok && filterRes.ok) {
