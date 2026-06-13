@@ -114,7 +114,7 @@ export default function MobileSavingCalculator() {
   ];
 
   return (
-    <section className="px-4 pt-4 pb-40 md:pb-5 space-y-6">
+    <section className="px-4 pt-4 pb-12 md:pb-5 space-y-6">
       {/* MAIN CARD */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 space-y-7">
         {/* HEADER */}
@@ -128,8 +128,8 @@ export default function MobileSavingCalculator() {
           </div>
         </div>
 {/* SLIDER */}
-<div className="space-y-4 px-1 pt-20">
-  <div className="relative mb-10 h-6 flex items-center w-full">
+<div className="space-y-6 px-1 pt-6 pb-4">
+  <div className="relative mb-14 h-12 flex items-center w-full">
     {activeIntervals.map((inv, idx) => (
       <GiftMilestone 
         key={idx}
@@ -150,10 +150,10 @@ export default function MobileSavingCalculator() {
         setAmount(val);
         setAmountError("");
       }}
-      className=""
+      className="relative z-0"
     />
   </div>
-          <div className="flex justify-between text-[10px] text-gray-400 font-medium uppercase tracking-wider">
+          <div className="flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-2">
             <span>Min ₹2,000</span>
             <span>Max ₹19,000</span>
           </div>

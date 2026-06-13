@@ -58,7 +58,7 @@ export default function Page() {
         {width > 1024 ? (
           <AspectRatio ratio={1920 / 420}>
             <Image
-              src="/images/schemes/desktop-scheme.jpg"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/desktop-scheme.jpg?v=1781350957"
               alt="Savings Scheme Banner"
               fill
               priority
@@ -68,7 +68,7 @@ export default function Page() {
         ) : (
           <AspectRatio ratio={428 / 380}>
             <Image
-              src="/images/schemes/mobile-scheme.jpg"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/mobile-scheme.jpg?v=1781350959"
               alt="Savings Scheme Banner"
               fill
               priority
@@ -92,7 +92,7 @@ export default function Page() {
         </Suspense>
       </section>
 
-      <div className="w-full bg-white mt-16 md:mt-24 mb-20 md:mb-32">
+      <div className="w-full bg-white mt-8 md:mt-24 mb-20 md:mb-32">
         {/* How It Works Section */}
         <SchemeHowItWorks />
 
