@@ -67,10 +67,10 @@ export default function HeroBanner({ initialData = [] }) {
 
               {/* Text Overlay */}
               {(videoSlide.title || videoSlide.subtitle) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 md:pb-24 bg-black/5">
+                <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 md:pb-12 bg-black/5">
                   <div className="text-center text-white px-4">
                     {videoSlide.title && (
-                      <h2 className="text-3xl md:text-5xl font-semibold uppercase tracking-[0.1em] mb-4 drop-shadow-2xl font-abhaya">
+                      <h2 className="text-3xl md:text-5xl font-semibold uppercase tracking-[1px] mb-4 drop-shadow-2xl font-abhaya">
                         {videoSlide.title}
                       </h2>
                     )}
