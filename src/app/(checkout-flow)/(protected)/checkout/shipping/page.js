@@ -51,7 +51,7 @@ import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 const emptyAddressForm = {
   firstName: "",
