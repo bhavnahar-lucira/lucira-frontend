@@ -89,7 +89,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
         sku: node.merchandise.sku,
         price: finalUnitPrice,
         comparePrice: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
-        image: node.merchandise.image?.url,
+        image: shopifyProperties['_byj_preview'] || node.merchandise.image?.url,
         altText: node.merchandise.image?.altText,
         productId: node.merchandise.product.id,
         inStock: backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock),

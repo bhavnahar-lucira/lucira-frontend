@@ -115,8 +115,8 @@ export default function CartItem({ item, onAuthRequired }) {
   const statusLabel = (isInStock && !isBYJ) ? "In Stock" : "Made to Order";
   const statusClass = (isInStock && !isBYJ) ? "text-green-500" : "text-primary";
 
-  const displayImage = currentVariant?.image || item.image;
-  const isShopifyImage = displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"));
+  const displayImage = isBYJ ? item.properties['_byj_preview'] : (currentVariant?.image || item.image);
+  const isShopifyImage = !isBYJ && displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"));
 
   const handleRemove = async () => {
     setRemoving(true);
@@ -211,7 +211,7 @@ export default function CartItem({ item, onAuthRequired }) {
           productHandle: item.handle || "",
           title: item.title,
           sku: item.sku || "",
-          image: item.image || "",
+          image: displayImage || item.image || "",
           price: item.price,
           comparePrice: item.comparePrice || "",
           reviews: item.reviews || null,
