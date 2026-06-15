@@ -330,6 +330,7 @@ export default function Footer() {
                   <li><Link prefetch={false} href="/pages/franchise-page">Franchise</Link></li>
                   <li><Link prefetch={false} href="/pages/customized-jewelry">Bespoke</Link></li>
                   <li><Link prefetch={false} href="/pages/store-packaging">Packaging</Link></li>
+                  <li><Link prefetch={false} href="/pages/video-call">Video Call</Link></li>
                 </ul>
               </div>
             </div>

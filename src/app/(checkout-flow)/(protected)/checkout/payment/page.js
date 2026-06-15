@@ -662,6 +662,14 @@ export default function PaymentPage() {
         return match ? Number(match[0]) : 0;
       };
 
+      const filteredItemsForGtm = (items || []).filter(
+        (item) =>
+          item.variantId !== INSURANCE_VARIANT_ID &&
+          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.properties?.['_byj_parent'] &&
+          !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+      );
+
       const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
       const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
       const subtotalValue = (totalAmount || 0) - insuranceValue;
@@ -702,7 +710,7 @@ export default function PaymentPage() {
         transaction_id: `temp_${Date.now()}`,
         coupon: couponDetails?.code || "NA",
         send_to: "G-K6H0NZ4YJ8",
-        items: (items || []).map((item, idx) => {
+        items: filteredItemsForGtm.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -737,7 +745,7 @@ export default function PaymentPage() {
         coupon: couponDetails?.code || "NA",
         loyalty_points: loyaltyPoints,
         send_to: "G-K6H0NZ4YJ8",
-        items: (items || []).map((item, idx) => {
+        items: filteredItemsForGtm.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -778,6 +786,20 @@ export default function PaymentPage() {
         userId: user?.id || "",
         sessionId: getCartSessionId(),
         items: items,
+        byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        byj_preview: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        metafields: [
+          {
+            namespace: "custom",
+            key: "byj_image",
+            value: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+            type: "file_reference"
+          }
+        ],
+        order_metafields: {
+          "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || ""
+        },
+        "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
@@ -837,7 +859,7 @@ export default function PaymentPage() {
               transaction_id: response.razorpay_payment_id,
               coupon: couponDetails?.code || "NA",
               send_to: "G-K6H0NZ4YJ8",
-              items: (items || []).map((item, idx) => {
+              items: filteredItemsForGtm.map((item, idx) => {
                 const lowerTitle = (item.title || "").toLowerCase();
                 let category = item.type || item.productType || "";
                 if (!category) {
@@ -873,6 +895,20 @@ export default function PaymentPage() {
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,
               draftId: order.draftId,
+              byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        byj_preview: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        metafields: [
+          {
+            namespace: "custom",
+            key: "byj_image",
+            value: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+            type: "file_reference"
+          }
+        ],
+        order_metafields: {
+          "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || ""
+        },
+        "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
               customer: {
                 id: customer?.id || "",
                 name: customerName,
@@ -982,7 +1018,7 @@ export default function PaymentPage() {
           error_message: reason,
           coupon: couponDetails?.code || "NA",
           send_to: "G-K6H0NZ4YJ8",
-          items: (items || []).map((item, idx) => {
+          items: filteredItemsForGtm.map((item, idx) => {
             const lowerTitle = (item.title || "").toLowerCase();
             let category = item.type || item.productType || "";
             if (!category) {

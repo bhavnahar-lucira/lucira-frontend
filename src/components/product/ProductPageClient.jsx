@@ -315,6 +315,7 @@ export default function ProductPageClient({
   const [availableStores, setAvailableStores] = useState([]);
   const [nearestStore, setNearestStore] = useState(null);
   const [availableStoreCount, setAvailableStoreCount] = useState(0);
+  const [headOfficeInStock, setHeadOfficeInStock] = useState(false);
   const [isStoreDrawerOpen, setIsStoreDrawerOpen] = useState(false);
 
   const [reviewStats, setReviewStats] = useState({
@@ -871,25 +872,37 @@ export default function ProductPageClient({
       });
     }).map(s => s.shopifyId);
 
-    setAvailableStoreCount(stockStoreIds.length);
+    const isHeadOfficeInStock = allStores.some(store => 
+      stockStoreIds.includes(store.shopifyId) && 
+      (store.name.includes("Divinecarat") || store.name === "Head Office")
+    );
+    setHeadOfficeInStock(isHeadOfficeInStock);
 
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
-    const storesWithData = allStores.map(store => {
-      let distance = null;
-      if (deliveryInfo.coords && (store.latitude || store.lat) && (store.longitude || store.lng)) {
-        distance = calculateDistance(
-          deliveryInfo.coords.lat,
-          deliveryInfo.coords.lng,
-          store.latitude || store.lat,
-          store.longitude || store.lng
-        );
-      }
-      return {
-        ...store,
-        distance,
-        isInStock: stockStoreIds.includes(store.shopifyId)
-      };
-    });
+    // Filter out Head Office here as requested ("head office is not a store in drawer also")
+    const storesWithData = allStores
+      .filter(store => {
+        const displayName = getStoreDisplayName(store.name);
+        return displayName !== "Head Office";
+      })
+      .map(store => {
+        let distance = null;
+        if (deliveryInfo.coords && (store.latitude || store.lat) && (store.longitude || store.lng)) {
+          distance = calculateDistance(
+            deliveryInfo.coords.lat,
+            deliveryInfo.coords.lng,
+            store.latitude || store.lat,
+            store.longitude || store.lng
+          );
+        }
+        return {
+          ...store,
+          distance,
+          isInStock: stockStoreIds.includes(store.shopifyId)
+        };
+      });
+
+    setAvailableStoreCount(storesWithData.filter(s => s.isInStock).length);
 
     // Sort: Distance priority if coords exist, then stock status, then alphabetical
     storesWithData.sort((a, b) => {
@@ -2550,18 +2563,19 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               <div className="border border-gray-200 rounded-md p-4 space-y-2.5 bg-gray-50">
-                <div className="flex items-center gap-2">
-                  <Store size={20} className="text-black" strokeWidth={1.2} />
-                  <span className="text-base font-bold">
-                    {nearestStore ? (
+                {/* Always show the nearest retail store if one is found */}
+                {nearestStore && (
+                  <div className="flex items-center gap-2">
+                    <Store size={20} className="text-black" strokeWidth={1.2} />
+                    <span className="text-base font-bold">
                       <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
-                    ) : (
-                      <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
-                    )}
-                  </span>
-                </div>
+                    </span>
+                  </div>
+                )}
+
+                {/* Always show badge if in stock at retail OR head office */}
                 {nearestStore ? (
-                  nearestStore.isInStock ? (
+                  (nearestStore.isInStock || headOfficeInStock) ? (
                     <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
                       <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
                         <Check size={9} className="text-white" strokeWidth={4} />
@@ -2574,7 +2588,7 @@ export default function ProductPageClient({
                       <span className="text-12px font-bold uppercase tracking-tight">Ships to Store</span>
                     </div>
                   )
-                ) : availableStoreCount > 0 && (
+                ) : (availableStoreCount > 0 || headOfficeInStock) && (
                   <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
                     <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
                       <Check size={9} className="text-white" strokeWidth={4} />
