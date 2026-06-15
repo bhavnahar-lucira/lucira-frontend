@@ -21,7 +21,7 @@ import { Sheet as MobileSheet } from "react-modal-sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
-import { apiFetch, fetchSearchResults } from "@/lib/api";
+import { apiFetch, fetchSearchResults, fetchCollectionProducts } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
@@ -182,6 +182,8 @@ export default function MobileHeader({ menuData }) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [bestsellers, setBestsellers] = useState([]);
+  const [isLoadingBestsellers, setIsLoadingBestsellers] = useState(false);
   const searchInputRef = useRef(null);
 
   const MEGA_MENU = useMemo(() => transformMenuData(menuData || []), [menuData]);
@@ -193,6 +195,35 @@ export default function MobileHeader({ menuData }) {
   const [activeMenuPath, setActiveMenuPath] = useState([]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [menuDirection, setMenuDirection] = useState(1);
+
+  // Fetch Bestsellers
+  useEffect(() => {
+    const getBestsellers = async () => {
+      if (showSearch && searchQuery.length === 0 && bestsellers.length === 0) {
+        setIsLoadingBestsellers(true);
+        try {
+          const data = await fetchCollectionProducts({ handle: "bestseller", limit: 3 });
+          const formatPrice = (num) => {
+            if (!num && num !== 0) return "";
+            return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
+          };
+          const mapped = (data.products || []).map(p => ({
+            id: p.shopifyId || p.id,
+            title: p.title,
+            url: `/products/${p.handle}`,
+            image: p.image || p.variants?.[0]?.image || "",
+            price: formatPrice(p.price_breakup?.total || p.price),
+          }));
+          setBestsellers(mapped.slice(0, 3));
+        } catch (err) {
+          console.error("Error fetching bestsellers:", err);
+        } finally {
+          setIsLoadingBestsellers(false);
+        }
+      }
+    };
+    getBestsellers();
+  }, [showSearch, searchQuery, bestsellers.length]);
 
   //GTM begain
   const handleCartClick = () => {
@@ -315,7 +346,7 @@ export default function MobileHeader({ menuData }) {
           </div>
         </div>
 
-        <div className="grow overflow-y-auto py-4 pb-20 custom-scrollbar">
+        <div className="grow overflow-y-auto py-4 pb-20">
           {searchQuery.length > 0 ? (
             <div className="space-y-8">
               {isSearching ? (
@@ -405,28 +436,76 @@ export default function MobileHeader({ menuData }) {
               )}
             </div>
           ) : (
-            <div className="space-y-6">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Categories</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {MOCK_CATEGORIES.map((cat, i) => (
-                  <div
-                    key={i}
-                    onClick={() => handleResultClick(cat.href)}
-                    className="group flex flex-col items-center"
-                  >
-                    <div className="aspect-square w-full relative rounded-md overflow-hidden mb-2 bg-transparent border border-transparent hover:border-gray-100 transition-all">
-                      <Image
-                        src={cat.image}
-                        alt={cat.title}
-                        fill
-                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-400"
-                      />
+            <div className="space-y-8">
+              <div className="space-y-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Categories</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {MOCK_CATEGORIES.map((cat, i) => (
+                    <div
+                      key={i}
+                      onClick={() => handleResultClick(cat.href)}
+                      className="group flex flex-col items-center"
+                    >
+                      <div className="aspect-square w-full relative rounded-md overflow-hidden mb-2 bg-transparent border border-transparent hover:border-gray-100 transition-all">
+                        <Image
+                          src={cat.image}
+                          alt={cat.title}
+                          fill
+                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-400"
+                        />
+                      </div>
+                      <p className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight leading-tight">
+                        {cat.title}
+                      </p>
                     </div>
-                    <p className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight leading-tight">
-                      {cat.title}
-                    </p>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bestsellers Section */}
+              <div className="space-y-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Bestseller Products</h3>
+                {isLoadingBestsellers ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex gap-4 animate-pulse px-1">
+                        <div className="w-16 h-16 bg-gray-100 rounded-lg" />
+                        <div className="flex-1 space-y-2 py-2">
+                          <div className="h-3 bg-gray-100 rounded w-3/4" />
+                          <div className="h-2.5 bg-gray-100 rounded w-1/4" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : bestsellers.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {bestsellers.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => handleResultClick(item.url)}
+                        className="flex items-center gap-3 p-2 rounded-md active:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors"
+                      >
+                        <div className="w-16 h-16 relative rounded-md overflow-hidden shrink-0 bg-transparent">
+                          <Image
+                            src={item.image || "/images/product/1.jpg"}
+                            alt={item.title}
+                            fill
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                        <div className="grow min-w-0">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                            {item.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 font-bold mt-1">{item.price}</p>
+                        </div>
+                        <ChevronRight size={16} className="text-gray-300" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic px-1">No bestsellers available</p>
+                )}
               </div>
             </div>
           )}
