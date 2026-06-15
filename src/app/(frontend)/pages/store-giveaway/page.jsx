@@ -132,13 +132,26 @@ export default function StoreGiveawayPage() {
       {/* Background Image - Only for Step 1 */}
       {step === 1 && (
         <div className="absolute inset-0 -z-10 bg-[#1a1a1a]">
-          <Image
-            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/993f34f813a40595ba8ebfbe90f2ac87be0a7024.jpg"
-            alt="Giveaway background"
-            fill
-            className="object-cover opacity-70 brightness-90"
-            priority
-          />
+          {/* Mobile Image */}
+          <div className="block md:hidden absolute inset-0">
+            <Image
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/993f34f813a40595ba8ebfbe90f2ac87be0a7024.jpg"
+              alt="Giveaway background mobile"
+              fill
+              className="object-cover opacity-70 brightness-90"
+              priority
+            />
+          </div>
+          {/* Desktop Image */}
+          <div className="hidden md:block absolute inset-0">
+            <Image
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Store_Giveaway_web_banner_1.png"
+              alt="Giveaway background desktop"
+              fill
+              className="object-cover opacity-70 brightness-90"
+              priority
+            />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
         </div>
       )}
@@ -445,6 +458,17 @@ export default function StoreGiveawayPage() {
 
       {/* Bottom Spacer */}
       <div className="h-4" />
+
+      {/* Hide Zoho SalesIQ elements on this page */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        #zsiq_chat_wrap,
+        #zsiq_float_container,
+        #zsiq_chat_wrap_parent,
+        .zsiq_theme1,
+        iframe[name="zsiqchat"] {
+          display: none !important;
+        }
+      `}} />
     </div>
   );
 }

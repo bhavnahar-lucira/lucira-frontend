@@ -7,6 +7,8 @@ import Link from "next/link";
 
 export default function FloatingActionButton() {
   const pathname = usePathname();
+
+  if (pathname?.includes("store-giveaway")) return null;
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [tooltipShown, setTooltipShown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
