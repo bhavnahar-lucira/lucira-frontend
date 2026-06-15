@@ -21,10 +21,10 @@ import Image from "next/image";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 import { fetchOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
 
-const PRESETS = [2000, 5000, 10000, 19000];
+const PRESETS = [3000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
 
-const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top" }) => {
+const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top", onClick }) => {
   const isActive = currentAmount >= value;
   const left = ((value - min) / (max - min)) * 100;
   
@@ -43,7 +43,9 @@ const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = 
         {label}
       </div>
 
-      <div className={`relative flex items-center justify-center transition-all duration-300 rounded-full shadow-md border-2 pointer-events-auto ${
+      <div 
+        onClick={onClick}
+        className={`relative flex items-center justify-center transition-all duration-300 rounded-full shadow-md border-2 cursor-pointer pointer-events-auto ${
         isActive
           ? "w-6 h-6 bg-[#009245] border-white text-white z-20 scale-110"
           : "w-5.5 h-5.5 bg-white border-gray-100 text-gray-300 z-10 scale-100"
@@ -121,13 +123,13 @@ export default function MobileSavingCalculator() {
             Adjust your monthly premium
           </p>
 
-          <div className="bg-gray-50 rounded-2xl py-6 border border-gray-100">
+          <div className="bg-gray-50 rounded-2xl py-4 border border-gray-100">
             <p className="text-4xl font-bold text-gray-900">₹{formatINR(amount)}</p>
           </div>
         </div>
 {/* SLIDER */}
-<div className="space-y-6 px-1 pt-6 pb-4">
-  <div className="relative mb-14 h-12 flex items-center w-full">
+<div className="space-y-6 px-1 pt-6 pb-2">
+  <div className="relative mb-10 h-12 flex items-center w-full">
     {activeIntervals.map((inv, idx) => (
       <GiftMilestone 
         key={idx}
@@ -137,6 +139,10 @@ export default function MobileSavingCalculator() {
         min={2000} 
         max={19000} 
         labelPosition={idx % 2 === 0 ? "top" : "bottom"}
+        onClick={() => {
+          setAmount(inv.min);
+          setAmountError("");
+        }}
       />
     ))}
     <Slider
