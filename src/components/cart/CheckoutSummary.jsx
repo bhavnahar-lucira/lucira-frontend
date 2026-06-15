@@ -25,7 +25,8 @@ export default function CheckoutSummary({
   showContact = true,
   className = "",
   isSilverPendantClaimed = false,
-  onToggleSilverPendant = () => {}
+  onToggleSilverPendant = () => {},
+  showSilverPendantOffer = true
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
@@ -311,7 +312,7 @@ export default function CheckoutSummary({
         </div>
       )}
 
-      {isPaymentPage && diamondTotalForOffer >= 30000 && (
+      {showSilverPendantOffer && isPaymentPage && diamondTotalForOffer >= 30000 && (
         <div className="bg-[#FDF2F5] rounded-2xl border border-[#F1D1D9] shadow-[0_4px_20px_-4px_rgba(241,209,217,0.5)] p-4 flex gap-4 transition-all hover:shadow-[0_8px_30px_-4px_rgba(241,209,217,0.6)]">
           {/* Left Side: Image - Matching Order Summary Style */}
           <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">

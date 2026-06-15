@@ -1193,6 +1193,7 @@ export default function PaymentPage() {
                     showContact={false} 
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                    showSilverPendantOffer={false}
                   />
                 </div>
 
@@ -1282,7 +1283,7 @@ export default function PaymentPage() {
                 </div>
 
                 {/* 6. CONTACT US FOR ASSISTANCE */}
-                <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} />
+                <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} showSilverPendantOffer={false} />
               </div>
             )}
 
