@@ -20,6 +20,7 @@ import CartContact from "./CartContact";
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
+const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 
 export default function CartSummary({ onPlaceOrder }) {
   const dispatch = useDispatch();
@@ -45,11 +46,19 @@ export default function CartSummary({ onPlaceOrder }) {
   }, []);
 
   const otherItemsQuantity = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift))
+    .filter(item => 
+      item.variantId !== INSURANCE_VARIANT_ID && 
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      item.variantId !== SILVER_PENDANT_VARIANT_ID
+    )
     .reduce((acc, item) => acc + (Number(item.quantity || item.qty || 1)), 0);
 
   const diamondTotal = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift))
+    .filter(item => 
+      item.variantId !== INSURANCE_VARIANT_ID && 
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      item.variantId !== SILVER_PENDANT_VARIANT_ID
+    )
     .reduce((acc, item) => {
         const itemQty = Number(item.quantity || item.qty || 1);
         let charges = Number(item.diamondCharges || 0);
@@ -306,6 +315,41 @@ export default function CartSummary({ onPlaceOrder }) {
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
           <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>          
+          
+          {diamondTotal >= 30000 && (
+            <button 
+              onClick={() => {
+                if (!user) {
+                  const firstItem = items && items.length > 0 ? items[0] : null;
+                  const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+                  try {
+                    pushPromoClick({
+                      creative_name: "cart page login popup - offer banner",
+                      promo_id: firstItem?.sku || variantId || "",
+                      item_id: variantId || "",
+                      promo_position: "Cart Page",
+                    });
+                  } catch (e) {
+                    console.error('promo push failed', e);
+                  }
+                  openLogin();
+                  return;
+                }
+                onPlaceOrder();
+              }}
+              className="mb-4 rounded-lg overflow-hidden border border-[#E8DCCF] w-full block focus:outline-none cursor-pointer hover:opacity-95 transition-opacity"
+            >
+              <Image 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/pndant-banner.jpg?v=1781532869" 
+                alt="Free Silver Pendant Offer" 
+                width={500} 
+                height={150} 
+                className="w-full h-auto"
+                unoptimized
+              />
+            </button>
+          )}
+
           <GoldCoinOption />
           
           <Sheet open={isCouponSheetOpen} onOpenChange={setIsCouponSheetOpen}>
@@ -403,6 +447,40 @@ export default function CartSummary({ onPlaceOrder }) {
         <GoldCoinOption />
 
         <div className="space-y-3">
+          {diamondTotal >= 30000 && (
+            <button 
+              onClick={() => {
+                if (!user) {
+                  const firstItem = items && items.length > 0 ? items[0] : null;
+                  const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+                  try {
+                    pushPromoClick({
+                      creative_name: "cart page login popup - offer banner desktop",
+                      promo_id: firstItem?.sku || variantId || "",
+                      item_id: variantId || "",
+                      promo_position: "Cart Page",
+                    });
+                  } catch (e) {
+                    console.error('promo push failed', e);
+                  }
+                  openLogin();
+                  return;
+                }
+                onPlaceOrder();
+              }}
+              className="mb-4 rounded-lg overflow-hidden border border-[#E8DCCF] w-full block focus:outline-none cursor-pointer hover:opacity-95 transition-opacity"
+            >
+              <Image 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/pndant-banner.jpg?v=1781532869" 
+                alt="Free Silver Pendant Offer" 
+                width={500} 
+                height={150} 
+                className="w-full h-auto"
+                unoptimized
+              />
+            </button>
+          )}
+
           <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
             <DialogTrigger asChild>
               <button className="flex items-center justify-between w-full p-4 bg-white border border-accent/30 rounded-lg hover:border-accent transition-all group cursor-pointer">

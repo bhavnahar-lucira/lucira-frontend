@@ -16,13 +16,16 @@ import { getEstimatedDispatchDate } from "@/lib/utils";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
+const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 
 export default function CheckoutSummary({ 
   showItems = true, 
   showBreakdown = true, 
   showPoints = true, 
   showContact = true,
-  className = ""
+  className = "",
+  isSilverPendantClaimed = false,
+  onToggleSilverPendant = () => {}
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
@@ -32,10 +35,22 @@ export default function CheckoutSummary({
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [pendantPrice, setPendantPrice] = useState(10547);
 
   const isPaymentPage = pathname && (pathname === "/checkout/payment" || pathname.includes("/checkout/payment"));
 
   const isCheckoutPage = pathname && pathname.startsWith("/checkout") && pathname !== "/checkout/cart";
+
+  // Fetch Pendant Price
+  useEffect(() => {
+    if (isPaymentPage) {
+      apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`)
+        .then(data => {
+          if (data?.price) setPendantPrice(data.price);
+        })
+        .catch(err => console.error("Error fetching pendant price:", err));
+    }
+  }, [isPaymentPage]);
 
   // Dispatch Calculation
   const overallDispatchMessage = useMemo(() => {
@@ -45,17 +60,31 @@ export default function CheckoutSummary({
     return getEstimatedDispatchDate(!anyMadeToOrder, maxLeadTime);
   }, [items]);
 
-  // Check if cart contains Diamond Jewellery
-  const hasDiamondJewellery = (items || []).some(item => {
-    const type = (item.type || item.productType || item.product_type || "").toLowerCase();
-    const title = (item.title || "").toLowerCase();
-    const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
-    
-    return type.includes("diamond") || title.includes("diamond") || 
-           type.includes("solitaire") || title.includes("solitaire") ||
-           type.includes("gemstone") || title.includes("gemstone") ||
-           hasDiamondCharges;
-  });
+  // Calculate Diamond Total for Offers
+  const diamondTotalForOffer = useMemo(() => {
+    return (items || []).reduce((acc, item) => {
+      const type = (item.type || item.productType || item.product_type || "").toLowerCase();
+      const title = (item.title || "").toLowerCase();
+      const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
+      
+      const isDiamond = type.includes("diamond") || title.includes("diamond") || 
+                        type.includes("solitaire") || title.includes("solitaire") ||
+                        type.includes("gemstone") || title.includes("gemstone") ||
+                        hasDiamondCharges;
+
+      // Exclude Gold Coins, Silver Pendants (paid), Insurance
+      const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
+      const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
+      const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
+
+      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance) {
+        return acc + (Number(item.price || 0) * Number(item.quantity || 1));
+      }
+      return acc;
+    }, 0);
+  }, [items]);
+
+  const hasDiamondJewellery = diamondTotalForOffer > 0;
 
   const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
@@ -248,6 +277,17 @@ export default function CheckoutSummary({
               <span className="font-bold">₹ 0</span>
             </div>
           )}
+          {isSilverPendantClaimed && (
+            <div className="flex justify-between text-sm text-[#189351]">
+              <span className="font-medium">Free Silver Pendant</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-zinc-400 line-through font-figtree">
+                  ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+                <span className="font-bold uppercase tracking-wide">FREE</span>
+              </div>
+            </div>
+          )}
           {insuranceValue > 0 && (
             <div className="flex justify-between text-sm text-zinc-600">
               <span>Insurance</span>
@@ -267,6 +307,79 @@ export default function CheckoutSummary({
           <div className="border-t border-zinc-100 my-4 pt-4 flex justify-between items-center">
             <span className="text-base font-bold text-[#443360] uppercase tracking-wider">GRAND TOTAL</span>
             <span className="text-lg font-bold text-[#443360]">₹{grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          </div>
+        </div>
+      )}
+
+      {isPaymentPage && diamondTotalForOffer >= 30000 && (
+        <div className="bg-[#FDF2F5] rounded-2xl border border-[#F1D1D9] shadow-[0_4px_20px_-4px_rgba(241,209,217,0.5)] p-4 flex gap-4 transition-all hover:shadow-[0_8px_30px_-4px_rgba(241,209,217,0.6)]">
+          {/* Left Side: Image - Matching Order Summary Style */}
+          <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
+            <Image 
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/free-pendant.jpg?v=1781522812" 
+              width={80} 
+              height={80}
+              alt="Free Silver Pendant" 
+              className="w-full h-full object-contain mix-blend-multiply" 
+              unoptimized
+            />
+          </div>
+
+          {/* Right Side: Content & Action */}
+          <div className="flex-1 flex flex-col justify-between py-0.5">
+            <div className="space-y-1">
+              <h3 className="text-[13px] font-bold text-[#443360] uppercase tracking-tight">Free Silver Pendant</h3>
+              <p className="text-[11px] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your free silver pendant now.</p>
+            </div>
+            
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400 line-through font-figtree">
+                  ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+                <span className="text-sm font-bold text-[#189351] font-figtree">FREE</span>
+              </div>
+              
+              {isSilverPendantClaimed ? (
+                <button 
+                  onClick={() => {
+                    onToggleSilverPendant();
+                    toast.info("Free Silver Pendant removed from your order.");
+                  }}
+                  className="px-5 py-2 bg-zinc-100 hover:bg-red-50 hover:text-red-600 text-zinc-500 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  REMOVE
+                </button>
+              ) : (
+                <button 
+                  onClick={() => {
+                    onToggleSilverPendant();
+                    toast.success("Free Silver Pendant added to your order!", {
+                      icon: <Check className="w-4 h-4" />
+                    });
+                  }}
+                  className="group relative px-8 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-[0.15em] shadow-lg shadow-slate-200 transition-all active:scale-[0.98] overflow-hidden cursor-pointer"
+                >
+                  <span className="relative z-10">CLAIM</span>
+                  
+                  {/* Shine Effect */}
+                  <div className="absolute inset-0 z-0">
+                    <div className="absolute top-0 -left-[100%] h-full w-[50%] bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-25deg] animate-button-shine" />
+                  </div>
+
+                  <style jsx>{`
+                    @keyframes button-shine {
+                      0% { left: -100%; }
+                      20% { left: 100%; }
+                      100% { left: 100%; }
+                    }
+                    .animate-button-shine {
+                      animation: button-shine 3s infinite linear;
+                    }
+                  `}</style>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

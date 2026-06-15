@@ -307,6 +307,7 @@ export function OtpSpinAuth({
             setPendingRegister(false);
           }
         } else {
+          setIsMobileVerified(true);
           handleStepChange("register");
         }
       } else if (data.status === "LOGIN" || data.type === "success") {
