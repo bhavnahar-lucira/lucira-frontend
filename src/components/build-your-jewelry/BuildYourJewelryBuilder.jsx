@@ -760,7 +760,36 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     stage.position({ x: 0, y: 0 });
     stage.batchDraw();
 
-    const dataURL = stage.toDataURL({ pixelRatio: 2 });
+    // Add a temporary white background for JPEG export to ensure no black background
+    const background = new Konva.Rect({
+      x: 0,
+      y: 0,
+      width: stage.width(),
+      height: stage.height(),
+      fill: 'white',
+      listening: false
+    });
+    
+    // Find the first layer or the one containing elements
+    const layer = stage.getLayers()[0];
+    if (layer) {
+      layer.add(background);
+      background.moveToBottom();
+      layer.draw();
+    }
+
+    // Aggressively reduce resolution and quality to stay well under Shopify's character limits.
+    // 150x150 at 0.3 quality JPEG is roughly 3-5KB, which is ~4-7KB in Base64.
+    const dataURL = stage.toDataURL({ 
+      pixelRatio: 150 / stage.width(), 
+      mimeType: 'image/jpeg',
+      quality: 0.3
+    });
+
+    if (layer) {
+      background.destroy();
+      layer.draw();
+    }
 
     stage.scale({ x: oldScale, y: oldScale });
     stage.position(oldPos);
@@ -778,6 +807,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       const groupId = `BYJ-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; 
       const charmDetails = selectedCharms.map((c, i) => `${i + 1}. ${c.fullTitle}`).join(', ');
       
+      // Extremely minimized properties to stay under Shopify's payload and attribute limits.
       const properties = {
         'Product Type': categoryConfig.label,
         'Style': styleV.fullTitle,
@@ -786,12 +816,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         'Charms': charmDetails,
         '_byj_group_id': groupId,
         '_byj_preview': canvasPreview,
-        'byj_image': canvasPreview,
-        'Preview Image': canvasPreview,
-        '_byj_image': canvasPreview,
-        '_byj_style_img': styleV.img,
-        '_byj_style_price': styleV.price,
-        '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ title: c.fullTitle, price: c.price, qty: c.qty, img: c.img, sku: c.sku })))
+        '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ qty: c.qty, sku: c.sku })))
       };
 
       const mainItem = {

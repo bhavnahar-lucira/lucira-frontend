@@ -119,7 +119,7 @@ export default function PopularSearches() {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  if (pathname === "/pages/store-giveaway") return null;
+  if (pathname === "/pages/store-giveaway" || pathname === "/build-your-jewelry") return null;
 
   return (
     <div className="w-full bg-white pb-12 lg:pb-16 lg:pt-4 pt-2">

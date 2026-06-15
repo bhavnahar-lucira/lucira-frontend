@@ -41,9 +41,26 @@ const mapShopifyCart = (cart, backendCart = null) => {
   
   const items = cart.lines?.edges?.map(({ node }) => {
     const variantId = node.merchandise.id;
+    
+    // Extract attributes from Shopify CartLine
+    const shopifyAttributes = node.attributes || [];
+    const shopifyProperties = shopifyAttributes.reduce((acc, attr) => ({
+      ...acc,
+      [attr.key]: attr.value
+    }), {});
+
+    const shopifyGroupId = shopifyProperties['_byj_group_id'];
+
     // Find matching item in backend cart to restore custom dynamic attributes
+    // If it's a BYJ item, we MUST match by group ID to distinguish multiple custom items with the same base variant
     const backendItem = backendCart?.items?.find(i => {
       if (!i.variantId) return false;
+      
+      const bGroupId = i.properties?.['_byj_group_id'];
+      if (shopifyGroupId && bGroupId) {
+        return shopifyGroupId === bGroupId;
+      }
+
       const bVarId = String(i.variantId).toLowerCase();
       const sVarId = String(variantId).toLowerCase();
       return bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
@@ -51,16 +68,6 @@ const mapShopifyCart = (cart, backendCart = null) => {
 
       // Extract attributes from Shopify selectedOptions as fallback
       const shopifyOptions = node.merchandise.selectedOptions || [];
-      const shopifyColor = shopifyOptions.find(o => o.name.toLowerCase().includes("color") || o.name.toLowerCase().includes("metal"))?.value;
-      const shopifySize = shopifyOptions.find(o => o.name.toLowerCase() === "size" || o.name.toLowerCase().includes("ring"))?.value;
-      const parsedTitle = node.merchandise.title !== "Default Title" ? node.merchandise.title : "";
-
-      // Extract attributes from Shopify CartLine
-      const shopifyAttributes = node.attributes || [];
-      const shopifyProperties = shopifyAttributes.reduce((acc, attr) => ({
-        ...acc,
-        [attr.key]: attr.value
-      }), {});
 
       // Try to intelligently parse color/karat if Shopify option just returned "14KT Rose Gold"
       let fallbackKarat = null;
@@ -386,17 +393,14 @@ export const addToCart = createAsyncThunk(
     }
 
     // After adding to cart, check if we have a BYJ image to sync as a cart attribute
-    const byjProduct = productsToAdd.find(p => p.properties?.['byj_image'] || p.properties?.['_byj_preview']);
+    const byjProduct = productsToAdd.find(p => p.properties?.['_byj_preview']);
     if (byjProduct && shopifyCartData?.id) {
-       const img = byjProduct.properties['byj_image'] || byjProduct.properties['_byj_preview'];
-       if (img) {
+       const img = byjProduct.properties['_byj_preview'];
+       if (img && img.length < 100000) { // Safety check: Shopify attributes have limits
          dispatch(updateCartAttributes({
            attributes: [
              { key: "byj_image", value: img },
-             { key: "custom.byj_image", value: img },
-             { key: "metafield:custom.byj_image", value: img },
-             { key: "_byj_image", value: img },
-             { key: "Preview Image", value: img }
+             { key: "custom.byj_image", value: img }
            ]
          }));
        }

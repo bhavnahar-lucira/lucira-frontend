@@ -115,7 +115,7 @@ export default function CartItem({ item, onAuthRequired }) {
   const statusLabel = (isInStock && !isBYJ) ? "In Stock" : "Made to Order";
   const statusClass = (isInStock && !isBYJ) ? "text-green-500" : "text-primary";
 
-  const displayImage = currentVariant?.image || item.image;
+  const displayImage = item.properties?.['_byj_preview'] || currentVariant?.image || item.image;
   const isShopifyImage = displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"));
 
   const handleRemove = async () => {
@@ -149,7 +149,7 @@ export default function CartItem({ item, onAuthRequired }) {
         price: String(item.price || 0),
         offerPrice: String(item.comparePrice || item.price || 0),
         quantity: String(item.quantity || 1),
-        thumbnail_image: item.image
+        thumbnail_image: displayImage
       });
 
       // If it's a BYJ item, we should remove all linked items too
@@ -211,7 +211,7 @@ export default function CartItem({ item, onAuthRequired }) {
           productHandle: item.handle || "",
           title: item.title,
           sku: item.sku || "",
-          image: item.image || "",
+          image: displayImage || "",
           price: item.price,
           comparePrice: item.comparePrice || "",
           reviews: item.reviews || null,
@@ -248,7 +248,7 @@ export default function CartItem({ item, onAuthRequired }) {
         price: item.price
       };
 
-      const commonTrackingData = getStandardWishlistPayload(mockProduct, mockVariant, currentOrigin, item.image);
+      const commonTrackingData = getStandardWishlistPayload(mockProduct, mockVariant, currentOrigin, displayImage);
       pushAddToWishlist(commonTrackingData);
 
       await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();

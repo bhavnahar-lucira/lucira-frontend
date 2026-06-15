@@ -193,8 +193,8 @@ export default function CheckoutSummary({
                   <div className="flex gap-4">
                     <div className="w-20 h-20 bg-zinc-50 rounded-md border border-zinc-100 p-1 shrink-0 block">
                       <Image
-                        loader={(item.image && (String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com"))) ? shopifyLoader : undefined}
-                        src={item.image || "/images/product/1.jpg"}
+                        loader={(displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"))) ? shopifyLoader : undefined}
+                        src={displayImage || "/images/product/1.jpg"}
                         alt={item.title}
                         width={80}
                         height={80}
