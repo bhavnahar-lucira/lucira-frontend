@@ -336,9 +336,17 @@ export default function MainHeader() {
         {/* Right Icons */}
         <div className="flex items-center justify-end lg:gap-3 xl:gap-6 text-sm">
 
+          <Link href="/schemes" prefetch={false} className="hidden lg:flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shrink-0">
+            <img 
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257664.png?v=1781505570" 
+              alt="9+1 Scheme" 
+              className="h-10 w-auto object-contain"
+            />
+          </Link>
+
            <Link href="/pages/store-locator" prefetch={false} className="hidden lg:flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black">
             <StoreIcon />
-            <span>Find a Store</span>
+            {/* <span>Find a Store</span> */}
           </Link>
 
           {user ? (
