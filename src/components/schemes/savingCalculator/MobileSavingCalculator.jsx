@@ -123,13 +123,13 @@ export default function MobileSavingCalculator() {
             Adjust your monthly premium
           </p>
 
-          <div className="bg-gray-50 rounded-2xl py-6 border border-gray-100">
+          <div className="bg-gray-50 rounded-2xl py-4 border border-gray-100">
             <p className="text-4xl font-bold text-gray-900">₹{formatINR(amount)}</p>
           </div>
         </div>
 {/* SLIDER */}
-<div className="space-y-6 px-1 pt-6 pb-4">
-  <div className="relative mb-14 h-12 flex items-center w-full">
+<div className="space-y-6 px-1 pt-6 pb-2">
+  <div className="relative mb-10 h-12 flex items-center w-full">
     {activeIntervals.map((inv, idx) => (
       <GiftMilestone 
         key={idx}

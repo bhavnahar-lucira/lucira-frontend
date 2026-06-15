@@ -125,7 +125,7 @@ export default function MobileSavingCalculator() {
             Adjust your monthly premium
           </p>
 
-          <div className="bg-gray-50 rounded-2xl py-6 border border-gray-100">
+          <div className="bg-gray-50 rounded-2xl py-4 border border-gray-100">
             <p className="text-4xl font-bold text-gray-900">
               ₹{formatINR(amount)}
             </p>
