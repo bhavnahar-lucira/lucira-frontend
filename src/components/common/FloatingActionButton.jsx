@@ -191,8 +191,6 @@ export default function FloatingActionButton() {
   const isProductPage = pathname.startsWith('/products');
   const isCollectionPage = pathname.startsWith('/collections');
 
-  if (pathname === "/pages/store-giveaway") return null;
-
   return (
     <div className={`fixed 
       ${isProductPage ? 'bottom-22 md:bottom-22' : isCollectionPage ? 'bottom-16 md:bottom-10' : 'bottom-10'} 
