@@ -21,7 +21,7 @@ const SkeletonCard = () => (
   </div>
 );
 
-export default function CollectionSlider ({ products = [], loading = false, collectionHandle }) {
+export default function CollectionSlider ({ products = [], loading = false, collectionHandle, priorityCount = 0 }) {
   const displayProducts = products;  const id = useId().replace(/:/g, "");
   const isDesktop = useMediaQuery("(min-width: 1025px)");
   const isTablet = useMediaQuery("(min-width: 768px)");
@@ -86,6 +86,7 @@ export default function CollectionSlider ({ products = [], loading = false, coll
                 product={product} 
                 index={idx + 1} 
                 collectionHandle={collectionHandle}
+                priority={idx < priorityCount}
               />
             </SwiperSlide>
           ))}

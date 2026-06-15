@@ -4,6 +4,7 @@ import { useCart } from "@/hooks/useCart";
 import { Loader2, Check } from "lucide-react";
 import { useState } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const INSURANCE_PRICE = 1;
@@ -17,7 +18,7 @@ export default function InsuranceOption() {
 
   // Calculate total quantity of other items
   const otherItemsQuantity = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/GOLDCOIN_100MG" && item.variantId !== "gid://shopify/ProductVariant/47753346973914")
+    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/47661824082138")
     .reduce((acc, item) => acc + (item.quantity || 1), 0);
 
   const handleAdd = async () => {
@@ -55,13 +56,15 @@ export default function InsuranceOption() {
     <div className="bg-white border border-accent/30 p-4 rounded-lg flex items-center gap-4 flex-wrap xl:flex-nowrap">
       <div className="relative size-24 shrink-0 rounded-xl overflow-hidden border border-zinc-100 w-full xl:w-24">
         <Image 
+          loader={shopifyLoader}
           src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/story-ring.jpg" 
           alt="Insurance" 
           fill 
+          sizes="(max-width: 768px) 100vw, 96px"
           className="object-cover"
         />
         <div className="absolute top-1 left-1 bg-white/90 backdrop-blur-sm rounded-md p-1 border border-zinc-100">
-          <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/small-logo.svg" alt="Lucira" width={16} height={16} />
+          <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/small-logo.svg" alt="Lucira" width={16} height={16} />
         </div>
       </div>
 

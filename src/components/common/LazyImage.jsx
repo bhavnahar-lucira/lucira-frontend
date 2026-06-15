@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 
 const LazyImage = ({ src, alt, className, fill, width, height, priority, sizes, ...props }) => {
   const [loaded, setLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const containerRef = useRef(null);
+
+  const isShopify = String(src).includes("cdn.shopify.com") || String(src).includes("myshopify.com");
 
   useEffect(() => {
     // If priority is set, load immediately
@@ -65,8 +68,8 @@ const LazyImage = ({ src, alt, className, fill, width, height, priority, sizes, 
           height={height}
           priority={priority}
           sizes={sizes}
+          loader={isShopify ? shopifyLoader : undefined}
           onLoad={() => setLoaded(true)}
-          unoptimized={String(src).includes("cdn.shopify.com") || String(src).includes("myshopify.com")}
           className={`${className} transition-opacity duration-500 ${
             loaded ? "opacity-100" : "opacity-0"
           }`}

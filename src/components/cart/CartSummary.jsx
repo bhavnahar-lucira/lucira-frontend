@@ -31,12 +31,15 @@ export default function CartSummary({ onPlaceOrder }) {
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
-  const [goldCoinThreshold, setGoldCoinThreshold] = useState(20000);
+  const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: true, threshold: 20000 });
 
   useEffect(() => {
     apiFetch("/api/settings/gold-coin")
       .then(data => {
-        if (data.threshold) setGoldCoinThreshold(Number(data.threshold) || 20000);
+        setGoldCoinConfig({
+          enabled: data.enabled ?? false,
+          threshold: Number(data.threshold) || 20000
+        });
       })
       .catch(err => console.error("Error fetching gold coin threshold:", err));
   }, []);
@@ -86,7 +89,7 @@ export default function CartSummary({ onPlaceOrder }) {
         return acc;
     }, 0);
 
-  const eligibleGoldCoins = Math.max(0, Math.floor(diamondTotal / goldCoinThreshold));
+  const eligibleGoldCoins = Math.max(0, Math.floor(diamondTotal / goldCoinConfig.threshold));
 
   const insuranceItem = items.find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
@@ -111,7 +114,9 @@ export default function CartSummary({ onPlaceOrder }) {
     // Sync Gold Coin
     if (goldCoinItem && goldCoinItem.isFreeGift) {
       const currentCoinQty = Number(goldCoinItem.quantity || goldCoinItem.qty || 0);
-      if (eligibleGoldCoins <= 0) {
+      
+      // Remove if promotion is disabled OR if eligibility threshold not met
+      if (!goldCoinConfig.enabled || eligibleGoldCoins <= 0) {
         removeFromCart(goldCoinItem.lineId || GOLDCOIN_VARIANT_ID);
       } else if (currentCoinQty !== eligibleGoldCoins) {
         updateCartItem({
@@ -121,7 +126,7 @@ export default function CartSummary({ onPlaceOrder }) {
         });
       }
     }
-  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart]);
+  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled]);
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 

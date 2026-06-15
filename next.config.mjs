@@ -4,7 +4,7 @@ const nextConfig = {
   reactCompiler: true,
   compress: true,
   images: {
-    unoptimized: true,
+    unoptimized: false,
     formats: ['image/webp', 'image/avif'],
     remotePatterns: [
       {

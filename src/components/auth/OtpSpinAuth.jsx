@@ -10,6 +10,8 @@ import {
   verifyOtpApi,
   registerCustomer,
   checkCustomerApi,
+  fetchOrnaverseCustomer,
+  createOrnaverseCustomer,
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
@@ -98,6 +100,9 @@ export function OtpSpinAuth({
   const [pendingRegister, setPendingRegister] = useState(false);
   const [isMobileVerified, setIsMobileVerified] = useState(false);
 
+  const isSchemeFlow = pathname?.startsWith("/schemes") || 
+                       (typeof window !== "undefined" && localStorage.getItem("auth_redirect_path")?.startsWith("/schemes"));
+
   const otpRefs = [useRef(), useRef(), useRef(), useRef()];
   const mobileRef = useRef();
   const firstNameRef = useRef();
@@ -126,7 +131,8 @@ export function OtpSpinAuth({
     }
   }, [step]);
 
-  const loginSuccess = async (data, isSignup = false, skipRedirect = false) => {
+
+  const loginSuccess = async (data, isSignup = false, skipRedirect = false, ornaUser = null) => {
     // 1. Identify where we need to go
     const reduxPath = authRedirectPath;
     const localPath = typeof window !== "undefined" ? localStorage.getItem("auth_redirect_path") : null;
@@ -141,8 +147,10 @@ export function OtpSpinAuth({
       target = refPath || reduxPath || localPath || pathname || "/";
     }
 
-    console.log(`[LoginSuccess] Target: ${target}. isSignup: ${isSignup}`);
-    
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_redirect_path"); // Clean up
+    }
+
     const user = data.user || data.customer;
     const userId = user?.id;
 
@@ -170,6 +178,7 @@ export function OtpSpinAuth({
           email: user?.email,
           first_name: user?.first_name,
           last_name: user?.last_name,
+          party_id: ornaUser?.party_id || null,
           name:
             user?.first_name && user?.last_name
               ? `${user.first_name} ${user.last_name}`
@@ -206,11 +215,6 @@ export function OtpSpinAuth({
           onSuccess(target);
         } else {
           router.push(target);
-        }
-
-        // Clean up intent tracking AFTER triggering navigation
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("auth_redirect_path");
         }
 
         // Hard fallback for checkout flow
@@ -252,19 +256,42 @@ export function OtpSpinAuth({
       const data = await verifyOtpApi(mobile, otpValue, sessionId);
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         if (hideRegisterLink) {
-           // Auto register with mobile number (Cart Flow)
-           try {
-             const regData = await registerCustomer({ mobile, sessionId });
-             if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-                await loginSuccess(regData, true);
-             } else {
-               toast.error("Auto-registration failed. Please contact support.");
-             }
-           } catch (regErr) {
-             toast.error(regErr.message || "Auto-registration failed");
-           }
+          // Auto register with mobile number (Cart Flow)
+          try {
+            const regData = await registerCustomer({ mobile, sessionId });
+            if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+              await loginSuccess(regData, true);
+            } else {
+              toast.error("Auto-registration failed. Please contact support.");
+            }
+          } catch (regErr) {
+            toast.error(regErr.message || "Auto-registration failed");
+          }
         } else if (pendingRegister) {
+          setIsMobileVerified(true);
           // Verification success, now complete the pending registration
+          
+          // 🔍 Ornaverse: Create customer during registration (ONLY during Scheme flow)
+          let ornaUser = null;
+          if (isSchemeFlow) {
+            try {
+              const checkOrna = await fetchOrnaverseCustomer(mobile);
+              ornaUser = checkOrna?.Entities?.[0];
+
+              if (!ornaUser?.party_id) {
+                const createOrna = await createOrnaverseCustomer({
+                  first_name: firstName,
+                  last_name: lastName,
+                  phone: mobile,
+                  email: email,
+                });
+                ornaUser = { party_id: createOrna?.EntityId };
+              }
+            } catch (error) {
+              console.error("[Ornaverse] Registration link error:", error);
+            }
+          }
+
           const regData = await registerCustomer({
             firstName,
             lastName,
@@ -274,17 +301,27 @@ export function OtpSpinAuth({
             wonPrize: wonPrize?.value,
             prizeLabel: wonPrize?.label,
           });
+
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-            await loginSuccess(regData, true);
+            await loginSuccess(regData, true, false, ornaUser);
             handleStepChange("success");
             setPendingRegister(false);
           }
         } else {
-          setIsMobileVerified(true);
           handleStepChange("register");
         }
       } else if (data.status === "LOGIN" || data.type === "success") {
-        await loginSuccess(data);
+        // 🔍 Ornaverse: Check customer (ONLY during Scheme flow)
+        let ornaUser = null;
+        if (isSchemeFlow) {
+          try {
+            const ornaData = await fetchOrnaverseCustomer(mobile);
+            ornaUser = ornaData?.Entities?.[0];
+          } catch (error) {
+            console.error("[Ornaverse] Fetch error:", error);
+          }
+        }
+        await loginSuccess(data, false, false, ornaUser);
       }
     } catch (err) {
       toast.error(err.message || "Invalid OTP");
@@ -389,6 +426,28 @@ export function OtpSpinAuth({
       if (isMobileVerified) {
         try {
           setLoading(true);
+
+          // 🔍 Ornaverse: Create customer during registration (ONLY during Scheme flow)
+          let ornaUser = null;
+          if (isSchemeFlow) {
+            try {
+              const checkOrna = await fetchOrnaverseCustomer(mobile);
+              ornaUser = checkOrna?.Entities?.[0];
+
+              if (!ornaUser?.party_id) {
+                const createOrna = await createOrnaverseCustomer({
+                  first_name: firstName,
+                  last_name: lastName,
+                  phone: mobile,
+                  email: email,
+                });
+                ornaUser = { party_id: createOrna?.EntityId };
+              }
+            } catch (error) {
+              console.error("[Ornaverse] Registration link error:", error);
+            }
+          }
+
           const regData = await registerCustomer({
             firstName,
             lastName,
@@ -399,7 +458,7 @@ export function OtpSpinAuth({
             prizeLabel: prize?.label,
           });
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-            loginSuccess(regData, true);
+            await loginSuccess(regData, true, false, ornaUser);
             handleStepChange("success");
             setPendingRegister(false);
           }

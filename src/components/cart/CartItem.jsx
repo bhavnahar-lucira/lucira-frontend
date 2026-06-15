@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { useDispatch, useSelector } from "react-redux";
 import { removeFromCart, removeMultipleFromCart, updateCartItem } from "@/redux/features/cart/cartSlice";
 import { 
@@ -114,7 +115,8 @@ export default function CartItem({ item, onAuthRequired }) {
   const statusLabel = (isInStock && !isBYJ) ? "In Stock" : "Made to Order";
   const statusClass = (isInStock && !isBYJ) ? "text-green-500" : "text-primary";
 
-  const displayImage = isBYJ ? item.properties['_byj_preview'] : (currentVariant?.image || item.image);
+  const displayImage = currentVariant?.image || item.image;
+  const isShopifyImage = displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"));
 
   const handleRemove = async () => {
     setRemoving(true);
@@ -335,9 +337,10 @@ export default function CartItem({ item, onAuthRequired }) {
 
           <Link prefetch={false} 
             href={productLink}
-            className="aspect-square w-full shrink-0 overflow-hidden rounded-sm border-0 bg-transparent md:w-48 block transition-opacity hover:opacity-90"
+            className="aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
           >
             <Image
+              loader={isShopifyImage ? shopifyLoader : undefined}
               src={displayImage || "/images/product/1.jpg"}
               alt={item.title}
               width={200}
@@ -587,6 +590,7 @@ export default function CartItem({ item, onAuthRequired }) {
             <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-sm border border-zinc-100 bg-[#F9F9F9]">
               <Link prefetch={false} href={productLink} className="block h-full w-full p-2">
                 <Image
+                  loader={isShopifyImage ? shopifyLoader : undefined}
                   src={displayImage || "/images/product/1.jpg"}
                   alt={item.title}
                   width={150}

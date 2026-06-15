@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { usePathname } from "next/navigation";
@@ -192,11 +193,11 @@ export default function CheckoutSummary({
                   <div className="flex gap-4">
                     <div className="w-20 h-20 bg-zinc-50 rounded-md border border-zinc-100 p-1 shrink-0 block">
                       <Image
-                        src={displayImage || "/images/product/1.jpg"}
+                        loader={(item.image && (String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com"))) ? shopifyLoader : undefined}
+                        src={item.image || "/images/product/1.jpg"}
                         alt={item.title}
                         width={80}
                         height={80}
-                        unoptimized={String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com") || String(displayImage).startsWith("data:")}
                         className="w-full h-full object-contain mix-blend-multiply"
                       />
                     </div>

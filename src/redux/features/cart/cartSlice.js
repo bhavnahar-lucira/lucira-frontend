@@ -11,7 +11,7 @@ import {
 } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 // Helper to get or create Shopify Cart ID
 const getCartId = () => {

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import LazyImage from "../common/LazyImage";
+import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
 import { useState } from "react";
@@ -89,11 +90,12 @@ function CategoryCard({ cat }) {
       href={cat.href}
       className="group relative aspect-313/362 block overflow-hidden rounded-md bg-gray-50"
     >
-      <LazyImage 
+      <Image 
+        loader={shopifyLoader}
         src={cat.image} 
         alt={cat.name} 
         fill
-        sizes="(max-width: 1024px) 50vw, 25vw"
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         className="object-cover transition-transform duration-700 group-hover:scale-110"
       />
       <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />

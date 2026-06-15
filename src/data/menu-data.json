@@ -7454,6 +7454,34 @@
                   "items": []
                 },
                 {
+                  "title": "For Father",
+                  "url": "https://www.lucirajewelry.com/collections/gifts-for-father",
+                  "resource": {
+                    "__typename": "Collection",
+                    "handle": "gifts-for-father",
+                    "productsCount": {
+                      "count": 45
+                    },
+                    "image": null,
+                    "metafields": {
+                      "nodes": [
+                        {
+                          "namespace": "custom",
+                          "key": "menu_links_image_icon",
+                          "value": "gid://shopify/MediaImage/42348977488090",
+                          "reference": {
+                            "image": {
+                              "url": "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/For_Father_2_circle.png?v=1781355905"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "items": []
+                },
+                
+                {
                   "title": "For Kids",
                   "url": "https://www.lucirajewelry.com/collections/gifts-for-kids",
                   "resource": {

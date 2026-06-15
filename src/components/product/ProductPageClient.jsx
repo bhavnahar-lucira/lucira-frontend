@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,6 +19,7 @@ import PriceSavingsDetails from "@/components/product/PriceSavingsDetails";
 import ProductAccordion from "@/components/product/ProductAccordion";
 import LuxuryMarquee from "@/components/product/LuxuryMarquee";
 import ProductStory from "@/components/product/ProductStory";
+const OnTheMoveStory = dynamic(() => import("@/components/product/OnTheMoveStory"), { suspense: true });
 import OurProcess from "@/components/product/OurProcess";
 import CategorySlider from "@/components/product/CategorySlider";
 import CustomerReviews from "@/components/product/CustomerReviews";
@@ -87,6 +89,7 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 import StyledByLucira from "../home/StyledByLucira";
+import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
 import { loadNectorReviews } from "@/lib/nector";
 
@@ -318,6 +321,28 @@ export default function ProductPageClient({
     average: product.reviews?.average || product.reviewStats?.average || 0,
     count: product.reviews?.count || product.reviewStats?.count || 0,
   });
+
+  const [matchedCollectionTag, setMatchedCollectionTag] = useState(null);
+
+  useEffect(() => {
+    const checkStyledCollections = async () => {
+      try {
+        const data = await apiFetch('/api/styled-videos-collection');
+        if (data.success && data.videos) {
+          // Get unique collection handles (Product Tags) from the dashboard
+          const dashboardTags = [...new Set(data.videos.map(v => v.collectionHandle).filter(Boolean))];
+          // Find if any of these tags are present in the current product's tags
+          const match = dashboardTags.find(tag => product.tags?.includes(tag));
+          if (match) {
+            setMatchedCollectionTag(match);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check styled collections:", err);
+      }
+    };
+    checkStyledCollections();
+  }, [product.tags]);
 
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: false, threshold: 20000, message: "" });
   useEffect(() => {
@@ -640,8 +665,8 @@ export default function ProductPageClient({
     const remainder = rawMonthly % 500;
     const monthly = rawMonthly - remainder;
 
-    // Use base URL with amount only as requested
-    const schemeUrl = `https://schemes.lucirajewelry.com/?amount=${monthly}`;
+    // Route to the in-app scheme page with the product-specific monthly amount.
+    const schemeUrl = `/schemes?amount=${monthly}`;
 
     return {
       monthly,
@@ -2535,7 +2560,21 @@ export default function ProductPageClient({
                     )}
                   </span>
                 </div>
-                {availableStoreCount > 0 && (
+                {nearestStore ? (
+                  nearestStore.isInStock ? (
+                    <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
+                      <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
+                        <Check size={9} className="text-white" strokeWidth={4} />
+                      </div>
+                      <span className="text-12px font-semibold tracking-tight">Design Available</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full w-fit border border-amber-100">
+                      <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                      <span className="text-12px font-bold uppercase tracking-tight">Ships to Store</span>
+                    </div>
+                  )
+                ) : availableStoreCount > 0 && (
                   <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
                     <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
                       <Check size={9} className="text-white" strokeWidth={4} />
@@ -2543,29 +2582,36 @@ export default function ProductPageClient({
                     <span className="text-12px font-semibold tracking-tight">Design Available</span>
                   </div>
                 )}
-                {availableStoreCount > 1 && (
-                  <p className="text-sm text-black">
-                    Also available in <button
-                      onClick={() => {
-                        setIsStoreDrawerOpen(true);
-                        pushToDataLayer({
-                          event: "promoClick",
-                          promoClick: {
-                            creative_name: "find nearest store cta pdp",
-                            promo_id: getNumericId(activeVariant?.id),
-                            promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
-                            promo_position: "Product Details Section",
-                            location_id: "pdp",
-                            product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                          }
-                        });
-                      }}
-                      className="underline underline-offset-2 font-bold"
-                    >
-                      {availableStoreCount - 1} other stores
-                    </button>
-                  </p>
-                )}
+                {(() => {
+                  if (!nearestStore) return null;
+                  const otherCount = nearestStore.isInStock ? availableStoreCount - 1 : availableStoreCount;
+                  if (otherCount <= 0) return null;
+
+                  return (
+                    <p className="text-sm text-black">
+                      {nearestStore.isInStock ? "Also available in " : "Available in "}
+                      <button
+                        onClick={() => {
+                          setIsStoreDrawerOpen(true);
+                          pushToDataLayer({
+                            event: "promoClick",
+                            promoClick: {
+                              creative_name: "find nearest store cta pdp",
+                              promo_id: getNumericId(activeVariant?.id),
+                              promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                              promo_position: "Product Details Section",
+                              location_id: "pdp",
+                              product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                            }
+                          });
+                        }}
+                        className="underline underline-offset-2 font-bold"
+                      >
+                        {otherCount} {otherCount === 1 ? "other store" : "other stores"}
+                      </button>
+                    </p>
+                  );
+                })()}
                 <Button
                   onClick={() => {
                     setIsStoreDrawerOpen(true);
@@ -2998,10 +3044,19 @@ export default function ProductPageClient({
         </div>
       </div>
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
-      <ProductStory description={product.description} />
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <StyledByLucira/>
-      </Suspense>
+        <OnTheMoveStory tags={product.tags} /> 
+      </Suspense>      
+      <ProductStory description={product.description} />
+      
+      {matchedCollectionTag ? (
+        <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
+      ) : (
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+          <StyledByLucira />
+        </Suspense>
+      )}
+
       <OurProcess />
       <div ref={reviewsRef}>
         <CustomerReviews

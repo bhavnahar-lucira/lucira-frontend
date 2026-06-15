@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { removeFromCart, removeMultipleFromCart } from "@/redux/features/cart/cartSlice";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 export default function CartPage() {
   const router = useRouter();

@@ -189,7 +189,7 @@ export function RegisterForm({ initialMobile = "" }) {
       const data = await verifyOtpApi(mobile, otpValue);
 
       if (data.status === "LOGIN" || data.type === "success") {
-        loginSuccess(data);
+        await loginSuccess(data);
         router.push("/admin");
       }
     } catch (err) {
@@ -227,7 +227,7 @@ export function RegisterForm({ initialMobile = "" }) {
         });
 
         if (data.status === "REGISTER_SUCCESS" || data.type === "success") {
-          loginSuccess(data);
+          await loginSuccess(data);
           setStep("success");
           setIsDrawerOpen(false);
         }
