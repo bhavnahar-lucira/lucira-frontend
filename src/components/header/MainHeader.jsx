@@ -261,10 +261,10 @@ export default function MainHeader() {
 
   return (
     <div className="bg-white relative">
-      <div className="container-main grid grid-cols-[1fr_2fr_1fr] items-center py-4 border-b border-[#f2f2f2]">
+      <div className="container-main flex items-center py-4 border-b border-[#f2f2f2]">
 
         {/* Logo */}
-        <div className="flex items-center">
+        <div className="flex items-center mr-8 lg:mr-16 shrink-0">
         <Link href="/" prefetch={false}>
           <Image
             src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
@@ -278,8 +278,8 @@ export default function MainHeader() {
       </div>
 
         {/* Search Input and Dropdown Wrapper */}
-        <div className={`flex justify-center relative ${showSearch ? "z-1001 overflow-visible" : "z-10"}`}>
-          <div className="relative w-full max-w-137.5">
+        <div className={`flex-1 max-w-137.5 relative ${showSearch ? "z-1001 overflow-visible" : "z-10"}`}>
+          <div className="relative w-full">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900 pointer-events-none z-30">
               <SearchIcon />
             </div>
@@ -334,7 +334,7 @@ export default function MainHeader() {
         </div>
 
         {/* Right Icons */}
-        <div className="flex items-center justify-end lg:gap-3 xl:gap-6 text-sm">
+        <div className="flex items-center justify-end ml-auto lg:gap-3 xl:gap-6 text-sm">
 
           <Link href="/schemes" prefetch={false} className="hidden lg:flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shrink-0">
             <img 
@@ -346,7 +346,7 @@ export default function MainHeader() {
 
            <Link href="/pages/store-locator" prefetch={false} className="hidden lg:flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black">
             <StoreIcon />
-            {/* <span>Find a Store</span> */}
+             <span>Find a Store</span> 
           </Link>
 
           {user ? (

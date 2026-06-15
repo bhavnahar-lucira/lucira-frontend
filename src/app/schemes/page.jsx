@@ -58,7 +58,7 @@ export default function Page() {
         {width > 1024 ? (
           <AspectRatio ratio={1920 / 420}>
             <Image
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/desktop-scheme.jpg?v=1781350957"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop_VOD_Banner_jpg.jpg?v=1781522210"
               alt="Savings Scheme Banner"
               fill
               priority
@@ -68,7 +68,7 @@ export default function Page() {
         ) : (
           <AspectRatio ratio={428 / 380}>
             <Image
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/mobile-scheme.jpg?v=1781350959"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mobile_Banner_VOD_jpg_061377a3-58c7-4571-808e-0e0f28dd0919.jpg?v=1781521955"
               alt="Savings Scheme Banner"
               fill
               priority
