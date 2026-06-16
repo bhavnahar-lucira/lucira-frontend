@@ -29,7 +29,7 @@ const PromotionalBanners = () => {
             <Link
               key={banner.id}
               href={banner.link}
-              className="relative block w-full overflow-hidden group"
+              className="relative block w-full overflow-hidden group rounded-md"
             >
               {/* Desktop Image */}
               <div className="hidden md:block">
