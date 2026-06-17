@@ -10,6 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
+import { apiFetch } from "@/lib/api";
 
 export default function MyOrdersPage() {
   const { accessToken } = useSelector((state) => state.user);
@@ -29,7 +30,7 @@ export default function MyOrdersPage() {
 
       try {
         setLoading(true);
-        
+
         // Hybrid Strategy: Try backend first, fallback to Storefront API
         let storefrontOrders = [];
         try {
@@ -38,20 +39,20 @@ export default function MyOrdersPage() {
             storefrontOrders = data.orders.map((order) => {
               const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
               const items = order.lineItems || [];
-              
+
               let displayProduct = order.product;
               let displayImage = order.image;
 
               if (items.length > 0) {
                 const sortedItems = [...items].sort((a, b) => {
-                  const isAInsurance = (a.variantId || a.variant?.id) === INSURANCE_VARIANT_ID || 
-                                       (a.title || "").toLowerCase().includes("insurance");
-                  const isBInsurance = (b.variantId || b.variant?.id) === INSURANCE_VARIANT_ID || 
-                                       (b.title || "").toLowerCase().includes("insurance");
-                  
+                  const isAInsurance = (a.variantId || a.variant?.id) === INSURANCE_VARIANT_ID ||
+                    (a.title || "").toLowerCase().includes("insurance");
+                  const isBInsurance = (b.variantId || b.variant?.id) === INSURANCE_VARIANT_ID ||
+                    (b.title || "").toLowerCase().includes("insurance");
+
                   if (isAInsurance && !isBInsurance) return 1;
                   if (!isAInsurance && isBInsurance) return -1;
-                  
+
                   const priceA = parseFloat(a.price?.amount || a.variant?.price?.amount || 0);
                   const priceB = parseFloat(b.price?.amount || b.variant?.price?.amount || 0);
                   return priceB - priceA;
@@ -60,25 +61,25 @@ export default function MyOrdersPage() {
                 displayImage = sortedItems[0]?.image || sortedItems[0]?.variant?.image?.url || displayImage;
               }
 
-              const fStatus = (order.fulfillmentStatus || "").toUpperCase();
+              const fStatus = (order.fulfillmentStatus || order.status || "").toUpperCase();
               return {
                 ...order,
                 id: order.id,
-                orderNumber: order.orderNumber.toString(),
-                date: new Date(order.processedAt).toLocaleDateString('en-IN', {
+                orderNumber: (order.orderNumber || order.order_number || "").toString(),
+                date: order.date || (order.processedAt || order.processed_at ? new Date(order.processedAt || order.processed_at).toLocaleDateString('en-IN', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
-                }),
-                status: (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' : 
-                        (fStatus === 'PARTIAL' || fStatus === 'IN_TRANSIT' || fStatus === 'IN_PROGRESS') ? 'In Transit' : 'Processing',
-                amount: new Intl.NumberFormat('en-IN', {
+                }) : "N/A"),
+                status: (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
+                  (fStatus === 'PARTIAL' || fStatus === 'IN_TRANSIT' || fStatus === 'IN_PROGRESS') ? 'In Transit' : 'Processing',
+                amount: order.amount || new Intl.NumberFormat('en-IN', {
                   style: 'currency',
-                  currency: order.totalPrice?.currencyCode || 'INR',
-                }).format(parseFloat(order.totalPrice?.amount || order.totalPrice || 0)),
+                  currency: order.totalPrice?.currencyCode || order.currency || 'INR',
+                }).format(parseFloat(order.totalPrice?.amount || order.total_price || order.totalPrice || 0)),
                 product: displayProduct || "Jewelry Item",
                 image: displayImage || "/images/product/1.jpg",
-                customerEmail: order.customerEmail || ""
+                customerEmail: order.customerEmail || order.customer?.email || ""
               };
             });
           } else {
@@ -86,7 +87,7 @@ export default function MyOrdersPage() {
           }
         } catch (backendErr) {
           console.warn("[MyOrdersPage] Backend orders fetch failed, falling back to Storefront API:", backendErr);
-          
+
           if (!accessToken.startsWith("simulated_")) {
             const data = await shopifyStorefrontFetch(CUSTOMER_ORDERS_QUERY, {
               customerAccessToken: accessToken,
@@ -96,14 +97,14 @@ export default function MyOrdersPage() {
             storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
               const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
               const items = node.lineItems?.edges?.map(e => e.node) || [];
-              
+
               // Sort items by price DESC, but keep non-insurance items as priority for "mainItem"
               const sortedItems = [...items].sort((a, b) => {
                 const isAInsurance = a.variant?.id === INSURANCE_VARIANT_ID;
                 const isBInsurance = b.variant?.id === INSURANCE_VARIANT_ID;
                 if (isAInsurance && !isBInsurance) return 1;
                 if (!isAInsurance && isBInsurance) return -1;
-                
+
                 const priceA = parseFloat(a.variant?.price?.amount || 0);
                 const priceB = parseFloat(b.variant?.price?.amount || 0);
                 return priceB - priceA;
@@ -120,8 +121,8 @@ export default function MyOrdersPage() {
                   month: 'long',
                   day: 'numeric'
                 }),
-                status: (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' : 
-                        fStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+                status: (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
+                  fStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
                 amount: new Intl.NumberFormat('en-IN', {
                   style: 'currency',
                   currency: node.totalPrice.currencyCode,
@@ -172,7 +173,7 @@ export default function MyOrdersPage() {
     } finally {
       setReturnLoading(null);
     }
-    };
+  };
 
   useEffect(() => {
     let result = orders;
@@ -258,7 +259,7 @@ export default function MyOrdersPage() {
       ) : null}
 
       {/* ── Order Cards ── */}
-      <div className="space-y-4 md:space-y-6">
+      <div className="space-y-6 md:space-y-6">
         {filteredOrders.map((order) => {
           const isDelivered = order.status === "Delivered";
           const isInTransit = order.status === "In Transit";
@@ -266,87 +267,80 @@ export default function MyOrdersPage() {
           return (
             <div
               key={order.id}
-              className="bg-white rounded-[1.75rem] md:rounded-[2rem] border border-zinc-100 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              className="bg-white rounded-[2.5rem] md:rounded-[2rem] border border-zinc-100 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 group"
             >
-              <div className="p-5 md:p-8 flex flex-col md:flex-row gap-5 md:gap-8 items-center">
+              <div className="p-5 md:p-8 flex flex-col md:flex-row gap-5 md:gap-10 md:items-center">
 
-                {/* Product image */}
-                <div className="size-24 md:size-32 bg-zinc-50 rounded-2xl md:rounded-3xl overflow-hidden shrink-0 border border-zinc-100 relative group">
-                  <Image
-                    src={order.image}
-                    alt={order.product}
-                    width={128}
-                    height={128}
-                    className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
-                  />
-                </div>
+                {/* Top Section: Image + Info Row on Mobile */}
+                <div className="flex flex-row gap-4 md:gap-10 flex-1 items-start md:items-center">
+                  {/* Product image - Left aligned on mobile */}
+                  <div className="size-24 md:size-36 bg-[#FBFBFB] rounded-2xl md:rounded-[2.25rem] overflow-hidden shrink-0 border border-zinc-50 relative flex items-center justify-center p-2 md:p-4">
+                    <Image
+                      src={order.image}
+                      alt={order.product}
+                      width={140}
+                      height={140}
+                      className="object-contain w-full h-full group-hover:scale-110 transition-transform duration-700 ease-out"
+                    />
+                  </div>
 
-                {/* Order info */}
-                <div className="flex-1 space-y-3 md:space-y-4 w-full text-center md:text-left">
+                  {/* Order info - Right of image on mobile */}
+                  <div className="flex-1 space-y-2 md:space-y-4 text-left">
 
-                  {/* Order # + Status badges */}
-                  <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 md:gap-3">
-                    <span className="font-figtree text-xs font-semibold text-primary uppercase tracking-[0.13em] px-3 py-1 bg-primary/5 rounded-full">
-                      #{order.orderNumber}
-                    </span>
-                    <span
-                      className={`font-figtree px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.1em] flex items-center gap-1.5 ${
-                        isDelivered
-                          ? "text-emerald-600 bg-emerald-50"
+                    {/* Order # + Status badges */}
+                    <div className="flex flex-wrap justify-start items-center gap-2">
+                      <span className="font-figtree text-[9px] md:text-[11px] font-bold text-zinc-400 bg-zinc-50/80 px-2.5 md:px-4 py-1 rounded-full uppercase tracking-[0.1em] border border-zinc-100/50">
+                        #{order.orderNumber}
+                      </span>
+                      <span
+                        className={`font-figtree px-2.5 md:px-4 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-[0.05em] flex items-center gap-1.5 border ${isDelivered
+                          ? "text-emerald-600 bg-emerald-50/40 border-emerald-100/60"
                           : isInTransit
-                          ? "text-blue-600 bg-blue-50"
-                          : "text-orange-600 bg-orange-50"
-                      }`}
-                    >
-                      {isDelivered ? (
-                        <CheckCircle2 size={11} />
-                      ) : isInTransit ? (
-                        <Truck size={11} />
-                      ) : (
-                        <Clock size={11} />
-                      )}
-                      {order.status}
-                    </span>
-                  </div>
+                            ? "text-blue-600 bg-blue-50/40 border-blue-100/60"
+                            : "text-orange-600 bg-orange-50/40 border-orange-100/60"
+                          }`}
+                      >
+                        <div className={`size-1 md:size-1.5 rounded-full ${isDelivered ? "bg-emerald-500" : isInTransit ? "bg-blue-500" : "bg-orange-500"
+                          } animate-pulse`} />
+                        {order.status}
+                      </span>
+                    </div>
 
-                  {/* Product name + date */}
-                  <div>
-                    <h4 className="font-figtree text-base md:text-xl font-bold text-zinc-900 leading-tight">
-                      {order.product}
-                    </h4>
-                    <p className="font-figtree text-xs md:text-sm text-zinc-500 font-medium mt-1">
-                      Ordered on {order.date}
-                    </p>
-                  </div>
+                    {/* Product name + date */}
+                    <div className="space-y-0.5 md:space-y-1.5">
+                      <h4 className="font-figtree text-sm md:text-xl font-bold text-zinc-900 leading-tight tracking-tight">
+                        {order.product}
+                      </h4>
+                      <p className="font-figtree text-[10px] md:text-sm text-zinc-400 font-medium">
+                        Ordered on {order.date}
+                      </p>
+                    </div>
 
-                  {/* Price */}
-                  <div>
-                    <p className="font-figtree text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">
-                      Price Paid
-                    </p>
-                    <p className="font-figtree text-lg md:text-xl font-bold text-primary">
-                      {order.amount}
-                    </p>
+                    {/* Price Section */}
+                    <div className="pt-1 md:pt-2">
+                      <p className="font-figtree text-[9px] md:text-[10px] font-bold text-zinc-300 uppercase tracking-[0.15em] mb-0.5 md:mb-1.5">
+                        Price Paid
+                      </p>
+                      <p className="font-figtree text-base md:text-2xl font-bold text-[#3F2A28] tracking-tight">
+                        {order.amount}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* CTA */}
-                <div className="flex flex-col gap-3 w-full md:w-auto shrink-0">
+                {/* CTA Buttons - Row on mobile, Column on desktop */}
+                <div className="flex flex-row md:flex-col gap-3 w-full md:w-64 shrink-0 pt-2 md:pt-0">
                   <button
-                    onClick={(e) => handleReturnClick(e, order)}
-                    disabled={returnLoading === order.id || order.status !== "Delivered"}
-                    className="font-figtree w-full md:px-8 py-3 md:py-3.5 border-2 border-primary text-primary text-xs text-center font-bold uppercase tracking-[0.15em] rounded-2xl hover:bg-primary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    type="button"
+                    title="Return/Exchange portal is currently under maintenance. Please contact support."
+                    className="font-figtree flex-1 md:w-full py-3 md:py-4 border-[1.5px] border-zinc-200 text-zinc-400 text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] cursor-not-allowed flex items-center justify-center gap-1.5 md:gap-2.5 transition-colors"
                   >
-                    {returnLoading === order.id ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <RefreshCcw size={14} />
-                    )}
-                    Return / Exchange
+                    <RefreshCcw size={13} className="opacity-40" />
+                    <span className="truncate">Return / Exchange</span>
                   </button>
                   <Link prefetch={false}
                     href={`/admin/orders/${order.id.split("/").pop()}`}
-                    className="font-figtree w-full md:px-8 py-3 md:py-3.5 bg-primary text-white text-xs text-center font-semibold uppercase tracking-[0.15em] rounded-2xl hover:opacity-90 transition-colors shadow-lg shadow-primary/20"
+                    className="font-figtree flex-1 md:w-full py-3 md:py-4 bg-[#5A413F] text-white text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] hover:bg-[#4A3533] transition-all duration-300 shadow-md md:shadow-[0_10px_20px_rgba(90,65,63,0.15)] active:scale-[0.98] flex items-center justify-center"
                   >
                     View Details
                   </Link>
