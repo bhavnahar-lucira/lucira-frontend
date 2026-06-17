@@ -8,10 +8,10 @@ const PromotionalBanners = () => {
   const banners = [
     {
       id: 1,
-      desktopSrc: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Father_27s-Day-Desktop-1_1.jpg?v=1781589362",
-      mobileSrc: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Father_27s-Day-Mobile-1_1.jpg?v=1781589667",
-      alt: "Father's Day Gifts",
-      link: "/collections/gifts-for-father", 
+      desktopSrc: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/9kt-Desktop-1.jpg?v=1781699464",
+      mobileSrc: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/9kt-Mobile-1.jpg?v=1781699463",
+      alt: "9kt Collection",
+      link: "/collections/9kt-collection", 
     },
     {
       id: 2,

@@ -100,7 +100,7 @@ export default async function Home() {
       <MobileCategorySlider />
       <HeroSliderImage initialData={bannersInitial} />
       <FeatureBar />
-      {/* <PromotionalBanners /> */}
+      <PromotionalBanners />
       <ExploreRange />
 
       <BestsellerSection initialData={bestsellersInitial} />
