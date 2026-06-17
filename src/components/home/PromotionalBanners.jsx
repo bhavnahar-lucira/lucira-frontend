@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import shopifyLoader from "@/utils/shopifyLoader";
 
 const PromotionalBanners = () => {
   const banners = [
@@ -28,26 +30,28 @@ const PromotionalBanners = () => {
             <Link
               key={banner.id}
               href={banner.link}
-              className="relative block w-full overflow-hidden group rounded-md"
+              className="relative block w-full overflow-hidden group rounded-md aspect-[343/236] md:aspect-[642/442]"
             >
               {/* Desktop Image */}
-              <div className="hidden md:block">
-                <img
+              <div className="hidden md:block relative w-full h-full">
+                <Image
+                  loader={shopifyLoader}
                   src={banner.desktopSrc}
                   alt={banner.alt}
-                  width={642}
-                  height={442}
-                  className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  sizes="(min-width: 768px) 50vw, 100vw"
                 />
               </div>
               {/* Mobile Image */}
-              <div className="block md:hidden">
-                <img
+              <div className="block md:hidden relative w-full h-full">
+                <Image
+                  loader={shopifyLoader}
                   src={banner.mobileSrc}
                   alt={banner.alt}
-                  width={343}
-                  height={236}
-                  className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  sizes="100vw"
                 />
               </div>
             </Link>
