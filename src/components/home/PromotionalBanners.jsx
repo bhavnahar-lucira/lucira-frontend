@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 const PromotionalBanners = () => {
@@ -33,24 +32,22 @@ const PromotionalBanners = () => {
             >
               {/* Desktop Image */}
               <div className="hidden md:block">
-                <Image
+                <img
                   src={banner.desktopSrc}
                   alt={banner.alt}
                   width={642}
                   height={442}
                   className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                  sizes="(min-width: 768px) 50vw, 100vw"
                 />
               </div>
               {/* Mobile Image */}
               <div className="block md:hidden">
-                <Image
+                <img
                   src={banner.mobileSrc}
                   alt={banner.alt}
                   width={343}
                   height={236}
                   className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                  sizes="100vw"
                 />
               </div>
             </Link>
