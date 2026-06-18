@@ -51,6 +51,14 @@ export default function Enroll() {
   const enrollment = useSelector((s) => s.user.user?.enrollment_draft);
   const mobile = customer?.mobile || customer?.phone;
 
+  /* ===================== AUTH PROTECTION ===================== */
+  useEffect(() => {
+    if (!accessToken && !customer) {
+      toast.info("Please login first", { toastId: "auth-redirect-toast" });
+      router.replace("/schemes");
+    }
+  }, [accessToken, customer, router]);
+
   const [profile, setProfile] = useState({});
 
   const nomineeNameRef = useRef(null);
