@@ -58,7 +58,7 @@ export default function Page() {
         {width > 1024 ? (
           <AspectRatio ratio={1920 / 420}>
             <Image
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/desktop-scheme.jpg?v=1781350957"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop_VOD_Banner_jpg.jpg?v=1781522210"
               alt="Savings Scheme Banner"
               fill
               priority
@@ -68,7 +68,7 @@ export default function Page() {
         ) : (
           <AspectRatio ratio={428 / 380}>
             <Image
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/mobile-scheme.jpg?v=1781350959"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mobile_Banner_VOD_jpg_061377a3-58c7-4571-808e-0e0f28dd0919.jpg?v=1781521955"
               alt="Savings Scheme Banner"
               fill
               priority
@@ -92,17 +92,16 @@ export default function Page() {
         </Suspense>
       </section>
 
-      <div className="w-full bg-white mt-8 md:mt-24 mb-20 md:mb-32">
+      <div className="w-full bg-white mt-8 md:mt-12 mb-20 md:mb-2">
         {/* How It Works Section */}
         <SchemeHowItWorks />
 
         {/* Benefits Section */}
         <section className="w-full max-w-7xl mx-auto px-4 md:px-6 py-12">
-          <div className="text-center mb-16 space-y-4">
-            <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-gray-900">
+          <div className="text-left lg:text-center mb-6 px-1 lg:px-0">
+            <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
               Why Choose Vault of Dreams?
             </h2>
-            <div className="w-24 h-1 bg-[#5a413f] mx-auto rounded-full"></div>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
@@ -148,14 +147,13 @@ export default function Page() {
         {/* FAQ Section */}
         <section className="w-full bg-[#fafafa] py-12 md:py-24">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center mb-8 md:mb-16">
-              <h2 className="text-[22px] md:text-[36px] tracking-wide font-bold uppercase text-gray-900">
+            <div className="text-left lg:text-center mb-16 px-1 lg:px-0">
+              <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
                 Frequently Asked Questions
               </h2>
-              <p className="text-gray-500 mt-4 max-w-[600px] mx-auto text-[14px] md:text-[16px] leading-relaxed">
+              <p className="text-black font-normal md:text-base text-sm leading-[1.4] tracking-normal align-middle">
                 Everything you need to know about the Vault of Dreams jewelry savings scheme.
               </p>
-              <div className="w-16 h-1 bg-gray-200 mx-auto mt-8 rounded-full"></div>
             </div>
 
             <motion.div
