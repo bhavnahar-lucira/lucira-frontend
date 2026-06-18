@@ -36,8 +36,9 @@ export function ProductCustomizerMobile({
     if (lowerMetal.includes("rose") && lowerMetal.includes("white")) {
       return "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)";
     }
-    if (metal.includes("White")) return "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)";
-    if (metal.includes("Rose")) return "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)";
+    if (lowerMetal.includes("white")) return "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)";
+    if (lowerMetal.includes("rose")) return "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)";
+    if (lowerMetal.includes("platinum")) return "linear-gradient(154.03deg, #DDDDDD 27.25%, #FFFFFF 47.58%, #DDDDDD 74.61%)";
     return "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)";
   };
 
