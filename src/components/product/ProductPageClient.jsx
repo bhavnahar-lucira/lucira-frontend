@@ -3048,10 +3048,13 @@ export default function ProductPageClient({
         </div>
       </div>
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <OnTheMoveStory tags={product.tags} /> 
-      </Suspense>      
-      <ProductStory description={product.description} />
+      {product.tags?.includes("Sports Collection") ? (
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+          <OnTheMoveStory tags={product.tags} />
+        </Suspense>
+      ) : (
+        <ProductStory description={product.description} />
+      )}
       
       {matchedCollectionTag ? (
         <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
