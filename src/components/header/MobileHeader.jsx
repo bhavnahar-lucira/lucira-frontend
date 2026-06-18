@@ -1101,13 +1101,15 @@ export default function MobileHeader({ menuData }) {
             </button>
           )}
 
-          <Link href="/schemes" prefetch={false} className="relative w-8 h-8 flex items-center justify-center shrink-0">
-            <img 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691" 
-              alt="Scheme" 
-              className="w-full h-full object-contain"
-            />
-          </Link>
+          {!isProductPage && (
+            <Link href="/schemes" prefetch={false} className="relative w-8 h-8 flex items-center justify-center shrink-0">
+              <img 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691" 
+                alt="Scheme" 
+                className="w-full h-full object-contain"
+              />
+            </Link>
+          )}
 
           {user ? (
             <Link href="/admin" prefetch={false} className="p-1">
