@@ -5,6 +5,7 @@ import { Search, X, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { fetchCollectionProducts } from "@/lib/api";
 
 const HighlightMatch = ({ text, query }) => {
   if (!query) return <span className="text-[#1A1A1A]">{text}</span>;
@@ -25,6 +26,9 @@ const HighlightMatch = ({ text, query }) => {
 };
 
 export default function SearchPopup({ onClose, searchQuery, searchResults, isSearching }) {
+  const [bestsellers, setBestsellers] = useState([]);
+  const [isLoadingBestsellers, setIsLoadingBestsellers] = useState(false);
+
   // Extract matched collections and products
   const productsOnly = searchResults.filter(item => !item.isCollection);
   
@@ -49,6 +53,35 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
     { title: "Solitaire Necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_necklace.jpg?v=1780382136", href: "/collections/solitaire-necklaces" },
   ];
 
+  // Fetch Bestsellers
+  useEffect(() => {
+    const getBestsellers = async () => {
+      if (searchQuery.length === 0 && bestsellers.length === 0) {
+        setIsLoadingBestsellers(true);
+        try {
+          const data = await fetchCollectionProducts({ handle: "bestseller", limit: 3 });
+          const formatPrice = (num) => {
+            if (!num && num !== 0) return "";
+            return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
+          };
+          const mapped = (data.products || []).map(p => ({
+            id: p.shopifyId || p.id,
+            title: p.title,
+            url: `/products/${p.handle}`,
+            image: p.image || p.variants?.[0]?.image || "",
+            price: formatPrice(p.price_breakup?.total || p.price),
+          }));
+          setBestsellers(mapped.slice(0, 3));
+        } catch (err) {
+          console.error("Error fetching bestsellers:", err);
+        } finally {
+          setIsLoadingBestsellers(false);
+        }
+      }
+    };
+    getBestsellers();
+  }, [searchQuery, bestsellers.length]);
+
   // Close on Escape
   useEffect(() => {
     const handleEsc = (e) => {
@@ -68,10 +101,110 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
     >
       <div className="p-5 md:p-8 overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-white hover:scrollbar-thumb-gray-400">
         <div className="animate-in fade-in duration-300">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8 md:gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-8 md:gap-10">
             
-            {/* Left Column: Initial Categories or Dynamic Collection Suggestions */}
+            {/* Left Column: Products (Shows when typing) */}
             <div className="md:pr-10 lg:border-r border-gray-100 flex flex-col">
+              <h3 className="text-sm md:text-base font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">
+                {searchQuery.length === 0 ? "Bestseller Products" : "Products"}
+              </h3>
+              
+              {searchQuery.length === 0 ? (
+                 isLoadingBestsellers ? (
+                    <div className="space-y-4 md:space-y-5">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="flex gap-4 animate-pulse">
+                          <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-sm" />
+                          <div className="flex-1 space-y-2 py-1">
+                            <div className="h-3 bg-gray-100 rounded w-3/4" />
+                            <div className="h-2.5 bg-gray-100 rounded w-1/4" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                 ) : bestsellers.length > 0 ? (
+                    <div className="space-y-4 md:space-y-5">
+                      {bestsellers.map((item) => (
+                        <Link 
+                          key={item.id} 
+                          href={item.url}
+                          prefetch={false}
+                          onClick={onClose}
+                          className="group flex gap-3 md:gap-4 items-center"
+                        >
+                          <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
+                            <Image 
+                              src={item.image || "/images/product/1.jpg"} 
+                              alt={item.title} 
+                              fill 
+                              unoptimized={String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com")}
+                              className="object-cover w-full h-full"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xs md:text-sm font-medium text-gray-800 truncate group-hover:text-primary transition-colors">
+                              {item.title}
+                            </h4>
+                            <p className="text-xs font-bold text-gray-900 mt-0.5">{item.price}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                 ) : (
+                    <div className="flex flex-col items-center justify-center h-37.5 md:h-50 text-gray-400">
+                        <Search strokeWidth={1} className="mb-3 opacity-20 w-7 h-7 md:w-8 md:h-8" />
+                        <p className="text-xs md:text-sm">No bestsellers available</p>
+                    </div>
+                 )
+              ) : isSearching ? (
+                <div className="space-y-4 md:space-y-5">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="flex gap-4 animate-pulse">
+                      <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-sm" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-3 bg-gray-100 rounded w-3/4" />
+                        <div className="h-2.5 bg-gray-100 rounded w-1/4" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : productsOnly.length > 0 ? (
+                <div className="space-y-4 md:space-y-5">
+                  {productsOnly.slice(0, 6).map((item) => (
+                    <Link 
+                      key={item.id} 
+                      href={item.url}
+                      prefetch={false}
+                      onClick={onClose}
+                      className="group flex gap-3 md:gap-4 items-center"
+                    >
+                      <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
+                        <Image 
+                          src={item.image || "/images/product/1.jpg"} 
+                          alt={item.title} 
+                          fill 
+                          unoptimized={String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com")}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs md:text-sm font-medium text-gray-800 truncate group-hover:text-primary transition-colors">
+                          <HighlightMatch text={item.title} query={searchQuery} />
+                        </h4>
+                        <p className="text-xs font-bold text-gray-900 mt-0.5">{item.price}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 md:py-10 text-center">
+                  <p className="text-gray-400 text-xs md:text-sm italic">No matching products found</p>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Initial Categories or Dynamic Collection Suggestions */}
+            <div>
               {searchQuery.length === 0 ? (
                 <>
                   <h3 className="text-xs md:text-sm font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">Categories</h3>
@@ -133,7 +266,7 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
               )}
 
               {searchQuery.length > 0 && (
-                <div className="mt-auto pt-6 border-t border-gray-50">
+                <div className="mt-8 pt-6 border-t border-gray-50">
                   <Link 
                     href={`/search?q=${encodeURIComponent(searchQuery)}`}
                     prefetch={false}
@@ -142,62 +275,6 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                   >
                     View All Results for "{searchQuery}"
                   </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Right Column: Products (Shows when typing) */}
-            <div>
-              <h3 className="text-sm md:text-base font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">Products</h3>
-              
-              {searchQuery.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center h-37.5 md:h-50 text-gray-400">
-                    <Search strokeWidth={1} className="mb-3 opacity-20 w-7 h-7 md:w-8 md:h-8" />
-                    <p className="text-xs md:text-sm">Type to see product results</p>
-                 </div>
-              ) : isSearching ? (
-                <div className="space-y-4 md:space-y-5">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="flex gap-4 animate-pulse">
-                      <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-sm" />
-                      <div className="flex-1 space-y-2 py-1">
-                        <div className="h-3 bg-gray-100 rounded w-3/4" />
-                        <div className="h-2.5 bg-gray-100 rounded w-1/4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : productsOnly.length > 0 ? (
-                <div className="space-y-4 md:space-y-5">
-                  {productsOnly.slice(0, 6).map((item) => (
-                    <Link 
-                      key={item.id} 
-                      href={item.url}
-                      prefetch={false}
-                      onClick={onClose}
-                      className="group flex gap-3 md:gap-4 items-center"
-                    >
-                      <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                        <Image 
-                          src={item.image || "/images/product/1.jpg"} 
-                          alt={item.title} 
-                          fill 
-                          unoptimized={String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com")}
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs md:text-sm font-medium text-gray-800 truncate group-hover:text-primary transition-colors">
-                          <HighlightMatch text={item.title} query={searchQuery} />
-                        </h4>
-                        <p className="text-xs font-bold text-gray-900 mt-0.5">{item.price}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-8 md:py-10 text-center">
-                  <p className="text-gray-400 text-xs md:text-sm italic">No matching products found</p>
                 </div>
               )}
             </div>

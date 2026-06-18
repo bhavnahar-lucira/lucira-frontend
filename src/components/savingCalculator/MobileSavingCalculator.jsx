@@ -21,10 +21,10 @@ import {
 import Image from "next/image";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 
-const PRESETS = [2000, 5000, 10000, 19000];
+const PRESETS = [3000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
 
-const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top" }) => {
+const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top", onClick }) => {
   const isActive = currentAmount >= value;
   const left = ((value - min) / (max - min)) * 100;
   
@@ -49,7 +49,9 @@ const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = 
           isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-white border-gray-200"
         }`} />
       </div>
-      <div className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 pointer-events-auto ${
+      <div 
+        onClick={onClick}
+        className={`relative w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 cursor-pointer pointer-events-auto ${
         isActive
           ? "bg-[#009245] border-[#009245] text-white scale-110"
           : "bg-white border-[#009245] text-[#009245] scale-100"
@@ -123,7 +125,7 @@ export default function MobileSavingCalculator() {
             Adjust your monthly premium
           </p>
 
-          <div className="bg-gray-50 rounded-2xl py-6 border border-gray-100">
+          <div className="bg-gray-50 rounded-2xl py-4 border border-gray-100">
             <p className="text-4xl font-bold text-gray-900">
               ₹{formatINR(amount)}
             </p>
@@ -142,6 +144,11 @@ export default function MobileSavingCalculator() {
                 min={2000} 
                 max={19000} 
                 labelPosition={idx % 2 === 0 ? "top" : "bottom"}
+                onClick={() => {
+                  setAmount(inv.min);
+                  setInputValue(String(inv.min));
+                  setAmountError("");
+                }}
               />
             ))}
             <Slider

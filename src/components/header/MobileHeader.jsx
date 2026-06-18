@@ -21,7 +21,7 @@ import { Sheet as MobileSheet } from "react-modal-sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
-import { apiFetch, fetchSearchResults } from "@/lib/api";
+import { apiFetch, fetchSearchResults, fetchCollectionProducts } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
@@ -123,6 +123,13 @@ const CartIcon = () => (
   </svg>
 );
 
+const StoreIcon = () => (
+  <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.8744 16.625V12.6667C11.8744 12.4567 11.791 12.2553 11.6426 12.1069C11.4941 11.9584 11.2927 11.875 11.0828 11.875H7.9161C7.70614 11.875 7.50477 11.9584 7.35631 12.1069C7.20784 12.2553 7.12443 12.4567 7.12443 12.6667V16.625M14.0705 8.16209C13.9055 8.00411 13.6858 7.91592 13.4574 7.91592C13.2289 7.91592 13.0093 8.00411 12.8442 8.16209C12.4761 8.51321 11.9869 8.7091 11.4782 8.7091C10.9695 8.7091 10.4803 8.51321 10.1122 8.16209C9.94719 8.00434 9.72771 7.9163 9.49943 7.9163C9.27116 7.9163 9.05168 8.00434 8.88668 8.16209C8.51852 8.51344 8.02917 8.70948 7.52027 8.70948C7.01136 8.70948 6.52201 8.51344 6.15385 8.16209C5.98882 8.00411 5.76917 7.91592 5.5407 7.91592C5.31224 7.91592 5.09259 8.00411 4.92756 8.16209C4.57198 8.50141 4.10286 8.69628 3.61151 8.70878C3.12017 8.72127 2.64175 8.55049 2.26938 8.22968C1.89702 7.90887 1.65734 7.46099 1.597 6.9732C1.53667 6.48542 1.66 5.99263 1.94298 5.59076L4.2301 2.27843C4.37522 2.06429 4.57059 1.88897 4.79913 1.7678C5.02767 1.64663 5.28242 1.5833 5.5411 1.58334H13.4578C13.7157 1.58324 13.9697 1.64616 14.1978 1.7666C14.4259 1.88705 14.6211 2.0614 14.7664 2.27447L17.0583 5.59314C17.3413 5.99532 17.4645 6.48848 17.4038 6.97652C17.3431 7.46456 17.1028 7.91252 16.7299 8.2331C16.3569 8.55368 15.8779 8.72392 15.3863 8.71065C14.8947 8.69737 14.4256 8.50154 14.0705 8.1613" stroke="black" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"></path>
+    <path d="M3.16602 8.66876V15.0417C3.16602 15.4616 3.33283 15.8643 3.62976 16.1613C3.9267 16.4582 4.32942 16.625 4.74935 16.625H14.2493C14.6693 16.625 15.072 16.4582 15.3689 16.1613C15.6659 15.8643 15.8327 15.4616 15.8327 15.0417V8.66876" stroke="black" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"></path>
+  </svg>
+);
+
 const UserIconCustom = () => (
   <svg width="20" height="20" viewBox="0 0 18 17" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M17.3474 16.2092C15.9328 13.7635 13.6651 12.0936 11.0379 11.4916C15.1859 9.79213 15.9387 4.23958 12.3929 1.49701C8.84712 -1.24556 3.66208 0.878761 3.05984 5.3208C2.7035 7.94905 4.16824 10.486 6.62255 11.4916C3.9987 12.091 1.72767 13.7635 0.312981 16.2092C0.190761 16.4429 0.367305 16.7212 0.630763 16.7102C0.742782 16.7055 0.845425 16.6464 0.905569 16.5517C2.57888 13.6564 5.54355 11.9275 8.83021 11.9275C12.1169 11.9275 15.0815 13.6564 16.7548 16.5517C16.816 16.6576 16.9289 16.7229 17.0511 16.723C17.1113 16.7232 17.1705 16.7072 17.2224 16.6768C17.3859 16.5821 17.4418 16.3729 17.3474 16.2092ZM3.69212 6.1043C3.69212 2.149 7.97386 -0.323059 11.3993 1.65459C14.8246 3.63224 14.8246 8.57637 11.3993 10.554C10.6182 11.005 9.73213 11.2424 8.83021 11.2424C5.9939 11.2391 3.69543 8.94062 3.69212 6.1043Z" fill="black" stroke="black" strokeWidth="0.5459"></path>
@@ -176,6 +183,8 @@ export default function MobileHeader({ menuData }) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [bestsellers, setBestsellers] = useState([]);
+  const [isLoadingBestsellers, setIsLoadingBestsellers] = useState(false);
   const searchInputRef = useRef(null);
 
   const MEGA_MENU = useMemo(() => transformMenuData(menuData || []), [menuData]);
@@ -199,6 +208,35 @@ export default function MobileHeader({ menuData }) {
   const [activeMenuPath, setActiveMenuPath] = useState([]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [menuDirection, setMenuDirection] = useState(1);
+
+  // Fetch Bestsellers
+  useEffect(() => {
+    const getBestsellers = async () => {
+      if (showSearch && searchQuery.length === 0 && bestsellers.length === 0) {
+        setIsLoadingBestsellers(true);
+        try {
+          const data = await fetchCollectionProducts({ handle: "bestseller", limit: 3 });
+          const formatPrice = (num) => {
+            if (!num && num !== 0) return "";
+            return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
+          };
+          const mapped = (data.products || []).map(p => ({
+            id: p.shopifyId || p.id,
+            title: p.title,
+            url: `/products/${p.handle}`,
+            image: p.image || p.variants?.[0]?.image || "",
+            price: formatPrice(p.price_breakup?.total || p.price),
+          }));
+          setBestsellers(mapped.slice(0, 3));
+        } catch (err) {
+          console.error("Error fetching bestsellers:", err);
+        } finally {
+          setIsLoadingBestsellers(false);
+        }
+      }
+    };
+    getBestsellers();
+  }, [showSearch, searchQuery, bestsellers.length]);
 
   //GTM begain
   const handleCartClick = () => {
@@ -330,7 +368,7 @@ export default function MobileHeader({ menuData }) {
           </div>
         </div>
 
-        <div className="grow overflow-y-auto py-4 pb-20 custom-scrollbar">
+        <div className="grow overflow-y-auto py-4 pb-20">
           {searchQuery.length > 0 ? (
             <div className="space-y-8">
               {isSearching ? (
@@ -420,28 +458,76 @@ export default function MobileHeader({ menuData }) {
               )}
             </div>
           ) : (
-            <div className="space-y-6">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Categories</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {MOCK_CATEGORIES.map((cat, i) => (
-                  <div
-                    key={i}
-                    onClick={() => handleResultClick(cat.href)}
-                    className="group flex flex-col items-center"
-                  >
-                    <div className="aspect-square w-full relative rounded-md overflow-hidden mb-2 bg-transparent border border-transparent hover:border-gray-100 transition-all">
-                      <Image
-                        src={cat.image}
-                        alt={cat.title}
-                        fill
-                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-400"
-                      />
+            <div className="space-y-8">
+              <div className="space-y-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Categories</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {MOCK_CATEGORIES.map((cat, i) => (
+                    <div
+                      key={i}
+                      onClick={() => handleResultClick(cat.href)}
+                      className="group flex flex-col items-center"
+                    >
+                      <div className="aspect-square w-full relative rounded-md overflow-hidden mb-2 bg-transparent border border-transparent hover:border-gray-100 transition-all">
+                        <Image
+                          src={cat.image}
+                          alt={cat.title}
+                          fill
+                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-400"
+                        />
+                      </div>
+                      <p className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight leading-tight">
+                        {cat.title}
+                      </p>
                     </div>
-                    <p className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight leading-tight">
-                      {cat.title}
-                    </p>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bestsellers Section */}
+              <div className="space-y-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Bestseller Products</h3>
+                {isLoadingBestsellers ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex gap-4 animate-pulse px-1">
+                        <div className="w-16 h-16 bg-gray-100 rounded-lg" />
+                        <div className="flex-1 space-y-2 py-2">
+                          <div className="h-3 bg-gray-100 rounded w-3/4" />
+                          <div className="h-2.5 bg-gray-100 rounded w-1/4" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : bestsellers.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-4">
+                    {bestsellers.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => handleResultClick(item.url)}
+                        className="flex items-center gap-3 p-2 rounded-md active:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors"
+                      >
+                        <div className="w-16 h-16 relative rounded-md overflow-hidden shrink-0 bg-transparent">
+                          <Image
+                            src={item.image || "/images/product/1.jpg"}
+                            alt={item.title}
+                            fill
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                        <div className="grow min-w-0">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                            {item.title}
+                          </h4>
+                          <p className="text-xs text-gray-500 font-bold mt-1">{item.price}</p>
+                        </div>
+                        <ChevronRight size={16} className="text-gray-300" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic px-1">No bestsellers available</p>
+                )}
               </div>
             </div>
           )}
@@ -1037,6 +1123,14 @@ export default function MobileHeader({ menuData }) {
             </button>
           )}
 
+          <Link href="/schemes" prefetch={false} className="relative w-8 h-8 flex items-center justify-center shrink-0">
+            <img 
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691" 
+              alt="Scheme" 
+              className="w-full h-full object-contain"
+            />
+          </Link>
+
           {user ? (
             <Link href="/admin" prefetch={false} className="p-1">
               <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
@@ -1049,6 +1143,7 @@ export default function MobileHeader({ menuData }) {
               <UserIconCustom />
             </button>
           )}
+
           <Link href={user ? "/admin/wishlist" : "#"} prefetch={false} onClick={!user ? handleAuthTrigger : undefined} className="relative">
             <HeartIcon />
             {wishlistItems.length > 0 && (

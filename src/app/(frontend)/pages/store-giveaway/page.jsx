@@ -18,6 +18,7 @@ export default function StoreGiveawayPage() {
   const [voucherNumber, setVoucherNumber] = useState("");
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [voucherError, setVoucherError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -47,29 +48,61 @@ export default function StoreGiveawayPage() {
     }
   }, [formData.pincode]);
 
-  const handleRegister = (e) => {
+  const [isValidating, setIsValidating] = useState(false);
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    setStep(2);
+    setVoucherError("");
+
+    // Client-side range check
+    const num = parseInt(voucherNumber, 10);
+    const isValidFormat = /^\d{1,5}$/.test(voucherNumber.trim());
+
+    if (!isValidFormat || num < 1 || num > 50000) {
+      setVoucherError("Invalid voucher code. Please enter a valid code.");
+      return;
+    }
+
+    // Check with backend if voucher is already used
+    setIsValidating(true);
+    try {
+      const response = await fetch("https://store-giveaway-webhook-385594025448.asia-south1.run.app/store_giveaway/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voucherNumber }),
+      });
+
+      if (response.ok) {
+        setStep(2);
+      } else if (response.status === 409) {
+        setVoucherError("This voucher has already been used.");
+      } else {
+        setVoucherError("Invalid voucher code. Please try again.");
+      }
+    } catch (error) {
+      setVoucherError("Network error. Please check your connection.");
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       const response = await fetch("https://store-giveaway-webhook-385594025448.asia-south1.run.app/store_giveaway", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          voucherNumber,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, voucherNumber }),
       });
 
       if (response.ok) {
         setStep(3);
+      } else if (response.status === 409) {
+        // 409 Conflict = voucher already used
+        setStep(1);
+        setVoucherError("This voucher has already been used.");
       } else {
         alert("Something went wrong. Please try again.");
       }
@@ -180,25 +213,43 @@ export default function StoreGiveawayPage() {
             </div>
 
             <div className="w-full max-w-[440px] flex flex-col items-center gap-5 sm:gap-6">
-              <form 
-                onSubmit={handleRegister}
-                className="w-full p-1 bg-white rounded-lg flex items-center shadow-2xl"
-              >
-                <input
-                  type="text"
-                  placeholder="Voucher Number *"
-                  value={voucherNumber}
-                  onChange={(e) => setVoucherNumber(e.target.value)}
-                  className="flex-grow min-w-0 bg-transparent px-3 sm:px-5 py-3 sm:py-3.5 text-black placeholder:text-[#999] focus:outline-none font-figtree text-[15px] sm:text-[16px]"
-                  required
-                />
-                <button 
-                  type="submit"
-                  className="bg-[#5A413F] text-white px-4 sm:px-8 py-3 sm:py-3.5 font-figtree font-bold uppercase text-[12px] sm:text-[13px] tracking-wider hover:bg-[#4A3533] transition-all whitespace-nowrap rounded-md"
+              <div className="w-full flex flex-col gap-2">
+                <form 
+                  onSubmit={handleRegister}
+                  className="w-full p-1 bg-white rounded-lg flex items-center shadow-2xl"
                 >
-                  REGISTER NOW
-                </button>
-              </form>
+                  <input
+                    type="text"
+                    placeholder="Voucher Number *"
+                    value={voucherNumber}
+                    onChange={(e) => {
+                      setVoucherNumber(e.target.value);
+                      setVoucherError("");
+                    }}
+                    className={`flex-grow min-w-0 bg-transparent px-3 sm:px-5 py-3 sm:py-3.5 text-black placeholder:text-[#999] focus:outline-none font-figtree text-[15px] sm:text-[16px]`}
+                    required
+                  />
+                  <button 
+                    type="submit"
+                    disabled={isValidating}
+                    className="bg-[#5A413F] text-white px-4 sm:px-8 py-3 sm:py-3.5 font-figtree font-bold uppercase text-[12px] sm:text-[13px] tracking-wider hover:bg-[#4A3533] transition-all whitespace-nowrap rounded-md disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isValidating ? "CHECKING..." : "REGISTER NOW"}
+                  </button>
+                </form>
+
+                {/* Error message sits flush below the white bar */}
+                {voucherError && (
+                  <div className="flex items-center gap-2 bg-red-500/20 backdrop-blur-sm border border-red-400/40 rounded-md px-3 py-2">
+                    <svg className="w-3.5 h-3.5 text-red-300 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-red-200 text-[12px] sm:text-[13px] font-figtree">
+                      {voucherError}
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <p className="text-white text-[12px] sm:text-[13px] font-figtree tracking-normal opacity-80">
                 By Registering you accept our{" "}

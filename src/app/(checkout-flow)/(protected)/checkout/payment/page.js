@@ -47,6 +47,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 
 const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
 
@@ -252,6 +253,7 @@ export default function PaymentPage() {
   const [billingAddressSnapshot, setBillingAddressSnapshot] = useState(null);
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
 
@@ -268,6 +270,26 @@ export default function PaymentPage() {
 
   const { user, accessToken } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
+
+  const checkoutItems = useMemo(() => {
+    // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
+    const baseItems = (items || []).filter(item => item.variantId !== SILVER_PENDANT_VARIANT_ID);
+
+    if (!isSilverPendantClaimed) return baseItems;
+    
+    return [
+      ...baseItems,
+      {
+        variantId: SILVER_PENDANT_VARIANT_ID,
+        quantity: 1,
+        price: 0,
+        finalPrice: 0,
+        title: "Free Silver Pendant",
+        isFreeGift: true,
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/free-pendant.jpg?v=1781522812"
+      }
+    ];
+  }, [items, isSilverPendantClaimed]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -643,7 +665,7 @@ export default function PaymentPage() {
         firstName: customer?.firstName || user?.name?.split(' ')[0] || "",
         lastName: customer?.lastName || user?.name?.split(' ')[1] || "",
         totalCartValue: Number(finalAmount),
-        cartItems: items,
+        cartItems: checkoutItems,
         paymentType: selectedPaymentGateway === "partial_cod" ? "Partial COD" : "Razorpay",
         billingPincode: selectedBillingAddress?.zip || "",
         billingCity: selectedBillingAddress?.city || "",
@@ -710,7 +732,7 @@ export default function PaymentPage() {
         transaction_id: `temp_${Date.now()}`,
         coupon: couponDetails?.code || "NA",
         send_to: "G-K6H0NZ4YJ8",
-        items: filteredItemsForGtm.map((item, idx) => {
+        items: checkoutItems.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -720,6 +742,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
+            else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Pendant";
           }
 
           return {
@@ -745,7 +768,7 @@ export default function PaymentPage() {
         coupon: couponDetails?.code || "NA",
         loyalty_points: loyaltyPoints,
         send_to: "G-K6H0NZ4YJ8",
-        items: filteredItemsForGtm.map((item, idx) => {
+        items: checkoutItems.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -755,6 +778,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
+            else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Pendant";
           }
 
           return {
@@ -785,21 +809,7 @@ export default function PaymentPage() {
       const order = await createRazorpayOrder({
         userId: user?.id || "",
         sessionId: getCartSessionId(),
-        items: items,
-        byj_image: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
-        byj_preview: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
-        metafields: [
-          {
-            namespace: "custom",
-            key: "byj_image",
-            value: items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
-            type: "file_reference"
-          }
-        ],
-        order_metafields: {
-          "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || ""
-        },
-        "custom.byj_image": items.find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || items.find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "",
+        items: checkoutItems,
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
@@ -859,7 +869,7 @@ export default function PaymentPage() {
               transaction_id: response.razorpay_payment_id,
               coupon: couponDetails?.code || "NA",
               send_to: "G-K6H0NZ4YJ8",
-              items: filteredItemsForGtm.map((item, idx) => {
+              items: checkoutItems.map((item, idx) => {
                 const lowerTitle = (item.title || "").toLowerCase();
                 let category = item.type || item.productType || "";
                 if (!category) {
@@ -869,6 +879,7 @@ export default function PaymentPage() {
                   else if (lowerTitle.includes("bracelet")) category = "Bracelets";
                   else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
                   else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
+                  else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Pendant";
                 }
 
                 return {
@@ -920,7 +931,7 @@ export default function PaymentPage() {
               appliedCoupon: appliedCoupon,
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
-              cartItems: items || [], // Pass items explicitly as fallback for backend
+              cartItems: checkoutItems, // Pass items explicitly as fallback for backend
               gclid: getCookie("gclid") || "",
             }, accessToken);
 
@@ -1018,7 +1029,7 @@ export default function PaymentPage() {
           error_message: reason,
           coupon: couponDetails?.code || "NA",
           send_to: "G-K6H0NZ4YJ8",
-          items: filteredItemsForGtm.map((item, idx) => {
+          items: checkoutItems.map((item, idx) => {
             const lowerTitle = (item.title || "").toLowerCase();
             let category = item.type || item.productType || "";
             if (!category) {
@@ -1028,6 +1039,7 @@ export default function PaymentPage() {
               else if (lowerTitle.includes("bracelet")) category = "Bracelets";
               else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
               else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
+              else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Pendant";
             }
 
             return {
@@ -1136,7 +1148,13 @@ export default function PaymentPage() {
             {!isDesktop && (
               <div className="space-y-10 px-4">
                 {/* 1. Lucira Coins Balance */}
-                <CheckoutSummary showItems={false} showBreakdown={false} showContact={false} />
+                <CheckoutSummary 
+                  showItems={false} 
+                  showBreakdown={false} 
+                  showContact={false} 
+                  isSilverPendantClaimed={isSilverPendantClaimed}
+                  onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                />
 
                 {/* 2. Payment options */}
                 <div className="space-y-4">
@@ -1192,7 +1210,13 @@ export default function PaymentPage() {
 
                 {/* 3. Order Summary */}
                 <div ref={summaryRef}>
-                  <CheckoutSummary showPoints={false} showContact={false} />
+                  <CheckoutSummary 
+                    showPoints={false} 
+                    showContact={false} 
+                    isSilverPendantClaimed={isSilverPendantClaimed}
+                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                    showSilverPendantOffer={false}
+                  />
                 </div>
 
                 {/* 4. Contact, Ship to, Bill to section */}
@@ -1281,7 +1305,7 @@ export default function PaymentPage() {
                 </div>
 
                 {/* 6. CONTACT US FOR ASSISTANCE */}
-                <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} />
+                <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} showSilverPendantOffer={false} />
               </div>
             )}
 
@@ -1448,7 +1472,10 @@ export default function PaymentPage() {
               <div className="hidden lg:block absolute inset-y-0 left-0 w-screen bg-[#FAFAFA] border-l border-zinc-100 z-0" />
               <div className="relative z-10 py-10 px-4 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full">
                 <div className="lg:sticky lg:top-0">
-                  <CheckoutSummary />
+                  <CheckoutSummary 
+                    isSilverPendantClaimed={isSilverPendantClaimed}
+                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                  />
                 </div>
               </div>
             </div>
