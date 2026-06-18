@@ -258,10 +258,16 @@ export default function Enroll() {
 
   /* ===================== CREATE ENROLLMENT ===================== */
   const handleContinue = async () => {
-    // ✅ Nominee validation
+    // ✅ Form validation
     if (!form.nominee_name.trim()) {
       toast.error("Please enter nominee name");
       nomineeNameRef.current?.focus();
+      return;
+    }
+
+    if (!form.nominee_age || String(form.nominee_age).trim() === "") {
+      toast.error("Please enter nominee age");
+      nomineeAgeRef.current?.focus();
       return;
     }
 
@@ -456,7 +462,7 @@ export default function Enroll() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="nominee_age">Nominee Age</Label>
+                    <Label htmlFor="nominee_age">Nominee Age <span className="text-red-500">*</span></Label>
                     <Input 
                       id="nominee_age"
                       type="number"
