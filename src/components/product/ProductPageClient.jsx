@@ -312,9 +312,6 @@ export default function ProductPageClient({
 
   const [activeInfoSheet, setActiveInfoSheet] = useState(null);
   const [allStores, setAllStores] = useState([]);
-  const [availableStores, setAvailableStores] = useState([]);
-  const [nearestStore, setNearestStore] = useState(null);
-  const [availableStoreCount, setAvailableStoreCount] = useState(0);
   const [isStoreDrawerOpen, setIsStoreDrawerOpen] = useState(false);
 
   const [reviewStats, setReviewStats] = useState({
@@ -840,9 +837,11 @@ export default function ProductPageClient({
     }
   }, [activeVariant, calculateDispatchDate, deliveryInfo.status]);
 
-  // Handle Nearest Store Logic
-  useEffect(() => {
-    if (!allStores.length || !activeVariant) return;
+  // Handle Nearest Store Logic using useMemo for synchronous variant matching and distance sorting
+  const { availableStores, nearestStore, availableStoreCount } = useMemo(() => {
+    if (!allStores.length) {
+      return { availableStores: [], nearestStore: null, availableStoreCount: 0 };
+    }
 
     const tagMapping = {
       "Malad": ["divinecarat", "malad", "goregaon"],
@@ -852,7 +851,7 @@ export default function ProductPageClient({
       "Noida": ["noida", "nos18"]
     };
 
-    const inStoreTags = activeVariant.metafields?.in_store_available || [];
+    const inStoreTags = activeVariant?.metafields?.in_store_available || [];
 
     // 1. Identify which stores actually have stock
     const stockStoreIds = allStores.filter(store => {
@@ -870,8 +869,6 @@ export default function ProductPageClient({
         return searchTerms.some(term => storeNameLower.includes(term) || storeCityLower.includes(term));
       });
     }).map(s => s.shopifyId);
-
-    setAvailableStoreCount(stockStoreIds.length);
 
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
     const storesWithData = allStores.map(store => {
@@ -912,10 +909,11 @@ export default function ProductPageClient({
       return a.name.localeCompare(b.name);
     });
 
-    setAvailableStores(storesWithData);
-
-    // 3. Find the nearest store for the main display (Absolute nearest)
-    setNearestStore(storesWithData.length > 0 ? storesWithData[0] : null);
+    return {
+      availableStores: storesWithData,
+      nearestStore: storesWithData.length > 0 ? storesWithData[0] : null,
+      availableStoreCount: stockStoreIds.length
+    };
   }, [allStores, activeVariant, deliveryInfo.coords]);
 
   const rawTags = product.tags || [];
@@ -928,6 +926,11 @@ export default function ProductPageClient({
 
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
+
+  const isCentralInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
+  const isAvailableInAnyStore = availableStores.some(s => s.isInStock);
+  const showShipsToStore = isCentralInStock || isAvailableInAnyStore;
+  const leadDays = parseInt(product?.productMetafields?.lead_time) || 12;
 
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
@@ -2572,10 +2575,15 @@ export default function ProductPageClient({
                       </div>
                       <span className="text-12px font-semibold tracking-tight">Design Available</span>
                     </div>
-                  ) : (
+                  ) : showShipsToStore ? (
                     <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full w-fit border border-amber-100">
                       <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
                       <span className="text-12px font-bold uppercase tracking-tight">Ships to Store</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full w-fit border border-gray-200">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <span className="text-12px font-bold uppercase tracking-tight">Made to Order</span>
                     </div>
                   )
                 ) : availableStoreCount > 0 && (
@@ -3156,10 +3164,15 @@ export default function ProductPageClient({
                               <div className="w-2 h-2 bg-[#76D168] rounded-full"></div>
                               <span className="text-xs font-bold uppercase">In Stock</span>
                             </div>
-                          ) : (
+                          ) : showShipsToStore ? (
                             <div className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-100">
                               <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
                               <span className="text-xs font-bold uppercase">Ships to Store</span>
+                            </div>
+                          ) : (
+                            <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full flex items-center gap-1.5 border border-gray-200">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                              <span className="text-xs font-bold uppercase">Made to Order</span>
                             </div>
                           )}
                         </div>
@@ -3175,7 +3188,15 @@ export default function ProductPageClient({
                           </div>
                           <div className="flex items-center gap-3 text-sm text-gray-600">
                             <Package size={18} className="shrink-0 text-gray-400" />
-                            <p className="font-medium">Ready for pickup in 2-4 hours</p>
+                            <p className="font-medium">
+                              {store.isInStock ? (
+                                "Ready for pickup in 2-4 hours"
+                              ) : showShipsToStore ? (
+                                "Ready for pickup in 5-6 Days"
+                              ) : (
+                                `Ready for pickup in ${leadDays}-${leadDays + 3} Days`
+                              )}
+                            </p>
                           </div>
                         </div>
 
@@ -3251,10 +3272,15 @@ export default function ProductPageClient({
                             <div className="w-2 h-2 bg-[#76D168] rounded-full"></div>
                             <span className="text-xs font-bold uppercase">In Stock</span>
                           </div>
-                        ) : (
+                        ) : showShipsToStore ? (
                           <div className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-100">
                             <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
                             <span className="text-xs font-bold uppercase">Ships to Store</span>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full flex items-center gap-1.5 border border-gray-200">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <span className="text-xs font-bold uppercase">Made to Order</span>
                           </div>
                         )}
                       </div>
@@ -3270,7 +3296,15 @@ export default function ProductPageClient({
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Package size={18} className="shrink-0 text-gray-400" />
-                          <p className="font-medium">Ready for pickup in 2-4 hours</p>
+                          <p className="font-medium">
+                            {store.isInStock ? (
+                              "Ready for pickup in 2-4 hours"
+                            ) : showShipsToStore ? (
+                              "Ready for pickup in 5-6 Days"
+                            ) : (
+                              `Ready for pickup in ${leadDays}-${leadDays + 3} Days`
+                            )}
+                          </p>
                         </div>
                       </div>
 
