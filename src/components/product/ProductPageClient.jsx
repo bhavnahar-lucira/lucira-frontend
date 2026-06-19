@@ -2773,7 +2773,7 @@ export default function ProductPageClient({
                               product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
                             }
                           });
-                          router.push("/pages/video-call");
+                          window.open("https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
                         }}
                         className="w-full h-12 font-bold rounded-md text-sm bg-tertiary uppercase tracking-wide"
                       >
