@@ -258,7 +258,35 @@ async function getProduct(handle) {
     }
 
     let diamonds = [];
-    if (variantConfig?.advanced_stone_config) {
+    if (diamondComps && diamondComps.length > 0) {
+      diamonds = diamondComps.map((d, index) => {
+        const i = index + 1;
+        let q = "";
+        if (d.quality_code && d.quality_code !== "NA" && d.stone_color_code && d.stone_color_code !== "NA") {
+          q = `${d.quality_code}, ${d.stone_color_code}`;
+        } else if (d.quality_code && d.quality_code !== "NA") {
+          q = d.quality_code;
+        } else if (d.stone_color_code && d.stone_color_code !== "NA") {
+          q = d.stone_color_code;
+        } else {
+          const clarity = v[`d${i}_clarity`]?.value;
+          const color = v[`d${i}_color`]?.value;
+          if (clarity || color) {
+            q = `${clarity || ""}${color ? `, ${color}` : ""}`.trim().replace(/^,/, "").trim();
+          } else {
+            q = d.purity || "";
+          }
+        }
+        return {
+          quality: q || "",
+          shape: d.shape_code || v[`d${i}_shape`]?.value || "RD",
+          pieces: d.pieces || v[`d${i}_pcs`]?.value || "1",
+          weight: d.weight || v[`d${i}_wt`]?.value || "0"
+        };
+      });
+    }
+
+    if (diamonds.length === 0 && variantConfig?.advanced_stone_config) {
       // Prioritize advanced_stone_config for diamonds
       diamonds = variantConfig.advanced_stone_config
         .filter(s => s.stone_type === 'diamond')
@@ -287,18 +315,6 @@ async function getProduct(handle) {
         });
     }
 
-    if (diamonds.length === 0) {
-      diamonds = diamondComps.map((d, index) => {
-        const i = index + 1;
-        return {
-          quality: d.quality_code && d.quality_code !== "NA" ? d.quality_code : (d.purity || v[`d${i}_clarity`]?.value || ""),
-          shape: d.shape_code || v[`d${i}_shape`]?.value,
-          pieces: d.pieces || v[`d${i}_pcs`]?.value,
-          weight: d.weight || v[`d${i}_wt`]?.value
-        };
-      });
-    }
-
     // Fallback B: Individual custom diamond fields (if still empty)
     if (diamonds.length === 0) {
       [1, 2, 3, 4].forEach(i => {
@@ -321,20 +337,34 @@ async function getProduct(handle) {
     }
 
     let gemstones = [];
-    // Gemstone logic: prioritize individual metafields as requested
-    [1, 2, 3, 4].forEach(i => {
-      if (v[`g${i}_color`]?.value || v[`g${i}_wt`]?.value || v[`g${i}_type`]?.value) {
-        gemstones.push({
-          color: v[`g${i}_color`]?.value || "Other",
-          shape: v[`g${i}_shape`]?.value || "Round",
-          pieces: v[`g${i}_pcs`]?.value || "1",
-          weight: v[`g${i}_wt`]?.value || "0",
-          quality: v[`g${i}_clarity`]?.value || "Na",
-          type: v[`g${i}_type`]?.value || "Other",
-          setting: v[`g${i}_setting`]?.value || "Prong"
-        });
-      }
-    });
+    if (gemstoneComps && gemstoneComps.length > 0) {
+      gemstones = gemstoneComps.map((g, index) => {
+        const i = index + 1;
+        return {
+          color: g.stone_color_code && g.stone_color_code !== "NA" ? g.stone_color_code : (v[`g${i}_color`]?.value || "Other"),
+          shape: g.shape_code && g.shape_code !== "NA" ? g.shape_code : (v[`g${i}_shape`]?.value || "Round"),
+          pieces: g.pieces || v[`g${i}_pcs`]?.value || "1",
+          weight: g.weight || v[`g${i}_wt`]?.value || "0"
+        };
+      });
+    }
+
+    // Fallback: Gemstone logic: prioritize individual metafields as requested
+    if (gemstones.length === 0) {
+      [1, 2, 3, 4].forEach(i => {
+        if (v[`g${i}_color`]?.value || v[`g${i}_wt`]?.value || v[`g${i}_type`]?.value) {
+          gemstones.push({
+            color: v[`g${i}_color`]?.value || "Other",
+            shape: v[`g${i}_shape`]?.value || "Round",
+            pieces: v[`g${i}_pcs`]?.value || "1",
+            weight: v[`g${i}_wt`]?.value || "0",
+            quality: v[`g${i}_clarity`]?.value || "Na",
+            type: v[`g${i}_type`]?.value || "Other",
+            setting: v[`g${i}_setting`]?.value || "Prong"
+          });
+        }
+      });
+    }
 
     if (gemstones.length === 0 && variantConfig?.advanced_stone_config) {
         gemstones = variantConfig.advanced_stone_config
@@ -351,15 +381,6 @@ async function getProduct(handle) {
               setting: v[`g${i}_setting`]?.value || "Prong"
             };
           });
-    }
-
-    if (gemstones.length === 0) {
-      gemstones = gemstoneComps.map(g => ({
-        color: g.stone_color_code,
-        shape: g.shape_code,
-        pieces: g.pieces,
-        weight: g.weight
-      }));
     }
 
     if (gemstones.length === 0 && v.gemstones_meta?.value) {

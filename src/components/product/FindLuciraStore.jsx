@@ -164,9 +164,16 @@ export function FindLuciraStore({
                                        {activeVariant?.size ? `Size ${activeVariant.size} | ` : ""}{activeVariant?.color || ""}
                                      </span>
                                   </div>
-                                  <p className={`text-[10px] md:text-xs font-semibold ${store.isInStock ? "text-[#006D4E]" : "text-amber-600"}`}>
-                                    {store.isInStock ? "Available in Store" : "Ships to Store"}
-                                  </p>
+                                  {(() => {
+                                    const isCentralInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
+                                    const isAvailableInAnyStore = availableStores.some(s => s.isInStock);
+                                    const showShipsToStore = isCentralInStock || isAvailableInAnyStore;
+                                    return (
+                                      <p className={`text-[10px] md:text-xs font-semibold ${store.isInStock ? "text-[#006D4E]" : (showShipsToStore ? "text-amber-600" : "text-gray-600")}`}>
+                                        {store.isInStock ? "Available in Store" : (showShipsToStore ? "Ships to Store" : "Made to Order")}
+                                      </p>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             </div>
