@@ -1902,8 +1902,9 @@ export default function ProductPageClient({
                           : (firstDiamond?.purity || variantDiamonds[0]?.quality || (pricingDiamond?.color && pricingDiamond?.clarity ? `${pricingDiamond.clarity}, ${pricingDiamond.color}` : pricingDiamond?.title) || prodMeta?.quality);
 
                         // 2. Diamond Carat
-                        const carat = variantDiamonds[0]?.weight
-                          ? `${variantDiamonds[0].weight}ct`
+                        const totalWeight = variantDiamonds.length > 0 ? variantDiamonds.reduce((sum, d) => sum + parseFloat(d.weight || 0), 0) : 0;
+                        const carat = totalWeight > 0
+                          ? `${Number(totalWeight.toFixed(3))}ct`
                           : (firstDiamond?.weight ? `${firstDiamond.weight}ct` : (pricingDiamond?.carat ? `${pricingDiamond.carat}ct` : prodMeta?.carat_range));
 
                         if (quality && quality !== "NA") parts.push(quality);
