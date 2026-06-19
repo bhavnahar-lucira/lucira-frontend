@@ -128,6 +128,22 @@ const abeezee = ABeeZee({
 
 const USER_PINCODE_COOKIE = "user_pincode";
 
+async function fetchPincodeFromCoordinates(latitude, longitude) {
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    lat: String(latitude),
+    lon: String(longitude),
+    zoom: "18",
+    addressdetails: "1",
+  });
+
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`);
+  if (!response.ok) return "";
+
+  const data = await response.json();
+  return String(data?.address?.postcode || "").match(/\b\d{6}\b/)?.[0] || "";
+}
+
 function getCookieValue(name) {
   if (typeof document === "undefined") return "";
 
@@ -681,6 +697,7 @@ export default function ProductPageClient({
   const globalPincode = useSelector(selectPincode);
   const [localPincode, setLocalPincode] = useState(globalPincode || "");
   const [checkingPincode, setCheckingPincode] = useState(false);
+  const [locatingPincode, setLocatingPincode] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState({
     status: "idle", // idle, loading, deliverable, undeliverable
     message: "",
@@ -785,6 +802,52 @@ export default function ProductPageClient({
       setCheckingPincode(false);
     }
   }, [localPincode, calculateDispatchDate, dispatch]);
+
+  const handleLocateMe = useCallback(async () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      toast.error("Geolocation is not supported on this device.");
+      return;
+    }
+
+    setLocatingPincode(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const detectedPincode = await fetchPincodeFromCoordinates(coords.latitude, coords.longitude);
+
+          if (!detectedPincode) {
+            toast.error("We could not detect a valid pincode for your location.");
+            return;
+          }
+
+          setLocalPincode(detectedPincode);
+          dispatch(setPincode(detectedPincode));
+          await handlePincodeCheck(detectedPincode, true);
+        } catch (error) {
+          console.error("Locate me error:", error);
+          toast.error("Unable to detect your location. Please try again.");
+        } finally {
+          setLocatingPincode(false);
+        }
+      },
+      (error) => {
+        setLocatingPincode(false);
+
+        if (error?.code === error.PERMISSION_DENIED) {
+          toast.error("Location access was denied.");
+          return;
+        }
+
+        toast.error("Unable to detect your location. Please try again.");
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60 * 60 * 1000,
+      }
+    );
+  }, [dispatch, handlePincodeCheck]);
 
   // Initial check for persisted pincode - ONLY ON MOUNT
   useEffect(() => {
@@ -929,7 +992,8 @@ export default function ProductPageClient({
 
   const isCentralInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
   const isAvailableInAnyStore = availableStores.some(s => s.isInStock);
-  const showShipsToStore = isCentralInStock || isAvailableInAnyStore;
+  const showShipsToStore = isAvailableInAnyStore;
+  const showLocateMeAction = localPincode.trim().length === 0;
   const leadDays = parseInt(product?.productMetafields?.lead_time) || 12;
 
   const isWishlisted = useMemo(() => {
@@ -2108,14 +2172,14 @@ export default function ProductPageClient({
                     </>
                   )}
                   {activeVariant?.inStock ? (
-                    <div className="bg-[#ECF7F2] border border-[#B3E1CD] text-black rounded-lg px-4 py-3 flex items-center gap-1 xl:flex-nowrap lg:flex-wrap">
+                    <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap rounded-[4px]">
                       <span className="w-2.5 h-2.5 bg-[#189351] rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">This combination is in-stock. {calculateDispatchDate()}</span>
+                      <span className="font-semibold xl:basis-auto lg:basis-full">In stock. {calculateDispatchDate()}</span>
                     </div>
                   ) : (
                     <div className="bg-amber-50 border border-amber-200 text-black rounded-lg px-4 py-3 flex items-center gap-1 xl:flex-nowrap lg:flex-wrap">
                       <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">This combination will be made to order. {calculateDispatchDate()}</span>
+                      <span className="font-semibold xl:basis-auto lg:basis-full">Made to order. {calculateDispatchDate()}</span>
                     </div>
                   )}
                 </div>
@@ -2534,11 +2598,27 @@ export default function ProductPageClient({
                     className="h-14 bg-white border-gray-200 rounded-md text-sm font-medium pr-40"
                   />
                   <Button
-                    onClick={() => handlePincodeCheck(localPincode)}
-                    disabled={checkingPincode}
-                    className="h-12 px-10 font-bold rounded-md absolute right-1 top-1/2 transform -translate-y-1/2 bg-tertiary hover:cursor-pointer"
+                    onClick={() => {
+                      if (showLocateMeAction) {
+                        handleLocateMe();
+                        return;
+                      }
+
+                      handlePincodeCheck(localPincode);
+                    }}
+                    disabled={checkingPincode || locatingPincode}
+                    className="h-12 px-6 font-bold rounded-md absolute right-1 top-1/2 transform -translate-y-1/2 bg-tertiary hover:cursor-pointer flex items-center gap-2"
                   >
-                    {checkingPincode ? <Loader2 className="animate-spin" size={18} /> : "CHECK"}
+                    {checkingPincode || locatingPincode ? (
+                      <Loader2 className="animate-spin" size={18} />
+                    ) : showLocateMeAction ? (
+                      <>
+                        <MapPin size={16} />
+                        LOCATE ME
+                      </>
+                    ) : (
+                      "CHECK"
+                    )}
                   </Button>
                 </div>
                 {deliveryInfo.status !== "idle" && (
@@ -2556,6 +2636,7 @@ export default function ProductPageClient({
               </div>
 
               {/* Nearest Store */}
+              {isCentralInStock && (
               <div className="border border-gray-200 rounded-md p-4 space-y-2.5 bg-gray-50">
                 <div className="flex items-center gap-2">
                   <Store size={20} className="text-black" strokeWidth={1.2} />
@@ -2644,6 +2725,7 @@ export default function ProductPageClient({
                   {availableStoreCount > 0 ? "FIND IN STORE" : "FIND STORE"}
                 </Button>
               </div>
+              )}
               <Separator />
             </div>
 

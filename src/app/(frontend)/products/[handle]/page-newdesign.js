@@ -447,7 +447,7 @@ export default function ProductPage({ product = {} }) {
                 </div>
                 <div className="text-sm text-black flex items-center gap-2">
                   <Info size={16} className="text-black" />
-                  Estimated free dispatch by <span className="font-semibold text-black">January 21, 2026</span>
+                  Estimated dispatch by <span className="font-semibold text-black">January 21, 2026</span>
                 </div>
               </div>
 
