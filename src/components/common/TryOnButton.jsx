@@ -3,26 +3,51 @@
 import { useEffect } from "react";
 import { apiFetch } from "@/lib/api";
 
-export default function TryOnButton({ sku, productTitle, isAvailable, className = "", id = "tryonbutton2" }) {
-  const formattedSku = sku?.replace("/", "");
+// ✅ Extracts product-level SKU from variant SKU
+// "LJ-N00078-14RGLGD" → "LJ-N00078"
+// Handles edge cases: null, already short, no second hyphen
+function getProductSku(sku) {
+  if (!sku) return null;
+
+  const clean = sku.replace("/", ""); // your existing sanitization
+  const parts = clean.split("-");
+
+  // SKU format: {prefix}-{productId}-{variantSuffix}
+  // We want only first two segments: "LJ" + "N00078" → "LJ-N00078"
+  if (parts.length >= 3) {
+    return `${parts[0]}-${parts[1]}`;
+  }
+
+  // Fallback: return as-is if it doesn't match expected format
+  return clean;
+}
+
+export default function TryOnButton({
+  sku,
+  productTitle,
+  isAvailable,
+  className = "",
+  id = "tryonbutton2",
+}) {
+  const formattedSku = sku?.replace("/", "");       // original (for buy-now matching)
+  const productSku = getProductSku(sku);             // trimmed (for Camweara init)
   const productName = productTitle;
 
-  // ✅ Load Camweara External Button Script
+  // ✅ Load Camweara External Button Script — uses productSku (all variants)
   useEffect(() => {
-    if (!formattedSku) return;
+    if (!productSku) return;
 
     let retryCount = 0;
     const maxRetries = 10;
 
     const initCamweara = () => {
       const btnElement = document.getElementById(id);
-      
+
       if (window.loadTryOnButton && btnElement) {
-        // console.log(`Initializing Camweara for ${id}`);
         window.loadTryOnButton({
-          psku: formattedSku,
+          psku: productSku,          // 👈 trimmed SKU — shows all variants
           page: "product",
-          tryonBtnId: id, // 👈 bind to button
+          tryonBtnId: id,
           regionId: "2",
           company: "luciraonline",
           buynow: {
@@ -31,13 +56,11 @@ export default function TryOnButton({ sku, productTitle, isAvailable, className 
           buynowCallback: "onTryOnBuynowCallback",
         });
       } else if (retryCount < maxRetries) {
-        // If button not in DOM yet or script not fully ready, retry
         retryCount++;
         setTimeout(initCamweara, 500);
       }
     };
 
-    // If script already exists, try to init
     if (document.getElementById("camweara-script")) {
       initCamweara();
       return;
@@ -45,41 +68,32 @@ export default function TryOnButton({ sku, productTitle, isAvailable, className 
 
     const script = document.createElement("script");
     script.id = "camweara-script";
-    script.src =
-      "https://camweara.com/integrations/camweara_api_external_btn.js";
+    script.src = "https://camweara.com/integrations/camweara_api_external_btn.js";
     script.async = true;
-
-    script.onload = () => {
-      // Small delay after script load to ensure loadTryOnButton is defined
-      setTimeout(initCamweara, 100);
-    };
+    script.onload = () => setTimeout(initCamweara, 100);
 
     document.body.appendChild(script);
-  }, [formattedSku, isAvailable, id]);
+  }, [productSku, isAvailable, id]);   // 👈 depend on productSku, not formattedSku
 
-  // ✅ Buy Now Callback (Next.js compatible)
+  // ✅ Buy Now Callback — still uses full formattedSku for exact variant match
   useEffect(() => {
     if (!formattedSku) return;
 
     window.onTryOnBuynowCallback = async (skuReceived) => {
       if (skuReceived === formattedSku) {
-        // 👉 Replace with your real cart logic
         try {
           await apiFetch("/api/cart/add", {
             method: "POST",
-            body: JSON.stringify({
-              sku: skuReceived,
-              quantity: 1,
-            }),
+            body: JSON.stringify({ sku: skuReceived, quantity: 1 }),
           });
         } catch (e) {
           console.error("TryOn Buy Now failed:", e);
         }
-
-        //window.location.href = "/checkout/cart";
       } else {
         try {
-          const data = await apiFetch(`/api/search-by-sku?sku=${encodeURIComponent(skuReceived)}`);
+          const data = await apiFetch(
+            `/api/search-by-sku?sku=${encodeURIComponent(skuReceived)}`
+          );
           if (data?.handle) {
             window.location.href = `/products/${data.handle}`;
           }
@@ -90,13 +104,13 @@ export default function TryOnButton({ sku, productTitle, isAvailable, className 
     };
   }, [formattedSku]);
 
-  // ✅ GTM Tracking (still works)
+  // ✅ GTM Tracking
   const pushDataLayer = () => {
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: "promoClick",
       promoClick: {
-        promo_id: formattedSku,
+        promo_id: productSku,          // 👈 use productSku for consistent tracking
         creative_name: "Virtual Try On",
         promo_position: "Above Media Gallery",
         promo_name: productName,
@@ -105,24 +119,28 @@ export default function TryOnButton({ sku, productTitle, isAvailable, className 
     });
   };
 
-  if (!formattedSku) return null;
+  if (!productSku) return null;
 
   return (
     <button
-      id={id} // 👈 IMPORTANT (must match config)
-      onClick={pushDataLayer} // 👈 tracking only (Camweara handles actual click)
-      style={{visibility: "hidden"}}
-      className={className || `
+      id={id}
+      onClick={pushDataLayer}
+      style={{ visibility: "hidden" }}
+      className={
+        className ||
+        `
         bg-[#EDEDED]
         text-black
         hover:bg-[#E0E0E0]
         cursor-pointer
         btn-peek-animation
-      `}
+      `
+      }
     >
-      {/* Eye Icon */}
       <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-        <svg width="34" height="34"
+        <svg
+          width="34"
+          height="34"
           xmlns="http://www.w3.org/2000/svg"
           className="w-4 h-4"
           fill="none"
@@ -138,7 +156,9 @@ export default function TryOnButton({ sku, productTitle, isAvailable, className 
           <circle cx="12" cy="12" r="3" />
         </svg>
       </span>
-      <span className="btn-text text-xs font-bold uppercase tracking-wider">Virtual try on</span>
+      <span className="btn-text text-xs font-bold uppercase tracking-wider">
+        Virtual try on
+      </span>
     </button>
   );
 }
