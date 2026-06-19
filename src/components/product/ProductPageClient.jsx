@@ -1027,7 +1027,7 @@ export default function ProductPageClient({
   const hasConfirmedPincode = confirmedPincode.length === 6 && confirmedPincode === localPincode;
   const showLocateMeAction = !hasConfirmedPincode && localPincode.trim().length === 0;
   const nearestAvailableStore = availableStores.find((store) => store.isInStock) || null;
-  const nearbyAvailableStore = nearestAvailableStore && nearestAvailableStore.distance !== null && nearestAvailableStore.distance <= 10
+  const nearbyAvailableStore = nearestAvailableStore && nearestAvailableStore.distance !== null && nearestAvailableStore.distance <= 25
     ? nearestAvailableStore
     : null;
   const otherAvailableStoreCount = nearbyAvailableStore ? Math.max(availableStoreCount - 1, 0) : availableStoreCount;
@@ -2699,7 +2699,7 @@ export default function ProductPageClient({
                         ) : nearbyAvailableStore ? (
                           <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearbyAvailableStore.name)}{nearbyAvailableStore.distance !== null ? ` (${Math.round(nearbyAvailableStore.distance)}Km)` : ""}</span></>
                         ) : (
-                          <span className="italic font-semibold text-black">No nearby store available within 10 kms</span>
+                          <span className="italic font-semibold text-black">No nearby store available within 25 kms</span>
                         )}
                       </span>
                     </div>
