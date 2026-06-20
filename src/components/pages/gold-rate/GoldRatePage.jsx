@@ -141,7 +141,7 @@ export default function GoldRatePage({ page }) {
             <section className="relative w-full flex flex-col justify-start overflow-hidden pt-6 md:pt-10 lg:pt-12 pb-12 lg:pb-10 min-h-[600px] lg:min-h-[600px]">
                 <div
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] hover:scale-105"
-                    style={{ backgroundImage: "url('https://luciraonline.myshopify.com/cdn/shop/files/baneer-gold.jpg')" }}
+                    style={{ backgroundImage: "url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/qwer.png?v=1781953219')" }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/10 z-[1]" />
 
