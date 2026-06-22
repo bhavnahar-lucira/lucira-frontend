@@ -76,43 +76,19 @@ export default function FeaturedIn() {
           autoFill={true}
         >
           {logos.map((logo, index) => (
-            <div className="marquee-item px-6 md:px-10" key={`logo-${index}`}>
+            <div className="group px-6 md:px-10" key={`logo-${index}`}>
               <Link prefetch={false} href={logo.url} target="_blank" rel="noopener noreferrer" className="block">
                 <img 
                   src={logo.image} 
                   alt={logo.alt} 
                   loading="lazy" 
-                  className="marquee-img" 
+                  className="max-w-[120px] h-[50px] object-contain grayscale transition-all duration-300 md:max-w-[140px] md:h-[60px] group-hover:grayscale-0" 
                 />
               </Link>
             </div>
           ))}
         </Marquee>
       </div>
-
-      <style jsx>{`
-        .marquee-img {
-          max-width: 120px;
-          height: 50px;
-          object-fit: contain;
-          filter: grayscale(1);
-          transition: filter 0.3s ease;
-        }
-
-        @media (min-width: 768px) {
-          .marquee-img {
-            max-width: 140px;
-            height: 60px;
-          }
-        }
-
-        .marquee-item:hover .marquee-img {
-          filter: grayscale(0);
-        }
-        
-        .font-abhaya { font-family: var(--font-abhaya), serif; }
-        .font-figtree { font-family: var(--font-figtree), sans-serif; }
-      `}</style>
     </section>
   );
 }

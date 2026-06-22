@@ -208,7 +208,7 @@ export default function WaysToExplore() {
         )}
       </div>
 
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .explore-pagination .swiper-pagination-bullet {
           width: 8px;
           height: 8px;
@@ -226,7 +226,7 @@ export default function WaysToExplore() {
             width: 24px;
           }
         }
-      `}</style>
+      `}} />
     </section>
   );
 }

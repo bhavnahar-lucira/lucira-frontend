@@ -74,6 +74,7 @@ const SEARCH_PLACEHOLDERS = [
 ];
 
 export default function MainHeader() {
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const { user, logout: authLogout, openLogin } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -96,6 +97,10 @@ export default function MainHeader() {
   );
 
   const displayQuantity = displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -349,7 +354,7 @@ export default function MainHeader() {
              <span>Find a Store</span> 
           </Link>
 
-          {user ? (
+          {mounted && user ? (
             <div className="relative group flex items-center">
               <Link href="/admin" prefetch={false}>
                 <Avatar className="h-9 w-9 cursor-pointer border border-gray-100">
@@ -384,9 +389,11 @@ export default function MainHeader() {
             <div 
               className="cursor-pointer" 
               onClick={() => {
-                const path = window.location.pathname;
-                if (path !== "/login" && path !== "/register") {
-                  openLogin();
+                if (typeof window !== "undefined") {
+                  const path = window.location.pathname;
+                  if (path !== "/login" && path !== "/register") {
+                    openLogin();
+                  }
                 }
               }} 
             >
@@ -394,7 +401,7 @@ export default function MainHeader() {
             </div>
           )}
 
-          {user ? (
+          {mounted && user ? (
             <Link href="/admin/wishlist" prefetch={false} className="relative group p-1">
               <HeartIcon />
               {wishlistItems.length > 0 && (
@@ -407,15 +414,17 @@ export default function MainHeader() {
             <button 
               type="button" 
               onClick={() => {
-                const path = window.location.pathname;
-                if (path !== "/login" && path !== "/register") {
-                  openLogin();
+                if (typeof window !== "undefined") {
+                  const path = window.location.pathname;
+                  if (path !== "/login" && path !== "/register") {
+                    openLogin();
+                  }
                 }
               }} 
               className="relative group p-1"
             >
               <HeartIcon />
-              {wishlistItems.length > 0 && (
+              {mounted && wishlistItems.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
                   {wishlistItems.length}
                 </span>
@@ -429,7 +438,7 @@ export default function MainHeader() {
               onClick={handleCartClick}
             >
             <CartIcon />
-            {displayQuantity > 0 && (
+            {mounted && displayQuantity > 0 && (
               <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
                 {displayQuantity}
               </span>
