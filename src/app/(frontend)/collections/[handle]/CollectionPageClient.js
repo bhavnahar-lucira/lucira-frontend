@@ -511,9 +511,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const renderGridItems = () => {
     const items = [];
+    let renderedCount = 0;
     products.forEach((prod, idx) => {
       if (!prod) return;
-      if (idx === 3 || idx === 7) {
+      if (renderedCount === 3 || renderedCount === 10) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
@@ -537,6 +538,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           />
         </div>
       );
+      renderedCount++;
     });
     if (isFetchingNextPage) {
       items.push(<ProductCardSkeleton key="next-1" />, <ProductCardSkeleton key="next-2" />, <ProductCardSkeleton key="next-3" />);
@@ -586,7 +588,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
-                <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day free returns</span></div>
+                <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
               </div>
             </div>
             <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner-05062026.jpg" alt={displayTitle} fill className="object-cover" /></div>

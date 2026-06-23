@@ -34,7 +34,7 @@ const ReturnIcon = () => (
 );
 
 const PROPS = [
-  { icon: ShippingIcon, text: "Free and secure shipping" },
+  { icon: ShippingIcon, text: "Free & Insured Shipping" },
   { icon: ExchangeIcon, text: "Lifetime returns/exchange" },
   { icon: CertifiedIcon, text: "100% certified lab grown diamonds" },
   { icon: ReturnIcon, text: "15 day money back guarantee" },
