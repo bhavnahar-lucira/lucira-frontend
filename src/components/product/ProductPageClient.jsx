@@ -1998,7 +1998,7 @@ export default function ProductPageClient({
                         className="w-5 h-5 object-contain inline-block align-middle"
                       />
                     ),
-                    text: <>Free Diamond <span className="font-extrabold text-black">Pendant</span> Worth ₹10000</>
+                    text: <>Free Diamond <span className="font-extrabold text-black">Pendant</span> Worth ₹10,000/-</>
                   });
                 }
 
