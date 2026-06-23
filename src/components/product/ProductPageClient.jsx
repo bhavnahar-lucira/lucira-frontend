@@ -1989,16 +1989,18 @@ export default function ProductPageClient({
 
                 const slides = [];
                 
-                slides.push({
-                  icon: (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-black inline-block align-middle">
-                      <circle cx="12" cy="5" r="2.5" />
-                      <path d="M12 7.5v5.5" />
-                      <path d="M12 13l-4 4 4 4 4-4-4-4z" fill="currentColor" />
-                    </svg>
-                  ),
-                  text: <>Free Pendant <span className="font-extrabold text-black">Worth ₹10000</span></>
-                });
+                if (currentTotalPrice >= 30000) {
+                  slides.push({
+                    icon: (
+                      <img 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/jewel.png?v=1782220601" 
+                        alt="Free Pendant" 
+                        className="w-5 h-5 object-contain inline-block align-middle"
+                      />
+                    ),
+                    text: <>Free Diamond <span className="font-extrabold text-black">Pendant</span> Worth ₹10000</>
+                  });
+                }
 
                 if (diamondDiscount > 0) {
                   slides.push({
