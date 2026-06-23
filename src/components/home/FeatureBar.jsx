@@ -37,15 +37,15 @@ export default function FeatureBar() {
   const features = [
     {
       icon: ShippingIcon,
-      text: "Free and secure shipping",
+      text: "Free & Insured Shipping",
     },
     {
       icon: GuaranteeIcon,
-      text: "100% diamond value guarantee",
+      text: "Certified Diamond & Gold Jewelry",
     },
     {
       icon: ExchangeIcon,
-      text: "Lifetime buy back or exchange",
+      text: "Lifetime Buyback or Exchange",
     },
     {
       icon: ReturnIcon,

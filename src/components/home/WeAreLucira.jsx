@@ -7,7 +7,7 @@ import LazyImage from "../common/LazyImage";
 const features = [
   {
     icon: Truck,
-    text: "Free and secure shipping",
+    text: "Free & Insured Shipping",
     type: "lucide",
   },
   {
@@ -17,7 +17,7 @@ const features = [
   },
   {
     icon: RefreshCcw,
-    text: "Lifetime buy back or exchange",
+    text: "Lifetime Buyback or Exchange",
     type: "lucide",
   },
   {
