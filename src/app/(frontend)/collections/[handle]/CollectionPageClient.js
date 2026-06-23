@@ -517,7 +517,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_10.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/inpage_banner-05062026.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
             </Link>
           </div>
         );

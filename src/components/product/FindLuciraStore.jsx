@@ -165,9 +165,8 @@ export function FindLuciraStore({
                                      </span>
                                   </div>
                                   {(() => {
-                                    const isCentralInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
                                     const isAvailableInAnyStore = availableStores.some(s => s.isInStock);
-                                    const showShipsToStore = isCentralInStock || isAvailableInAnyStore;
+                                    const showShipsToStore = isAvailableInAnyStore;
                                     return (
                                       <p className={`text-[10px] md:text-xs font-semibold ${store.isInStock ? "text-[#006D4E]" : (showShipsToStore ? "text-amber-600" : "text-gray-600")}`}>
                                         {store.isInStock ? "Available in Store" : (showShipsToStore ? "Ships to Store" : "Made to Order")}
