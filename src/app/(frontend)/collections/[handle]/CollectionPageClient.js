@@ -511,9 +511,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const renderGridItems = () => {
     const items = [];
+    let renderedCount = 0;
     products.forEach((prod, idx) => {
       if (!prod) return;
-      if (idx === 3 || idx === 7) {
+      if (renderedCount === 3 || renderedCount === 6) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
@@ -537,6 +538,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           />
         </div>
       );
+      renderedCount++;
     });
     if (isFetchingNextPage) {
       items.push(<ProductCardSkeleton key="next-1" />, <ProductCardSkeleton key="next-2" />, <ProductCardSkeleton key="next-3" />);
