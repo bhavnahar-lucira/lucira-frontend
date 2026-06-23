@@ -2691,7 +2691,7 @@ export default function ProductPageClient({
               {/* Nearest Store */}
               {isCentralInStock && isAvailableInAnyStore && (
                 <div className="border border-gray-200 rounded-md p-4 space-y-3 bg-gray-50">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3 max-[400px]:flex-col">
                     <div className="flex items-start gap-2 min-w-0">
                       <Store size={20} className="text-black shrink-0 mt-0.5" strokeWidth={1.2} />
                       <span className="text-base font-bold leading-tight">
@@ -2738,7 +2738,7 @@ export default function ProductPageClient({
                   )}
 
                   {hasConfirmedPincode && !nearbyAvailableStore ? (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="flex flex-col min-[430px]:grid min-[430px]:grid-cols-2 gap-3 pt-1">
                       <Button
                         variant="outline"
                         onClick={() => {
