@@ -725,7 +725,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   const parts = [];
                   if (!!firstDiamond || variantDiamonds.length > 0) {
                     const quality = (firstDiamond?.quality_code && firstDiamond?.stone_color_code && firstDiamond.quality_code !== "NA" && firstDiamond.stone_color_code !== "NA") ? `${firstDiamond.quality_code}, ${firstDiamond.stone_color_code}` : (firstDiamond?.purity || variantDiamonds[0]?.quality || prodMeta?.quality);
-                    const carat = variantDiamonds[0]?.weight ? `${variantDiamonds[0].weight}ct` : (firstDiamond?.weight ? `${firstDiamond.weight}ct` : prodMeta?.carat_range);
+                    const totalWeight = variantDiamonds.length > 0 ? variantDiamonds.reduce((sum, d) => sum + parseFloat(d.weight || 0), 0) : 0;
+                    const carat = totalWeight > 0 ? `${Number(totalWeight.toFixed(3))}ct` : (firstDiamond?.weight ? `${firstDiamond.weight}ct` : prodMeta?.carat_range);
                     if (quality && quality !== "NA") parts.push(quality);
                     if (carat && carat !== "NA" && !String(carat).startsWith("0ct")) parts.push(carat);
                   }

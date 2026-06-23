@@ -23,14 +23,18 @@ export function AutoAuthPopup() {
     // 15 seconds delay
     const SHOW_DELAY = 15000;
 
+    const cleanPath = pathname?.replace(/\/$/, "") || "";
+
     // Exclude account pages and specific paths
     if (
-      pathname?.startsWith("/account") || 
-      pathname === "/login" || 
-      pathname === "/register" ||
-      pathname === "/account/login" ||
-      pathname === "/account/register" ||
-      /\/[a-z-]+-silver-rate-today\/?$/.test(pathname || "")
+      cleanPath.startsWith("/account") || 
+      cleanPath === "/login" || 
+      cleanPath === "/register" ||
+      cleanPath === "/account/login" ||
+      cleanPath === "/account/register" ||
+      cleanPath === "/pages/privacy-policy" ||
+      cleanPath === "/pages/terms-condition" ||
+      /\/[a-z-]+-silver-rate-today$/.test(cleanPath)
     ) {
       return;
     }

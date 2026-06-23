@@ -831,13 +831,25 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </div>
 
               {/* SEO Section */}
-              {hasSeo && (
-                <div className="prose prose-sm md:prose-base max-w-none mt-8 border-t border-gray-100 pt-8">
-                  <div className="text-gray-600 leading-loose">
-                    {renderShopifyRichText(seoContent)}
+                {hasSeo && (
+                  <div className="mt-8 border-t border-gray-100 pt-8">
+                    <div className="md:w-4/5">
+                      <div className="prose prose-sm md:prose-base max-w-none">
+                        <div
+                          className="text-gray-600 leading-loose"
+                          ref={(el) => {
+                            if (!el) return;
+                            el.querySelectorAll("p").forEach((p) => {
+                              if (!p.innerText.trim()) p.remove();
+                            });
+                          }}
+                        >
+                          {renderShopifyRichText(seoContent)}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
         );

@@ -128,6 +128,22 @@ const abeezee = ABeeZee({
 
 const USER_PINCODE_COOKIE = "user_pincode";
 
+async function fetchPincodeFromCoordinates(latitude, longitude) {
+  const params = new URLSearchParams({
+    format: "jsonv2",
+    lat: String(latitude),
+    lon: String(longitude),
+    zoom: "18",
+    addressdetails: "1",
+  });
+
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`);
+  if (!response.ok) return "";
+
+  const data = await response.json();
+  return String(data?.address?.postcode || "").match(/\b\d{6}\b/)?.[0] || "";
+}
+
 function getCookieValue(name) {
   if (typeof document === "undefined") return "";
 
@@ -312,9 +328,6 @@ export default function ProductPageClient({
 
   const [activeInfoSheet, setActiveInfoSheet] = useState(null);
   const [allStores, setAllStores] = useState([]);
-  const [availableStores, setAvailableStores] = useState([]);
-  const [nearestStore, setNearestStore] = useState(null);
-  const [availableStoreCount, setAvailableStoreCount] = useState(0);
   const [isStoreDrawerOpen, setIsStoreDrawerOpen] = useState(false);
 
   const [reviewStats, setReviewStats] = useState({
@@ -683,7 +696,9 @@ export default function ProductPageClient({
   // Pincode & Dispatch Logic
   const globalPincode = useSelector(selectPincode);
   const [localPincode, setLocalPincode] = useState(globalPincode || "");
+  const [confirmedPincode, setConfirmedPincode] = useState("");
   const [checkingPincode, setCheckingPincode] = useState(false);
+  const [locatingPincode, setLocatingPincode] = useState(false);
   const [deliveryInfo, setDeliveryInfo] = useState({
     status: "idle", // idle, loading, deliverable, undeliverable
     message: "",
@@ -757,6 +772,7 @@ export default function ProductPageClient({
       }
       if (data.success && data.deliverable) {
         const dispatchMsg = calculateDispatchDate();
+        setConfirmedPincode(pincodeToCheck);
         setDeliveryInfo({
           status: "deliverable",
           message: dispatchMsg,
@@ -773,6 +789,7 @@ export default function ProductPageClient({
         );
         dispatch(setPincode(pincodeToCheck));
       } else {
+        setConfirmedPincode(pincodeToCheck);
         setDeliveryInfo({
           status: "undeliverable",
           message: "Sorry, we do not deliver to this pincode yet.",
@@ -788,6 +805,80 @@ export default function ProductPageClient({
       setCheckingPincode(false);
     }
   }, [localPincode, calculateDispatchDate, dispatch]);
+
+  const resetPincodeState = useCallback(() => {
+    setLocalPincode("");
+    setConfirmedPincode("");
+    setDeliveryInfo({ status: "idle", message: "", coords: null });
+    document.cookie = `${USER_PINCODE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+    dispatch(setPincode(""));
+  }, [dispatch]);
+
+  const handleLocateMe = useCallback(async () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      toast.error("Geolocation is not supported on this device.");
+      return;
+    }
+
+    setLocatingPincode(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const detectedPincode = await fetchPincodeFromCoordinates(coords.latitude, coords.longitude);
+
+          if (!detectedPincode) {
+            toast.error("We could not detect a valid pincode for your location.");
+            return;
+          }
+
+          setLocalPincode(detectedPincode);
+          dispatch(setPincode(detectedPincode));
+
+          // GTM tracking — mirrors the Shopify "Locate Me Clicked" promoClick
+          // event fired on a successful reverse-geocode lookup.
+          pushToDataLayer({
+            event: "promoClick",
+            promoClick: {
+              creative_name: "Locate Me Clicked",
+              location_id: "Pdp",
+            },
+          });
+
+          await handlePincodeCheck(detectedPincode, true);
+        } catch (error) {
+          console.error("Locate me error:", error);
+          toast.error("Unable to detect your location. Please try again.");
+        } finally {
+          setLocatingPincode(false);
+        }
+      },
+      (error) => {
+        setLocatingPincode(false);
+
+        // NOTE: Use the numeric code (1 = PERMISSION_DENIED) rather than
+        // error.PERMISSION_DENIED. The latter is a constant defined on the
+        // GeolocationPositionError prototype and can be `undefined` if the
+        // error object isn't a genuine instance (e.g. some browsers/polyfills,
+        // or if it gets passed through any wrapper), which silently breaks
+        // this check and always falls through to the generic message.
+        // This mirrors the permission-denied handling used in the Liquid
+        // version (the vanilla JS getCurrentPosition error callback there
+        // just shows "Permission denied" unconditionally).
+        if (error?.code === 1) {
+          toast.error("Location access was denied.");
+          return;
+        }
+
+        toast.error("Unable to detect your location. Please try again.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  }, [dispatch, handlePincodeCheck]);
 
   // Initial check for persisted pincode - ONLY ON MOUNT
   useEffect(() => {
@@ -840,9 +931,11 @@ export default function ProductPageClient({
     }
   }, [activeVariant, calculateDispatchDate, deliveryInfo.status]);
 
-  // Handle Nearest Store Logic
-  useEffect(() => {
-    if (!allStores.length || !activeVariant) return;
+  // Handle Nearest Store Logic using useMemo for synchronous variant matching and distance sorting
+  const { availableStores, nearestStore, availableStoreCount } = useMemo(() => {
+    if (!allStores.length) {
+      return { availableStores: [], nearestStore: null, availableStoreCount: 0 };
+    }
 
     const tagMapping = {
       "Malad": ["divinecarat", "malad", "goregaon"],
@@ -852,7 +945,7 @@ export default function ProductPageClient({
       "Noida": ["noida", "nos18"]
     };
 
-    const inStoreTags = activeVariant.metafields?.in_store_available || [];
+    const inStoreTags = activeVariant?.metafields?.in_store_available || [];
 
     // 1. Identify which stores actually have stock
     const stockStoreIds = allStores.filter(store => {
@@ -870,8 +963,6 @@ export default function ProductPageClient({
         return searchTerms.some(term => storeNameLower.includes(term) || storeCityLower.includes(term));
       });
     }).map(s => s.shopifyId);
-
-    setAvailableStoreCount(stockStoreIds.length);
 
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
     const storesWithData = allStores.map(store => {
@@ -912,10 +1003,11 @@ export default function ProductPageClient({
       return a.name.localeCompare(b.name);
     });
 
-    setAvailableStores(storesWithData);
-
-    // 3. Find the nearest store for the main display (Absolute nearest)
-    setNearestStore(storesWithData.length > 0 ? storesWithData[0] : null);
+    return {
+      availableStores: storesWithData,
+      nearestStore: storesWithData.length > 0 ? storesWithData[0] : null,
+      availableStoreCount: stockStoreIds.length
+    };
   }, [allStores, activeVariant, deliveryInfo.coords]);
 
   const rawTags = product.tags || [];
@@ -928,6 +1020,24 @@ export default function ProductPageClient({
 
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
+
+  const isCentralInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
+  const isAvailableInAnyStore = availableStores.some(s => s.isInStock);
+  const showShipsToStore = isAvailableInAnyStore;
+  const hasConfirmedPincode = confirmedPincode.length === 6 && confirmedPincode === localPincode;
+  const showLocateMeAction = !hasConfirmedPincode && localPincode.trim().length === 0;
+  const nearestAvailableStore = availableStores.find((store) => store.isInStock) || null;
+  const nearbyAvailableStore = nearestAvailableStore && nearestAvailableStore.distance !== null && nearestAvailableStore.distance <= 25
+    ? nearestAvailableStore
+    : null;
+  const otherAvailableStoreCount = nearbyAvailableStore ? Math.max(availableStoreCount - 1, 0) : availableStoreCount;
+  const defaultDispatchMessage = isCentralInStock
+    ? "Estimated free dispatch within 48 hrs"
+    : calculateDispatchDate();
+  const deliveryMessage = deliveryInfo.status === "undeliverable"
+    ? deliveryInfo.message
+    : defaultDispatchMessage;
+  const leadDays = parseInt(product?.productMetafields?.lead_time) || 12;
 
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
@@ -1792,8 +1902,9 @@ export default function ProductPageClient({
                           : (firstDiamond?.purity || variantDiamonds[0]?.quality || (pricingDiamond?.color && pricingDiamond?.clarity ? `${pricingDiamond.clarity}, ${pricingDiamond.color}` : pricingDiamond?.title) || prodMeta?.quality);
 
                         // 2. Diamond Carat
-                        const carat = variantDiamonds[0]?.weight
-                          ? `${variantDiamonds[0].weight}ct`
+                        const totalWeight = variantDiamonds.length > 0 ? variantDiamonds.reduce((sum, d) => sum + parseFloat(d.weight || 0), 0) : 0;
+                        const carat = totalWeight > 0
+                          ? `${Number(totalWeight.toFixed(3))}ct`
                           : (firstDiamond?.weight ? `${firstDiamond.weight}ct` : (pricingDiamond?.carat ? `${pricingDiamond.carat}ct` : prodMeta?.carat_range));
 
                         if (quality && quality !== "NA") parts.push(quality);
@@ -2083,7 +2194,7 @@ export default function ProductPageClient({
                         </Dialog>
                       )}
 
-                      <div className={product.type === "Bracelets" ? 'grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-4' : "grid grid-cols-7 gap-4"}>
+                      <div className={product.type === "Bracelets" ? 'grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-4' : "grid grid-cols-7 gap-3"}>
                         {availableSizes.map(sizeStr => {
                           const inStock = isSizeInStock(sizeStr);
                           return (
@@ -2105,14 +2216,14 @@ export default function ProductPageClient({
                     </>
                   )}
                   {activeVariant?.inStock ? (
-                    <div className="bg-[#ECF7F2] border border-[#B3E1CD] text-black rounded-lg px-4 py-3 flex items-center gap-1 xl:flex-nowrap lg:flex-wrap">
+                    <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap rounded-[4px]">
                       <span className="w-2.5 h-2.5 bg-[#189351] rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">This combination is in-stock. {calculateDispatchDate()}</span>
+                      <span className="font-semibold xl:basis-auto lg:basis-full">In stock. {calculateDispatchDate()}</span>
                     </div>
                   ) : (
-                    <div className="bg-amber-50 border border-amber-200 text-black rounded-lg px-4 py-3 flex items-center gap-1 xl:flex-nowrap lg:flex-wrap">
+                    <div className="bg-amber-50 border border-amber-200 text-black rounded-lg px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap">
                       <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">This combination will be made to order. {calculateDispatchDate()}</span>
+                      <span className="font-semibold xl:basis-auto lg:basis-full">Made to order. {calculateDispatchDate()}</span>
                     </div>
                   )}
                 </div>
@@ -2313,12 +2424,19 @@ export default function ProductPageClient({
                       disabled={addingToCart}
                       className="flex-1 h-14 text-[14px] sm:text-base lg:text-lg font-bold rounded-md hover:cursor-pointer tracking-wider"
                     >
-                      {addingToCart ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ADDING...
-                        </>
-                      ) : "ADD TO CART"}
+                      <div className="w-6 sm:w-8 flex justify-start shrink-0">
+                        <div className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}>
+                          <Coins size={16} className={`sm:w-6 sm:h-[18px] ${isSchemeOpen ? 'text-white' : 'text-primary'} group-hover:text-white transition-all`} />
+                        </div>
+                      </div>
+
+                      <span className="flex-1 text-center text-[12px] sm:text-[13px] lg:text-[14px] xl:text-[15px] uppercase tracking-tight leading-tight font-bold">
+                        SAVE <span className="font-bold mx-0.5">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
+                      </span>
+
+                      <div className="w-6 sm:w-8 flex justify-end shrink-0">
+                        <ChevronRight size={16} className={`transition-transform duration-200 ${isSchemeOpen ? 'rotate-90' : ''}`} />
+                      </div>
                     </Button>
                     <Button
                       variant="outline"
@@ -2465,8 +2583,7 @@ export default function ProductPageClient({
                 <Feature
                   icon={
                     <svg width="22" height="22" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21.125 18.9583C21.125 19.6766 20.8397 20.3655 20.3317 20.8734C19.8238 21.3813 19.135 21.6667 18.4167 21.6667C17.6984 21.6667 17.0095 21.3813 16.5016 20.8734C15.9937 20.3655 15.7083 19.6766 15.7083 18.9583C15.7083 18.24 15.9937 17.5512 16.5016 17.0433C17.0095 16.5353 17.6984 16.25 18.4167 16.25C19.135 16.25 19.8238 16.5353 20.3317 17.0433C20.8397 17.5512 21.125 18.24 21.125 18.9583ZM10.2917 18.9583C10.2917 19.6766 10.0063 20.3655 9.49841 20.8734C8.9905 21.3813 8.30163 21.6667 7.58333 21.6667C6.86504 21.6667 6.17616 21.3813 5.66825 20.8734C5.16034 20.3655 4.875 19.6766 4.875 18.9583C4.875 18.24 5.16034 17.5512 5.66825 17.0433C6.17616 16.5353 6.86504 16.25 7.58333 16.25C8.30163 16.25 8.9905 16.5353 9.49841 17.0433C10.0063 17.5512 10.2917 18.24 10.2917 18.9583Z" stroke="#5A413F" strokeWidth="2" />
-                      <path d="M15.7084 18.9585H10.2917M21.1251 18.9585H21.9517C22.19 18.9585 22.3092 18.9585 22.4088 18.9455C22.7675 18.9008 23.101 18.7379 23.3566 18.4824C23.6123 18.227 23.7755 17.8936 23.8204 17.535C23.8334 17.4342 23.8334 17.3151 23.8334 17.0767V14.0835C23.8334 12.2159 23.0915 10.4249 21.771 9.10429C20.4504 7.78372 18.6593 7.04183 16.7917 7.04183M16.2501 16.7918V7.5835C16.2501 6.05166 16.2501 5.28575 15.7734 4.81016C15.2989 4.3335 14.533 4.3335 13.0001 4.3335H5.41675C3.88491 4.3335 3.119 4.3335 2.64341 4.81016C2.16675 5.28466 2.16675 6.05058 2.16675 7.5835V16.2502C2.16675 17.2631 2.16675 17.769 2.3845 18.146C2.52712 18.393 2.73224 18.5981 2.97925 18.7407C3.35625 18.9585 3.86216 18.9585 4.87508 18.9585" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M21.125 18.9583C21.125 19.6766 20.8397 20.3655 20.3317 20.8734C19.8238 21.3813 19.135 21.6667 18.4167 21.6667C17.6984 21.6667 17.0095 21.3813 16.5016 20.8734C15.9937 20.3655 15.7083 19.6766 15.7083 18.9583C15.7083 18.24 15.9937 17.5512 16.5016 17.0433C17.0095 16.5353 17.6984 16.25 18.4167 16.25C19.135 16.25 19.8238 16.5353 20.3317 17.0433C20.8397 17.5512 21.125 18.24 21.125 18.9583ZM10.2917 18.9583C10.2917 19.6766 10.0063 20.3655 9.49841 20.8734C8.9905 21.3813 8.30163 21.6667 7.58333 21.6667C6.86504 21.6667 6.17616 21.3813 5.66825 20.8734C5.16034 20.3655 4.875 19.6766 4.875 18.9583C4.875 18.24 5.16034 17.5512 5.66825 17.0433C6.17616 16.5353 6.86504 16.25 7.58333 16.25C8.30163 16.25 8.9905 16.5353 9.49841 17.0433C10.0063 17.5512 10.2917 18.24 10.2917 18.9583ZM21.125 18.9585H10.2917M21.1251 18.9585H21.9517C22.19 18.9585 22.3092 18.9585 22.4088 18.9455C22.7675 18.9008 23.101 18.7379 23.3566 18.4824C23.6123 18.227 23.7755 17.8936 23.8204 17.535C23.8334 17.4342 23.8334 17.3151 23.8334 17.0767V14.0835C23.8334 12.2159 23.0915 10.4249 21.771 9.10429C20.4504 7.78372 18.6593 7.04183 16.7917 7.04183M16.2501 16.7918V7.5835C16.2501 6.05166 16.2501 5.28575 15.7734 4.81016C15.2989 4.3335 14.533 4.3335 13.0001 4.3335H5.41675C3.88491 4.3335 3.119 4.3335 2.64341 4.81016C2.16675 5.28466 2.16675 6.05058 2.16675 7.5835V16.2502C2.16675 17.2631 2.16675 17.769 2.3845 18.146C2.52712 18.393 2.73224 18.5981 2.97925 18.7407C3.35625 18.9585 3.86216 18.9585 4.87508 18.9585" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   }
                   text="Free and secure shipping"
@@ -2530,83 +2647,94 @@ export default function ProductPageClient({
               <div className="space-y-3 pt-2">
                 <div className="relative">
                   <Input
-                    placeholder="Enter Pincode"
+                    placeholder="Enter pin code to check delivery time"
                     value={localPincode}
+                    readOnly={hasConfirmedPincode}
                     onChange={(e) => {
                       const value = e.target.value.replace(/\D/g, "").slice(0, 6);
                       setLocalPincode(value);
                       dispatch(setPincode(value));
                     }}
-                    onKeyDown={(e) => e.key === 'Enter' && handlePincodeCheck(localPincode)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !hasConfirmedPincode) {
+                        handlePincodeCheck(localPincode);
+                      }
+                    }}
                     maxLength={6}
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    className="h-14 bg-white border-gray-200 rounded-md text-sm font-medium pr-40"
+                    className="h-14 bg-white border-gray-200 rounded-md text-sm font-medium pr-44"
                   />
                   <Button
-                    onClick={() => handlePincodeCheck(localPincode)}
-                    disabled={checkingPincode}
-                    className="h-12 px-10 font-bold rounded-md absolute right-1 top-1/2 transform -translate-y-1/2 bg-tertiary hover:cursor-pointer"
+                    onClick={() => {
+                      if (hasConfirmedPincode) {
+                        resetPincodeState();
+                        return;
+                      }
+
+                      if (showLocateMeAction) {
+                        handleLocateMe();
+                        return;
+                      }
+
+                      handlePincodeCheck(localPincode);
+                    }}
+                    disabled={checkingPincode || locatingPincode}
+                    className="h-12 min-w-[164px] px-6 font-bold rounded-md absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#5A413F] hover:cursor-pointer flex items-center justify-center gap-2"
                   >
-                    {checkingPincode ? <Loader2 className="animate-spin" size={18} /> : "CHECK"}
+                    {checkingPincode || locatingPincode ? (
+                      <Loader2 className="animate-spin" size={18} />
+                    ) : hasConfirmedPincode ? (
+                      "CHANGE"
+                    ) : showLocateMeAction ? (
+                      <>
+                        <MapPin size={16} />
+                        LOCATE ME
+                      </>
+                    ) : (
+                      "CHECK"
+                    )}
                   </Button>
                 </div>
-                {deliveryInfo.status !== "idle" && (
-                  <div className={`text-sm flex items-center gap-2 ${deliveryInfo.status === "undeliverable" ? "text-red-500" : "text-black"}`}>
-                    {deliveryInfo.status === "undeliverable" ? (
-                      <X size={16} />
-                    ) : (
-                      <Info size={16} className={deliveryInfo.status === "loading" ? "animate-pulse" : "text-black"} />
-                    )}
-                    <span className={deliveryInfo.status === "deliverable" ? "font-normal" : "font-medium"}>
-                      {deliveryInfo.message}
-                    </span>
-                  </div>
-                )}
+                <div className={`text-sm flex items-center gap-2 ${deliveryInfo.status === "undeliverable" ? "text-red-500" : "text-black"}`}>
+                  {deliveryInfo.status === "undeliverable" ? (
+                    <X size={16} />
+                  ) : (
+                    <Info size={16} className={(checkingPincode || locatingPincode) ? "animate-pulse text-black" : "text-black"} />
+                  )}
+                  <span className={deliveryInfo.status === "undeliverable" ? "font-medium" : "font-normal"}>
+                    {deliveryMessage}
+                  </span>
+                </div>
               </div>
 
               {/* Nearest Store */}
-              <div className="border border-gray-200 rounded-md p-4 space-y-2.5 bg-gray-50">
-                <div className="flex items-center gap-2">
-                  <Store size={20} className="text-black" strokeWidth={1.2} />
-                  <span className="text-base font-bold">
-                    {nearestStore ? (
-                      <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearestStore.name)}{nearestStore.distance !== null ? ` (${Math.round(nearestStore.distance)}Km)` : ""}</span></>
-                    ) : (
-                      <>Available in <span className="italic font-semibold text-black">{availableStoreCount} stores</span></>
-                    )}
-                  </span>
-                </div>
-                {nearestStore ? (
-                  nearestStore.isInStock ? (
-                    <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
+              {isCentralInStock && isAvailableInAnyStore && (
+                <div className="border border-gray-200 rounded-md p-4 space-y-3 bg-gray-50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Store size={20} className="text-black shrink-0 mt-0.5" strokeWidth={1.2} />
+                      <span className="text-base font-bold leading-tight">
+                        {!hasConfirmedPincode ? (
+                          <>Available at our <span className="italic font-semibold text-black">Lucira Store</span></>
+                        ) : nearbyAvailableStore ? (
+                          <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearbyAvailableStore.name)}{nearbyAvailableStore.distance !== null ? ` (${Math.round(nearbyAvailableStore.distance)}Km)` : ""}</span></>
+                        ) : (
+                          <span className="italic font-semibold text-black">No nearby store available within 25 kms</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full shrink-0 w-fit">
                       <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
                         <Check size={9} className="text-white" strokeWidth={4} />
                       </div>
                       <span className="text-12px font-semibold tracking-tight">Design Available</span>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-full w-fit border border-amber-100">
-                      <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
-                      <span className="text-12px font-bold uppercase tracking-tight">Ships to Store</span>
-                    </div>
-                  )
-                ) : availableStoreCount > 0 && (
-                  <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full w-fit">
-                    <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
-                      <Check size={9} className="text-white" strokeWidth={4} />
-                    </div>
-                    <span className="text-12px font-semibold tracking-tight">Design Available</span>
                   </div>
-                )}
-                {(() => {
-                  if (!nearestStore) return null;
-                  const otherCount = nearestStore.isInStock ? availableStoreCount - 1 : availableStoreCount;
-                  if (otherCount <= 0) return null;
 
-                  return (
+                  {hasConfirmedPincode && nearbyAvailableStore && otherAvailableStoreCount > 0 && (
                     <p className="text-sm text-black">
-                      {nearestStore.isInStock ? "Also available in " : "Available in "}
+                      Also available in {" "}
                       <button
                         onClick={() => {
                           setIsStoreDrawerOpen(true);
@@ -2624,31 +2752,80 @@ export default function ProductPageClient({
                         }}
                         className="underline underline-offset-2 font-bold"
                       >
-                        {otherCount} {otherCount === 1 ? "other store" : "other stores"}
+                        {otherAvailableStoreCount} {otherAvailableStoreCount === 1 ? "other store" : "other stores"}
                       </button>
                     </p>
-                  );
-                })()}
-                <Button
-                  onClick={() => {
-                    setIsStoreDrawerOpen(true);
-                    pushToDataLayer({
-                      event: "promoClick",
-                      promoClick: {
-                        creative_name: "find nearest store cta pdp",
-                        promo_id: getNumericId(activeVariant?.id),
-                        promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
-                        promo_position: "Product Details Section",
-                        location_id: "pdp",
-                        product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                      }
-                    });
-                  }}
-                  className="w-full h-12 font-bold rounded-md mt-1 text-sm bg-tertiary uppercase tracking-widest"
-                >
-                  {availableStoreCount > 0 ? "FIND IN STORE" : "FIND STORE"}
-                </Button>
-              </div>
+                  )}
+
+                  {hasConfirmedPincode && !nearbyAvailableStore ? (
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsStoreDrawerOpen(true);
+                          pushToDataLayer({
+                            event: "promoClick",
+                            promoClick: {
+                              creative_name: "view all stores cta pdp",
+                              promo_id: getNumericId(activeVariant?.id),
+                              promo_name: "View All Stores",
+                              promo_position: "Product Details Section",
+                              location_id: "pdp",
+                              product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                            }
+                          });
+                        }}
+                        className="w-full h-12 font-bold rounded-md text-sm border-primary text-primary uppercase tracking-wide"
+                      >
+                        <Store size={16} />
+                        VIEW ALL STORES
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          pushToDataLayer({
+                            event: "promoClick",
+                            promoClick: {
+                              creative_name: "book video call cta pdp",
+                              promo_id: getNumericId(activeVariant?.id),
+                              promo_name: "Book Video Call",
+                              promo_position: "Product Details Section",
+                              location_id: "pdp",
+                              product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                            }
+                          });
+                          window.open("https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
+                        }}
+                        className="w-full h-12 font-bold rounded-md text-sm bg-tertiary uppercase tracking-wide"
+                      >
+                        <Video size={16} />
+                        BOOK VIDEO CALL
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        setIsStoreDrawerOpen(true);
+                        pushToDataLayer({
+                          event: "promoClick",
+                          promoClick: {
+                            creative_name: "find nearest store cta pdp",
+                            promo_id: getNumericId(activeVariant?.id),
+                            promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                            promo_position: "Product Details Section",
+                            location_id: "pdp",
+                            product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                          }
+                        });
+                      }}
+                      className="w-full h-12 font-bold rounded-md mt-1 text-sm bg-[#5A413F] uppercase tracking-widest"
+                    >
+                      {!hasConfirmedPincode
+                        ? "FIND OUR NEAREST STORE"
+                        : "FIND ALL STORES"}
+                    </Button>
+                  )}
+                </div>
+              )}
               <Separator />
             </div>
 
@@ -2738,43 +2915,45 @@ export default function ProductPageClient({
               );
             })()}
             {/* Explore Section */}
-            <div className="space-y-4 mt-4">
-              <h3 className="text-base font-semibold">More Ways To Explore:</h3>
-              <ExploreCard
-                key="visit-store"
-                title="Visit Our Store"
-                description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
-                action="BOOK APPOINTMENT"
-                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
-                url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
-                onClick={() => pushToDataLayer({
-                  event: 'promoClick',
-                  promoClick: {
-                    promo_id: getNumericId(product.shopifyId || product.id),
-                    creative_name: 'Visit Store Button clicked',
-                    location_id: 'Pdp',
-                  }
-                })}
-              />
-              <ExploreCard
-                key="try-at-home"
-                title="Try At Home"
-                description="Try your selected pieces from the comfort of your home. Available in all major cities"
-                action="BOOK HOME TRIAL"
-                img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
-                url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
-                onClick={() => pushToDataLayer({
-                  event: 'promoClick',
-                  promoClick: {
-                    promo_id: activeVariant?.sku || product.id,
-                    promo_name: product.title,
-                    creative_name: 'Try at Home Section',
-                    location_id: 'PDP',
-                  }
-                })}
-              />
-              <Separator />
-            </div>
+            {isCentralInStock && (
+              <div className="space-y-4 mt-4">
+                <h3 className="text-base font-semibold">More Ways To Explore:</h3>
+                <ExploreCard
+                  key="visit-store"
+                  title="Visit Our Store"
+                  description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
+                  action="BOOK APPOINTMENT"
+                  img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
+                  url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
+                  onClick={() => pushToDataLayer({
+                    event: 'promoClick',
+                    promoClick: {
+                      promo_id: getNumericId(product.shopifyId || product.id),
+                      creative_name: 'Visit Store Button clicked',
+                      location_id: 'Pdp',
+                    }
+                  })}
+                />
+                <ExploreCard
+                  key="try-at-home"
+                  title="Try At Home"
+                  description="Try your selected pieces from the comfort of your home. Available in all major cities"
+                  action="BOOK HOME TRIAL"
+                  img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
+                  url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
+                  onClick={() => pushToDataLayer({
+                    event: 'promoClick',
+                    promoClick: {
+                      promo_id: activeVariant?.sku || product.id,
+                      promo_name: product.title,
+                      creative_name: 'Try at Home Section',
+                      location_id: 'PDP',
+                    }
+                  })}
+                />
+                <Separator />
+              </div>
+            )}
 
             {/* Product Details Section */}
             <div className="space-y-4 mt-6">
@@ -3061,10 +3240,13 @@ export default function ProductPageClient({
         </div>
       </div>
       <LuxuryMarquee prop={["bg-tertiary", "text-white", "mt-10", "text-md", "font-semibold"]} />
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <OnTheMoveStory tags={product.tags} /> 
-      </Suspense>      
-      <ProductStory description={product.description} />
+      {product.tags?.includes("Sports Collection") ? (
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+          <OnTheMoveStory tags={product.tags} />
+        </Suspense>
+      ) : (
+        <ProductStory description={product.description} />
+      )}
       
       {matchedCollectionTag ? (
         <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
@@ -3115,16 +3297,18 @@ export default function ProductPageClient({
       {!isGoldCoin && <DiamondComparison />}
       {/* <ExploreOtherRings /> */}
       {isMobile ? (<ExploreRange />) : (<CategorySlider />)}
-      <FindLuciraStore
-        pincode={localPincode}
-        setPincode={setLocalPincode}
-        handlePincodeCheck={handlePincodeCheck}
-        checkingPincode={checkingPincode}
-        deliveryInfo={deliveryInfo}
-        availableStores={availableStores}
-        product={product}
-        activeVariant={activeVariant}
-      />
+      {isCentralInStock && (
+        <FindLuciraStore
+          pincode={localPincode}
+          setPincode={setLocalPincode}
+          handlePincodeCheck={handlePincodeCheck}
+          checkingPincode={checkingPincode}
+          deliveryInfo={deliveryInfo}
+          availableStores={availableStores}
+          product={product}
+          activeVariant={activeVariant}
+        />
+      )}
       <JoinLuciraCommunity />
 
       {isMobileView ? (
@@ -3169,10 +3353,15 @@ export default function ProductPageClient({
                               <div className="w-2 h-2 bg-[#76D168] rounded-full"></div>
                               <span className="text-xs font-bold uppercase">In Stock</span>
                             </div>
-                          ) : (
+                          ) : showShipsToStore ? (
                             <div className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-100">
                               <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
                               <span className="text-xs font-bold uppercase">Ships to Store</span>
+                            </div>
+                          ) : (
+                            <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full flex items-center gap-1.5 border border-gray-200">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                              <span className="text-xs font-bold uppercase">Made to Order</span>
                             </div>
                           )}
                         </div>
@@ -3188,7 +3377,15 @@ export default function ProductPageClient({
                           </div>
                           <div className="flex items-center gap-3 text-sm text-gray-600">
                             <Package size={18} className="shrink-0 text-gray-400" />
-                            <p className="font-medium">Ready for pickup in 2-4 hours</p>
+                            <p className="font-medium">
+                              {store.isInStock ? (
+                                "Ready for pickup in 2-4 hours"
+                              ) : showShipsToStore ? (
+                                "Ready for pickup in 5-6 Days"
+                              ) : (
+                                `Ready for pickup in ${leadDays}-${leadDays + 3} Days`
+                              )}
+                            </p>
                           </div>
                         </div>
 
@@ -3264,10 +3461,15 @@ export default function ProductPageClient({
                             <div className="w-2 h-2 bg-[#76D168] rounded-full"></div>
                             <span className="text-xs font-bold uppercase">In Stock</span>
                           </div>
-                        ) : (
+                        ) : showShipsToStore ? (
                           <div className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full flex items-center gap-1.5 border border-amber-100">
                             <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
                             <span className="text-xs font-bold uppercase">Ships to Store</span>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full flex items-center gap-1.5 border border-gray-200">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <span className="text-xs font-bold uppercase">Made to Order</span>
                           </div>
                         )}
                       </div>
@@ -3283,7 +3485,15 @@ export default function ProductPageClient({
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Package size={18} className="shrink-0 text-gray-400" />
-                          <p className="font-medium">Ready for pickup in 2-4 hours</p>
+                          <p className="font-medium">
+                            {store.isInStock ? (
+                              "Ready for pickup in 2-4 hours"
+                            ) : showShipsToStore ? (
+                              "Ready for pickup in 5-6 Days"
+                            ) : (
+                              `Ready for pickup in ${leadDays}-${leadDays + 3} Days`
+                            )}
+                          </p>
                         </div>
                       </div>
 
