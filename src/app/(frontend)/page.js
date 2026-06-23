@@ -13,7 +13,7 @@ import JewelryBlogContainer from "@/components/home/JewelryBlogContainer";
 
 // Lazy load below-the-fold components
 const StyledByLucira = dynamic(() => import("@/components/home/StyledByLucira"), { suspense: true });
-const BuildYourJewelry = dynamic(() => import("@/components/home/BuildYourJewelry"), { suspense: true });
+const BuildYourJewelry = dynamic(() => import("@/components/home/buildYourJewelry"), { suspense: true });
 const LuxuryMarquee = dynamic(() => import("@/components/product/LuxuryMarquee"), { suspense: true });
 const ShopByOccasion = dynamic(() => import("@/components/home/ShopByOccasion"), { suspense: true });
 const FeaturedIn = dynamic(() => import("@/components/home/FeaturedIn"), { suspense: true });
