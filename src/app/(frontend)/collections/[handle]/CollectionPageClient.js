@@ -514,7 +514,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     let renderedCount = 0;
     products.forEach((prod, idx) => {
       if (!prod) return;
-      if (renderedCount === 3 || renderedCount === 6) {
+      if (renderedCount === 3 || renderedCount === 10) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
