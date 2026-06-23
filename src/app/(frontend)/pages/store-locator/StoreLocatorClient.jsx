@@ -496,7 +496,7 @@ export default function StoreLocatorPage() {
                       className="object-cover group-hover:scale-105 transition-all duration-700"
                     />
                     {store.openingSoon && (
-                      <div className="absolute top-4 left-4 bg-[#b76f79] text-white px-4 py-1.5 rounded-full text-[10px] font-black shadow-sm uppercase tracking-widest z-[1]">
+                      <div className="absolute top-4 left-4 bg-[#b76f79] text-white px-4 py-1.5 rounded-full text-[10px] font-semibold shadow-sm uppercase tracking-widest z-[1]">
                         Opening Soon
                       </div>
                     )}
