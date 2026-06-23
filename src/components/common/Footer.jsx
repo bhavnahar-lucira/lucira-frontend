@@ -25,7 +25,7 @@ export default function Footer() {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  if (pathname?.startsWith("/dashboard")) return null;
+  if (pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway")) return null;
 
   if (isMobile) {
     return (
