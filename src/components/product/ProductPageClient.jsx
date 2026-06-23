@@ -78,7 +78,7 @@ import { addRecentlyViewed, selectRecentlyViewed } from "@/redux/features/recent
 import AtcBar from "@/components/AtcBar";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushProductView, pushAddToCart, pushAddToWishlist, pushRemoveFromWishlist, pushPromoClick, formatGtmPrice, getNumericId, getStandardWishlistPayload, pushToDataLayer } from "@/lib/gtm";
-import { sendProductViewWebhook, sendAddToCartWebhook } from "@/lib/headless-webhooks";
+import { sendProductViewWebhook } from "@/lib/headless-webhooks";
 
 import {
   Sheet,
@@ -1314,7 +1314,6 @@ export default function ProductPageClient({
         products: atcData
       });
 
-      sendAddToCartWebhook(user, atcData);
       //gtm
 
       toast.success("Added to cart!");
