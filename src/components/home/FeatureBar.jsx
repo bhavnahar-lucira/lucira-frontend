@@ -49,7 +49,7 @@ export default function FeatureBar() {
     },
     {
       icon: ReturnIcon,
-      text: "15-day free returns",
+      text: "15-day Money Back Guarantee",
     },
   ];
 

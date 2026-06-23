@@ -22,7 +22,7 @@ const features = [
   },
   {
     icon: "/images/return.svg",
-    text: "15-day free returns",
+    text: "15-day Money Back Guarantee",
     type: "image",
   },
 ];
