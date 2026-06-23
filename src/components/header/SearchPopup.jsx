@@ -19,22 +19,39 @@ const HighlightMatch = ({ text, query }) => {
           </strong>
         ) : (
           part
-        )
+        ),
       )}
     </span>
   );
 };
 
-export default function SearchPopup({ onClose, searchQuery, searchResults, isSearching }) {
+export default function SearchPopup({
+  onClose,
+  searchQuery,
+  searchResults,
+  isSearching,
+}) {
   const [bestsellers, setBestsellers] = useState([]);
   const [isLoadingBestsellers, setIsLoadingBestsellers] = useState(false);
+  const handlePromoClick = ({ promo_id, promo_name, creative_name }) => {
+    window.dataLayer = window.dataLayer || [];
 
+    window.dataLayer.push({
+      event: "promoClick",
+
+      promoClick: {
+        promo_id: promo_id,
+        promo_name: promo_name,
+        creative_name: creative_name,
+      },
+    });
+  };
   // Extract matched collections and products
-  const productsOnly = searchResults.filter(item => !item.isCollection);
-  
+  const productsOnly = searchResults.filter((item) => !item.isCollection);
+
   // Prioritize exact matches in collections
   const matchedCollections = searchResults
-    .filter(item => item.isCollection)
+    .filter((item) => item.isCollection)
     .sort((a, b) => {
       const aExact = a.title.toLowerCase() === searchQuery.toLowerCase();
       const bExact = b.title.toLowerCase() === searchQuery.toLowerCase();
@@ -45,12 +62,42 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
 
   // Static Categories for initial state
   const MOCK_CATEGORIES = [
-    { title: "Solitaire Rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_33902_jpg.jpg?v=1780118511", href: "/collections/solitaire-rings" },
-    { title: "Solitaire Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511", href: "/collections/solitaire-earrings" },
-    { title: "Solitaire Pendant", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511", href: "/collections/solitaire-pendants" },
-    { title: "Solitaire Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511", href: "/collections/solitaire-bracelets" },
-    { title: "Men's Solitaire", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_men_solitairea.jpg?v=1780382143", href: "/collections/solitaires-for-men" },
-    { title: "Solitaire Necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_necklace.jpg?v=1780382136", href: "/collections/solitaire-necklaces" },
+    {
+      title: "Solitaire Rings",
+      image:
+        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_33902_jpg.jpg?v=1780118511",
+      href: "/collections/solitaire-rings",
+    },
+    {
+      title: "Solitaire Earrings",
+      image:
+        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511",
+      href: "/collections/solitaire-earrings",
+    },
+    {
+      title: "Solitaire Pendant",
+      image:
+        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511",
+      href: "/collections/solitaire-pendants",
+    },
+    {
+      title: "Solitaire Bracelets",
+      image:
+        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511",
+      href: "/collections/solitaire-bracelets",
+    },
+    {
+      title: "Men's Solitaire",
+      image:
+        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_men_solitairea.jpg?v=1780382143",
+      href: "/collections/solitaires-for-men",
+    },
+    {
+      title: "Solitaire Necklaces",
+      image:
+        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_necklace.jpg?v=1780382136",
+      href: "/collections/solitaire-necklaces",
+    },
   ];
 
   // Fetch Bestsellers
@@ -59,12 +106,20 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
       if (searchQuery.length === 0 && bestsellers.length === 0) {
         setIsLoadingBestsellers(true);
         try {
-          const data = await fetchCollectionProducts({ handle: "bestseller", limit: 3 });
+          const data = await fetchCollectionProducts({
+            handle: "bestseller",
+            limit: 3,
+          });
           const formatPrice = (num) => {
             if (!num && num !== 0) return "";
-            return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
+            return (
+              "₹" +
+              new Intl.NumberFormat("en-IN", {
+                maximumFractionDigits: 0,
+              }).format(Math.round(Number(num)))
+            );
           };
-          const mapped = (data.products || []).map(p => ({
+          const mapped = (data.products || []).map((p) => ({
             id: p.shopifyId || p.id,
             title: p.title,
             url: `/products/${p.handle}`,
@@ -102,63 +157,80 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
       <div className="p-5 md:p-8 overflow-y-auto custom-scrollbar scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-white hover:scrollbar-thumb-gray-400">
         <div className="animate-in fade-in duration-300">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-8 md:gap-10">
-            
             {/* Left Column: Products (Shows when typing) */}
             <div className="md:pr-10 lg:border-r border-gray-100 flex flex-col">
               <h3 className="text-sm md:text-base font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">
                 {searchQuery.length === 0 ? "Bestseller Products" : "Products"}
               </h3>
-              
+
               {searchQuery.length === 0 ? (
-                 isLoadingBestsellers ? (
-                    <div className="space-y-4 md:space-y-5">
-                      {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="flex gap-4 animate-pulse">
-                          <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-sm" />
-                          <div className="flex-1 space-y-2 py-1">
-                            <div className="h-3 bg-gray-100 rounded w-3/4" />
-                            <div className="h-2.5 bg-gray-100 rounded w-1/4" />
-                          </div>
+                isLoadingBestsellers ? (
+                  <div className="space-y-4 md:space-y-5">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="flex gap-4 animate-pulse">
+                        <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-sm" />
+                        <div className="flex-1 space-y-2 py-1">
+                          <div className="h-3 bg-gray-100 rounded w-3/4" />
+                          <div className="h-2.5 bg-gray-100 rounded w-1/4" />
                         </div>
-                      ))}
-                    </div>
-                 ) : bestsellers.length > 0 ? (
-                    <div className="space-y-4 md:space-y-5">
-                      {bestsellers.map((item) => (
-                        <Link 
-                          key={item.id} 
-                          href={item.url}
-                          prefetch={false}
-                          onClick={onClose}
-                          className="group flex gap-3 md:gap-4 items-center"
-                        >
-                          <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                            <Image 
-                              src={item.image || "/images/product/1.jpg"} 
-                              alt={item.title} 
-                              fill 
-                              unoptimized={String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com")}
-                              className="object-cover w-full h-full"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-xs md:text-sm font-medium text-gray-800 truncate group-hover:text-primary transition-colors">
-                              {item.title}
-                            </h4>
-                            <p className="text-xs font-bold text-gray-900 mt-0.5">{item.price}</p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                 ) : (
-                    <div className="flex flex-col items-center justify-center h-37.5 md:h-50 text-gray-400">
-                        <Search strokeWidth={1} className="mb-3 opacity-20 w-7 h-7 md:w-8 md:h-8" />
-                        <p className="text-xs md:text-sm">No bestsellers available</p>
-                    </div>
-                 )
+                      </div>
+                    ))}
+                  </div>
+                ) : bestsellers.length > 0 ? (
+                  <div className="space-y-4 md:space-y-5">
+                    {bestsellers.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.url}
+                        prefetch={false}
+                        onClick={() => {
+                          handlePromoClick({
+                            promo_id: item.id,
+                            promo_name: item.title,
+                            creative_name: "Search Popup - Bestseller",
+                          });
+
+                          onClose();
+                        }}
+                        className="group flex gap-3 md:gap-4 items-center"
+                      >
+                        <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
+                          <Image
+                            src={item.image || "/images/product/1.jpg"}
+                            alt={item.title}
+                            fill
+                            unoptimized={
+                              String(item.image).includes("cdn.shopify.com") ||
+                              String(item.image).includes("myshopify.com")
+                            }
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs md:text-sm font-medium text-gray-800 truncate group-hover:text-primary transition-colors">
+                            {item.title}
+                          </h4>
+                          <p className="text-xs font-bold text-gray-900 mt-0.5">
+                            {item.price}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-37.5 md:h-50 text-gray-400">
+                    <Search
+                      strokeWidth={1}
+                      className="mb-3 opacity-20 w-7 h-7 md:w-8 md:h-8"
+                    />
+                    <p className="text-xs md:text-sm">
+                      No bestsellers available
+                    </p>
+                  </div>
+                )
               ) : isSearching ? (
                 <div className="space-y-4 md:space-y-5">
-                  {[1, 2, 3, 4].map(i => (
+                  {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="flex gap-4 animate-pulse">
                       <div className="w-12 h-12 md:w-14 md:h-14 bg-gray-100 rounded-sm" />
                       <div className="flex-1 space-y-2 py-1">
@@ -171,34 +243,44 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
               ) : productsOnly.length > 0 ? (
                 <div className="space-y-4 md:space-y-5">
                   {productsOnly.slice(0, 6).map((item) => (
-                    <Link 
-                      key={item.id} 
+                    <Link
+                      key={item.id}
                       href={item.url}
                       prefetch={false}
                       onClick={onClose}
                       className="group flex gap-3 md:gap-4 items-center"
                     >
                       <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                        <Image 
-                          src={item.image || "/images/product/1.jpg"} 
-                          alt={item.title} 
-                          fill 
-                          unoptimized={String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com")}
+                        <Image
+                          src={item.image || "/images/product/1.jpg"}
+                          alt={item.title}
+                          fill
+                          unoptimized={
+                            String(item.image).includes("cdn.shopify.com") ||
+                            String(item.image).includes("myshopify.com")
+                          }
                           className="object-cover w-full h-full"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs md:text-sm font-medium text-gray-800 truncate group-hover:text-primary transition-colors">
-                          <HighlightMatch text={item.title} query={searchQuery} />
+                          <HighlightMatch
+                            text={item.title}
+                            query={searchQuery}
+                          />
                         </h4>
-                        <p className="text-xs font-bold text-gray-900 mt-0.5">{item.price}</p>
+                        <p className="text-xs font-bold text-gray-900 mt-0.5">
+                          {item.price}
+                        </p>
                       </div>
                     </Link>
                   ))}
                 </div>
               ) : (
                 <div className="py-8 md:py-10 text-center">
-                  <p className="text-gray-400 text-xs md:text-sm italic">No matching products found</p>
+                  <p className="text-gray-400 text-xs md:text-sm italic">
+                    No matching products found
+                  </p>
                 </div>
               )}
             </div>
@@ -207,22 +289,35 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
             <div>
               {searchQuery.length === 0 ? (
                 <>
-                  <h3 className="text-xs md:text-sm font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">Categories</h3>
+                  <h3 className="text-xs md:text-sm font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">
+                    Categories
+                  </h3>
                   <div className="grid grid-cols-3 gap-3 md:gap-5">
                     {MOCK_CATEGORIES.map((cat, i) => (
-                      <Link 
-                        key={i} 
+                      <Link
+                        key={i}
                         href={cat.href}
                         prefetch={false}
-                        onClick={onClose}
+                        onClick={() => {
+                          handlePromoClick({
+                            promo_id: cat.href,
+                            promo_name: cat.title,
+                            creative_name: "Search Popup - Categories",
+                          });
+
+                          onClose();
+                        }}
                         className="group"
                       >
                         <div className="aspect-4/3 relative rounded-md overflow-hidden mb-1.5 md:mb-2.5 bg-transparent">
-                          <Image 
-                            src={cat.image} 
-                            alt={cat.title} 
-                            fill 
-                            unoptimized={String(cat.image).includes("cdn.shopify.com") || String(cat.image).includes("myshopify.com")}
+                          <Image
+                            src={cat.image}
+                            alt={cat.title}
+                            fill
+                            unoptimized={
+                              String(cat.image).includes("cdn.shopify.com") ||
+                              String(cat.image).includes("myshopify.com")
+                            }
                             className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
                           />
                         </div>
@@ -235,12 +330,14 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                 </>
               ) : (
                 <>
-                  <h3 className="text-xs md:text-sm font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">Collection</h3>
+                  <h3 className="text-xs md:text-sm font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">
+                    Collection
+                  </h3>
                   <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar scrollbar-thin scrollbar-thumb-zinc-200">
                     {matchedCollections.length > 0 ? (
                       matchedCollections.map((col) => (
-                        <Link 
-                          key={col.id} 
+                        <Link
+                          key={col.id}
                           href={col.url}
                           prefetch={false}
                           onClick={onClose}
@@ -248,7 +345,10 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                         >
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">
-                              <HighlightMatch text={col.title} query={searchQuery} />
+                              <HighlightMatch
+                                text={col.title}
+                                query={searchQuery}
+                              />
                             </h4>
                             <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mt-1">
                               Collection
@@ -258,7 +358,9 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                       ))
                     ) : (
                       <div className="py-4 text-center">
-                        <p className="text-gray-400 text-xs italic">No matching collections found</p>
+                        <p className="text-gray-400 text-xs italic">
+                          No matching collections found
+                        </p>
                       </div>
                     )}
                   </div>
@@ -267,7 +369,7 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
 
               {searchQuery.length > 0 && (
                 <div className="mt-8 pt-6 border-t border-gray-50">
-                  <Link 
+                  <Link
                     href={`/search?q=${encodeURIComponent(searchQuery)}`}
                     prefetch={false}
                     onClick={onClose}
@@ -278,7 +380,6 @@ export default function SearchPopup({ onClose, searchQuery, searchResults, isSea
                 </div>
               )}
             </div>
-
           </div>
         </div>
       </div>
