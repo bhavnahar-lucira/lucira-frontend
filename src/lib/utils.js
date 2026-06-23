@@ -111,14 +111,14 @@ export function getEstimatedDispatchDate(isInStock, leadTime = 12) {
   if (isInStock) {
     const dispatchDate = new Date(today);
     dispatchDate.setDate(today.getDate() + 2);
-    return `Estimated free dispatch by ${
+    return `Estimated dispatch by ${
       months[dispatchDate.getMonth()]
     } ${dispatchDate.getDate()}, ${dispatchDate.getFullYear()}`;
   } else {
     const totalDays = (parseInt(leadTime) || 12) + 3;
     const dispatchDate = new Date(today);
     dispatchDate.setDate(today.getDate() + totalDays);
-    return `Estimated free dispatch by ${
+    return `Estimated dispatch by ${
       months[dispatchDate.getMonth()]
     } ${dispatchDate.getDate()}, ${dispatchDate.getFullYear()}`;
   }

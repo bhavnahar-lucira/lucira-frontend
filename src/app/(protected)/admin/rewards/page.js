@@ -450,7 +450,11 @@ export default function EarnRewardsPage() {
   async function fetchCoins() {
     setCoinsLoading(true);
     try {
-      const data = await apiFetch("/api/customer/nector-coins", { cache:"no-store" });
+      const headers = accessToken ? { "Authorization": `Bearer ${accessToken}` } : {};
+      const data = await apiFetch("/api/customer/nector-coins", { 
+        cache: "no-store",
+        headers
+      });
       if (data?.status !== false) setNectorCoins(data.coins_balance ?? 0);
     } catch (e) {
       console.warn("Nector proxy error:", e);
