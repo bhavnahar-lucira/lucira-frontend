@@ -9,6 +9,10 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
+  experimental: {
+    workerThreads: false,
+    cpus: 1,
+  },
   /* config options here */
   reactCompiler: true,
   compress: true,
