@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronRight } from 'lucide-react';
 
-const CHAIN_COLLECTION_HANDLE = 'byj-chains';
+// Dynamic collection handles are determined based on category type
 const CHARM_COLLECTIONS = [
   { handle: 'byj-faraways-charms', title: 'Faraways Charms' },
   { handle: 'byj-fairytrails-charm', title: 'Fairytrails Charm' },
@@ -162,8 +162,15 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   useEffect(() => {
     async function loadData() {
       try {
+        const getCollectionHandle = (cat) => {
+          if (cat === 'bracelets') return 'byj-bracelets';
+          if (cat === 'anklets') return 'byj-anklets';
+          return 'byj-chains';
+        };
+
+        const handle = getCollectionHandle(category);
         const [chainRes, ...charmResponses] = await Promise.all([
-          shopifyStorefrontFetch(GET_COLLECTION_QUERY, { handle: CHAIN_COLLECTION_HANDLE, first: 250 }),
+          shopifyStorefrontFetch(GET_COLLECTION_QUERY, { handle, first: 250 }),
           ...CHARM_COLLECTIONS.map(c => shopifyStorefrontFetch(GET_COLLECTION_QUERY, { handle: c.handle, first: 250 }))
         ]);
 
@@ -258,7 +265,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       }
     }
     loadData();
-  }, []);
+  }, [category]);
 
   useEffect(() => {
     if (allCharmCollections[activeCharmCollection]) {

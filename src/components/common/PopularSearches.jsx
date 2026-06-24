@@ -10,7 +10,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { usePathname } from "next/navigation";
 
 const SEARCH_DATA = [
   {
