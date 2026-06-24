@@ -63,12 +63,44 @@ const GET_COLLECTION_QUERY = `
 `;
 
 const MIN_CHARMS = 1;
-const MAX_CHARMS = 5;
 
 const CATEGORY_CONFIG = {
-  bracelets: { label: 'Bracelet', plural: 'Bracelets', keywords: ['bracelet', 'bracelets'] },
-  necklaces: { label: 'Necklace', plural: 'Necklaces', keywords: ['necklace', 'necklaces', 'chain'] },
-  anklets: { label: 'Anklet', plural: 'Anklets', keywords: ['anklet', 'anklets'] },
+  bracelets: { 
+    label: 'Bracelet', 
+    plural: 'Bracelets', 
+    keywords: ['bracelet', 'bracelets'],
+    maxCharms: 4, // 4 charms limit for bracelets
+    canvas: {
+      circleXPercent: 0.50,
+      circleYPercent: 0.50,
+      radiusPercent: 0.26, // Flatter curve (0.48 vs 0.45) with Y-offset 0.42 to touch chain
+      angularGap: 25
+    }
+  },
+  necklaces: { 
+    label: 'Necklace', 
+    plural: 'Necklaces', 
+    keywords: ['necklace', 'necklaces', 'chain'],
+    maxCharms: 5, // 5 charms limit for necklaces
+    canvas: {
+      circleXPercent: 0.50,
+      circleYPercent: 0.50,
+      radiusPercent: 0.42, // Flatter curve (0.48 vs 0.45) with Y-offset 0.42 to touch chain
+      angularGap: 18
+    }
+  },
+  anklets: { 
+    label: 'Anklet', 
+    plural: 'Anklets', 
+    keywords: ['anklet', 'anklets'],
+    maxCharms: 5, // 5 charms limit for anklets
+    canvas: {
+      circleXPercent: 0.50,
+      circleYPercent: 0.42,
+      radiusPercent: 0.48, // Flatter curve (0.48 vs 0.45) with Y-offset 0.42 to touch chain
+      angularGap: 12
+    }
+  },
 };
 
 const MATERIALS = [
@@ -129,6 +161,7 @@ const normalizeType = (value) => {
 export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   const category = normalizeType(initialType);
   const categoryConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.bracelets;
+  const maxCharms = categoryConfig.maxCharms || 5;
   const isMobile = useMediaQuery('(max-width: 860px)');
 
   const [material, setMaterial] = useState('9k-gold');
@@ -427,10 +460,17 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     const imgLeft = imgCX - imgW / 2;
     const imgTop = imgCY - imgH / 2;
 
-    const circleX = imgLeft + imgW * 0.50;
-    const circleY = imgTop + imgH * 0.47;
-    const radius = imgW * 0.450;
-    const angularGap = 14;
+    const canvasConfig = categoryConfig.canvas || {
+      circleXPercent: 0.50,
+      circleYPercent: 0.42,
+      radiusPercent: 0.48,
+      angularGap: 12
+    };
+
+    const circleX = imgLeft + imgW * canvasConfig.circleXPercent;
+    const circleY = imgTop + imgH * canvasConfig.circleYPercent;
+    const radius = imgW * canvasConfig.radiusPercent;
+    const angularGap = canvasConfig.angularGap;
     const totalSpan = (flat.length - 1) * angularGap;
     const startAngle = 90 - totalSpan / 2;
     const stageWidth = stageRef.current.width();
@@ -695,8 +735,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     if (existing) {
       setSelectedCharms(prev => prev.filter(c => c.base !== charmGroup.base));
     } else {
-      if (totalCount >= MAX_CHARMS) {
-        alert(`Max ${MAX_CHARMS} charms allowed`);
+      if (totalCount >= maxCharms) {
+        alert(`Max ${maxCharms} charms allowed`);
         return;
       }
       setSelectedCharms(prev => [...prev, { ...version, base: charmGroup.base, qty: 1 }]);
@@ -709,8 +749,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       if (!existing && delta < 0) return prev;
 
       const totalCount = prev.reduce((acc, c) => acc + c.qty, 0);
-      if (delta > 0 && totalCount >= MAX_CHARMS) {
-        alert(`Max ${MAX_CHARMS} charms allowed`);
+      if (delta > 0 && totalCount >= maxCharms) {
+        alert(`Max ${maxCharms} charms allowed`);
         return prev;
       }
 
