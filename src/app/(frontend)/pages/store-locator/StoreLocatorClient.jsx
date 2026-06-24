@@ -308,11 +308,19 @@ export default function StoreLocatorPage() {
         setUserLocation(location);
         calculateDistancesAndFilter(location);
 
-        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${location.lat}&lon=${location.lng}&format=json`)
+        const params = new URLSearchParams({
+          format: "jsonv2",
+          lat: String(location.lat),
+          lon: String(location.lng),
+          zoom: "18",
+          addressdetails: "1",
+        });
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`)
           .then(r => r.json())
           .then(d => {
-            if (d?.address?.postcode) {
-              const pin = d.address.postcode.replace(/\s+/g, '');
+            const pin = String(d?.address?.postcode || d?.address?.postal_code || "").match(/\b\d{6}\b/)?.[0] || "";
+            if (pin) {
               setSearchQuery(pin);
               setStatusMsg(`Detected location: ${pin}`);
             } else {
@@ -330,26 +338,34 @@ export default function StoreLocatorPage() {
   const handleLocateNowClick = () => {
     const element = document.getElementById("locator-section");
     if (element) {
-      const headerOffset = 100; // Sticky header height offset
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + (window.scrollY || window.pageYOffset) - headerOffset;
-      
+      // 1. Scroll past the header collapse threshold (120px) instantly to trigger the header state change & collapse
       window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth"
+        top: 130,
+        behavior: "auto"
       });
-    }
-
-    // Auto-fetch location & pincode
-    handleLocateMe();
-
-    // Auto-focus the search input
-    const inputEl = document.getElementById("store-search-input");
-    if (inputEl) {
+      
+      // 2. Wait 100ms for header collapse re-render to finish, then smooth scroll to the target
       setTimeout(() => {
-        inputEl.focus();
-      }, 800);
+        const headerOffset = isMobile ? 80 : 120; // Sticky header height offset dynamically based on device
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + (window.scrollY || window.pageYOffset) - headerOffset;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }, 100);
     }
+
+    // Delay locating & focusing until smooth scroll finishes to prevent React state changes from interrupting the scroll animation
+    setTimeout(() => {
+      handleLocateMe();
+
+      const inputEl = document.getElementById("store-search-input");
+      if (inputEl) {
+        inputEl.focus();
+      }
+    }, 900);
   };
 
   useEffect(() => {
