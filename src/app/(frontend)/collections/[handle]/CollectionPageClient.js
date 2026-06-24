@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, XIcon, ChevronsDown, Hammer, Filter as FilterIcon, LayoutDashboard, ShoppingBag, Loader2, ListFilter, ArrowUpDown, LayoutGrid, X, SlidersHorizontal, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Breadcrumb,
@@ -246,6 +247,44 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const isFirstRender = useRef(true);
 
   // Price Filter State
+  const [trueMinPrice, setTrueMinPrice] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchTrueMin() {
+      try {
+        const data = await apiFetch(`/api/collection?handle=${handle}&sort=price_low_high&limit=1`);
+        if (isMounted && data.products && data.products.length > 0) {
+          const minP = Number(data.products[0].price) || 0;
+          if (minP > 0) setTrueMinPrice(minP);
+        }
+      } catch (e) {
+        console.error("Failed to fetch true min price:", e);
+      }
+    }
+    fetchTrueMin();
+    return () => { isMounted = false; };
+  }, [handle]);
+
+  const [absolutePrice, setAbsolutePrice] = useState({ min: null, max: null });
+
+  useEffect(() => {
+    if (availableFilters?.Price) {
+      setAbsolutePrice(prev => {
+        let newMin = prev.min;
+        if (availableFilters.Price.min !== undefined && availableFilters.Price.min > 0) {
+          newMin = prev.min === null ? availableFilters.Price.min : Math.min(prev.min, availableFilters.Price.min);
+        } else if (prev.min === null || prev.min === 0) {
+          newMin = trueMinPrice !== null ? trueMinPrice : prev.min;
+        }
+        return {
+          min: newMin,
+          max: prev.max === null ? (availableFilters.Price.max || 500000) : Math.max(prev.max, availableFilters.Price.max || 500000)
+        };
+      });
+    }
+  }, [availableFilters, trueMinPrice]);
+
   const [localPriceRange, setLocalPriceRange] = useState({
     min: searchParams.get("filter.v.price.gte") || "",
     max: searchParams.get("filter.v.price.lte") || ""
@@ -272,12 +311,16 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return count;
   }, [availableFilters, searchParams]);
 
-  const applyPriceFilter = useCallback(() => {
+  const applyPriceFilter = useCallback((committedValues) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (localPriceRange.min) params.set("filter.v.price.gte", localPriceRange.min);
+    const minVal = committedValues && Array.isArray(committedValues) ? String(committedValues[0]) : localPriceRange.min;
+    const maxVal = committedValues && Array.isArray(committedValues) ? String(committedValues[1]) : localPriceRange.max;
+
+    if (minVal && minVal !== "0") params.set("filter.v.price.gte", minVal);
     else params.delete("filter.v.price.gte");
-    if (localPriceRange.max) params.set("filter.v.price.lte", localPriceRange.max);
+    if (maxVal && maxVal !== "0") params.set("filter.v.price.lte", maxVal);
     else params.delete("filter.v.price.lte");
+    
     params.delete("cursor");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
     scrollToTop();
@@ -611,15 +654,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         <div key={groupKey} className="border-b mb-0 border-gray-200">
                           <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronUp size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
                           {isExpanded && (
-                            <div className="space-y-4 my-2 pb-5">
-                              <p className="text-xs text-gray-500">The highest price is ₹{new Intl.NumberFormat("en-IN").format(options.max || 0)}</p>
-                              <div className="flex items-center gap-2">
-                                <div className="relative flex-1"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span><Input type="number" placeholder="From" value={localPriceRange.min} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, min: e.target.value }))} className="pl-7 h-10 text-sm focus-visible:ring-black" /></div>
-                                <div className="relative flex-1"><Input type="number" placeholder="To" value={localPriceRange.max} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, max: e.target.value }))} className="h-10 text-sm focus-visible:ring-black" /></div>
-                              </div>
-                              <div className="flex items-center gap-2 pt-2">
-                                <Button onClick={applyPriceFilter} className="flex-1 h-9 text-xs bg-primary hover:bg-primary/90 text-white rounded-md uppercase font-bold tracking-wider">Apply</Button>
-                                <Button variant="outline" onClick={resetPriceFilter} className="h-9 text-xs border-gray-200 hover:bg-gray-50 rounded-md uppercase font-bold tracking-wider px-3">Reset</Button>
+                            <div className="space-y-5 my-4 pb-5 px-2">
+                              <Slider
+                                min={absolutePrice.min || 0}
+                                max={absolutePrice.max || 500000}
+                                step={100}
+                                value={[
+                                  localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
+                                  localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
+                                ]}
+                                onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
+                                onValueCommit={applyPriceFilter}
+                              />
+                              <div className="text-sm font-semibold text-gray-900 text-center">
+                                ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
                               </div>
                             </div>
                           )}
@@ -907,11 +955,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   {activeMobileGroup && availableFilters[activeMobileGroup] && (
                     <div className="space-y-6 pb-20">
                       {activeMobileGroup === "Price" ? (
-                        <div className="space-y-4">
-                          <p className="text-xs text-gray-500">The highest price is ₹{new Intl.NumberFormat("en-IN").format(availableFilters["Price"]?.max || 0)}</p>
-                          <div className="space-y-4">
-                            <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span><Input type="number" placeholder="From" value={localPriceRange.min} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, min: e.target.value }))} onBlur={applyPriceFilter} className="pl-7 h-12 text-sm focus-visible:ring-black" /></div>
-                            <div className="relative"><Input type="number" placeholder="To" value={localPriceRange.max} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, max: e.target.value }))} onBlur={applyPriceFilter} className="h-12 text-sm focus-visible:ring-black" /></div>
+                        <div className="space-y-5 py-4 px-2">
+                          <Slider
+                            min={absolutePrice.min || 0}
+                            max={absolutePrice.max || 500000}
+                            step={100}
+                            value={[
+                              localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
+                              localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
+                            ]}
+                            onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
+                            onValueCommit={applyPriceFilter}
+                          />
+                          <div className="text-sm font-semibold text-gray-900 text-center">
+                            ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
                           </div>
                         </div>
                       ) : (
