@@ -327,6 +327,31 @@ export default function StoreLocatorPage() {
     );
   };
 
+  const handleLocateNowClick = () => {
+    const element = document.getElementById("locator-section");
+    if (element) {
+      const headerOffset = 100; // Sticky header height offset
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + (window.scrollY || window.pageYOffset) - headerOffset;
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth"
+      });
+    }
+
+    // Auto-fetch location & pincode
+    handleLocateMe();
+
+    // Auto-focus the search input
+    const inputEl = document.getElementById("store-search-input");
+    if (inputEl) {
+      setTimeout(() => {
+        inputEl.focus();
+      }, 800);
+    }
+  };
+
   useEffect(() => {
     if (searchQuery === "") {
       setFilteredStores(allStores);
@@ -381,7 +406,7 @@ export default function StoreLocatorPage() {
                       {slide.desc}
                     </p>
                     <Button
-                      onClick={() => document.getElementById('locator-section').scrollIntoView({ behavior: 'smooth' })}
+                      onClick={handleLocateNowClick}
                       className="h-12 px-8 py-3 w-full sm:w-fit text-sm font-bold tracking-widest bg-[#5B4740] hover:bg-[#4A3934] text-white uppercase rounded-sm transition-colors"
                     >
                       LOCATE NOW
@@ -398,7 +423,7 @@ export default function StoreLocatorPage() {
                       {slide.desc}
                     </p>
                     <Button
-                      onClick={() => document.getElementById('locator-section').scrollIntoView({ behavior: 'smooth' })}
+                      onClick={handleLocateNowClick}
                       className="h-11 px-8 py-3 w-fit text-sm font-bold tracking-widest bg-primary hover:bg-primary/90 text-white uppercase rounded-sm transition-all"
                     >
                       LOCATE NOW
@@ -452,6 +477,7 @@ export default function StoreLocatorPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                 <input
+                  id="store-search-input"
                   type="text"
                   placeholder="Search City, Pincode..."
                   value={searchQuery}
