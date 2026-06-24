@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { usePathname } from "next/navigation";
 
 const SEARCH_DATA = [
   {
@@ -119,7 +120,7 @@ export default function PopularSearches() {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  if (pathname?.startsWith("/build-your-jewelry") || pathname?.startsWith("/dashboard")) {
+  if (pathname?.startsWith("/build-your-jewelry") || pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway")) {
     return null;
   }
 
