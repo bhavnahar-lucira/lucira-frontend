@@ -1992,7 +1992,7 @@ export default function ProductPageClient({
                   slides.push({
                     icon: (
                       <img 
-                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1410103960.png?v=1782222451" 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/necklace_8ab6afc5-2f06-4bf9-b04d-1bd0b3343d87.png" 
                         alt="Free Pendant" 
                         className="w-5 h-5 object-contain inline-block align-middle"
                       />
