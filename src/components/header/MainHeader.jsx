@@ -88,11 +88,14 @@ export default function MainHeader() {
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
 
-  // Filter out non-product items (Insurance, Free Gold Coins) to match Cart Page count
+  // Filter out non-product items (Insurance, Free Gold Coins, BYJ charms) to match Cart Page count
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.properties?.['_byj_parent'] &&
+      !item.properties?.[' _byj_parent'] &&
+      !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
 
   const displayQuantity = displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
@@ -114,10 +117,13 @@ export default function MainHeader() {
         return match ? Number(match[0]) : 0;
       };
 
-      const filteredItems = items.filter(
+      const filteredItemsForGtm = items.filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.properties?.['_byj_parent'] &&
+          !item.properties?.[' _byj_parent'] &&
+          !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
       );
 
       pushViewCart({
@@ -125,10 +131,10 @@ export default function MainHeader() {
         cart_total: Number(totalAmount),
         grand_total: Number(totalAmount),
         discount_amount: 0,
-        total_quantity: totalQuantity,
-        total_product: items.length,
+        total_quantity: displayQuantity,
+        total_product: filteredItemsForGtm.length,
         coupon_code: "",
-        items: items.map((item, idx) => getStandardCartItem(item, idx))
+        items: filteredItemsForGtm.map((item, idx) => getStandardCartItem(item, idx))
       });
     }
     };

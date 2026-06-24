@@ -946,3 +946,15 @@ img.marquee-img {
   }
 }
 
+.build-jewelry-section {
+    background-image: url("https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_1400004181_2.png?v=1781776283");
+}
+
+@media (max-width: 767px) {
+    .build-jewelry-section {
+        background-image: url("https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_45_8.png?v=1781779301");
+        background-position: 0 180px;
+        padding-bottom: 160px;
+    }
+}
+

@@ -78,7 +78,7 @@ import { addRecentlyViewed, selectRecentlyViewed } from "@/redux/features/recent
 import AtcBar from "@/components/AtcBar";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushProductView, pushAddToCart, pushAddToWishlist, pushRemoveFromWishlist, pushPromoClick, formatGtmPrice, getNumericId, getStandardWishlistPayload, pushToDataLayer } from "@/lib/gtm";
-import { sendProductViewWebhook, sendAddToCartWebhook } from "@/lib/headless-webhooks";
+import { sendProductViewWebhook } from "@/lib/headless-webhooks";
 
 import {
   Sheet,
@@ -1314,7 +1314,6 @@ export default function ProductPageClient({
         products: atcData
       });
 
-      sendAddToCartWebhook(user, atcData);
       //gtm
 
       toast.success("Added to cart!");
@@ -2410,62 +2409,19 @@ export default function ProductPageClient({
 
             <div ref={mainAtcRef} className="space-y-2 mb-4">
               <div className="flex gap-2">
-                <Button
-                  onClick={handleAddToCart}
-                  disabled={addingToCart}
-                  className="flex-1 h-14 text-[14px] sm:text-base lg:text-lg font-bold rounded-md hover:cursor-pointer tracking-wider"
-                >
-                  {addingToCart ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ADDING...
-                    </>
-                  ) : "ADD TO CART"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleToggleWishlist}
-                  disabled={wishlistLoading}
-                  className={`h-14 w-14 shrink-0 rounded-md bg-gray-50 hover:cursor-pointer ${isWishlisted ? "text-rose-500" : "text-black"}`}
-                >
-                  <Heart
-                    size={24}
-                    fill={isWishlisted ? "currentColor" : "none"}
-                    className={`${isWishlisted ? "text-rose-500" : "text-black"}`}
-                  />
-                </Button>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <Button asChild variant="outline" className={`h-14 flex items-center justify-center bg-gray-50 hover:cursor-pointer hover:bg-primary hover:text-white transition-all group px-0 shrink-0 ${schemeData ? 'w-14 rounded-md' : 'flex-1 gap-2 rounded-md'}`}>
-                  <a href={`https://api.whatsapp.com/send/?phone=+919004435760&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
-                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_5.png" alt="Whatsapp icon" width={24} height={24} />
-                    <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
-                  </a>
-                </Button>
-                {schemeData && (
-                  <div
-                    className="relative flex-1"
-                    onMouseEnter={() => {
-                      if (schemeTimeoutRef.current) clearTimeout(schemeTimeoutRef.current);
-                      if (typeof window !== 'undefined' && window.innerWidth > 1023) setIsSchemeOpen(true)
-                    }}
-                    onMouseLeave={() => {
-                      if (typeof window !== 'undefined' && window.innerWidth > 1023) {
-                        schemeTimeoutRef.current = setTimeout(() => {
-                          setIsSchemeOpen(false);
-                        }, 150);
-                      }
-                    }}
+                {product?.tags?.includes("BYJ") ? (
+                  <Button
+                    asChild
+                    className="flex-1 h-14 text-[14px] sm:text-base lg:text-lg font-bold rounded-md hover:cursor-pointer tracking-wider uppercase"
                   >
+                    <Link href="/build-your-jewelry">BUILD YOUR JEWELRY</Link>
+                  </Button>
+                ) : (
+                  <>
                     <Button
-                      type="button"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setIsSchemeOpen((prev) => !prev);
-                      }}
-                      className={`w-full h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded-md ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-gray-200'}`}
+                      onClick={handleAddToCart}
+                      disabled={addingToCart}
+                      className="flex-1 h-14 text-[14px] sm:text-base lg:text-lg font-bold rounded-md hover:cursor-pointer tracking-wider"
                     >
                       <div className="w-6 sm:w-8 flex justify-start shrink-0">
                         <div className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}>
@@ -2481,80 +2437,143 @@ export default function ProductPageClient({
                         <ChevronRight size={16} className={`transition-transform duration-200 ${isSchemeOpen ? 'rotate-90' : ''}`} />
                       </div>
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleToggleWishlist}
+                      disabled={wishlistLoading}
+                      className={`h-14 w-14 shrink-0 rounded-md bg-gray-50 hover:cursor-pointer ${isWishlisted ? "text-rose-500" : "text-black"}`}
+                    >
+                      <Heart
+                        size={24}
+                        fill={isWishlisted ? "currentColor" : "none"}
+                        className={`${isWishlisted ? "text-rose-500" : "text-black"}`}
+                      />
+                    </Button>
+                  </>
+                )}
+              </div>
+              {!product?.tags?.includes("BYJ") && (
+                <div className="flex gap-2 mt-2">
+                  <Button asChild variant="outline" className={`h-14 flex items-center justify-center bg-gray-50 hover:cursor-pointer hover:bg-primary hover:text-white transition-all group px-0 shrink-0 ${schemeData ? 'w-14 rounded-md' : 'flex-1 gap-2 rounded-md'}`}>
+                    <a href={`https://api.whatsapp.com/send/?phone=+919004435760&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_5.png" alt="Whatsapp icon" width={24} height={24} />
+                      <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
+                    </a>
+                  </Button>
+                  {schemeData && (
+                    <div
+                      className="relative flex-1"
+                      onMouseEnter={() => {
+                        if (schemeTimeoutRef.current) clearTimeout(schemeTimeoutRef.current);
+                        if (typeof window !== 'undefined' && window.innerWidth > 1023) setIsSchemeOpen(true)
+                      }}
+                      onMouseLeave={() => {
+                        if (typeof window !== 'undefined' && window.innerWidth > 1023) {
+                          schemeTimeoutRef.current = setTimeout(() => {
+                            setIsSchemeOpen(false);
+                          }, 150);
+                        }
+                      }}
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsSchemeOpen((prev) => !prev);
+                        }}
+                        className={`w-full h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded-md ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-gray-200'}`}
+                      >
+                        <div className="w-6 sm:w-8 flex justify-start shrink-0">
+                          <div className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}>
+                            <Coins size={16} className={`sm:w-6 sm:h-[18px] ${isSchemeOpen ? 'text-white' : 'text-primary'} group-hover:text-white transition-all`} />
+                          </div>
+                        </div>
 
-                    {isSchemeOpen && (
-                      <div className="absolute top-full right-0 w-[calc(100vw-32px)] sm:w-[350px] lg:w-full pt-2 z-[100] animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 ease-out origin-top-right">
-                        <div className="bg-white border border-primary/10 rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
-                          <div className="p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5">
+                        <span className="flex-1 text-center text-[12px] sm:text-[13px] lg:text-[14px] xl:text-[15px] uppercase tracking-tight leading-tight font-bold">
+                          SAVE <span className="font-extrabold mx-0.5">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
+                        </span>
 
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                              <h4 className="text-[12px] sm:text-sm font-bold text-black uppercase tracking-[0.12em]">9 + 1 Scheme Breakdown</h4>
-                              <BadgeCheck size={18} className="text-[#2DB36F]" />
-                            </div>
+                        <div className="w-6 sm:w-8 flex justify-end shrink-0">
+                          <ChevronRight size={16} className={`transition-transform duration-200 ${isSchemeOpen ? 'rotate-90' : ''}`} />
+                        </div>
+                      </Button>
 
-                            <div className="space-y-3 sm:space-y-4">
-                              <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
-                                <span className="text-gray-500 font-medium">Product Price</span>
-                                <span className="font-semibold text-black">₹{formatPrice(schemeData.productPrice)}</span>
+                      {isSchemeOpen && (
+                        <div className="absolute top-full right-0 w-[calc(100vw-32px)] sm:w-[350px] lg:w-full pt-2 z-[100] animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 ease-out origin-top-right">
+                          <div className="bg-white border border-primary/10 rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+                            <div className="p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5">
+
+                              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                                <h4 className="text-[12px] sm:text-sm font-bold text-black uppercase tracking-[0.12em]">9 + 1 Scheme Breakdown</h4>
+                                <BadgeCheck size={18} className="text-[#2DB36F]" />
                               </div>
-                              <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
-                                <span className="text-gray-500 font-medium">Monthly Installment</span>
-                                <div className="text-right">
-                                  <span className="font-bold text-primary">₹{formatPrice(schemeData.monthly)}</span>
-                                  <span className="text-gray-600 ml-1">x 9 Months</span>
+
+                              <div className="space-y-3 sm:space-y-4">
+                                <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+                                  <span className="text-gray-500 font-medium">Product Price</span>
+                                  <span className="font-semibold text-black">₹{formatPrice(schemeData.productPrice)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+                                  <span className="text-gray-500 font-medium">Monthly Installment</span>
+                                  <div className="text-right">
+                                    <span className="font-bold text-primary">₹{formatPrice(schemeData.monthly)}</span>
+                                    <span className="text-gray-600 ml-1">x 9 Months</span>
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+                                  <span className="text-gray-500 font-medium">You Pay (9 Months)</span>
+                                  <span className="font-semibold text-black">₹{formatPrice(schemeData.pay9)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+                                  <span className="text-gray-500 font-medium">10th Month We Pay</span>
+                                  <span className="font-bold text-[#2DB36F]">₹{formatPrice(schemeData.monthly)}</span>
+                                </div>
+
+                                <div className="bg-[#FAFAFA] rounded-xl p-4 border border-gray-100 shadow-sm">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm font-bold text-gray-900">Total Redeemable</span>
+                                    <span className="text-lg font-extrabold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
+                                  </div>
+                                  <p className="text-[10px] text-gray-400 mt-1.5 leading-tight font-medium">
+                                    Redeem on any diamond product after 10 months. Any remaining amount can be paid at checkout.
+                                  </p>
                                 </div>
                               </div>
-                              <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
-                                <span className="text-gray-500 font-medium">You Pay (9 Months)</span>
-                                <span className="font-semibold text-black">₹{formatPrice(schemeData.pay9)}</span>
-                              </div>
-                              <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
-                                <span className="text-gray-500 font-medium">10th Month We Pay</span>
-                                <span className="font-bold text-[#2DB36F]">₹{formatPrice(schemeData.monthly)}</span>
-                              </div>
 
-                              <div className="bg-[#FAFAFA] rounded-xl p-4 border border-gray-100 shadow-sm">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm font-bold text-gray-900">Total Redeemable</span>
-                                  <span className="text-lg font-extrabold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
-                                </div>
-                                <p className="text-[10px] text-gray-400 mt-1.5 leading-tight font-medium">
-                                  Redeem on any diamond product after 10 months. Any remaining amount can be paid at checkout.
+                              <Button className="w-full h-12 font-bold uppercase tracking-widest bg-tertiary hover:bg-accent text-white rounded-sm shadow-lg shadow-primary/20 transition-all duration-200 active:scale-[0.97]" asChild>
+                                <a
+                                  href={schemeData.schemeUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() =>
+                                    pushPromoClick({
+                                      creative_name: "scheme enroll button clicked",
+                                      location_id: "pdp",
+                                      promo_id: getNumericId(activeVariant?.id),
+                                      promo_position: String(schemeData.monthly)
+                                    })
+                                  }
+                                >
+                                  ENROLL NOW <ArrowRight size={16} className="ml-2" />
+                                </a>
+                              </Button>
+
+                              <div className="flex items-center justify-center gap-2 pt-1">
+                                <div className="w-1 h-1 bg-[#2DB36F] rounded-full animate-pulse"></div>
+                                <p className="text-[9px] sm:text-[10px] text-gray-700 font-bold uppercase tracking-widest">
+                                  Secure & Instant Enrollment
                                 </p>
                               </div>
                             </div>
-
-                            <Button className="w-full h-12 font-bold uppercase tracking-widest bg-tertiary hover:bg-accent text-white rounded-sm shadow-lg shadow-primary/20 transition-all duration-200 active:scale-[0.97]" asChild>
-                              <a
-                                href={schemeData.schemeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={() =>
-                                  pushPromoClick({
-                                    creative_name: "scheme enroll button clicked",
-                                    location_id: "pdp",
-                                    promo_id: getNumericId(activeVariant?.id),
-                                    promo_position: String(schemeData.monthly)
-                                  })
-                                }
-                              >
-                                ENROLL NOW <ArrowRight size={16} className="ml-2" />
-                              </a>
-                            </Button>
-
-                            <div className="flex items-center justify-center gap-2 pt-1">
-                              <div className="w-1 h-1 bg-[#2DB36F] rounded-full animate-pulse"></div>
-                              <p className="text-[9px] sm:text-[10px] text-gray-700 font-bold uppercase tracking-widest">
-                                Secure & Instant Enrollment
-                              </p>
-                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Features */}
@@ -2566,7 +2585,7 @@ export default function ProductPageClient({
                       <path d="M21.125 18.9583C21.125 19.6766 20.8397 20.3655 20.3317 20.8734C19.8238 21.3813 19.135 21.6667 18.4167 21.6667C17.6984 21.6667 17.0095 21.3813 16.5016 20.8734C15.9937 20.3655 15.7083 19.6766 15.7083 18.9583C15.7083 18.24 15.9937 17.5512 16.5016 17.0433C17.0095 16.5353 17.6984 16.25 18.4167 16.25C19.135 16.25 19.8238 16.5353 20.3317 17.0433C20.8397 17.5512 21.125 18.24 21.125 18.9583ZM10.2917 18.9583C10.2917 19.6766 10.0063 20.3655 9.49841 20.8734C8.9905 21.3813 8.30163 21.6667 7.58333 21.6667C6.86504 21.6667 6.17616 21.3813 5.66825 20.8734C5.16034 20.3655 4.875 19.6766 4.875 18.9583C4.875 18.24 5.16034 17.5512 5.66825 17.0433C6.17616 16.5353 6.86504 16.25 7.58333 16.25C8.30163 16.25 8.9905 16.5353 9.49841 17.0433C10.0063 17.5512 10.2917 18.24 10.2917 18.9583ZM21.125 18.9585H10.2917M21.1251 18.9585H21.9517C22.19 18.9585 22.3092 18.9585 22.4088 18.9455C22.7675 18.9008 23.101 18.7379 23.3566 18.4824C23.6123 18.227 23.7755 17.8936 23.8204 17.535C23.8334 17.4342 23.8334 17.3151 23.8334 17.0767V14.0835C23.8334 12.2159 23.0915 10.4249 21.771 9.10429C20.4504 7.78372 18.6593 7.04183 16.7917 7.04183M16.2501 16.7918V7.5835C16.2501 6.05166 16.2501 5.28575 15.7734 4.81016C15.2989 4.3335 14.533 4.3335 13.0001 4.3335H5.41675C3.88491 4.3335 3.119 4.3335 2.64341 4.81016C2.16675 5.28466 2.16675 6.05058 2.16675 7.5835V16.2502C2.16675 17.2631 2.16675 17.769 2.3845 18.146C2.52712 18.393 2.73224 18.5981 2.97925 18.7407C3.35625 18.9585 3.86216 18.9585 4.87508 18.9585" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   }
-                  text="Free and secure shipping"
+                  text="Free & Insured Shipping"
                 />
                 <Feature
                   icon={
@@ -2582,7 +2601,7 @@ export default function ProductPageClient({
                       </defs>
                     </svg>
                   }
-                  text="15-day free returns"
+                  text="15-day Money Back Guarantee"
                 />
                 <Feature
                   icon={
@@ -2598,7 +2617,7 @@ export default function ProductPageClient({
                       <path fillRule="evenodd" clipRule="evenodd" d="M7.07957 3.521C6.76741 3.5211 6.4601 3.59828 6.18494 3.74569C5.90977 3.8931 5.67527 4.10618 5.50224 4.366L1.61416 10.1965C1.37691 10.554 1.34874 11.0112 1.54049 11.3947C3.66944 15.6493 6.6262 19.4362 10.2375 22.5335L12.1333 24.1596C12.3748 24.3666 12.6824 24.4804 13.0005 24.4804C13.3186 24.4804 13.6262 24.3666 13.8677 24.1596L15.7636 22.5346C19.3754 19.4371 22.3325 15.6498 24.4617 11.3947C24.6534 11.0112 24.6242 10.554 24.3869 10.1965L20.4967 4.366C20.3236 4.10653 20.0892 3.89376 19.8143 3.74655C19.5393 3.59934 19.2323 3.52224 18.9204 3.52208L7.07957 3.521ZM6.85424 5.26625C6.87901 5.22922 6.91253 5.19887 6.95184 5.17789C6.99115 5.15691 7.03502 5.14596 7.07957 5.146H9.61457L7.53999 10.125C7.49389 10.2394 7.45765 10.3576 7.43166 10.4782C6.6687 10.4213 5.90667 10.3526 5.14582 10.2723L3.62374 10.1131L6.85424 5.26625ZM3.55332 11.7392C5.49823 15.3049 8.06409 18.4948 11.1302 21.1587L7.74474 12.1302C6.82109 12.0667 5.89866 11.9866 4.97791 11.8897L3.55332 11.7392ZM9.51816 12.231L13 21.5195L16.4829 12.231C14.1622 12.3362 11.8378 12.3362 9.51707 12.231M18.2563 12.1302L14.8709 21.1587C17.937 18.4948 20.5028 15.3049 22.4477 11.7392L21.0232 11.8897C20.1023 11.9858 19.18 12.066 18.2563 12.1302ZM22.3762 10.1131L20.8531 10.2734C20.0922 10.3537 19.3302 10.4223 18.5672 10.4792C18.5417 10.3583 18.5058 10.2398 18.46 10.125L16.3854 5.146H18.9204C18.965 5.14596 19.0088 5.15691 19.0481 5.17789C19.0874 5.19887 19.121 5.22922 19.1457 5.26625L22.3762 10.1131ZM16.8913 10.5843C14.2978 10.7187 11.7036 10.7187 9.10866 10.5843L11.375 5.146H14.625L16.8913 10.5843Z" fill="#5A413F" />
                     </svg>
                   }
-                  text="IGI and Hallmark certified"
+                  text="Certified Diamond & Gold Jewelry"
                 />
               </div>
 
@@ -2691,7 +2710,7 @@ export default function ProductPageClient({
               {/* Nearest Store */}
               {isCentralInStock && isAvailableInAnyStore && (
                 <div className="border border-gray-200 rounded-md p-4 space-y-3 bg-gray-50">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3 max-[400px]:flex-col">
                     <div className="flex items-start gap-2 min-w-0">
                       <Store size={20} className="text-black shrink-0 mt-0.5" strokeWidth={1.2} />
                       <span className="text-base font-bold leading-tight">
@@ -2738,7 +2757,7 @@ export default function ProductPageClient({
                   )}
 
                   {hasConfirmedPincode && !nearbyAvailableStore ? (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="flex flex-col min-[430px]:grid min-[430px]:grid-cols-2 gap-3 pt-1">
                       <Button
                         variant="outline"
                         onClick={() => {

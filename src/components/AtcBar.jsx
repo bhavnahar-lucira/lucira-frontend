@@ -4,6 +4,7 @@ import { Heart, Loader2, MessageCircle, Home, Store as StoreIcon } from "lucide-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function AtcBar({
   isTopVisible,
@@ -33,6 +34,8 @@ export default function AtcBar({
     if (src && typeof src === 'object' && src.url) return src.url;
     return fallback;
   };
+
+  const isBYJ = product?.tags?.includes("BYJ");
 
   return (
     <>
@@ -90,28 +93,39 @@ export default function AtcBar({
               </div>
             )}
 
-            <Button
-              onClick={onAddToCart}
-              disabled={addingToCart}
-              className="h-14 px-10 text-sm font-bold bg-primary hover:bg-accent text-white rounded-sm transition-colors uppercase tracking-wider min-w-40"
-            >
-              {addingToCart ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : "ADD TO CART"}
-            </Button>
+            {isBYJ ? (
+              <Button
+                asChild
+                className="h-14 px-10 text-sm font-bold bg-primary hover:bg-accent text-white rounded-sm transition-colors uppercase tracking-wider min-w-40"
+              >
+                <Link href="/build-your-jewelry">BUILD YOUR JEWELRY</Link>
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={onAddToCart}
+                  disabled={addingToCart}
+                  className="h-14 px-10 text-sm font-bold bg-primary hover:bg-accent text-white rounded-sm transition-colors uppercase tracking-wider min-w-40"
+                >
+                  {addingToCart ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : "ADD TO CART"}
+                </Button>
 
-            <div className="hidden xl:flex items-center gap-2">
-              <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
-                <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20home%20trial%20" target="_blank">
-                  <Home size={20} />
-                </a>
-              </Button>
-              <Button asChild className="h-14 w-14 border border-[#A193E8] text-[#A193E8] rounded-sm flex items-center justify-center bg-white hover:bg-[#F5F5FF] transition-colors">
-                <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment%20" target="_blank">
-                  <StoreIcon size={20} />
-                </a>
-              </Button>
-            </div>
+                <div className="hidden xl:flex items-center gap-2">
+                  <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
+                    <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20home%20trial%20" target="_blank">
+                      <Home size={20} />
+                    </a>
+                  </Button>
+                  <Button asChild className="h-14 w-14 border border-[#A193E8] text-[#A193E8] rounded-sm flex items-center justify-center bg-white hover:bg-[#F5F5FF] transition-colors">
+                    <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment%20" target="_blank">
+                      <StoreIcon size={20} />
+                    </a>
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -128,7 +142,7 @@ export default function AtcBar({
           <div className="hidden lg:grid lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10">
             <div className="hidden lg:block"></div> {/* Spacer for Left Column */}
             <div className="pointer-events-auto bg-white border border-gray-100 rounded-sm p-3 flex items-center gap-2 w-full">
-              {schemeData && (
+              {!isBYJ && schemeData && (
                 <a
                   href={schemeData.schemeUrl}
                   target="_blank"
@@ -138,36 +152,47 @@ export default function AtcBar({
                   YOU SAVE <span className="mx-1 font-extrabold">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
                 </a>
               )}
-              <button
-                onClick={onAddToCart}
-                disabled={addingToCart}
-                className="h-14 flex-[1.5] bg-primary text-white font-bold text-[14px] rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors"
-              >
-                {addingToCart ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "ADD TO CART"
-                )}
-              </button>
+              {isBYJ ? (
+                <Link
+                  href="/build-your-jewelry"
+                  className="h-14 flex-[1.5] bg-primary text-white font-bold text-[14px] rounded-sm flex items-center justify-center gap-2 hover:bg-[#8F5D5D] transition-colors uppercase tracking-wider"
+                >
+                  BUILD YOUR JEWELRY
+                </Link>
+              ) : (
+                <button
+                  onClick={onAddToCart}
+                  disabled={addingToCart}
+                  className="h-14 flex-[1.5] bg-primary text-white font-bold text-[14px] rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors"
+                >
+                  {addingToCart ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "ADD TO CART"
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
           {/* Mobile Layout: Full Width Style */}
           <div className="lg:hidden pointer-events-auto bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] -mx-4 px-4 py-3 flex items-center gap-2 w-screen">
             {/* WhatsApp Button */}
-            <a
-              href="https://wa.me/+919004435760"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="h-14 aspect-square bg-white shadow-md border border-zinc-100 rounded-sm flex items-center justify-center shrink-0"
-            >
-              <div className="relative w-7 h-7">
-                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_5.png" alt="WhatsApp" fill className="object-contain" />
-              </div>
-            </a>
+            {!isBYJ && (
+              <a
+                href="https://wa.me/+919004435760"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-14 aspect-square bg-white shadow-md border border-zinc-100 rounded-sm flex items-center justify-center shrink-0"
+              >
+                <div className="relative w-7 h-7">
+                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_5.png" alt="WhatsApp" fill className="object-contain" />
+                </div>
+              </a>
+            )}
 
             {/* Scheme Saving Button */}
-            {schemeData && (
+            {!isBYJ && schemeData && (
               <a
                 href={schemeData.schemeUrl}
                 target="_blank"
@@ -179,17 +204,26 @@ export default function AtcBar({
             )}
 
             {/* Add to Cart Button */}
-            <button
-              onClick={onAddToCart}
-              disabled={addingToCart}
-              className="h-14 flex-[1.5] bg-primary text-white font-bold text-[13px] rounded-sm flex items-center justify-center gap-2 disabled:opacity-70"
-            >
-              {addingToCart ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "ADD TO CART"
-              )}
-            </button>
+            {isBYJ ? (
+              <Link
+                href="/build-your-jewelry"
+                className="h-14 flex-[1.5] bg-primary text-white font-bold text-[13px] rounded-sm flex items-center justify-center gap-2 uppercase tracking-wider"
+              >
+                BUILD YOUR JEWELRY
+              </Link>
+            ) : (
+              <button
+                onClick={onAddToCart}
+                disabled={addingToCart}
+                className="h-14 flex-[1.5] bg-primary text-white font-bold text-[13px] rounded-sm flex items-center justify-center gap-2 disabled:opacity-70"
+              >
+                {addingToCart ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "ADD TO CART"
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

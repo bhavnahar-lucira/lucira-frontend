@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, XIcon, ChevronsDown, Hammer, Filter as FilterIcon, LayoutDashboard, ShoppingBag, Loader2, ListFilter, ArrowUpDown, LayoutGrid, X, SlidersHorizontal, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Breadcrumb,
@@ -224,10 +225,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       return {
         title: initialData.collData.collection.title || handle.replace(/-/g, " "),
         description: initialData.collData.collection.description || "",
+        descriptionHtml: initialData.collData.collection.descriptionHtml || "",
         metafields: initialData.collData.collection.metafields || {}
       };
     }
-    return { title: "", description: "" };
+    return { title: "", description: "", descriptionHtml:"" };
   });
   const [dbCollection, setDbCollection] = useState(null);
   const [products, setProducts] = useState(() => initialData?.collData?.products || []);
@@ -246,6 +248,44 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const isFirstRender = useRef(true);
 
   // Price Filter State
+  const [trueMinPrice, setTrueMinPrice] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchTrueMin() {
+      try {
+        const data = await apiFetch(`/api/collection?handle=${handle}&sort=price_low_high&limit=1`);
+        if (isMounted && data.products && data.products.length > 0) {
+          const minP = Number(data.products[0].price) || 0;
+          if (minP > 0) setTrueMinPrice(minP);
+        }
+      } catch (e) {
+        console.error("Failed to fetch true min price:", e);
+      }
+    }
+    fetchTrueMin();
+    return () => { isMounted = false; };
+  }, [handle]);
+
+  const [absolutePrice, setAbsolutePrice] = useState({ min: null, max: null });
+
+  useEffect(() => {
+    if (availableFilters?.Price) {
+      setAbsolutePrice(prev => {
+        let newMin = prev.min;
+        if (availableFilters.Price.min !== undefined && availableFilters.Price.min > 0) {
+          newMin = prev.min === null ? availableFilters.Price.min : Math.min(prev.min, availableFilters.Price.min);
+        } else if (prev.min === null || prev.min === 0) {
+          newMin = trueMinPrice !== null ? trueMinPrice : prev.min;
+        }
+        return {
+          min: newMin,
+          max: prev.max === null ? (availableFilters.Price.max || 500000) : Math.max(prev.max, availableFilters.Price.max || 500000)
+        };
+      });
+    }
+  }, [availableFilters, trueMinPrice]);
+
   const [localPriceRange, setLocalPriceRange] = useState({
     min: searchParams.get("filter.v.price.gte") || "",
     max: searchParams.get("filter.v.price.lte") || ""
@@ -272,12 +312,16 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return count;
   }, [availableFilters, searchParams]);
 
-  const applyPriceFilter = useCallback(() => {
+  const applyPriceFilter = useCallback((committedValues) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (localPriceRange.min) params.set("filter.v.price.gte", localPriceRange.min);
+    const minVal = committedValues && Array.isArray(committedValues) ? String(committedValues[0]) : localPriceRange.min;
+    const maxVal = committedValues && Array.isArray(committedValues) ? String(committedValues[1]) : localPriceRange.max;
+
+    if (minVal && minVal !== "0") params.set("filter.v.price.gte", minVal);
     else params.delete("filter.v.price.gte");
-    if (localPriceRange.max) params.set("filter.v.price.lte", localPriceRange.max);
+    if (maxVal && maxVal !== "0") params.set("filter.v.price.lte", maxVal);
     else params.delete("filter.v.price.lte");
+    
     params.delete("cursor");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
     scrollToTop();
@@ -402,6 +446,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         setCollection({
           title: collData.collection?.title || handle.replace(/-/g, " "),
           description: collData.collection?.description || "",
+          descriptionHtml: collData.collection.descriptionHtml || "",
           metafields: collData.collection?.metafields || {}
         });
         setProducts(collData.products || []);
@@ -511,9 +556,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const renderGridItems = () => {
     const items = [];
+    let renderedCount = 0;
     products.forEach((prod, idx) => {
       if (!prod) return;
-      if (idx === 3 || idx === 7) {
+      if (renderedCount === 3 || renderedCount === 10) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
@@ -537,6 +583,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           />
         </div>
       );
+      renderedCount++;
     });
     if (isFetchingNextPage) {
       items.push(<ProductCardSkeleton key="next-1" />, <ProductCardSkeleton key="next-2" />, <ProductCardSkeleton key="next-3" />);
@@ -582,11 +629,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           <div className="container-main flex flex-col md:flex-row items-center">
             <div className="flex-1">
               <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4 capitalize">{displayTitle}</h1>
-              <p className="text-gray-900 text-sm md:text-base mb-8 max-w-xl">{collection.description || "Find the perfect piece for your special moment."}</p>
+              {/* <p className="text-gray-900 text-sm md:text-base mb-8 max-w-xl">{collection.description || "Find the perfect piece for your special moment."}</p> */}
               <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
-                <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day free returns</span></div>
+                <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
               </div>
             </div>
             <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner-05062026.jpg" alt={displayTitle} fill className="object-cover" /></div>
@@ -609,15 +656,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         <div key={groupKey} className="border-b mb-0 border-gray-200">
                           <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronUp size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
                           {isExpanded && (
-                            <div className="space-y-4 my-2 pb-5">
-                              <p className="text-xs text-gray-500">The highest price is ₹{new Intl.NumberFormat("en-IN").format(options.max || 0)}</p>
-                              <div className="flex items-center gap-2">
-                                <div className="relative flex-1"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span><Input type="number" placeholder="From" value={localPriceRange.min} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, min: e.target.value }))} className="pl-7 h-10 text-sm focus-visible:ring-black" /></div>
-                                <div className="relative flex-1"><Input type="number" placeholder="To" value={localPriceRange.max} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, max: e.target.value }))} className="h-10 text-sm focus-visible:ring-black" /></div>
-                              </div>
-                              <div className="flex items-center gap-2 pt-2">
-                                <Button onClick={applyPriceFilter} className="flex-1 h-9 text-xs bg-primary hover:bg-primary/90 text-white rounded-md uppercase font-bold tracking-wider">Apply</Button>
-                                <Button variant="outline" onClick={resetPriceFilter} className="h-9 text-xs border-gray-200 hover:bg-gray-50 rounded-md uppercase font-bold tracking-wider px-3">Reset</Button>
+                            <div className="space-y-5 my-4 pb-5 px-2">
+                              <Slider
+                                min={absolutePrice.min || 0}
+                                max={absolutePrice.max || 500000}
+                                step={100}
+                                value={[
+                                  localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
+                                  localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
+                                ]}
+                                onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
+                                onValueCommit={applyPriceFilter}
+                              />
+                              <div className="text-sm font-semibold text-gray-900 text-center">
+                                ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
                               </div>
                             </div>
                           )}
@@ -831,25 +883,204 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </div>
 
               {/* SEO Section */}
-                {hasSeo && (
-                  <div className="mt-8 border-t border-gray-100 pt-8">
-                    <div className="md:w-4/5">
-                      <div className="prose prose-sm md:prose-base max-w-none">
-                        <div
-                          className="text-gray-600 leading-loose"
-                          ref={(el) => {
-                            if (!el) return;
-                            el.querySelectorAll("p").forEach((p) => {
-                              if (!p.innerText.trim()) p.remove();
-                            });
-                          }}
-                        >
-                          {renderShopifyRichText(seoContent)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {collection?.descriptionHtml && (
+  <div className="mt-8 border-t border-gray-100 pt-10">
+    <div
+      className="
+        max-w-4xl
+
+        [&_h1]:text-2xl
+        [&_h1]:font-bold
+        [&_h1]:text-gray-900
+        [&_h1]:mt-12
+        [&_h1]:mb-4
+        [&_h1]:uppercase
+        [&_h1]:tracking-wide
+        [&_h1]:border-b
+        [&_h1]:border-gray-100
+        [&_h1]:pb-3
+
+        [&_h2]:text-xl
+        [&_h2]:font-semibold
+        [&_h2]:text-gray-900
+        [&_h2]:mt-10
+        [&_h2]:mb-3
+        [&_h2]:uppercase
+        [&_h2]:tracking-wide
+
+        [&_h3]:text-base
+        [&_h3]:font-semibold
+        [&_h3]:text-gray-800
+        [&_h3]:mt-6
+        [&_h3]:mb-2
+        [&_h3]:tracking-wide
+
+        [&_h4]:text-sm
+        [&_h4]:font-semibold
+        [&_h4]:text-gray-800
+        [&_h4]:mt-5
+        [&_h4]:mb-2
+        [&_h4]:uppercase
+        [&_h4]:tracking-wider
+
+        [&_h5]:text-xs
+        [&_h5]:font-bold
+        [&_h5]:text-gray-700
+        [&_h5]:mt-4
+        [&_h5]:mb-1
+        [&_h5]:uppercase
+        [&_h5]:tracking-widest
+
+        [&_h6]:text-xs
+        [&_h6]:font-bold
+        [&_h6]:text-gray-400
+        [&_h6]:mt-4
+        [&_h6]:mb-1
+        [&_h6]:uppercase
+        [&_h6]:tracking-widest
+
+        [&_h1:first-child]:mt-0
+        [&_h2:first-child]:mt-0
+        [&_h3:first-child]:mt-0
+
+        [&_p]:text-sm
+        [&_p]:text-gray-500
+        [&_p]:leading-relaxed
+        [&_p]:mb-3
+
+        [&_ul]:my-3
+        [&_ul]:space-y-1.5
+        [&_ul]:pl-5
+        [&_ul]:list-disc
+
+        [&_ol]:my-3
+        [&_ol]:pl-5
+        [&_ol]:space-y-1.5
+        [&_ol]:list-decimal
+
+        [&_li]:text-sm
+        [&_li]:text-gray-500
+        [&_li]:pl-1
+
+        [&_ul>li]:marker:text-[#5a413f]
+        [&_ol>li]:marker:text-[#5a413f]
+
+        [&_strong]:text-gray-800
+        [&_strong]:font-semibold
+        [&_em]:text-gray-600
+        [&_em]:italic
+
+        [&_a]:text-[#5a413f]
+        [&_a]:underline
+        [&_a]:underline-offset-2
+        [&_a:hover]:text-black
+        [&_a]:transition-colors
+        [&_a]:duration-150
+
+        [&_blockquote]:border-l-2
+        [&_blockquote]:border-[#5a413f]
+        [&_blockquote]:pl-4
+        [&_blockquote]:my-6
+        [&_blockquote]:italic
+        [&_blockquote]:text-gray-500
+        [&_blockquote]:text-sm
+
+        [&_hr]:my-8
+        [&_hr]:border-gray-100
+
+        [&_table]:w-full
+        [&_table]:my-6
+        [&_table]:text-sm
+        [&_table]:border-collapse
+        [&_table]:rounded-lg
+        [&_table]:overflow-hidden
+        [&_table]:shadow-sm
+        [&_table]:border
+        [&_table]:border-gray-200
+
+        [&_thead]:bg-[#FFF5F1]
+        [&_thead_th]:text-xs
+        [&_thead_th]:font-bold
+        [&_thead_th]:uppercase
+        [&_thead_th]:tracking-wider
+        [&_thead_th]:text-[#5a413f]
+        [&_thead_th]:px-4
+        [&_thead_th]:py-3
+        [&_thead_th]:text-left
+        [&_thead_th]:border-b
+        [&_thead_th]:border-gray-200
+
+        [&_tbody_tr]:border-b
+        [&_tbody_tr]:border-gray-100
+        [&_tbody_tr]:transition-colors
+        [&_tbody_tr:hover]:bg-gray-50
+        [&_tbody_tr:last-child]:border-0
+
+        [&_tbody_td]:px-4
+        [&_tbody_td]:py-3
+        [&_tbody_td]:text-gray-600
+        [&_tbody_td]:text-sm
+        [&_tbody_td]:align-top
+
+        [&_tfoot_td]:px-4
+        [&_tfoot_td]:py-3
+        [&_tfoot_td]:text-xs
+        [&_tfoot_td]:text-gray-400
+        [&_tfoot_td]:bg-gray-50
+        [&_tfoot_td]:border-t
+        [&_tfoot_td]:border-gray-200
+
+        [&_img]:rounded-lg
+        [&_img]:my-6
+        [&_img]:w-full
+        [&_img]:object-cover
+        [&_img]:max-h-[480px]
+        [&_img]:shadow-sm
+        [&_img]:border
+        [&_img]:border-gray-100
+
+        [&_figure]:my-6
+        [&_figure]:text-center
+        [&_figcaption]:text-xs
+        [&_figcaption]:text-gray-400
+        [&_figcaption]:mt-2
+        [&_figcaption]:italic
+
+        [&_video]:w-full
+        [&_video]:rounded-lg
+        [&_video]:my-6
+        [&_video]:shadow-sm
+        [&_video]:max-h-[480px]
+        [&_video]:object-cover
+        [&_video]:border
+        [&_video]:border-gray-100
+
+        [&_iframe]:w-full
+        [&_iframe]:rounded-lg
+        [&_iframe]:my-6
+        [&_iframe]:aspect-video
+        [&_iframe]:border-0
+        [&_iframe]:shadow-sm
+
+        [&_code]:text-xs
+        [&_code]:bg-gray-100
+        [&_code]:text-gray-700
+        [&_code]:px-1.5
+        [&_code]:py-0.5
+        [&_code]:rounded
+
+        [&_pre]:bg-gray-100
+        [&_pre]:rounded-lg
+        [&_pre]:p-4
+        [&_pre]:my-4
+        [&_pre]:overflow-x-auto
+        [&_pre]:text-xs
+        [&_pre]:text-gray-700
+      "
+      dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
+    />
+  </div>
+)}
             </div>
           </div>
         );
@@ -905,11 +1136,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   {activeMobileGroup && availableFilters[activeMobileGroup] && (
                     <div className="space-y-6 pb-20">
                       {activeMobileGroup === "Price" ? (
-                        <div className="space-y-4">
-                          <p className="text-xs text-gray-500">The highest price is ₹{new Intl.NumberFormat("en-IN").format(availableFilters["Price"]?.max || 0)}</p>
-                          <div className="space-y-4">
-                            <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₹</span><Input type="number" placeholder="From" value={localPriceRange.min} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, min: e.target.value }))} onBlur={applyPriceFilter} className="pl-7 h-12 text-sm focus-visible:ring-black" /></div>
-                            <div className="relative"><Input type="number" placeholder="To" value={localPriceRange.max} onChange={(e) => setLocalPriceRange(prev => ({ ...prev, max: e.target.value }))} onBlur={applyPriceFilter} className="h-12 text-sm focus-visible:ring-black" /></div>
+                        <div className="space-y-5 py-4 px-2">
+                          <Slider
+                            min={absolutePrice.min || 0}
+                            max={absolutePrice.max || 500000}
+                            step={100}
+                            value={[
+                              localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
+                              localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
+                            ]}
+                            onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
+                            onValueCommit={applyPriceFilter}
+                          />
+                          <div className="text-sm font-semibold text-gray-900 text-center">
+                            ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
                           </div>
                         </div>
                       ) : (
