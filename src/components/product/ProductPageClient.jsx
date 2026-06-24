@@ -1993,7 +1993,7 @@ export default function ProductPageClient({
                   slides.push({
                     icon: (
                       <img 
-                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/jewel.png?v=1782220601" 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1410103960.png?v=1782222451" 
                         alt="Free Pendant" 
                         className="w-5 h-5 object-contain inline-block align-middle"
                       />
@@ -2026,12 +2026,12 @@ export default function ProductPageClient({
                 return (
                   <div className="w-full">
                     <Swiper
-                      modules={[Autoplay]}
                       spaceBetween={16}
                       slidesPerView={'auto'}
-                      speed={1800}
-                      loopPreventsSliding
-                      autoplay={{ delay: 3000, disableOnInteraction: false }}
+                      speed={1200}
+                      grabCursor={true}
+                      allowTouchMove={true}
+                      touchStartPreventDefault={false}
                       loop={slides.length > 2}
                       className="w-full"
                     >
