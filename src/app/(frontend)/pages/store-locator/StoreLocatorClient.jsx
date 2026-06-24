@@ -308,11 +308,19 @@ export default function StoreLocatorPage() {
         setUserLocation(location);
         calculateDistancesAndFilter(location);
 
-        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${location.lat}&lon=${location.lng}&format=json`)
+        const params = new URLSearchParams({
+          format: "jsonv2",
+          lat: String(location.lat),
+          lon: String(location.lng),
+          zoom: "18",
+          addressdetails: "1",
+        });
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`)
           .then(r => r.json())
           .then(d => {
-            if (d?.address?.postcode) {
-              const pin = d.address.postcode.replace(/\s+/g, '');
+            const pin = String(d?.address?.postcode || d?.address?.postal_code || "").match(/\b\d{6}\b/)?.[0] || "";
+            if (pin) {
               setSearchQuery(pin);
               setStatusMsg(`Detected location: ${pin}`);
             } else {
@@ -325,6 +333,39 @@ export default function StoreLocatorPage() {
         setStatusMsg("Unable to retrieve your location.");
       }
     );
+  };
+
+  const handleLocateNowClick = () => {
+    const element = document.getElementById("locator-section");
+    if (element) {
+      // 1. Scroll past the header collapse threshold (120px) instantly to trigger the header state change & collapse
+      window.scrollTo({
+        top: 130,
+        behavior: "auto"
+      });
+      
+      // 2. Wait 100ms for header collapse re-render to finish, then smooth scroll to the target
+      setTimeout(() => {
+        const headerOffset = isMobile ? 80 : 120; // Sticky header height offset dynamically based on device
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + (window.scrollY || window.pageYOffset) - headerOffset;
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: "smooth"
+        });
+      }, 100);
+    }
+
+    // Delay locating & focusing until smooth scroll finishes to prevent React state changes from interrupting the scroll animation
+    setTimeout(() => {
+      handleLocateMe();
+
+      const inputEl = document.getElementById("store-search-input");
+      if (inputEl) {
+        inputEl.focus();
+      }
+    }, 900);
   };
 
   useEffect(() => {
@@ -381,7 +422,7 @@ export default function StoreLocatorPage() {
                       {slide.desc}
                     </p>
                     <Button
-                      onClick={() => document.getElementById('locator-section').scrollIntoView({ behavior: 'smooth' })}
+                      onClick={handleLocateNowClick}
                       className="h-12 px-8 py-3 w-full sm:w-fit text-sm font-bold tracking-widest bg-[#5B4740] hover:bg-[#4A3934] text-white uppercase rounded-sm transition-colors"
                     >
                       LOCATE NOW
@@ -398,7 +439,7 @@ export default function StoreLocatorPage() {
                       {slide.desc}
                     </p>
                     <Button
-                      onClick={() => document.getElementById('locator-section').scrollIntoView({ behavior: 'smooth' })}
+                      onClick={handleLocateNowClick}
                       className="h-11 px-8 py-3 w-fit text-sm font-bold tracking-widest bg-primary hover:bg-primary/90 text-white uppercase rounded-sm transition-all"
                     >
                       LOCATE NOW
@@ -452,6 +493,7 @@ export default function StoreLocatorPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                 <input
+                  id="store-search-input"
                   type="text"
                   placeholder="Search City, Pincode..."
                   value={searchQuery}
