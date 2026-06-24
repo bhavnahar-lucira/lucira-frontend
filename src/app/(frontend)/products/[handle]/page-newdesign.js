@@ -220,7 +220,7 @@ export default function ProductPage({ product = {} }) {
               
               
               {/* Savings Banners Slider */}
-              <div className="w-full">
+              <div className="w-full mt-4">
                 <Swiper
                   modules={[Autoplay]}
                   spaceBetween={8}
@@ -230,25 +230,31 @@ export default function ProductPage({ product = {} }) {
                   className="w-full"
                 >
                   <SwiperSlide>
-                    <div className="border border-dashed border-gray-400 rounded-lg px-3 py-3 flex items-center gap-2 bg-gray-50 h-full">
-                      <span className="text-base shrink-0">💎</span>
-                      <p className="text-sm font-semibold text-black whitespace-nowrap">
+                    <div className="border-[0.0875rem] border-dashed border-[#E9DAC5] rounded-[0.25rem] px-[1rem] py-[0.5rem] flex items-center gap-2 bg-[#F1E4D14A] h-full w-fit whitespace-nowrap">
+                      <span className="text-base shrink-0">
+                        <img 
+                          src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3147_5.png?v=1782295698" 
+                          alt="Diamond Discount" 
+                          className="w-5 h-5 object-contain inline-block align-middle"
+                        />
+                      </span>
+                      <p className="font-figtree font-medium text-[0.875rem] leading-[1.4] tracking-normal text-black whitespace-nowrap">
                         You're saving flat <span className="font-extrabold text-black">25% OFF</span> on diamond prices.
                       </p>
                     </div>
                   </SwiperSlide>
                   <SwiperSlide>
-                    <div className="border border-dashed border-gray-400 rounded-lg px-3 py-3 flex items-center gap-2 bg-gray-50 h-full">
+                    <div className="border-[0.0875rem] border-dashed border-[#E9DAC5] rounded-[0.25rem] px-[1rem] py-[0.5rem] flex items-center gap-2 bg-[#F1E4D14A] h-full w-fit whitespace-nowrap">
                       <span className="text-base shrink-0">🪙</span>
-                      <p className="text-sm font-semibold text-black whitespace-nowrap">
+                      <p className="font-figtree font-medium text-[0.875rem] leading-[1.4] tracking-normal text-black whitespace-nowrap">
                         Save more with <span className="font-extrabold text-black">Lucira coins</span>
                       </p>
                     </div>
                   </SwiperSlide>
                   <SwiperSlide>
-                    <div className="border border-dashed border-gray-400 rounded-lg px-3 py-3 flex items-center gap-2 bg-gray-50 h-full">
+                    <div className="border-[0.0875rem] border-dashed border-[#E9DAC5] rounded-[0.25rem] px-[1rem] py-[0.5rem] flex items-center gap-2 bg-[#F1E4D14A] h-full w-fit whitespace-nowrap">
                       <span className="text-base shrink-0">✨</span>
-                      <p className="text-sm font-semibold text-black whitespace-nowrap">
+                      <p className="font-figtree font-medium text-[0.875rem] leading-[1.4] tracking-normal text-black whitespace-nowrap">
                         Free <span className="font-extrabold text-black">Gift</span> included
                       </p>
                     </div>

@@ -1987,16 +1987,42 @@ export default function ProductPageClient({
                 const isGoldCoinEligible = isDiamondJewelry && currentTotalPrice >= goldCoinConfig.threshold;
 
                 const slides = [];
+                
+                if (currentTotalPrice >= 30000) {
+                  slides.push({
+                    icon: (
+                      <img 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/necklace_8ab6afc5-2f06-4bf9-b04d-1bd0b3343d87.png" 
+                        alt="Free Pendant" 
+                        className="w-5 h-5 object-contain inline-block align-middle"
+                      />
+                    ),
+                    text: <>Free <span className="font-bold text-black">Diamond Pendant</span> Worth ₹10,000/-</>
+                  });
+                }
+
                 if (diamondDiscount > 0) {
                   slides.push({
-                    icon: "💎",
-                    text: <>You&apos;re saving flat <span className="font-extrabold text-black">{diamondDiscount}% OFF</span> on diamond prices.</>
+                    icon: (
+                      <img 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/basil_diamond-outline_1.png?v=1782295703" 
+                        alt="Diamond Discount" 
+                        className="w-5 h-5 object-contain inline-block align-middle"
+                      />
+                    ),
+                    text: <>You&apos;re saving flat <span className="font-bold text-black">{diamondDiscount}% OFF</span> on diamond prices.</>
                   });
                 }
                 if (mcDiscount > 0) {
                   slides.push({
-                    icon: "⚒️",
-                    text: <>You&apos;re saving flat <span className="font-extrabold text-black">{mcDiscount}% OFF</span> on making charges.</>
+                    icon: (
+                      <img 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3147_5.png?v=1782295698" 
+                        alt="Making Charges Discount" 
+                        className="w-5 h-5 object-contain inline-block align-middle"
+                      />
+                    ),
+                    text: <>You&apos;re saving flat <span className="font-bold text-black">{mcDiscount}% OFF</span> on making charges.</>
                   });
                 }
                 if (isGoldCoinEligible && goldCoinConfig.enabled) {
@@ -2009,22 +2035,22 @@ export default function ProductPageClient({
                 if (slides.length === 0) return null;
 
                 return (
-                  <div className="w-full">
+                  <div className="w-full mt-4">
                     <Swiper
-                      modules={[Autoplay]}
                       spaceBetween={16}
                       slidesPerView={'auto'}
-                      speed={1800}
-                      loopPreventsSliding
-                      autoplay={{ delay: 3000, disableOnInteraction: false }}
+                      speed={1200}
+                      grabCursor={true}
+                      allowTouchMove={true}
+                      touchStartPreventDefault={false}
                       loop={slides.length > 2}
                       className="w-full"
                     >
                       {slides.map((slide, idx) => (
                         <SwiperSlide key={`promo-slide-${idx}`} style={{ width: 'auto', display: 'flex' }}>
-                          <div className="border border-dashed border-gray-400 rounded-lg px-3 py-3 flex items-center gap-2 bg-secondary/50 h-full w-fit whitespace-nowrap">
+                          <div className="border-[0.0875rem] border-dashed border-[#E9DAC5] rounded-[0.25rem] px-[1rem] py-[0.5rem] flex items-center gap-2 bg-[#F1E4D14A] h-full w-fit whitespace-nowrap">
                             <span className="text-base shrink-0">{slide.icon}</span>
-                            <p className="text-sm font-semibold text-black whitespace-normal md:whitespace-nowrap">
+                            <p className="font-figtree font-medium text-[0.875rem] leading-[1.4] tracking-normal text-black whitespace-normal md:whitespace-nowrap">
                               {slide.text}
                             </p>
                           </div>
@@ -2515,7 +2541,7 @@ export default function ProductPageClient({
                               <div className="bg-[#FAFAFA] rounded-xl p-4 border border-gray-100 shadow-sm">
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm font-bold text-gray-900">Total Redeemable</span>
-                                  <span className="text-lg font-extrabold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
+                                  <span className="text-lg font-bold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-1.5 leading-tight font-medium">
                                   Redeem on any diamond product after 10 months. Any remaining amount can be paid at checkout.
