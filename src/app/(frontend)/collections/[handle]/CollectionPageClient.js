@@ -225,10 +225,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       return {
         title: initialData.collData.collection.title || handle.replace(/-/g, " "),
         description: initialData.collData.collection.description || "",
+        descriptionHtml: initialData.collData.collection.descriptionHtml || "",
         metafields: initialData.collData.collection.metafields || {}
       };
     }
-    return { title: "", description: "" };
+    return { title: "", description: "", descriptionHtml:"" };
   });
   const [dbCollection, setDbCollection] = useState(null);
   const [products, setProducts] = useState(() => initialData?.collData?.products || []);
@@ -445,6 +446,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         setCollection({
           title: collData.collection?.title || handle.replace(/-/g, " "),
           description: collData.collection?.description || "",
+          descriptionHtml: collData.collection.descriptionHtml || "",
           metafields: collData.collection?.metafields || {}
         });
         setProducts(collData.products || []);
@@ -627,7 +629,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           <div className="container-main flex flex-col md:flex-row items-center">
             <div className="flex-1">
               <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4 capitalize">{displayTitle}</h1>
-              <p className="text-gray-900 text-sm md:text-base mb-8 max-w-xl">{collection.description || "Find the perfect piece for your special moment."}</p>
+              {/* <p className="text-gray-900 text-sm md:text-base mb-8 max-w-xl">{collection.description || "Find the perfect piece for your special moment."}</p> */}
               <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
@@ -881,25 +883,204 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </div>
 
               {/* SEO Section */}
-                {hasSeo && (
-                  <div className="mt-8 border-t border-gray-100 pt-8">
-                    <div className="md:w-4/5">
-                      <div className="prose prose-sm md:prose-base max-w-none">
-                        <div
-                          className="text-gray-600 leading-loose"
-                          ref={(el) => {
-                            if (!el) return;
-                            el.querySelectorAll("p").forEach((p) => {
-                              if (!p.innerText.trim()) p.remove();
-                            });
-                          }}
-                        >
-                          {renderShopifyRichText(seoContent)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {collection?.descriptionHtml && (
+  <div className="mt-8 border-t border-gray-100 pt-10">
+    <div
+      className="
+        max-w-4xl
+
+        [&_h1]:text-2xl
+        [&_h1]:font-bold
+        [&_h1]:text-gray-900
+        [&_h1]:mt-12
+        [&_h1]:mb-4
+        [&_h1]:uppercase
+        [&_h1]:tracking-wide
+        [&_h1]:border-b
+        [&_h1]:border-gray-100
+        [&_h1]:pb-3
+
+        [&_h2]:text-xl
+        [&_h2]:font-semibold
+        [&_h2]:text-gray-900
+        [&_h2]:mt-10
+        [&_h2]:mb-3
+        [&_h2]:uppercase
+        [&_h2]:tracking-wide
+
+        [&_h3]:text-base
+        [&_h3]:font-semibold
+        [&_h3]:text-gray-800
+        [&_h3]:mt-6
+        [&_h3]:mb-2
+        [&_h3]:tracking-wide
+
+        [&_h4]:text-sm
+        [&_h4]:font-semibold
+        [&_h4]:text-gray-800
+        [&_h4]:mt-5
+        [&_h4]:mb-2
+        [&_h4]:uppercase
+        [&_h4]:tracking-wider
+
+        [&_h5]:text-xs
+        [&_h5]:font-bold
+        [&_h5]:text-gray-700
+        [&_h5]:mt-4
+        [&_h5]:mb-1
+        [&_h5]:uppercase
+        [&_h5]:tracking-widest
+
+        [&_h6]:text-xs
+        [&_h6]:font-bold
+        [&_h6]:text-gray-400
+        [&_h6]:mt-4
+        [&_h6]:mb-1
+        [&_h6]:uppercase
+        [&_h6]:tracking-widest
+
+        [&_h1:first-child]:mt-0
+        [&_h2:first-child]:mt-0
+        [&_h3:first-child]:mt-0
+
+        [&_p]:text-sm
+        [&_p]:text-gray-500
+        [&_p]:leading-relaxed
+        [&_p]:mb-3
+
+        [&_ul]:my-3
+        [&_ul]:space-y-1.5
+        [&_ul]:pl-5
+        [&_ul]:list-disc
+
+        [&_ol]:my-3
+        [&_ol]:pl-5
+        [&_ol]:space-y-1.5
+        [&_ol]:list-decimal
+
+        [&_li]:text-sm
+        [&_li]:text-gray-500
+        [&_li]:pl-1
+
+        [&_ul>li]:marker:text-[#5a413f]
+        [&_ol>li]:marker:text-[#5a413f]
+
+        [&_strong]:text-gray-800
+        [&_strong]:font-semibold
+        [&_em]:text-gray-600
+        [&_em]:italic
+
+        [&_a]:text-[#5a413f]
+        [&_a]:underline
+        [&_a]:underline-offset-2
+        [&_a:hover]:text-black
+        [&_a]:transition-colors
+        [&_a]:duration-150
+
+        [&_blockquote]:border-l-2
+        [&_blockquote]:border-[#5a413f]
+        [&_blockquote]:pl-4
+        [&_blockquote]:my-6
+        [&_blockquote]:italic
+        [&_blockquote]:text-gray-500
+        [&_blockquote]:text-sm
+
+        [&_hr]:my-8
+        [&_hr]:border-gray-100
+
+        [&_table]:w-full
+        [&_table]:my-6
+        [&_table]:text-sm
+        [&_table]:border-collapse
+        [&_table]:rounded-lg
+        [&_table]:overflow-hidden
+        [&_table]:shadow-sm
+        [&_table]:border
+        [&_table]:border-gray-200
+
+        [&_thead]:bg-[#FFF5F1]
+        [&_thead_th]:text-xs
+        [&_thead_th]:font-bold
+        [&_thead_th]:uppercase
+        [&_thead_th]:tracking-wider
+        [&_thead_th]:text-[#5a413f]
+        [&_thead_th]:px-4
+        [&_thead_th]:py-3
+        [&_thead_th]:text-left
+        [&_thead_th]:border-b
+        [&_thead_th]:border-gray-200
+
+        [&_tbody_tr]:border-b
+        [&_tbody_tr]:border-gray-100
+        [&_tbody_tr]:transition-colors
+        [&_tbody_tr:hover]:bg-gray-50
+        [&_tbody_tr:last-child]:border-0
+
+        [&_tbody_td]:px-4
+        [&_tbody_td]:py-3
+        [&_tbody_td]:text-gray-600
+        [&_tbody_td]:text-sm
+        [&_tbody_td]:align-top
+
+        [&_tfoot_td]:px-4
+        [&_tfoot_td]:py-3
+        [&_tfoot_td]:text-xs
+        [&_tfoot_td]:text-gray-400
+        [&_tfoot_td]:bg-gray-50
+        [&_tfoot_td]:border-t
+        [&_tfoot_td]:border-gray-200
+
+        [&_img]:rounded-lg
+        [&_img]:my-6
+        [&_img]:w-full
+        [&_img]:object-cover
+        [&_img]:max-h-[480px]
+        [&_img]:shadow-sm
+        [&_img]:border
+        [&_img]:border-gray-100
+
+        [&_figure]:my-6
+        [&_figure]:text-center
+        [&_figcaption]:text-xs
+        [&_figcaption]:text-gray-400
+        [&_figcaption]:mt-2
+        [&_figcaption]:italic
+
+        [&_video]:w-full
+        [&_video]:rounded-lg
+        [&_video]:my-6
+        [&_video]:shadow-sm
+        [&_video]:max-h-[480px]
+        [&_video]:object-cover
+        [&_video]:border
+        [&_video]:border-gray-100
+
+        [&_iframe]:w-full
+        [&_iframe]:rounded-lg
+        [&_iframe]:my-6
+        [&_iframe]:aspect-video
+        [&_iframe]:border-0
+        [&_iframe]:shadow-sm
+
+        [&_code]:text-xs
+        [&_code]:bg-gray-100
+        [&_code]:text-gray-700
+        [&_code]:px-1.5
+        [&_code]:py-0.5
+        [&_code]:rounded
+
+        [&_pre]:bg-gray-100
+        [&_pre]:rounded-lg
+        [&_pre]:p-4
+        [&_pre]:my-4
+        [&_pre]:overflow-x-auto
+        [&_pre]:text-xs
+        [&_pre]:text-gray-700
+      "
+      dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
+    />
+  </div>
+)}
             </div>
           </div>
         );
