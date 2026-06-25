@@ -55,6 +55,22 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
     return () => clearInterval(interval);
   }, [timer]);
 
+  // Auto-focus first OTP input when transitioning to the OTP step
+  useEffect(() => {
+    if (step === "otp") {
+      const firstInput = document.getElementById("otp-input-0");
+      if (firstInput) {
+        firstInput.focus();
+      } else {
+        const timeoutId = setTimeout(() => {
+          const retryInput = document.getElementById("otp-input-0");
+          if (retryInput) retryInput.focus();
+        }, 50);
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [step]);
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -72,6 +88,13 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
       setStep("otp");
       setOtpValues(["", "", "", ""]);
       setTimer(180); // 3 minutes countdown
+      // Focus the first input box
+      setTimeout(() => {
+        const firstInput = document.getElementById("otp-input-0");
+        if (firstInput) {
+          firstInput.focus();
+        }
+      }, 50);
     } catch (err) {
       toast.error(err.message || "Failed to send OTP. Please try again.");
     } finally {
@@ -262,8 +285,8 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
 
   return (
     <div
-      className="relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-xl pt-14 pb-5 px-5 sm:py-5 sm:pl-[125px] sm:pr-6 flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-8"
-      style={{ paddingLeft: "84px" }}
+      className="relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-xl pt-14 pb-5 px-5 sm:py-5 sm:pl-[125px] sm:pr-6 flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0"
+      style={{ paddingLeft: "75px" }}
     >
       {/* Absolute Pendant Image */}
       <img
@@ -316,7 +339,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                 claimed ? "text-white cursor-not-allowed" : "text-white hover:bg-[#4E322A] cursor-pointer"
               }`}
               style={{
-                width: "100%",
+                width: "auto",
                 fontFamily: "Figtree",
                 fontWeight: 700,
                 fontSize: "12px",
@@ -386,6 +409,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
 
           <div className="flex flex-col sm:flex-row gap-2 w-full">
             <input
+              id="mobile-input"
               type="tel"
               maxLength={10}
               value={mobile}
@@ -400,7 +424,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                 mobile.length === 10 ? "text-white hover:bg-[#4E322A] cursor-pointer" : "text-white/80 cursor-not-allowed"
               }`}
               style={{
-                width: "100%",
+                width: "auto",
                 fontFamily: "Figtree",
                 fontWeight: 700,
                 fontSize: "12px",
@@ -486,7 +510,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                 !otpValues.some((v) => v === "") ? "text-white hover:bg-[#4E322A] cursor-pointer" : "text-white/80 cursor-not-allowed"
               }`}
               style={{
-                width: "100%",
+                width: "auto",
                 fontFamily: "Figtree",
                 fontWeight: 700,
                 fontSize: "12px",
@@ -505,13 +529,17 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             </button>
           </div>
 
-          <div className="flex flex-col xs:flex-row items-center justify-between text-xs font-semibold px-0.5 text-zinc-500 mt-2 gap-2">
+          <div className="flex flex-row xs:flex-row items-center justify-between text-xs font-semibold px-0.5 text-zinc-500 mt-2 gap-2">
             <div className="flex items-center gap-1.5">
               <span>OTP Sent to +91 {mobile}</span>
               <button
                 onClick={() => {
                   setStep("input");
                   setOtpValues(["", "", "", ""]);
+                  setTimeout(() => {
+                    const mobileInput = document.getElementById("mobile-input");
+                    if (mobileInput) mobileInput.focus();
+                  }, 50);
                 }}
                 className="text-[#5C3E35] hover:text-[#4E322A] transition-colors"
                 title="Edit phone number"
