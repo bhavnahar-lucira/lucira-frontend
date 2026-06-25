@@ -1,4 +1,4 @@
-import { getPageByHandle, getPageByHandleStorefront, getAllPages } from "@/lib/pages";
+import { getPageByHandle, getAllPages } from "@/lib/pages";
 import { notFound } from "next/navigation";
 
 import ContactSection from "@/components/common/ContactSection";
@@ -8,10 +8,70 @@ import GoldRatePage from "@/components/pages/gold-rate/GoldRatePage";
 import SilverRatePage from "@/components/pages/silver-rate/SilverRatePage";
 import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage";
 
-// SSG: Fully static pages (About, Careers, T&C, etc.) are pre-rendered at build time.
-// This eliminates Vercel function invocations and Data Cache reading costs.
-export const revalidate = false; 
+// Static pages (About, Careers, T&C, etc.) stay fully static — force-cache at the fetch
+// level means they never re-render after build.
+// Metal rate pages bypass the cache (no-store) and use ISR (revalidate: 3600) so any
+// body edits made in Shopify are reflected on the site within one hour — same strategy
+// as blog articles.
+export const revalidate = 3600;
 export const dynamicParams = true;
+
+// ─── City / State lookup (shared by all rate-page types) ─────────────────────
+const STATE_CITY_MAP = {
+  'andaman-and-nicobar-islands': ['Port Blair'],
+  'andhra-pradesh': ['Chirala', 'Guntur', 'Hindupur', 'Kagaznagar', 'Kakinada', 'Kurnool', 'Machilipatnam', 'Nandyal', 'Nellore', 'Ongole', 'Proddatur', 'Rajahmundry', 'Tirupati', 'Vishakhapatnam', 'Vizianagaram'],
+  'arunachal-pradesh': ['Itanagar'],
+  'assam': ['Dibrugarh', 'Dispur', 'Guwahati', 'Jorhat', 'Silchar', 'Tezpur'],
+  'bihar': ['Aurangabad', 'Bhagalpur', 'Gaya', 'Muzaffarpur', 'Patna', 'Purnea'],
+  'chandigarh': ['Chandigarh'],
+  'chhattisgarh': ['Bhilai', 'Bilaspur', 'Raipur'],
+  'dadra-and-nagar-haveli': ['Silvassa'],
+  'daman-and-diu': ['Daman', 'Diu'],
+  'delhi': ['Delhi', 'New Delhi'],
+  'goa': ['Panaji'],
+  'gujarat': ['Ahmedabad', 'Bhavnagar', 'Bhuj', 'Ghandinagar', 'Navsari', 'Porbandar', 'Rajkot', 'Surat', 'Vadodara'],
+  'haryana': ['Ambala', 'Bhiwani', 'Faridabad', 'Gurugram', 'Hisar', 'Karnal', 'Panchkula', 'Panipat', 'Rohtak', 'Sirsa', 'Sonipat'],
+  'himachal-pradesh': ['Shimla'],
+  'jammu-and-kashmir': ['Baramula', 'Jammu', 'Saidpur', 'Srinagar'],
+  'jharkhand': ['Dhanbad', 'Jamshedpur', 'Ranchi', 'Jorapokhar'],
+  'karnataka': ['Belgaum', 'Bellary', 'Bengaluru', 'Bidar', 'Bijapur', 'Chikka Mandya', 'Davangere', 'Gulbarga', 'Hospet', 'Hubli', 'Kolar', 'Mangalore', 'Mysore', 'Raichur', 'Shimoga'],
+  'kerala': ['Alappuzha', 'Calicut', 'Kochi', 'Kollam', 'Thiruvananthapuram'],
+  'lakshadweep': ['Kavaratti'],
+  'madhya-pradesh': ['Bhopal', 'Gwalior', 'Indore', 'Jabalpur', 'Ratlam', 'Saugor', 'Ujjain'],
+  'maharashtra': ['Ahmadnagar', 'Akola', 'Amaravati', 'Aurangabad', 'Bhiwandi', 'Bhusaval', 'Chanda', 'Kalyan', 'Khanapur', 'Kolhapur', 'Latur', 'Malegaon Camp', 'Mumbai', 'Nanded', 'Nasik', 'Parbhani', 'Pune', 'Sangli'],
+  'manipur': ['Imphal'],
+  'meghalaya': ['Shillong'],
+  'mizoram': ['Aizawl'],
+  'nagaland': ['Kohima'],
+  'odisha': ['Bhubaneshwar', 'Brahmapur', 'Cuttack', 'Puri', 'Raurkela', 'Samlaipadar', 'Brajrajnagar', 'Talcher'],
+  'puducherry': ['Puducherry'],
+  'punjab': ['Abohar', 'Amritsar', 'Haripur', 'Ludhiana', 'Pathankot', 'Patiala'],
+  'rajasthan': ['Ajmer', 'Alwar', 'Bharatpur', 'Bhilwara', 'Bikaner', 'Jaipur', 'Jodhpur', 'Kota', 'Pali', 'Rampura', 'Sikar', 'Tonk', 'Udaipur'],
+  'sikkim': ['Gangtok'],
+  'tamil-nadu': ['Chennai', 'Coimbatore', 'Cuddalore', 'Dindigul', 'Karur', 'Krishnapuram', 'Kumbakonam', 'Madurai', 'Nagercoil', 'Rajapalaiyam', 'Salem', 'Thanjavur', 'Tiruchchirappalli', 'Tirunelveli', 'Tiruvannamalai', 'Tuticorin', 'Valparai', 'Vellore'],
+  'telangana': ['Adilabad', 'Hyderabad', 'Karimnagar', 'Khammam', 'Mahabubnagar', 'Nalgonda', 'Nizamabad', 'Ramagundam', 'Warangal'],
+  'tripura': ['Agartala'],
+  'uttar-pradesh': ['Agra', 'Aligarh', 'Allahabad', 'Bakshpur', 'Bamanpuri', 'Bareilly', 'Bharauri', 'Budaun', 'Bulandshahr', 'Firozabad', 'Fyzabad', 'Ghaziabad', 'Gopalpur', 'Hapur', 'Hata', 'Jhansi', 'Lucknow', 'Mathura', 'Meerut', 'Mirzapur', 'Moradabad', 'Muzaffarnagar', 'Pilibhit', 'Saharanpur', 'Saidapur', 'Shahbazpur', 'Tharati Etawah', 'Varanasi'],
+  'uttarakhand': ['DehraDun'],
+  'west-bengal': ['Alipurduar', 'Asansol', 'Barddhaman', 'Bhatpara', 'Haldia', 'Haora', 'Kolkata', 'Krishnanagar', 'Shiliguri'],
+};
+
+function resolveCityState(handle, rateType) {
+  const citySlug = handle.replace(rateType, '');
+  const cityCapitalized = citySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+  let resolvedState = 'Maharashtra';
+  for (const [stateKey, cities] of Object.entries(STATE_CITY_MAP)) {
+    const match = cities.find(c => c.toLowerCase().replace(/\s+/g, '-') === citySlug);
+    if (match) {
+      resolvedState = stateKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      break;
+    }
+  }
+
+  return { cityCapitalized, resolvedState };
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateStaticParams() {
   const pages = await getAllPages();
@@ -20,20 +80,21 @@ export async function generateStaticParams() {
   }));
 }
 
-
 export async function generateMetadata({ params }) {
   const { handle } = await params;
-  let page = await getPageByHandle(handle);
 
-  if (!page) {
-    page = await getPageByHandleStorefront(handle);
-  }
+  const isSilverRatePage = handle.includes("silver-rate-today");
+  const isPlatinumRatePage = handle.includes("platinum-rate-today");
+  const isGoldRatePage = handle.includes("gold-rate-today");
+  const isRatePage = isSilverRatePage || isPlatinumRatePage || isGoldRatePage;
+  const cacheStrategy = isRatePage ? 'no-store' : 'force-cache';
 
+  const page = await getPageByHandle(handle, cacheStrategy);
   if (!page) return {};
 
   return {
-    title: page.title || "Lucira Jewelry",
-    description: page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160),
+    title: page.seo?.title || page.title || "Lucira Jewelry",
+    description: page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160),
     alternates: {
       canonical: `/pages/${handle}`,
     },
@@ -51,97 +112,50 @@ export default async function Page({ params }) {
     return <SitemapPage />;
   }
 
-  let page = await getPageByHandle(handle);
-
-  if (!page) {
-    page = await getPageByHandleStorefront(handle);
-  }
-
-  // Check for Rate pages before returning notFound
+  // ── Rate page detection ──────────────────────────────────────────────────
   const isSilverRatePage = handle.includes("silver-rate-today");
   const isPlatinumRatePage = handle.includes("platinum-rate-today");
   const isGoldRatePage = handle.includes("gold-rate-today");
+  const isRatePage = isSilverRatePage || isPlatinumRatePage || isGoldRatePage;
 
-  if (!page && (isSilverRatePage || isPlatinumRatePage || isGoldRatePage)) {
-    // Extract city slug from handle: e.g. "baramula-platinum-rate-today" -> "baramula"
-    // or "new-delhi-gold-rate-today" -> "new-delhi"
+  // Rate pages: no-store so Shopify body edits appear after the ISR window (1 hour).
+  // All other pages: force-cache (permanent SSG, never re-fetched after build).
+  // This mirrors exactly how blogs.js handles article content.
+  const cacheStrategy = isRatePage ? 'no-store' : 'force-cache';
+
+  // 3-tier fetch: Storefront API → Admin REST API → Live site scraping
+  // (same strategy as getArticleByBlogAndHandle in blogs.js)
+  let page = await getPageByHandle(handle, cacheStrategy);
+
+  // ── For rate pages, always attach city/state derived from the URL handle ──
+  if (isRatePage) {
     let rateType = '';
     if (isGoldRatePage) rateType = '-gold-rate-today';
     else if (isSilverRatePage) rateType = '-silver-rate-today';
     else if (isPlatinumRatePage) rateType = '-platinum-rate-today';
 
-    const citySlug = handle.replace(rateType, '');
+    const { cityCapitalized, resolvedState } = resolveCityState(handle, rateType);
 
-    // Capitalize city name from slug: "new-delhi" -> "New Delhi"
-    const cityCapitalized = citySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-    // Look up the state that contains this city using a case-insensitive match
-    const stateCityMap = {
-      'andaman-and-nicobar-islands': ['Port Blair'],
-      'andhra-pradesh': ['Chirala', 'Guntur', 'Hindupur', 'Kagaznagar', 'Kakinada', 'Kurnool', 'Machilipatnam', 'Nandyal', 'Nellore', 'Ongole', 'Proddatur', 'Rajahmundry', 'Tirupati', 'Vishakhapatnam', 'Vizianagaram'],
-      'arunachal-pradesh': ['Itanagar'],
-      'assam': ['Dibrugarh', 'Dispur', 'Guwahati', 'Jorhat', 'Silchar', 'Tezpur'],
-      'bihar': ['Aurangabad', 'Bhagalpur', 'Gaya', 'Muzaffarpur', 'Patna', 'Purnea'],
-      'chandigarh': ['Chandigarh'],
-      'chhattisgarh': ['Bhilai', 'Bilaspur', 'Raipur'],
-      'dadra-and-nagar-haveli': ['Silvassa'],
-      'daman-and-diu': ['Daman', 'Diu'],
-      'delhi': ['Delhi', 'New Delhi'],
-      'goa': ['Panaji'],
-      'gujarat': ['Ahmedabad', 'Bhavnagar', 'Bhuj', 'Ghandinagar', 'Navsari', 'Porbandar', 'Rajkot', 'Surat', 'Vadodara'],
-      'haryana': ['Ambala', 'Bhiwani', 'Faridabad', 'Gurugram', 'Hisar', 'Karnal', 'Panchkula', 'Panipat', 'Rohtak', 'Sirsa', 'Sonipat'],
-      'himachal-pradesh': ['Shimla'],
-      'jammu-and-kashmir': ['Baramula', 'Jammu', 'Saidpur', 'Srinagar'],
-      'jharkhand': ['Dhanbad', 'Jamshedpur', 'Ranchi', 'Jorapokhar'],
-      'karnataka': ['Belgaum', 'Bellary', 'Bengaluru', 'Bidar', 'Bijapur', 'Chikka Mandya', 'Davangere', 'Gulbarga', 'Hospet', 'Hubli', 'Kolar', 'Mangalore', 'Mysore', 'Raichur', 'Shimoga'],
-      'kerala': ['Alappuzha', 'Calicut', 'Kochi', 'Kollam', 'Thiruvananthapuram'],
-      'lakshadweep': ['Kavaratti'],
-      'madhya-pradesh': ['Bhopal', 'Gwalior', 'Indore', 'Jabalpur', 'Ratlam', 'Saugor', 'Ujjain'],
-      'maharashtra': ['Ahmadnagar', 'Akola', 'Amaravati', 'Aurangabad', 'Bhiwandi', 'Bhusaval', 'Chanda', 'Kalyan', 'Khanapur', 'Kolhapur', 'Latur', 'Malegaon Camp', 'Mumbai', 'Nanded', 'Nasik', 'Parbhani', 'Pune', 'Sangli'],
-      'manipur': ['Imphal'],
-      'meghalaya': ['Shillong'],
-      'mizoram': ['Aizawl'],
-      'nagaland': ['Kohima'],
-      'odisha': ['Bhubaneshwar', 'Brahmapur', 'Cuttack', 'Puri', 'Raurkela', 'Samlaipadar', 'Brajrajnagar', 'Talcher'],
-      'puducherry': ['Puducherry'],
-      'punjab': ['Abohar', 'Amritsar', 'Haripur', 'Ludhiana', 'Pathankot', 'Patiala'],
-      'rajasthan': ['Ajmer', 'Alwar', 'Bharatpur', 'Bhilwara', 'Bikaner', 'Jaipur', 'Jodhpur', 'Kota', 'Pali', 'Rampura', 'Sikar', 'Tonk', 'Udaipur'],
-      'sikkim': ['Gangtok'],
-      'tamil-nadu': ['Chennai', 'Coimbatore', 'Cuddalore', 'Dindigul', 'Karur', 'Krishnapuram', 'Kumbakonam', 'Madurai', 'Nagercoil', 'Rajapalaiyam', 'Salem', 'Thanjavur', 'Tiruchchirappalli', 'Tirunelveli', 'Tiruvannamalai', 'Tuticorin', 'Valparai', 'Vellore'],
-      'telangana': ['Adilabad', 'Hyderabad', 'Karimnagar', 'Khammam', 'Mahabubnagar', 'Nalgonda', 'Nizamabad', 'Ramagundam', 'Warangal'],
-      'tripura': ['Agartala'],
-      'uttar-pradesh': ['Agra', 'Aligarh', 'Allahabad', 'Bakshpur', 'Bamanpuri', 'Bareilly', 'Bharauri', 'Budaun', 'Bulandshahr', 'Firozabad', 'Fyzabad', 'Ghaziabad', 'Gopalpur', 'Hapur', 'Hata', 'Jhansi', 'Lucknow', 'Mathura', 'Meerut', 'Mirzapur', 'Moradabad', 'Muzaffarnagar', 'Pilibhit', 'Saharanpur', 'Saidapur', 'Shahbazpur', 'Tharati Etawah', 'Varanasi'],
-      'uttarakhand': ['DehraDun'],
-      'west-bengal': ['Alipurduar', 'Asansol', 'Barddhaman', 'Bhatpara', 'Haldia', 'Haora', 'Kolkata', 'Krishnanagar', 'Shiliguri'],
-    };
-
-    // Find the state for this city
-    let resolvedState = 'Maharashtra';
-    for (const [stateKey, cities] of Object.entries(stateCityMap)) {
-      const match = cities.find(c => c.toLowerCase().replace(/\s+/g, '-') === citySlug);
-      if (match) {
-        resolvedState = stateKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        break;
-      }
+    if (!page) {
+      // Page doesn't exist in Shopify yet — create a minimal stub so the rate
+      // page component still renders with correct city/state
+      page = {
+        title: handle.replace(/-/g, ' ').toUpperCase(),
+        body: "",
+      };
     }
 
-    page = {
-      title: handle.replace(/-/g, ' ').toUpperCase(),
-      city: { value: cityCapitalized },
-      state: { value: resolvedState },
-      body: ""
-    };
+    // Always stamp city/state from the URL — Shopify page has no city metafield
+    page.city = { value: cityCapitalized };
+    page.state = { value: resolvedState };
   }
 
   if (!page) return notFound();
 
-  // Serialize page object for Client Components (removes BSON ObjectId)
+  // Serialize for Client Components (removes BSON ObjectId, etc.)
   page = JSON.parse(JSON.stringify(page));
 
-  // Handle Gold, Silver, and Platinum Rate pages
-  // For gold rate page, we check includes or if it's a legacy city/state page
-  const isGoldRatePageResolved = isGoldRatePage || (page.city && page.state && !isSilverRatePage && !isPlatinumRatePage);
-
+  // ── Route to the correct rate page component ─────────────────────────────
   if (isSilverRatePage) {
     return <SilverRatePage page={page} />;
   }
@@ -150,10 +164,16 @@ export default async function Page({ params }) {
     return <PlatinumRatePage page={page} />;
   }
 
-  if (isGoldRatePageResolved) {
+  if (isGoldRatePage) {
     return <GoldRatePage page={page} />;
   }
 
+  // ── Legacy city/state gold-rate pages (no "-gold-rate-today" in handle) ──
+  if (page.city && page.state) {
+    return <GoldRatePage page={page} />;
+  }
+
+  // ── Generic page rendering ───────────────────────────────────────────────
   const hasBody = typeof page.body === "string" && page.body.trim() !== "";
 
   if (handle === "exclusive-promotions-page") {
