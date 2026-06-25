@@ -254,6 +254,21 @@ export default function PaymentPage() {
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedClaimed = localStorage.getItem("isSilverPendantClaimed");
+      if (savedClaimed === "true") {
+        setIsSilverPendantClaimed(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("isSilverPendantClaimed", isSilverPendantClaimed ? "true" : "false");
+    }
+  }, [isSilverPendantClaimed]);
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
 
