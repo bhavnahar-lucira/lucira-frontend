@@ -621,7 +621,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative h-34 md:h-54">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner-05062026.jpg" alt={displayTitle} fill className="object-cover" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_Banner_jpg.jpg" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
       ) : (
@@ -636,7 +636,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
               </div>
             </div>
-            <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/category-banner-05062026.jpg" alt={displayTitle} fill className="object-cover" /></div>
+            <div className="flex-1 relative w-full h-57.5"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_Banner_jpg.jpg" alt={displayTitle} fill className="object-cover" /></div>
           </div>
         </div>
       )}
