@@ -114,7 +114,7 @@ export default async function Page({ params }) {
 
       // Prune massive unused data to save Vercel bandwidth
       if (collData?.collection) {
-        delete collData.collection.descriptionHtml;
+        // delete collData.collection.descriptionHtml;
         if (collData.collection.metafields?.custom) {
           delete collData.collection.metafields.custom.bestsellers_html;
           delete collData.collection.metafields.custom.seo_content_data;
