@@ -78,7 +78,7 @@ import { addRecentlyViewed, selectRecentlyViewed } from "@/redux/features/recent
 import AtcBar from "@/components/AtcBar";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushProductView, pushAddToCart, pushAddToWishlist, pushRemoveFromWishlist, pushPromoClick, formatGtmPrice, getNumericId, getStandardWishlistPayload, pushToDataLayer } from "@/lib/gtm";
-import { sendProductViewWebhook, sendAddToCartWebhook } from "@/lib/headless-webhooks";
+import { sendProductViewWebhook } from "@/lib/headless-webhooks";
 
 import {
   Sheet,
@@ -1314,7 +1314,6 @@ export default function ProductPageClient({
         products: atcData
       });
 
-      sendAddToCartWebhook(user, atcData);
       //gtm
 
       toast.success("Added to cart!");
@@ -1988,16 +1987,42 @@ export default function ProductPageClient({
                 const isGoldCoinEligible = isDiamondJewelry && currentTotalPrice >= goldCoinConfig.threshold;
 
                 const slides = [];
+                
+                if (currentTotalPrice >= 30000) {
+                  slides.push({
+                    icon: (
+                      <img 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/necklace_8ab6afc5-2f06-4bf9-b04d-1bd0b3343d87.png" 
+                        alt="Free Pendant" 
+                        className="w-5 h-5 object-contain inline-block align-middle"
+                      />
+                    ),
+                    text: <>Free <span className="font-bold text-black">Diamond Pendant</span> Worth ₹10,000/-</>
+                  });
+                }
+
                 if (diamondDiscount > 0) {
                   slides.push({
-                    icon: "💎",
-                    text: <>You&apos;re saving flat <span className="font-extrabold text-black">{diamondDiscount}% OFF</span> on diamond prices.</>
+                    icon: (
+                      <img 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/basil_diamond-outline_1.png?v=1782295703" 
+                        alt="Diamond Discount" 
+                        className="w-5 h-5 object-contain inline-block align-middle"
+                      />
+                    ),
+                    text: <>You&apos;re saving flat <span className="font-bold text-black">{diamondDiscount}% OFF</span> on diamond prices.</>
                   });
                 }
                 if (mcDiscount > 0) {
                   slides.push({
-                    icon: "⚒️",
-                    text: <>You&apos;re saving flat <span className="font-extrabold text-black">{mcDiscount}% OFF</span> on making charges.</>
+                    icon: (
+                      <img 
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3147_5.png?v=1782295698" 
+                        alt="Making Charges Discount" 
+                        className="w-5 h-5 object-contain inline-block align-middle"
+                      />
+                    ),
+                    text: <>You&apos;re saving flat <span className="font-bold text-black">{mcDiscount}% OFF</span> on making charges.</>
                   });
                 }
                 if (isGoldCoinEligible && goldCoinConfig.enabled) {
@@ -2010,22 +2035,22 @@ export default function ProductPageClient({
                 if (slides.length === 0) return null;
 
                 return (
-                  <div className="w-full">
+                  <div className="w-full mt-4">
                     <Swiper
-                      modules={[Autoplay]}
                       spaceBetween={16}
                       slidesPerView={'auto'}
-                      speed={1800}
-                      loopPreventsSliding
-                      autoplay={{ delay: 3000, disableOnInteraction: false }}
+                      speed={1200}
+                      grabCursor={true}
+                      allowTouchMove={true}
+                      touchStartPreventDefault={false}
                       loop={slides.length > 2}
                       className="w-full"
                     >
                       {slides.map((slide, idx) => (
                         <SwiperSlide key={`promo-slide-${idx}`} style={{ width: 'auto', display: 'flex' }}>
-                          <div className="border border-dashed border-gray-400 rounded-lg px-3 py-3 flex items-center gap-2 bg-secondary/50 h-full w-fit whitespace-nowrap">
+                          <div className="border-[0.0875rem] border-dashed border-[#E9DAC5] rounded-[0.25rem] px-[1rem] py-[0.5rem] flex items-center gap-2 bg-[#F1E4D14A] h-full w-fit whitespace-nowrap">
                             <span className="text-base shrink-0">{slide.icon}</span>
-                            <p className="text-sm font-semibold text-black whitespace-normal md:whitespace-nowrap">
+                            <p className="font-figtree font-medium text-[0.875rem] leading-[1.4] tracking-normal text-black whitespace-normal md:whitespace-nowrap">
                               {slide.text}
                             </p>
                           </div>
@@ -2516,7 +2541,7 @@ export default function ProductPageClient({
                               <div className="bg-[#FAFAFA] rounded-xl p-4 border border-gray-100 shadow-sm">
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm font-bold text-gray-900">Total Redeemable</span>
-                                  <span className="text-lg font-extrabold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
+                                  <span className="text-lg font-bold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
                                 </div>
                                 <p className="text-[10px] text-gray-400 mt-1.5 leading-tight font-medium">
                                   Redeem on any diamond product after 10 months. Any remaining amount can be paid at checkout.
@@ -2566,7 +2591,7 @@ export default function ProductPageClient({
                       <path d="M21.125 18.9583C21.125 19.6766 20.8397 20.3655 20.3317 20.8734C19.8238 21.3813 19.135 21.6667 18.4167 21.6667C17.6984 21.6667 17.0095 21.3813 16.5016 20.8734C15.9937 20.3655 15.7083 19.6766 15.7083 18.9583C15.7083 18.24 15.9937 17.5512 16.5016 17.0433C17.0095 16.5353 17.6984 16.25 18.4167 16.25C19.135 16.25 19.8238 16.5353 20.3317 17.0433C20.8397 17.5512 21.125 18.24 21.125 18.9583ZM10.2917 18.9583C10.2917 19.6766 10.0063 20.3655 9.49841 20.8734C8.9905 21.3813 8.30163 21.6667 7.58333 21.6667C6.86504 21.6667 6.17616 21.3813 5.66825 20.8734C5.16034 20.3655 4.875 19.6766 4.875 18.9583C4.875 18.24 5.16034 17.5512 5.66825 17.0433C6.17616 16.5353 6.86504 16.25 7.58333 16.25C8.30163 16.25 8.9905 16.5353 9.49841 17.0433C10.0063 17.5512 10.2917 18.24 10.2917 18.9583ZM21.125 18.9585H10.2917M21.1251 18.9585H21.9517C22.19 18.9585 22.3092 18.9585 22.4088 18.9455C22.7675 18.9008 23.101 18.7379 23.3566 18.4824C23.6123 18.227 23.7755 17.8936 23.8204 17.535C23.8334 17.4342 23.8334 17.3151 23.8334 17.0767V14.0835C23.8334 12.2159 23.0915 10.4249 21.771 9.10429C20.4504 7.78372 18.6593 7.04183 16.7917 7.04183M16.2501 16.7918V7.5835C16.2501 6.05166 16.2501 5.28575 15.7734 4.81016C15.2989 4.3335 14.533 4.3335 13.0001 4.3335H5.41675C3.88491 4.3335 3.119 4.3335 2.64341 4.81016C2.16675 5.28466 2.16675 6.05058 2.16675 7.5835V16.2502C2.16675 17.2631 2.16675 17.769 2.3845 18.146C2.52712 18.393 2.73224 18.5981 2.97925 18.7407C3.35625 18.9585 3.86216 18.9585 4.87508 18.9585" stroke="#5A413F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   }
-                  text="Free and secure shipping"
+                  text="Free & Insured Shipping"
                 />
                 <Feature
                   icon={
@@ -2582,7 +2607,7 @@ export default function ProductPageClient({
                       </defs>
                     </svg>
                   }
-                  text="15-day free returns"
+                  text="15-day Money Back Guarantee"
                 />
                 <Feature
                   icon={
@@ -2598,7 +2623,7 @@ export default function ProductPageClient({
                       <path fillRule="evenodd" clipRule="evenodd" d="M7.07957 3.521C6.76741 3.5211 6.4601 3.59828 6.18494 3.74569C5.90977 3.8931 5.67527 4.10618 5.50224 4.366L1.61416 10.1965C1.37691 10.554 1.34874 11.0112 1.54049 11.3947C3.66944 15.6493 6.6262 19.4362 10.2375 22.5335L12.1333 24.1596C12.3748 24.3666 12.6824 24.4804 13.0005 24.4804C13.3186 24.4804 13.6262 24.3666 13.8677 24.1596L15.7636 22.5346C19.3754 19.4371 22.3325 15.6498 24.4617 11.3947C24.6534 11.0112 24.6242 10.554 24.3869 10.1965L20.4967 4.366C20.3236 4.10653 20.0892 3.89376 19.8143 3.74655C19.5393 3.59934 19.2323 3.52224 18.9204 3.52208L7.07957 3.521ZM6.85424 5.26625C6.87901 5.22922 6.91253 5.19887 6.95184 5.17789C6.99115 5.15691 7.03502 5.14596 7.07957 5.146H9.61457L7.53999 10.125C7.49389 10.2394 7.45765 10.3576 7.43166 10.4782C6.6687 10.4213 5.90667 10.3526 5.14582 10.2723L3.62374 10.1131L6.85424 5.26625ZM3.55332 11.7392C5.49823 15.3049 8.06409 18.4948 11.1302 21.1587L7.74474 12.1302C6.82109 12.0667 5.89866 11.9866 4.97791 11.8897L3.55332 11.7392ZM9.51816 12.231L13 21.5195L16.4829 12.231C14.1622 12.3362 11.8378 12.3362 9.51707 12.231M18.2563 12.1302L14.8709 21.1587C17.937 18.4948 20.5028 15.3049 22.4477 11.7392L21.0232 11.8897C20.1023 11.9858 19.18 12.066 18.2563 12.1302ZM22.3762 10.1131L20.8531 10.2734C20.0922 10.3537 19.3302 10.4223 18.5672 10.4792C18.5417 10.3583 18.5058 10.2398 18.46 10.125L16.3854 5.146H18.9204C18.965 5.14596 19.0088 5.15691 19.0481 5.17789C19.0874 5.19887 19.121 5.22922 19.1457 5.26625L22.3762 10.1131ZM16.8913 10.5843C14.2978 10.7187 11.7036 10.7187 9.10866 10.5843L11.375 5.146H14.625L16.8913 10.5843Z" fill="#5A413F" />
                     </svg>
                   }
-                  text="IGI and Hallmark certified"
+                  text="Certified Diamond & Gold Jewelry"
                 />
               </div>
 
@@ -2691,7 +2716,7 @@ export default function ProductPageClient({
               {/* Nearest Store */}
               {isCentralInStock && isAvailableInAnyStore && (
                 <div className="border border-gray-200 rounded-md p-4 space-y-3 bg-gray-50">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3 max-[400px]:flex-col">
                     <div className="flex items-start gap-2 min-w-0">
                       <Store size={20} className="text-black shrink-0 mt-0.5" strokeWidth={1.2} />
                       <span className="text-base font-bold leading-tight">
@@ -2738,7 +2763,7 @@ export default function ProductPageClient({
                   )}
 
                   {hasConfirmedPincode && !nearbyAvailableStore ? (
-                    <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="flex flex-col min-[430px]:grid min-[430px]:grid-cols-2 gap-3 pt-1">
                       <Button
                         variant="outline"
                         onClick={() => {

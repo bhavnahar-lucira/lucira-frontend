@@ -34,6 +34,7 @@ export function AutoAuthPopup() {
       cleanPath === "/account/register" ||
       cleanPath === "/pages/privacy-policy" ||
       cleanPath === "/pages/terms-condition" ||
+      cleanPath === "/pages/store-giveaway" ||
       /\/[a-z-]+-silver-rate-today$/.test(cleanPath)
     ) {
       return;
