@@ -92,6 +92,7 @@ import StyledByLucira from "../home/StyledByLucira";
 import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
 import { loadNectorReviews } from "@/lib/nector";
+import UnlockPendantOffer from "@/components/product/UnlockPendantOffer";
 
 import { Sheet as MobileSheet } from "react-modal-sheet";
 
@@ -2432,6 +2433,18 @@ export default function ProductPageClient({
                 </DrawerContent>
               </Drawer>
             </div>
+
+            {/* Unlock Free Diamond Pendant Offer Box */}
+            {Number(currentPrice) >= 30000 && (
+              <div className="mb-6">
+                <UnlockPendantOffer
+                  user={user}
+                  dispatch={dispatch}
+                  toast={toast}
+                  currentPrice={currentPrice}
+                />
+              </div>
+            )}
 
             <div ref={mainAtcRef} className="space-y-2 mb-4">
               <div className="flex gap-2">
