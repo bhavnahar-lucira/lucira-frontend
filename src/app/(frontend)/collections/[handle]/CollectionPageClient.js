@@ -802,7 +802,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const seoContent = collection?.metafields?.["custom.seocontent"];
         const hasSeo = seoContent && !seoContent.toString().startsWith("gid://shopify/Page/") && !seoContent.toString().startsWith("gid://shopify/OnlineStorePage/");
 
-        if (!hasFaq && !hasBestsellers && !hasSeo) return null;
+        // if (!hasFaq && !hasBestsellers && !hasSeo) return null;
 
         return (
           <div className="seo-content container-main py-10 md:py-16 border-t border-gray-100">
