@@ -333,17 +333,15 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
       className={`relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-xl flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 ${
         isUnlocked
           ? "p-5 sm:p-5"
-          : "pt-14 pb-5 px-5 sm:py-5 sm:pl-[125px] sm:pr-6"
+          : "pt-14 pb-5 pl-[75px] pr-5 sm:py-5 sm:pl-[125px] sm:pr-6"
       }`}
-      style={isUnlocked ? {} : { paddingLeft: "75px" }}
     >
       {/* Absolute Pendant Image */}
       {!isUnlocked && (
         <img
           src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Free_Diamond_Pendant.png?v=1782378443"
           alt="Free Pendant"
-          className="absolute top-0 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0 w-auto h-[85px] sm:h-[95px] object-contain z-10 drop-shadow-md"
-          style={{ paddingLeft: "4px" }}
+          className="absolute top-0 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0 w-auto h-[85px] sm:h-[95px] object-contain z-10 drop-shadow-md pl-1"
         />
       )}
 
@@ -352,21 +350,13 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div className="flex items-center justify-between w-full">
             <h3
-              className="text-[#4E3629] font-bold text-sm sm:text-base tracking-wide uppercase leading-tight"
-              style={{
-                fontFamily: "Figtree",
-                fontWeight: 600,
-                fontSize: "var(--text-lg)",
-                lineHeight: "140%",
-                letterSpacing: "0%",
-                textTransform: "uppercase"
-              }}
+              className="text-[#4E3629] font-figtree font-semibold text-[var(--text-lg)] leading-[1.4] tracking-normal uppercase"
             >
               HURRAY! OFFERS ARE UNLOCKED
             </h3>
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="text-xs font-bold text-[#5C3E35] hover:text-[#4E322A] underline transition-all cursor-pointer bg-transparent border-none py-1 px-2 font-sans"
+              className="text-xs font-figtree font-semibold text-[11px] leading-[1.4] tracking-normal align-middle underline text-[#5C3E35] hover:text-[#4E322A] transition-all cursor-pointer bg-transparent border-none py-1 px-2"
             >
               View All
             </button>
@@ -395,31 +385,12 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div>
             <h3
-              className="text-[#4E3629] font-bold text-sm sm:text-base tracking-wide uppercase leading-tight text-center sm:text-left"
-              style={{
-                fontFamily: "Figtree",
-                fontWeight: 600,
-                fontSize: "var(--text-lg)",
-                lineHeight: "140%",
-                letterSpacing: "0%",
-                verticalAlign: "middle",
-                textTransform: "uppercase"
-              }}
+              className="text-[#4E3629] font-figtree font-semibold text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
             >
               UNLOCK FREE DIAMOND PENDANT
             </h3>
             <p
-              className="text-[#8B6E60] font-semibold text-xs sm:text-sm mt-0.5 text-center sm:text-left"
-              style={{
-                fontFamily: "Figtree",
-                fontWeight: 400,
-                lineHeight: "130%",
-                letterSpacing: "0%",
-                verticalAlign: "middle",
-                marginTop: "4px",
-                marginBottom: "10px",
-                display: "block"
-              }}
+              className="text-[#8B6E60] font-figtree font-normal text-xs sm:text-sm leading-[1.3] tracking-normal align-middle mt-[4px] mb-[10px] block text-center sm:text-left"
             >
               Worth ₹10000/-
             </p>
@@ -438,20 +409,11 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={handleSendOtp}
               disabled={mobile.length < 10 || loading}
-              className={`h-11 px-5 rounded-md flex items-center justify-center font-bold text-xs uppercase tracking-wider transition-all duration-200 select-none ${
-                mobile.length === 10 ? "text-white hover:bg-[#4E322A] cursor-pointer" : "text-white/80 cursor-not-allowed"
+              className={`h-11 px-5 w-auto font-figtree font-bold text-[0.75rem] leading-[1.4] tracking-normal uppercase rounded-[4px] flex items-center justify-center transition-all duration-200 select-none ${
+                mobile.length === 10 
+                  ? "text-white bg-[#5C3E35] hover:bg-[#4E322A] cursor-pointer" 
+                  : "text-white/80 bg-[#A3908C] cursor-not-allowed"
               }`}
-              style={{
-                width: "auto",
-                fontFamily: "Figtree",
-                fontWeight: 700,
-                fontSize: "0.75rem",
-                lineHeight: "140%",
-                letterSpacing: "0%",
-                textTransform: "uppercase",
-                background: mobile.length === 10 ? "#5C3E35" : "#A3908C",
-                borderRadius: "4px"
-              }}
             >
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -470,31 +432,12 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div>
             <h3
-              className="text-[#4E3629] font-bold text-sm sm:text-base tracking-wide uppercase leading-tight text-center sm:text-left"
-              style={{
-                fontFamily: "Figtree",
-                fontWeight: 600,
-                fontSize: "var(--text-lg)",
-                lineHeight: "140%",
-                letterSpacing: "0%",
-                verticalAlign: "middle",
-                textTransform: "uppercase"
-              }}
+              className="text-[#4E3629] font-figtree font-semibold text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
             >
               UNLOCK FREE DIAMOND PENDANT
             </h3>
             <p
-              className="text-[#8B6E60] font-semibold text-xs sm:text-sm mt-0.5 text-center sm:text-left"
-              style={{
-                fontFamily: "Figtree",
-                fontWeight: 400,
-                lineHeight: "130%",
-                letterSpacing: "0%",
-                verticalAlign: "middle",
-                marginTop: "4px",
-                marginBottom: "10px",
-                display: "block"
-              }}
+              className="text-[#8B6E60] font-figtree font-normal text-xs sm:text-sm leading-[1.3] tracking-normal align-middle mt-[4px] mb-[10px] block text-center sm:text-left"
             >
               Worth ₹10000/-
             </p>
@@ -524,20 +467,11 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={() => handleVerifyOtp()}
               disabled={otpValues.some((v) => v === "") || loading}
-              className={`h-11 px-5 rounded-md flex items-center justify-center font-bold text-xs uppercase tracking-wider transition-all duration-200 w-full sm:w-auto shrink-0 ${
-                !otpValues.some((v) => v === "") ? "text-white hover:bg-[#4E322A] cursor-pointer" : "text-white/80 cursor-not-allowed"
+              className={`h-11 px-5 w-auto font-figtree font-bold text-[0.75rem] leading-[1.4] tracking-normal uppercase rounded-[4px] flex items-center justify-center transition-all duration-200 shrink-0 ${
+                !otpValues.some((v) => v === "") 
+                  ? "text-white bg-[#5C3E35] hover:bg-[#4E322A] cursor-pointer" 
+                  : "text-white/80 bg-[#A3908C] cursor-not-allowed"
               }`}
-              style={{
-                width: "auto",
-                fontFamily: "Figtree",
-                fontWeight: 700,
-                fontSize: "0.75rem",
-                lineHeight: "140%",
-                letterSpacing: "0%",
-                textTransform: "uppercase",
-                background: !otpValues.some((v) => v === "") ? "#5C3E35" : "#A3908C",
-                borderRadius: "4px"
-              }}
             >
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -608,8 +542,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
               {/* Header */}
               <div className="p-5 border-b border-[#FBE3DC] flex items-center justify-between bg-white shrink-0">
                 <h3
-                  className="text-base font-bold text-[#5C3E35] tracking-wide uppercase"
-                  style={{ fontFamily: "Figtree" }}
+                  className="text-base font-figtree font-bold text-[#5C3E35] tracking-wide uppercase"
                 >
                   Available Coupons
                 </h3>
@@ -646,25 +579,14 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
   const isCopied = copiedCode === coupon.code;
 
   return (
-    <div className={`flex h-[120px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
+    <div className={`flex h-[105px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
       <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l-lg">
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
         <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-[#FFF8F6] rounded-full z-20" />
         
         <span
-          className="text-[0.75rem] font-extrabold tracking-widest text-white uppercase"
-          style={{
-            writingMode: "vertical-lr",
-            transform: "rotate(180deg)",
-            fontFamily: "Figtree",
-            fontWeight: 600,
-            fontSize: "0.75rem",
-            lineHeight: "140%",
-            letterSpacing: "0%",
-            verticalAlign: "middle",
-            textTransform: "uppercase"
-          }}
+          className="font-figtree font-semibold text-[0.875rem] leading-[1.4] tracking-widest text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle"
         >
           DISCOUNT
         </span>
@@ -675,48 +597,16 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
 
       {/* Right Content Area (With border on top, right, bottom) */}
       <div className="flex-1 p-3 flex flex-col justify-between min-w-0 bg-white rounded-r-lg border-y border-r border-[#FBE3DC] relative">
-        {/* Right Ticket Cutout/Notch (border curves inward) */}
-        <div className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-[#FFF8F6] rounded-full border border-[#FBE3DC] z-20" />
-
         {/* Top Info & Vertical Capsule Logo */}
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
-            <span 
-              className="text-[0.625rem] font-bold text-[#8B6E60] block truncate"
-              style={{
-                fontFamily: "Figtree",
-                fontWeight: 500,
-                fontSize: "0.625rem",
-                lineHeight: "140%",
-                letterSpacing: "0px",
-                color: "#000000"
-              }}
+            <h4 
+              className="text-[1.313rem] font-extrabold text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree font-semibold"
             >
               {coupon.title}
-            </span>
-            <h4 
-              className="text-[1rem] font-extrabold text-[#4E3629] tracking-wide mt-0.5 leading-none"
-              style={{
-                fontFamily: "Figtree",
-                fontWeight: 600,
-                fontSize: "1rem",
-                lineHeight: "140%",
-                letterSpacing: "0px"
-              }}
-            >
-              {coupon.code}
             </h4>
             <span 
-              className="text-[0.625rem] font-medium text-zinc-500 block truncate mt-1.5"
-              style={{
-                fontFamily: "Figtree",
-                fontWeight: 400,
-                fontSize: "0.625rem",
-                lineHeight: "140%",
-                letterSpacing: "0px",
-                margin: "2px 0 0",
-                color: "#000000"
-              }}
+              className="text-[0.75rem] font-medium text-black block truncate mt-[2px] font-figtree font-normal leading-[1.4] tracking-normal text-black"
             >
               {coupon.condition}
             </span>
@@ -733,20 +623,11 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
         {/* Copy Coupon Action Button Box */}
         <button
           onClick={() => onCopy(coupon.code)}
-          className={`w-full h-8 flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-bold text-[0.75rem] uppercase tracking-wider ${
+          className={`w-full h-8 flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-bold text-[0.875rem] uppercase tracking-normal font-figtree font-medium leading-[1.4] py-[14px] px-[12px] ${
             isCopied 
               ? "bg-emerald-50/50 border-emerald-200 text-emerald-600" 
-              : "bg-white border-[#EBEBEB] text-[#5C3E35] hover:bg-[#FFF8F6] hover:border-[#FBE3DC]"
+              : "bg-white border-[#EBEBEB] text-[#1A1A1A] hover:bg-[#FFF8F6] hover:border-[#FBE3DC]"
           }`}
-          style={{
-            fontFamily: "Figtree",
-            fontWeight: 500,
-            fontSize: "0.75rem",
-            lineHeight: "140%",
-            letterSpacing: "0px",
-            padding: "14px 12px",
-            color: isCopied ? undefined : "#1A1A1A"
-          }}
         >
           {isCopied ? (
             <>
