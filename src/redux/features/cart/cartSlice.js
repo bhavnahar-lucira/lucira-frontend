@@ -41,12 +41,30 @@ const mapShopifyCart = (cart, backendCart = null) => {
   
   const items = cart.lines?.edges?.map(({ node }) => {
     const variantId = node.merchandise.id;
+
+    // Extract attributes from Shopify CartLine first
+    const shopifyAttributes = node.attributes || [];
+    const shopifyProperties = shopifyAttributes.reduce((acc, attr) => ({
+      ...acc,
+      [attr.key]: attr.value
+    }), {});
+
     // Find matching item in backend cart to restore custom dynamic attributes
     const backendItem = backendCart?.items?.find(i => {
       if (!i.variantId) return false;
       const bVarId = String(i.variantId).toLowerCase();
       const sVarId = String(variantId).toLowerCase();
-      return bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
+      const matchVar = bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
+      if (!matchVar) return false;
+
+      // If it is a BYJ item, also match the unique group ID
+      const shopifyGroupId = shopifyProperties['_byj_group_id'];
+      const backendGroupId = i.properties?.['_byj_group_id'];
+      if (shopifyGroupId || backendGroupId) {
+        return shopifyGroupId === backendGroupId;
+      }
+
+      return true;
     });
 
       // Extract attributes from Shopify selectedOptions as fallback
@@ -54,13 +72,6 @@ const mapShopifyCart = (cart, backendCart = null) => {
       const shopifyColor = shopifyOptions.find(o => o.name.toLowerCase().includes("color") || o.name.toLowerCase().includes("metal"))?.value;
       const shopifySize = shopifyOptions.find(o => o.name.toLowerCase() === "size" || o.name.toLowerCase().includes("ring"))?.value;
       const parsedTitle = node.merchandise.title !== "Default Title" ? node.merchandise.title : "";
-
-      // Extract attributes from Shopify CartLine
-      const shopifyAttributes = node.attributes || [];
-      const shopifyProperties = shopifyAttributes.reduce((acc, attr) => ({
-        ...acc,
-        [attr.key]: attr.value
-      }), {});
 
       // Try to intelligently parse color/karat if Shopify option just returned "14KT Rose Gold"
       let fallbackKarat = null;
@@ -480,7 +491,7 @@ export const removeFromCart = createAsyncThunk(
 
     // Heal stale cart
     const userErrors = data?.cartLinesRemove?.userErrors || [];
-    if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+    if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
       localStorage.removeItem("shopify_cart_id");
       return { items: [], totalQuantity: 0, totalAmount: 0, context };
     }
@@ -527,7 +538,7 @@ export const removeMultipleFromCart = createAsyncThunk(
 
     // Heal stale cart
     const userErrors = data?.cartLinesRemove?.userErrors || [];
-    if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+    if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
       localStorage.removeItem("shopify_cart_id");
       return { items: [], totalQuantity: 0, totalAmount: 0, context };
     }
@@ -598,7 +609,7 @@ export const updateCartItem = createAsyncThunk(
 
     // Heal stale cart
     const userErrors = data?.cartLinesUpdate?.userErrors || [];
-    if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+    if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
       localStorage.removeItem("shopify_cart_id");
       return { items: [], totalQuantity: 0, totalAmount: 0, context };
     }
