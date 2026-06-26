@@ -2585,21 +2585,14 @@ export default function ProductPageClient({
             </div>
 
             {/* Unlock Free Diamond Pendant Offer Box */}
-            {(() => {
-              const cleanPrice = typeof currentPrice === "number"
-                ? currentPrice
-                : Number(String(currentPrice).replace(/[^0-9.]/g, ""));
-              return !isNaN(cleanPrice) && cleanPrice >= 30000;
-            })() && (
-              <div className="mb-6">
-                <UnlockPendantOffer
-                  user={user}
-                  dispatch={dispatch}
-                  toast={toast}
-                  currentPrice={currentPrice}
-                />
-              </div>
-            )}
+            <div className="mb-6">
+              <UnlockPendantOffer
+                user={user}
+                dispatch={dispatch}
+                toast={toast}
+                currentPrice={currentPrice}
+              />
+            </div>
 
             {/* Features */}
             <div className="space-y-4">

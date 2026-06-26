@@ -360,23 +360,12 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
   const visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
 
   const isUnlocked = step === "unlocked";
+  const priceValue = parsePrice(currentPrice);
 
   return (
     <div
-      className={`relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-[6px] flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 ${
-        isUnlocked
-          ? "p-[12px] sm:p-5"
-          : "pt-[12px] pb-[12px] pr-[12px] pl-[65px] sm:py-5 sm:pl-[85px] sm:pr-5"
-      }`}
+      className="relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-[6px] flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 p-[12px] sm:p-5"
     >
-      {/* Absolute Pendant Image */}
-      {!isUnlocked && (
-        <img
-          src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Free_Diamond_Pendant.png?v=1782378443"
-          alt="Free Pendant"
-          className="absolute top-0 left-[10px] sm:left-5 w-auto h-[85px] sm:h-[95px] object-contain z-10 drop-shadow-md pl-1"
-        />
-      )}
 
       {/* Right Column: Dynamic Steps */}
       {step === "unlocked" && (
@@ -418,15 +407,10 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div>
             <h3
-              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
+              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle text-left sm:text-left"
             >
-              UNLOCK FREE DIAMOND PENDANT
+              Unlock Your Welcome Offer
             </h3>
-            <p
-              className="text-[#8B6E60] font-figtree font-normal text-xs sm:text-sm leading-[1.3] tracking-normal align-middle mt-[4px] mb-[10px] block text-center sm:text-left"
-            >
-              Worth ₹10000/-
-            </p>
           </div>
 
           <div className="flex items-center h-12 bg-white border border-[#EBEBEB] rounded-md p-1 focus-within:border-[#5C3E35] focus-within:ring-1 focus-within:ring-[#5C3E35] transition-all w-full">
@@ -476,13 +460,8 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <h3
               className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
             >
-              UNLOCK FREE DIAMOND PENDANT
+              Unlock Exclusive Free Coupons
             </h3>
-            <p
-              className="text-[#8B6E60] font-figtree font-normal text-xs sm:text-sm leading-[1.3] tracking-normal align-middle mt-[4px] mb-[10px] block text-center sm:text-left"
-            >
-              Worth ₹10000/-
-            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 w-full">
