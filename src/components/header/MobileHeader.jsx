@@ -1160,7 +1160,15 @@ export default function MobileHeader({ menuData }) {
       {!isProductPage && (
         <div className="px-4 py-2 bg-white">
           <div
-            onClick={() => setShowSearch(true)}
+            onClick={() => {
+              pushPromoClick({
+                creative_name: "Search Bar clicked",
+                location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                promo_id: searchQuery || "",
+                promo_name: window.location.pathname
+              });
+              setShowSearch(true);
+            }}
             className="relative w-full bg-[#f9f9f9] h-10 pl-10 pr-4 rounded-sm flex items-center cursor-pointer border border-transparent transition-all overflow-hidden"
           >
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">

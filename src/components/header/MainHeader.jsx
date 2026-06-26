@@ -301,7 +301,15 @@ export default function MainHeader() {
                 onBlur={() => {
                   setTimeout(() => setIsFocused(false), 200);
                 }}
-                onClick={() => setIsFocused(true)}
+                onClick={() => {
+                  pushPromoClick({
+                    creative_name: "Search Bar clicked",
+                    location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                    promo_id: searchQuery || "",
+                    promo_name: window.location.pathname
+                  });
+                  setIsFocused(true);
+                }}
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onKeyDown={handleKeyDown}
