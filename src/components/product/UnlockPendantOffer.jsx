@@ -445,7 +445,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                 width: "auto",
                 fontFamily: "Figtree",
                 fontWeight: 700,
-                fontSize: "12px",
+                fontSize: "0.75rem",
                 lineHeight: "140%",
                 letterSpacing: "0%",
                 textTransform: "uppercase",
@@ -531,7 +531,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                 width: "auto",
                 fontFamily: "Figtree",
                 fontWeight: 700,
-                fontSize: "12px",
+                fontSize: "0.75rem",
                 lineHeight: "140%",
                 letterSpacing: "0%",
                 textTransform: "uppercase",
@@ -624,11 +624,12 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
               {/* Coupon List */}
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {COUPONS.map((coupon, idx) => (
-                  <div key={idx} className="flex justify-center">
+                  <div key={idx} className="w-full">
                     <CouponCard
                       coupon={coupon}
                       onCopy={handleCopyCode}
                       copiedCode={copiedCode}
+                      className="w-full"
                     />
                   </div>
                 ))}
@@ -641,22 +642,28 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
   );
 }
 
-function CouponCard({ coupon, onCopy, copiedCode }) {
+function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
   const isCopied = copiedCode === coupon.code;
 
   return (
-    <div className="flex h-[120px] w-[280px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent">
+    <div className={`flex h-[120px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
       <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l-lg">
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
         <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-[#FFF8F6] rounded-full z-20" />
         
         <span
-          className="text-[9px] font-extrabold tracking-widest text-white uppercase"
+          className="text-[0.75rem] font-extrabold tracking-widest text-white uppercase"
           style={{
             writingMode: "vertical-lr",
             transform: "rotate(180deg)",
-            fontFamily: "Figtree"
+            fontFamily: "Figtree",
+            fontWeight: 600,
+            fontSize: "0.75rem",
+            lineHeight: "140%",
+            letterSpacing: "0%",
+            verticalAlign: "middle",
+            textTransform: "uppercase"
           }}
         >
           DISCOUNT
@@ -675,41 +682,71 @@ function CouponCard({ coupon, onCopy, copiedCode }) {
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
             <span 
-              className="text-[10px] font-bold text-[#8B6E60] block truncate"
-              style={{ fontFamily: "Figtree" }}
+              className="text-[0.625rem] font-bold text-[#8B6E60] block truncate"
+              style={{
+                fontFamily: "Figtree",
+                fontWeight: 500,
+                fontSize: "0.625rem",
+                lineHeight: "140%",
+                letterSpacing: "0px",
+                color: "#000000"
+              }}
             >
               {coupon.title}
             </span>
             <h4 
-              className="text-[16px] font-extrabold text-[#4E3629] tracking-wide mt-0.5 leading-none"
-              style={{ fontFamily: "Figtree" }}
+              className="text-[1rem] font-extrabold text-[#4E3629] tracking-wide mt-0.5 leading-none"
+              style={{
+                fontFamily: "Figtree",
+                fontWeight: 600,
+                fontSize: "1rem",
+                lineHeight: "140%",
+                letterSpacing: "0px"
+              }}
             >
               {coupon.code}
             </h4>
             <span 
-              className="text-[9px] font-medium text-zinc-500 block truncate mt-1.5"
-              style={{ fontFamily: "Figtree" }}
+              className="text-[0.625rem] font-medium text-zinc-500 block truncate mt-1.5"
+              style={{
+                fontFamily: "Figtree",
+                fontWeight: 400,
+                fontSize: "0.625rem",
+                lineHeight: "140%",
+                letterSpacing: "0px",
+                margin: "2px 0 0",
+                color: "#000000"
+              }}
             >
               {coupon.condition}
             </span>
           </div>
           
-          {/* Vertical Capsule 'L' badge */}
-          <div className="w-[24px] h-[36px] rounded-full border border-[#FBE3DC] flex flex-col items-center justify-center shrink-0 bg-white mt-0.5 shadow-3xs">
-            <span className="font-serif text-[13px] italic font-extrabold text-[#8B6E60] leading-none">L</span>
-            <span className="text-[5px] text-[#8B6E60] leading-none mt-0.5">♦</span>
-          </div>
+          {/* Vertical Capsule Logo */}
+          <img
+            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
+            alt="Lucira Logo"
+            className="w-[24px] h-[36px] object-contain shrink-0 mt-0.5"
+          />
         </div>
 
         {/* Copy Coupon Action Button Box */}
         <button
           onClick={() => onCopy(coupon.code)}
-          className={`w-full h-8 flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-bold text-[10px] uppercase tracking-wider ${
+          className={`w-full h-8 flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-bold text-[0.75rem] uppercase tracking-wider ${
             isCopied 
               ? "bg-emerald-50/50 border-emerald-200 text-emerald-600" 
               : "bg-white border-[#EBEBEB] text-[#5C3E35] hover:bg-[#FFF8F6] hover:border-[#FBE3DC]"
           }`}
-          style={{ fontFamily: "Figtree" }}
+          style={{
+            fontFamily: "Figtree",
+            fontWeight: 500,
+            fontSize: "0.75rem",
+            lineHeight: "140%",
+            letterSpacing: "0px",
+            padding: "14px 12px",
+            color: isCopied ? undefined : "#1A1A1A"
+          }}
         >
           {isCopied ? (
             <>
@@ -719,7 +756,7 @@ function CouponCard({ coupon, onCopy, copiedCode }) {
           ) : (
             <>
               <span className="normal-case">Copy Coupon Code</span>
-              <Copy size={11} className="text-[#5C3E35]" />
+              <Copy size={11} className="text-[#5C3E35] ml-1" />
             </>
           )}
         </button>
