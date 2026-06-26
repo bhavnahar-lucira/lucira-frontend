@@ -8,10 +8,10 @@ import "swiper/css";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
-import { pushLogin, pushSignup } from "@/lib/gtm";
+import { pushLogin, pushSignup, pushPromoClick } from "@/lib/gtm";
 import { apiFetch, sendOtpApi, verifyOtpApi, registerCustomer } from "@/lib/api";
 
-export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice }) {
+export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice, productId }) {
   const [mobile, setMobile] = useState("");
   const [otpValues, setOtpValues] = useState(["", "", "", ""]);
   const [step, setStep] = useState(user ? "unlocked" : "input");
@@ -281,6 +281,18 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
       }
     } catch (err) {
       console.warn("[GTM] Event push failed:", err);
+    }
+
+    // Fire dataLayer promoClick event on successful OTP verification
+    try {
+      pushPromoClick({
+        creative_name: "unlock coupons - pdp",
+        location_id: typeof window !== "undefined" ? window.location.href : "",
+        promo_id: String(productId || ""),
+        promo_name: mobile || "",
+      });
+    } catch (error) {
+      console.error("Error pushing to dataLayer:", error);
     }
 
     dispatch(

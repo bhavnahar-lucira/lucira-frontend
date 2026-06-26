@@ -2591,6 +2591,7 @@ export default function ProductPageClient({
                 dispatch={dispatch}
                 toast={toast}
                 currentPrice={currentPrice}
+                productId={getNumericId(product?.shopifyId || product?.id) || ""}
               />
             </div>
 
