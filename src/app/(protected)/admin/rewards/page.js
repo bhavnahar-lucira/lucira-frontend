@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { Check, ArrowRight, Loader2, Gift } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
+import { pushPromoClick } from "@/lib/gtm";
 
 /* ─────────────────────────────────────────────────────────
    CONFIG
@@ -657,6 +658,12 @@ export default function EarnRewardsPage() {
 
     setErrors([]);
     setCompleting(true);
+
+    // Fire promoClick datalayer — user completed their profile
+    pushPromoClick({
+      creative_name: "Completed User Profile",
+      location_id: "admin page",
+    });
 
     const isNewReward = !state.rewardedSteps.includes(4);
     const stepData = state.formData.step_4;

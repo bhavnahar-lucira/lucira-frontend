@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { MoveRight, Info, AlertTriangle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { pushPromoClick } from "@/lib/gtm";
 
 const KARATS = [
   { label: "24KT", value: "24", purity: 1, desc: "100% pure" },
@@ -161,6 +162,12 @@ export default function OldGoldCalculator({ config }) {
                 href="https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C%20I%20want%20to%20get%20more%20information%20about%20Old%20Gold%20Exchange !%20&type=phone_number&app_absent=0"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => {
+                  pushPromoClick({
+                    creative_name: "Old Gold Exchange whatsapp cta",
+                    location_id: "Old gold Exchange page"
+                  });
+                }}
                 className="w-full py-4 bg-[#3e405b] text-white rounded-lg flex items-center justify-center gap-3 font-semibold uppercase tracking-widest hover:-translate-y-0.5 transition-all"
               >
                 <svg width="20" height="20" viewBox="0 0 16 16" fill="white">
