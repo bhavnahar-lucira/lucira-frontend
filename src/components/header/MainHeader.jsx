@@ -6,8 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import SearchPopup from "./SearchPopup";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { pushLogout, pushViewCart, getStandardCartItem } from "@/lib/gtm";
+import { useRouter, usePathname } from "next/navigation";
+import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
 import { useDispatch, useSelector } from "react-redux";
 import { setAvatar } from "@/redux/features/user/userSlice";
@@ -75,9 +75,18 @@ const SEARCH_PLACEHOLDERS = [
 
 export default function MainHeader() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout: authLogout, openLogin } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+
+  // Derive page type for Find a Store datalayer location_id
+  const getFindStoreLocationId = () => {
+    if (!pathname || pathname === "/") return "homepage";
+    if (pathname.startsWith("/products/")) return "pdp";
+    if (pathname.startsWith("/collections/")) return "plp";
+    return "internal page";
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -344,9 +353,19 @@ export default function MainHeader() {
             />
           </Link>
 
-           <Link href="/pages/store-locator" prefetch={false} className="hidden lg:flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black">
+           <Link
+            href="/pages/store-locator"
+            prefetch={false}
+            className="hidden lg:flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black"
+            onClick={() => {
+              pushPromoClick({
+                creative_name: "Find a store cta header",
+                location_id: getFindStoreLocationId(),
+              });
+            }}
+          >
             <StoreIcon />
-             <span>Find a Store</span> 
+             <span>Find a Store</span>
           </Link>
 
           {user ? (
