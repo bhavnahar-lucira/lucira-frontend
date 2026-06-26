@@ -73,8 +73,8 @@ const CATEGORY_CONFIG = {
     canvas: {
       circleXPercent: 0.50,
       circleYPercent: 0.50,
-      radiusPercent: 0.26, // Flatter curve (0.48 vs 0.45) with Y-offset 0.42 to touch chain
-      angularGap: 24
+      radiusPercent: 0.28, // Flatter curve (0.48 vs 0.45) with Y-offset 0.42 to touch chain
+      angularGap: 26
     }
   },
   necklaces: { 
