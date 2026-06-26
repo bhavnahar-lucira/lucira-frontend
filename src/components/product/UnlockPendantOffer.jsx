@@ -239,6 +239,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
           email: `${mobile}@gmail.com`,
           mobile: mobile,
           sessionId,
+          tags: "pdp-offers-lead",
         });
 
         if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
@@ -339,14 +340,33 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
     window.location.href = "/collections/pendants";
   };
 
+  const parsePrice = (price) => {
+    if (price === undefined || price === null) return 0;
+    if (typeof price === "number") return price;
+    const clean = String(price).replace(/[^0-9.]/g, "");
+    return parseFloat(clean) || 0;
+  };
+
+  const getCouponIndexForPrice = (price) => {
+    const numericPrice = parsePrice(price);
+    if (numericPrice <= 15000) return 0;
+    if (numericPrice <= 30000) return 1;
+    if (numericPrice <= 50000) return 2;
+    if (numericPrice <= 100000) return 3;
+    return 4;
+  };
+
+  const activeIndex = getCouponIndexForPrice(currentPrice);
+  const visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
+
   const isUnlocked = step === "unlocked";
 
   return (
     <div
-      className={`relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-xl flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 ${
+      className={`relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-[6px] flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 ${
         isUnlocked
-          ? "p-5 sm:p-5"
-          : "pt-[20px] pb-5 pl-[75px] pr-5 sm:py-5 sm:pl-[125px] sm:pr-6"
+          ? "p-[12px] sm:p-5"
+          : "pt-[12px] pb-[12px] pr-[12px] pl-[65px] sm:py-5 sm:pl-[85px] sm:pr-5"
       }`}
     >
       {/* Absolute Pendant Image */}
@@ -354,7 +374,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <img
           src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Free_Diamond_Pendant.png?v=1782378443"
           alt="Free Pendant"
-          className="absolute top-0 left-1/2 sm:left-5 sm:translate-x-0 w-auto h-[85px] sm:h-[95px] object-contain z-10 drop-shadow-md pl-1"
+          className="absolute top-0 left-[10px] sm:left-5 w-auto h-[85px] sm:h-[95px] object-contain z-10 drop-shadow-md pl-1"
         />
       )}
 
@@ -381,7 +401,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             spaceBetween={16}
             className="w-full pt-1"
           >
-            {COUPONS.slice(0, 3).map((coupon, idx) => (
+            {visibleCoupons.map((coupon, idx) => (
               <SwiperSlide key={idx} className="!w-auto">
                 <CouponCard
                   coupon={coupon}
@@ -409,20 +429,20 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 w-full">
+          <div className="flex items-center h-12 bg-white border border-[#EBEBEB] rounded-md p-1 focus-within:border-[#5C3E35] focus-within:ring-1 focus-within:ring-[#5C3E35] transition-all w-full">
             <input
               id="mobile-input"
               type="tel"
               maxLength={10}
               value={mobile}
               onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
-              placeholder="Enter Phone Number to Unlock Offer"
-              className="flex-1 h-11 bg-white border border-[#EBEBEB] text-zinc-900 placeholder:text-zinc-400 text-sm p-[12px] sm:p-0 sm:px-4 rounded-md focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all font-medium"
+              placeholder="Enter Phone Number"
+              className="flex-1 min-w-0 h-full bg-transparent border-none outline-none text-zinc-900 placeholder:text-zinc-400 text-sm pl-[6px] pr-3.5 sm:px-3.5 font-medium"
             />
             <button
               onClick={handleSendOtp}
               disabled={mobile.length < 10 || loading}
-              className={`h-11 px-5 w-auto font-figtree font-bold text-[14px] leading-[1.4] tracking-normal uppercase rounded-[4px] flex items-center justify-center transition-all duration-200 select-none ${
+              className={`h-10 px-4 sm:px-5 w-auto font-figtree font-semibold text-[12px] leading-[1.4] tracking-[0.2px] uppercase rounded-[4px] flex items-center justify-center gap-[6px] sm:gap-[8px] transition-all duration-200 select-none shrink-0 ${
                 mobile.length === 10 
                   ? "text-white bg-[#5C3E35] hover:bg-[#4E322A] cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
@@ -430,10 +450,19 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             >
               {loading ? (
                 <Loader2 size={16} className="animate-spin" />
+              ) : mobile.length === 10 ? (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4.66667 6.66668V4.66668C4.6667 3.93293 4.90884 3.21969 5.35553 2.63757C5.80222 2.05546 6.42851 1.63699 7.13726 1.44708C7.84601 1.25717 8.59762 1.30642 9.27553 1.5872C9.95344 1.86797 10.5198 2.36459 10.8867 3.00002M8.66667 10.6667C8.66667 11.0349 8.36819 11.3334 8 11.3334C7.63181 11.3334 7.33333 11.0349 7.33333 10.6667C7.33333 10.2985 7.63181 10 8 10C8.36819 10 8.66667 10.2985 8.66667 10.6667ZM3.33333 6.66668H12.6667C13.403 6.66668 14 7.26364 14 8.00002V13.3334C14 14.0697 13.403 14.6667 12.6667 14.6667H3.33333C2.59695 14.6667 2 14.0697 2 13.3334V8.00002C2 7.26364 2.59695 6.66668 3.33333 6.66668Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  UNLOCK NOW
+                </>
               ) : (
                 <>
-                  <Lock size={14} className="mr-1.5" />
-                  {mobile.length === 10 ? "UNLOCK NOW" : "LOCKED"}
+                  <svg width="14" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3.29167 5.95833V3.95833C3.29167 3.07428 3.64286 2.22643 4.26798 1.60131C4.8931 0.976189 5.74095 0.625 6.625 0.625C7.50906 0.625 8.3569 0.976189 8.98202 1.60131C9.60714 2.22643 9.95833 3.07428 9.95833 3.95833V5.95833M7.29167 9.95833C7.29167 10.3265 6.99319 10.625 6.625 10.625C6.25681 10.625 5.95833 10.3265 5.95833 9.95833C5.95833 9.59014 6.25681 9.29167 6.625 9.29167C6.99319 9.29167 7.29167 9.59014 7.29167 9.95833ZM1.95833 5.95833H11.2917C12.028 5.95833 12.625 6.55529 12.625 7.29167V12.625C12.625 13.3614 12.028 13.9583 11.2917 13.9583H1.95833C1.22195 13.9583 0.625 13.3614 0.625 12.625V7.29167C0.625 6.55529 1.22195 5.95833 1.95833 5.95833Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  LOCKED
                 </>
               )}
             </button>
@@ -456,9 +485,9 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center w-full">
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
             {/* 4 OTP Digit boxes */}
-            <div className="flex gap-2 justify-center w-full sm:w-auto">
+            <div className="flex gap-2 w-full sm:w-auto shrink-0">
               {otpValues.map((digit, idx) => (
                 <input
                   key={idx}
@@ -471,7 +500,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                   onChange={(e) => handleDigitChange(idx, e.target.value)}
                   onKeyDown={(e) => handleDigitKeyDown(idx, e)}
                   onPaste={handleDigitPaste}
-                  className="w-11 h-11 bg-white border border-[#EBEBEB] text-center text-lg font-bold rounded-md text-zinc-900 focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all"
+                  className="w-full sm:w-11 h-11 bg-white border border-[#EBEBEB] text-center text-lg font-bold rounded-md text-zinc-900 focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all"
                   placeholder="-"
                 />
               ))}
@@ -480,7 +509,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={() => handleVerifyOtp()}
               disabled={otpValues.some((v) => v === "") || loading}
-              className={`h-11 px-5 w-auto font-figtree font-bold text-[0.75rem] leading-[1.4] tracking-normal uppercase rounded-[4px] flex items-center justify-center transition-all duration-200 shrink-0 ${
+              className={`w-full sm:w-auto sm:flex-1 h-11 px-4 font-figtree font-semibold text-[12px] leading-[1.4] tracking-[0.2px] uppercase rounded-[4px] flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
                 !otpValues.some((v) => v === "") 
                   ? "text-white bg-[#5C3E35] hover:bg-[#4E322A] cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
@@ -494,7 +523,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             </button>
           </div>
 
-          <div className="flex flex-row xs:flex-row items-center justify-between text-xs font-semibold px-0.5 text-zinc-500 mt-2 gap-2">
+          <div className="flex flex-col sm:flex-row items-center justify-between text-xs font-semibold px-0.5 text-zinc-500 mt-2 gap-2">
             <div className="flex items-center gap-1.5">
               <span>OTP Sent to +91 {mobile}</span>
               <button
@@ -620,12 +649,12 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
             <h4 
-              className="text-[1rem] sm:text-[1.313rem] font-extrabold text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree font-semibold"
+              className="text-[1rem] sm:text-[1.1rem] font-extrabold text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree font-semibold"
             >
               {coupon.title}
             </h4>
             <span 
-              className="text-[0.75rem] font-medium text-black block truncate mt-[2px] font-figtree font-normal leading-[1.4] tracking-normal text-black"
+              className="text-[0.7rem] sm:text-[0.75rem] font-medium text-black block truncate mt-[2px] font-figtree font-normal leading-[1.4] tracking-normal text-black"
             >
               {coupon.condition}
             </span>
@@ -642,7 +671,7 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
         {/* Copy Coupon Action Button Box */}
         <button
           onClick={() => onCopy(coupon.code)}
-          className={`w-full h-8 flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-bold text-[0.875rem] uppercase tracking-normal font-figtree font-medium leading-[1.4] py-[14px] px-[12px] ${
+          className={`w-full h-8 flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-bold text-[0.875rem] uppercase tracking-normal font-figtree font-medium leading-[1.4] px-[12px] ${
             isCopied 
               ? "bg-emerald-50/50 border-emerald-200 text-emerald-600" 
               : "bg-white border-[#EBEBEB] text-[#1A1A1A] hover:bg-[#FFF8F6] hover:border-[#FBE3DC]"
