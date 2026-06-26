@@ -20,6 +20,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   const COUPONS = [
     {
@@ -73,6 +74,18 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
       };
       window.addEventListener("storage", handleStorageChange);
       return () => window.removeEventListener("storage", handleStorageChange);
+    }
+  }, []);
+
+  // Track responsive screen size for drawer presentation
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const handleResize = () => {
+        setIsMobile(window.innerWidth < 640);
+      };
+      handleResize();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }
   }, []);
 
@@ -333,7 +346,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
       className={`relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-xl flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 ${
         isUnlocked
           ? "p-5 sm:p-5"
-          : "pt-14 pb-5 pl-[75px] pr-5 sm:py-5 sm:pl-[125px] sm:pr-6"
+          : "pt-[20px] pb-5 pl-[75px] pr-5 sm:py-5 sm:pl-[125px] sm:pr-6"
       }`}
     >
       {/* Absolute Pendant Image */}
@@ -341,7 +354,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <img
           src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Free_Diamond_Pendant.png?v=1782378443"
           alt="Free Pendant"
-          className="absolute top-0 left-1/2 -translate-x-1/2 sm:left-5 sm:translate-x-0 w-auto h-[85px] sm:h-[95px] object-contain z-10 drop-shadow-md pl-1"
+          className="absolute top-0 left-1/2 sm:left-5 sm:translate-x-0 w-auto h-[85px] sm:h-[95px] object-contain z-10 drop-shadow-md pl-1"
         />
       )}
 
@@ -350,7 +363,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div className="flex items-center justify-between w-full">
             <h3
-              className="text-[#4E3629] font-figtree font-semibold text-[var(--text-lg)] leading-[1.4] tracking-normal uppercase"
+              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal uppercase"
             >
               HURRAY! OFFERS ARE UNLOCKED
             </h3>
@@ -369,7 +382,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             className="w-full pt-1"
           >
             {COUPONS.slice(0, 3).map((coupon, idx) => (
-              <SwiperSlide key={idx} className="!w-auto pb-2">
+              <SwiperSlide key={idx} className="!w-auto">
                 <CouponCard
                   coupon={coupon}
                   onCopy={handleCopyCode}
@@ -385,7 +398,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div>
             <h3
-              className="text-[#4E3629] font-figtree font-semibold text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
+              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
             >
               UNLOCK FREE DIAMOND PENDANT
             </h3>
@@ -404,12 +417,12 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
               value={mobile}
               onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
               placeholder="Enter Phone Number to Unlock Offer"
-              className="flex-1 h-11 bg-white border border-[#EBEBEB] text-zinc-900 placeholder:text-zinc-400 text-sm px-4 rounded-md focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all font-medium"
+              className="flex-1 h-11 bg-white border border-[#EBEBEB] text-zinc-900 placeholder:text-zinc-400 text-sm p-[12px] sm:p-0 sm:px-4 rounded-md focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all font-medium"
             />
             <button
               onClick={handleSendOtp}
               disabled={mobile.length < 10 || loading}
-              className={`h-11 px-5 w-auto font-figtree font-bold text-[0.75rem] leading-[1.4] tracking-normal uppercase rounded-[4px] flex items-center justify-center transition-all duration-200 select-none ${
+              className={`h-11 px-5 w-auto font-figtree font-bold text-[14px] leading-[1.4] tracking-normal uppercase rounded-[4px] flex items-center justify-center transition-all duration-200 select-none ${
                 mobile.length === 10 
                   ? "text-white bg-[#5C3E35] hover:bg-[#4E322A] cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
@@ -432,7 +445,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div>
             <h3
-              className="text-[#4E3629] font-figtree font-semibold text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
+              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
             >
               UNLOCK FREE DIAMOND PENDANT
             </h3>
@@ -520,7 +533,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
       {/* Side Drawer for All Coupons */}
       <AnimatePresence>
         {isDrawerOpen && (
-          <div className="fixed inset-0 z-[999] flex justify-end">
+          <div className="fixed inset-0 z-[999] flex justify-center sm:justify-end items-end sm:items-stretch">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -533,25 +546,31 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
 
             {/* Drawer Body */}
             <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="relative w-full max-w-[380px] h-full bg-[#FFF8F6] shadow-2xl flex flex-col z-10"
+              initial={isMobile ? { y: "100%", x: 0 } : { x: "100%", y: 0 }}
+              animate={isMobile ? { y: 0, x: 0 } : { x: 0, y: 0 }}
+              exit={isMobile ? { y: "100%", x: 0 } : { x: "100%", y: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 250 }}
+              className="relative w-full sm:max-w-[380px] h-[85vh] sm:h-full rounded-t-3xl sm:rounded-none bg-[#FFF8F6] shadow-2xl flex flex-col z-10"
             >
               {/* Header */}
-              <div className="p-5 border-b border-[#FBE3DC] flex items-center justify-between bg-white shrink-0">
-                <h3
-                  className="text-base font-figtree font-bold text-[#5C3E35] tracking-wide uppercase"
-                >
-                  Available Coupons
-                </h3>
-                <button
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="p-1.5 hover:bg-[#FFF8F6] rounded-full transition-colors text-zinc-500 hover:text-zinc-900 cursor-pointer"
-                >
-                  <X size={20} />
-                </button>
+              <div className="p-5 border-b border-[#FBE3DC] flex flex-col bg-white rounded-t-3xl sm:rounded-none shrink-0">
+                {/* Drag Handle for Mobile */}
+                <div className="flex justify-center pb-3.5 sm:hidden">
+                  <div className="w-12 h-1 bg-zinc-200 rounded-full" />
+                </div>
+                <div className="flex items-center justify-between w-full">
+                  <h3
+                    className="text-base font-figtree font-bold text-[#5C3E35] tracking-wide uppercase"
+                  >
+                    Available Coupons
+                  </h3>
+                  <button
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="p-1.5 hover:bg-[#FFF8F6] rounded-full transition-colors text-zinc-500 hover:text-zinc-900 cursor-pointer"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
 
               {/* Coupon List */}
@@ -579,14 +598,14 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
   const isCopied = copiedCode === coupon.code;
 
   return (
-    <div className={`flex h-[105px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
+    <div className={`flex h-[120px] sm:h-[105px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
       <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l-lg">
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
         <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-[#FFF8F6] rounded-full z-20" />
         
         <span
-          className="font-figtree font-semibold text-[0.875rem] leading-[1.4] tracking-widest text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle"
+          className="font-figtree font-semibold text-[0.75rem] sm:text-[0.875rem] leading-[1.4] tracking-widest text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle"
         >
           DISCOUNT
         </span>
@@ -601,7 +620,7 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
             <h4 
-              className="text-[1.313rem] font-extrabold text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree font-semibold"
+              className="text-[1rem] sm:text-[1.313rem] font-extrabold text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree font-semibold"
             >
               {coupon.title}
             </h4>
