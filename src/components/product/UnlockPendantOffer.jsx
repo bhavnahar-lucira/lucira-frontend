@@ -470,7 +470,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div>
             <h3
-              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle uppercase text-center sm:text-left"
+              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle text-center sm:text-left"
             >
               Unlock Exclusive Free Coupons
             </h3>
