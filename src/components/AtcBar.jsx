@@ -17,6 +17,26 @@ export default function AtcBar({
   isWishlisted,
   schemeData,
 }) {
+  const [hasTopAnimated, setHasTopAnimated] = React.useState(false);
+  const [hasBottomAnimated, setHasBottomAnimated] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (isTopVisible && !hasTopAnimated) {
+      setHasTopAnimated(true);
+    }
+  }, [isTopVisible, hasTopAnimated]);
+
+  React.useEffect(() => {
+    if (isBottomVisible && !hasBottomAnimated) {
+      setHasBottomAnimated(true);
+    }
+  }, [isBottomVisible, hasBottomAnimated]);
+
   const formatPrice = (num) => {
     if (num === null || num === undefined) return "0";
     return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(num);
@@ -91,29 +111,44 @@ export default function AtcBar({
               </div>
             )}
 
-            <Button
+            <button
               onClick={onAddToCart}
               disabled={addingToCart}
-              className="h-14 px-10 text-sm font-bold bg-primary hover:bg-accent text-white rounded-sm transition-colors uppercase tracking-wider min-w-40 relative overflow-hidden gold-shimmer"
+              className="h-14 px-10 bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors uppercase tracking-wider min-w-40 relative overflow-hidden gold-shimmer"
             >
               {addingToCart ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <motion.span
-                    initial={{ opacity: 0, x: -120 }}
-                    animate={isTopVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -120 }}
-                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex items-center justify-center shrink-0"
-                  >
-                    <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
-                      <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </motion.span>
+                <span className="flex items-center justify-center">
+                  {isMounted && (
+                    <motion.span
+                      initial={{ width: 0, marginRight: 0, x: -350 }}
+                      animate={hasTopAnimated ? {
+                        width: [0, 0, 28],
+                        marginRight: [0, 0, 8],
+                        x: [-350, 0]
+                      } : {
+                        width: 0,
+                        marginRight: 0,
+                        x: -350
+                      }}
+                      transition={{
+                        ease: [0.16, 1, 0.3, 1],
+                        x: { duration: 2.2, delay: 2 },
+                        width: { duration: 2.2, times: [0, 0.6, 1], delay: 2 },
+                        marginRight: { duration: 2.2, times: [0, 0.6, 1], delay: 2 }
+                      }}
+                      className="flex items-center justify-center shrink-0 overflow-hidden"
+                    >
+                      <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
+                        <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </motion.span>
+                  )}
                   <span>ADD TO CART</span>
                 </span>
               )}
-            </Button>
+            </button>
 
             <div className="hidden xl:flex items-center gap-2">
               <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
@@ -161,10 +196,32 @@ export default function AtcBar({
                 {addingToCart ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
-                      <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                  <span className="flex items-center justify-center">
+                    {isMounted && (
+                      <motion.span
+                        initial={{ width: 0, marginRight: 0, x: -350 }}
+                        animate={hasBottomAnimated ? {
+                          width: [0, 0, 28],
+                          marginRight: [0, 0, 8],
+                          x: [-350, 0]
+                        } : {
+                          width: 0,
+                          marginRight: 0,
+                          x: -350
+                        }}
+                        transition={{
+                          ease: [0.16, 1, 0.3, 1],
+                          x: { duration: 2.2, delay: 2 },
+                          width: { duration: 2.2, times: [0, 0.6, 1], delay: 2 },
+                          marginRight: { duration: 2.2, times: [0, 0.6, 1], delay: 2 }
+                        }}
+                        className="flex items-center justify-center shrink-0 overflow-hidden"
+                      >
+                        <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
+                          <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </motion.span>
+                    )}
                     <span>ADD TO CART</span>
                   </span>
                 )}
@@ -202,15 +259,37 @@ export default function AtcBar({
             <button
               onClick={onAddToCart}
               disabled={addingToCart}
-              className="h-14 flex-[1.5] bg-primary text-white font-bold text-[13px] rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 relative overflow-hidden gold-shimmer"
+              className="h-14 flex-[1.5] bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden gold-shimmer"
             >
               {addingToCart ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
-                    <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+                <span className="flex items-center justify-center">
+                  {isMounted && (
+                    <motion.span
+                      initial={{ width: 0, marginRight: 0, x: -350 }}
+                      animate={hasBottomAnimated ? {
+                        width: [0, 0, 28],
+                        marginRight: [0, 0, 8],
+                        x: [-350, 0]
+                      } : {
+                        width: 0,
+                        marginRight: 0,
+                        x: -350
+                      }}
+                      transition={{
+                        ease: [0.16, 1, 0.3, 1],
+                        x: { duration: 2.2, delay: 2 },
+                        width: { duration: 2.2, times: [0, 0.6, 1], delay: 2 },
+                        marginRight: { duration: 2.2, times: [0, 0.6, 1], delay: 2 }
+                      }}
+                      className="flex items-center justify-center shrink-0 overflow-hidden"
+                    >
+                      <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
+                        <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </motion.span>
+                  )}
                   <span>ADD TO CART</span>
                 </span>
               )}

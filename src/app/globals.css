@@ -457,12 +457,16 @@
 
 
 
-  animation: goldSweep 2.5s linear infinite;
+  animation: goldSweep 5s linear infinite;
 }
 
 @keyframes goldSweep {
   0% {
     left: -150%;
+  }
+
+  40% {
+    left: 150%;
   }
 
   100% {
