@@ -2440,7 +2440,7 @@ export default function ProductPageClient({
                 <Button
                   onClick={handleAddToCart}
                   disabled={addingToCart}
-                  className="flex-1 h-12 md:h-14 text-[14px] sm:text-base lg:text-lg font-bold rounded hover:cursor-pointer tracking-wider relative overflow-hidden gold-shimmer"
+                  className="flex-1 h-12 md:h-14 text-base sm:text-base lg:text-lg font-bold rounded hover:cursor-pointer tracking-wider relative overflow-hidden gold-shimmer"
                 >
                   {addingToCart ? (
                     <>
@@ -2482,7 +2482,7 @@ export default function ProductPageClient({
             <div className="flex gap-2 mb-6">
               <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
                 <a href={`https://api.whatsapp.com/send/?phone=+919004435760&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
-                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className="mr-1 shrink-0" />
+                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
                   <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                 </a>
               </Button>
@@ -2508,7 +2508,7 @@ export default function ProductPageClient({
                       e.preventDefault();
                       setIsSchemeOpen((prev) => !prev);
                     }}
-                    className={`w-full h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-gray-200'}`}
+                    className={`w-full h-12 md:h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-[#5A413F] text-[#5A413F] hover:border-tertiary'}`}
                   >
                     <div className="w-6 sm:w-8 flex justify-start shrink-0">
                       <div className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}>
