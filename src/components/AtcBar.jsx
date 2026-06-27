@@ -79,14 +79,14 @@ export default function AtcBar({
 
           <div className="flex items-center gap-3 shrink-0">
             {schemeData && (
-              <div className="hidden lg:flex items-center gap-2 mr-2">
+              <div className="hidden lg:flex items-center gap-2">
                 <a
                   href={schemeData.schemeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="h-14 px-6 border border-primary text-primary font-bold text-sm rounded-sm uppercase tracking-wider whitespace-nowrap hover:bg-primary/5 transition-colors flex items-center justify-center"
                 >
-                  YOU SAVE <span className="mx-1 font-extrabold">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
+                  YOU SAVE <span className="mx-1 font-bold">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
                 </a>
               </div>
             )}
@@ -156,7 +156,7 @@ export default function AtcBar({
               <button
                 onClick={onAddToCart}
                 disabled={addingToCart}
-                className="h-14 flex-[1.5] bg-primary text-white font-bold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden gold-shimmer"
+                className="h-14 flex-[1.5] bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden gold-shimmer"
               >
                 {addingToCart ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
