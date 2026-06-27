@@ -1086,41 +1086,57 @@ export default function ProductPageClient({
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const handleScroll = () => {
       if (!mainAtcRef.current) return;
 
-      console.log("Attaching Observer - Desktop Mode:", !isMobile);
+      const mainRect = mainAtcRef.current.getBoundingClientRect();
+      const mainAbsoluteTop = mainRect.top + window.scrollY;
+      const mainHeight = mainRect.height;
 
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          console.log("Observer Triggered!", entry.isIntersecting);
-          const isPastPoint = entry.boundingClientRect.top < 0;
+      const reviewsRect = reviewsRef.current ? reviewsRef.current.getBoundingClientRect() : null;
+      const currentScroll = window.scrollY;
 
-          if (isMobile) {
-            setShowBottomAtc(!entry.isIntersecting);
-          } else {
-            if (entry.isIntersecting) {
-              setShowTopAtc(false);
-              setShowBottomAtc(false);
-            } else if (isPastPoint) {
-              setShowTopAtc(true);
-              setShowBottomAtc(false);
-            } else {
-              setShowTopAtc(false);
-              setShowBottomAtc(true);
+      if (isMobile) {
+        // Mobile visibility logic:
+        const isMainInView = mainRect.top < window.innerHeight && mainRect.bottom > 0;
+        setShowBottomAtc(!isMainInView);
+      } else {
+        // Desktop visibility logic:
+        const isMainInView = mainRect.top < window.innerHeight && mainRect.bottom > 0;
+        const isPastMain = currentScroll > mainAbsoluteTop + mainHeight - (window.innerHeight * 0.1);
+        const isPastReviews = reviewsRect ? reviewsRect.top < window.innerHeight : false;
 
-            }
-          }
-        },
-        { threshold: 0, rootMargin: "-10% 0px 0px 0px" }
-      );
+        if (isPastReviews) {
+          setShowTopAtc(false);
+          setShowBottomAtc(false);
+        } else if (isMainInView) {
+          setShowTopAtc(false);
+          setShowBottomAtc(false);
+        } else if (isPastMain) {
+          setShowTopAtc(true);
+          setShowBottomAtc(false);
+        } else {
+          // Above main ATC: show bottom sticky bar
+          setShowTopAtc(false);
+          setShowBottomAtc(true);
+        }
+      }
+    };
 
-      observer.observe(mainAtcRef.current);
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll);
+    
+    // Run once initially
+    handleScroll();
 
-      return () => observer.disconnect();
-    }, 100);
+    // Also run on a short delay to account for dynamic content loading/rendering
+    const timer = setTimeout(handleScroll, 150);
 
-    return () => clearTimeout(timer);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+      clearTimeout(timer);
+    };
   }, [isMobile, product.id]);
 
   useEffect(() => {
