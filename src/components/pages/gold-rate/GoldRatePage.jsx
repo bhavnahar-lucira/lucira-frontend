@@ -338,11 +338,11 @@ export default function GoldRatePage({ page }) {
                 return (
                     <>
                         {/* Main content without FAQ */}
-                        <section className="py-12 md:py-20 bg-[#FAF3EC]/30">
+                        <section className="py-8 md:py-12 bg-[#FAF3EC]/30">
                             <div className="container-main">
-                                <div className="max-w-4xl mx-auto px-4 md:px-0">
+                                <div className="max-w-6xl mx-auto px-4 md:px-0">
                                     <div
-                                        className="mt-2 md:mt-4 footer-pages pt-2 md:pt-4 border-t border-zinc-200"
+                                        className="footer-pages border-t border-zinc-200 pt-4 md:pt-6"
                                         dangerouslySetInnerHTML={{ __html: mainContent }}
                                     />
 
@@ -367,11 +367,11 @@ export default function GoldRatePage({ page }) {
 
                         {/* FAQ section at the bottom */}
                         {faqMatches.length > 0 && (
-                            <section className="py-12 md:py-20 bg-[#FAF3EC]/30">
+                            <section className="py-8 md:py-12 bg-[#FAF3EC]/30">
                                 <div className="container-main">
-                                    <div className="max-w-4xl mx-auto px-4 md:px-0">
+                                    <div className="max-w-6xl mx-auto px-4 md:px-0">
                                         <div
-                                            className="footer-pages border-t border-zinc-200 pt-12"
+                                            className="footer-pages border-t border-zinc-200 pt-4 md:pt-6"
                                             dangerouslySetInnerHTML={{ __html: faqMatches.join('') }}
                                         />
                                     </div>
@@ -412,13 +412,13 @@ export default function GoldRatePage({ page }) {
                   margin-bottom: 1em;
                   line-height: 1.3;
                 }
-                .footer-pages h1 { font-size: 2.25rem; }
-                .footer-pages h2 { font-size: 1.875rem; }
-                .footer-pages h3 { font-size: 1.5rem; }
-                .footer-pages h4 { font-size: 1.25rem; }
+                .footer-pages h1 { font-size: 2.625rem; } /* 42px - matching site standard */
+                .footer-pages h2 { font-size: 2.25rem; } /* 36px */
+                .footer-pages h3 { font-size: 1.875rem; } /* 30px */
+                .footer-pages h4 { font-size: 1.5rem; } /* 24px */
                 .footer-pages p {
                   font-family: var(--font-figtree), sans-serif;
-                  font-size: 1.125rem; /* 18px */
+                  font-size: 1.25rem; /* 20px - increased from 18px */
                   line-height: 1.75;
                   margin-top: 1.25em;
                   margin-bottom: 1.25em;
@@ -458,16 +458,33 @@ export default function GoldRatePage({ page }) {
                   margin-top: 2em;
                   margin-bottom: 2em;
                   font-family: var(--font-figtree), sans-serif;
-                }
-                .footer-pages th, .footer-pages td {
-                  border: 1px solid #e4e4e7;
-                  padding: 0.75rem;
-                  text-align: left;
+                  border-radius: 1rem;
+                  overflow: hidden;
+                  box-shadow: 0 4px 12px rgba(163, 130, 113, 0.08);
+                  border: 2px solid #F2E3C6;
                 }
                 .footer-pages th {
-                  background-color: #f4f4f5;
-                  font-weight: 600;
-                  color: #18181b;
+                  background: linear-gradient(to bottom, #FFFDF9, #FDF4E5);
+                  font-weight: 700;
+                  color: #3F332A;
+                  padding: 1rem 1.25rem;
+                  text-align: left;
+                  border: 1px solid #F2E3C6;
+                  border-bottom: 2px solid #D4B392;
+                  font-family: var(--font-abhaya), serif;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                  font-size: 0.9rem;
+                }
+                .footer-pages td {
+                  padding: 1rem 1.25rem;
+                  text-align: left;
+                  border: 1px solid #F2E3C6;
+                  color: #5C4A3D;
+                  background: white;
+                }
+                .footer-pages tr:hover td {
+                  background: linear-gradient(to bottom, #FFFDF9, #FDF4E5);
                 }
                 
                 /* FAQ Details / Summary styling */
