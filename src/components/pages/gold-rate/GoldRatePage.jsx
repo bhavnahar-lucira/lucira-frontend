@@ -378,7 +378,7 @@ export default function GoldRatePage({ page }) {
                         <div className="max-w-4xl mx-auto prose prose-zinc prose-lg prose-p:text-[14px] md:prose-p:text-[18px] prose-p:font-figtree prose-headings:font-abhaya prose-headings:uppercase px-2 md:px-0">
                             <div
                                 className="mt-12 md:mt-24 footer-pages pt-12 md:pt-24 border-t border-zinc-100 prose-headings:text-[18px] md:prose-headings:text-[28px] prose-p:text-[14px] md:prose-p:text-[18px] prose-p:leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: page.body.replaceAll('[current_date]', currentDate) }}
+                                dangerouslySetInnerHTML={{ __html: page.body.replaceAll('[current_date]', currentDate).replaceAll('{{ page.metafields.custom.city_name.value }}', cityNameDisplay).replaceAll('{{ page.metafields.custom.state_name.value }}', stateName) }}
                             />
                         </div>
                     </div>

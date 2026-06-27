@@ -105,7 +105,7 @@ export default function InformationContent({ cityName, stateName, sectionData, c
               return (
                 <div
                   key={idx}
-                  className="information-content-richtext mb-4 text-sm md:text-lg"
+                  className="information-content-richtext mb-4 text-sm md:text-lg footer-pages"
                   dangerouslySetInnerHTML={{ __html: replaceShortcodes(block.settings.content) }}
                 />
               );
