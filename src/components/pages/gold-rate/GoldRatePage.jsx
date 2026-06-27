@@ -54,7 +54,7 @@ const stateCityMap = {
 export default function GoldRatePage({ page }) {
     const router = useRouter();
     const [isFlipped, setIsFlipped] = useState(false);
-    
+
     // Extract city from URL handle if available
     const getInitialCity = () => {
         if (typeof window !== 'undefined') {
@@ -295,55 +295,7 @@ export default function GoldRatePage({ page }) {
                                     <PriceTable baseRate={todayRateNum} />
 
                                     {/* Market Analysis / Stable/Rise/Fall Info moved here so it is directly below the table */}
-                                    <section className="py-12 md:py-15 bg-zinc-50 border-t border-zinc-100 mb-12">
-                                        <div className="container-main">
-                                            <h2 className="text-[18px] md:text-[28px] font-medium text-zinc-900 mb-12 uppercase tracking-tight font-abhaya text-center px-4">
-                                            Market Analysis: {cityNameDisplay} – {currentDate}
-                                            </h2>
 
-                                            <div className="max-w-4xl mx-auto prose prose-zinc prose-lg prose-p:text-[14px] md:prose-p:text-[18px] prose-p:font-figtree prose-headings:font-abhaya prose-headings:uppercase px-2 md:px-0">
-                                                {diff > THRESHOLD && (
-                                                    <div className="mb-10 md:mb-0 p-8 md:p-12 bg-white rounded-[2rem] md:rounded-[3rem] shadow-sm border border-zinc-100 relative overflow-hidden">
-                                                        <div className="absolute top-0 right-0 w-32 md:w-48 h-32 md:h-48 bg-green-50/50 rounded-full -mr-16 md:-mr-24 -mt-16 md:-mt-24 blur-3xl" />
-                                                        <h3 className="text-[18px] md:text-[28px] font-bold mb-6 md:mb-8 text-zinc-900 flex items-center gap-4 font-abhaya">
-                                                            <span className="w-2 md:w-2.5 h-8 md:h-10 bg-green-500 rounded-full" />
-                                                            Gold Rate Rises
-                                                        </h3>
-                                                        <p className="text-zinc-600 leading-relaxed text-[14px] md:text-[18px] font-figtree">
-                                                            In {cityNameDisplay} on {currentDate}, 24-carat gold is priced at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams,
-                                                            while 22-carat gold stands at ₹{Math.round(todayRateNum * (22 / 24)).toLocaleString('en-IN')} per 10 grams.
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                {diff < -THRESHOLD && (
-                                                    <div className="mb-10 md:mb-16 p-8 md:p-12 bg-white rounded-[2rem] md:rounded-[3rem] shadow-sm border border-zinc-100 relative overflow-hidden">
-                                                        <div className="absolute top-0 right-0 w-32 md:w-48 h-32 md:h-48 bg-red-50/50 rounded-full -mr-16 md:-mr-24 -mt-16 md:-mt-24 blur-3xl" />
-                                                        <h3 className="text-[18px] md:text-[28px] font-bold mb-6 md:mb-8 text-zinc-900 flex items-center gap-4 font-abhaya">
-                                                            <span className="w-2 md:w-2.5 h-8 md:h-10 bg-red-500 rounded-full" />
-                                                            Gold Rate Falls
-                                                        </h3>
-                                                        <p className="text-zinc-600 leading-relaxed text-[14px] md:text-[18px] font-figtree">
-                                                            In {cityNameDisplay} on {currentDate}, 24-carat gold is available at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams,
-                                                            with 22-carat gold priced at ₹{Math.round(todayRateNum * (22 / 24)).toLocaleString('en-IN')} per 10 grams.
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                {(diff <= THRESHOLD && diff >= -THRESHOLD) && (
-                                                    <div className="mb-10 md:mb-16 p-8 md:p-12 bg-white rounded-[2rem] md:rounded-[3rem] shadow-sm border border-zinc-100 relative overflow-hidden">
-                                                        <div className="absolute top-0 right-0 w-32 md:w-48 h-32 md:h-48 bg-blue-50/50 rounded-full -mr-16 md:-mr-24 -mt-16 md:-mt-24 blur-3xl" />
-                                                        <h3 className="text-[18px] md:text-[28px] font-bold mb-6 md:mb-8 text-zinc-900 flex items-center gap-4 font-abhaya">
-                                                            <span className="w-2 md:w-2.5 h-8 md:h-10 bg-blue-500 rounded-full" />
-                                                            Gold Rate Remains Stable
-                                                        </h3>
-                                                        <p className="text-zinc-600 leading-relaxed text-[14px] md:text-[18px] font-figtree">
-                                                            In {cityNameDisplay} on {currentDate}, gold prices remain steady with 24-carat gold at ₹{(todayRateNum).toLocaleString('en-IN')} per 10 grams
-                                                            and 22-carat gold at ₹{Math.round(todayRateNum * (22 / 24)).toLocaleString('en-IN')} per 10 grams.
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </section>
                                 </div>
                             );
                         case 'information-content-info':
@@ -372,18 +324,47 @@ export default function GoldRatePage({ page }) {
             </div>
 
             {/* Shopify Page Body (if any) */}
-            {page.body && (
-                <section className="py-12 md:py-15 bg-white">
-                    <div className="container-main">
-                        <div className="max-w-4xl mx-auto prose prose-zinc prose-lg prose-p:text-[14px] md:prose-p:text-[18px] prose-p:font-figtree prose-headings:font-abhaya prose-headings:uppercase px-2 md:px-0">
-                            <div
-                                className="mt-12 md:mt-24 footer-pages pt-12 md:pt-24 border-t border-zinc-100 prose-headings:text-[18px] md:prose-headings:text-[28px] prose-p:text-[14px] md:prose-p:text-[18px] prose-p:leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: page.body.replaceAll('[current_date]', currentDate).replaceAll('{{ page.metafields.custom.city_name.value }}', cityNameDisplay).replaceAll('{{ page.metafields.custom.state_name.value }}', stateName) }}
-                            />
-                        </div>
-                    </div>
-                </section>
-            )}
+            {page.body && (() => {
+                const processedBody = page.body
+                    .replaceAll('[current_date]', currentDate)
+                    .replaceAll('{{ page.metafields.custom.city_name.value }}', cityNameDisplay)
+                    .replaceAll('{{ page.metafields.custom.state_name.value }}', stateName);
+
+                // Extract FAQ section (details elements) from the body
+                const faqRegex = /<details[^>]*>[\s\S]*?<\/details>/gi;
+                const faqMatches = processedBody.match(faqRegex) || [];
+                const mainContent = processedBody.replace(faqRegex, '');
+
+                return (
+                    <>
+                        {/* Main content without FAQ */}
+                        <section className="py-12 md:py-20 bg-[#FAF3EC]/30">
+                            <div className="container-main">
+                                <div className="max-w-4xl mx-auto prose prose-zinc prose-lg prose-p:text-[14px] md:prose-p:text-[18px] prose-p:font-figtree prose-headings:font-abhaya prose-headings:uppercase px-2 md:px-0">
+                                    <div
+                                        className="mt-12 md:mt-24 footer-pages pt-12 md:pt-24 border-t border-zinc-100 prose-headings:text-[18px] md:prose-headings:text-[28px] prose-p:text-[14px] md:prose-p:text-[18px] prose-p:leading-relaxed"
+                                        dangerouslySetInnerHTML={{ __html: mainContent }}
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* FAQ section at the bottom */}
+                        {faqMatches.length > 0 && (
+                            <section className="py-12 md:py-20 bg-[#FAF3EC]/30">
+                                <div className="container-main">
+                                    <div className="max-w-4xl mx-auto prose prose-zinc prose-lg prose-p:text-[14px] md:prose-p:text-[18px] prose-p:font-figtree prose-headings:font-abhaya prose-headings:uppercase px-2 md:px-0">
+                                        <div
+                                            className="footer-pages border-t border-zinc-100 prose-headings:text-[18px] md:prose-headings:text-[28px] prose-p:text-[14px] md:prose-p:text-[18px] prose-p:leading-relaxed"
+                                            dangerouslySetInnerHTML={{ __html: faqMatches.join('') }}
+                                        />
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+                    </>
+                );
+            })()}
 
             <style jsx>{`
                 .perspective-2000 { perspective: 2000px; }

@@ -1585,30 +1585,6 @@ export const GOLD_RATE_TEMPLATE = {
     }
   },
   "order": [
-    "main",
-    "gold_calculate_widget_HCyUVc",
-    "information_content_info_8Egqwz",
-    "information_content_info_M9tj43",
-    "information_content_info_RrD7HT",
-    "information_content_info_NC6H6E",
-    "information_content_info_hj4WiD",
-    "information_content_info_Ak8Q8z",
-    "information_content_info_cnfej4",
-    "information_content_info_HWkhbr",
-    "information_content_info_agKa4z",
-    "information_content_info_UmeiDz",
-    "information_content_info_bkJ4YL",
-    "information_content_info_8WGhDD",
-    "information_content_info_iaye8C",
-    "information_content_info_CwXMiD",
-    "information_content_info_razRXQ",
-    "information_content_info_ttkbDg",
-    "information_content_info_bfnnCL",
-    "information_content_info_XUcUAR",
-    "information_content_info_QjUQwM",
-    "information_content_info_nYgAcT",
-    "information_content_info_K7XnqF",
-    "information_content_info_p76APC",
-    "faq_section_RcjXbX"
+    "main"
   ]
 };

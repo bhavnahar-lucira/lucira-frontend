@@ -1049,3 +1049,61 @@ img.marquee-img {
   @apply border-zinc-200 my-8;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   FAQ/ACCORDION STYLING for Shopify content
+   Matches the old FAQSection component styling
+═══════════════════════════════════════════════════════════════ */
+
+/* FAQ accordion container */
+.footer-pages details {
+  @apply bg-white rounded-3xl overflow-hidden border border-zinc-100 shadow-sm mb-6;
+}
+
+/* FAQ summary/question */
+.footer-pages summary {
+  @apply w-full p-4 md:p-6 text-left flex justify-between items-center cursor-pointer list-none transition-colors duration-300;
+  font-family: var(--font-figtree), sans-serif;
+}
+
+.footer-pages summary::-webkit-details-marker {
+  display: none;
+}
+
+.footer-pages summary::after {
+  content: "";
+  @apply flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors bg-zinc-50 text-zinc-400;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'%3E%3C/line%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.footer-pages details[open] summary::after {
+  @apply bg-primary text-white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3C/svg%3E");
+}
+
+.footer-pages summary > * {
+  @apply text-[14px] md:text-[18px] capitalize tracking-tight text-zinc-800 transition-colors duration-300;
+}
+
+.footer-pages details[open] summary > * {
+  @apply text-primary;
+}
+
+/* FAQ content/answer */
+.footer-pages details > div {
+  @apply p-4 md:p-6 pt-0 text-zinc-500 leading-relaxed text-[14px] md:text-[18px] border-t border-zinc-50;
+  font-family: var(--font-figtree), sans-serif;
+}
+
+/* FAQ heading within Shopify content */
+.footer-pages .faq-heading {
+  @apply text-[18px] md:text-[28px] font-medium text-zinc-900 uppercase tracking-tight mb-12 text-center;
+  font-family: var(--font-abhaya), serif;
+}
+
+/* FAQ container with divider */
+.footer-pages .faq-container {
+  @apply py-12 md:pt-24 border-t border-zinc-100;
+}
+
