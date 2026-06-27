@@ -618,7 +618,7 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
   const isCopied = copiedCode === coupon.code;
 
   return (
-    <div className={`flex h-[120px] sm:h-[105px] rounded overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
+    <div className={`flex h-[120px] sm:h-[105px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
       <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l">
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
