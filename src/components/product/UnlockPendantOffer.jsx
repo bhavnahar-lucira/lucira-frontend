@@ -500,7 +500,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={() => handleVerifyOtp()}
               disabled={otpValues.some((v) => v === "") || loading}
-              className={`w-full sm:w-auto sm:flex-1 h-[32px] text-xs py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
+              className={`w-full sm:w-auto sm:flex-1 h-10 text-xs py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
                 !otpValues.some((v) => v === "") 
                   ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
