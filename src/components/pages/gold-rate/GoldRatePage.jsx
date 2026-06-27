@@ -340,11 +340,27 @@ export default function GoldRatePage({ page }) {
                         {/* Main content without FAQ */}
                         <section className="py-12 md:py-20 bg-[#FAF3EC]/30">
                             <div className="container-main">
-                                <div className="max-w-4xl mx-auto prose prose-zinc prose-lg prose-p:text-[14px] md:prose-p:text-[18px] prose-p:font-figtree prose-headings:font-abhaya prose-headings:uppercase px-2 md:px-0">
+                                <div className="max-w-4xl mx-auto px-4 md:px-0">
                                     <div
-                                        className="mt-12 md:mt-24 footer-pages pt-12 md:pt-24 border-t border-zinc-100 prose-headings:text-[18px] md:prose-headings:text-[28px] prose-p:text-[14px] md:prose-p:text-[18px] prose-p:leading-relaxed"
+                                        className="mt-2 md:mt-4 footer-pages pt-2 md:pt-4 border-t border-zinc-200"
                                         dangerouslySetInnerHTML={{ __html: mainContent }}
                                     />
+
+                                    {/* Redesigned Dynamic Rates Grid */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 mb-4">
+                                        {[
+                                            { karat: '24K', price: Math.round(todayRateNum) },
+                                            { karat: '22K', price: Math.round(goldWidgetSettings.rate_avg ? parseInt(goldWidgetSettings.rate_avg.replace(/[₹, ]/g, '')) : (todayRateNum * 22 / 24)) },
+                                            { karat: '18K', price: Math.round(todayRateNum * 18 / 24) },
+                                            { karat: '14K', price: Math.round(todayRateNum * 14 / 24) }
+                                        ].map(rate => (
+                                            <div key={rate.karat} className="bg-white border border-zinc-200 rounded-xl p-5 flex flex-col gap-2 shadow-sm">
+                                                <span className="text-zinc-400 text-[11px] md:text-xs font-medium uppercase tracking-wider font-figtree">{rate.karat}</span>
+                                                <span className="text-zinc-900 text-xl md:text-2xl font-bold font-figtree">₹{rate.price.toLocaleString('en-IN')}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-zinc-500 text-xs md:text-sm font-figtree mb-8">Updated {currentDate}</p>
                                 </div>
                             </div>
                         </section>
@@ -353,9 +369,9 @@ export default function GoldRatePage({ page }) {
                         {faqMatches.length > 0 && (
                             <section className="py-12 md:py-20 bg-[#FAF3EC]/30">
                                 <div className="container-main">
-                                    <div className="max-w-4xl mx-auto prose prose-zinc prose-lg prose-p:text-[14px] md:prose-p:text-[18px] prose-p:font-figtree prose-headings:font-abhaya prose-headings:uppercase px-2 md:px-0">
+                                    <div className="max-w-4xl mx-auto px-4 md:px-0">
                                         <div
-                                            className="footer-pages border-t border-zinc-100 prose-headings:text-[18px] md:prose-headings:text-[28px] prose-p:text-[14px] md:prose-p:text-[18px] prose-p:leading-relaxed"
+                                            className="footer-pages border-t border-zinc-200 pt-12"
                                             dangerouslySetInnerHTML={{ __html: faqMatches.join('') }}
                                         />
                                     </div>
@@ -382,6 +398,113 @@ export default function GoldRatePage({ page }) {
                   transform: rotateX(180deg) translateZ(2px);
                   backface-visibility: hidden;
                   -webkit-backface-visibility: hidden;
+                }
+                
+                /* Typography for dynamically injected content (footer-pages) */
+                .footer-pages {
+                  color: #3f3f46; /* zinc-700 */
+                }
+                .footer-pages h1, .footer-pages h2, .footer-pages h3, .footer-pages h4, .footer-pages h5, .footer-pages h6 {
+                  font-family: var(--font-abhaya), serif;
+                  color: #18181b; /* zinc-900 */
+                  font-weight: 600;
+                  margin-top: 2em;
+                  margin-bottom: 1em;
+                  line-height: 1.3;
+                }
+                .footer-pages h1 { font-size: 2.25rem; }
+                .footer-pages h2 { font-size: 1.875rem; }
+                .footer-pages h3 { font-size: 1.5rem; }
+                .footer-pages h4 { font-size: 1.25rem; }
+                .footer-pages p {
+                  font-family: var(--font-figtree), sans-serif;
+                  font-size: 1.125rem; /* 18px */
+                  line-height: 1.75;
+                  margin-top: 1.25em;
+                  margin-bottom: 1.25em;
+                }
+                .footer-pages a {
+                  color: #000;
+                  text-decoration: underline;
+                  font-weight: 500;
+                }
+                .footer-pages strong {
+                  font-weight: 700;
+                  color: #18181b;
+                }
+                .footer-pages ul, .footer-pages ol {
+                  margin-top: 1.25em;
+                  margin-bottom: 1.25em;
+                  padding-left: 1.625em;
+                }
+                .footer-pages ul { list-style-type: disc; }
+                .footer-pages ol { list-style-type: decimal; }
+                .footer-pages li {
+                  margin-top: 0.5em;
+                  margin-bottom: 0.5em;
+                  font-family: var(--font-figtree), sans-serif;
+                  font-size: 1.125rem;
+                  line-height: 1.75;
+                }
+                .footer-pages blockquote {
+                  border-left: 4px solid #e4e4e7;
+                  padding-left: 1em;
+                  font-style: italic;
+                  color: #52525b;
+                }
+                .footer-pages table {
+                  width: 100%;
+                  border-collapse: collapse;
+                  margin-top: 2em;
+                  margin-bottom: 2em;
+                  font-family: var(--font-figtree), sans-serif;
+                }
+                .footer-pages th, .footer-pages td {
+                  border: 1px solid #e4e4e7;
+                  padding: 0.75rem;
+                  text-align: left;
+                }
+                .footer-pages th {
+                  background-color: #f4f4f5;
+                  font-weight: 600;
+                  color: #18181b;
+                }
+                
+                /* FAQ Details / Summary styling */
+                .footer-pages details {
+                  border-bottom: 1px solid #e4e4e7;
+                  padding: 1.5rem 0;
+                }
+                .footer-pages summary {
+                  font-family: var(--font-figtree), sans-serif;
+                  font-weight: 600;
+                  font-size: 1.25rem;
+                  cursor: pointer;
+                  list-style: none;
+                  position: relative;
+                  padding-right: 2rem;
+                  color: #18181b;
+                }
+                .footer-pages summary::-webkit-details-marker {
+                  display: none;
+                }
+                .footer-pages summary::after {
+                  content: '+';
+                  position: absolute;
+                  right: 0;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  font-size: 1.5rem;
+                  font-weight: 400;
+                  color: #71717a;
+                }
+                .footer-pages details[open] summary::after {
+                  content: '−';
+                }
+                .footer-pages details > p {
+                  margin-top: 1rem;
+                  margin-bottom: 0;
+                  color: #52525b;
                 }
             `}</style>
         </div>
