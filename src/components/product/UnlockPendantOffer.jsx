@@ -376,7 +376,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
 
   return (
     <div
-      className="relative bg-[#FFF8F6] border border-[#FBE3DC] rounded-[6px] flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 p-[12px] sm:p-5"
+      className="relative bg-[#FFF8F6] rounded flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 p-[12px]"
     >
 
       {/* Right Column: Dynamic Steps */}
@@ -425,7 +425,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             </h3>
           </div>
 
-          <div className="flex items-center h-12 bg-white border border-[#EBEBEB] rounded-md p-1 focus-within:border-[#5C3E35] focus-within:ring-1 focus-within:ring-[#5C3E35] transition-all w-full">
+          <div className="flex items-center h-[39px] bg-white border border-gray-200 rounded p-[3px] focus-within:border-[#5A413F] focus-within:ring-[3px] focus-within:ring-[#5A413F]/50 transition-all w-full">
             <input
               id="mobile-input"
               type="tel"
@@ -433,14 +433,14 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
               value={mobile}
               onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
               placeholder="Enter Phone Number"
-              className="flex-1 min-w-0 h-full bg-transparent border-none outline-none text-zinc-900 placeholder:text-zinc-400 text-sm pl-[6px] pr-3.5 sm:px-3.5 font-medium"
+              className="flex-1 min-w-0 h-full bg-transparent border-none outline-none font-figtree text-black placeholder:text-black placeholder:text-[12px] text-xs pl-[6px] pr-3.5 sm:px-3.5 font-medium leading-[1.4] tracking-normal"
             />
             <button
               onClick={handleSendOtp}
               disabled={mobile.length < 10 || loading}
-              className={`h-10 px-4 sm:px-5 w-auto font-figtree font-semibold text-[12px] leading-[1.4] tracking-[0.2px] uppercase rounded-[4px] flex items-center justify-center gap-[6px] sm:gap-[8px] transition-all duration-200 select-none shrink-0 ${
+              className={`h-[32px] text-xs py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center gap-[6px] sm:gap-[8px] transition-all duration-200 select-none shrink-0 ${
                 mobile.length === 10 
-                  ? "text-white bg-[#5C3E35] hover:bg-[#4E322A] cursor-pointer" 
+                  ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
               }`}
             >
@@ -491,7 +491,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                   onChange={(e) => handleDigitChange(idx, e.target.value)}
                   onKeyDown={(e) => handleDigitKeyDown(idx, e)}
                   onPaste={handleDigitPaste}
-                  className="w-full sm:w-11 h-11 bg-white border border-[#EBEBEB] text-center text-lg font-bold rounded-md text-zinc-900 focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all"
+                  className="w-full sm:w-10 h-10 bg-white border border-[#EBEBEB] text-center text-lg font-bold rounded text-zinc-900 focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all"
                   placeholder="-"
                 />
               ))}
@@ -500,9 +500,9 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={() => handleVerifyOtp()}
               disabled={otpValues.some((v) => v === "") || loading}
-              className={`w-full sm:w-auto sm:flex-1 h-11 px-4 font-figtree font-semibold text-[12px] leading-[1.4] tracking-[0.2px] uppercase rounded-[4px] flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
+              className={`w-full sm:w-auto sm:flex-1 h-10 text-xs py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
                 !otpValues.some((v) => v === "") 
-                  ? "text-white bg-[#5C3E35] hover:bg-[#4E322A] cursor-pointer" 
+                  ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
               }`}
             >
@@ -618,9 +618,9 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
   const isCopied = copiedCode === coupon.code;
 
   return (
-    <div className={`flex h-[120px] sm:h-[105px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
+    <div className={`flex h-[120px] sm:h-[105px] rounded overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
-      <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l-lg">
+      <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l">
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
         <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-[#FFF8F6] rounded-full z-20" />
         
@@ -635,7 +635,7 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
       <div className="border-l border-dashed border-[#FBE3DC] h-full z-10" />
 
       {/* Right Content Area (With border on top, right, bottom) */}
-      <div className="flex-1 p-3 flex flex-col justify-between min-w-0 bg-white rounded-r-lg border-y border-r border-[#FBE3DC] relative">
+      <div className="flex-1 p-3 flex flex-col justify-between min-w-0 bg-white rounded-r border-y border-r border-[#FBE3DC] relative">
         {/* Top Info & Vertical Capsule Logo */}
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
