@@ -2283,7 +2283,7 @@ export default function ProductPageClient({
                         "Type your text here"
                       )}
                     </div>
-                    <Button variant="ghost" className="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 group-hover:text-primary">
+                    <Button variant="ghost" className="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400 group-hover:text-primary rounded">
                       ENGRAVE
                     </Button>
                   </div>

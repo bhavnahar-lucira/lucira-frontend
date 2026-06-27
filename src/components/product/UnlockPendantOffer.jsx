@@ -438,7 +438,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={handleSendOtp}
               disabled={mobile.length < 10 || loading}
-              className={`h-[32px] text-[10px] py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center gap-[6px] sm:gap-[8px] transition-all duration-200 select-none shrink-0 ${
+              className={`h-[32px] text-xs py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center gap-[6px] sm:gap-[8px] transition-all duration-200 select-none shrink-0 ${
                 mobile.length === 10 
                   ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
@@ -491,7 +491,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                   onChange={(e) => handleDigitChange(idx, e.target.value)}
                   onKeyDown={(e) => handleDigitKeyDown(idx, e)}
                   onPaste={handleDigitPaste}
-                  className="w-full sm:w-[39px] h-[39px] bg-white border border-[#EBEBEB] text-center text-lg font-bold rounded text-zinc-900 focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all"
+                  className="w-full sm:w-10 h-10 bg-white border border-[#EBEBEB] text-center text-lg font-bold rounded text-zinc-900 focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all"
                   placeholder="-"
                 />
               ))}
@@ -500,7 +500,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={() => handleVerifyOtp()}
               disabled={otpValues.some((v) => v === "") || loading}
-              className={`w-full sm:w-auto sm:flex-1 h-[32px] text-[10px] py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
+              className={`w-full sm:w-auto sm:flex-1 h-[32px] text-xs py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
                 !otpValues.some((v) => v === "") 
                   ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
