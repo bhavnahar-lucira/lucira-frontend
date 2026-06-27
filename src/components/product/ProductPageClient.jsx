@@ -38,6 +38,7 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { toast } from 'react-toastify';
 import { apiFetch, fetchVariantPricing } from "@/lib/api";
+import { motion } from "framer-motion";
 import { shopifyStorefrontFetch } from "@/lib/shopify-client";
 import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
@@ -2188,10 +2189,10 @@ export default function ProductPageClient({
                         <Dialog>
                           <DialogTrigger asChild>
                             <div
-                              className="bg-[#F8F9FA] rounded-lg flex items-center gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+                              className="bg-[#F8F9FA] rounded flex items-center gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
                               onClick={() => handlePromoClick('Size guide video bar', null, { location_id: 'pdp' }, true)}
                             >
-                              <div className="bg-white rounded-lg shadow-sm">
+                              <div className="bg-white rounded shadow-sm">
                                 <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Sizing_A_ring_thumb_fead0dba-6cb0-4c0c-95d1-e0b673d42401.jpg" alt="Video Icon" aspect-ratio="3/4" width={60} height={25} />
                                 {/* <Video size={16} fill="black" /> */}
                               </div>
@@ -2206,7 +2207,7 @@ export default function ProductPageClient({
                               <DialogTitle>Ring Measurement Tutorial</DialogTitle>
                             </DialogHeader>
 
-                            <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+                            <div className="relative w-full aspect-video bg-black rounded overflow-hidden">
                               <video
                                 src="https://cdn.shopify.com/videos/c/o/v/b6bd45e165384f7bb50a9598b5986822.mp4"
                                 className="w-full h-full"
@@ -2227,7 +2228,7 @@ export default function ProductPageClient({
                             <button
                               key={`size-${sizeStr}`}
                               onClick={() => handleSizeSelection(sizeStr)}
-                              className={`relative border rounded-md h-10 px-0.5 flex items-center justify-center text-sm transition-all ${sizeStr === selectedSize
+                              className={`relative border rounded h-10 px-0.5 flex items-center justify-center text-sm transition-all ${sizeStr === selectedSize
                                 ? "border-primary bg-white ring-1 ring-primary font-bold"
                                 : "border-gray-200 hover:border-primary font-normal"
                                 }`}
@@ -2242,12 +2243,12 @@ export default function ProductPageClient({
                     </>
                   )}
                   {activeVariant?.inStock ? (
-                    <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap rounded-[4px]">
+                    <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap rounded">
                       <span className="w-2.5 h-2.5 bg-[#189351] rounded-full"></span>
                       <span className="font-semibold xl:basis-auto lg:basis-full">In stock. {calculateDispatchDate()}</span>
                     </div>
                   ) : (
-                    <div className="bg-amber-50 border border-amber-200 text-black rounded-lg px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap">
+                    <div className="bg-amber-50 border border-amber-200 text-black rounded px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap">
                       <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
                       <span className="font-semibold xl:basis-auto lg:basis-full">Made to order. {calculateDispatchDate()}</span>
                     </div>
@@ -2273,7 +2274,7 @@ export default function ProductPageClient({
                   setIsEngravingDrawerOpen(true);
                 }}>
                   <div className="relative flex-1">
-                    <div className="h-12 bg-white border border-gray-300 rounded-md px-4 flex items-center text-gray-400 text-sm group-hover:border-primary transition-colors">
+                    <div className="h-12 bg-white border border-gray-300 rounded px-4 flex items-center text-gray-400 text-sm group-hover:border-primary transition-colors">
                       {savedEngraving.text ? (
                         <span style={{ fontFamily: `var(--font-${savedEngraving.font.toLowerCase()})` }} className="text-black text-base">
                           {savedEngraving.text}
@@ -2434,26 +2435,40 @@ export default function ProductPageClient({
               </Drawer>
             </div>
 
-            <div ref={mainAtcRef} className="mb-4">
+            <div ref={mainAtcRef} className="mb-3">
               <div className="flex gap-2">
                 <Button
                   onClick={handleAddToCart}
                   disabled={addingToCart}
-                  className="flex-1 h-14 text-[14px] sm:text-base lg:text-lg font-bold rounded-md hover:cursor-pointer tracking-wider"
+                  className="flex-1 h-12 md:h-14 text-[14px] sm:text-base lg:text-lg font-bold rounded hover:cursor-pointer tracking-wider relative overflow-hidden gold-shimmer"
                 >
                   {addingToCart ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ADDING...
                     </>
-                  ) : "ADD TO CART"}
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <motion.span
+                        initial={{ opacity: 0, x: -120 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                        className="flex items-center justify-center shrink-0"
+                      >
+                        <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
+                          <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </motion.span>
+                      <span>ADD TO CART</span>
+                    </span>
+                  )}
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={handleToggleWishlist}
                   disabled={wishlistLoading}
-                  className={`h-14 w-14 shrink-0 rounded-md bg-gray-50 hover:cursor-pointer ${isWishlisted ? "text-rose-500" : "text-black"}`}
+                  className={`h-12 w-12 md:h-14 md:w-14 shrink-0 rounded bg-gray-50 hover:cursor-pointer ${isWishlisted ? "text-rose-500" : "text-black"}`}
                 >
                   <Heart
                     size={24}
@@ -2465,9 +2480,9 @@ export default function ProductPageClient({
             </div>
 
             <div className="flex gap-2 mb-6">
-              <Button asChild variant="outline" className={`h-14 flex items-center justify-center bg-gray-50 hover:cursor-pointer hover:bg-primary hover:text-white transition-all group px-0 shrink-0 ${schemeData ? 'w-14 rounded-md' : 'flex-1 gap-2 rounded-md'}`}>
+              <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
                 <a href={`https://api.whatsapp.com/send/?phone=+919004435760&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
-                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_5.png" alt="Whatsapp icon" width={24} height={24} />
+                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className="mr-1 shrink-0" />
                   <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                 </a>
               </Button>
@@ -2493,7 +2508,7 @@ export default function ProductPageClient({
                       e.preventDefault();
                       setIsSchemeOpen((prev) => !prev);
                     }}
-                    className={`w-full h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded-md ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-gray-200'}`}
+                    className={`w-full h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-gray-200'}`}
                   >
                     <div className="w-6 sm:w-8 flex justify-start shrink-0">
                       <div className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}>
@@ -2512,7 +2527,7 @@ export default function ProductPageClient({
 
                   {isSchemeOpen && (
                     <div className="absolute top-full right-0 w-[calc(100vw-32px)] sm:w-[350px] lg:w-full pt-2 z-[100] animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 ease-out origin-top-right">
-                      <div className="bg-white border border-primary/10 rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+                      <div className="bg-white border border-primary/10 rounded overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
                         <div className="p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5">
 
                           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -2643,8 +2658,8 @@ export default function ProductPageClient({
               <Separator />
 
               {/* Lucira Coins */}
-              <div className="flex gap-4 items-center bg-gray-50 border border-gray-100 rounded-xl p-4">
-                <div className="bg-gradient-to-br from-[#f9e8b8] to-[#e8c97a] shadow-[0_2px_10px_rgba(184,146,74,0.25),inset_0_1px_2px_rgba(255,255,255,0.6)] w-12 h-12 rounded-lg flex items-center justify-center">
+              <div className="flex gap-4 items-center bg-gray-50 border border-gray-100 rounded p-4">
+                <div className="bg-gradient-to-br from-[#f9e8b8] to-[#e8c97a] shadow-[0_2px_10px_rgba(184,146,74,0.25),inset_0_1px_2px_rgba(255,255,255,0.6)] w-12 h-12 rounded flex items-center justify-center">
                   <Coins size={24} className="text-primary" />
                 </div>
                 <div className="space-y-1">
@@ -2681,7 +2696,7 @@ export default function ProductPageClient({
                     maxLength={6}
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    className="h-14 bg-white border-gray-200 rounded-md text-sm font-medium pr-44"
+                    className="h-[39px] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pr-36"
                   />
                   <Button
                     onClick={() => {
@@ -2698,7 +2713,7 @@ export default function ProductPageClient({
                       handlePincodeCheck(localPincode);
                     }}
                     disabled={checkingPincode || locatingPincode}
-                    className="h-12 min-w-[164px] px-6 font-bold rounded-md absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#5A413F] hover:cursor-pointer flex items-center justify-center gap-2"
+                    className="h-[32px] text-[10px] py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#5A413F] hover:cursor-pointer flex items-center justify-center gap-2"
                   >
                     {checkingPincode || locatingPincode ? (
                       <Loader2 className="animate-spin" size={18} />
@@ -2728,11 +2743,11 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               {isCentralInStock && isAvailableInAnyStore && (
-                <div className="border border-gray-200 rounded-md p-4 space-y-3 bg-gray-50">
-                  <div className="flex items-start justify-between gap-3 max-[400px]:flex-col">
-                    <div className="flex items-start gap-2 min-w-0">
+                <div className="border border-gray-200 rounded p-4 space-y-3 bg-gray-50">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Store size={20} className="text-black shrink-0 mt-0.5" strokeWidth={1.2} />
-                      <span className="text-base font-bold leading-tight">
+                      <span className="text-sm sm:text-base font-bold leading-tight">
                         {!hasConfirmedPincode ? (
                           <>Available at our <span className="italic font-semibold text-black">Lucira Store</span></>
                         ) : nearbyAvailableStore ? (
@@ -2743,10 +2758,23 @@ export default function ProductPageClient({
                       </span>
                     </div>
                     <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full shrink-0 w-fit">
-                      <div className="w-3.5 h-3.5 bg-[#76D168] rounded-full flex items-center justify-center">
-                        <Check size={9} className="text-white" strokeWidth={4} />
-                      </div>
-                      <span className="text-12px font-semibold tracking-tight">Design Available</span>
+                      <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <g clipPath="url(#clip0_2_63372)">
+                          <mask id="mask0_2_63372" style={{ maskType: "luminance" }} maskUnits="userSpaceOnUse" x="0" y="0" width="17" height="17">
+                            <path d="M8.50033 15.5832C9.43069 15.5843 10.3521 15.4016 11.2117 15.0456C12.0712 14.6895 12.8519 14.1672 13.509 13.5085C14.1676 12.8514 14.69 12.0707 15.0461 11.2112C15.4021 10.3516 15.5848 9.43021 15.5837 8.49984C15.5848 7.56948 15.4021 6.64806 15.0461 5.78852C14.69 4.92898 14.1676 4.14826 13.509 3.49122C12.8519 2.83252 12.0712 2.31015 11.2117 1.9541C10.3521 1.59806 9.43069 1.41536 8.50033 1.41651C7.56997 1.41536 6.64854 1.59806 5.789 1.9541C4.92946 2.31015 4.14875 2.83252 3.49171 3.49122C2.83301 4.14826 2.31064 4.92898 1.95459 5.78852C1.59855 6.64806 1.41585 7.56948 1.417 8.49984C1.41585 9.43021 1.59855 10.3516 1.95459 11.2112C2.31064 12.0707 2.83301 12.8514 3.49171 13.5085C4.14875 14.1672 4.92946 14.6895 5.789 15.0456C6.64854 15.4016 7.56997 15.5843 8.50033 15.5832Z" fill="white" stroke="white" strokeWidth={2} strokeLinejoin="round"/>
+                            <path d="M5.66699 8.5L7.79199 10.625L12.042 6.375" stroke="black" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                          </mask>
+                          <g mask="url(#mask0_2_63372)">
+                            <path d="M0 0H17V17H0V0Z" fill="#76D168"/>
+                          </g>
+                        </g>
+                        <defs>
+                          <clipPath id="clip0_2_63372">
+                            <rect width="17" height="17" fill="white"/>
+                          </clipPath>
+                        </defs>
+                      </svg>
+                      <span className="font-figtree font-semibold text-[10px] leading-none tracking-normal">Design Available</span>
                     </div>
                   </div>
 
@@ -2835,7 +2863,7 @@ export default function ProductPageClient({
                           }
                         });
                       }}
-                      className="w-full h-12 font-bold rounded-md mt-1 text-sm bg-[#5A413F] uppercase tracking-widest"
+                      className="w-full h-[35px] font-figtree font-semibold leading-[1.4] tracking-[0.8px] rounded mt-1 text-xs sm:text-sm bg-[#5A413F] uppercase"
                     >
                       {!hasConfirmedPincode
                         ? "FIND OUR NEAREST STORE"
@@ -2894,8 +2922,8 @@ export default function ProductPageClient({
                     >
                       {slides.map((item, i) => (
                         <SwiperSlide key={`promo-${i}`}>
-                          <div className="bg-[#F9F9F9] border border-gray-100 rounded-xl p-2 md:p-5 flex items-stretch gap-2.5 md:gap-5 h-full">
-                            <div className="relative w-18 h-18 rounded-lg overflow-hidden shrink-0">
+                          <div className="bg-[#F9F9F9] border border-gray-100 rounded p-2 md:p-5 flex items-stretch gap-2.5 md:gap-5 h-full">
+                            <div className="relative w-18 h-18 rounded overflow-hidden shrink-0">
                               <Image
                                 src={item.img}
                                 alt={item.title}
@@ -3001,7 +3029,7 @@ export default function ProductPageClient({
 
               <div className="grid grid-cols-2 md:grid-cols-2 gap-4 [&>*:last-child:nth-child(odd)]:col-span-2">
                 {/* Metal Card */}
-                <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
+                <div className="bg-[#F9F9F9] rounded p-5 space-y-4">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                     <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal" width={18} height={18} />
                     Metal <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("metal")} />
@@ -3029,7 +3057,7 @@ export default function ProductPageClient({
                 </div>
 
                 {/* Dimensions Card */}
-                <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-4">
+                <div className="bg-[#F9F9F9] rounded p-5 space-y-4">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                     <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_dimension.svg" alt="Dimensions" width={18} height={18} />
                     Dimension <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("dimension")} />
@@ -3058,7 +3086,7 @@ export default function ProductPageClient({
 
                 {/* Single Diamond Card */}
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1 && (
-                  <div className={`bg-[#F9F9F9] rounded-2xl p-5 space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
+                  <div className={`bg-[#F9F9F9] rounded p-5 space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                       <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
@@ -3090,7 +3118,7 @@ export default function ProductPageClient({
 
                 {/* Multiple Diamond Card */}
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length > 1 && (
-                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5 col-span-2">
+                  <div className="bg-[#F9F9F9] rounded p-5 space-y-5 col-span-2">
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                       <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
@@ -3120,7 +3148,7 @@ export default function ProductPageClient({
 
                 {/* Single Gemstone Card */}
                 {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1 && (
-                  <div className={`bg-[#F9F9F9] rounded-2xl p-5 space-y-4 ${(activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1) ? "" : "col-span-2"}`}>
+                  <div className={`bg-[#F9F9F9] rounded p-5 space-y-4 ${(activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1) ? "" : "col-span-2"}`}>
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                       <Image src="/images/icons/gemstone.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
                       Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("gemstone")} />
@@ -3152,7 +3180,7 @@ export default function ProductPageClient({
 
                 {/* Multiple Gemstone Card */}
                 {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length > 1 && (
-                  <div className="bg-[#F9F9F9] rounded-2xl p-5 space-y-5 col-span-2">
+                  <div className="bg-[#F9F9F9] rounded p-5 space-y-5 col-span-2">
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
                       <Image src="/images/icons/gemstone.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
                       Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" />
@@ -3202,7 +3230,7 @@ export default function ProductPageClient({
             </div>
 
             {priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id) && priceBreakup?.price_breakup?.total_savings && priceBreakup?.price_breakup?.total_savings !== "₹0" && (
-              <div className="mt-4 flex justify-between items-center bg-success/8 border border-success rounded-md px-5 py-4">
+              <div className="mt-4 flex justify-between items-center bg-success/8 border border-success rounded px-5 py-4">
                 <span className="text-base font-bold text-gray-900 uppercase tracking-tight">Save on this jewelry</span>
                 <span className="text-lg font-bold text-success">{priceBreakup.price_breakup.total_savings}</span>
               </div>
@@ -3211,7 +3239,7 @@ export default function ProductPageClient({
             {/* Certification */}
             {!isGoldCoin && (
               <div className="pt-6">
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                <div className="bg-gray-50 border border-gray-100 rounded p-4">
                   <div className="flex items-start justify-between flex-col md:flex-row gap-2 text-base font-semibold text-black mb-4">
                     Certified Quality Guaranteed.
                     <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black mt-0 whitespace-nowrap p-0 h-auto" asChild>
@@ -3619,7 +3647,7 @@ function GoldOption({ metal, karat, color, active, onClick, inStock }) {
   return (
     <div
       onClick={() => onClick(metal, karat)}
-      className={`border rounded-lg py-2 px-4 cursor-pointer relative flex flex-col items-center gap-3 transition-all ${active ? "border-primary bg-white ring-1 ring-primary shadow-sm" : "border-gray-200 bg-[#F9F9F9] hover:border-gray-300"}`}
+      className={`border rounded py-2 px-4 cursor-pointer relative flex flex-col items-center gap-3 transition-all ${active ? "border-primary bg-white ring-1 ring-primary shadow-sm" : "border-gray-200 bg-[#F9F9F9] hover:border-gray-300"}`}
     >
       {inStock && <span className={`absolute top-2 left-2 w-1.5 h-1.5 rounded-full bg-[#2DB36F]`}></span>}
       <div className={`w-7 h-7 rounded-full border border-gray-100 shadow-inner`} style={{ background: color }}></div>

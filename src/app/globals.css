@@ -452,12 +452,12 @@
 
   background: linear-gradient(110deg,
       transparent 40%,
-      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0.18) 50%,
       transparent 60%);
 
 
 
-  animation: goldSweep 4s linear infinite;
+  animation: goldSweep 2.5s linear infinite;
 }
 
 @keyframes goldSweep {
