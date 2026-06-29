@@ -9,23 +9,23 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
 
   return (
     <div className="mt-6">
-      <div className="bg-[#FAF7F5] rounded-2xl p-5 border border-gray-100">
+      <div className="bg-[#F8F8F8] rounded p-5 border border-gray-100">
         <Tabs 
           defaultValue="price" 
           className="w-full"
           onValueChange={(value) => onTabChange?.(value)}
         >
-          <TabsList className={`grid ${priceBreakup.comparison ? 'grid-cols-2' : 'grid-cols-1'} bg-white p-1 rounded-full mb-6 w-full h-auto!`}>
+          <TabsList className={`grid ${priceBreakup.comparison ? 'grid-cols-2' : 'grid-cols-1'} bg-white p-1 rounded mb-6 w-full h-auto!`}>
             <TabsTrigger 
               value="price" 
-              className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-tertiary data-[state=active]:text-white rounded-full transition-all cursor-pointer"
+              className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-primary data-[state=active]:text-white rounded transition-all cursor-pointer"
             >
               Price Breakup
             </TabsTrigger>
             {priceBreakup.comparison && (
               <TabsTrigger 
                 value="comparison" 
-                className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-tertiary data-[state=active]:text-white rounded-full transition-all cursor-pointer"
+                className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-primary data-[state=active]:text-white rounded transition-all cursor-pointer"
               >
                 Price Comparison
               </TabsTrigger>

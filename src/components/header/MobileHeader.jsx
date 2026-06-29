@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose 
 import { useMenu } from "@/hooks/useMenu";
 import { MEGA_MENU as STATIC_MENU } from "@/data/megaMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { pushLogout, pushViewCart, getStandardCartItem } from "@/lib/gtm";
+import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@/lib/gtm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LuciraLogo from "./LuciraLogo";
@@ -981,7 +981,23 @@ export default function MobileHeader({ menuData }) {
               <ChevronRight size={18} className="text-gray-400" />
             </Link>
 
-            <Link href="/pages/store-locator" prefetch={false} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 bg-[#FBF7F2] border border-gray-100 rounded-lg group active:bg-gray-50">
+            <Link
+              href="/pages/store-locator"
+              prefetch={false}
+              onClick={() => {
+                setIsMenuOpen(false);
+                // Derive page type for Find a Store datalayer location_id
+                const loc = !pathname || pathname === "/" ? "homepage"
+                  : pathname.startsWith("/products/") ? "pdp"
+                  : pathname.startsWith("/collections/") ? "plp"
+                  : "internal page";
+                pushPromoClick({
+                  creative_name: "Find a store cta header",
+                  location_id: loc,
+                });
+              }}
+              className="flex items-center justify-between p-4 bg-[#FBF7F2] border border-gray-100 rounded-lg group active:bg-gray-50"
+            >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 flex items-center justify-center">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1166,7 +1182,15 @@ export default function MobileHeader({ menuData }) {
       {!isProductPage && !isBYJPage && (
         <div className="px-4 py-2 bg-white">
           <div
-            onClick={() => setShowSearch(true)}
+            onClick={() => {
+              pushPromoClick({
+                creative_name: "Search Bar clicked",
+                location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                promo_id: searchQuery || "",
+                promo_name: window.location.pathname
+              });
+              setShowSearch(true);
+            }}
             className="relative w-full bg-[#f9f9f9] h-10 pl-10 pr-4 rounded-sm flex items-center cursor-pointer border border-transparent transition-all overflow-hidden"
           >
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">

@@ -27,7 +27,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { pushProductImpression, getStandardImpressionProducts } from "@/lib/gtm";
+import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import { apiFetch } from "@/lib/api";
@@ -337,15 +337,23 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     scrollToTop();
   }, [searchParams, pathname, router]);
 
-  const toggleFilter = (urlKey, value) => {
+  const toggleFilter = (urlKey, value, groupKey, optLabel) => {
     const params = new URLSearchParams(searchParams.toString());
     const currentValues = params.getAll(urlKey);
-    if (currentValues.includes(value)) {
+    const isRemoving = currentValues.includes(value);
+    if (isRemoving) {
       const remaining = currentValues.filter((v) => v !== value);
       params.delete(urlKey);
       remaining.forEach((v) => params.append(urlKey, v));
     } else {
       params.append(urlKey, value);
+      // Fire promoClick datalayer when a filter is applied (not removed)
+      pushPromoClick({
+        creative_name: "Plp Filters",
+        location_id: pathname,
+        promo_id: urlKey,
+        promo_name: `${groupKey || urlKey}: ${optLabel || value}`,
+      });
     }
     params.delete("cursor");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
@@ -534,6 +542,14 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     p.delete("cursor");
     router.push(`${pathname}?${p.toString()}`, { scroll: false });
     scrollToTop();
+    // Fire promoClick datalayer for sort-by
+    const sortLabel = SORT_OPTIONS.find((o) => o.value === value)?.label || value;
+    pushPromoClick({
+      creative_name: "Plp Sort-by",
+      location_id: pathname,
+      promo_id: value,
+      promo_name: sortLabel,
+    });
   };
 
   const activeSort = searchParams.get("sort") || "manual";
@@ -690,7 +706,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         {isExpanded && (
                           <div className="space-y-4 my-2 pb-5">
                             {Array.isArray(options) && options.map((opt) => (
-                              <div key={opt.label} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
+                              <div key={opt.label} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
                                 <input type="checkbox" checked={searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)} onChange={() => {}} className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" />
                                 <label className="flex-1 cursor-pointer flex justify-between items-center"><span>{opt.label}</span><span className="text-gray-400 text-xs">({opt.count})</span></label>
                               </div>
@@ -730,7 +746,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                     )
                   ) : (
                     Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).map((opt) => (
-                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value)}>
+                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
                         <span className="text-xs font-medium">{opt.label.split(" (")[0]}</span>
                         <XIcon className="size-3" />
                       </Badge>
@@ -786,7 +802,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const seoContent = collection?.metafields?.["custom.seocontent"];
         const hasSeo = seoContent && !seoContent.toString().startsWith("gid://shopify/Page/") && !seoContent.toString().startsWith("gid://shopify/OnlineStorePage/");
 
-        if (!hasFaq && !hasBestsellers && !hasSeo) return null;
+        // if (!hasFaq && !hasBestsellers && !hasSeo) return null;
 
         return (
           <div className="seo-content container-main py-10 md:py-16 border-t border-gray-100">
@@ -1164,7 +1180,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         availableFilters[activeMobileGroup].map((option) => {
                           const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(option.value);
                           return (
-                            <div key={option.label} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value)}>
+                            <div key={option.label} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
                               <div className="flex items-center gap-3">
                                 {isSelected ? <div className="w-4 h-4 bg-[#5a413f] rounded flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-4 h-4 border border-gray-300 rounded group-hover:border-[#5a413f]" />}
                                 <span className={`text-[13px] ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>

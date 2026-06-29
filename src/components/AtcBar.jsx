@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { motion } from "framer-motion";
 import { Heart, Loader2, MessageCircle, Home, Store as StoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -81,36 +82,41 @@ export default function AtcBar({
 
           <div className="flex items-center gap-3 shrink-0">
             {schemeData && (
-              <div className="hidden lg:flex items-center gap-2 mr-2">
+              <div className="hidden lg:flex items-center gap-2">
                 <a
                   href={schemeData.schemeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-14 px-6 border border-primary text-primary font-bold text-[13px] rounded-sm uppercase tracking-wider whitespace-nowrap hover:bg-primary/5 transition-colors flex items-center justify-center"
+                  className="h-14 px-6 border border-primary text-primary font-bold text-sm rounded-sm uppercase tracking-wider whitespace-nowrap hover:bg-primary/5 transition-colors flex items-center justify-center"
                 >
-                  YOU SAVE <span className="mx-1 font-extrabold">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
+                  YOU SAVE <span className="mx-1 font-bold">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
                 </a>
               </div>
             )}
 
-            {isBYJ ? (
-              <Button
-                asChild
-                className="h-14 px-10 text-sm font-bold bg-primary hover:bg-accent text-white rounded-sm transition-colors uppercase tracking-wider min-w-40"
-              >
-                <Link href="/build-your-jewelry">BUILD YOUR JEWELRY</Link>
-              </Button>
-            ) : (
-              <>
-                <Button
-                  onClick={onAddToCart}
-                  disabled={addingToCart}
-                  className="h-14 px-10 text-sm font-bold bg-primary hover:bg-accent text-white rounded-sm transition-colors uppercase tracking-wider min-w-40"
-                >
-                  {addingToCart ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : "ADD TO CART"}
-                </Button>
+            <Button
+              onClick={onAddToCart}
+              disabled={addingToCart}
+              className="h-14 px-10 text-sm font-bold bg-primary hover:bg-accent text-white rounded-sm transition-colors uppercase tracking-wider min-w-40 relative overflow-hidden gold-shimmer"
+            >
+              {addingToCart ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  <motion.span
+                    initial={{ opacity: 0, x: -120 }}
+                    animate={isTopVisible ? { opacity: 1, x: 0 } : { opacity: 0, x: -120 }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex items-center justify-center shrink-0"
+                  >
+                    <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
+                      <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </motion.span>
+                  <span>ADD TO CART</span>
+                </span>
+              )}
+            </Button>
 
                 <div className="hidden xl:flex items-center gap-2">
                   <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
@@ -147,49 +153,43 @@ export default function AtcBar({
                   href={schemeData.schemeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-14 flex-1 border border-primary text-primary font-bold text-[13px] rounded-sm flex items-center justify-center whitespace-nowrap px-2 hover:bg-accent/5 transition-colors uppercase tracking-tight"
+                  className="h-14 flex-1 border border-primary text-primary font-semibold text-base rounded-sm flex items-center justify-center whitespace-nowrap px-2 hover:bg-accent/5 transition-colors uppercase"
                 >
-                  YOU SAVE <span className="mx-1 font-extrabold">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
+                  YOU SAVE <span className="mx-1 font-semibold">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
                 </a>
               )}
-              {isBYJ ? (
-                <Link
-                  href="/build-your-jewelry"
-                  className="h-14 flex-[1.5] bg-primary text-white font-bold text-[14px] rounded-sm flex items-center justify-center gap-2 hover:bg-[#8F5D5D] transition-colors uppercase tracking-wider"
-                >
-                  BUILD YOUR JEWELRY
-                </Link>
-              ) : (
-                <button
-                  onClick={onAddToCart}
-                  disabled={addingToCart}
-                  className="h-14 flex-[1.5] bg-primary text-white font-bold text-[14px] rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors"
-                >
-                  {addingToCart ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "ADD TO CART"
-                  )}
-                </button>
-              )}
+              <button
+                onClick={onAddToCart}
+                disabled={addingToCart}
+                className="h-14 flex-[1.5] bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden gold-shimmer"
+              >
+                {addingToCart ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
+                      <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>ADD TO CART</span>
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
           {/* Mobile Layout: Full Width Style */}
           <div className="lg:hidden pointer-events-auto bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] -mx-4 px-4 py-3 flex items-center gap-2 w-screen">
             {/* WhatsApp Button */}
-            {!isBYJ && (
-              <a
-                href="https://wa.me/+919004435760"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="h-14 aspect-square bg-white shadow-md border border-zinc-100 rounded-sm flex items-center justify-center shrink-0"
-              >
-                <div className="relative w-7 h-7">
-                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_5.png" alt="WhatsApp" fill className="object-contain" />
-                </div>
-              </a>
-            )}
+            <a
+              href="https://wa.me/+919004435760"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-14 aspect-square bg-white shadow-md border border-zinc-100 rounded-sm flex items-center justify-center shrink-0"
+            >
+              <div className="relative w-7 h-7">
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="WhatsApp" fill className="object-contain" />
+              </div>
+            </a>
 
             {/* Scheme Saving Button */}
             {!isBYJ && schemeData && (
@@ -197,33 +197,29 @@ export default function AtcBar({
                 href={schemeData.schemeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-14 flex-1 border border-primary text-primary font-bold text-[12px] rounded-sm flex items-center justify-center whitespace-nowrap px-2 tracking-tight"
+                className="h-14 flex-1 border border-primary text-primary font-bold text-[13px] rounded-sm flex items-center justify-center whitespace-nowrap px-2"
               >
                 9 = 10 SAVING
               </a>
             )}
 
             {/* Add to Cart Button */}
-            {isBYJ ? (
-              <Link
-                href="/build-your-jewelry"
-                className="h-14 flex-[1.5] bg-primary text-white font-bold text-[13px] rounded-sm flex items-center justify-center gap-2 uppercase tracking-wider"
-              >
-                BUILD YOUR JEWELRY
-              </Link>
-            ) : (
-              <button
-                onClick={onAddToCart}
-                disabled={addingToCart}
-                className="h-14 flex-[1.5] bg-primary text-white font-bold text-[13px] rounded-sm flex items-center justify-center gap-2 disabled:opacity-70"
-              >
-                {addingToCart ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "ADD TO CART"
-                )}
-              </button>
-            )}
+            <button
+              onClick={onAddToCart}
+              disabled={addingToCart}
+              className="h-14 flex-[1.5] bg-primary text-white font-bold text-[13px] rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 relative overflow-hidden gold-shimmer"
+            >
+              {addingToCart ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
+                    <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>ADD TO CART</span>
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
