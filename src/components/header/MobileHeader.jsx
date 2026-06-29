@@ -177,6 +177,7 @@ export default function MobileHeader({ menuData }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const isProductPage = pathname.startsWith('/products/');
+  const isBYJPage = pathname.startsWith('/build-your-jewelry');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -191,6 +192,18 @@ export default function MobileHeader({ menuData }) {
   const { user, logout: authLogout, openLogin } = useAuth();
   const { totalQuantity, items, totalAmount } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
+
+  // Filter out non-product items (Insurance, Free Gold Coins, BYJ charms) to match Cart Page count
+  const displayItems = (items || []).filter(
+    (item) =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.properties?.['_byj_parent'] &&
+      !item.properties?.[' _byj_parent'] &&
+      !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+  );
+
+  const displayQuantity = displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
   const [activeMenuPath, setActiveMenuPath] = useState([]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -235,15 +248,24 @@ export default function MobileHeader({ menuData }) {
         return match ? Number(match[0]) : 0;
       };
 
+      const filteredItemsForGtm = items.filter(
+        (item) =>
+          item.variantId !== INSURANCE_VARIANT_ID &&
+          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.properties?.['_byj_parent'] &&
+          !item.properties?.[' _byj_parent'] &&
+          !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+      );
+
       pushViewCart({
         currency: "INR",
         cart_total: Number(totalAmount),
         grand_total: Number(totalAmount),
         discount_amount: 0,
-        total_quantity: totalQuantity,
-        total_product: items.length,
+        total_quantity: displayQuantity,
+        total_product: filteredItemsForGtm.length,
         coupon_code: "",
-        items: items.map((item, idx) => getStandardCartItem(item, idx))
+        items: filteredItemsForGtm.map((item, idx) => getStandardCartItem(item, idx))
       });
     }
   };
@@ -1058,9 +1080,9 @@ export default function MobileHeader({ menuData }) {
                     )}
                       <Link href="/checkout/cart" prefetch={false} onClick={() => { setIsMenuOpen(false); handleCartClick(); }} className="relative p-1">
                       <CartIcon />
-                      {totalQuantity > 0 && (
+                      {displayQuantity > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                          {totalQuantity}
+                          {displayQuantity}
                         </span>
                       )}
                     </Link>
@@ -1148,16 +1170,16 @@ export default function MobileHeader({ menuData }) {
           </Link>
           <Link href="/checkout/cart" prefetch={false} onClick={handleCartClick} className="relative">
             <CartIcon />
-            {totalQuantity > 0 && (
+            {displayQuantity > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                {totalQuantity}
+                {displayQuantity}
               </span>
             )}
           </Link>
         </div>
       </div>
 
-      {!isProductPage && (
+      {!isProductPage && !isBYJPage && (
         <div className="px-4 py-2 bg-white">
           <div
             onClick={() => {

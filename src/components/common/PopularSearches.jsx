@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Accordion,
   AccordionContent,
@@ -9,7 +10,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { usePathname } from "next/navigation";
 
 const SEARCH_DATA = [
   {
@@ -119,7 +119,9 @@ export default function PopularSearches() {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  if (pathname?.includes("store-giveaway")) return null;
+  if (pathname?.startsWith("/build-your-jewelry") || pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway")) {
+    return null;
+  }
 
   return (
     <div className="w-full bg-white pb-12 lg:pb-16 lg:pt-4 pt-2">

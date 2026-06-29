@@ -5,6 +5,7 @@ import { Heart, Loader2, MessageCircle, Home, Store as StoreIcon } from "lucide-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function AtcBar({
   isTopVisible,
@@ -34,6 +35,8 @@ export default function AtcBar({
     if (src && typeof src === 'object' && src.url) return src.url;
     return fallback;
   };
+
+  const isBYJ = product?.tags?.includes("BYJ");
 
   return (
     <>
@@ -115,18 +118,20 @@ export default function AtcBar({
               )}
             </Button>
 
-            <div className="hidden xl:flex items-center gap-2">
-              <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
-                <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20home%20trial%20" target="_blank">
-                  <Home size={20} />
-                </a>
-              </Button>
-              <Button asChild className="h-14 w-14 border border-[#A193E8] text-[#A193E8] rounded-sm flex items-center justify-center bg-white hover:bg-[#F5F5FF] transition-colors">
-                <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment%20" target="_blank">
-                  <StoreIcon size={20} />
-                </a>
-              </Button>
-            </div>
+                <div className="hidden xl:flex items-center gap-2">
+                  <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
+                    <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20home%20trial%20" target="_blank">
+                      <Home size={20} />
+                    </a>
+                  </Button>
+                  <Button asChild className="h-14 w-14 border border-[#A193E8] text-[#A193E8] rounded-sm flex items-center justify-center bg-white hover:bg-[#F5F5FF] transition-colors">
+                    <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment%20" target="_blank">
+                      <StoreIcon size={20} />
+                    </a>
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -143,7 +148,7 @@ export default function AtcBar({
           <div className="hidden lg:grid lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10">
             <div className="hidden lg:block"></div> {/* Spacer for Left Column */}
             <div className="pointer-events-auto bg-white border border-gray-100 rounded-sm p-3 flex items-center gap-2 w-full">
-              {schemeData && (
+              {!isBYJ && schemeData && (
                 <a
                   href={schemeData.schemeUrl}
                   target="_blank"
@@ -187,7 +192,7 @@ export default function AtcBar({
             </a>
 
             {/* Scheme Saving Button */}
-            {schemeData && (
+            {!isBYJ && schemeData && (
               <a
                 href={schemeData.schemeUrl}
                 target="_blank"

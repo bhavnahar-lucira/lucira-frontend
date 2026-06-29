@@ -160,7 +160,7 @@ export default function CartSummary({ onPlaceOrder }) {
     }
   }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
 
-  const subtotal = totalAmount - insuranceAmount;
+  const subtotal = otherItemsQuantity > 0 ? (totalAmount - insuranceAmount) : 0;
   let couponDiscountAmount = 0;
   if (appliedCoupon) {
     if (couponDetails.valueType === "FIXED_AMOUNT") {
