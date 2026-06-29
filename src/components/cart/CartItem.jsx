@@ -5,8 +5,8 @@ import Link from "next/link";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { useDispatch, useSelector } from "react-redux";
 import { removeFromCart, updateCartItem } from "@/redux/features/cart/cartSlice";
-import { 
-  addWishlistItem, 
+import {
+  addWishlistItem,
   removeWishlistItem,
 } from "@/redux/features/wishlist/wishlistSlice";
 import { useState, useMemo, useEffect } from "react";
@@ -44,7 +44,7 @@ export default function CartItem({ item, onAuthRequired }) {
     if (!productId) return false;
     const normProductId = String(getNumericId(productId));
     const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
-    
+
     if (user?.id) {
       return wishlistItems.some(findFn);
     }
@@ -55,7 +55,7 @@ export default function CartItem({ item, onAuthRequired }) {
   const variantOptions = Array.isArray(item.variantOptions) ? item.variantOptions : [];
   const currentVariant = useMemo(() => {
     if (variantOptions.length === 0) return null;
-    
+
     // 1. Try finding by exact variantId
     const byId = variantOptions.find((v) => v.variantId === item.variantId);
     if (byId) return byId;
@@ -70,10 +70,10 @@ export default function CartItem({ item, onAuthRequired }) {
     return variantOptions.find((v) => {
       const vSize = String(v.size || "");
       const vColor = normalize(v.color || v.variantTitle || "");
-      
+
       const sizeMatch = vSize === itemSize;
       const colorMatch = vColor === itemColor || vColor === itemColorFull;
-      
+
       return sizeMatch && colorMatch;
     });
   }, [variantOptions, item.variantId, item.size, item.color, item.karat]);
@@ -82,21 +82,21 @@ export default function CartItem({ item, onAuthRequired }) {
 
   const sizeOptions = useMemo(() => {
     if (variantOptions.length > 0) return variantOptions;
-    
+
     const sizes = item.availableSizes || [];
     if (sizes.length > 0) {
       return sizes.map(s => ({ size: String(s), variantId: null }));
     }
-    
+
     if (item.size) {
       return [{ size: String(item.size), variantId: item.variantId }];
     }
-    
+
     return [];
   }, [variantOptions, item.availableSizes, item.size, item.variantId]);
 
   const canEditSize = !isInStock && sizeOptions.length > 1;
-  const canEditQuantity = !isInStock && !item.isFreeGift; 
+  const canEditQuantity = !isInStock && !item.isFreeGift;
 
   const lineAmount = (item.price || 0) * (item.quantity || 1);
   const lineCompareAmount = (item.comparePrice || 0) * (item.quantity || 1);
@@ -120,10 +120,10 @@ export default function CartItem({ item, onAuthRequired }) {
 
       const lowerTitle = (item.title || "").toLowerCase();
       let categoryFallback = item.type || (
-        lowerTitle.includes("ring") ? "Rings" : 
-        (lowerTitle.includes("earring") || lowerTitle.includes("bali")) ? "Earrings" : 
-        lowerTitle.includes("pendant") ? "Pendants" : 
-        lowerTitle.includes("bracelet") ? "Bracelets" : ""
+        lowerTitle.includes("ring") ? "Rings" :
+          (lowerTitle.includes("earring") || lowerTitle.includes("bali")) ? "Earrings" :
+            lowerTitle.includes("pendant") ? "Pendants" :
+              lowerTitle.includes("bracelet") ? "Bracelets" : ""
       );
 
       const resolvedSku = item.sku || currentVariant?.sku || item.variantSku || item.item_sku || (variantOptions && variantOptions[0]?.sku) || "";
@@ -186,13 +186,13 @@ export default function CartItem({ item, onAuthRequired }) {
       }
 
       const currentOrigin = typeof window !== 'undefined' ? window.location.origin : "";
-      
+
       const lowerTitle = (item.title || "").toLowerCase();
       const productTypeFallback = item.type || (
-        lowerTitle.includes("ring") ? "Rings" : 
-        (lowerTitle.includes("earring") || lowerTitle.includes("bali")) ? "Earrings" : 
-        lowerTitle.includes("pendant") ? "Pendants" : 
-        lowerTitle.includes("bracelet") ? "Bracelets" : ""
+        lowerTitle.includes("ring") ? "Rings" :
+          (lowerTitle.includes("earring") || lowerTitle.includes("bali")) ? "Earrings" :
+            lowerTitle.includes("pendant") ? "Pendants" :
+              lowerTitle.includes("bracelet") ? "Bracelets" : ""
       );
 
       const resolvedSku = item.sku || currentVariant?.sku || item.variantSku || item.item_sku || (variantOptions && variantOptions[0]?.sku) || "";
@@ -249,7 +249,7 @@ export default function CartItem({ item, onAuthRequired }) {
         const selectedVariant = variantOptions.find(
           (variant) => String(variant.size) === String(value)
         );
-        
+
         if (selectedVariant) {
           payload.nextVariantId = selectedVariant.variantId;
           payload.size = selectedVariant.size;
@@ -258,7 +258,7 @@ export default function CartItem({ item, onAuthRequired }) {
           payload.variantTitle = selectedVariant.variantTitle;
           payload.inStock = selectedVariant.inStock;
           payload.sku = selectedVariant.sku || "";
-          
+
           if (selectedVariant.goldWeight) payload.goldWeight = selectedVariant.goldWeight;
           if (selectedVariant.diamondTotalPcs) payload.diamondTotalPcs = selectedVariant.diamondTotalPcs;
           if (selectedVariant.diamondCarat) payload.diamondCarat = selectedVariant.diamondCarat;
@@ -281,9 +281,9 @@ export default function CartItem({ item, onAuthRequired }) {
   };
 
   const lowerTitle = (item.title || "").toLowerCase();
-  const sizeLabel = lowerTitle.includes("ring") ? "Ring Size" : 
-                   (lowerTitle.includes("bracelet") || lowerTitle.includes("bangle")) ? "Wrist Size" : 
-                   lowerTitle.includes("necklace") ? "Length" : "Size";
+  const sizeLabel = lowerTitle.includes("ring") ? "Ring Size" :
+    (lowerTitle.includes("bracelet") || lowerTitle.includes("bangle")) ? "Wrist Size" :
+      lowerTitle.includes("necklace") ? "Length" : "Size";
 
   const variantIdForUrl = item.variantId ? String(item.variantId).split('/').pop() : "";
   const productLink = item.handle ? `/products/${item.handle}${variantIdForUrl ? `?variant=${variantIdForUrl}` : ""}` : "#";
@@ -299,7 +299,7 @@ export default function CartItem({ item, onAuthRequired }) {
             </div>
           )}
 
-          <Link prefetch={false} 
+          <Link prefetch={false}
             href={productLink}
             className="aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
           >
@@ -343,7 +343,7 @@ export default function CartItem({ item, onAuthRequired }) {
             </div>
 
             <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[13px] font-medium text-zinc-800">
-              
+
               {/* Row 1: Size & Quantity */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
                 {item.size ? (
@@ -355,7 +355,7 @@ export default function CartItem({ item, onAuthRequired }) {
                     Quantity
                   </div>
                 )}
-                
+
                 <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2">
                   {item.size && (
                     <div className="flex items-center min-w-[60px]">
@@ -381,9 +381,9 @@ export default function CartItem({ item, onAuthRequired }) {
                       )}
                     </div>
                   )}
-                  
+
                   {item.size && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
-                  
+
                   <div className="flex items-center gap-2">
                     {item.size && <span className="text-zinc-500 font-normal">Quantity</span>}
                     {canEditQuantity ? (
@@ -438,7 +438,7 @@ export default function CartItem({ item, onAuthRequired }) {
                   </div>
                 </div>
               )}
-              
+
               {/* Row 4: Status */}
               <div className="flex min-h-[44px]">
                 <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
@@ -566,7 +566,7 @@ export default function CartItem({ item, onAuthRequired }) {
                     )}
                   </div>
                 )}
-                
+
                 <div className="flex items-center gap-0.5">
                   <span className="text-[13px] text-zinc-800 font-medium">Quantity:</span>
                   {canEditQuantity ? (
@@ -593,7 +593,7 @@ export default function CartItem({ item, onAuthRequired }) {
               </div>
             </div>
           </div>
-          
+
           {/* Mobile Actions - JUSTIFY BETWEEN */}
           <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center justify-between px-2">
             <button
@@ -604,7 +604,7 @@ export default function CartItem({ item, onAuthRequired }) {
               {removing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
               Remove
             </button>
-            
+
             <div className="w-px h-4 bg-zinc-100" />
 
             <button
@@ -624,13 +624,13 @@ export default function CartItem({ item, onAuthRequired }) {
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-[420px] overflow-hidden flex flex-col items-center p-8 relative animate-in zoom-in-95 duration-200">
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => setShowRemoveModal(false)}
               className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-800 transition-colors p-1"
             >
               <X size={24} strokeWidth={1.5} />
             </button>
-            
+
             {/* Product Image */}
             <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl border border-zinc-100 p-2 mb-6 bg-white shadow-sm flex items-center justify-center">
               <Image
@@ -642,13 +642,13 @@ export default function CartItem({ item, onAuthRequired }) {
                 className="w-full h-full object-contain mix-blend-multiply"
               />
             </div>
-            
+
             {/* Text Content */}
-            <h3 className="text-[22px] md:text-2xl font-abhaya font-bold text-zinc-900 mb-2 text-center tracking-tight">Move Design from Cart</h3>
+            <h3 className="text-[28px] md:text-2xl font-abhaya font-bold text-zinc-900 mb-2 text-center tracking-tight">Move Design from Cart</h3>
             <p className="text-zinc-500 text-[14px] md:text-[15px] text-center mb-8 font-figtree">
               Are you sure you want to move this design from the cart?
             </p>
-            
+
             {/* Actions */}
             <div className="flex w-full gap-3 md:gap-4 font-figtree">
               <button
@@ -657,7 +657,7 @@ export default function CartItem({ item, onAuthRequired }) {
                   setShowRemoveModal(false);
                 }}
                 disabled={removing || movingToWishlist}
-                className="flex-1 py-3.5 px-4 border border-[#5A413F] text-[#5A413F] font-bold text-[11px] md:text-xs uppercase tracking-widest rounded-xl hover:bg-[#5A413F]/5 transition-all flex items-center justify-center disabled:opacity-50"
+                className="flex-1 py-3.5 px-4 border border-[#5A413F] text-[#5A413F] font-bold text-[12px] md:text-xs uppercase tracking-widest rounded-xl hover:bg-[#5A413F]/5 transition-all flex items-center justify-center disabled:opacity-50"
               >
                 {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
               </button>
@@ -667,7 +667,7 @@ export default function CartItem({ item, onAuthRequired }) {
                   setShowRemoveModal(false);
                 }}
                 disabled={removing || movingToWishlist}
-                className="flex-1 py-3.5 px-4 bg-gradient-to-r from-[#8C5A4C] to-[#5A413F] text-white font-bold text-[11px] md:text-xs uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center justify-center disabled:opacity-50"
+                className="flex-1 py-3.5 px-4 bg-gradient-to-r from-[#8C5A4C] to-[#5A413F] text-white font-bold text-[12px] md:text-xs uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center justify-center disabled:opacity-50"
               >
                 {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "Move to Wishlist"}
               </button>
