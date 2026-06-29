@@ -10,6 +10,7 @@ import {
   removeWishlistItem,
 } from "@/redux/features/wishlist/wishlistSlice";
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import { pushRemoveFromCart, pushAddToWishlist, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import {
@@ -29,6 +30,12 @@ export default function CartItem({ item, onAuthRequired }) {
   const [removing, setRemoving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [movingToWishlist, setMovingToWishlist] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!item) return null;
 
@@ -448,7 +455,7 @@ export default function CartItem({ item, onAuthRequired }) {
 
         <div className="flex divide-x divide-zinc-100 border-t border-zinc-100 bg-white">
           <button
-            onClick={handleRemove}
+            onClick={() => setShowRemoveModal(true)}
             disabled={removing}
             className="flex flex-1 items-center justify-center gap-2 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-all hover:bg-zinc-50 hover:text-red-500 disabled:opacity-50"
           >
@@ -590,7 +597,7 @@ export default function CartItem({ item, onAuthRequired }) {
           {/* Mobile Actions - JUSTIFY BETWEEN */}
           <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center justify-between px-2">
             <button
-              onClick={handleRemove}
+              onClick={() => setShowRemoveModal(true)}
               disabled={removing}
               className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-zinc-400 transition-all active:scale-95 disabled:opacity-50"
             >
@@ -611,6 +618,64 @@ export default function CartItem({ item, onAuthRequired }) {
           </div>
         </div>
       </div>
+
+      {/* Remove / Move to Wishlist Modal */}
+      {showRemoveModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-[420px] overflow-hidden flex flex-col items-center p-8 relative animate-in zoom-in-95 duration-200">
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowRemoveModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-800 transition-colors p-1"
+            >
+              <X size={24} strokeWidth={1.5} />
+            </button>
+            
+            {/* Product Image */}
+            <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl border border-zinc-100 p-2 mb-6 bg-white shadow-sm flex items-center justify-center">
+              <Image
+                loader={isShopifyImage ? shopifyLoader : undefined}
+                src={displayImage || "/images/product/1.jpg"}
+                alt={item.title}
+                width={120}
+                height={120}
+                className="w-full h-full object-contain mix-blend-multiply"
+              />
+            </div>
+            
+            {/* Text Content */}
+            <h3 className="text-[22px] md:text-2xl font-abhaya font-bold text-zinc-900 mb-2 text-center tracking-tight">Move Design from Cart</h3>
+            <p className="text-zinc-500 text-[14px] md:text-[15px] text-center mb-8 font-figtree">
+              Are you sure you want to move this design from the cart?
+            </p>
+            
+            {/* Actions */}
+            <div className="flex w-full gap-3 md:gap-4 font-figtree">
+              <button
+                onClick={() => {
+                  handleRemove();
+                  setShowRemoveModal(false);
+                }}
+                disabled={removing || movingToWishlist}
+                className="flex-1 py-3.5 px-4 border border-[#5A413F] text-[#5A413F] font-bold text-[11px] md:text-xs uppercase tracking-widest rounded-xl hover:bg-[#5A413F]/5 transition-all flex items-center justify-center disabled:opacity-50"
+              >
+                {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
+              </button>
+              <button
+                onClick={() => {
+                  handleMoveToWishlist();
+                  setShowRemoveModal(false);
+                }}
+                disabled={removing || movingToWishlist}
+                className="flex-1 py-3.5 px-4 bg-gradient-to-r from-[#8C5A4C] to-[#5A413F] text-white font-bold text-[11px] md:text-xs uppercase tracking-widest rounded-xl hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center justify-center disabled:opacity-50"
+              >
+                {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "Move to Wishlist"}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }

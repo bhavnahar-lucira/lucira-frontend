@@ -15,11 +15,12 @@ const SEARCH_DATA = [
   {
     title: "Visit our stores:",
     links: [
-      { label: "Lab Grown Diamond Jewellery in Pune", href: "https://www.lucirajewelry.com/collections/pune-store" },
-      { label: "Lab Grown Diamond in Noida", href: "https://www.lucirajewelry.com/collections/noida-store" },
-      { label: "Lab Grown Diamonds in Borivali", href: "https://www.lucirajewelry.com/collections/sky-city-borivali-store" },
-      { label: "Lab Grown Diamond Jewellery in Chembur", href: "https://www.lucirajewelry.com/collections/chembur-store" },
-      { label: "Lab Grown Diamond Jewellery in Mumbai", href: "https://www.lucirajewelry.com/collections/lab-grown-diamonds-in-mumbai" },
+      { label: "Lab Grown Diamond Jewelry in Pune", href: "https://www.lucirajewelry.com/collections/pune-store" },
+      { label: "Lab Grown Diamond Jewelry in Noida", href: "https://www.lucirajewelry.com/collections/noida-store" },
+      { label: "Lab Grown Diamond Jewelry in Borivali", href: "https://www.lucirajewelry.com/collections/sky-city-borivali-store" },
+      { label: "Lab Grown Diamond Jewelry in Chembur", href: "https://www.lucirajewelry.com/collections/chembur-store" },
+      { label: "Lab Grown Diamond Jewelry in Mumbai", href: "https://www.lucirajewelry.com/collections/lab-grown-diamonds-in-mumbai" },
+      { label: "Lab Grown Diamond Jewelry in Paschim Vihar", href: "https://www.lucirajewelry.com/collections/paschim-vihar" },
     ],
   },
   {

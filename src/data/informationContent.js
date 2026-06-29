@@ -57,6 +57,36 @@ export const informationContentData = {
         "map_url": ""
       }
     },
+    "store_location_eMddbh": {
+      "type": "store_location",
+      "settings": {
+        "store_name": "Pune Store",
+        "phone": "+91 8433667236",
+        "email": "lcspnqjmr@lucirajewelry.com",
+        "address": "Shop no. 3,4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd, Pune, Maharashtra - 411005",
+        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+JM+Road+Pune/@18.5233058,73.8452878,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc2c1929b1639f7:0x7d0f5ff74de52a8d!8m2!3d18.5233007!4d73.8478627!16s%2Fg%2F11ylpdz9dm?coh=277534&entry=tts&g_ep=EgoyMDI1MTIwOS4wIPu8ASoKLDEwMDc5MjA3MUgBUAM%3D&skid=daaa869f-0b7a-43cd-bcdf-3c35f206de47"
+      }
+    },
+    // "store_location_eMddbh": {
+    //   "type": "store_location",
+    //   "settings": {
+    //     "store_name": "Paschim Vihar Store",
+    //     "phone": "+91 7208007494",
+    //     "email": "lcsdelpvh@lucirajewelry.com",
+    //     "address": "B-8, Shubham Enclave, Reserve Bank Enclave, Paschim Vihar, New Delhi, Delhi, 110063",
+    //     "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D"
+    //   }
+    // },
+    "store_location_eMfdbh": {
+      "type": "store_location",
+      "settings": {
+        "store_name": "Paschim Vihar Store",
+        "phone": "+91 7208007494",
+        "email": " lcsdelpvh@lucirajewelry.com",
+        "address": "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",
+        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D"
+      }
+    },
     "richtext_b9DWKE": {
       "type": "richtext",
       "settings": {
@@ -70,6 +100,7 @@ export const informationContentData = {
     "store_location_JXxGWf",
     "store_location_eMddbh",
     "store_location_aAA3ty",
+    "store_location_eMfdbh",
     "richtext_b9DWKE"
   ]
 };
