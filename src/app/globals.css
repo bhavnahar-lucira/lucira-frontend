@@ -423,7 +423,7 @@
       #8e5bc4 40%,
       #ff8a00 70%,
       transparent 80%);
-  animation: moveGlow 5s linear infinite;
+  animation: moveGlow 4s linear infinite;
   offset-path: rect(0% auto 100% auto);
   pointer-events: none;
 }
@@ -918,6 +918,9 @@ img.marquee-img {
   0% {
     transform: translateX(-150%) skewX(-20deg);
   }
+  21.56% {
+    transform: translateX(250%) skewX(-20deg);
+  }
   100% {
     transform: translateX(250%) skewX(-20deg);
   }
@@ -941,7 +944,7 @@ img.marquee-img {
     rgba(255, 255, 255, 0.55) 50%,
     rgba(255, 255, 255, 0) 70%
   );
-  animation: shimmer-sweep 2.2s ease-in-out infinite;
+  animation: shimmer-sweep 10.2s ease-in-out infinite;
   pointer-events: none;
   z-index: 10;
 }

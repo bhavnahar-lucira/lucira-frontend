@@ -2544,15 +2544,11 @@ export default function ProductPageClient({
                     className={`w-full h-12 md:h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded relative overflow-hidden ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-[#5A413F] text-[#5A413F] hover:border-tertiary'}`}
                   >
                     <div className="w-6 sm:w-8 flex justify-start shrink-0">
-                      <motion.span
-                        initial={{ x: -30 }}
-                        whileInView={{ x: 0 }}
-                        viewport={{ once: false }}
-                        transition={{ duration: 2.2, ease: [0.16, 1, 0.3, 1] }}
+                      <span
                         className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}
                       >
                         <Coins size={16} className={`sm:w-6 sm:h-[18px] ${isSchemeOpen ? 'text-white' : 'text-primary'} group-hover:text-white transition-all`} />
-                      </motion.span>
+                      </span>
                     </div>
 
                     <span className="flex-1 text-center text-[14px] font-semibold block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal">
