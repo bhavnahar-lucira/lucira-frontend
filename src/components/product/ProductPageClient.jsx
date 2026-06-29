@@ -2462,7 +2462,7 @@ export default function ProductPageClient({
                 <button
                   onClick={handleAddToCart}
                   disabled={addingToCart}
-                  className="flex-1 h-12 md:h-14 bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors hover:cursor-pointer tracking-wider relative overflow-hidden gold-shimmer"
+                  className="flex-1 h-12 md:h-14 bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors hover:cursor-pointer tracking-wider relative overflow-hidden shimmer-btn"
                 >
                   {addingToCart ? (
                     <>

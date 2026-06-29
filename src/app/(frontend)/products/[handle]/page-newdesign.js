@@ -355,7 +355,7 @@ export default function ProductPage({ product = {} }) {
             {/* Action Buttons */}
             <div className="space-y-2 mb-4">
               <div className="flex gap-2">
-                 <button className="flex-1 h-12 text-lg font-bold rounded hover:cursor-pointer relative overflow-hidden gold-shimmer bg-primary text-white hover:bg-[#8F5D5D] transition-colors">
+                 <button className="flex-1 h-12 text-lg font-bold rounded hover:cursor-pointer relative overflow-hidden bg-primary text-white hover:bg-[#8F5D5D] transition-colors shimmer-btn">
                     <span className="flex items-center justify-center">
                       {isMounted && (
                         <motion.span

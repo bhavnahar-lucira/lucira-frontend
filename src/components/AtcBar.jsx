@@ -114,7 +114,7 @@ export default function AtcBar({
             <button
               onClick={onAddToCart}
               disabled={addingToCart}
-              className="h-14 px-10 bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors uppercase tracking-wider min-w-40 relative overflow-hidden gold-shimmer"
+              className="h-14 px-10 bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors uppercase tracking-wider min-w-40 relative overflow-hidden shimmer-btn"
             >
               {addingToCart ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -191,7 +191,7 @@ export default function AtcBar({
               <button
                 onClick={onAddToCart}
                 disabled={addingToCart}
-                className="h-14 flex-[1.5] bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden gold-shimmer"
+                className="h-14 flex-[1.5] bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden shimmer-btn"
               >
                 {addingToCart ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -259,7 +259,7 @@ export default function AtcBar({
             <button
               onClick={onAddToCart}
               disabled={addingToCart}
-              className="h-14 flex-[1.5] bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden gold-shimmer"
+              className="h-14 flex-[1.5] bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden shimmer-btn"
             >
               {addingToCart ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
