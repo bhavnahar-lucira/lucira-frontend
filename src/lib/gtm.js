@@ -242,9 +242,10 @@ export const getStandardImpressionProducts = (products, currentOrigin = "") => {
 };
 
 export const pushAddToWishlist = (data) => {
+  const productData = Array.isArray(data) ? data[0] : data;
   pushToDataLayer({
     event: "addToWishlist",
-    products: Array.isArray(data) ? data : [data]
+    product: productData
   });
 };
 
@@ -281,9 +282,10 @@ export const pushRemoveFromCart = (data) => {
 };
 
 export const pushRemoveFromWishlist = (data) => {
+  const productData = Array.isArray(data) ? data[0] : data;
   pushToDataLayer({
     event: "removeFromWishlist",
-    products: Array.isArray(data) ? data : [data]
+    product: productData
   });
 };
 

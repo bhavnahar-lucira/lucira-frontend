@@ -114,7 +114,7 @@ export default function MainHeader() {
   }, []);
 
   //GTM begain
-    const handleCartClick = () => {
+  const handleCartClick = () => {
     if (items && items.length > 0) {
       const getNumericId = (gid) => {
         if (!gid) return 0;
@@ -140,7 +140,7 @@ export default function MainHeader() {
         items: items.map((item, idx) => getStandardCartItem(item, idx))
       });
     }
-    };
+  };
   //GTM end
 
 
@@ -150,7 +150,7 @@ export default function MainHeader() {
     // mergeCart will call fetchCart itself when complete, so we don't need to race it.
     if (cartLoading) return;
     dispatch(fetchCart({ userId: user?.id }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, user?.id]);
 
   useEffect(() => {
@@ -234,15 +234,15 @@ export default function MainHeader() {
   const handleLogout = async () => {
     try {
       //gtm
-        pushLogout({
-          id: user?.id || "",
-          mobile: user?.mobile || "",
-          first_name: user?.first_name || "",
-          last_name: user?.last_name || "",
-          email: user?.email || ""
-        });
+      pushLogout({
+        id: user?.id || "",
+        mobile: user?.mobile || "",
+        first_name: user?.first_name || "",
+        last_name: user?.last_name || "",
+        email: user?.email || ""
+      });
       //gtm
-      await apiFetch("/api/auth/logout", { 
+      await apiFetch("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({
           email: user?.email,
@@ -274,17 +274,17 @@ export default function MainHeader() {
 
         {/* Logo */}
         <div className="flex items-center mr-8 lg:mr-16 shrink-0">
-        <Link href="/" prefetch={false}>
-          <Image
-            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
-            alt="Lucira Jewelry"
-            width={100}
-            height={40}
-            className="w-21.25 h-7.5 lg:w-25 lg:h-10"
-            priority
-          />
-        </Link>
-      </div>
+          <Link href="/" prefetch={false}>
+            <Image
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
+              alt="Lucira Jewelry"
+              width={100}
+              height={40}
+              className="w-21.25 h-7.5 lg:w-25 lg:h-10"
+              priority
+            />
+          </Link>
+        </div>
 
         {/* Search Input and Dropdown Wrapper */}
         <div className={`flex-1 max-w-137.5 relative ${showSearch ? "z-1001 overflow-visible" : "z-10"}`}>
@@ -314,7 +314,7 @@ export default function MainHeader() {
                 onChange={handleSearchChange}
                 onKeyDown={handleKeyDown}
               />
-              
+
               {/* Animated Placeholder Ticker */}
               {!isFocused && !searchQuery && (
                 <div className="absolute inset-0 flex items-center pointer-events-none z-30 overflow-hidden pl-11.25">
@@ -339,8 +339,8 @@ export default function MainHeader() {
 
             <AnimatePresence>
               {showSearch && (
-                <SearchPopup 
-                  onClose={() => setIsFocused(false)} 
+                <SearchPopup
+                  onClose={() => setIsFocused(false)}
                   searchQuery={searchQuery}
                   searchResults={searchResults}
                   isSearching={isSearching}
@@ -354,14 +354,14 @@ export default function MainHeader() {
         <div className="flex items-center justify-end ml-auto lg:gap-3 xl:gap-6 text-sm">
 
           <Link href="/schemes" prefetch={false} className="hidden lg:flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shrink-0">
-            <img 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257664.png?v=1781505570" 
-              alt="9+1 Scheme" 
+            <img
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257664.png?v=1781505570"
+              alt="9+1 Scheme"
               className="h-10 w-auto object-contain"
             />
           </Link>
 
-           <Link
+          <Link
             href="/pages/store-locator"
             prefetch={false}
             className="hidden lg:flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black"
@@ -373,11 +373,11 @@ export default function MainHeader() {
             }}
           >
             <StoreIcon />
-             <span>Find a Store</span>
+            <span>Find a Store</span>
           </Link>
 
           {user ? (
-            <div className="relative group flex items-center">
+            <div className="relative group flex items-center" id="nitro-login">
               <Link href="/admin" prefetch={false}>
                 <Avatar className="h-9 w-9 cursor-pointer border border-gray-100">
                   {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
@@ -408,14 +408,14 @@ export default function MainHeader() {
               </div>
             </div>
           ) : (
-            <div 
-              className="cursor-pointer" 
+            <div
+              className="cursor-pointer"
               onClick={() => {
                 const path = window.location.pathname;
                 if (path !== "/login" && path !== "/register") {
                   openLogin();
                 }
-              }} 
+              }}
             >
               <UserIconCustom />
             </div>
@@ -431,14 +431,14 @@ export default function MainHeader() {
               )}
             </Link>
           ) : (
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => {
                 const path = window.location.pathname;
                 if (path !== "/login" && path !== "/register") {
                   openLogin();
                 }
-              }} 
+              }}
               className="relative group p-1"
             >
               <HeartIcon />
@@ -449,12 +449,12 @@ export default function MainHeader() {
               )}
             </button>
           )}
-            <Link 
-              href="/checkout/cart" 
-              prefetch={false}
-              className="relative group p-1"
-              onClick={handleCartClick}
-            >
+          <Link
+            href="/checkout/cart"
+            prefetch={false}
+            className="relative group p-1"
+            onClick={handleCartClick}
+          >
             <CartIcon />
             {displayQuantity > 0 && (
               <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
