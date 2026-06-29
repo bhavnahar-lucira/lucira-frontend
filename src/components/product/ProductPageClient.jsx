@@ -305,6 +305,12 @@ export default function ProductPageClient({
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [showTopAtc, setShowTopAtc] = useState(false);
   const [showBottomAtc, setShowBottomAtc] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const mainAtcRef = useRef(null);
   const productDetailsRef = useRef(null);
   const reviewsRef = useRef(null);
@@ -1080,41 +1086,57 @@ export default function ProductPageClient({
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const handleScroll = () => {
       if (!mainAtcRef.current) return;
 
-      console.log("Attaching Observer - Desktop Mode:", !isMobile);
+      const mainRect = mainAtcRef.current.getBoundingClientRect();
+      const mainAbsoluteTop = mainRect.top + window.scrollY;
+      const mainHeight = mainRect.height;
 
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          console.log("Observer Triggered!", entry.isIntersecting);
-          const isPastPoint = entry.boundingClientRect.top < 0;
+      const reviewsRect = reviewsRef.current ? reviewsRef.current.getBoundingClientRect() : null;
+      const currentScroll = window.scrollY;
 
-          if (isMobile) {
-            setShowBottomAtc(!entry.isIntersecting);
-          } else {
-            if (entry.isIntersecting) {
-              setShowTopAtc(false);
-              setShowBottomAtc(false);
-            } else if (isPastPoint) {
-              setShowTopAtc(true);
-              setShowBottomAtc(false);
-            } else {
-              setShowTopAtc(false);
-              setShowBottomAtc(true);
+      if (isMobile) {
+        // Mobile visibility logic:
+        const isMainInView = mainRect.top < window.innerHeight && mainRect.bottom > 0;
+        setShowBottomAtc(!isMainInView);
+      } else {
+        // Desktop visibility logic:
+        const isMainInView = mainRect.top < window.innerHeight && mainRect.bottom > 0;
+        const isPastMain = currentScroll > mainAbsoluteTop + mainHeight - (window.innerHeight * 0.1);
+        const isPastReviews = reviewsRect ? reviewsRect.top < window.innerHeight : false;
 
-            }
-          }
-        },
-        { threshold: 0, rootMargin: "-10% 0px 0px 0px" }
-      );
+        if (isPastReviews) {
+          setShowTopAtc(false);
+          setShowBottomAtc(false);
+        } else if (isMainInView) {
+          setShowTopAtc(false);
+          setShowBottomAtc(false);
+        } else if (isPastMain) {
+          setShowTopAtc(true);
+          setShowBottomAtc(false);
+        } else {
+          // Above main ATC: show bottom sticky bar
+          setShowTopAtc(false);
+          setShowBottomAtc(true);
+        }
+      }
+    };
 
-      observer.observe(mainAtcRef.current);
+    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll);
+    
+    // Run once initially
+    handleScroll();
 
-      return () => observer.disconnect();
-    }, 100);
+    // Also run on a short delay to account for dynamic content loading/rendering
+    const timer = setTimeout(handleScroll, 150);
 
-    return () => clearTimeout(timer);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+      clearTimeout(timer);
+    };
   }, [isMobile, product.id]);
 
   useEffect(() => {
@@ -2437,10 +2459,10 @@ export default function ProductPageClient({
 
             <div ref={mainAtcRef} className="mb-3">
               <div className="flex gap-2">
-                <Button
+                <button
                   onClick={handleAddToCart}
                   disabled={addingToCart}
-                  className="flex-1 h-12 md:h-14 text-sm sm:text-base lg:text-base font-semibold rounded hover:cursor-pointer tracking-wider relative overflow-hidden gold-shimmer"
+                  className="flex-1 h-12 md:h-14 bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors hover:cursor-pointer tracking-wider relative overflow-hidden shimmer-btn"
                 >
                   {addingToCart ? (
                     <>
@@ -2448,21 +2470,32 @@ export default function ProductPageClient({
                       ADDING...
                     </>
                   ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <motion.span
-                        initial={{ opacity: 0, x: -120 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                        className="flex items-center justify-center shrink-0"
-                      >
-                        <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
-                          <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </motion.span>
+                    <span className="flex items-center justify-center">
+                      {isMounted && (
+                        <motion.span
+                          initial={{ width: 0, marginRight: 0, x: -350 }}
+                          animate={{
+                            width: [0, 0, 28],
+                            marginRight: [0, 0, 8],
+                            x: [-350, 0]
+                          }}
+                          transition={{
+                            ease: [0.16, 1, 0.3, 1],
+                            x: { duration: 2.2, delay: 2 },
+                            width: { duration: 2.2, times: [0, 0.6, 1], delay: 2 },
+                            marginRight: { duration: 2.2, times: [0, 0.6, 1], delay: 2 }
+                          }}
+                          className="flex items-center justify-center shrink-0 overflow-hidden"
+                        >
+                          <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
+                            <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </motion.span>
+                      )}
                       <span>ADD TO CART</span>
                     </span>
                   )}
-                </Button>
+                </button>
                 <Button
                   variant="outline"
                   size="icon"
@@ -2508,12 +2541,14 @@ export default function ProductPageClient({
                       e.preventDefault();
                       setIsSchemeOpen((prev) => !prev);
                     }}
-                    className={`w-full h-12 md:h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-[#5A413F] text-[#5A413F] hover:border-tertiary'}`}
+                    className={`w-full h-12 md:h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded relative overflow-hidden ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-[#5A413F] text-[#5A413F] hover:border-tertiary'}`}
                   >
                     <div className="w-6 sm:w-8 flex justify-start shrink-0">
-                      <div className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}>
+                      <span
+                        className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}
+                      >
                         <Coins size={16} className={`sm:w-6 sm:h-[18px] ${isSchemeOpen ? 'text-white' : 'text-primary'} group-hover:text-white transition-all`} />
-                      </div>
+                      </span>
                     </div>
 
                     <span className="flex-1 text-center text-[14px] font-semibold block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal">
