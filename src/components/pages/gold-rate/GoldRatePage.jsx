@@ -382,7 +382,7 @@ export default function GoldRatePage({ page }) {
                 );
             })()}
 
-            <style jsx>{`
+            <style jsx global>{`
                 .perspective-2000 { perspective: 2000px; }
                 .preserve-3d { transform-style: preserve-3d; }
                 .backface-hidden { 

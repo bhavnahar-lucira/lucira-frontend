@@ -32,9 +32,9 @@ export default function PriceTable({ baseRate }) {
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="bg-zinc-50/80 backdrop-blur-sm">
-                                    <th className="p-2 md:p-4 text-[11px] md:text-[13px] font-bold text-zinc-400 uppercase tracking-[0.2em] border-b border-zinc-100 text-center font-figtree">Purity</th>
+                                    <th className="p-2 md:p-4 text-[11px] md:text-[13px] font-bold text-zinc-400 uppercase tracking-[0.2em] border border-zinc-100 text-center font-figtree">Purity</th>
                                     {WEIGHTS.map(w => (
-                                        <th key={w} className="p-2 md:p-4 text-[10px] md:text-[13px] font-bold text-zinc-400 uppercase tracking-[0.2em] border-b border-l border-zinc-100 text-center font-figtree whitespace-nowrap">
+                                        <th key={w} className="p-2 md:p-4 text-[10px] md:text-[13px] font-bold text-zinc-400 uppercase tracking-[0.2em] border border-zinc-100 text-center font-figtree whitespace-nowrap">
                                             {w >= 100 ? `${w / 100} HG` : `${w} GM`}
                                         </th>
                                     ))}
@@ -45,7 +45,7 @@ export default function PriceTable({ baseRate }) {
                                     const karatFactor = karat / 24;
                                     return (
                                         <tr key={karat} className="hover:bg-[#FAF3EC]/40 transition-colors group">
-                                            <td className="p-2 md:p-4 border-r border-zinc-100">
+                                            <td className="p-2 md:p-4 border border-zinc-100">
                                                 <div className="flex items-center gap-2 md:gap-4">
                                                     <div className={`w-4 h-4 md:w-10 md:h-10 rounded-full flex items-center justify-center text-[10px] md:text-[12px] font-bold font-figtree shrink-0 ${karat >= 22 ? 'bg-primary text-white' : 'bg-zinc-100 text-zinc-500'}`}>
                                                         {karat}
@@ -56,7 +56,7 @@ export default function PriceTable({ baseRate }) {
                                             {WEIGHTS.map(w => {
                                                 const price = perGramRate24 * w * karatFactor;
                                                 return (
-                                                    <td key={w} className="p-4 md:p-10 text-[14px] md:text-[22px] text-zinc-900 text-center border-l border-zinc-100 font-figtree font-medium tracking-tight group-hover:text-primary transition-colors">
+                                                    <td key={w} className="p-4 md:p-10 text-[14px] md:text-[22px] text-zinc-900 text-center border border-zinc-100 font-figtree font-medium tracking-tight group-hover:text-primary transition-colors">
                                                         <span className="text-zinc-300 mr-0.5 font-normal">₹</span>{Math.round(price).toLocaleString('en-IN')}
                                                     </td>
                                                 );

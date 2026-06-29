@@ -291,19 +291,19 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
 
   return (
     <section className="py-12 md:py-16 bg-[#FAF3EC]/30 flex justify-center items-center px-4 md:px-6">
-      <div className="w-full max-w-5xl bg-[#150D0C] rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-[#3A2826] relative overflow-hidden font-figtree">
+      <div className="w-full max-w-5xl bg-white rounded-3xl p-6 md:p-8 shadow-[0_10px_40px_rgba(163,130,113,0.15)] border border-[#F2E3C6] relative overflow-hidden font-figtree">
         {/* Top Control Row */}
         <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-8">
           
           <div className="flex items-center gap-4 flex-wrap">
             {/* Date Box */}
-            <div className="flex items-center gap-2 border border-[#3A2826] bg-[#201413] px-4 py-2.5 rounded-xl text-zinc-300 text-sm font-medium">
+            <div className="flex items-center gap-2 border border-[#F2E3C6] bg-[#FAF3EC]/50 px-4 py-2.5 rounded-xl text-zinc-700 text-sm font-medium">
               <Calendar className="text-[#B77767] w-4.5 h-4.5" />
               <span>{formattedDate}</span>
             </div>
 
             {/* Metal Tabs Selector */}
-            <div className="flex bg-[#201413] border border-[#3A2826] p-1 rounded-xl">
+            <div className="flex bg-[#FAF3EC]/50 border border-[#F2E3C6] p-1 rounded-xl">
               {["gold", "silver", "platinum"].map((metal) => (
                 <button
                   key={metal}
@@ -313,8 +313,8 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                   }}
                   className={`px-6 py-1.5 text-sm font-semibold rounded-lg transition-all capitalize ${
                     activeMetal === metal
-                      ? "bg-[#B77767] text-white shadow-md"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      ? "bg-[#B77767] text-zinc-900 shadow-md"
+                      : "text-zinc-500 hover:text-zinc-900"
                   }`}
                 >
                   {metal}
@@ -326,7 +326,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
           {/* City Selection Trigger */}
           <button
             onClick={() => setIsCityModalOpen(true)}
-            className="flex items-center justify-between gap-2 border border-[#3A2826] bg-[#201413] px-5 py-2.5 rounded-xl text-white text-sm font-medium hover:bg-[#2E1E1C] transition-all text-left"
+            className="flex items-center justify-between gap-2 border border-[#F2E3C6] bg-[#FAF3EC]/50 px-5 py-2.5 rounded-xl text-zinc-900 text-sm font-medium hover:bg-white transition-all text-left"
           >
             <span>{currentCityName}</span>
             <ChevronDown className="text-[#B77767] w-4 h-4" />
@@ -341,13 +341,13 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
             {metalRatesList[activeMetal].map((card, i) => (
               <div
                 key={i}
-                className="bg-[#201413] rounded-2xl p-5 border border-[#3A2826] flex justify-between items-center shadow-inner hover:border-[#4E3532] transition-colors"
+                className="bg-[#FAF3EC]/50 rounded-2xl p-5 border border-[#F2E3C6] flex justify-between items-center shadow-inner hover:border-[#D4B392] transition-colors"
               >
                 <div>
-                  <p className="text-[#A38E8C] text-xs font-semibold uppercase tracking-wider mb-1">
+                  <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-1">
                     {card.label}
                   </p>
-                  <p className="text-white text-2xl md:text-3xl font-extrabold tracking-tight">
+                  <p className="text-zinc-900 text-2xl md:text-3xl font-extrabold tracking-tight">
                     ₹{card.price.toLocaleString("en-IN")}
                   </p>
                 </div>
@@ -368,15 +368,15 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
 
         {/* Calculator Header Row */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-white text-lg font-bold">Calculator</h2>
+          <h2 className="text-zinc-900 text-lg font-bold">Calculator</h2>
           {/* Mode Tabs */}
-          <div className="flex bg-[#201413] border border-[#3A2826] p-1 rounded-xl w-fit">
+          <div className="flex bg-[#FAF3EC]/50 border border-[#F2E3C6] p-1 rounded-xl w-fit">
             <button
               onClick={() => setCalcMode("weight")}
               className={`px-5 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
                 calcMode === "weight"
-                  ? "bg-[#B77767] text-white"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-[#B77767] text-zinc-900"
+                  : "text-zinc-500 hover:text-zinc-900"
               }`}
             >
               Calculate By Weight
@@ -385,8 +385,8 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
               onClick={() => setCalcMode("amount")}
               className={`px-5 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
                 calcMode === "amount"
-                  ? "bg-[#B77767] text-white"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-[#B77767] text-zinc-900"
+                  : "text-zinc-500 hover:text-zinc-900"
               }`}
             >
               Calculate By Amount
@@ -395,7 +395,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
         </div>
 
         {/* Calculator Main Section */}
-        <div className="bg-[#0D0706] border border-[#3A2826] rounded-2xl p-6 shadow-inner">
+        <div className="bg-white border border-[#F2E3C6] rounded-2xl p-6 shadow-inner">
           {calcMode === "weight" ? (
             /* WEIGHT-BASED CALCULATOR */
             <div className="space-y-8">
@@ -405,18 +405,18 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
               }`}>
                 {activeMetal === "gold" && (
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-2.5">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2.5">
                       Purity
                     </label>
-                    <div className="flex bg-[#201413] border border-[#3A2826] p-1 rounded-xl w-full gap-1">
+                    <div className="flex bg-[#FAF3EC]/50 border border-[#F2E3C6] p-1 rounded-xl w-full gap-1">
                       {[24, 22, 18].map((karat) => (
                         <button
                           key={karat}
                           onClick={() => setGoldPurity(karat)}
                           className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
                             goldPurity === karat
-                              ? "bg-[#B77767] text-white shadow-sm"
-                              : "text-zinc-400 hover:text-zinc-200"
+                              ? "bg-[#B77767] text-zinc-900 shadow-sm"
+                              : "text-zinc-500 hover:text-zinc-900"
                           }`}
                         >
                           {karat}K
@@ -428,45 +428,45 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
 
                 {/* Weight (gm) */}
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-2.5">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2.5">
                     Weight (gm)
                   </label>
                   <input
                     type="number"
                     value={weight}
                     onChange={(e) => setWeight(Math.max(0, parseFloat(e.target.value) || 0))}
-                    className="bg-[#2E1E1C] border border-[#3A2826] rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base"
+                    className="bg-white border border-[#F2E3C6] rounded-xl px-4 py-3 text-zinc-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base"
                   />
                 </div>
 
                 {/* Making (%) */}
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-2.5">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2.5">
                     Making (%)
                   </label>
                   <input
                     type="number"
                     value={making}
                     onChange={(e) => setMaking(Math.max(0, parseFloat(e.target.value) || 0))}
-                    className="bg-[#2E1E1C] border border-[#3A2826] rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base"
+                    className="bg-white border border-[#F2E3C6] rounded-xl px-4 py-3 text-zinc-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base"
                   />
                 </div>
 
                 {/* GST Selector */}
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-2.5">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2.5">
                     GST
                   </label>
                   <div className="relative">
                     <select
                       value={gstType}
                       onChange={(e) => setGstType(e.target.value)}
-                      className="w-full bg-[#2E1E1C] border border-[#3A2826] rounded-xl px-4 py-3 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base appearance-none cursor-pointer"
+                      className="w-full bg-white border border-[#F2E3C6] rounded-xl px-4 py-3 text-zinc-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base appearance-none cursor-pointer"
                     >
                       <option value="incl">Incl. 3%</option>
                       <option value="excl">Excl. 3%</option>
                     </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none w-4 h-4" />
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none w-4 h-4" />
                   </div>
                 </div>
               </div>
@@ -475,22 +475,22 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                 
                 {/* Wide values breakdown & total amount split card */}
-                <div className="lg:col-span-2 bg-[#201413] rounded-2xl border border-[#3A2826] grid grid-cols-1 md:grid-cols-5 overflow-hidden shadow-md">
+                <div className="lg:col-span-2 bg-[#FAF3EC]/50 rounded-2xl border border-[#F2E3C6] grid grid-cols-1 md:grid-cols-5 overflow-hidden shadow-md">
                   
                   {/* Left Side: Table Breakdown */}
                   <div className="md:col-span-3 p-6 flex flex-col justify-between gap-4">
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center border-b border-[#3A2826]/40 pb-3">
-                        <span className="text-[#A38E8C] text-sm">Base value</span>
-                        <span className="text-white font-bold">₹{weightCalcResults.baseValue.toLocaleString("en-IN")}</span>
+                      <div className="flex justify-between items-center border-b border-[#F2E3C6]/40 pb-3">
+                        <span className="text-zinc-500 text-sm">Base value</span>
+                        <span className="text-zinc-900 font-bold">₹{weightCalcResults.baseValue.toLocaleString("en-IN")}</span>
                       </div>
-                      <div className="flex justify-between items-center border-b border-[#3A2826]/40 pb-3">
-                        <span className="text-[#A38E8C] text-sm">Making charges</span>
-                        <span className="text-white font-bold">₹{weightCalcResults.makingCharges.toLocaleString("en-IN")}</span>
+                      <div className="flex justify-between items-center border-b border-[#F2E3C6]/40 pb-3">
+                        <span className="text-zinc-500 text-sm">Making charges</span>
+                        <span className="text-zinc-900 font-bold">₹{weightCalcResults.makingCharges.toLocaleString("en-IN")}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-[#A38E8C] text-sm">GST (3%)</span>
-                        <span className="text-white font-bold">
+                        <span className="text-zinc-500 text-sm">GST (3%)</span>
+                        <span className="text-zinc-900 font-bold">
                           {gstType === "incl" ? `₹${weightCalcResults.gst.toLocaleString("en-IN")}` : "₹0"}
                         </span>
                       </div>
@@ -498,8 +498,8 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                   </div>
 
                   {/* Right Side: Total Amount Box */}
-                  <div className="md:col-span-2 bg-[#170E0D] p-6 flex flex-col justify-center items-center border-t md:border-t-0 md:border-l border-[#3A2826] text-center">
-                    <p className="text-[#A38E8C] text-xs font-semibold uppercase tracking-wider mb-2">Total Amount</p>
+                  <div className="md:col-span-2 bg-[#F2E3C6]/20 p-6 flex flex-col justify-center items-center border-t md:border-t-0 md:border-l border-[#F2E3C6] text-center">
+                    <p className="text-zinc-500 text-xs font-semibold uppercase tracking-wider mb-2">Total Amount</p>
                     <p className="text-[#B77767] text-3xl md:text-4xl font-extrabold tracking-tight">
                       ₹{weightCalcResults.totalAmount.toLocaleString("en-IN")}
                     </p>
@@ -510,10 +510,10 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                 </div>
 
                 {/* Know your money's worth! card */}
-                <div className="bg-[#201413] rounded-2xl p-6 border border-[#3A2826] flex flex-col justify-between shadow-md">
+                <div className="bg-[#FAF3EC]/50 rounded-2xl p-6 border border-[#F2E3C6] flex flex-col justify-between shadow-md">
                   <div>
-                    <h4 className="text-white font-bold text-base mb-1">Know your money's worth!</h4>
-                    <p className="text-[#A38E8C] text-xs leading-relaxed mb-4">
+                    <h4 className="text-zinc-900 font-bold text-base mb-1">Know your money's worth!</h4>
+                    <p className="text-zinc-500 text-xs leading-relaxed mb-4">
                       Enter any amount to see how much {activeMetal} you can get
                     </p>
                   </div>
@@ -522,11 +522,11 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                       type="text"
                       value={tryAmountInput}
                       onChange={(e) => setTryAmountInput(e.target.value)}
-                      className="bg-[#2E1E1C] border border-[#3A2826] rounded-xl px-3 py-2 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-xs w-full"
+                      className="bg-white border border-[#F2E3C6] rounded-xl px-3 py-2 text-zinc-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-xs w-full"
                     />
                     <button
                       onClick={handleTryNow}
-                      className="bg-[#B77767] hover:bg-[#A36455] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 shrink-0"
+                      className="bg-[#B77767] hover:bg-[#A36455] text-zinc-900 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 shrink-0"
                     >
                       Try now
                     </button>
@@ -543,25 +543,25 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
               <div className="flex-1 space-y-6">
                 {activeMetal === "gold" && (
                   <div>
-                    <label className="block text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-3">
+                    <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">
                       Gold Purity
                     </label>
-                    <div className="flex bg-[#201413] border border-[#3A2826] p-1 rounded-xl w-fit gap-1">
+                    <div className="flex bg-[#FAF3EC]/50 border border-[#F2E3C6] p-1 rounded-xl w-fit gap-1">
                       {[24, 22, 18].map((karat) => (
                         <button
                           key={karat}
                           onClick={() => setGoldPurity(karat)}
                           className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${
                             goldPurity === karat
-                              ? "bg-[#B77767] text-white shadow-sm"
-                              : "text-zinc-400 hover:text-zinc-200"
+                              ? "bg-[#B77767] text-zinc-900 shadow-sm"
+                              : "text-zinc-500 hover:text-zinc-900"
                           }`}
                         >
                           {karat}K
                         </button>
                       ))}
                     </div>
-                    <span className="text-[#A38E8C] text-xs font-medium mt-2 block italic">
+                    <span className="text-zinc-500 text-xs font-medium mt-2 block italic">
                       Rate: ₹{Math.round(ratePerGram).toLocaleString("en-IN")} /gram
                     </span>
                   </div>
@@ -570,32 +570,32 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Amount (₹) */}
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-2.5">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2.5">
                       Amount (₹)
                     </label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white font-bold text-base">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-900 font-bold text-base">
                         ₹
                       </span>
                       <input
                         type="number"
                         value={amountInput}
                         onChange={(e) => setAmountInput(Math.max(0, parseFloat(e.target.value) || 0))}
-                        className="w-full bg-[#2E1E1C] border border-[#3A2826] rounded-xl pl-8 pr-4 py-3.5 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base"
+                        className="w-full bg-white border border-[#F2E3C6] rounded-xl pl-8 pr-4 py-3.5 text-zinc-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base"
                       />
                     </div>
                   </div>
 
                   {/* Making (%) */}
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-2.5">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2.5">
                       Making (%)
                     </label>
                     <input
                       type="number"
                       value={amountMaking}
                       onChange={(e) => setAmountMaking(Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="bg-[#2E1E1C] border border-[#3A2826] rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base"
+                      className="bg-white border border-[#F2E3C6] rounded-xl px-4 py-3.5 text-zinc-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base"
                     />
                   </div>
                 </div>
@@ -603,7 +603,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                   {/* Include GST (3%) Slider Toggle */}
                   <div className="flex flex-col justify-center">
-                    <label className="text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-3">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">
                       Include GST (3%)
                     </label>
                     <div className="flex items-center gap-3">
@@ -611,17 +611,17 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                       <button
                         onClick={() => setIncludeGstAmount(!includeGstAmount)}
                         className={`w-12 h-6.5 rounded-full p-1 transition-colors duration-300 focus:outline-none relative flex items-center ${
-                          includeGstAmount ? "bg-[#B77767]" : "bg-[#2E1E1C] border border-[#3A2826]"
+                          includeGstAmount ? "bg-[#B77767]" : "bg-white border border-[#F2E3C6]"
                         }`}
                       >
                         {/* Toggle Circle */}
                         <div
-                          className={`w-4.5 h-4.5 bg-white rounded-full shadow-md transition-transform duration-300 transform ${
+                          className={`w-4.5 h-4.5 bg-white rounded-full shadow-md border border-zinc-200 transition-transform duration-300 transform ${
                             includeGstAmount ? "translate-x-5.5" : "translate-x-0"
                           }`}
                         />
                       </button>
-                      <span className="text-white text-sm font-bold capitalize">
+                      <span className="text-zinc-900 text-sm font-bold capitalize">
                         {includeGstAmount ? "Yes" : "No"}
                       </span>
                     </div>
@@ -629,7 +629,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
 
                   {/* Select City Dropdown */}
                   <div className="flex flex-col">
-                    <label className="text-xs font-bold text-[#A38E8C] uppercase tracking-widest mb-2.5">
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2.5">
                       Select City
                     </label>
                     <div className="relative">
@@ -640,7 +640,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                           setCurrentCitySlug(newCity);
                           navigateToPage(activeMetal, newCity);
                         }}
-                        className="w-full bg-[#2E1E1C] border border-[#3A2826] rounded-xl px-4 py-3.5 text-white font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base appearance-none cursor-pointer"
+                        className="w-full bg-white border border-[#F2E3C6] rounded-xl px-4 py-3.5 text-zinc-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base appearance-none cursor-pointer"
                       >
                         {allCitiesList.map((city) => (
                           <option key={city.slug} value={city.slug}>
@@ -648,18 +648,18 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none w-4 h-4" />
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none w-4 h-4" />
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Right Column Result Cards */}
-              <div className="w-full lg:w-[420px] bg-[#201413] rounded-2xl p-6 border border-[#3A2826] shadow-md flex flex-col justify-between">
+              <div className="w-full lg:w-[420px] bg-[#FAF3EC]/50 rounded-2xl p-6 border border-[#F2E3C6] shadow-md flex flex-col justify-between">
                 
                 {/* Result Weight Display */}
-                <div className="text-center py-4 border-b border-[#3A2826]">
-                  <p className="text-[#A38E8C] text-xs font-bold uppercase tracking-widest mb-2">
+                <div className="text-center py-4 border-b border-[#F2E3C6]">
+                  <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-2">
                     {activeMetal} you can buy
                   </p>
                   <p className="text-[#B77767] text-2xl md:text-3xl font-extrabold tracking-tight">
@@ -670,32 +670,32 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                 {/* Math Details Row-wise */}
                 <div className="space-y-4 my-6">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-[#A38E8C]">Amount Available</span>
-                    <span className="text-white font-bold">₹{amountCalcResults.amountAvailable.toLocaleString("en-IN")}</span>
+                    <span className="text-zinc-500">Amount Available</span>
+                    <span className="text-zinc-900 font-bold">₹{amountCalcResults.amountAvailable.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-[#A38E8C]">Base Value</span>
-                    <span className="text-white font-bold">₹{amountCalcResults.baseValue.toLocaleString("en-IN")}</span>
+                    <span className="text-zinc-500">Base Value</span>
+                    <span className="text-zinc-900 font-bold">₹{amountCalcResults.baseValue.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-[#A38E8C]">Making Charges ({amountMaking}%)</span>
-                    <span className="text-white font-bold">₹{amountCalcResults.makingCharges.toLocaleString("en-IN")}</span>
+                    <span className="text-zinc-500">Making Charges ({amountMaking}%)</span>
+                    <span className="text-zinc-900 font-bold">₹{amountCalcResults.makingCharges.toLocaleString("en-IN")}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm border-t border-[#3A2826] pt-3">
-                    <span className="text-[#A38E8C]">Subtotal</span>
-                    <span className="text-white font-bold">₹{amountCalcResults.subtotal.toLocaleString("en-IN")}</span>
+                  <div className="flex justify-between items-center text-sm border-t border-[#F2E3C6] pt-3">
+                    <span className="text-zinc-500">Subtotal</span>
+                    <span className="text-zinc-900 font-bold">₹{amountCalcResults.subtotal.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm pb-1">
-                    <span className="text-[#A38E8C]">GST (3%)</span>
-                    <span className="text-white font-bold">
+                    <span className="text-zinc-500">GST (3%)</span>
+                    <span className="text-zinc-900 font-bold">
                       {includeGstAmount ? `₹${amountCalcResults.gst.toLocaleString("en-IN")}` : "₹0"}
                     </span>
                   </div>
                 </div>
 
                 {/* Gold/Silver/Platinum Weight summary row */}
-                <div className="pt-4 border-t border-[#3A2826] flex items-center justify-between">
-                  <span className="text-[#A38E8C] text-sm font-semibold capitalize">{activeMetal} Weight</span>
+                <div className="pt-4 border-t border-[#F2E3C6] flex items-center justify-between">
+                  <span className="text-zinc-500 text-sm font-semibold capitalize">{activeMetal} Weight</span>
                   <span className="text-[#B77767] font-bold text-lg">{amountCalcResults.weight.toFixed(4)} g</span>
                 </div>
 
@@ -707,17 +707,17 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
 
       {/* CITY SELECTION POPUP MODAL */}
       {isCityModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in font-figtree">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in font-figtree">
           <div
             ref={modalRef}
-            className="w-full max-w-xl bg-[#150D0C] rounded-2xl border border-[#3A2826] shadow-2xl flex flex-col h-[80vh] md:h-[600px] overflow-hidden animate-scale-up"
+            className="w-full max-w-xl bg-white rounded-2xl border border-[#F2E3C6] shadow-2xl flex flex-col h-[80vh] md:h-[600px] overflow-hidden animate-scale-up"
           >
             {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-[#3A2826]">
-              <h3 className="text-white text-lg font-bold">Select Your City or Country</h3>
+            <div className="flex justify-between items-center px-6 py-4 border-b border-[#F2E3C6]">
+              <h3 className="text-zinc-900 text-lg font-bold">Select Your City or Country</h3>
               <button
                 onClick={() => setIsCityModalOpen(false)}
-                className="text-zinc-400 hover:text-white transition-colors"
+                className="text-zinc-500 hover:text-zinc-900 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -732,7 +732,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                   placeholder="Search city..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#0D0706] border border-[#3A2826] rounded-xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-sm font-medium"
+                  className="w-full bg-white border border-[#F2E3C6] rounded-xl pl-11 pr-4 py-3 text-zinc-900 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-sm font-medium"
                 />
               </div>
             </div>
@@ -750,8 +750,8 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                     }}
                     className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${
                       currentCitySlug === city.slug
-                        ? "bg-[#201413] border border-[#3A2826] text-white font-bold"
-                        : "text-zinc-400 hover:text-white hover:bg-[#201413]/50 border border-transparent"
+                        ? "bg-[#FAF3EC]/50 border border-[#F2E3C6] text-zinc-900 font-bold"
+                        : "text-zinc-500 hover:text-zinc-900 hover:bg-[#FAF3EC]/50/50 border border-transparent"
                     }`}
                   >
                     <span className="text-sm font-medium">{city.name}</span>
@@ -788,15 +788,15 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: #0D0706;
+          background: #FAF3EC;
           border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #3A2826;
+          background: #D4B392;
           border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #4E3532;
+          background: #B77767;
         }
       `}</style>
     </section>

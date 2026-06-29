@@ -999,7 +999,7 @@ img.marquee-img {
 ═══════════════════════════════════════════════════════════════ */
 
 .footer-pages table {
-  @apply w-full border-collapse border border-zinc-200 my-6 rounded-lg overflow-hidden;
+  @apply w-full border-collapse border border-zinc-200 my-6 overflow-hidden;
   font-family: var(--font-figtree), sans-serif;
 }
 
@@ -1008,12 +1008,12 @@ img.marquee-img {
 }
 
 .footer-pages table th {
-  @apply py-4 px-5 text-left text-sm font-semibold text-zinc-900 uppercase tracking-wider;
+  @apply py-4 px-5 text-left text-sm font-semibold text-zinc-900 uppercase tracking-wider border border-zinc-200;
   font-family: var(--font-abhaya), serif;
 }
 
 .footer-pages table tbody tr {
-  @apply border-b border-zinc-100 transition-colors hover:bg-zinc-50;
+  @apply transition-colors hover:bg-zinc-50;
 }
 
 .footer-pages table tbody tr:last-child {
@@ -1021,7 +1021,7 @@ img.marquee-img {
 }
 
 .footer-pages table td {
-  @apply py-4 px-5 text-sm text-zinc-600 leading-relaxed;
+  @apply py-4 px-5 text-sm text-zinc-600 leading-relaxed border border-zinc-200;
   font-family: var(--font-figtree), sans-serif;
 }
 
