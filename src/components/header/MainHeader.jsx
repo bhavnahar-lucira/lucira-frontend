@@ -282,7 +282,7 @@ export default function MainHeader() {
   const handleKeyDown = (e) => {
     if ((e.key === "Tab" || e.key === "ArrowRight") && suggestionSuffix) {
       e.preventDefault();
-      setSearchQuery(suggestionData.completeText);
+      setSearchQuery(searchQuery + suggestionSuffix);
     } else if (e.key === "Enter" && searchQuery.trim().length > 0) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setIsFocused(false);

@@ -25,27 +25,27 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
   const COUPONS = [
     {
       code: "GRAND250",
-      title: "Flat ₹250 off",
+      title: "Flat ₹250 off*",
       condition: "On Purchase below ₹15000/-"
     },
     {
       code: "GRAND500",
-      title: "Flat ₹500 off",
+      title: "Flat ₹500 off*",
       condition: "On Purchase ₹15001 - ₹30000/-"
     },
     {
       code: "GRAND750",
-      title: "Flat ₹750 off",
+      title: "Flat ₹750 off*",
       condition: "On Purchase ₹30001 - ₹50000/-"
     },
     {
       code: "GRAND1000",
-      title: "Flat ₹1000 off",
+      title: "Flat ₹1000 off*",
       condition: "On Purchase ₹50001 - ₹100000/-"
     },
     {
       code: "GRAND1500",
-      title: "Flat ₹1500 off",
+      title: "Flat ₹1500 off*",
       condition: "On Purchase ₹1 Lakh & Above"
     }
   ];
@@ -605,6 +605,11 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                     />
                   </div>
                 ))}
+                
+                {/* Disclaimer Footnote */}
+                <p className="text-[11px] text-zinc-500 font-figtree font-medium text-center pt-2 leading-relaxed">
+                  *This coupons applicable for Diamond products
+                </p>
               </div>
             </motion.div>
           </div>
@@ -618,7 +623,7 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
   const isCopied = copiedCode === coupon.code;
 
   return (
-    <div className={`flex h-[120px] sm:h-[105px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
+    <div className={`flex h-[120px] sm:h-[105px] min-[1600px]:h-[120px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
       <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l">
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
