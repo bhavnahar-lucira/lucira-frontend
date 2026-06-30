@@ -12,7 +12,7 @@ export default function OldGoldExchangePage() {
   const { banner, calculator, how_it_works, store_locator, other_stores, usp, faq } = PAGE_DATA.sections;
 
   const marqueeItems = [
-    "Get <span class='font-bold not-italic'>105% Exchange Value</span> on Your Old Gold",
+    "Bring in your old jewellery and avail <span class='font-bold not-italic'>5% additional value<span>",
     "Instant Valuation & Payment",
     "Your upgrade starts here",
     "Trusted by Thousands of Customers",

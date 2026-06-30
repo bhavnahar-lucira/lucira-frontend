@@ -70,11 +70,11 @@ export default function OldGoldCalculator({ config }) {
   }, [rates, selectedKarat, weight, bonus]);
 
   return (
-    <section className="old-gold-exchange-calculator py-10 md:py-20 bg-[#f8f8f8]">
+    <section className="old-gold-exchange-calculator py-6 md:py-6 bg-[#f8f8f8]">
       <div className="container-main mx-auto px-4 max-w-[1200px]">
 
         {/* Rates Banner */}
-        <div className="exchange-rates-banner mb-10 p-6 md:p-8 rounded-xl flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-[#b76f79] to-[#f3dce0] text-white gap-6">
+        {/* <div className="exchange-rates-banner mb-10 p-6 md:p-8 rounded-xl flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-[#b76f79] to-[#f3dce0] text-white gap-6">
           <div className="rates-container flex flex-wrap items-center gap-20">
             <div className="rate-box flex items-center gap-4 ">
               <div className="rate-details">
@@ -99,14 +99,14 @@ export default function OldGoldCalculator({ config }) {
             <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium">Live Rates</span>
             <span className="opacity-90">Fetched from our Gold Rate Page</span>
           </div>
-        </div>
+        </div> */}
 
         {/* Calculator Grid */}
         <div className="exchange-calculator-wrapper mb-14 text-center">
-          <h2 className="font-abhaya font-semibold text-[18px] md:text-[28px] uppercase tracking-[2px] mb-2 text-primary">
-            Old Gold Exchange Value Calculator
+          <h2 className="font-abhaya font-semibold text-[18px] md:text-[28px] capitalize tracking-[1px]  text-primary">
+            Get 105% Exchange Value on Your Old Gold
           </h2>
-          <p className="text-gray-500 text-[14px] md:text-[18px] max-w-[660px] mx-auto pb-8">
+          <p className="text-gray-500 text-[14px] md:text-[18px] max-w-[660px] mx-auto pb-6">
             Enter your gold details to calculate exchange value
           </p>
 
