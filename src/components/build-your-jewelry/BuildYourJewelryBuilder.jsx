@@ -165,7 +165,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   const isMobile = useMediaQuery('(max-width: 860px)');
 
   const [material, setMaterial] = useState('9k-gold');
-  const [length, setLength] = useState('14KT');
+  const [length, setLength] = useState(null);
   const [chains, setChains] = useState([]);
   const [allCharmCollections, setAllCharmCollections] = useState({});
   const [charmCollectionsInfo, setCharmCollectionsInfo] = useState([]);
@@ -390,6 +390,27 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       stage.destroy();
     };
   }, [loading]);
+
+  useEffect(() => {
+    const applyNoScroll = () => {
+      if (window.innerWidth > 860) {
+        document.documentElement.classList.add('byj-no-scroll');
+        document.body.classList.add('byj-no-scroll');
+      } else {
+        document.documentElement.classList.remove('byj-no-scroll');
+        document.body.classList.remove('byj-no-scroll');
+      }
+    };
+
+    applyNoScroll();
+    window.addEventListener('resize', applyNoScroll);
+
+    return () => {
+      document.documentElement.classList.remove('byj-no-scroll');
+      document.body.classList.remove('byj-no-scroll');
+      window.removeEventListener('resize', applyNoScroll);
+    };
+  }, []);
 
   const updateCanvasImage = (src) => {
     if (!src || !productImgRef.current) return;
@@ -620,7 +641,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   }, [chains, charms, selectedStyle, loading]);
 
   useEffect(() => {
-    if (availableLengths.length > 0 && !availableLengths.includes(length)) {
+    if (length !== null && availableLengths.length > 0 && !availableLengths.includes(length)) {
       setLength(availableLengths[0]);
     }
   }, [availableLengths, length]);
@@ -645,6 +666,24 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       }));
     }
   }, [material, length]);
+
+  const handleSelectLength = (l) => {
+    setLength(l);
+    if (isMobile) {
+      setCurrentDrawerKey('style');
+    } else {
+      setActiveStep('style');
+    }
+  };
+
+  const handleSelectStyle = (group) => {
+    setSelectedStyle(group);
+    if (isMobile) {
+      setCurrentDrawerKey('charms');
+    } else {
+      setActiveStep('charms');
+    }
+  };
 
   const handleZoom = (factor) => {
     const stage = stageRef.current;
@@ -797,7 +836,9 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     return total;
   }, [selectedStyle, selectedCharms, material, length, allCharmCollections]);
 
-  const isReady = selectedStyle && selectedCharms.reduce((acc, c) => acc + c.qty, 0) >= MIN_CHARMS;
+  const isReady = length && selectedStyle && selectedCharms.reduce((acc, c) => acc + c.qty, 0) >= MIN_CHARMS;
+  const isStyleDisabled = length === null;
+  const isCharmsDisabled = selectedStyle === null;
 
   const openDrawer = (key) => {
     setCurrentDrawerKey(key);
@@ -888,8 +929,39 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   return (
     <div className="build-your-jewelry-bracelets">
       <style jsx global>{`
+        @media (min-width: 861px) {
+          html.byj-no-scroll, body.byj-no-scroll {
+            height: 100vh !important;
+            height: 100dvh !important;
+            overflow: hidden !important;
+          }
+          body.byj-no-scroll {
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          body.byj-no-scroll main,
+          body.byj-no-scroll .build-your-jewelry-bracelets,
+          body.byj-no-scroll .build-your-jewelry-wrapper,
+          body.byj-no-scroll .byj-layout {
+            height: 100% !important;
+            min-height: unset !important;
+            flex: 1 !important;
+            overflow: hidden !important;
+          }
+          body.byj-no-scroll .byj-config-panel {
+            height: 100% !important;
+          }
+          body.byj-no-scroll .byj-canvas-area {
+            height: 100% !important;
+            min-height: unset !important;
+          }
+          body.byj-no-scroll #byj-konva-container {
+            max-width: min(850px, calc(100vh - 180px)) !important;
+          }
+        }
+
         .build-your-jewelry-bracelets {color: #1c1810; font-family: var(--font-figtree), sans-serif; background: #ffffff;}
-        .byj-layout { display: grid; grid-template-columns: 1fr 500px; grid-template-areas: "canvas panel"; min-height: 100vh; max-width: 100vw; margin: 0 auto; overflow: hidden;}
+        .byj-layout { display: grid; grid-template-columns: 1fr 40%; grid-template-areas: "canvas panel"; min-height: 100vh; max-width: 100vw; margin: 0 auto; overflow: hidden;}
         
         footer, 
         .zsiq_float_main, 
@@ -898,7 +970,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
         .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 0px 24px; min-height: 60vh; }
         .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pexels_Photo_by_Maryam.jpg?v=1781247551); background-size: cover; background-position: center; }
-        #byj-konva-container { width: 100%; max-width: 540px; aspect-ratio: 1; cursor: grab; border-radius: 20px; overflow: hidden; touch-action: none;}
+        #byj-konva-container { width: 100%; max-width: min(850px, 80vh); aspect-ratio: 1; cursor: grab; border-radius: 20px; overflow: hidden; touch-action: none;}
         
         .byj-canvas-controls { position: absolute; bottom: 30px; right: 30px; display: flex; align-items: center; gap: 12px; z-index: 20; }
         .byj-zoom-bar { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 100px; padding: 6px 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #f0ebe4; }
@@ -1108,12 +1180,16 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                   <div className={`byj-step ${activeDesktopStep === 'length' ? 'open' : ''}`}>
                     <div className="byj-step-header" onClick={() => setActiveStep(activeDesktopStep === 'length' ? '' : 'length')}>
                       <div className="byj-step-left">
-                        <span className="byj-step-check">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span className={cn("byj-step-check", length === null && "pending")}>
+                          {length === null ? (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/></svg>
+                          ) : (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5"><polyline points="20 6 9 17 4 12"/></svg>
+                          )}
                         </span>
                         <div>
                           <div className="byj-step-label">Karat Selection</div>
-                          <div className="byj-step-value">{length}</div>
+                          <div className="byj-step-value">{length || "Select Karat"}</div>
                         </div>
                       </div>
                       <svg className="byj-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1121,14 +1197,18 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                     <div className="byj-step-body">
                       <div className="byj-option-grid">
                         {availableLengths.map(l => (
-                          <button key={l} className={`byj-opt-btn ${length === l ? 'active' : ''}`} onClick={() => setLength(l)}>{l}</button>
+                          <button key={l} className={`byj-opt-btn ${length === l ? 'active' : ''}`} onClick={() => handleSelectLength(l)}>{l}</button>
                         ))}
                       </div>
                     </div>
                   </div>
 
-                  <div className={`byj-step ${activeDesktopStep === 'style' ? 'open' : ''}`}>
-                    <div className="byj-step-header" onClick={() => setActiveStep(activeDesktopStep === 'style' ? '' : 'style')}>
+                  <div className={cn(
+                    "byj-step",
+                    activeDesktopStep === 'style' && "open",
+                    isStyleDisabled && "opacity-40 pointer-events-none"
+                  )}>
+                    <div className="byj-step-header" onClick={() => !isStyleDisabled && setActiveStep(activeDesktopStep === 'style' ? '' : 'style')}>
                       <div className="byj-step-left">
                         <span className={`byj-step-check ${!selectedStyle ? 'pending' : ''}`}>
                           {!selectedStyle ? (
@@ -1151,7 +1231,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                           if (!version) return null;
                           const isActive = selectedStyle?.base === group.base;
                           return (
-                            <div key={group.base} className={`byj-style-card ${isActive ? 'active' : ''}`} onClick={() => setSelectedStyle(group)}>
+                            <div key={group.base} className={`byj-style-card ${isActive ? 'active' : ''}`} onClick={() => handleSelectStyle(group)}>
                               <div className="byj-style-img-wrap">
                                 <img src={version.img} alt={version.alt} loading="lazy" />
                                 <div className="byj-style-check-badge">
@@ -1169,8 +1249,12 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                     </div>
                   </div>
 
-                  <div className={`byj-step ${activeDesktopStep === 'charms' ? 'open' : ''}`}>
-                    <div className="byj-step-header" onClick={() => setActiveStep(activeDesktopStep === 'charms' ? '' : 'charms')}>
+                  <div className={cn(
+                    "byj-step",
+                    activeDesktopStep === 'charms' && "open",
+                    isCharmsDisabled && "opacity-40 pointer-events-none"
+                  )}>
+                    <div className="byj-step-header" onClick={() => !isCharmsDisabled && setActiveStep(activeDesktopStep === 'charms' ? '' : 'charms')}>
                       <div className="byj-step-left">
                         <span className={`byj-step-check ${selectedCharms.length === 0 ? 'pending' : ''}`}>
                           {selectedCharms.length === 0 ? (
@@ -1268,16 +1352,25 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
               <div className="byj-mob-row" onClick={() => openDrawer('length')}>
                 <div className="flex items-center gap-4">
-                  <span className="byj-mob-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg></span>
+                  <span className={cn("byj-mob-check", length === null && "pending")}>
+                    {length === null ? (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/></svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>
+                    )}
+                  </span>
                   <div>
                     <div className="byj-mob-label">Karat</div>
-                    <div className="byj-mob-val">{length}</div>
+                    <div className="byj-mob-val">{length || "Select Karat"}</div>
                   </div>
                 </div>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a413f" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
               </div>
 
-              <div className="byj-mob-row" onClick={() => openDrawer('style')}>
+              <div 
+                className={cn("byj-mob-row", isStyleDisabled && "opacity-40 pointer-events-none")} 
+                onClick={() => !isStyleDisabled && openDrawer('style')}
+              >
                 <div className="flex items-center gap-4">
                   <span className={cn("byj-mob-check", !selectedStyle && "pending")}>
                     {!selectedStyle ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/></svg> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -1290,7 +1383,10 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a413f" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
               </div>
 
-              <div className="byj-mob-row" onClick={() => openDrawer('charms')}>
+              <div 
+                className={cn("byj-mob-row", isCharmsDisabled && "opacity-40 pointer-events-none")} 
+                onClick={() => !isCharmsDisabled && openDrawer('charms')}
+              >
                 <div className="flex items-center gap-4">
                   <span className={cn("byj-mob-check", selectedCharms.length === 0 && "pending")}>
                     {selectedCharms.length === 0 ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/></svg> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -1328,7 +1424,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
             {currentDrawerKey === 'length' && (
               <div className="byj-option-grid">
                 {availableLengths.map(l => (
-                  <button key={l} className={cn("byj-opt-btn", length === l && "active")} onClick={() => setLength(l)}>{l}</button>
+                  <button key={l} className={cn("byj-opt-btn", length === l && "active")} onClick={() => handleSelectLength(l)}>{l}</button>
                 ))}
               </div>
             )}
@@ -1339,7 +1435,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
                   if (!version) return null;
                   const isActive = selectedStyle?.base === group.base;
                   return (
-                    <div key={group.base} className={cn("byj-style-card", isActive && "active")} onClick={() => setSelectedStyle(group)}>
+                    <div key={group.base} className={cn("byj-style-card", isActive && "active")} onClick={() => handleSelectStyle(group)}>
                       <div className="byj-style-img-wrap">
                         <img src={version.img} alt={version.alt} loading="lazy" />
                         <div className="byj-style-check-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg></div>
