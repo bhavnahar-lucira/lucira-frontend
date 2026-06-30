@@ -1042,6 +1042,12 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-collection-circle-item.active .byj-collection-circle-title { color: #5a413f; }
 
         .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 16px; border-top: 1px solid #eaeaea;}
+        @media (min-width: 1600px) {
+          .byj-config-panel .byj-style-grid, 
+          .byj-config-panel .byj-charm-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
         .byj-style-card, .byj-charm-item { border: 1px solid #f0ebe4; border-radius: 4px; overflow: hidden; cursor: pointer; background: #fff; transition: all .3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; position: relative; }
         .byj-style-card:hover, .byj-charm-item:hover { border-color: #e0d0ba; transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .byj-style-card.active, .byj-charm-item.selected { border-color: #5a413f; background: #fff;  border-color: #5a413f;}
