@@ -104,10 +104,10 @@ export default function OldGoldCalculator({ config }) {
 
         {/* Calculator Grid */}
         <div className="exchange-calculator-wrapper mb-14 text-center">
-          <h2 className="font-abhaya font-semibold text-[18px] md:text-[28px] capitalize tracking-[1px]  text-primary">
+          <h2 className="font-abhaya font-semibold text-[1.125rem] md:text-[1.75rem] capitalize tracking-[1px]  text-primary">
             Get 105% Exchange Value on Your Old Gold
           </h2>
-          <p className="text-gray-500 text-[14px] md:text-[18px] max-w-[660px] mx-auto pb-6">
+          <p className="text-gray-500 text-[0.875rem] md:text-[1.125rem] max-w-[660px] mx-auto pb-6">
             Enter your gold details to calculate exchange value
           </p>
 
@@ -127,7 +127,7 @@ export default function OldGoldCalculator({ config }) {
                         }`}
                     >
                       <span className="block font-bold text-base">{k.label}</span>
-                      <span className={`block text-[10px] ${selectedKarat === k.value ? "text-white/80" : "text-gray-500"}`}>{k.desc}</span>
+                      <span className={`block text-[0.625rem] ${selectedKarat === k.value ? "text-white/80" : "text-gray-500"}`}>{k.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -208,7 +208,7 @@ export default function OldGoldCalculator({ config }) {
                   <div className="flex justify-between items-center pb-4 border-b border-white/10">
                     <div>
                       <div className="text-base font-medium">Market Value</div>
-                      <div className="text-[11px] opacity-70">Based on today&apos;s rate</div>
+                      <div className="text-[0.6875rem] opacity-70">Based on today&apos;s rate</div>
                     </div>
                     <div className="text-xl font-bold">{loading ? "₹ --" : formatCurrency(calculation.marketValue)}</div>
                   </div>
@@ -217,20 +217,20 @@ export default function OldGoldCalculator({ config }) {
                     <div>
                       <div className="text-base font-medium flex items-center gap-2">
                         Exchange Value
-                        {bonus > 0 && <span className="text-[10px] font-bold bg-white/20 border border-white/40 px-2 py-0.5 rounded-full">+{bonus}%</span>}
+                        {bonus > 0 && <span className="text-[0.625rem] font-bold bg-white/20 border border-white/40 px-2 py-0.5 rounded-full">+{bonus}%</span>}
                       </div>
-                      <div className="text-[11px] opacity-70">Total value for your gold</div>
+                      <div className="text-[0.6875rem] opacity-70">Total value for your gold</div>
                     </div>
                     <div className="text-2xl font-bold">{loading ? "₹ --" : formatCurrency(calculation.exchangeValue)}</div>
                   </div>
                 </div>
 
                 <div className="pt-6 border-t border-white/20 space-y-3">
-                  <div className="flex items-center gap-3 text-[11px] opacity-80">
+                  <div className="flex items-center gap-3 text-[0.6875rem] opacity-80">
                     <Info size={14} />
                     <span>Fetched from our Gold Rate Page</span>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] opacity-80">
+                  <div className="flex items-center gap-3 text-[0.6875rem] opacity-80">
                     <AlertTriangle size={14} />
                     <span>Final value determined after verification</span>
                   </div>
