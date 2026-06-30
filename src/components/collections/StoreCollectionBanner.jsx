@@ -141,6 +141,34 @@ const STORES_DATA = {
     ],
     address: "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",
   },
+  "paschim-vihar": {
+    city: "Paschim Vihar",
+    name: "Paschim Vihar Lucira Store",
+    rating: 4.7,
+    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chembur_73ce3ac6-7515-473d-a2dd-2385fd065eaa.jpg"],
+    storeHours: {
+      weekday: { open: "10:30", close: "22:00" },
+      weekend: { open: "10:30", close: "22:00" },
+    },
+    mapLink: "https://maps.google.com/?q=Paschim+Vihar+Lucira+Store",
+    callLink: "tel:+919004402038",
+    designLink: "/collections/paschim-vihar",
+    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Paschim%20Vihar%20Store",
+    facilities: [
+      "Open on Weekends",
+      "Banks Nearby",
+      "Parking Availability",
+      "Daily Offers",
+      "Piercing"
+    ],
+    services: [
+      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
+      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
+    ],
+    address: "Paschim Vihar, New Delhi",
+  },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
