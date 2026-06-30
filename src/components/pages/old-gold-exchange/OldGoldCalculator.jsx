@@ -20,6 +20,7 @@ export default function OldGoldCalculator({ config }) {
   const [loading, setLoading] = useState(true);
   const [selectedKarat, setSelectedKarat] = useState("24");
   const [weight, setWeight] = useState(10);
+  const [weightInput, setWeightInput] = useState("10");
   const bonus = config?.exchange_bonus_percent || 5;
 
   useEffect(() => {
@@ -113,7 +114,7 @@ export default function OldGoldCalculator({ config }) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Input Column */}
             <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg shadow-black/5">
-              <div className="mb-10">
+              <div className="mb-8">
                 <label className="block text-sm font-semibold uppercase tracking-widest mb-4">Select Gold Purity</label>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                   {KARATS.map((k) => (
@@ -132,25 +133,39 @@ export default function OldGoldCalculator({ config }) {
                 </div>
               </div>
 
-              <div className="mb-10">
+              <div className="mb-6">
                 <label className="block text-sm font-semibold uppercase tracking-widest mb-4">Gold Weight (grams)</label>
                 <div className="relative mb-4">
                   <input
                     type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+                    value={weightInput}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setWeightInput(val);
+                      const parsed = parseFloat(val);
+                      if (!isNaN(parsed) && parsed > 0) setWeight(parsed);
+                    }}
+                    onBlur={() => {
+                      if (weightInput === "" || parseFloat(weightInput) <= 0) {
+                        setWeightInput("1");
+                        setWeight(1);
+                      }
+                    }}
                     className="w-full p-4 pr-16 border-2 border-[#e0e0e0] rounded-lg text-lg font-semibold focus:outline-none focus:border-[#b76f79]"
-                    min="0.1"
-                    step="0.1"
+                    min="1"
+                    step="1"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">grams</span>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-5 gap-2 sm:gap-3">
                   {WEIGHTS.map((w) => (
                     <button
                       key={w}
-                      onClick={() => setWeight(w)}
-                      className="px-4 py-2 bg-white border-2 border-[#e0e0e0] rounded-md text-sm font-semibold hover:border-[#b76f79] hover:text-[#b76f79] transition-all"
+                      onClick={() => { setWeight(w); setWeightInput(String(w)); }}
+                      className={`py-3 sm:py-4 px-2 sm:px-4 border-2 rounded-lg text-sm sm:text-base font-bold transition-all duration-200 ${weight === w
+                        ? "bg-[#b76f79] border-[#b76f79] text-white shadow-md"
+                        : "bg-white border-[#e0e0e0] text-gray-700 hover:border-[#b76f79] hover:text-[#b76f79] hover:shadow-sm"
+                        }`}
                     >
                       {w}g
                     </button>
