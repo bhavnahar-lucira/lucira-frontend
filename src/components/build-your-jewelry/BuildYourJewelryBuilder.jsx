@@ -1042,10 +1042,40 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .byj-collection-circle-item.active .byj-collection-circle-title { color: #5a413f; }
 
         .byj-style-grid, .byj-charm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 16px; border-top: 1px solid #eaeaea;}
-        @media (min-width: 1600px) {
+        @media (min-width: 1024px) {
           .byj-config-panel .byj-style-grid, 
           .byj-config-panel .byj-charm-grid {
             grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+          }
+          .byj-config-panel .byj-style-info {
+            padding: 8px;
+            gap: 6px;
+          }
+          .byj-config-panel .byj-style-name {
+            font-size: 11px;
+          }
+          .byj-config-panel .byj-style-price {
+            font-size: 13px;
+          }
+          .byj-config-panel .byj-charm-qty-wrap {
+            padding: 1px;
+            border-radius: 6px;
+          }
+          .byj-config-panel .byj-qty-btn {
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+          }
+          .byj-config-panel .byj-qty-num {
+            font-size: 11px;
+            min-width: 20px;
+          }
+          .byj-config-panel .byj-style-check-badge {
+            top: 8px;
+            right: 8px;
+            width: 18px;
+            height: 18px;
           }
         }
         .byj-style-card, .byj-charm-item { border: 1px solid #f0ebe4; border-radius: 4px; overflow: hidden; cursor: pointer; background: #fff; transition: all .3s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; position: relative; }
