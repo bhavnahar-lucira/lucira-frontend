@@ -295,30 +295,60 @@ export default function MobileHeader({ menuData }) {
     performSearch();
   }, [debouncedSearchQuery]);
 
-  const suggestionSuffix = useMemo(() => {
-    if (!searchQuery.trim()) return "";
-    const query = searchQuery.toLowerCase();
+  const suggestionData = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+
+    const getAutocompleteSuggestion = (title, query) => {
+      const titleLower = title.toLowerCase();
+      const queryLower = query.toLowerCase();
+
+      if (titleLower.startsWith(queryLower)) {
+        return {
+          suffix: title.slice(query.length),
+          completeText: title
+        };
+      }
+
+      const words = title.split(" ");
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (word.toLowerCase().startsWith(queryLower)) {
+          const suffixOfWord = word.slice(query.length);
+          const remainingWords = words.slice(i + 1).join(" ");
+          const suffix = suffixOfWord + (remainingWords ? " " + remainingWords : "");
+          return {
+            suffix: suffix,
+            completeText: title
+          };
+        }
+      }
+      return null;
+    };
 
     // 1. Try matched collections
-    const matchedCol = searchResults.find(
-      (item) => item.isCollection && item.title.toLowerCase().startsWith(query)
-    );
-    if (matchedCol) return matchedCol.title.slice(searchQuery.length);
+    const matchedCol = searchResults.find(item => item.isCollection);
+    if (matchedCol) {
+      const match = getAutocompleteSuggestion(matchedCol.title, searchQuery);
+      if (match) return match;
+    }
 
     // 2. Try predefined placeholders
-    const placeholderMatch = SEARCH_PLACEHOLDERS.find((p) =>
-      p.toLowerCase().startsWith(query)
-    );
-    if (placeholderMatch) return placeholderMatch.slice(searchQuery.length);
+    for (const p of SEARCH_PLACEHOLDERS) {
+      const match = getAutocompleteSuggestion(p, searchQuery);
+      if (match) return match;
+    }
 
     // 3. Try products
-    const matchedProd = searchResults.find(
-      (item) => !item.isCollection && item.title.toLowerCase().startsWith(query)
-    );
-    if (matchedProd) return matchedProd.title.slice(searchQuery.length);
+    const matchedProd = searchResults.find(item => !item.isCollection);
+    if (matchedProd) {
+      const match = getAutocompleteSuggestion(matchedProd.title, searchQuery);
+      if (match) return match;
+    }
 
-    return "";
+    return null;
   }, [searchQuery, searchResults]);
+
+  const suggestionSuffix = suggestionData ? suggestionData.suffix : "";
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -327,7 +357,7 @@ export default function MobileHeader({ menuData }) {
   const handleKeyDown = (e) => {
     if ((e.key === "Tab" || e.key === "ArrowRight") && suggestionSuffix) {
       e.preventDefault();
-      setSearchQuery(searchQuery + suggestionSuffix);
+      setSearchQuery(suggestionData.completeText);
     } else if (e.key === "Enter" && searchQuery.trim().length > 0) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setShowSearch(false);
