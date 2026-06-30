@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -220,12 +220,40 @@ export default function MainHeader() {
     performSearch();
   }, [debouncedSearchQuery]);
 
+  const suggestionSuffix = useMemo(() => {
+    if (!searchQuery.trim()) return "";
+    const query = searchQuery.toLowerCase();
+
+    // 1. Try matched collections
+    const matchedCol = searchResults.find(
+      (item) => item.isCollection && item.title.toLowerCase().startsWith(query)
+    );
+    if (matchedCol) return matchedCol.title.slice(searchQuery.length);
+
+    // 2. Try predefined placeholders
+    const placeholderMatch = SEARCH_PLACEHOLDERS.find((p) =>
+      p.toLowerCase().startsWith(query)
+    );
+    if (placeholderMatch) return placeholderMatch.slice(searchQuery.length);
+
+    // 3. Try products
+    const matchedProd = searchResults.find(
+      (item) => !item.isCollection && item.title.toLowerCase().startsWith(query)
+    );
+    if (matchedProd) return matchedProd.title.slice(searchQuery.length);
+
+    return "";
+  }, [searchQuery, searchResults]);
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && searchQuery.trim().length > 0) {
+    if ((e.key === "Tab" || e.key === "ArrowRight") && suggestionSuffix) {
+      e.preventDefault();
+      setSearchQuery(searchQuery + suggestionSuffix);
+    } else if (e.key === "Enter" && searchQuery.trim().length > 0) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setIsFocused(false);
     }
@@ -292,11 +320,11 @@ export default function MainHeader() {
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900 pointer-events-none z-30">
               <SearchIcon />
             </div>
-            <div className="relative w-full">
+            <div className="relative w-full bg-[#F9F9F9] focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-200 rounded-sm transition-all h-10">
               <input
                 type="text"
                 placeholder=""
-                className="w-full h-10 pl-11.25 pr-2.5 py-2 rounded-sm bg-[#F9F9F9] text-base font-medium outline-none focus:bg-white focus:ring-1 focus:ring-gray-200 transition-all relative z-20"
+                className="w-full h-full pl-11.25 pr-2.5 py-2 bg-transparent text-base font-medium outline-none relative z-20"
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => {
                   setTimeout(() => setIsFocused(false), 200);
@@ -314,6 +342,14 @@ export default function MainHeader() {
                 onChange={handleSearchChange}
                 onKeyDown={handleKeyDown}
               />
+
+              {/* Autocomplete Ghost Suggestion */}
+              {isFocused && searchQuery && suggestionSuffix && (
+                <div className="absolute inset-0 flex items-center pointer-events-none z-10 pl-11.25 pr-2.5 py-2 text-base font-medium whitespace-pre">
+                  <span className="text-transparent">{searchQuery}</span>
+                  <span className="text-gray-400 select-none">{suggestionSuffix}</span>
+                </div>
+              )}
 
               {/* Animated Placeholder Ticker */}
               {!isFocused && !searchQuery && (
