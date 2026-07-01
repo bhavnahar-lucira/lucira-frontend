@@ -51,18 +51,18 @@ export function FindLuciraStore({
           </h2>
 
           {/* Pincode */}
-          <div className="flex flex-row justify-center items-center gap-0 mb-3 max-w-lg mx-auto">
+          <div className="relative max-w-lg mx-auto mb-3">
             <Input
               value={pincode}
-              onChange={(e) => setPincode(e.target.value)}
+              onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               onKeyDown={(e) => e.key === 'Enter' && handlePincodeCheck()}
               placeholder="Enter pin code"
-              className="h-10 sm:h-12 rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 border-[#D1D1D1] placeholder:text-gray-400 text-sm bg-white"
+              className="w-full h-[3.0625rem] bg-white border border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pr-32 md:pr-36 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <Button 
               onClick={handlePincodeCheck}
               disabled={checkingPincode}
-              className="h-10 sm:h-12 px-4 sm:px-10 rounded-l-none bg-tertiary hover:bg-accent/90 text-white text-xs sm:text-sm font-bold tracking-widest shrink-0"
+              className="h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-bold md:font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#5A413F] hover:bg-[#5A413F]/90 text-white hover:cursor-pointer flex items-center justify-center gap-2 shrink-0"
             >
               {checkingPincode ? <Loader2 className="animate-spin" size={18} /> : "CHECK"}
             </Button>
