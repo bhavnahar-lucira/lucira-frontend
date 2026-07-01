@@ -2731,7 +2731,7 @@ export default function ProductPageClient({
                     maxLength={6}
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    className="h-[39px] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pr-36"
+                    className="h-[40px] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pr-36"
                   />
                   <Button
                     onClick={() => {
