@@ -7,20 +7,31 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchCollectionProducts } from "@/lib/api";
 
-const HighlightMatch = ({ text, query }) => {
+const HighlightMatch = ({ text, query, reverse = false }) => {
   if (!query) return <span className="text-[#1A1A1A]">{text}</span>;
   const parts = text.split(new RegExp(`(${query})`, "gi"));
   return (
     <span className="text-[#1A1A1A]">
-      {parts.map((part, i) =>
-        part.toLowerCase() === query.toLowerCase() ? (
-          <strong key={i} className="font-semibold text-black">
-            {part}
-          </strong>
-        ) : (
-          part
-        ),
-      )}
+      {parts.map((part, i) => {
+        const isMatch = part.toLowerCase() === query.toLowerCase();
+        if (reverse) {
+          return isMatch ? (
+            part
+          ) : (
+            <strong key={i} className="font-bold text-black">
+              {part}
+            </strong>
+          );
+        } else {
+          return isMatch ? (
+            <strong key={i} className="font-semibold text-black">
+              {part}
+            </strong>
+          ) : (
+            part
+          );
+        }
+      })}
     </span>
   );
 };
@@ -348,6 +359,7 @@ export default function SearchPopup({
                               <HighlightMatch
                                 text={col.title}
                                 query={searchQuery}
+                                reverse={true}
                               />
                             </h4>
                             <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mt-1">
