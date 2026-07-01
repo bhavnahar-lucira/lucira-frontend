@@ -637,7 +637,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative h-34 md:h-54">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_Banner.jpg" alt={displayTitle} fill className="object-cover" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop20202B100.jpg" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
       ) : (
@@ -654,7 +654,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
             <div className="flex-1 w-full h-auto">
               <Image 
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_Banner.jpg" 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop20202B100.jpg" 
                 alt={displayTitle} 
                 width={640} 
                 height={223} 
