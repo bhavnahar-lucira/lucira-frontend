@@ -86,7 +86,7 @@ export function ProductCustomizerMobile({
         </SizeGuideMobile>
       </div>
 
-      <div className="border border-gray-200 rounded-2xl p-4 bg-white">
+      <div className="border border-gray-200 rounded p-3 bg-white">
         <div className="flex items-center justify-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <div
@@ -105,7 +105,7 @@ export function ProductCustomizerMobile({
 
         <button 
           onClick={() => setIsOpen(true)}
-          className="w-full py-3 bg-tertiary rounded-sm text-white font-bold text-sm uppercase tracking-widest"
+          className="w-full py-3 bg-tertiary rounded text-white font-bold text-sm uppercase tracking-widest"
         >
           CUSTOMIZE
         </button>
@@ -148,7 +148,7 @@ export function ProductCustomizerMobile({
                           <div
                             key={`${karat}-${metal}`}
                             onClick={() => handleGoldSelection(metal, karat)}
-                            className={`border rounded-xl py-3 px-2 cursor-pointer relative flex flex-col items-center gap-3 transition-all ${
+                            className={`border rounded py-3 px-2 cursor-pointer relative flex flex-col items-center gap-3 transition-all ${
                               isActive
                                 ? "border-black bg-white ring-1 ring-black shadow-sm"
                                 : "border-gray-200 bg-[#F9F9F9]"
@@ -193,7 +193,7 @@ export function ProductCustomizerMobile({
                               <button
                                 key={`size-${sizeStr}`}
                                 onClick={() => handleSizeSelection(sizeStr)}
-                                className={`relative border rounded-lg h-12 flex items-center justify-center text-sm transition-all ${
+                                className={`relative border rounded h-12 flex items-center justify-center text-sm transition-all ${
                                   sizeStr === selectedSize
                                     ? "border-black bg-white ring-1 ring-black font-bold"
                                     : "border-gray-200 bg-[#F9F9F9] font-medium"
@@ -214,7 +214,7 @@ export function ProductCustomizerMobile({
                 <div className="pt-6 pb-2">
                    <button 
                     onClick={() => setIsOpen(false)}
-                    className="w-full py-4 bg-primary text-white rounded-sm font-bold text-sm uppercase tracking-widest"
+                    className="w-full py-4 bg-primary text-white rounded font-bold text-sm uppercase tracking-widest"
                   >
                     DONE
                   </button>

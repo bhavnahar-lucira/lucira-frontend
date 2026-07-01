@@ -423,7 +423,7 @@
       #8e5bc4 40%,
       #ff8a00 70%,
       transparent 80%);
-  animation: moveGlow 5s linear infinite;
+  animation: moveGlow 4s linear infinite;
   offset-path: rect(0% auto 100% auto);
   pointer-events: none;
 }
@@ -435,40 +435,7 @@
   z-index: 10;
 }
 
-/* ---------------- GOLD SHIMMER ---------------- */
 
-.gold-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.gold-shimmer::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -150%;
-  width: 120%;
-  height: 100%;
-
-  background: linear-gradient(110deg,
-      transparent 40%,
-      rgba(255, 255, 255, 0.4) 50%,
-      transparent 60%);
-
-
-
-  animation: goldSweep 4s linear infinite;
-}
-
-@keyframes goldSweep {
-  0% {
-    left: -150%;
-  }
-
-  100% {
-    left: 150%;
-  }
-}
 
 
 /* ---------------- CART WIGGLE + SCALE ---------------- */
@@ -944,5 +911,41 @@ img.marquee-img {
   .swiper-pagination-bullets-custom .swiper-pagination-bullet-active {
     width: 24px !important;
   }
+}
+
+/* Shimmer effect for Add To Cart (ATC) buttons on Product Detail Page (PDP) */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  21.56% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  animation: shimmer-sweep 10.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
 }
 
