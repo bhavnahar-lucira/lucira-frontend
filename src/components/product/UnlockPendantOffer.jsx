@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Lock, Unlock, CheckCircle, Loader2, Pencil, Copy, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -419,26 +420,26 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div>
             <h3
-              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle text-left sm:text-left"
+              className="text-[#4E3629] font-figtree font-semibold text-base sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle text-left sm:text-left"
             >
               Unlock Your Welcome Offer
             </h3>
           </div>
 
-          <div className="flex items-center h-[39px] bg-white border border-gray-200 rounded p-[3px] focus-within:border-[#5A413F] focus-within:ring-[3px] focus-within:ring-[#5A413F]/50 transition-all w-full">
-            <input
+          <div className="relative w-full">
+            <Input
               id="mobile-input"
               type="tel"
               maxLength={10}
               value={mobile}
               onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
               placeholder="Enter Phone Number"
-              className="flex-1 min-w-0 h-full bg-transparent border-none outline-none font-figtree text-black placeholder:text-black placeholder:text-[12px] text-xs pl-[6px] pr-3.5 sm:px-3.5 font-medium leading-[1.4] tracking-normal"
+              className="w-full h-[3.0625rem] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pl-3.5 pr-32 md:pr-36 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <button
               onClick={handleSendOtp}
               disabled={mobile.length < 10 || loading}
-              className={`h-[32px] text-xs py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center gap-[6px] sm:gap-[8px] transition-all duration-200 select-none shrink-0 ${
+              className={`h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-bold md:font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center gap-2 transition-all duration-200 select-none shrink-0 ${
                 mobile.length === 10 
                   ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
@@ -500,7 +501,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={() => handleVerifyOtp()}
               disabled={otpValues.some((v) => v === "") || loading}
-              className={`w-full sm:w-auto sm:flex-1 h-10 text-xs py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
+              className={`w-full sm:w-auto sm:flex-1 h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-bold md:font-semibold leading-[1.4] tracking-normal uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
                 !otpValues.some((v) => v === "") 
                   ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
@@ -623,7 +624,7 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
   const isCopied = copiedCode === coupon.code;
 
   return (
-    <div className={`flex h-[120px] sm:h-[105px] min-[1600px]:h-[120px] rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
+    <div className={`flex h-30 sm:h-30 min-[1500px]:h-30 rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
       <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l">
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}

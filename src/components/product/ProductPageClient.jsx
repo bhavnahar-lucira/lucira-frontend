@@ -2551,7 +2551,7 @@ export default function ProductPageClient({
                       </span>
                     </div>
 
-                    <span className="flex-1 text-center text-[14px] font-semibold block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal">
+                    <span className="flex-1 text-center text-base font-semibold block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal">
                       SAVE <span className="font-semibold mx-0.5">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
                     </span>
 
@@ -2731,7 +2731,7 @@ export default function ProductPageClient({
                     maxLength={6}
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    className="h-[39px] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pr-36"
+                    className="h-[3.0625rem] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pr-32 md:pr-36"
                   />
                   <Button
                     onClick={() => {
@@ -2748,7 +2748,7 @@ export default function ProductPageClient({
                       handlePincodeCheck(localPincode);
                     }}
                     disabled={checkingPincode || locatingPincode}
-                    className="h-[32px] text-[10px] py-3 px-4 font-figtree font-semibold leading-[1.4] tracking-[0.8px] uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#5A413F] hover:cursor-pointer flex items-center justify-center gap-2"
+                    className="h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-bold md:font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#5A413F] hover:cursor-pointer flex items-center justify-center gap-2"
                   >
                     {checkingPincode || locatingPincode ? (
                       <Loader2 className="animate-spin" size={18} />
@@ -2898,7 +2898,7 @@ export default function ProductPageClient({
                           }
                         });
                       }}
-                      className="w-full h-[35px] font-figtree font-semibold leading-[1.4] tracking-[0.8px] rounded mt-1 text-xs sm:text-sm bg-[#5A413F] uppercase"
+                      className="w-full h-[2.4375rem] md:h-10.5 font-figtree font-bold md:font-semibold leading-[1.4] tracking-normal rounded mt-1 text-xs md:text-sm bg-[#5A413F] hover:bg-[#5A413F]/90 text-white uppercase flex items-center justify-center gap-2"
                     >
                       {!hasConfirmedPincode
                         ? "FIND OUR NEAREST STORE"
