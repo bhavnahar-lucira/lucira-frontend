@@ -185,7 +185,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     const currentId = String(product.shopifyId || product.id);
     const normCurrentId = String(getNumericId(currentId));
 
-    return recentlyViewed.some((item) => {
+    return recentlyViewed.slice(0, 5).some((item) => {
       const itemId = String(item.shopifyId || item.id || item.handle);
       return String(getNumericId(itemId)) === normCurrentId || item.handle === product.handle;
     });
