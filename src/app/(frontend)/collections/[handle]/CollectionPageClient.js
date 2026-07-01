@@ -579,7 +579,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop_Inpage_Free_Diamond.jpg_1.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop20202B100.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
             </Link>
           </div>
         );
@@ -637,7 +637,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative h-34 md:h-54">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_Banner.jpg" alt={displayTitle} fill className="object-cover" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_0547d3c6-d1ab-4cfe-9148-47fa267f4e21.jpg?v=1782902066" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
       ) : (
@@ -654,7 +654,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
             <div className="flex-1 w-full h-auto">
               <Image 
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_Banner.jpg" 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_0547d3c6-d1ab-4cfe-9148-47fa267f4e21.jpg?v=1782902066" 
                 alt={displayTitle} 
                 width={640} 
                 height={223} 
