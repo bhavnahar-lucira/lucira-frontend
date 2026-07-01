@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -220,12 +220,70 @@ export default function MainHeader() {
     performSearch();
   }, [debouncedSearchQuery]);
 
+  const suggestionData = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+
+    const getAutocompleteSuggestion = (title, query) => {
+      const titleLower = title.toLowerCase();
+      const queryLower = query.toLowerCase();
+
+      if (titleLower.startsWith(queryLower)) {
+        return {
+          suffix: title.slice(query.length),
+          completeText: title
+        };
+      }
+
+      const words = title.split(" ");
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (word.toLowerCase().startsWith(queryLower)) {
+          const suffixOfWord = word.slice(query.length);
+          const remainingWords = words.slice(i + 1).join(" ");
+          const suffix = suffixOfWord + (remainingWords ? " " + remainingWords : "");
+          return {
+            suffix: suffix,
+            completeText: title
+          };
+        }
+      }
+      return null;
+    };
+
+    // 1. Try matched collections
+    const matchedCol = searchResults.find(item => item.isCollection);
+    if (matchedCol) {
+      const match = getAutocompleteSuggestion(matchedCol.title, searchQuery);
+      if (match) return match;
+    }
+
+    // 2. Try predefined placeholders
+    for (const p of SEARCH_PLACEHOLDERS) {
+      const match = getAutocompleteSuggestion(p, searchQuery);
+      if (match) return match;
+    }
+
+    // 3. Try products
+    const matchedProd = searchResults.find(item => !item.isCollection);
+    if (matchedProd) {
+      const match = getAutocompleteSuggestion(matchedProd.title, searchQuery);
+      if (match) return match;
+    }
+
+    return null;
+  }, [searchQuery, searchResults]);
+
+  const suggestionSuffix = suggestionData ? suggestionData.suffix : "";
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && searchQuery.trim().length > 0) {
+    if ((e.key === "Tab" || e.key === "ArrowRight") && suggestionSuffix) {
+      e.preventDefault();
+      setSearchQuery(searchQuery + suggestionSuffix);
+    } else if (e.key === "Enter" && searchQuery.trim().length > 0) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setIsFocused(false);
     }
@@ -292,11 +350,11 @@ export default function MainHeader() {
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900 pointer-events-none z-30">
               <SearchIcon />
             </div>
-            <div className="relative w-full">
+            <div className="relative w-full bg-[#F9F9F9] focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-200 rounded-sm transition-all h-10">
               <input
                 type="text"
                 placeholder=""
-                className="w-full h-10 pl-11.25 pr-2.5 py-2 rounded-sm bg-[#F9F9F9] text-base font-medium outline-none focus:bg-white focus:ring-1 focus:ring-gray-200 transition-all relative z-20"
+                className="w-full h-full pl-11.25 pr-2.5 py-2 bg-transparent text-base font-medium outline-none relative z-20"
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => {
                   setTimeout(() => setIsFocused(false), 200);
@@ -314,6 +372,14 @@ export default function MainHeader() {
                 onChange={handleSearchChange}
                 onKeyDown={handleKeyDown}
               />
+
+              {/* Autocomplete Ghost Suggestion */}
+              {isFocused && searchQuery && suggestionSuffix && (
+                <div className="absolute inset-0 flex items-center pointer-events-none z-10 pl-11.25 pr-2.5 py-2 text-base font-medium whitespace-pre">
+                  <span className="text-transparent">{searchQuery}</span>
+                  <span className="text-gray-400 select-none">{suggestionSuffix}</span>
+                </div>
+              )}
 
               {/* Animated Placeholder Ticker */}
               {!isFocused && !searchQuery && (
@@ -410,6 +476,7 @@ export default function MainHeader() {
           ) : (
             <div
               className="cursor-pointer"
+              id="nitro-login"
               onClick={() => {
                 const path = window.location.pathname;
                 if (path !== "/login" && path !== "/register") {

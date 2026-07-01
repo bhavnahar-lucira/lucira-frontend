@@ -28,16 +28,17 @@ export default function Header({ menuData }) {
   if (pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway")) return null;
 
   if (isMobile) {
-      return (
-        <header 
-          className="w-full z-100 bg-white sticky"
-          style={{ top: '-104px' }} // Hides TopBar (40px) + Logo Row (64px) on scroll
-        >
-          <TopBar />
-          <MobileHeader menuData={menuData} />
-        </header>
-      );
-    }
+    const isProductPage = pathname?.startsWith("/products");
+    return (
+      <header 
+        className="w-full z-100 bg-white sticky"
+        style={{ top: isProductPage ? '-40px' : '-104px' }} // Hides only TopBar (40px) on PDP scroll, keeps logo/search row sticky
+      >
+        <TopBar />
+        <MobileHeader menuData={menuData} />
+      </header>
+    );
+  }
 
 
 
