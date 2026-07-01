@@ -93,7 +93,7 @@ import StyledByLucira from "../home/StyledByLucira";
 import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
 import { loadNectorReviews } from "@/lib/nector";
-import UnlockPendantOffer from "@/components/product/UnlockPendantOffer";
+// import UnlockPendantOffer from "@/components/product/UnlockPendantOffer";
 
 import { Sheet as MobileSheet } from "react-modal-sheet";
 
@@ -2012,18 +2012,18 @@ export default function ProductPageClient({
 
                 const slides = [];
                 
-                if (currentTotalPrice >= 30000) {
-                  slides.push({
-                    icon: (
-                      <img 
-                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/necklace_8ab6afc5-2f06-4bf9-b04d-1bd0b3343d87.png" 
-                        alt="Free Pendant" 
-                        className="w-5 h-5 object-contain inline-block align-middle"
-                      />
-                    ),
-                    text: <>Free <span className="font-bold text-black">Diamond Pendant</span> Worth ₹10,000/-</>
-                  });
-                }
+                // if (currentTotalPrice >= 30000) {
+                //   slides.push({
+                //     icon: (
+                //       <img 
+                //         src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/necklace_8ab6afc5-2f06-4bf9-b04d-1bd0b3343d87.png" 
+                //         alt="Free Pendant" 
+                //         className="w-5 h-5 object-contain inline-block align-middle"
+                //       />
+                //     ),
+                //     text: <>Free <span className="font-bold text-black">Diamond Pendant</span> Worth ₹10,000/-</>
+                //   });
+                // }
 
                 if (diamondDiscount > 0) {
                   slides.push({
@@ -2635,7 +2635,7 @@ export default function ProductPageClient({
             </div>
 
             {/* Unlock Free Diamond Pendant Offer Box */}
-            <div className="mb-6">
+            {/* <div className="mb-6">
               <UnlockPendantOffer
                 user={user}
                 dispatch={dispatch}
@@ -2643,7 +2643,7 @@ export default function ProductPageClient({
                 currentPrice={currentPrice}
                 productId={getNumericId(product?.shopifyId || product?.id) || ""}
               />
-            </div>
+            </div> */}
 
             {/* Features */}
             <div className="space-y-4">
