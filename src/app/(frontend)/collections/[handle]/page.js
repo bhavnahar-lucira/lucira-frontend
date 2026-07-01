@@ -78,6 +78,7 @@ export async function generateStaticParams() {
       { handle: "pendants" },
       { handle: "bangles" },
       { handle: "bestsellers" },
+      { handle: "eternity-earrings" },
     ];
   }
 }
