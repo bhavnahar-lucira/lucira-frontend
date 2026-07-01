@@ -2,13 +2,15 @@
 
 import Marquee from "react-fast-marquee";
 
-export default function LuxuryMarquee({ prop = [] }) {
-  const items = [
+export default function LuxuryMarquee({ prop = [], items: customItems = null }) {
+  const defaultItems = [
     "Personalized Jewelry, Made For You",
     "Fast & Secure Shipping",
     "Quality Control & Assurance",
     "Bespoke Experience",
   ];
+
+  const items = customItems || defaultItems;
 
   const StarIcon = () => (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -47,9 +49,7 @@ export default function LuxuryMarquee({ prop = [] }) {
       >
         {items.map((item, i) => (
           <div key={`item-${i}`} className="flex items-center gap-10 pr-10 whitespace-nowrap overflow-hidden">
-            <span className="font-semibold italic text-xl leading-[100%] tracking-normal">
-              {item}
-            </span>
+            <span className="font-semibold italic text-xl leading-[100%] tracking-normal" dangerouslySetInnerHTML={{ __html: item }} />
             <div className={iconColorClass}>
               <StarIcon />
             </div>

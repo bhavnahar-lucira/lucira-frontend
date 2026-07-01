@@ -410,6 +410,7 @@ export default function MainHeader() {
           ) : (
             <div
               className="cursor-pointer"
+              id="nitro-login"
               onClick={() => {
                 const path = window.location.pathname;
                 if (path !== "/login" && path !== "/register") {
