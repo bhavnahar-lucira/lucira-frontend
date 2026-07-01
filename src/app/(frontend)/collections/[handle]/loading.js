@@ -33,7 +33,7 @@ export default function Loading() {
           {/* Static Image */}
           <div className="flex-1 relative w-full h-[230px]">
             <Image 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop20202B100.jpg" 
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_0547d3c6-d1ab-4cfe-9148-47fa267f4e21.jpg?v=1782902066" 
               alt="Loading" 
               fill 
               className="object-cover" 
@@ -45,7 +45,7 @@ export default function Loading() {
 
       {/* Mobile Banner Skeleton */}
       <div className="md:hidden w-full relative h-40">
-        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop20202B100.jpg" alt="Loading" fill className="object-cover" priority unoptimized />
+        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_0547d3c6-d1ab-4cfe-9148-47fa267f4e21.jpg?v=1782902066" alt="Loading" fill className="object-cover" priority unoptimized />
         <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
       </div>
 
