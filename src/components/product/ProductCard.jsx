@@ -178,6 +178,9 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const guestWishlist = useSelector((state) => state.wishlist.guestItems);
   const recentlyViewed = useSelector((state) => state.recentlyViewed?.products || []);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const productId = String(product.shopifyId || product.id);
 
   const isRecentlyViewed = useMemo(() => {
@@ -537,7 +540,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             </Link>
 
             {/* Recently Viewed Hover Overlay */}
-            {!disableLastViewed && isRecentlyViewed && (
+            {!disableLastViewed && mounted && isRecentlyViewed && (
               <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-sm">
                 <span className="text-white font-figtree font-bold text-xs sm:text-sm tracking-widest uppercase">
                   LAST VIEWED
@@ -667,7 +670,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               }}
               className={`absolute top-0 right-1 lg:top-2 lg:right-4 z-10 px-1.5 py-1 lg:p-1.5 transition-transform duration-200 ${isWishlistAnimating ? "scale-110" : ""}`}
             >
-              <Heart fill={isWishlisted ? "currentColor" : "none"} className={`${isWishlisted ? "text-rose-500 w-5 lg:w-6" : "text-black"} stroke-[1.5px] w-5 lg:w-6`} />
+              <Heart fill={mounted && isWishlisted ? "currentColor" : "none"} className={`${mounted && isWishlisted ? "text-rose-500 w-5 lg:w-6" : "text-black"} stroke-[1.5px] w-5 lg:w-6`} />
             </button>
 
             {galleryImages.length > 1 && (

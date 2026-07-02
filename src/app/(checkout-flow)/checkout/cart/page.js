@@ -61,6 +61,11 @@ export default function CartPage() {
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
   );
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handlePlaceOrder = () => {
     if (isAuthenticated) {
       router.push("/checkout/shipping");
@@ -70,7 +75,7 @@ export default function CartPage() {
     }
   };
 
-  if (items.length === 0) {
+  if (!mounted || items.length === 0) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 space-y-6 bg-white">
         <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100 shadow-inner mb-2">

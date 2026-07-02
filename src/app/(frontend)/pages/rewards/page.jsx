@@ -96,6 +96,9 @@ export default function RewardsPage() {
 
     const dispatch = useDispatch();
     const [open, setOpen] = useState();
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    
     const { user, isAuthenticated } = useSelector((state) => state.user);
     const isLoggedIn = isAuthenticated;
     const referralLink = useSelector((state) => state.user.referralLink);
@@ -277,7 +280,7 @@ export default function RewardsPage() {
                             <div className="flex flex-col sm:flex-row">
                                 <input className="flex-1 border px-4 py-3 text-sm rounded-md sm:rounded-l-md sm:rounded-r-none"
                                     value={
-                                        isLoggedIn
+                                        mounted && isLoggedIn
                                             ? referralLink || "Generating your referral link..."
                                             : "Please Login to Share your Referral Link"
                                     }
@@ -286,7 +289,7 @@ export default function RewardsPage() {
                                 <button
                                     onClick={handleClick}
                                     className="bg-[#A68380] text-white px-6 py-3 text-sm uppercase rounded-md mt-2 sm:mt-0 sm:rounded-r-md sm:rounded-l-none cursor-pointer">
-                                    {isLoggedIn ? "Copy" : "Login"}
+                                    {mounted && isLoggedIn ? "Copy" : "Login"}
                                 </button>
                             </div>
                         </div>

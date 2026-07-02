@@ -135,6 +135,7 @@ export default function HeroBanner({ initialData = [] }) {
                       width={1920}
                       height={800}
                       priority={index === 0}
+                      fetchPriority={index === 0 ? "high" : "auto"}
                       loading={index === 0 ? "eager" : "lazy"}
                       className="w-full h-auto object-cover object-center"
                       sizes="100vw"
@@ -151,6 +152,7 @@ export default function HeroBanner({ initialData = [] }) {
                       width={768}
                       height={960}
                       priority={index === 0}
+                      fetchPriority={index === 0 ? "high" : "auto"}
                       loading={index === 0 ? "eager" : "lazy"}
                       className="w-full h-auto object-cover object-center"
                       sizes="100vw"

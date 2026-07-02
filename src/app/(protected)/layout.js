@@ -2,7 +2,7 @@
 
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { logout } from "@/redux/features/user/userSlice";
 import { fetchCustomerProfile } from "@/lib/api";
 
@@ -13,7 +13,13 @@ export default function ProtectedLayout({ children }) {
     (state) => state.user
   );
 
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!isAuthenticated) {
       router.replace("/login");
     } else if (accessToken) {
@@ -46,8 +52,9 @@ export default function ProtectedLayout({ children }) {
       };
       checkSession();
     }
-  }, [isAuthenticated, accessToken, router, dispatch]);
+  }, [isAuthenticated, accessToken, router, dispatch, mounted]);
 
+  if (!mounted) return null;
   if (!isAuthenticated) return null;
 
   return <>{children}</>;

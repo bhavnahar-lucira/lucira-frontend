@@ -207,6 +207,11 @@ export default function MobileHeader({ menuData }) {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [menuDirection, setMenuDirection] = useState(1);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Fetch Bestsellers
   useEffect(() => {
     const getBestsellers = async () => {
@@ -1068,7 +1073,7 @@ export default function MobileHeader({ menuData }) {
           </div>
 
           <div className="px-4 pb-8">
-            {user ? (
+            {mounted && user ? (
               <button onClick={handleLogout} className="w-full bg-[#4E3E3E] text-white py-4 rounded font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2">
                 <LogOut size={20} /> Logout
               </button>
@@ -1120,7 +1125,7 @@ export default function MobileHeader({ menuData }) {
                     )}
                   </div>
                   <div className="flex items-center gap-4">
-                    {user ? (
+                    {mounted && user ? (
                       <Link href="/admin" prefetch={false} onClick={() => setIsMenuOpen(false)} className="p-1">
                         <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                           {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
@@ -1132,10 +1137,10 @@ export default function MobileHeader({ menuData }) {
                         <UserIconCustom />
                       </button>
                     )}
-                      <Link href="/checkout/cart" prefetch={false} onClick={() => { setIsMenuOpen(false); handleCartClick(); }} className="relative p-1">
+                    <Link href="/checkout/cart" prefetch={false} onClick={() => { setIsMenuOpen(false); handleCartClick(); }} className="relative p-1">
                       <CartIcon />
-                      {totalQuantity > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                      {mounted && totalQuantity > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                           {totalQuantity}
                         </span>
                       )}
@@ -1227,7 +1232,7 @@ export default function MobileHeader({ menuData }) {
                 />
               </Link>
 
-              {user ? (
+              {mounted && user ? (
                 <Link href="/admin" prefetch={false} className="p-1">
                   <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                     {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
@@ -1244,7 +1249,7 @@ export default function MobileHeader({ menuData }) {
 
           <Link href={user ? "/admin/wishlist" : "#"} prefetch={false} onClick={!user ? handleAuthTrigger : undefined} className="relative p-1">
             <HeartIcon />
-            {wishlistItems.length > 0 && (
+            {mounted && wishlistItems.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
                 {wishlistItems.length}
               </span>
@@ -1252,8 +1257,8 @@ export default function MobileHeader({ menuData }) {
           </Link>
           <Link href="/checkout/cart" prefetch={false} onClick={handleCartClick} className="relative p-1">
             <CartIcon />
-            {totalQuantity > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+            {mounted && totalQuantity > 0 && (
+              <span className="absolute -top-1 -right-2 bg-primary text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                 {totalQuantity}
               </span>
             )}
