@@ -12,7 +12,11 @@ import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { pushLogin, pushSignup, pushPromoClick } from "@/lib/gtm";
 import { apiFetch, sendOtpApi, verifyOtpApi, registerCustomer } from "@/lib/api";
 
-export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice, productId }) {
+const generateSessionId = () => {
+  return "session_" + Math.random().toString(36).substring(2, 15);
+};
+
+export default function UnlockCoupon({ user, dispatch, toast, currentPrice, productId }) {
   const [mobile, setMobile] = useState("");
   const [otpValues, setOtpValues] = useState(["", "", "", ""]);
   const [step, setStep] = useState(user ? "unlocked" : "input");
@@ -91,15 +95,15 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
   }, []);
 
   // Sync step if user logs in via another flow (e.g. main login)
-  useEffect(() => {
-    if (user) {
-      setStep("unlocked");
-    } else {
-      setStep("input");
+  const [prevUser, setPrevUser] = useState(user);
+  if (user !== prevUser) {
+    setPrevUser(user);
+    setStep(user ? "unlocked" : "input");
+    if (!user) {
       setMobile("");
       setOtpValues(["", "", "", ""]);
     }
-  }, [user]);
+  }
 
   // Countdown timer for OTP resend (180s = 3 minutes)
   useEffect(() => {
@@ -215,52 +219,9 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
     }
   };
 
-  // Trigger auto-verification when all 4 digits are entered
-  useEffect(() => {
-    const joined = otpValues.join("");
-    if (joined.length === 4 && step === "otp" && !loading) {
-      handleVerifyOtp(joined);
-    }
-  }, [otpValues]);
 
-  const handleVerifyOtp = async (overrideOtp) => {
-    const code = overrideOtp || otpValues.join("");
-    if (code.length !== 4) {
-      return toast.error("Please enter a 4-digit OTP");
-    }
-    setLoading(true);
-    try {
-      const sessionId = "session_" + Math.random().toString(36).substring(2, 15);
-      const data = await verifyOtpApi(mobile, code, sessionId);
 
-      if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
-        const regData = await registerCustomer({
-          firstName: "User",
-          lastName: "Customer",
-          email: `${mobile}@gmail.com`,
-          mobile: mobile,
-          sessionId,
-          tags: "pdp-offers-lead",
-        });
-
-        if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-          await handleLoginSuccess(regData, true);
-        } else {
-          toast.error("Auto-registration failed. Please contact support.");
-        }
-      } else if (data.status === "LOGIN" || data.type === "success" || data.status === "SUCCESS") {
-        await handleLoginSuccess(data, false);
-      } else {
-        toast.error("Verification failed");
-      }
-    } catch (err) {
-      toast.error(err.message || "OTP verification failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLoginSuccess = async (data, isSignup = false) => {
+  async function handleLoginSuccess(data, isSignup = false) {
     const customer = data.user || data.customer;
     const userId = customer?.id;
 
@@ -340,7 +301,55 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
 
     toast.success("Offer Unlocked Successfully!");
     setStep("unlocked");
-  };
+  }
+
+  async function handleVerifyOtp(overrideOtp) {
+    const code = overrideOtp || otpValues.join("");
+    if (code.length !== 4) {
+      return toast.error("Please enter a 4-digit OTP");
+    }
+    setLoading(true);
+    try {
+      const sessionId = generateSessionId();
+      const data = await verifyOtpApi(mobile, code, sessionId);
+
+      if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
+        const regData = await registerCustomer({
+          firstName: "User",
+          lastName: "Customer",
+          email: `${mobile}@gmail.com`,
+          mobile: mobile,
+          sessionId,
+          tags: "pdp-offers-lead",
+        });
+
+        if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+          await handleLoginSuccess(regData, true);
+        } else {
+          toast.error("Auto-registration failed. Please contact support.");
+        }
+      } else if (data.status === "LOGIN" || data.type === "success" || data.status === "SUCCESS") {
+        await handleLoginSuccess(data, false);
+      } else {
+        toast.error("Verification failed");
+      }
+    } catch (err) {
+      toast.error(err.message || "OTP verification failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Trigger auto-verification when all 4 digits are entered
+  useEffect(() => {
+    const joined = otpValues.join("");
+    if (joined.length === 4 && step === "otp" && !loading) {
+      setTimeout(() => {
+        handleVerifyOtp(joined);
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpValues]);
 
   const handleClaimOffer = () => {
     localStorage.setItem("isSilverPendantClaimed", "true");
