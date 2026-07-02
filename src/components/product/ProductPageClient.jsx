@@ -677,7 +677,7 @@ export default function ProductPageClient({
   const [priceBreakup, setPriceBreakup] = useState(null);
   const [isSchemeOpen, setIsSchemeOpen] = useState(false);
   const schemeTimeoutRef = useRef(null);
-  const [shouldToastVariantChange] = useState(() => ({ current: false }));
+  const shouldToastVariantChangeRef = useRef(false);
 
   const calculateScheme = useCallback((price) => {
     if (!price) return null;
@@ -1057,6 +1057,18 @@ export default function ProductPageClient({
     return guestWishlistItems.some(findFn);
   }, [user?.id, wishlistItems, guestWishlistItems, productId]);
   const recentlyViewedState = useSelector(selectRecentlyViewed);
+
+  const filteredRecentlyViewed = useMemo(() => {
+    if (!Array.isArray(recentlyViewedState?.products)) return [];
+    const currentHandle = product?.handle;
+    const currentShopifyId = product?.shopifyId || product?.id;
+    return recentlyViewedState.products.filter(item => {
+      const isMatch = (item.handle && item.handle === currentHandle) ||
+                      (item.shopifyId && item.shopifyId === currentShopifyId) ||
+                      (item.id && item.id === currentShopifyId);
+      return !isMatch;
+    });
+  }, [recentlyViewedState?.products, product?.handle, product?.shopifyId, product?.id]);
 
   const handleSaveEngraving = () => {
     setSavedEngraving({ text: engraving, font: engravingFont });
@@ -1532,8 +1544,8 @@ export default function ProductPageClient({
 
   // Toast notification on price update
   useEffect(() => {
-    if (activeVariant && shouldToastVariantChange.current) {
-      shouldToastVariantChange.current = false;
+    if (activeVariant && shouldToastVariantChangeRef.current) {
+      shouldToastVariantChangeRef.current = false;
       toast.info(`Price updated: ₹${formatPrice(activeVariant.price)}${activeVariant.compare_price ? ` (was ₹${formatPrice(activeVariant.compare_price)})` : ''}`, {
         position: "bottom-center",
         autoClose: 2000,
@@ -1634,7 +1646,7 @@ export default function ProductPageClient({
   const handleGoldSelection = (metal, karat) => {
     if (metal === activeColor && karat === activeKarat) return;
 
-    shouldToastVariantChange.current = true;
+    shouldToastVariantChangeRef.current = true;
     setActiveColor(metal);
     setActiveKarat(karat);
 
@@ -1684,7 +1696,7 @@ export default function ProductPageClient({
   const handleSizeSelection = (size) => {
     if (size === selectedSize) return;
 
-    shouldToastVariantChange.current = true;
+    shouldToastVariantChangeRef.current = true;
     setSelectedSize(size);
 
     const variant = findMatchingVariant(activeColor, activeKarat, size);
@@ -3357,7 +3369,7 @@ export default function ProductPageClient({
       <FAQSection />
       <ProductSlider
         title={recentlyViewedState?.title || "Recently Viewed"}
-        products={Array.isArray(recentlyViewedState?.products) && recentlyViewedState.products.length > 0 ? recentlyViewedState.products.slice(0, 12) : undefined}
+        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
         preservePriceOnColorChange={true}
       />
       {youMayAlsoLikeProducts.length > 0 && (

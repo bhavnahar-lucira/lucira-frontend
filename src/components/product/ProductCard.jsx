@@ -170,7 +170,7 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false, disableLastViewed = false }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
@@ -537,7 +537,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             </Link>
 
             {/* Recently Viewed Hover Overlay */}
-            {isRecentlyViewed && (
+            {!disableLastViewed && isRecentlyViewed && (
               <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-sm">
                 <span className="text-white font-figtree font-bold text-xs sm:text-sm tracking-widest uppercase">
                   LAST VIEWED
