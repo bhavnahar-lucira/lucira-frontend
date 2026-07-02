@@ -1058,6 +1058,18 @@ export default function ProductPageClient({
   }, [user?.id, wishlistItems, guestWishlistItems, productId]);
   const recentlyViewedState = useSelector(selectRecentlyViewed);
 
+  const filteredRecentlyViewed = useMemo(() => {
+    if (!Array.isArray(recentlyViewedState?.products)) return [];
+    const currentHandle = product?.handle;
+    const currentShopifyId = product?.shopifyId || product?.id;
+    return recentlyViewedState.products.filter(item => {
+      const isMatch = (item.handle && item.handle === currentHandle) ||
+                      (item.shopifyId && item.shopifyId === currentShopifyId) ||
+                      (item.id && item.id === currentShopifyId);
+      return !isMatch;
+    });
+  }, [recentlyViewedState?.products, product?.handle, product?.shopifyId, product?.id]);
+
   const handleSaveEngraving = () => {
     setSavedEngraving({ text: engraving, font: engravingFont });
     setIsEngravingDrawerOpen(false);
@@ -3357,7 +3369,7 @@ export default function ProductPageClient({
       <FAQSection />
       <ProductSlider
         title={recentlyViewedState?.title || "Recently Viewed"}
-        products={Array.isArray(recentlyViewedState?.products) && recentlyViewedState.products.length > 0 ? recentlyViewedState.products.slice(0, 12) : undefined}
+        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
         preservePriceOnColorChange={true}
       />
       {youMayAlsoLikeProducts.length > 0 && (
