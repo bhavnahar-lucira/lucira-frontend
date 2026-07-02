@@ -3371,6 +3371,7 @@ export default function ProductPageClient({
         title={recentlyViewedState?.title || "Recently Viewed"}
         products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
         preservePriceOnColorChange={true}
+        disableLastViewed={true}
       />
       {youMayAlsoLikeProducts.length > 0 && (
         <section className="w-full bg-white mt-10 md:mt-15 overflow-hidden">
