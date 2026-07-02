@@ -221,53 +221,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
 
 
-  const handleVerifyOtp = async (overrideOtp) => {
-    const code = overrideOtp || otpValues.join("");
-    if (code.length !== 4) {
-      return toast.error("Please enter a 4-digit OTP");
-    }
-    setLoading(true);
-    try {
-      const sessionId = generateSessionId();
-      const data = await verifyOtpApi(mobile, code, sessionId);
-
-      if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
-        const regData = await registerCustomer({
-          firstName: "User",
-          lastName: "Customer",
-          email: `${mobile}@gmail.com`,
-          mobile: mobile,
-          sessionId,
-          tags: "pdp-offers-lead",
-        });
-
-        if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-          await handleLoginSuccess(regData, true);
-        } else {
-          toast.error("Auto-registration failed. Please contact support.");
-        }
-      } else if (data.status === "LOGIN" || data.type === "success" || data.status === "SUCCESS") {
-        await handleLoginSuccess(data, false);
-      } else {
-        toast.error("Verification failed");
-      }
-    } catch (err) {
-      toast.error(err.message || "OTP verification failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Trigger auto-verification when all 4 digits are entered
-  useEffect(() => {
-    const joined = otpValues.join("");
-    if (joined.length === 4 && step === "otp" && !loading) {
-      handleVerifyOtp(joined);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [otpValues]);
-
-  const handleLoginSuccess = async (data, isSignup = false) => {
+  async function handleLoginSuccess(data, isSignup = false) {
     const customer = data.user || data.customer;
     const userId = customer?.id;
 
@@ -347,7 +301,55 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
     toast.success("Offer Unlocked Successfully!");
     setStep("unlocked");
-  };
+  }
+
+  async function handleVerifyOtp(overrideOtp) {
+    const code = overrideOtp || otpValues.join("");
+    if (code.length !== 4) {
+      return toast.error("Please enter a 4-digit OTP");
+    }
+    setLoading(true);
+    try {
+      const sessionId = generateSessionId();
+      const data = await verifyOtpApi(mobile, code, sessionId);
+
+      if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
+        const regData = await registerCustomer({
+          firstName: "User",
+          lastName: "Customer",
+          email: `${mobile}@gmail.com`,
+          mobile: mobile,
+          sessionId,
+          tags: "pdp-offers-lead",
+        });
+
+        if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+          await handleLoginSuccess(regData, true);
+        } else {
+          toast.error("Auto-registration failed. Please contact support.");
+        }
+      } else if (data.status === "LOGIN" || data.type === "success" || data.status === "SUCCESS") {
+        await handleLoginSuccess(data, false);
+      } else {
+        toast.error("Verification failed");
+      }
+    } catch (err) {
+      toast.error(err.message || "OTP verification failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Trigger auto-verification when all 4 digits are entered
+  useEffect(() => {
+    const joined = otpValues.join("");
+    if (joined.length === 4 && step === "otp" && !loading) {
+      setTimeout(() => {
+        handleVerifyOtp(joined);
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpValues]);
 
   const handleClaimOffer = () => {
     localStorage.setItem("isSilverPendantClaimed", "true");
