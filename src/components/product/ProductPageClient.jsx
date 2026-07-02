@@ -93,7 +93,7 @@ import StyledByLucira from "../home/StyledByLucira";
 import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
 import { loadNectorReviews } from "@/lib/nector";
-// import UnlockPendantOffer from "@/components/product/UnlockPendantOffer";
+import UnlockCoupon from "@/components/product/UnlockCoupon";
 
 import { Sheet as MobileSheet } from "react-modal-sheet";
 
@@ -677,7 +677,7 @@ export default function ProductPageClient({
   const [priceBreakup, setPriceBreakup] = useState(null);
   const [isSchemeOpen, setIsSchemeOpen] = useState(false);
   const schemeTimeoutRef = useRef(null);
-  const shouldToastVariantChange = useRef(false);
+  const [shouldToastVariantChange] = useState(() => ({ current: false }));
 
   const calculateScheme = useCallback((price) => {
     if (!price) return null;
@@ -2634,16 +2634,16 @@ export default function ProductPageClient({
               )}
             </div>
 
-            {/* Unlock Free Diamond Pendant Offer Box */}
-            {/* <div className="mb-6">
-              <UnlockPendantOffer
+            {/* Unlock Free Coupons Box */}
+            <div className="mb-6">
+              <UnlockCoupon
                 user={user}
                 dispatch={dispatch}
                 toast={toast}
                 currentPrice={currentPrice}
                 productId={getNumericId(product?.shopifyId || product?.id) || ""}
               />
-            </div> */}
+            </div>
 
             {/* Features */}
             <div className="space-y-4">
