@@ -28,25 +28,7 @@ export default function StoreGiveawayPage() {
     store: "",
   });
 
-  // Auto-select store based on pincode
-  useEffect(() => {
-    const pin = formData.pincode.trim();
-    if (pin.length === 6) {
-      const prefix = pin.substring(0, 3);
-      if (prefix === "201") {
-        setFormData(prev => ({ ...prev, store: "Noida" }));
-      } else if (prefix === "411") {
-        setFormData(prev => ({ ...prev, store: "Pune" }));
-      } else if (prefix === "400") {
-        const fullPin = parseInt(pin);
-        if (fullPin >= 400066 && fullPin <= 400103) {
-          setFormData(prev => ({ ...prev, store: "Borivali" }));
-        } else {
-          setFormData(prev => ({ ...prev, store: "Chembur" }));
-        }
-      }
-    }
-  }, [formData.pincode]);
+
 
   const [isValidating, setIsValidating] = useState(false);
 
