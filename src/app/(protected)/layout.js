@@ -2,7 +2,7 @@
 
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { logout } from "@/redux/features/user/userSlice";
 import { fetchCustomerProfile } from "@/lib/api";
 
@@ -48,6 +48,12 @@ export default function ProtectedLayout({ children }) {
     }
   }, [isAuthenticated, accessToken, router, dispatch]);
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null;
   if (!isAuthenticated) return null;
 
   return <>{children}</>;

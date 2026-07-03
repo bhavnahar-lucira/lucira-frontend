@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { OtpSpinAuth } from "@/components/auth/OtpSpinAuth";
@@ -15,6 +15,12 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null;
   if (user) return null;
 
   return (

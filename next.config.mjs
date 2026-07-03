@@ -2,6 +2,12 @@
 const nextConfig = {
   /* config options here */
   reactCompiler: true,
+  compiler: {
+    removeConsole: true,
+  },
+  experimental: {
+    optimizePackageImports: ["framer-motion", "@reduxjs/toolkit"],
+  },
   compress: true,
   images: {
     unoptimized: false,

@@ -2,7 +2,7 @@
 
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { repriceCartForCheckout } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
@@ -44,6 +44,10 @@ export default function CheckoutProtectedLayout({ children }) {
       });
   }, [dispatch, isAuthenticated, user?.id]);
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
+
+  if (!isMounted) return null;
   if (!isAuthenticated || !accessToken || accessToken.startsWith('simulated_')) return null;
 
   return <>{children}</>;

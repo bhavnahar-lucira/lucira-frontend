@@ -949,3 +949,50 @@ img.marquee-img {
   z-index: 10;
 }
 
+
+/* Component Styles migrated from styled-jsx */
+.explore-pagination .swiper-pagination-bullet {
+  width: 8px;
+  height: 8px;
+  background: #D1D1D1;
+  opacity: 1;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+.explore-pagination .swiper-pagination-bullet-active {
+  width: 24px;
+  background: #000;
+}
+@media (min-width: 768px) {
+  .explore-pagination .swiper-pagination-bullet-active {
+    width: 24px;
+  }
+}
+
+.swiper-pagination-tracker {
+  position: relative !important;
+  width: 100% !important;
+  height: 2px !important;
+  background: #E5E7EB !important;
+  border-radius: 1px !important;
+}
+.swiper-pagination-tracker .swiper-pagination-progressbar-fill {
+  background: #5B4740 !important;
+}
+
+.marquee-img {
+  max-width: 120px;
+  height: 50px;
+  object-fit: contain;
+  filter: grayscale(1);
+  transition: filter 0.3s ease;
+}
+@media (min-width: 768px) {
+  .marquee-img {
+    max-width: 140px;
+    height: 60px;
+  }
+}
+.marquee-item:hover .marquee-img {
+  filter: grayscale(0);
+}

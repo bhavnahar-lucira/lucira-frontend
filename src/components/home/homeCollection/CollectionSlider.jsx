@@ -109,19 +109,7 @@ export default function CollectionSlider ({ products = [], loading = false, coll
           </div>
         </div>
       </div>  
-      <style jsx global>{`
-        .swiper-pagination-tracker {
-            position: relative !important;
-            width: 100% !important;
-            height: 2px !important;
-            background: #E5E7EB !important;
-            border-radius: 1px !important;
-        }
 
-        .swiper-pagination-tracker .swiper-pagination-progressbar-fill {
-            background: #5B4740 !important;
-        }
-      `}</style>
     </>
   );
 }

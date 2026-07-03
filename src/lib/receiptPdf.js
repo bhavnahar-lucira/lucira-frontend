@@ -1,6 +1,6 @@
 "use client";
 
-import { jsPDF } from "jspdf";
+
 
 const COMPANY_NAME = "HO-Divinecarat Lifestyles Private Limited";
 const COMPANY_ADDRESS = "Office 1402-2, Dlh Park, 14th Floor,";
@@ -134,6 +134,8 @@ async function loadLogoDataUri() {
 }
 
 export async function downloadReceiptPdf(receiptResponse) {
+  const { jsPDF } = await import("jspdf");
+
   const receipt = pickReceiptEntity(receiptResponse);
   const paymentDetail = receipt.scheme_receipt_details?.[0] || {};
   const amount = receipt.amount || paymentDetail.amount || 0;
