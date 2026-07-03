@@ -62,18 +62,23 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     const COLOR_TOKENS = ["white", "yellow", "rose", "plt", "platinum"];
     const ALWAYS_SHOW_CODES = ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v", "360°"];
 
-    const formattedMedia = media.map(m => {
-      const newM = { ...m };
-      if (newM.url) newM.url = formatCdnUrl(newM.url);
-      if (newM.preview) newM.preview = formatCdnUrl(newM.preview);
-      if (newM.previewImage?.url) {
-        newM.previewImage = { ...newM.previewImage, url: formatCdnUrl(newM.previewImage.url) };
-      }
-      if (newM.sources) {
-        newM.sources = newM.sources.map(s => ({ ...s, url: formatCdnUrl(s.url) }));
-      }
-      return newM;
-    });
+    const formattedMedia = media
+      .filter(m => {
+        const altText = m.alt || m.altText || m.previewImage?.altText || "";
+        return altText.trim().length > 0;
+      })
+      .map(m => {
+        const newM = { ...m };
+        if (newM.url) newM.url = formatCdnUrl(newM.url);
+        if (newM.preview) newM.preview = formatCdnUrl(newM.preview);
+        if (newM.previewImage?.url) {
+          newM.previewImage = { ...newM.previewImage, url: formatCdnUrl(newM.previewImage.url) };
+        }
+        if (newM.sources) {
+          newM.sources = newM.sources.map(s => ({ ...s, url: formatCdnUrl(s.url) }));
+        }
+        return newM;
+      });
 
     const getColorFromAlt = (text) => {
       const lower = (text || "").toLowerCase();
