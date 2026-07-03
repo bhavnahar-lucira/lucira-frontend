@@ -28,25 +28,7 @@ export default function StoreGiveawayPage() {
     store: "",
   });
 
-  // Auto-select store based on pincode
-  useEffect(() => {
-    const pin = formData.pincode.trim();
-    if (pin.length >= 3) {
-      const prefix = pin.substring(0, 3);
-      if (prefix === "201") {
-        setFormData(prev => ({ ...prev, store: "Noida" }));
-      } else if (prefix === "411") {
-        setFormData(prev => ({ ...prev, store: "Pune" }));
-      } else if (prefix === "400") {
-        const fullPin = parseInt(pin);
-        if (fullPin >= 400066 && fullPin <= 400103) {
-          setFormData(prev => ({ ...prev, store: "Borivali" }));
-        } else {
-          setFormData(prev => ({ ...prev, store: "Chembur" }));
-        }
-      }
-    }
-  }, [formData.pincode]);
+
 
   const [isValidating, setIsValidating] = useState(false);
 
@@ -322,12 +304,11 @@ export default function StoreGiveawayPage() {
 
               <div className="space-y-1 sm:space-y-2">
                 <label className="flex items-center gap-2 text-[13px] sm:text-[14px] font-figtree font-bold text-black ml-1">
-                  <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Email <span className="text-red-500">*</span>
+                  <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Email
                 </label>
                 <input
                   type="email"
                   placeholder="Enter your Mail Id"
-                  required
                   className="w-full bg-[#F9F9F9] border-none rounded-lg px-4 sm:px-5 py-3.5 sm:py-4 text-black placeholder:text-[#999] focus:ring-1 focus:ring-black/5 outline-none font-figtree text-[15px]"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
