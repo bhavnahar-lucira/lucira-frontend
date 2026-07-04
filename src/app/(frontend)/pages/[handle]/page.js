@@ -1,4 +1,5 @@
 import { getPageByHandle, getAllPages } from "@/lib/pages";
+import { getGoldRateCityMeta, getGoldRateHistory } from "@/lib/goldRate";
 import { notFound } from "next/navigation";
 
 import ContactSection from "@/components/common/ContactSection";
@@ -151,6 +152,25 @@ export default async function Page({ params }) {
   }
 
   if (!page) return notFound();
+
+  // ── Gold rate pages: pull content straight from the Shopify metaobject via the
+  // Storefront API (same pattern as blogs) — no Liquid scraping. Fail-safe: if the
+  // metaobject is missing the page falls back to page.body below.
+  if (isGoldRatePage) {
+    try {
+      const goldMeta = await getGoldRateCityMeta(handle, "no-store");
+      if (goldMeta) {
+        try {
+          goldMeta.history = await getGoldRateHistory("no-store");
+        } catch {
+          goldMeta.history = [];
+        }
+        page.goldMeta = goldMeta;
+      }
+    } catch (e) {
+      console.warn("gold metaobject fetch failed:", e?.message);
+    }
+  }
 
   // Serialize for Client Components (removes BSON ObjectId, etc.)
   page = JSON.parse(JSON.stringify(page));

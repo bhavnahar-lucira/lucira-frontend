@@ -9,6 +9,7 @@ import GoldCalculator from "./GoldCalculator";
 import InvestmentSection from "./InvestmentSection";
 import PriceTable from "./PriceTable";
 import InformationContent from "./InformationContent";
+import GoldMetaContent from "./GoldMetaContent";
 import { GOLD_RATE_TEMPLATE } from "@/data/goldRateTemplate";
 import { fetchLocalRates } from "@/lib/api";
 
@@ -75,6 +76,9 @@ export default function GoldRatePage({ page }) {
 
     const cityName = page?.city?.value || "Mumbai";
     const stateName = page?.state?.value || "Maharashtra";
+
+    // Shopify Gold Rate City metaobject content (fetched via Storefront API in page.js).
+    const goldMeta = page?.goldMeta || null;
 
     // Compute the current city display name from selectedCity state
     const cityNameDisplay = useMemo(() => {
@@ -323,8 +327,18 @@ export default function GoldRatePage({ page }) {
                 })}
             </div>
 
-            {/* Shopify Page Body (if any) */}
-            {page.body && (() => {
+            {/* Gold content: metaobject (Storefront API) first, scraped page.body as fallback */}
+            {goldMeta ? (
+                <GoldMetaContent
+                    goldMeta={goldMeta}
+                    cityName={cityNameDisplay}
+                    stateName={stateName}
+                    rate24k={todayRateNum}
+                    rate22k={parseInt((goldWidgetSettings.rate_avg || '').replace(/[₹, ]/g, '')) || 0}
+                    rate24kYesterday={yesterdayRateNum}
+                    currentDate={currentDate}
+                />
+            ) : page.body && (() => {
                 const processedBody = page.body
                     .replaceAll('[current_date]', currentDate)
                     .replaceAll('{{ page.metafields.custom.city_name.value }}', cityNameDisplay)
