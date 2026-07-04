@@ -1338,7 +1338,7 @@ export default function ProductPageClient({
         offerPrice: Number(originalPrice.toFixed(2)),
         productUrl: currentUrl,
         image: productImageUrl,
-        price: Number(sellingPrice),
+        price: String(sellingPrice),
         category: "",
         subCategory: "",
         productPersona: "",
@@ -2099,6 +2099,17 @@ export default function ProductPageClient({
               <Separator />
             </div>
 
+            {/* Unlock Free Coupons Box */}
+            <div className="mb-6">
+              <UnlockCoupon
+                user={user}
+                dispatch={dispatch}
+                toast={toast}
+                currentPrice={currentPrice}
+                productId={getNumericId(product?.shopifyId || product?.id) || ""}
+              />
+            </div>
+
             <div className="space-y-6 mt-4">
               {/* Mobile Customizer */}
               <ProductCustomizerMobile
@@ -2644,17 +2655,6 @@ export default function ProductPageClient({
                   )}
                 </div>
               )}
-            </div>
-
-            {/* Unlock Free Coupons Box */}
-            <div className="mb-6">
-              <UnlockCoupon
-                user={user}
-                dispatch={dispatch}
-                toast={toast}
-                currentPrice={currentPrice}
-                productId={getNumericId(product?.shopifyId || product?.id) || ""}
-              />
             </div>
 
             {/* Features */}
