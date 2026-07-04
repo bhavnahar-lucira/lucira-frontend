@@ -121,6 +121,13 @@ export default function SearchPage() {
       setFiltersLoading(true);
       try {
         const filtersData = await apiFetch(`/api/products/filters?q=${encodeURIComponent(query)}&${filterParamsString}`);
+        if (filtersData && filtersData["In Store Available"]) {
+          filtersData["In Store Available"] = filtersData["In Store Available"].map(opt => {
+             let label = (opt.label || "").trim();
+             if (label === "Location 92259778778") label = "Paschim Vihar";
+             return { ...opt, label };
+          });
+        }
         setAvailableFilters(filtersData);
         setFiltersLoading(false);
 
