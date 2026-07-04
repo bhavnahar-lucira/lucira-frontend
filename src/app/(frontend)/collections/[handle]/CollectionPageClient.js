@@ -183,6 +183,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             else if (label === "18K") label = "18KT";
             else if (label === "9K") label = "9KT";
           }
+          if (groupKey === "In Store Available" && label === "Location 92259778778") {
+            label = "Paschim Vihar";
+          }
           if (mergedOptionsMap.has(label)) {
             const existing = mergedOptionsMap.get(label);
             existing.count += opt.count;
