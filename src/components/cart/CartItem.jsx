@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { useDispatch, useSelector } from "react-redux";
-import { removeFromCart, updateCartItem } from "@/redux/features/cart/cartSlice";
+import { removeFromCart, updateCartItem, removeMultipleFromCart } from "@/redux/features/cart/cartSlice";
 import {
   addWishlistItem,
   removeWishlistItem,
@@ -32,6 +32,7 @@ export default function CartItem({ item, onAuthRequired }) {
   const [updating, setUpdating] = useState(false);
   const [movingToWishlist, setMovingToWishlist] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
