@@ -6,19 +6,19 @@ const BuildYourJewelryHero = () => {
   const categories = [
     { 
       title: 'Bracelets', 
-      image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3dd9e9ad-9062-4fb1-95e2-25e8cd6c10f7.png',
+      image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257999.jpg?v=1783336168',
       href: '/build-your-jewelry?type=bracelets'
     },
     { 
       title: 'Necklaces', 
-      image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3dd9e9ad-9062-4fb1-95e2-25e8cd6c10f7_1.png',
+      image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437258000.jpg?v=1783336252',
       href: '/build-your-jewelry?type=necklaces'
     },
-    { 
-      title: 'Anklets', 
-      image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3dd9e9ad-9062-4fb1-95e2-25e8cd6c10f7_2.png',
-      href: '/build-your-jewelry?type=anklets'
-    },
+    // { 
+    //   title: 'Anklets', 
+    //   image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3dd9e9ad-9062-4fb1-95e2-25e8cd6c10f7_2.png',
+    //   href: '/build-your-jewelry?type=anklets'
+    // },
   ];
 
   const bgImageUrl = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/4298bdee-8fdd-49be-859e-300dc1a1c7aew.png?v=1780381414";
@@ -54,19 +54,20 @@ const BuildYourJewelryHero = () => {
               For Every Chapter of You
             </h1>
             <p className="font-figtree text-[14px] md:text-[16px] leading-[1.5] text-[#1A1A1A] max-w-[655px] mx-auto mt-3 md:mt-4 mb-7">
-              Design your own personalized lab-grown diamond chain — whether it’s a necklace, bracelet, or anklet — with our online builder, and celebrate every chapter of your journey with timeless brilliance and meaningful charms.
+              Design your own personalized lab-grown diamond chain — whether it’s a necklace or bracelet — with our online builder, and celebrate every chapter of your journey with timeless brilliance and meaningful charms.
             </p>
             
-            <div className="grid grid-cols-3 gap-3 md:gap-5 mt-0 md:mt-11 pr-0 md:pr-[4.4rem] pl-0 md:pl-[30px]">
+            <div className="grid grid-cols-2 gap-3 md:gap-5 mt-0 px-5 md:px-0 max-w-[400px] md:max-w-[550px] mx-auto">
               {categories.map((cat, index) => (
-                <Link key={index} href={cat.href} className="flex flex-col items-center group">
-                  <div className="w-full h-[150px] md:h-[280px] relative overflow-hidden rounded-[5px]">
+                <Link key={index} href={cat.href} className="flex flex-col items-center group w-full">
+                  <div className="w-full relative overflow-hidden rounded-[5px]">
                     <Image 
                       src={cat.image} 
                       alt={cat.title} 
-                      fill
-                      sizes="(max-width: 768px) 33vw, 20vw"
-                      className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                      width={600}
+                      height={646}
+                      sizes="(max-width: 768px) 50vw, 50vw"
+                      className="w-full h-auto object-cover object-center group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div className="p-2 text-[16px] font-medium text-black">{cat.title}</div>

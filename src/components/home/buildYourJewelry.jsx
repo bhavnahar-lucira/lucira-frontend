@@ -1,25 +1,34 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function BuildYourJewelry() {
     return (
-        <section className="build-jewelry-section relative w-full bg-[#FEF5F1] py-16 pb-[250px] overflow-hidden bg-no-repeat bg-contain">
-            <div className="container-main relative z-10 text-center">
-                <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-2 text-black">
-                Build Your Jewelry
-                </h2>
-
-                <p className="text-black font-normal text-sm md:text-base leading-[1.4]">
-                Jewelry for life's most meaningful moments
-                </p>
-
-                <Link
-                href="/collections/all"
-                className="inline-flex items-center justify-center px-7 py-3 text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors mt-8"
-                >
-                Shop All Bestsellers
-                </Link>
-            </div>
+        <section className="w-full overflow-hidden">
+            <Link href="/build-your-jewelry" className="block w-full">
+                {/* Desktop Banner */}
+                <div className="hidden md:block w-full">
+                    <Image
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/byj-desktop-banner.jpg?v=1783335266"
+                        alt="Build Your Jewelry"
+                        width={1920}
+                        height={600}
+                        className="w-full h-auto object-cover"
+                        priority
+                    />
+                </div>
+                {/* Mobile Banner */}
+                <div className="block md:hidden w-full">
+                    <Image
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/byj-mobile-banner.jpg?v=1783335278"
+                        alt="Build Your Jewelry"
+                        width={768}
+                        height={800}
+                        className="w-full h-auto object-cover"
+                        priority
+                    />
+                </div>
+            </Link>
         </section>
     );
 }

@@ -8,8 +8,8 @@ const steps = [
     step: 1,
     title: 'CHOOSE CHAIN',
     buttonText: 'Start With Chain',
-    description: 'Select your base chain for a bracelet, necklace, or anklet.',
-    image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3dd9e9ad-9062-4fb1-95e2-25e8cd6c10f7.png',
+    description: 'Select your base chain for a bracelet or necklace.',
+    image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257999.jpg?v=1783336168',
     href: '/build-your-jewelry?type=bracelets'
   },
   {
@@ -25,7 +25,7 @@ const steps = [
     title: 'COMPLETE JEWELRY',
     buttonText: 'Review Selection',
     description: 'Review and add your unique creation to cart.',
-    image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/3dd9e9ad-9062-4fb1-95e2-25e8cd6c10f7_1.png',
+    image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437258000.jpg?v=1783336252',
     href: '/build-your-jewelry?type=bracelets#charms'
   }
 ];

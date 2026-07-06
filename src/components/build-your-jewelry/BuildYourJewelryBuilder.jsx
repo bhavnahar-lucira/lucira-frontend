@@ -89,18 +89,18 @@ const CATEGORY_CONFIG = {
       angularGap: 18
     }
   },
-  anklets: { 
-    label: 'Anklet', 
-    plural: 'Anklets', 
-    keywords: ['anklet', 'anklets'],
-    maxCharms: 5, // 5 charms limit for anklets
-    canvas: {
-      circleXPercent: 0.50,
-      circleYPercent: 0.42,
-      radiusPercent: 0.48, // Flatter curve (0.48 vs 0.45) with Y-offset 0.42 to touch chain
-      angularGap: 12
-    }
-  },
+  // anklets: { 
+  //   label: 'Anklet', 
+  //   plural: 'Anklets', 
+  //   keywords: ['anklet', 'anklets'],
+  //   maxCharms: 5, // 5 charms limit for anklets
+  //   canvas: {
+  //     circleXPercent: 0.50,
+  //     circleYPercent: 0.42,
+  //     radiusPercent: 0.48, // Flatter curve (0.48 vs 0.45) with Y-offset 0.42 to touch chain
+  //     angularGap: 12
+  //   }
+  // },
 };
 
 const MATERIALS = [
@@ -969,7 +969,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         .fixed.z-\[499\] { display: none !important; }
 
         .byj-canvas-area { grid-area: canvas; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; background: transparent; padding: 0px 24px; min-height: 60vh; }
-        .byj-canvas-area.has-bg { background-image: url(https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pexels_Photo_by_Maryam.jpg?v=1781247551); background-size: cover; background-position: center; }
+        .byj-canvas-area.has-bg { background-size: cover; background-position: center; }
         #byj-konva-container { width: 100%; max-width: min(850px, 80vh); aspect-ratio: 1; cursor: grab; border-radius: 20px; overflow: hidden; touch-action: none;}
         
         .byj-canvas-controls { position: absolute; bottom: 30px; right: 30px; display: flex; align-items: center; gap: 12px; z-index: 20; }
@@ -1157,7 +1157,15 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
       <div className="build-your-jewelry-wrapper">
         <div className="byj-layout">
-          <div className={`byj-canvas-area ${!selectedStyle ? 'has-bg' : ''}`}>
+          <div 
+            className={`byj-canvas-area ${!selectedStyle ? 'has-bg' : ''}`}
+            style={!selectedStyle ? {
+              backgroundImage: `url(${category === 'necklaces' 
+                ? 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/SAVE_20260706_161559_1.jpg?v=1783336171' 
+                : 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437258001.jpg?v=1783336250'
+              })`
+            } : {}}
+          >
             <div id="byj-konva-container" ref={containerRef} style={containerStyle}></div>
             {(selectedStyle || selectedCharms.length > 0) && (
               <div className="byj-canvas-controls">
