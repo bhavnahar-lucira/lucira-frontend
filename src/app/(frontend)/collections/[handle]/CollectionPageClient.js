@@ -32,15 +32,15 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import { apiFetch } from "@/lib/api";
 
-const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad"];
+const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar"];
 
 const STORE_IMAGES = {
   "pune-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg"],
   "chembur-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chembur_73ce3ac6-7515-473d-a2dd-2385fd065eaa.jpg"],
   "noida-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Noida.jpg"],
-  "sky-city-borivali-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Noida.jpg"],
   "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
   "malad": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg"],
+  "paschim-vihar": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
 };
 
 const SORT_OPTIONS = [
@@ -579,7 +579,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop_Inpage_Free_Diamond.jpg_1.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop20202B100.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
             </Link>
           </div>
         );
@@ -627,7 +627,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         <div className="w-full">
           <div className="container-main mx-auto pt-2 px-4 py-3">
             <Breadcrumb>
-              <BreadcrumbList className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">
+              <BreadcrumbList className="text-[0.625rem] font-bold uppercase tracking-[0.15em] text-gray-400">
                 <BreadcrumbItem><BreadcrumbLink href="/" className="hover:text-[#5a413f] transition-colors">Home</BreadcrumbLink></BreadcrumbItem>
                 <BreadcrumbSeparator className="scale-75" />
                 <BreadcrumbItem><BreadcrumbLink href="/collections/jewelry" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
@@ -637,7 +637,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative h-34 md:h-54">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_Banner.jpg" alt={displayTitle} fill className="object-cover" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_0547d3c6-d1ab-4cfe-9148-47fa267f4e21.jpg?v=1782902066" alt={displayTitle} fill className="object-cover" priority />
           </div>
         </div>
       ) : (
@@ -654,7 +654,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
             <div className="flex-1 w-full h-auto">
               <Image 
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_Banner.jpg" 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_0547d3c6-d1ab-4cfe-9148-47fa267f4e21.jpg?v=1782902066" 
                 alt={displayTitle} 
                 width={640} 
                 height={223} 
@@ -672,7 +672,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
               {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
                 <div className={`space-y-3 px-4 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
-                  <div className="flex justify-between items-center border-b"><h3 className="font-semibold mb-3 uppercase tracking-widest text-sm">Filters</h3><button onClick={clearAllFilters} className="text-[10px] font-bold uppercase text-zinc-400 hover:text-black mb-3">Clear All</button></div>
+                  <div className="flex justify-between items-center border-b"><h3 className="font-semibold mb-3 uppercase tracking-widest text-sm">Filters</h3><button onClick={clearAllFilters} className="text-[0.625rem] font-bold uppercase text-zinc-400 hover:text-black mb-3">Clear All</button></div>
                   {Object.entries(availableFilters).map(([groupKey, options]) => {
                     const isExpanded = expandedFilters[groupKey] ?? false;
                     if (groupKey === "Price") {
@@ -863,7 +863,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                           </div>
                         </div>
                       )}
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-4">
+                      <p className="text-[0.625rem] font-bold text-gray-400 uppercase tracking-widest mt-4">
                         Last Updated: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
                       </p>
                     </div>
@@ -1114,7 +1114,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 z-10 bg-[#5a413f] text-white flex justify-around items-center py-4 border-t border-white/10 px-4 gap-2">
           <button onClick={() => setIsSortSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider border-r border-white/20"><ArrowUpDown size={16} /> Sort</button>
-          <button onClick={() => setIsFilterSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider"><SlidersHorizontal size={16} /> Filter {activeFilterCount > 0 && <span className="bg-white text-[#5a413f] text-[10px] min-w-4 h-4 rounded-full flex items-center justify-center px-1 font-bold">{activeFilterCount}</span>}</button>
+          <button onClick={() => setIsFilterSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider"><SlidersHorizontal size={16} /> Filter {activeFilterCount > 0 && <span className="bg-white text-[#5a413f] text-[0.625rem] min-w-4 h-4 rounded-full flex items-center justify-center px-1 font-bold">{activeFilterCount}</span>}</button>
         </div>
       )}
 
@@ -1150,8 +1150,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                     if (groupKey === "Price") { if (localPriceRange.min || localPriceRange.max) count = 1; }
                     else { count = availableFilters[groupKey].filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).length; }
                     return (
-                      <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left px-4 py-5 text-[11px] font-bold uppercase tracking-tight border-b border-gray-100 relative leading-tight ${activeMobileGroup === groupKey ? "bg-white text-[#5a413f]" : "text-gray-500"}`}>
-                        {groupKey} {count > 0 && <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#5a413f] text-white text-[9px] w-5 h-5 rounded-md flex items-center justify-center font-bold">{count}</span>}
+                      <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left px-4 py-5 text-[0.6875rem] font-bold uppercase tracking-tight border-b border-gray-100 relative leading-tight ${activeMobileGroup === groupKey ? "bg-white text-[#5a413f]" : "text-gray-500"}`}>
+                        {groupKey} {count > 0 && <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#5a413f] text-white text-[0.5625rem] w-5 h-5 rounded-md flex items-center justify-center font-bold">{count}</span>}
                       </button>
                     );
                   })}
@@ -1183,9 +1183,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                             <div key={option.label} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
                               <div className="flex items-center gap-3">
                                 {isSelected ? <div className="w-4 h-4 bg-[#5a413f] rounded flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-4 h-4 border border-gray-300 rounded group-hover:border-[#5a413f]" />}
-                                <span className={`text-[13px] ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>
+                                <span className={`text-[0.8125rem] ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>
                               </div>
-                              <span className="text-[11px] text-gray-400">({option.count})</span>
+                              <span className="text-[0.6875rem] text-gray-400">({option.count})</span>
                             </div>
                           );
                         })
@@ -1195,8 +1195,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                 </div>
               </div>
               <div className="grid grid-cols-2 border-t border-gray-300 bg-white">
-                <button onClick={clearAllFilters} className="py-4 px-2 text-[11px] font-black bg-[#FFE4D9] text-[#5a413f] uppercase tracking-[0.1em]">Clear All</button>
-                <button onClick={() => setIsFilterSheetOpen(false)} className="py-4 px-2 text-[11px] font-black bg-[#5a413f] text-white uppercase tracking-[0.1em]">APPLY FILTERS</button>    
+                <button onClick={clearAllFilters} className="py-4 px-2 text-[0.6875rem] font-black bg-[#FFE4D9] text-[#5a413f] uppercase tracking-[0.1em]">Clear All</button>
+                <button onClick={() => setIsFilterSheetOpen(false)} className="py-4 px-2 text-[0.6875rem] font-black bg-[#5a413f] text-white uppercase tracking-[0.1em]">APPLY FILTERS</button>    
               </div>
             </div>
           </Sheet.Content>

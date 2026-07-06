@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -117,7 +117,7 @@ export default function MainHeader() {
   }, []);
 
   //GTM begain
-    const handleCartClick = () => {
+  const handleCartClick = () => {
     if (items && items.length > 0) {
       const getNumericId = (gid) => {
         if (!gid) return 0;
@@ -146,7 +146,7 @@ export default function MainHeader() {
         items: filteredItemsForGtm.map((item, idx) => getStandardCartItem(item, idx))
       });
     }
-    };
+  };
   //GTM end
 
 
@@ -156,7 +156,7 @@ export default function MainHeader() {
     // mergeCart will call fetchCart itself when complete, so we don't need to race it.
     if (cartLoading) return;
     dispatch(fetchCart({ userId: user?.id }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, user?.id]);
 
   useEffect(() => {
@@ -226,12 +226,70 @@ export default function MainHeader() {
     performSearch();
   }, [debouncedSearchQuery]);
 
+  const suggestionData = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+
+    const getAutocompleteSuggestion = (title, query) => {
+      const titleLower = title.toLowerCase();
+      const queryLower = query.toLowerCase();
+
+      if (titleLower.startsWith(queryLower)) {
+        return {
+          suffix: title.slice(query.length),
+          completeText: title
+        };
+      }
+
+      const words = title.split(" ");
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (word.toLowerCase().startsWith(queryLower)) {
+          const suffixOfWord = word.slice(query.length);
+          const remainingWords = words.slice(i + 1).join(" ");
+          const suffix = suffixOfWord + (remainingWords ? " " + remainingWords : "");
+          return {
+            suffix: suffix,
+            completeText: title
+          };
+        }
+      }
+      return null;
+    };
+
+    // 1. Try matched collections
+    const matchedCol = searchResults.find(item => item.isCollection);
+    if (matchedCol) {
+      const match = getAutocompleteSuggestion(matchedCol.title, searchQuery);
+      if (match) return match;
+    }
+
+    // 2. Try predefined placeholders
+    for (const p of SEARCH_PLACEHOLDERS) {
+      const match = getAutocompleteSuggestion(p, searchQuery);
+      if (match) return match;
+    }
+
+    // 3. Try products
+    const matchedProd = searchResults.find(item => !item.isCollection);
+    if (matchedProd) {
+      const match = getAutocompleteSuggestion(matchedProd.title, searchQuery);
+      if (match) return match;
+    }
+
+    return null;
+  }, [searchQuery, searchResults]);
+
+  const suggestionSuffix = suggestionData ? suggestionData.suffix : "";
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && searchQuery.trim().length > 0) {
+    if ((e.key === "Tab" || e.key === "ArrowRight") && suggestionSuffix) {
+      e.preventDefault();
+      setSearchQuery(searchQuery + suggestionSuffix);
+    } else if (e.key === "Enter" && searchQuery.trim().length > 0) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setIsFocused(false);
     }
@@ -240,15 +298,15 @@ export default function MainHeader() {
   const handleLogout = async () => {
     try {
       //gtm
-        pushLogout({
-          id: user?.id || "",
-          mobile: user?.mobile || "",
-          first_name: user?.first_name || "",
-          last_name: user?.last_name || "",
-          email: user?.email || ""
-        });
+      pushLogout({
+        id: user?.id || "",
+        mobile: user?.mobile || "",
+        first_name: user?.first_name || "",
+        last_name: user?.last_name || "",
+        email: user?.email || ""
+      });
       //gtm
-      await apiFetch("/api/auth/logout", { 
+      await apiFetch("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({
           email: user?.email,
@@ -280,17 +338,17 @@ export default function MainHeader() {
 
         {/* Logo */}
         <div className="flex items-center mr-8 lg:mr-16 shrink-0">
-        <Link href="/" prefetch={false}>
-          <Image
-            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
-            alt="Lucira Jewelry"
-            width={100}
-            height={40}
-            className="w-21.25 h-7.5 lg:w-25 lg:h-10"
-            priority
-          />
-        </Link>
-      </div>
+          <Link href="/" prefetch={false}>
+            <Image
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
+              alt="Lucira Jewelry"
+              width={100}
+              height={40}
+              className="w-21.25 h-7.5 lg:w-25 lg:h-10"
+              priority
+            />
+          </Link>
+        </div>
 
         {/* Search Input and Dropdown Wrapper */}
         <div className={`flex-1 max-w-137.5 relative ${showSearch ? "z-1001 overflow-visible" : "z-10"}`}>
@@ -298,11 +356,11 @@ export default function MainHeader() {
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900 pointer-events-none z-30">
               <SearchIcon />
             </div>
-            <div className="relative w-full">
+            <div className="relative w-full bg-[#F9F9F9] focus-within:bg-white focus-within:ring-1 focus-within:ring-gray-200 rounded-sm transition-all h-10">
               <input
                 type="text"
                 placeholder=""
-                className="w-full h-10 pl-11.25 pr-2.5 py-2 rounded-sm bg-[#F9F9F9] text-base font-medium outline-none focus:bg-white focus:ring-1 focus:ring-gray-200 transition-all relative z-20"
+                className="w-full h-full pl-11.25 pr-2.5 py-2 bg-transparent text-base font-medium outline-none relative z-20"
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => {
                   setTimeout(() => setIsFocused(false), 200);
@@ -320,7 +378,15 @@ export default function MainHeader() {
                 onChange={handleSearchChange}
                 onKeyDown={handleKeyDown}
               />
-              
+
+              {/* Autocomplete Ghost Suggestion */}
+              {isFocused && searchQuery && suggestionSuffix && (
+                <div className="absolute inset-0 flex items-center pointer-events-none z-10 pl-11.25 pr-2.5 py-2 text-base font-medium whitespace-pre">
+                  <span className="text-transparent">{searchQuery}</span>
+                  <span className="text-gray-400 select-none">{suggestionSuffix}</span>
+                </div>
+              )}
+
               {/* Animated Placeholder Ticker */}
               {!isFocused && !searchQuery && (
                 <div className="absolute inset-0 flex items-center pointer-events-none z-30 overflow-hidden pl-11.25">
@@ -345,8 +411,8 @@ export default function MainHeader() {
 
             <AnimatePresence>
               {showSearch && (
-                <SearchPopup 
-                  onClose={() => setIsFocused(false)} 
+                <SearchPopup
+                  onClose={() => setIsFocused(false)}
                   searchQuery={searchQuery}
                   searchResults={searchResults}
                   isSearching={isSearching}
@@ -360,14 +426,14 @@ export default function MainHeader() {
         <div className="flex items-center justify-end ml-auto lg:gap-3 xl:gap-6 text-sm">
 
           <Link href="/schemes" prefetch={false} className="hidden lg:flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shrink-0">
-            <img 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257664.png?v=1781505570" 
-              alt="9+1 Scheme" 
+            <img
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257664.png?v=1781505570"
+              alt="9+1 Scheme"
               className="h-10 w-auto object-contain"
             />
           </Link>
 
-           <Link
+          <Link
             href="/pages/store-locator"
             prefetch={false}
             className="hidden lg:flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black"
@@ -379,11 +445,11 @@ export default function MainHeader() {
             }}
           >
             <StoreIcon />
-             <span>Find a Store</span>
+            <span>Find a Store</span>
           </Link>
 
           {user ? (
-            <div className="relative group flex items-center">
+            <div className="relative group flex items-center" id="nitro-login">
               <Link href="/admin" prefetch={false}>
                 <Avatar className="h-9 w-9 cursor-pointer border border-gray-100">
                   {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
@@ -414,14 +480,15 @@ export default function MainHeader() {
               </div>
             </div>
           ) : (
-            <div 
-              className="cursor-pointer" 
+            <div
+              className="cursor-pointer"
+              id="nitro-login"
               onClick={() => {
                 const path = window.location.pathname;
                 if (path !== "/login" && path !== "/register") {
                   openLogin();
                 }
-              }} 
+              }}
             >
               <UserIconCustom />
             </div>
@@ -437,14 +504,14 @@ export default function MainHeader() {
               )}
             </Link>
           ) : (
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => {
                 const path = window.location.pathname;
                 if (path !== "/login" && path !== "/register") {
                   openLogin();
                 }
-              }} 
+              }}
               className="relative group p-1"
             >
               <HeartIcon />
@@ -455,12 +522,12 @@ export default function MainHeader() {
               )}
             </button>
           )}
-            <Link 
-              href="/checkout/cart" 
-              prefetch={false}
-              className="relative group p-1"
-              onClick={handleCartClick}
-            >
+          <Link
+            href="/checkout/cart"
+            prefetch={false}
+            className="relative group p-1"
+            onClick={handleCartClick}
+          >
             <CartIcon />
             {displayQuantity > 0 && (
               <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">

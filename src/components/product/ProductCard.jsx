@@ -170,14 +170,26 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false, disableLastViewed = false }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
   const wishlist = useSelector((state) => state.wishlist.items);
   const guestWishlist = useSelector((state) => state.wishlist.guestItems);
+  const recentlyViewed = useSelector((state) => state.recentlyViewed?.products || []);
 
   const productId = String(product.shopifyId || product.id);
+
+  const isRecentlyViewed = useMemo(() => {
+    if (!product) return false;
+    const currentId = String(product.shopifyId || product.id);
+    const normCurrentId = String(getNumericId(currentId));
+
+    return recentlyViewed.slice(0, 5).some((item) => {
+      const itemId = String(item.shopifyId || item.id || item.handle);
+      return String(getNumericId(itemId)) === normCurrentId || item.handle === product.handle;
+    });
+  }, [recentlyViewed, product]);
   const productHandle = product.handle;
 
   const isWishlisted = useMemo(() => {
@@ -505,7 +517,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                     return (
                       <SwiperSlide key={`${image.url}-${idx}`}>
                         {/* overflow-hidden keeps the 130% zoomed image contained inside the slide */}
-                        <div className="relative w-full h-full overflow-hidden">
+                        <div className="relative w-full h-full overflow-hidden rounded-sm">
                           <LazyImage
                             src={formatCdnUrl(image.url)}
                             alt={image.alt || product.title}
@@ -523,6 +535,15 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                 </Swiper>
               ) : <div className="w-full h-full flex items-center justify-center text-zinc-400">No Image</div>}
             </Link>
+
+            {/* Recently Viewed Hover Overlay */}
+            {!disableLastViewed && isRecentlyViewed && (
+              <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-sm">
+                <span className="text-white font-figtree font-bold text-xs sm:text-sm tracking-widest uppercase">
+                  LAST VIEWED
+                </span>
+              </div>
+            )}
 
             {/* Labels - Top Left */}
             {displayLabels.length > 0 && (

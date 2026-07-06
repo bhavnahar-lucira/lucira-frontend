@@ -20,6 +20,7 @@ export default function OldGoldCalculator({ config }) {
   const [loading, setLoading] = useState(true);
   const [selectedKarat, setSelectedKarat] = useState("24");
   const [weight, setWeight] = useState(10);
+  const [weightInput, setWeightInput] = useState("10");
   const bonus = config?.exchange_bonus_percent || 5;
 
   useEffect(() => {
@@ -70,11 +71,11 @@ export default function OldGoldCalculator({ config }) {
   }, [rates, selectedKarat, weight, bonus]);
 
   return (
-    <section className="old-gold-exchange-calculator py-10 md:py-20 bg-[#f8f8f8]">
+    <section className="old-gold-exchange-calculator py-6 md:py-6 bg-[#f8f8f8]">
       <div className="container-main mx-auto px-4 max-w-[1200px]">
 
         {/* Rates Banner */}
-        <div className="exchange-rates-banner mb-10 p-6 md:p-8 rounded-xl flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-[#b76f79] to-[#f3dce0] text-white gap-6">
+        {/* <div className="exchange-rates-banner mb-10 p-6 md:p-8 rounded-xl flex flex-col md:flex-row justify-between items-center bg-gradient-to-br from-[#b76f79] to-[#f3dce0] text-white gap-6">
           <div className="rates-container flex flex-wrap items-center gap-20">
             <div className="rate-box flex items-center gap-4 ">
               <div className="rate-details">
@@ -99,21 +100,21 @@ export default function OldGoldCalculator({ config }) {
             <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium">Live Rates</span>
             <span className="opacity-90">Fetched from our Gold Rate Page</span>
           </div>
-        </div>
+        </div> */}
 
         {/* Calculator Grid */}
         <div className="exchange-calculator-wrapper mb-14 text-center">
-          <h2 className="font-abhaya font-semibold text-[18px] md:text-[28px] uppercase tracking-[2px] mb-2 text-primary">
-            Old Gold Exchange Value Calculator
+          <h2 className="font-abhaya font-semibold text-[1.125rem] md:text-[1.75rem] capitalize tracking-[1px]  text-primary">
+            Get 105% Exchange Value on Your Old Gold
           </h2>
-          <p className="text-gray-500 text-[14px] md:text-[18px] max-w-[660px] mx-auto pb-8">
+          <p className="text-gray-500 text-[0.875rem] md:text-[1.125rem] max-w-[660px] mx-auto pb-6">
             Enter your gold details to calculate exchange value
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Input Column */}
             <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg shadow-black/5">
-              <div className="mb-10">
+              <div className="mb-8">
                 <label className="block text-sm font-semibold uppercase tracking-widest mb-4">Select Gold Purity</label>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                   {KARATS.map((k) => (
@@ -126,31 +127,45 @@ export default function OldGoldCalculator({ config }) {
                         }`}
                     >
                       <span className="block font-bold text-base">{k.label}</span>
-                      <span className={`block text-[10px] ${selectedKarat === k.value ? "text-white/80" : "text-gray-500"}`}>{k.desc}</span>
+                      <span className={`block text-[0.625rem] ${selectedKarat === k.value ? "text-white/80" : "text-gray-500"}`}>{k.desc}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="mb-10">
+              <div className="mb-6">
                 <label className="block text-sm font-semibold uppercase tracking-widest mb-4">Gold Weight (grams)</label>
                 <div className="relative mb-4">
                   <input
                     type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+                    value={weightInput}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setWeightInput(val);
+                      const parsed = parseFloat(val);
+                      if (!isNaN(parsed) && parsed > 0) setWeight(parsed);
+                    }}
+                    onBlur={() => {
+                      if (weightInput === "" || parseFloat(weightInput) <= 0) {
+                        setWeightInput("1");
+                        setWeight(1);
+                      }
+                    }}
                     className="w-full p-4 pr-16 border-2 border-[#e0e0e0] rounded-lg text-lg font-semibold focus:outline-none focus:border-[#b76f79]"
-                    min="0.1"
-                    step="0.1"
+                    min="1"
+                    step="1"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">grams</span>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-5 gap-2 sm:gap-3">
                   {WEIGHTS.map((w) => (
                     <button
                       key={w}
-                      onClick={() => setWeight(w)}
-                      className="px-4 py-2 bg-white border-2 border-[#e0e0e0] rounded-md text-sm font-semibold hover:border-[#b76f79] hover:text-[#b76f79] transition-all"
+                      onClick={() => { setWeight(w); setWeightInput(String(w)); }}
+                      className={`py-3 sm:py-4 px-2 sm:px-4 border-2 rounded-lg text-sm sm:text-base font-bold transition-all duration-200 ${weight === w
+                        ? "bg-[#b76f79] border-[#b76f79] text-white shadow-md"
+                        : "bg-white border-[#e0e0e0] text-gray-700 hover:border-[#b76f79] hover:text-[#b76f79] hover:shadow-sm"
+                        }`}
                     >
                       {w}g
                     </button>
@@ -193,7 +208,7 @@ export default function OldGoldCalculator({ config }) {
                   <div className="flex justify-between items-center pb-4 border-b border-white/10">
                     <div>
                       <div className="text-base font-medium">Market Value</div>
-                      <div className="text-[11px] opacity-70">Based on today&apos;s rate</div>
+                      <div className="text-[0.6875rem] opacity-70">Based on today&apos;s rate</div>
                     </div>
                     <div className="text-xl font-bold">{loading ? "₹ --" : formatCurrency(calculation.marketValue)}</div>
                   </div>
@@ -202,20 +217,20 @@ export default function OldGoldCalculator({ config }) {
                     <div>
                       <div className="text-base font-medium flex items-center gap-2">
                         Exchange Value
-                        {bonus > 0 && <span className="text-[10px] font-bold bg-white/20 border border-white/40 px-2 py-0.5 rounded-full">+{bonus}%</span>}
+                        {bonus > 0 && <span className="text-[0.625rem] font-bold bg-white/20 border border-white/40 px-2 py-0.5 rounded-full">+{bonus}%</span>}
                       </div>
-                      <div className="text-[11px] opacity-70">Total value for your gold</div>
+                      <div className="text-[0.6875rem] opacity-70">Total value for your gold</div>
                     </div>
                     <div className="text-2xl font-bold">{loading ? "₹ --" : formatCurrency(calculation.exchangeValue)}</div>
                   </div>
                 </div>
 
                 <div className="pt-6 border-t border-white/20 space-y-3">
-                  <div className="flex items-center gap-3 text-[11px] opacity-80">
+                  <div className="flex items-center gap-3 text-[0.6875rem] opacity-80">
                     <Info size={14} />
                     <span>Fetched from our Gold Rate Page</span>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] opacity-80">
+                  <div className="flex items-center gap-3 text-[0.6875rem] opacity-80">
                     <AlertTriangle size={14} />
                     <span>Final value determined after verification</span>
                   </div>

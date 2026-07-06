@@ -26,7 +26,7 @@ export default function CheckoutSummary({
   className = "",
   isSilverPendantClaimed = false,
   onToggleSilverPendant = () => {},
-  showSilverPendantOffer = true
+  showSilverPendantOffer = false
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();

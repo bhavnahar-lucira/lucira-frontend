@@ -87,7 +87,7 @@ const STORES_DATA = {
     name: "Borivali Lucira Store",
     rating: 4.9,
     images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Noida.jpg"],
-  "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
+    "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
     storeHours: {
       weekday: { open: "10:30", close: "21:30" },
       weekend: { open: "10:30", close: "21:30" },
@@ -140,6 +140,35 @@ const STORES_DATA = {
       { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
     ],
     address: "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",
+  },
+  "paschim-vihar": {
+    city: "Paschim Vihar",
+    name: "Paschim Vihar Lucira Store",
+    rating: 4.7,
+    // openingSoon: true,
+    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
+    storeHours: {
+      weekday: { open: "10:30", close: "22:00" },
+      weekend: { open: "10:30", close: "22:00" },
+    },
+    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D",
+    callLink: "tel:+917208007494",
+    designLink: "/collections/paschim-vihar",
+    appointmentLink: "https://wa.me/917208007494?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Paschim%20Vihar%20Store",
+    facilities: [
+      "Open on Weekends",
+      "Banks Nearby",
+      "Parking Availability",
+      "Daily Offers",
+      "Piercing"
+    ],
+    services: [
+      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
+      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
+    ],
+    address: "B-8, Shubham Enclave, Paschim Vihar, New Delhi -110063.",
   },
 };
 
@@ -231,9 +260,9 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                     </SwiperSlide>
                   ))}
                 </Swiper>
-                <div 
-                  className="absolute inset-0 pointer-events-none z-[1]" 
-                  style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }} 
+                <div
+                  className="absolute inset-0 pointer-events-none z-[1]"
+                  style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }}
                 />
               </div>
 
@@ -246,9 +275,9 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
               </div>
 
               <div className="absolute right-4 bottom-18 z-[2]">
-                <div className={`inline-flex items-center gap-2 rounded-full ${storeIsOpen ? "border-success bg-[#E8F5E9] text-[#28a745]" : "border-danger bg-[#f5e8e8] text-[#dc2626]"} border px-4 py-1.5 text-xs font-bold shadow-lg`}>
-                  <Circle size={8} className={ storeIsOpen ? "fill-[#28a745]" : "fill-[#dc2626]"} />
-                  {storeIsOpen ? "Open Now" : "Closed"}
+                <div className={`inline-flex items-center gap-2 rounded-full ${(store.openingSoon || storeIsOpen) ? "border-success bg-[#E8F5E9] text-[#28a745]" : "border-danger bg-[#f5e8e8] text-[#dc2626]"} border px-4 py-1.5 text-xs font-bold shadow-lg`}>
+                  <Circle size={8} className={(store.openingSoon || storeIsOpen) ? "fill-[#28a745]" : "fill-[#dc2626]"} />
+                  {store.openingSoon ? "Opening Soon" : (storeIsOpen ? "Open Now" : "Closed")}
                 </div>
               </div>
 
@@ -274,10 +303,10 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
               <div className="grid grid-cols-2 gap-4">
                 {store.services.map((item) => (
                   <div key={item.title} className="flex flex-col items-center justify-center rounded-lg bg-white py-2.5 px-9 text-center border border-gray-50 shadow-sm">
-                     <div className="relative mb-3 h-10 w-10">
-                        <LazyImage src={item.icon} alt={item.title} fill className="object-contain" />
-                     </div>
-                     <p className="text-sm text-primary">{item.title}</p>
+                    <div className="relative mb-3 h-10 w-10">
+                      <LazyImage src={item.icon} alt={item.title} fill className="object-contain" />
+                    </div>
+                    <p className="text-sm text-primary">{item.title}</p>
                   </div>
                 ))}
               </div>
@@ -289,17 +318,17 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
             </div>
 
             <div className="space-y-3">
-               <div className="grid grid-cols-2 gap-3">
-                 <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm">
-                   <a href={store.mapLink} target="_blank" rel="noopener noreferrer"><MapPinned className="mr-2 h-4 w-4" /> DIRECT ME</a>
-                 </Button>
-                 <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm">
-                   <a href={store.callLink}><Phone className="mr-2 h-4 w-4" /> CALL US</a>
-                 </Button>
-               </div>
-               <Button asChild className="h-12 w-full rounded-sm bg-primary text-white font-medium text-sm uppercase shadow-lg">
-                 <a href={store.appointmentLink} target="_blank"><CalendarDays className="mr-2 h-4 w-4" />BOOK APPOINTMENT</a>
-               </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm">
+                  <a href={store.mapLink} target="_blank" rel="noopener noreferrer"><MapPinned className="mr-2 h-4 w-4" /> DIRECT ME</a>
+                </Button>
+                <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm">
+                  <a href={store.callLink}><Phone className="mr-2 h-4 w-4" /> CALL US</a>
+                </Button>
+              </div>
+              <Button asChild className="h-12 w-full rounded-sm bg-primary text-white font-medium text-sm uppercase shadow-lg">
+                <a href={store.appointmentLink} target="_blank"><CalendarDays className="mr-2 h-4 w-4" />BOOK APPOINTMENT</a>
+              </Button>
             </div>
           </div>
         </div>
@@ -335,10 +364,10 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                   </SwiperSlide>
                 ))}
               </Swiper>
-              
-              <div 
-                className="absolute inset-0 pointer-events-none z-[1]" 
-                style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }} 
+
+              <div
+                className="absolute inset-0 pointer-events-none z-[1]"
+                style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }}
               />
 
               {/* Banner Controls */}
@@ -374,9 +403,9 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                 </span>
               </div>
 
-              <div  className={`inline-flex items-center gap-2 rounded-full border ${storeIsOpen ? "border-success bg-success/10 text-[#28a745]" : "border-danger bg-danger/10 text-[#dc2626]"} px-3 py-1 text-sm font-bold`}>
-                <Circle size={8} className={ storeIsOpen ? "fill-[#28a745]" : "fill-[#dc2626]"} />
-                {storeIsOpen ? "Open Now" : "Closed"}
+              <div className={`inline-flex items-center gap-2 rounded-full border ${(store.openingSoon || storeIsOpen) ? "border-success bg-success/10 text-[#28a745]" : "border-danger bg-danger/10 text-[#dc2626]"} px-3 py-1 text-sm font-bold`}>
+                <Circle size={8} className={(store.openingSoon || storeIsOpen) ? "fill-[#28a745]" : "fill-[#dc2626]"} />
+                {store.openingSoon ? "Opening Soon" : (storeIsOpen ? "Open Now" : "Closed")}
               </div>
             </div>
           </div>

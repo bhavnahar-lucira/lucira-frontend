@@ -144,20 +144,31 @@ const getInitials = (name = "") =>
     .substring(0, 2)
     .toUpperCase();
 
-const HighlightMatch = ({ text, query }) => {
+const HighlightMatch = ({ text, query, reverse = false }) => {
   if (!query) return <span className="text-[#1A1A1A]">{text}</span>;
   const parts = text.split(new RegExp(`(${query})`, "gi"));
   return (
     <span className="text-[#1A1A1A]">
-      {parts.map((part, i) =>
-        part.toLowerCase() === query.toLowerCase() ? (
-          <strong key={i} className="font-semibold text-black">
-            {part}
-          </strong>
-        ) : (
-          part
-        )
-      )}
+      {parts.map((part, i) => {
+        const isMatch = part.toLowerCase() === query.toLowerCase();
+        if (reverse) {
+          return isMatch ? (
+            part
+          ) : (
+            <strong key={i} className="font-bold text-black">
+              {part}
+            </strong>
+          );
+        } else {
+          return isMatch ? (
+            <strong key={i} className="font-semibold text-black">
+              {part}
+            </strong>
+          ) : (
+            part
+          );
+        }
+      })}
     </span>
   );
 };
@@ -306,12 +317,70 @@ export default function MobileHeader({ menuData }) {
     performSearch();
   }, [debouncedSearchQuery]);
 
+  const suggestionData = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+
+    const getAutocompleteSuggestion = (title, query) => {
+      const titleLower = title.toLowerCase();
+      const queryLower = query.toLowerCase();
+
+      if (titleLower.startsWith(queryLower)) {
+        return {
+          suffix: title.slice(query.length),
+          completeText: title
+        };
+      }
+
+      const words = title.split(" ");
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (word.toLowerCase().startsWith(queryLower)) {
+          const suffixOfWord = word.slice(query.length);
+          const remainingWords = words.slice(i + 1).join(" ");
+          const suffix = suffixOfWord + (remainingWords ? " " + remainingWords : "");
+          return {
+            suffix: suffix,
+            completeText: title
+          };
+        }
+      }
+      return null;
+    };
+
+    // 1. Try matched collections
+    const matchedCol = searchResults.find(item => item.isCollection);
+    if (matchedCol) {
+      const match = getAutocompleteSuggestion(matchedCol.title, searchQuery);
+      if (match) return match;
+    }
+
+    // 2. Try predefined placeholders
+    for (const p of SEARCH_PLACEHOLDERS) {
+      const match = getAutocompleteSuggestion(p, searchQuery);
+      if (match) return match;
+    }
+
+    // 3. Try products
+    const matchedProd = searchResults.find(item => !item.isCollection);
+    if (matchedProd) {
+      const match = getAutocompleteSuggestion(matchedProd.title, searchQuery);
+      if (match) return match;
+    }
+
+    return null;
+  }, [searchQuery, searchResults]);
+
+  const suggestionSuffix = suggestionData ? suggestionData.suffix : "";
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" && searchQuery.trim().length > 0) {
+    if ((e.key === "Tab" || e.key === "ArrowRight") && suggestionSuffix) {
+      e.preventDefault();
+      setSearchQuery(searchQuery + suggestionSuffix);
+    } else if (e.key === "Enter" && searchQuery.trim().length > 0) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setShowSearch(false);
     }
@@ -343,24 +412,31 @@ export default function MobileHeader({ menuData }) {
           <button onClick={() => setShowSearch(false)} className="p-1">
             <ChevronLeft size={24} />
           </button>
-          <div className="relative flex-grow">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+          <div className="relative flex-grow bg-gray-50 focus-within:ring-1 focus-within:ring-gray-200 rounded-full h-11">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-30">
               <SearchIcon />
             </div>
             <input
               ref={searchInputRef}
               type="text"
               placeholder="Search for jewelry..."
-              className="w-full bg-gray-50 h-11 pl-10 pr-4 rounded-full text-sm outline-none focus:ring-1 focus:ring-gray-200"
+              className="w-full h-full bg-transparent pl-10 pr-10 rounded-full text-sm outline-none relative z-20"
               value={searchQuery}
               onChange={handleSearchChange}
               onKeyDown={handleKeyDown}
               autoFocus
             />
+            {/* Autocomplete Ghost Suggestion */}
+            {searchQuery && suggestionSuffix && (
+              <div className="absolute inset-0 flex items-center pointer-events-none z-10 pl-10 pr-10 py-2 text-sm font-medium whitespace-pre">
+                <span className="text-transparent">{searchQuery}</span>
+                <span className="text-gray-400 select-none">{suggestionSuffix}</span>
+              </div>
+            )}
             {searchQuery && (
               <button
                 onClick={() => { setSearchQuery(""); setSearchResults([]); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 z-30"
               >
                 <X size={16} />
               </button>
@@ -398,7 +474,7 @@ export default function MobileHeader({ menuData }) {
                           >
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm font-bold text-gray-900">
-                                <HighlightMatch text={col.title} query={searchQuery} />
+                                <HighlightMatch text={col.title} query={searchQuery} reverse={true} />
                               </h4>
                               <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mt-1">
                                 Collection
@@ -1033,8 +1109,8 @@ export default function MobileHeader({ menuData }) {
 
   return (
     <div className="bg-white border-b border-gray-200 lg:hidden">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-4">
+      <div className={cn("flex items-center justify-between px-4 py-3", isProductPage && "gap-3")}>
+        <div className={cn("flex items-center shrink-0", isProductPage ? "gap-2.5" : "gap-4")}>
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
               <button className="p-1">
@@ -1121,46 +1197,74 @@ export default function MobileHeader({ menuData }) {
             </SheetContent>
           </Sheet>
 
-          <Link href="/" prefetch={false} className="flex items-center">
-            <Image
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
-              alt="Lucira Jewelry"
-              width={100}
-              height={40}
-              priority
-            />
+          <Link href="/" prefetch={false} className="flex items-center shrink-0">
+            {isProductPage ? (
+              <img
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
+                alt="Lucira Logo"
+                className="w-[24px] h-[36px] object-contain"
+              />
+            ) : (
+              <Image
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
+                alt="Lucira Jewelry"
+                width={100}
+                height={40}
+                priority
+              />
+            )}
           </Link>
         </div>
 
-        <div className="flex items-center gap-4">
-          {isProductPage && (
-            <button onClick={() => setShowSearch(true)} className="p-1">
+        {isProductPage && (
+          <div
+            onClick={() => {
+              pushPromoClick({
+                creative_name: "Search Bar clicked",
+                location_id: "pdp",
+                promo_id: searchQuery || "",
+                promo_name: window.location.pathname
+              });
+              setShowSearch(true);
+            }}
+            className="grow bg-[#f5f5f5] h-10 px-3 rounded-md flex items-center cursor-pointer overflow-hidden gap-2.5"
+          >
+            <div className="text-gray-500 shrink-0 flex items-center justify-center">
               <SearchIcon />
-            </button>
+            </div>
+            <span className="text-[14px] text-gray-500 font-medium whitespace-nowrap">
+              Search here
+            </span>
+          </div>
+        )}
+
+        <div className={cn("flex items-center shrink-0", isProductPage ? "gap-3" : "gap-4")}>
+          {!isProductPage && (
+            <>
+              <Link href="/schemes" prefetch={false} className="relative w-8 h-8 flex items-center justify-center shrink-0">
+                <img 
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691" 
+                  alt="Scheme" 
+                  className="w-full h-full object-contain"
+                />
+              </Link>
+
+              {user ? (
+                <Link href="/admin" prefetch={false} className="p-1">
+                  <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
+                    {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
+                    <AvatarFallback className="bg-[#5a413f] text-white font-bold text-[10px]">{getInitials(user?.name)}</AvatarFallback>
+                  </Avatar>
+                </Link>
+              ) : (
+                <button onClick={handleAuthTrigger} className="p-1">
+                  <UserIconCustom />
+                </button>
+              )}
+            </>
           )}
 
-          <Link href="/schemes" prefetch={false} className="relative w-8 h-8 flex items-center justify-center shrink-0">
-            <img 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691" 
-              alt="Scheme" 
-              className="w-full h-full object-contain"
-            />
-          </Link>
-
-          {user ? (
-            <Link href="/admin" prefetch={false} className="p-1">
-              <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
-                {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
-                <AvatarFallback className="bg-[#5a413f] text-white font-bold text-[10px]">{getInitials(user?.name)}</AvatarFallback>
-              </Avatar>
-            </Link>
-          ) : (
-            <button onClick={handleAuthTrigger} className="p-1">
-              <UserIconCustom />
-            </button>
-          )}
-
-          <Link href={user ? "/admin/wishlist" : "#"} prefetch={false} onClick={!user ? handleAuthTrigger : undefined} className="relative">
+          <Link href={user ? "/admin/wishlist" : "#"} prefetch={false} onClick={!user ? handleAuthTrigger : undefined} className="relative p-1">
             <HeartIcon />
             {wishlistItems.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
@@ -1168,7 +1272,7 @@ export default function MobileHeader({ menuData }) {
               </span>
             )}
           </Link>
-          <Link href="/checkout/cart" prefetch={false} onClick={handleCartClick} className="relative">
+          <Link href="/checkout/cart" prefetch={false} onClick={handleCartClick} className="relative p-1">
             <CartIcon />
             {displayQuantity > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
