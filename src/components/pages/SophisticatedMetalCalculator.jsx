@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Calendar, Search, X, ChevronDown, Check } from "lucide-react";
 import { fetchLocalRates } from "@/lib/api";
 
@@ -173,7 +174,11 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
         },
         {
           label: "18K Gold /g",
-          price: Math.round((Number(activeRates.gold_price_24k) / 10) * 18 / 24),
+          price: Math.round(
+            activeRates.gold_price_18k
+              ? Number(activeRates.gold_price_18k) / 10
+              : (Number(activeRates.gold_price_24k) / 10) * 18 / 24
+          ),
           change: diff18,
         },
       ],
@@ -705,9 +710,9 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
         </div>
       </div>
 
-      {/* CITY SELECTION POPUP MODAL */}
-      {isCityModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in font-figtree">
+      {/* CITY SELECTION POPUP MODAL (portaled to body so it never gets clipped by page transforms/overflow) */}
+      {isCityModalOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in font-figtree">
           <div
             ref={modalRef}
             className="w-full max-w-xl bg-white rounded-2xl border border-[#F2E3C6] shadow-2xl flex flex-col h-[80vh] md:h-[600px] overflow-hidden animate-scale-up"
@@ -765,7 +770,8 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Embedded Animations and Custom Scrollbar Styling */}

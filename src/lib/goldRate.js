@@ -205,7 +205,9 @@ const GOLD_HISTORY_QUERY = `
         rate_24k: field(key: "rate_24k") { value }
         rate_22k: field(key: "rate_22k") { value }
         rate_18k: field(key: "rate_18k") { value }
+        rate_14k: field(key: "rate_14k") { value }
         market_note: field(key: "market_note") { value }
+        is_current: field(key: "is_current_rate") { value }
       }
     }
   }
@@ -231,6 +233,8 @@ export async function getGoldRateHistory(cacheOption = "no-store") {
       r24: parseFloat(val(n.rate_24k)) || 0,
       r22: parseFloat(val(n.rate_22k)) || 0,
       r18: parseFloat(val(n.rate_18k)) || 0,
+      r14: parseFloat(val(n.rate_14k)) || 0,
+      cur: val(n.is_current),
       note: val(n.market_note) || "",
     }))
     .filter((e) => e.date)

@@ -25,19 +25,24 @@ export default function GoldMetaContent({
   const nearbyNote = goldMeta.nearbyCityNote || "";
   const history = Array.isArray(goldMeta.history) ? goldMeta.history : [];
 
+  // Current rate = the gold_rate_history entry flagged is_current (else newest by date),
+  // so gold_rate_history is the single source of truth for these rate tables. Props are fallback.
+  const curEntry = history.find((e) => e.cur === "true") || history[0] || null;
+  const yEntry = history.find((e) => e !== curEntry) || null;
+
   // All rate values are per 10 gram; divide by 10 for per-gram.
-  const r24 = Math.round(Number(rate24k) || 0);
-  const r22 = Math.round(Number(rate22k) || Math.round(r24 * 22 / 24));
-  const r18 = Math.round(r24 * 18 / 24);
-  const r14 = Math.round(r24 * 14 / 24);
+  const r24 = Math.round((curEntry && curEntry.r24) || Number(rate24k) || 0);
+  const r22 = Math.round((curEntry && curEntry.r22) || Number(rate22k) || Math.round(r24 * 22 / 24));
+  const r18 = Math.round((curEntry && curEntry.r18) || Math.round(r24 * 18 / 24));
+  const r14 = Math.round((curEntry && curEntry.r14) || Math.round(r24 * 14 / 24));
   const per10 = { "24": r24, "22": r22, "18": r18, "14": r14 };
   const g = (k) => Math.round(per10[k] / 10); // per gram
   const fmt = (v) => "₹" + Math.round(v).toLocaleString("en-IN");
   const wt = (k, grams) => fmt(g(k) * grams);
 
-  const y24 = Math.round(Number(rate24kYesterday) || 0);
-  const y22 = Math.round(y24 * 22 / 24);
-  const y18 = Math.round(y24 * 18 / 24);
+  const y24 = Math.round((yEntry && yEntry.r24) || Number(rate24kYesterday) || 0);
+  const y22 = Math.round((yEntry && yEntry.r22) || (y24 * 22 / 24));
+  const y18 = Math.round((yEntry && yEntry.r18) || (y24 * 18 / 24));
 
   // Content blocks keyed by slug
   const bySlug = {};
