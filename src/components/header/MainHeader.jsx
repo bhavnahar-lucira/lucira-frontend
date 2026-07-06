@@ -425,6 +425,17 @@ export default function MainHeader() {
         {/* Right Icons */}
         <div className="flex items-center justify-end ml-auto lg:gap-3 xl:gap-6 text-sm">
 
+          {!pathname?.startsWith("/build-your-jewelry") && (
+            <Link href="/build-your-jewelry" prefetch={false} className="hidden lg:inline-flex items-center gap-2 bg-transparent border-[1.5px] border-[#5A413F] text-[#5A413F] px-4 xl:px-[22px] py-[8px] xl:py-[10px] text-[11px] xl:text-[13px] font-semibold tracking-[0.5px] uppercase rounded-[6px] cursor-pointer transition-all duration-200 hover:bg-[#5A413F] hover:text-white active:scale-[0.98] shrink-0">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 transition-colors duration-200">
+                <path d="M6 3h12l4 6-10 12L2 9z"/>
+                <path d="M11 3 8 9l4 12 4-12-3-6"/>
+                <path d="M2 9h20"/>
+              </svg>
+              Build Your Jewelry
+            </Link>
+          )}
+
           <Link href="/schemes" prefetch={false} className="hidden lg:flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shrink-0">
             <img
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257664.png?v=1781505570"
