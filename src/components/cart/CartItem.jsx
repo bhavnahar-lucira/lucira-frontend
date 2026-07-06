@@ -21,7 +21,65 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check } from "lucide-react";
+import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
+
+const VIDEO_CALL_URL = "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0";
+
+// FOMO strip shown below in-stock cart items — lets the shopper book a live video call.
+function ViewLiveStrip() {
+  return (
+    <a
+      href={VIDEO_CALL_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2.5 lg:gap-3 border-t border-black/5 px-3.5 py-2.5 lg:px-4 lg:py-3 transition-opacity hover:opacity-95"
+      style={{ background: "linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)" }}
+    >
+      <span className="relative h-9 w-9 lg:h-10 lg:w-10 shrink-0 overflow-hidden rounded-full bg-white shadow-sm">
+        <Image
+          src="/images/explore/VirtualTryOn.jpg"
+          alt="Lucira consultant"
+          fill
+          sizes="40px"
+          className="object-cover"
+        />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-figtree font-medium text-[13px] lg:text-[15px] leading-[1.3] text-[#3D2B28] truncate">
+          Shop with Complete Confidence
+        </p>
+        <p className="font-figtree font-normal text-[11px] lg:text-[13px] leading-[1.3] text-[#6B5B54] truncate">
+          See every detail before you buy.
+        </p>
+      </div>
+      <span className="flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-9 lg:h-10 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[11px] lg:text-[13px] text-white">
+        <Video size={16} />
+        View Live
+      </span>
+    </a>
+  );
+}
+
+// FOMO band showing how many shoppers wishlisted this design.
+function WishlistBadge({ count, compact = false, className = "" }) {
+  const s = compact ? 13 : 16;
+  return (
+    <div className={`flex items-center gap-1.5 rounded-lg bg-rose-100/95 backdrop-blur-sm ${compact ? "px-2.5 py-1" : "px-3 py-1.5"} ${className}`}>
+      <svg width={s} height={s} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
+        <defs>
+          <linearGradient id="lucira-wishlist-heart" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#FF5CA0" />
+            <stop offset="100%" stopColor="#FB1D4A" />
+          </linearGradient>
+        </defs>
+        <path d="M12 20.7C6.1 16.9 2 13.3 2 9.3 2 6.6 4.1 4.7 6.7 4.7c1.7 0 3.3.8 4.3 2.2 1-1.4 2.6-2.2 4.3-2.2C21 4.7 22 6.6 22 9.3c0 4-4.1 7.6-10 11.4z" fill="url(#lucira-wishlist-heart)" />
+      </svg>
+      <span className={`font-semibold text-rose-500 whitespace-nowrap ${compact ? "text-[11px]" : "text-[13px]"}`}>
+        {count} Wishlisted
+      </span>
+    </div>
+  );
+}
 
 export default function CartItem({ item, onAuthRequired }) {
   const dispatch = useDispatch();
@@ -79,6 +137,15 @@ export default function CartItem({ item, onAuthRequired }) {
   }, [variantOptions, item.variantId, item.size, item.color, item.karat]);
 
   const isInStock = currentVariant?.inStock ?? item.inStock ?? true;
+
+  // Dummy-but-stable "wishlisted" count for social proof (deterministic per product)
+  const wishlistCount = useMemo(() => {
+    const seed = String(productId || item.sku || item.title || "");
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    const buckets = ["850+", "1.2K+", "1.5K+", "2K+", "2.4K+", "3K+", "3.6K+", "4.2K+"];
+    return buckets[hash % buckets.length];
+  }, [productId, item.sku, item.title]);
 
   const sizeOptions = useMemo(() => {
     if (variantOptions.length > 0) return variantOptions;
@@ -301,7 +368,7 @@ export default function CartItem({ item, onAuthRequired }) {
 
           <Link prefetch={false}
             href={productLink}
-            className="aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
+            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
           >
             <Image
               loader={isShopifyImage ? shopifyLoader : undefined}
@@ -311,6 +378,7 @@ export default function CartItem({ item, onAuthRequired }) {
               height={200}
               className="h-full w-full object-contain mix-blend-multiply"
             />
+            <WishlistBadge count={wishlistCount} className="absolute inset-x-2 bottom-2 z-10 shadow-sm" />
           </Link>
 
           <div className="grow space-y-4">
@@ -471,6 +539,9 @@ export default function CartItem({ item, onAuthRequired }) {
             Move to Wishlist
           </button>
         </div>
+
+        {/* View Live strip (in-stock only) */}
+        {isInStock && <ViewLiveStrip />}
       </div>
 
       {/* MOBILE DESIGN (< 1024px) */}
@@ -495,9 +566,10 @@ export default function CartItem({ item, onAuthRequired }) {
                   className="h-full w-full object-contain mix-blend-multiply"
                 />
               </Link>
-              <div className="w-full absolute bottom-0 flex items-center justify-center px-1 py-0.5 bg-white/90 border border-zinc-100 whitespace-nowrap">
-                <span className={`text-[8px] font-bold uppercase ${statusClass}`}>{statusLabel}</span>
-              </div>
+              <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white/90 border border-zinc-100 px-1.5 py-0.5 text-[8px] font-bold uppercase ${statusClass}`}>
+                {statusLabel}
+              </span>
+              <WishlistBadge count={wishlistCount} compact className="absolute inset-x-1.5 bottom-1.5 z-10 shadow-sm" />
             </div>
 
             {/* Info Content */}
@@ -617,6 +689,9 @@ export default function CartItem({ item, onAuthRequired }) {
             </button>
           </div>
         </div>
+
+        {/* View Live strip (in-stock only) */}
+        {isInStock && <ViewLiveStrip />}
       </div>
 
       {/* Remove / Move to Wishlist Modal */}
