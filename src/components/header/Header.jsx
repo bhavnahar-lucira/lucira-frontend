@@ -73,9 +73,9 @@ export default function Header({ menuData }) {
         {/* Main Header */}
         <motion.div
           animate={{
-            height: "auto",
-            opacity: 1,
-            visibility: "visible",
+            height: (!isBuildYourJewelry && hideTop) ? 0 : "auto",
+            opacity: (!isBuildYourJewelry && hideTop) ? 0 : 1,
+            visibility: (!isBuildYourJewelry && hideTop) ? "hidden" : "visible",
           }}
           transition={{ duration: 0.25 }}
           className={cn("relative z-20", (!isBuildYourJewelry && hideTop) ? "overflow-hidden" : "overflow-visible")}
