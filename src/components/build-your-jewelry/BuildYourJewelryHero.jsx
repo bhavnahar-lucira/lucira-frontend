@@ -27,8 +27,9 @@ const BuildYourJewelryHero = () => {
     <section className="bg-[#FEF5F1] w-full">
       <div 
         className="pt-0 pb-[60px] md:py-[60px] md:bg-[url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/4298bdee-8fdd-49be-859e-300dc1a1c7aew.png?v=1780381414')] bg-no-repeat bg-left-top bg-contain"
+        style={{ height: '100vh' }}
       >
-        <div className="grid grid-cols-1 md:grid-cols-[45%_55%] max-w-[1440px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-[45%_55%] max-w-[1440px] mx-auto h-full items-center">
           {/* Image Column - Hidden on desktop (using background instead), visible on mobile */}
           <div className="md:hidden w-full">
             <Image 
@@ -59,7 +60,7 @@ const BuildYourJewelryHero = () => {
             <div className="grid grid-cols-3 gap-3 md:gap-5 mt-0 md:mt-11 pr-0 md:pr-[4.4rem] pl-0 md:pl-[30px]">
               {categories.map((cat, index) => (
                 <Link key={index} href={cat.href} className="flex flex-col items-center group">
-                  <div className="w-full h-[120px] md:h-[220px] relative overflow-hidden rounded-[5px]">
+                  <div className="w-full h-[150px] md:h-[280px] relative overflow-hidden rounded-[5px]">
                     <Image 
                       src={cat.image} 
                       alt={cat.title} 
