@@ -12,7 +12,7 @@ import {
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
-import { pushRemoveFromCart, pushAddToWishlist, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
+import { pushRemoveFromCart, pushAddToWishlist, pushPromoClick, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import {
   Select,
   SelectContent,
@@ -35,11 +35,25 @@ function buildVideoCallUrl(productName, sku) {
 
 // FOMO strip shown below in-stock cart items — lets the shopper book a live video call.
 function ViewLiveStrip({ productName, sku }) {
+  const handleViewLiveClick = () => {
+    try {
+      pushPromoClick({
+        creative_name: "view_live_cta_checkout",
+        location_id: "checkout page",
+        promo_id: productName || sku || "",
+        promo_name: "View Live",
+      });
+    } catch (e) {
+      console.error("promoClick push failed", e);
+    }
+  };
+
   return (
     <a
       href={buildVideoCallUrl(productName, sku)}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleViewLiveClick}
       className="flex items-center gap-2.5 lg:gap-3 border-t border-black/5 px-3.5 py-2.5 lg:px-4 lg:py-3 transition-opacity hover:opacity-95"
       style={{ background: "linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)" }}
     >
