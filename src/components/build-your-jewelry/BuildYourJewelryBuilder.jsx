@@ -900,7 +900,8 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
           const file = new File([u8arr], `byj_${groupId}.png`, {type:mime});
           const uploadedUrl = await uploadToShopify(file);
           if (uploadedUrl) {
-            properties['Design Preview'] = uploadedUrl;
+            properties['_Preview Design'] = uploadedUrl;
+            properties['_byj_preview'] = uploadedUrl;
           }
         }
       } catch (err) {
