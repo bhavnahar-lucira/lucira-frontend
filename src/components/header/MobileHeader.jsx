@@ -962,6 +962,15 @@ export default function MobileHeader({ menuData }) {
         </div>
 
         <div className="mt-4 space-y-6">
+          <div className="px-4">
+            <Link href="/build-your-jewelry" onClick={() => setIsMenuOpen(false)} className="block w-full">
+              <img 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Build_Your_Jewelry_Mobile_Menu_Bar_Upscale_jpg.jpg?v=1783416048" 
+                alt="Build Your Jewelry" 
+                className="w-full h-auto rounded-[4px] object-cover" 
+              />
+            </Link>
+          </div>
           <div className="bg-[#FAF6F3] mx-4 p-4 space-y-4 rounded-lg">
             <button
               onClick={() => {

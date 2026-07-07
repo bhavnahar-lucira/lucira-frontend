@@ -426,16 +426,11 @@ export default function MainHeader() {
         <div className="flex items-center justify-end ml-auto lg:gap-3 xl:gap-6 text-sm">
 
           {!pathname?.startsWith("/build-your-jewelry") && (
-            <Link href="/build-your-jewelry" prefetch={false} className="hidden lg:inline-flex btn-shimmer-container px-[14px] xl:px-[18px] py-[6px] xl:py-[8px] gap-1.5 shrink-0 group">
-              <span className="spark__container">
-                <span className="spark"></span>  
-              </span>
-              <span className="backdrop"></span>
-              
+            <Link href="/build-your-jewelry" prefetch={false} className="hidden lg:inline-flex btn-shimmer-container bg-[#FEF5F1] hover:bg-[#5A413F] transition-colors duration-200 px-[14px] xl:px-[18px] py-[6px] xl:py-[8px] gap-1.5 shrink-0 group">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 transition-colors duration-200 z-10 relative icon-rotate-zoom">
                 <path d="M12 6C9.99602 6 6 9.99602 6 12C6 9.99602 2.00398 6 0 6C2.00398 6 6 2.00398 6 0C6 1.99205 9.99602 6 12 6Z" fill="currentColor"/>
               </svg>
-              <span className="font-figtree font-normal text-[14px] leading-[130%] tracking-normal capitalize z-10 relative">
+              <span className="font-figtree font-semibold text-sm leading-[130%] tracking-normal capitalize z-10 relative">
                 Build Your Jewelry
               </span>
             </Link>

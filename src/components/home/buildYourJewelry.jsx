@@ -9,7 +9,7 @@ export default function BuildYourJewelry() {
                 {/* Desktop Banner */}
                 <div className="hidden md:block w-full">
                     <Image
-                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/byj-desktop-banner.jpg?v=1783335266"
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Build_Your_Jewelry_Desktop_Upscale_jpg.jpg?v=1783416047"
                         alt="Build Your Jewelry"
                         width={1920}
                         height={600}
@@ -20,7 +20,7 @@ export default function BuildYourJewelry() {
                 {/* Mobile Banner */}
                 <div className="block md:hidden w-full">
                     <Image
-                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/byj-mobile-banner.jpg?v=1783335278"
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Build_Your_Jewelry_Mobile_Upscale_jpg.jpg?v=1783416048"
                         alt="Build Your Jewelry"
                         width={768}
                         height={800}

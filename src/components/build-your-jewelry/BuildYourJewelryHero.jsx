@@ -46,17 +46,17 @@ const BuildYourJewelryHero = () => {
 
           {/* Content Column */}
           <div className="flex flex-col text-center px-5 md:px-0 pt-[50px] md:pt-0">
-            <div className="subtitle text-[#5A413F] font-medium text-[14px] leading-[100%] uppercase mb-3">
+            <div className="subtitle text-[#5A413F] font-medium text-[14px] lg:max-[1440px]:text-[12px] leading-[100%] uppercase mb-3 lg:max-[1440px]:m-[2px]">
               Your Story, Your Sparkle
             </div>
-            <h1 className="font-abhaya font-bold text-[32px] md:text-[60px] leading-[0.9] text-[#481a19] max-w-[350px] md:max-w-[415px] mx-auto mt-3 md:mt-5">
+            <h1 className="font-abhaya font-bold text-[32px] md:text-[60px] lg:max-[1440px]:text-[48px] leading-[0.9] text-[#481a19] max-w-[350px] md:max-w-[415px] lg:max-[1440px]:max-w-[300px] mx-auto mt-3 md:mt-5">
               For Every Chapter of You
             </h1>
-            <p className="font-figtree text-[14px] md:text-[16px] leading-[1.5] text-[#1A1A1A] max-w-[655px] mx-auto mt-3 md:mt-4 mb-7">
+            <p className="font-figtree text-[14px] md:text-[16px] lg:max-[1440px]:text-[14px] leading-[1.5] text-[#1A1A1A] max-w-[655px] lg:max-[1440px]:max-w-[520px] mx-auto mt-3 md:mt-4 mb-7">
               Design your own personalized lab-grown diamond chain — whether it’s a necklace or bracelet — with our online builder, and celebrate every chapter of your journey with timeless brilliance and meaningful charms.
             </p>
             
-            <div className="grid grid-cols-2 gap-3 md:gap-5 mt-0 px-5 md:px-0 max-w-[400px] md:max-w-[550px] min-[1024px]:max-[1600px]:max-w-[400px] mx-auto">
+            <div className="grid grid-cols-2 gap-3 md:gap-5 mt-0 px-5 md:px-0 max-w-[340px] mx-auto">
               {categories.map((cat, index) => (
                 <Link key={index} href={cat.href} className="flex flex-col items-center group w-full">
                   <div className="w-full relative overflow-hidden rounded-[5px]">

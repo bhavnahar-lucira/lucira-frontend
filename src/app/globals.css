@@ -243,7 +243,7 @@
 
 .btn-shimmer-container {
   --speed: 1.2s;
-  --cut: 0.75px;
+  --cut: 1px;
   position: relative;
   overflow: hidden;
   display: inline-flex;
