@@ -145,7 +145,7 @@ const STORES_DATA = {
     city: "Paschim Vihar",
     name: "Paschim Vihar Lucira Store",
     rating: 4.7,
-    openingSoon: true,
+    // openingSoon: true,
     images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },

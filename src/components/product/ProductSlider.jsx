@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { useId } from "react";
 
-export function ProductSlider({ title, subtitle, products = [], preservePriceOnColorChange = false, collectionHandle }) {
+export function ProductSlider({ title, subtitle, products = [], preservePriceOnColorChange = false, collectionHandle, disableLastViewed = false }) {
   const id = useId().replace(/:/g, "");
 
   if (!Array.isArray(products) || products.length === 0) return null;
@@ -64,6 +64,7 @@ export function ProductSlider({ title, subtitle, products = [], preservePriceOnC
                   collectionHandle={collectionHandle}
                   fixedPrice={preservePriceOnColorChange ? product.price : undefined}
                   fixedComparePrice={preservePriceOnColorChange ? (product.compare_price || product.compareAtPrice) : undefined}
+                  disableLastViewed={disableLastViewed}
                 />
               </SwiperSlide>
             ))}

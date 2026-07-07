@@ -12,7 +12,11 @@ import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { pushLogin, pushSignup, pushPromoClick } from "@/lib/gtm";
 import { apiFetch, sendOtpApi, verifyOtpApi, registerCustomer } from "@/lib/api";
 
-export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice, productId }) {
+const generateSessionId = () => {
+  return "session_" + Math.random().toString(36).substring(2, 15);
+};
+
+export default function UnlockCoupon({ user, dispatch, toast, currentPrice, productId }) {
   const [mobile, setMobile] = useState("");
   const [otpValues, setOtpValues] = useState(["", "", "", ""]);
   const [step, setStep] = useState(user ? "unlocked" : "input");
@@ -91,15 +95,15 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
   }, []);
 
   // Sync step if user logs in via another flow (e.g. main login)
-  useEffect(() => {
-    if (user) {
-      setStep("unlocked");
-    } else {
-      setStep("input");
+  const [prevUser, setPrevUser] = useState(user);
+  if (user !== prevUser) {
+    setPrevUser(user);
+    setStep(user ? "unlocked" : "input");
+    if (!user) {
       setMobile("");
       setOtpValues(["", "", "", ""]);
     }
-  }, [user]);
+  }
 
   // Countdown timer for OTP resend (180s = 3 minutes)
   useEffect(() => {
@@ -215,52 +219,9 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
     }
   };
 
-  // Trigger auto-verification when all 4 digits are entered
-  useEffect(() => {
-    const joined = otpValues.join("");
-    if (joined.length === 4 && step === "otp" && !loading) {
-      handleVerifyOtp(joined);
-    }
-  }, [otpValues]);
 
-  const handleVerifyOtp = async (overrideOtp) => {
-    const code = overrideOtp || otpValues.join("");
-    if (code.length !== 4) {
-      return toast.error("Please enter a 4-digit OTP");
-    }
-    setLoading(true);
-    try {
-      const sessionId = "session_" + Math.random().toString(36).substring(2, 15);
-      const data = await verifyOtpApi(mobile, code, sessionId);
 
-      if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
-        const regData = await registerCustomer({
-          firstName: "User",
-          lastName: "Customer",
-          email: `${mobile}@gmail.com`,
-          mobile: mobile,
-          sessionId,
-          tags: "pdp-offers-lead",
-        });
-
-        if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-          await handleLoginSuccess(regData, true);
-        } else {
-          toast.error("Auto-registration failed. Please contact support.");
-        }
-      } else if (data.status === "LOGIN" || data.type === "success" || data.status === "SUCCESS") {
-        await handleLoginSuccess(data, false);
-      } else {
-        toast.error("Verification failed");
-      }
-    } catch (err) {
-      toast.error(err.message || "OTP verification failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLoginSuccess = async (data, isSignup = false) => {
+  async function handleLoginSuccess(data, isSignup = false) {
     const customer = data.user || data.customer;
     const userId = customer?.id;
 
@@ -340,7 +301,55 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
 
     toast.success("Offer Unlocked Successfully!");
     setStep("unlocked");
-  };
+  }
+
+  async function handleVerifyOtp(overrideOtp) {
+    const code = overrideOtp || otpValues.join("");
+    if (code.length !== 4) {
+      return toast.error("Please enter a 4-digit OTP");
+    }
+    setLoading(true);
+    try {
+      const sessionId = generateSessionId();
+      const data = await verifyOtpApi(mobile, code, sessionId);
+
+      if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
+        const regData = await registerCustomer({
+          firstName: "User",
+          lastName: "Customer",
+          email: `${mobile}@gmail.com`,
+          mobile: mobile,
+          sessionId,
+          tags: "pdp-offers-lead",
+        });
+
+        if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+          await handleLoginSuccess(regData, true);
+        } else {
+          toast.error("Auto-registration failed. Please contact support.");
+        }
+      } else if (data.status === "LOGIN" || data.type === "success" || data.status === "SUCCESS") {
+        await handleLoginSuccess(data, false);
+      } else {
+        toast.error("Verification failed");
+      }
+    } catch (err) {
+      toast.error(err.message || "OTP verification failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Trigger auto-verification when all 4 digits are entered
+  useEffect(() => {
+    const joined = otpValues.join("");
+    if (joined.length === 4 && step === "otp" && !loading) {
+      setTimeout(() => {
+        handleVerifyOtp(joined);
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpValues]);
 
   const handleClaimOffer = () => {
     localStorage.setItem("isSilverPendantClaimed", "true");
@@ -400,7 +409,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
           {/* Swiper Slider for Coupons */}
           <Swiper
             slidesPerView="auto"
-            spaceBetween={16}
+            spaceBetween={12}
             className="w-full pt-1"
           >
             {visibleCoupons.map((coupon, idx) => (
@@ -409,6 +418,8 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                   coupon={coupon}
                   onCopy={handleCopyCode}
                   copiedCode={copiedCode}
+                  isMini={true}
+                  className="w-[230px] md:w-[270px]"
                 />
               </SwiperSlide>
             ))}
@@ -430,16 +441,26 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <Input
               id="mobile-input"
               type="tel"
-              maxLength={10}
+              maxLength={15}
               value={mobile}
-              onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              onChange={(e) => {
+                let cleaned = e.target.value.replace(/\D/g, "");
+                if (cleaned.length > 10) {
+                  if (cleaned.startsWith("91")) {
+                    cleaned = cleaned.slice(2);
+                  } else if (cleaned.startsWith("0")) {
+                    cleaned = cleaned.slice(1);
+                  }
+                }
+                setMobile(cleaned.slice(0, 10));
+              }}
               placeholder="Enter Phone Number"
               className="w-full h-[3.0625rem] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pl-3.5 pr-32 md:pr-36 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <button
               onClick={handleSendOtp}
               disabled={mobile.length < 10 || loading}
-              className={`h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-bold md:font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center gap-2 transition-all duration-200 select-none shrink-0 ${
+              className={`h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center gap-2 transition-all duration-200 select-none shrink-0 ${
                 mobile.length === 10 
                   ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
@@ -457,7 +478,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
               ) : (
                 <>
                   <svg width="14" height="15" viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3.29167 5.95833V3.95833C3.29167 3.07428 3.64286 2.22643 4.26798 1.60131C4.8931 0.976189 5.74095 0.625 6.625 0.625C7.50906 0.625 8.3569 0.976189 8.98202 1.60131C9.60714 2.22643 9.95833 3.07428 9.95833 3.95833V5.95833M7.29167 9.95833C7.29167 10.3265 6.99319 10.625 6.625 10.625C6.25681 10.625 5.95833 10.3265 5.95833 9.95833C5.95833 9.59014 6.25681 9.29167 6.625 9.29167C6.99319 9.29167 7.29167 9.59014 7.29167 9.95833ZM1.95833 5.95833H11.2917C12.028 5.95833 12.625 6.55529 12.625 7.29167V12.625C12.625 13.3614 12.028 13.9583 11.2917 13.9583H1.95833C1.22195 13.9583 0.625 13.3614 0.625 12.625V7.29167C0.625 6.55529 1.22195 5.95833 1.95833 5.95833Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M3.29167 5.95833V3.95833C3.29167 3.07428 3.64286 2.22643 4.26798 1.60131C4.8931 0.976189 5.74095 0.625 6.625 0.625C7.50906 0.625 8.3569 0.976189 8.98202 1.60131C9.60714 2.22643 9.95833 3.07428 9.95833 3.95833V5.95833M7.29167 9.95833C7.29167 10.3265 6.99319 10.625 6.625 10.625C6.25681 10.625 5.95833 10.3265 6.625 9.95833C6.625 9.59014 6.25681 9.29167 6.625 9.95833ZM1.95833 5.95833H11.2917C12.028 5.95833 12.625 6.55529 12.625 7.29167V12.625C12.625 13.3614 12.028 13.9583 11.2917 13.9583H1.95833C1.22195 13.9583 0.625 13.3614 0.625 12.625V7.29167C0.625 6.55529 1.22195 5.95833 1.95833 5.95833Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   LOCKED
                 </>
@@ -492,7 +513,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                   onChange={(e) => handleDigitChange(idx, e.target.value)}
                   onKeyDown={(e) => handleDigitKeyDown(idx, e)}
                   onPaste={handleDigitPaste}
-                  className="w-full sm:w-10 h-10 bg-white border border-[#EBEBEB] text-center text-lg font-bold rounded text-zinc-900 focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all"
+                  className="w-full sm:w-10 h-10 bg-white border border-[#EBEBEB] text-center text-lg font-semibold rounded text-zinc-900 focus:outline-none focus:border-[#5C3E35] focus:ring-1 focus:ring-[#5C3E35] transition-all"
                   placeholder="-"
                 />
               ))}
@@ -501,7 +522,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
             <button
               onClick={() => handleVerifyOtp()}
               disabled={otpValues.some((v) => v === "") || loading}
-              className={`w-full sm:w-auto sm:flex-1 h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-bold md:font-semibold leading-[1.4] tracking-normal uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
+              className={`w-full sm:w-auto sm:flex-1 h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-semibold leading-[1.4] tracking-normal uppercase rounded flex items-center justify-center whitespace-nowrap transition-all duration-200 select-none ${
                 !otpValues.some((v) => v === "") 
                   ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer" 
                   : "text-white/80 bg-[#A3908C] cursor-not-allowed"
@@ -541,7 +562,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                 <button
                   onClick={handleSendOtp}
                   disabled={loading}
-                  className="text-[#5C3E35] hover:underline cursor-pointer font-bold"
+                  className="text-[#5C3E35] hover:underline cursor-pointer font-semibold"
                 >
                   Resend OTP
                 </button>
@@ -581,7 +602,7 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
                 </div>
                 <div className="flex items-center justify-between w-full">
                   <h3
-                    className="text-base font-figtree font-bold text-[#5C3E35] tracking-wide uppercase"
+                    className="text-base font-figtree font-semibold text-[#5C3E35] tracking-wide uppercase"
                   >
                     Available Coupons
                   </h3>
@@ -620,18 +641,18 @@ export default function UnlockPendantOffer({ user, dispatch, toast, currentPrice
   );
 }
 
-function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
+function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]", isMini = false }) {
   const isCopied = copiedCode === coupon.code;
 
   return (
-    <div className={`flex h-30 sm:h-30 min-[1500px]:h-30 rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
+    <div className={`flex ${isMini ? 'h-24 md:h-28' : 'h-30 sm:h-30 min-[1500px]:h-30'} rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
-      <div className="w-[40px] bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l">
+      <div className={`${isMini ? 'w-[32px] md:w-[38px]' : 'w-[40px]'} bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l`}>
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
-        <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-[#FFF8F6] rounded-full z-20" />
+        <div className={`absolute ${isMini ? '-left-[5px] w-2.5 h-2.5 md:-left-[6px] md:w-3.5 md:h-3.5' : '-left-[7px] w-3.5 h-3.5'} bg-[#FFF8F6] rounded-full z-20 top-1/2 -translate-y-1/2`} />
         
         <span
-          className="font-figtree font-semibold text-[0.75rem] sm:text-[0.875rem] leading-[1.4] tracking-widest text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle"
+          className={`font-figtree font-semibold ${isMini ? 'text-[9px] md:text-[11px] tracking-wider' : 'text-[0.75rem] sm:text-[0.875rem] tracking-widest'} leading-[1.4] text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle`}
         >
           DISCOUNT
         </span>
@@ -641,17 +662,17 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
       <div className="border-l border-dashed border-[#FBE3DC] h-full z-10" />
 
       {/* Right Content Area (With border on top, right, bottom) */}
-      <div className="flex-1 p-3 flex flex-col justify-between min-w-0 bg-white rounded-r border-y border-r border-[#FBE3DC] relative">
+      <div className={`flex-1 ${isMini ? 'p-2 md:p-3' : 'p-3'} flex flex-col justify-between min-w-0 bg-white rounded-r border-y border-r border-[#FBE3DC] relative`}>
         {/* Top Info & Vertical Capsule Logo */}
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
             <h4 
-              className="text-[1rem] sm:text-[1.1rem] font-extrabold text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree font-semibold"
+              className={`${isMini ? 'text-[0.8rem] md:text-[0.95rem] font-semibold' : 'text-[1rem] sm:text-[1.1rem] font-semibold'} text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree`}
             >
               {coupon.title}
             </h4>
             <span 
-              className="text-[0.7rem] sm:text-[0.75rem] font-medium text-black block truncate mt-[2px] font-figtree font-normal leading-[1.4] tracking-normal text-black"
+              className={`${isMini ? 'text-[0.625rem] md:text-[0.725rem] font-normal md:font-medium' : 'text-[0.7rem] sm:text-[0.75rem] font-medium'} text-black block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal`}
             >
               {coupon.condition}
             </span>
@@ -661,14 +682,14 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
           <img
             src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
             alt="Lucira Logo"
-            className="w-[24px] h-[36px] object-contain shrink-0 mt-0.5"
+            className={`${isMini ? 'w-[18px] h-[28px] md:w-[22px] md:h-[32px]' : 'w-[24px] h-[36px]'} object-contain shrink-0 mt-0.5`}
           />
         </div>
 
         {/* Copy Coupon Action Button Box */}
         <button
           onClick={() => onCopy(coupon.code)}
-          className={`w-full h-8 flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-bold text-[0.875rem] uppercase tracking-normal font-figtree font-medium leading-[1.4] px-[12px] ${
+          className={`w-full ${isMini ? 'h-7 md:h-8 text-[0.75rem] md:text-[0.85rem] px-[8px] md:px-[12px]' : 'h-8 text-[0.875rem] px-[12px]'} flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-semibold uppercase tracking-normal font-figtree leading-[1.4] ${
             isCopied 
               ? "bg-emerald-50/50 border-emerald-200 text-emerald-600" 
               : "bg-white border-[#EBEBEB] text-[#1A1A1A] hover:bg-[#FFF8F6] hover:border-[#FBE3DC]"
@@ -677,12 +698,12 @@ function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]" }) {
           {isCopied ? (
             <>
               <span className="lowercase first-letter:uppercase">copied</span>
-              <CheckCircle size={12} className="text-emerald-600 animate-scale-in" />
+              <CheckCircle className={`${isMini ? 'w-2.5 h-2.5 md:w-3.5 md:h-3.5' : 'w-3.5 h-3.5'} text-emerald-600 animate-scale-in shrink-0`} />
             </>
           ) : (
             <>
               <span className="normal-case">Copy Coupon Code</span>
-              <Copy size={11} className="text-[#5C3E35] ml-1" />
+              <Copy className={`${isMini ? 'w-2.5 h-2.5 md:w-3 md:h-3' : 'w-3 h-3'} text-[#5C3E35] ml-1 shrink-0`} />
             </>
           )}
         </button>
