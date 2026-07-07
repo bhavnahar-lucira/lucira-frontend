@@ -245,7 +245,7 @@ export const pushAddToWishlist = (data) => {
   const productData = Array.isArray(data) ? data[0] : data;
   pushToDataLayer({
     event: "addToWishlist",
-    product: productData
+    products: productData
   });
 };
 
