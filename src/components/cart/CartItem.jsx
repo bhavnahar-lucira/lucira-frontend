@@ -555,7 +555,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               </div>
 
               {/* Row 3: Stone (If diamondTotalPcs > 0) */}
-              {item.diamondTotalPcs > 0 && (
+              {/* {item.diamondTotalPcs > 0 && (
                 <div className="flex border-b border-zinc-100 min-h-[44px]">
                   <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
                     Stone
@@ -564,7 +564,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                     {item.diamondTotalPcs} Diamond{item.diamondCarat ? `, ${item.diamondCarat} Carat` : ''}{item.diamondQuality ? `, ${item.diamondQuality}` : ''}
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* Row 4: Status */}
               <div className="flex min-h-[44px]">
