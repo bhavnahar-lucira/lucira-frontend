@@ -110,13 +110,13 @@ export default async function Home() {
         <StyledByLucira />
       </Suspense>
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <BuildYourJewelry />
-      </Suspense>
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <LuxuryMarquee prop={["bg-[#FEF5F1]", "text-[#000000]", "icon-[#5A413F]", "mt-5", "lg:mt-15", "text-lg", "font-semibold"]} />
       </Suspense>
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <ShopByOccasion />
+      </Suspense>
+      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+        <BuildYourJewelry />
       </Suspense>
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <FeaturedIn />
