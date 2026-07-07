@@ -9,7 +9,7 @@ import Konva from 'konva';
 import { shopifyStorefrontFetch } from '@/lib/shopify-client';
 import { useCart } from '@/hooks/useCart';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { cn } from '@/lib/utils';
+import { cn, uploadToShopify } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronRight } from 'lucide-react';
 
@@ -886,6 +886,26 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         '_byj_style_price': styleV.price,
         '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ title: c.fullTitle, price: c.price, qty: c.qty, img: c.img, sku: c.sku })))
       };
+
+      try {
+        if (canvasPreview) {
+          const arr = canvasPreview.split(',');
+          const mime = arr[0].match(/:(.*?);/)[1];
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while(n--){
+              u8arr[n] = bstr.charCodeAt(n);
+          }
+          const file = new File([u8arr], `byj_${groupId}.png`, {type:mime});
+          const uploadedUrl = await uploadToShopify(file);
+          if (uploadedUrl) {
+            properties['Design Preview'] = uploadedUrl;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to upload preview image to Shopify:', err);
+      }
 
       const mainItem = {
         id: styleV.id,
