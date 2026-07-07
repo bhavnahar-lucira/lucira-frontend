@@ -26,10 +26,9 @@ const BuildYourJewelryHero = () => {
   return (
     <section className="bg-[#FEF5F1] w-full">
       <div 
-        className="pt-0 pb-[60px] md:py-[60px] md:bg-[url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/4298bdee-8fdd-49be-859e-300dc1a1c7aew.png?v=1780381414')] bg-no-repeat bg-left-top bg-contain"
-        style={{ height: '100vh' }}
+        className="pt-0 pb-[60px] md:py-[60px] md:bg-[url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/4298bdee-8fdd-49be-859e-300dc1a1c7aew.png?v=1780381414')] bg-no-repeat bg-left-top bg-contain h-[100vh] min-[1024px]:max-[1600px]:h-full"
       >
-        <div className="grid grid-cols-1 md:grid-cols-[45%_55%] max-w-[1440px] mx-auto h-full items-center">
+        <div className="grid grid-cols-1 md:grid-cols-[45%_55%] max-w-[1440px] mx-auto h-full items-center min-[1024px]:max-[1600px]:px-12">
           {/* Image Column - Hidden on desktop (using background instead), visible on mobile */}
           <div className="md:hidden w-full">
             <Image 
@@ -57,7 +56,7 @@ const BuildYourJewelryHero = () => {
               Design your own personalized lab-grown diamond chain — whether it’s a necklace or bracelet — with our online builder, and celebrate every chapter of your journey with timeless brilliance and meaningful charms.
             </p>
             
-            <div className="grid grid-cols-2 gap-3 md:gap-5 mt-0 px-5 md:px-0 max-w-[400px] md:max-w-[550px] mx-auto">
+            <div className="grid grid-cols-2 gap-3 md:gap-5 mt-0 px-5 md:px-0 max-w-[400px] md:max-w-[550px] min-[1024px]:max-[1600px]:max-w-[400px] mx-auto">
               {categories.map((cat, index) => (
                 <Link key={index} href={cat.href} className="flex flex-col items-center group w-full">
                   <div className="w-full relative overflow-hidden rounded-[5px]">
