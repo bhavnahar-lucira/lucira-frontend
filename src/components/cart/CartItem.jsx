@@ -23,13 +23,21 @@ import {
 
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, ShoppingBag, ShoppingCart } from "lucide-react";
 
-const VIDEO_CALL_URL = "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0";
+// Builds the WhatsApp "schedule video call" link, including the product name/SKU for context.
+function buildVideoCallUrl(productName, sku) {
+  let message = "Hi, I want to schedule a video call";
+  if (productName) {
+    message += ` for ${productName}`;
+    if (sku) message += ` (SKU: ${sku})`;
+  }
+  return `https://api.whatsapp.com/send/?phone=919004435760&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+}
 
 // FOMO strip shown below in-stock cart items — lets the shopper book a live video call.
-function ViewLiveStrip() {
+function ViewLiveStrip({ productName, sku }) {
   return (
     <a
-      href={VIDEO_CALL_URL}
+      href={buildVideoCallUrl(productName, sku)}
       target="_blank"
       rel="noopener noreferrer"
       className="flex items-center gap-2.5 lg:gap-3 border-t border-black/5 px-3.5 py-2.5 lg:px-4 lg:py-3 transition-opacity hover:opacity-95"
@@ -92,9 +100,9 @@ function formatSocialCount(n) {
 function buildSocialMetrics(sp) {
   if (!sp) return [];
   const metrics = [];
-  if (sp.orders > 0)    metrics.push({ key: "orders",   label: "Orders",      value: sp.orders * SOCIAL_PROOF_AMPLIFY });
-  if (sp.addToCart > 0) metrics.push({ key: "cart",     label: "in Carts",    value: sp.addToCart * SOCIAL_PROOF_AMPLIFY });
-  if (sp.wishlist > 0)  metrics.push({ key: "wishlist", label: "Wishlisted",  value: sp.wishlist * SOCIAL_PROOF_AMPLIFY });
+  if (sp.orders > 0) metrics.push({ key: "orders", label: "Orders", value: sp.orders * SOCIAL_PROOF_AMPLIFY });
+  if (sp.addToCart > 0) metrics.push({ key: "cart", label: "in Carts", value: sp.addToCart * SOCIAL_PROOF_AMPLIFY });
+  if (sp.wishlist > 0) metrics.push({ key: "wishlist", label: "Wishlisted", value: sp.wishlist * SOCIAL_PROOF_AMPLIFY });
   return metrics;
 }
 
@@ -592,7 +600,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
         </div>
 
         {/* View Live strip (in-stock only) */}
-        {isInStock && <ViewLiveStrip />}
+        {isInStock && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
       </div>
 
       {/* MOBILE DESIGN (< 1024px) */}
@@ -742,7 +750,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
         </div>
 
         {/* View Live strip (in-stock only) */}
-        {isInStock && <ViewLiveStrip />}
+        {isInStock && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
       </div>
 
       {/* Remove / Move to Wishlist Modal */}

@@ -185,6 +185,35 @@ const stores = [
     address:
       "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",
   },
+  {
+    city: "Delhi",
+    name: "Paschim Vihar Lucira Store",
+    rating: 4.7,
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633",
+    storeHours: {
+      weekday: { open: "10:30", close: "22:00" },
+      weekend: { open: "10:30", close: "22:00" },
+    },
+    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D",
+    callLink: "tel:+917208007494",
+    designLink: "/collections/paschim-vihar",
+    appointmentLink: "https://wa.me/917208007494?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Paschim%20Vihar%20Store",
+    facilities: [
+      "Open on Weekends",
+      "Banks Nearby",
+      "Parking Availability",
+      "Daily Offers",
+      "Piercing"
+    ],
+    services: [
+      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
+      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
+    ],
+    address:
+      "B-8, Shubham Enclave, Paschim Vihar, New Delhi -110063.",
+  },
 ];
 
 function ServiceCard({ item }) {
