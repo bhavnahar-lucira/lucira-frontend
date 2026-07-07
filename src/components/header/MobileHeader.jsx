@@ -203,6 +203,11 @@ export default function MobileHeader({ menuData }) {
   const { totalQuantity, items, totalAmount } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [activeMenuPath, setActiveMenuPath] = useState([]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [menuDirection, setMenuDirection] = useState(1);
@@ -1068,7 +1073,7 @@ export default function MobileHeader({ menuData }) {
           </div>
 
           <div className="px-4 pb-8">
-            {user ? (
+            {(isMounted && user) ? (
               <button onClick={handleLogout} className="w-full bg-[#4E3E3E] text-white py-4 rounded font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-2">
                 <LogOut size={20} /> Logout
               </button>
@@ -1120,7 +1125,7 @@ export default function MobileHeader({ menuData }) {
                     )}
                   </div>
                   <div className="flex items-center gap-4">
-                    {user ? (
+                    {(isMounted && user) ? (
                       <Link href="/admin" prefetch={false} onClick={() => setIsMenuOpen(false)} className="p-1">
                         <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                           {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
@@ -1134,7 +1139,7 @@ export default function MobileHeader({ menuData }) {
                     )}
                       <Link href="/checkout/cart" prefetch={false} onClick={() => { setIsMenuOpen(false); handleCartClick(); }} className="relative p-1">
                       <CartIcon />
-                      {totalQuantity > 0 && (
+                      {(isMounted && totalQuantity > 0) && (
                         <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
                           {totalQuantity}
                         </span>
@@ -1227,7 +1232,7 @@ export default function MobileHeader({ menuData }) {
                 />
               </Link>
 
-              {user ? (
+              {(isMounted && user) ? (
                 <Link href="/admin" prefetch={false} className="p-1">
                   <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                     {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
@@ -1244,7 +1249,7 @@ export default function MobileHeader({ menuData }) {
 
           <Link href={user ? "/admin/wishlist" : "#"} prefetch={false} onClick={!user ? handleAuthTrigger : undefined} className="relative p-1">
             <HeartIcon />
-            {wishlistItems.length > 0 && (
+            {(isMounted && wishlistItems.length > 0) && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
                 {wishlistItems.length}
               </span>
@@ -1252,7 +1257,7 @@ export default function MobileHeader({ menuData }) {
           </Link>
           <Link href="/checkout/cart" prefetch={false} onClick={handleCartClick} className="relative p-1">
             <CartIcon />
-            {totalQuantity > 0 && (
+            {(isMounted && totalQuantity > 0) && (
               <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
                 {totalQuantity}
               </span>

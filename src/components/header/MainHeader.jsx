@@ -97,6 +97,11 @@ export default function MainHeader() {
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Filter out non-product items (Insurance, Free Gold Coins) to match Cart Page count
   const displayItems = (items || []).filter(
     (item) =>
@@ -442,7 +447,7 @@ export default function MainHeader() {
             <span>Find a Store</span>
           </Link>
 
-          {user ? (
+          {(isMounted && user) ? (
             <div className="relative group flex items-center" id="nitro-login">
               <Link href="/admin" prefetch={false}>
                 <Avatar className="h-9 w-9 cursor-pointer border border-gray-100">
@@ -488,10 +493,10 @@ export default function MainHeader() {
             </div>
           )}
 
-          {user ? (
+          {(isMounted && user) ? (
             <Link href="/admin/wishlist" prefetch={false} className="relative group p-1">
               <HeartIcon />
-              {wishlistItems.length > 0 && (
+              {(isMounted && wishlistItems.length > 0) && (
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
                   {wishlistItems.length}
                 </span>
@@ -509,7 +514,7 @@ export default function MainHeader() {
               className="relative group p-1"
             >
               <HeartIcon />
-              {wishlistItems.length > 0 && (
+              {(isMounted && wishlistItems.length > 0) && (
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
                   {wishlistItems.length}
                 </span>
@@ -523,7 +528,7 @@ export default function MainHeader() {
             onClick={handleCartClick}
           >
             <CartIcon />
-            {displayQuantity > 0 && (
+            {(isMounted && displayQuantity > 0) && (
               <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center">
                 {displayQuantity}
               </span>

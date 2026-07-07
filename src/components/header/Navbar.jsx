@@ -9,7 +9,7 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { transformMenuData } from "@/lib/menus";
 
-export default function Navbar({ hideTop, menuData }) {
+export default function Navbar({ menuData }) {
   const MEGA_MENU = useMemo(() => transformMenuData(menuData), [menuData]);
   const [activeMenu, setActiveMenu] = useState(null);
   const pathname = usePathname();
@@ -64,33 +64,6 @@ export default function Navbar({ hideTop, menuData }) {
   return (
     <nav className="relative bg-white border-b border-gray-100 z-[90]">
       <div className="container-main relative flex items-center min-h-[40px] justify-center">
-        {/* Sticky Logo - Absolute positioned to align with main logo */}
-        <div className="absolute left-4 lg:left-17 top-1/2 -translate-y-1/2">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{
-              opacity: hideTop ? 1 : 0,
-              scale: hideTop ? 1 : 0.8,
-            }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            className={cn(
-              "overflow-hidden flex-shrink-0",
-              hideTop ? "pointer-events-auto" : "pointer-events-none"
-            )}
-          >
-            <Link href="/" prefetch={false} className="block">
-              <Image
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/dark_brown_Logo_icon_2.svg?v=1777366090"
-                alt="Lucira Jewelry"
-                width={40}
-                height={40}
-                className="w-8 h-8 lg:w-9 lg:h-9 object-contain"
-                unoptimized={true}
-              />
-            </Link>
-
-          </motion.div>
-        </div>
 
         {/* Navigation Menu - Stays centered */}
         <ul className="flex items-center lg:text-xs xl:text-sm uppercase transition-all duration-300 gap-8">

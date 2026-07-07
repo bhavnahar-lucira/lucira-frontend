@@ -208,25 +208,7 @@ export default function WaysToExplore() {
         )}
       </div>
 
-      <style jsx global>{`
-        .explore-pagination .swiper-pagination-bullet {
-          width: 8px;
-          height: 8px;
-          background: #D1D1D1;
-          opacity: 1;
-          border-radius: 4px;
-          transition: all 0.3s ease;
-        }
-        .explore-pagination .swiper-pagination-bullet-active {
-          width: 24px;
-          background: #000;
-        }
-        @media (min-width: 768px) {
-          .explore-pagination .swiper-pagination-bullet-active {
-            width: 24px;
-          }
-        }
-      `}</style>
+
     </section>
   );
 }

@@ -178,6 +178,11 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const guestWishlist = useSelector((state) => state.wishlist.guestItems);
   const recentlyViewed = useSelector((state) => state.recentlyViewed?.products || []);
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const productId = String(product.shopifyId || product.id);
 
   const isRecentlyViewed = useMemo(() => {
@@ -537,7 +542,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             </Link>
 
             {/* Recently Viewed Hover Overlay */}
-            {!disableLastViewed && isRecentlyViewed && (
+            {!disableLastViewed && isMounted && isRecentlyViewed && (
               <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-sm">
                 <span className="text-white font-figtree font-bold text-xs sm:text-sm tracking-widest uppercase">
                   LAST VIEWED
@@ -667,7 +672,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               }}
               className={`absolute top-0 right-1 lg:top-2 lg:right-4 z-10 px-1.5 py-1 lg:p-1.5 transition-transform duration-200 ${isWishlistAnimating ? "scale-110" : ""}`}
             >
-              <Heart fill={isWishlisted ? "currentColor" : "none"} className={`${isWishlisted ? "text-rose-500 w-5 lg:w-6" : "text-black"} stroke-[1.5px] w-5 lg:w-6`} />
+              <Heart fill={(isMounted && isWishlisted) ? "currentColor" : "none"} className={`${(isMounted && isWishlisted) ? "text-rose-500 w-5 lg:w-6" : "text-black"} stroke-[1.5px] w-5 lg:w-6`} />
             </button>
 
             {galleryImages.length > 1 && (
@@ -788,7 +793,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
           <DialogTitle className="sr-only">Product Video: {product.title}</DialogTitle>
           <DialogDescription className="sr-only">Video preview of the product</DialogDescription>
           <button onClick={() => setShowVideoPopup(false)} className="absolute top-4 right-4 z-[210] p-2 bg-black/50 hover:bg-black text-white rounded-full transition-all shadow-lg border border-white/10"><X size={24} /></button>
-          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain" poster={formatCdnUrl(videoMedia?.preview)}>
+          <video preload="none" onMouseEnter={(e) => e.target.play()} onMouseLeave={(e) => e.target.pause()} muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain" poster={formatCdnUrl(videoMedia?.preview)}>
             {videoMedia?.sources?.length > 0 ? (
               <>
                 {videoMedia.sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}

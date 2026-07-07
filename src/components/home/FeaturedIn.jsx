@@ -90,29 +90,7 @@ export default function FeaturedIn() {
         </Marquee>
       </div>
 
-      <style jsx>{`
-        .marquee-img {
-          max-width: 120px;
-          height: 50px;
-          object-fit: contain;
-          filter: grayscale(1);
-          transition: filter 0.3s ease;
-        }
 
-        @media (min-width: 768px) {
-          .marquee-img {
-            max-width: 140px;
-            height: 60px;
-          }
-        }
-
-        .marquee-item:hover .marquee-img {
-          filter: grayscale(0);
-        }
-        
-        .font-abhaya { font-family: var(--font-abhaya), serif; }
-        .font-figtree { font-family: var(--font-figtree), sans-serif; }
-      `}</style>
     </section>
   );
 }

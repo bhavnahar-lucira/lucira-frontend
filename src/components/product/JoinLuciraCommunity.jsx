@@ -90,7 +90,7 @@ export function JoinLuciraCommunity() {
             </div>
 
             <div className="space-y-4">
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3">
+              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3" suppressHydrationWarning>
                 <Input
                   type="email"
                   value={email}
