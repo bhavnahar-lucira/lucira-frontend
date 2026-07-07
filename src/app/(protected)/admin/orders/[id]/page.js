@@ -412,6 +412,14 @@ export default function OrderDetailsPage() {
                             <p className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a] mb-1">Length</p>
                             <p className="text-sm font-medium text-zinc-800">{properties['Length']}</p>
                           </div>
+                          {properties['_byj_preview'] && (
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a] mb-1">Preview Design</p>
+                              <a href={properties['_byj_preview']} target="_blank" rel="noreferrer" className="text-sm font-medium text-blue-600 hover:underline">
+                                View Full Image
+                              </a>
+                            </div>
+                          )}
                         </div>
                         <div>
                           <p className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a] mb-3">Charms Selection</p>

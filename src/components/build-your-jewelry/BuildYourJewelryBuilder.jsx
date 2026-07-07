@@ -887,6 +887,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
         '_byj_charms_json': JSON.stringify(selectedCharms.map(c => ({ title: c.fullTitle, price: c.price, qty: c.qty, img: c.img, sku: c.sku })))
       };
 
+      let previewUrl = null;
       try {
         if (canvasPreview) {
           const arr = canvasPreview.split(',');
@@ -898,10 +899,10 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
               u8arr[n] = bstr.charCodeAt(n);
           }
           const file = new File([u8arr], `byj_${groupId}.png`, {type:mime});
-          const uploadedUrl = await uploadToShopify(file);
-          if (uploadedUrl) {
-            properties['_Preview Design'] = uploadedUrl;
-            properties['_byj_preview'] = uploadedUrl;
+          previewUrl = await uploadToShopify(file);
+          if (previewUrl) {
+            properties['Preview Design'] = previewUrl;
+            properties['_byj_preview'] = previewUrl;
           }
         }
       } catch (err) {
@@ -927,7 +928,11 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
        sku: c.sku,
        properties: {
          '_byj_group_id': groupId,
-         '_byj_parent': styleV.id
+         '_byj_parent': styleV.id,
+         ...(previewUrl ? {
+           'Preview Design': previewUrl,
+           '_byj_preview': previewUrl
+         } : {})
        }
       }));
 
