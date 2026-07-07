@@ -10,6 +10,10 @@ import { ShoppingBag, ArrowRight, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { pushViewCart } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
+import { apiFetch } from "@/lib/api";
+
+// Prefer productId — that's the field carts/wishlists/orders key on (backend normalizes to numeric).
+const getItemProductId = (item) => item.productId || item.shopifyId || item.id || item.handle || "";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
@@ -19,6 +23,7 @@ export default function CartPage() {
   const { items, totalQuantity, totalAmount, appliedCoupon } = useSelector((state) => state.cart);  
   const { isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
+  const [socialProof, setSocialProof] = useState({});
 
   // Fallback: If user logs in while on cart page, and was trying to checkout, redirect them
   useEffect(() => {
@@ -56,10 +61,25 @@ export default function CartPage() {
   };
 
   const filteredItems = items.filter(
-    (item) => 
-      item.variantId !== INSURANCE_VARIANT_ID && 
+    (item) =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
   );
+
+  // Fetch real social-proof counts (orders / add-to-cart / wishlist) for the cart's products.
+  const proofKey = filteredItems.map(getItemProductId).filter(Boolean).join(",");
+  useEffect(() => {
+    if (!proofKey) return;
+    let active = true;
+    apiFetch("/api/products/social-proof", {
+      method: "POST",
+      body: JSON.stringify({ productIds: proofKey.split(",") }),
+      suppressErrorLog: true,
+    })
+      .then((data) => { if (active) setSocialProof(data?.counts || {}); })
+      .catch(() => { /* graceful: no band shown */ });
+    return () => { active = false; };
+  }, [proofKey]);
 
   const handlePlaceOrder = () => {
     if (isAuthenticated) {
@@ -113,10 +133,11 @@ export default function CartPage() {
 
               <div className="space-y-4">
                 {filteredItems.map((item, index) => (
-                  <CartItem 
-                    key={item.variantId || index} 
-                    item={item} 
+                  <CartItem
+                    key={item.variantId || index}
+                    item={item}
                     onAuthRequired={openLogin}
+                    socialProof={socialProof[getItemProductId(item)]}
                   />
                 ))}
               </div>

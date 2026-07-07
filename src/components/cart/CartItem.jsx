@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
+import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, ShoppingBag, ShoppingCart } from "lucide-react";
 
 const VIDEO_CALL_URL = "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0";
 
@@ -60,28 +60,88 @@ function ViewLiveStrip() {
   );
 }
 
-// FOMO band showing how many shoppers wishlisted this design.
-function WishlistBadge({ count, compact = false, className = "" }) {
-  const s = compact ? 13 : 16;
+// Pink→red gradient heart used for the "Wishlisted" social-proof metric.
+function GradientHeart({ size = 15 }) {
   return (
-    <div className={`flex items-center gap-1.5 rounded-lg bg-rose-100/95 backdrop-blur-sm ${compact ? "px-2.5 py-1" : "px-3 py-1.5"} ${className}`}>
-      <svg width={s} height={s} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
-        <defs>
-          <linearGradient id="lucira-wishlist-heart" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#FF5CA0" />
-            <stop offset="100%" stopColor="#FB1D4A" />
-          </linearGradient>
-        </defs>
-        <path d="M12 20.7C6.1 16.9 2 13.3 2 9.3 2 6.6 4.1 4.7 6.7 4.7c1.7 0 3.3.8 4.3 2.2 1-1.4 2.6-2.2 4.3-2.2C21 4.7 22 6.6 22 9.3c0 4-4.1 7.6-10 11.4z" fill="url(#lucira-wishlist-heart)" />
-      </svg>
-      <span className={`font-semibold text-rose-500 whitespace-nowrap ${compact ? "text-[11px]" : "text-[13px]"}`}>
-        {count} Wishlisted
-      </span>
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
+      <defs>
+        <linearGradient id="lucira-wishlist-heart" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#FF5CA0" />
+          <stop offset="100%" stopColor="#FB1D4A" />
+        </linearGradient>
+      </defs>
+      <path d="M12 20.7C6.1 16.9 2 13.3 2 9.3 2 6.6 4.1 4.7 6.7 4.7c1.7 0 3.3.8 4.3 2.2 1-1.4 2.6-2.2 4.3-2.2C21 4.7 22 6.6 22 9.3c0 4-4.1 7.6-10 11.4z" fill="url(#lucira-wishlist-heart)" />
+    </svg>
+  );
+}
+
+// Real counts are amplified 100x for social proof (e.g. 5 orders -> "500+ Orders").
+const SOCIAL_PROOF_AMPLIFY = 100;
+
+function formatSocialCount(n) {
+  if (n >= 1000) {
+    const k = n / 1000;
+    const rounded = k >= 10 ? Math.round(k) : Math.round(k * 10) / 10;
+    return `${String(rounded).replace(/\.0$/, "")}K+`;
+  }
+  return `${n}+`;
+}
+
+// Build the ordered list of available metrics: Orders -> Added to Cart -> Wishlisted.
+// A metric is only included when its real count is > 0 (per requirement: hide when absent).
+function buildSocialMetrics(sp) {
+  if (!sp) return [];
+  const metrics = [];
+  if (sp.orders > 0)    metrics.push({ key: "orders",   label: "Orders",      value: sp.orders * SOCIAL_PROOF_AMPLIFY });
+  if (sp.addToCart > 0) metrics.push({ key: "cart",     label: "in Carts",    value: sp.addToCart * SOCIAL_PROOF_AMPLIFY });
+  if (sp.wishlist > 0)  metrics.push({ key: "wishlist", label: "Wishlisted",  value: sp.wishlist * SOCIAL_PROOF_AMPLIFY });
+  return metrics;
+}
+
+const SOCIAL_TINTS = {
+  orders: "bg-amber-50/95 text-amber-700 ring-1 ring-inset ring-amber-200/70",
+  cart: "bg-sky-50/95 text-sky-700 ring-1 ring-inset ring-sky-200/70",
+  wishlist: "bg-rose-100/95 text-rose-500 ring-1 ring-inset ring-rose-200/70",
+};
+
+function SocialMetricIcon({ type, size }) {
+  if (type === "wishlist") return <GradientHeart size={size} />;
+  if (type === "orders") return <ShoppingBag size={size} className="shrink-0" />;
+  return <ShoppingCart size={size} className="shrink-0" />;
+}
+
+// FOMO band that rotates one-at-a-time through the available metrics.
+function SocialProofBand({ socialProof, compact = false, className = "" }) {
+  const metrics = useMemo(() => buildSocialMetrics(socialProof), [socialProof]);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    setIdx(0);
+    if (metrics.length <= 1) return;
+    const timer = setInterval(() => {
+      setIdx((i) => (i + 1) % metrics.length);
+    }, 2600);
+    return () => clearInterval(timer);
+  }, [metrics.length]);
+
+  if (metrics.length === 0) return null;
+
+  const m = metrics[Math.min(idx, metrics.length - 1)];
+  const iconSize = compact ? 13 : 15;
+
+  return (
+    <div className={`w-fit max-w-[calc(100%-16px)] overflow-hidden rounded-full backdrop-blur-sm ${SOCIAL_TINTS[m.key]} ${compact ? "px-2.5 py-1" : "px-3 py-1.5"} ${className}`}>
+      <div key={m.key} className="flex items-center gap-1.5 min-w-0 animate-in fade-in slide-in-from-bottom-1 duration-500">
+        <SocialMetricIcon type={m.key} size={iconSize} />
+        <span className={`font-semibold truncate ${compact ? "text-[11px]" : "text-[13px]"}`}>
+          {formatSocialCount(m.value)} {m.label}
+        </span>
+      </div>
     </div>
   );
 }
 
-export default function CartItem({ item, onAuthRequired }) {
+export default function CartItem({ item, onAuthRequired, socialProof }) {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.user);
   const wishlistItems = useSelector((state) => state.wishlist.items);
@@ -137,15 +197,6 @@ export default function CartItem({ item, onAuthRequired }) {
   }, [variantOptions, item.variantId, item.size, item.color, item.karat]);
 
   const isInStock = currentVariant?.inStock ?? item.inStock ?? true;
-
-  // Dummy-but-stable "wishlisted" count for social proof (deterministic per product)
-  const wishlistCount = useMemo(() => {
-    const seed = String(productId || item.sku || item.title || "");
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-    const buckets = ["850+", "1.2K+", "1.5K+", "2K+", "2.4K+", "3K+", "3.6K+", "4.2K+"];
-    return buckets[hash % buckets.length];
-  }, [productId, item.sku, item.title]);
 
   const sizeOptions = useMemo(() => {
     if (variantOptions.length > 0) return variantOptions;
@@ -378,7 +429,7 @@ export default function CartItem({ item, onAuthRequired }) {
               height={200}
               className="h-full w-full object-contain mix-blend-multiply"
             />
-            <WishlistBadge count={wishlistCount} className="absolute inset-x-2 bottom-2 z-10 shadow-sm" />
+            <SocialProofBand socialProof={socialProof} className="absolute left-1/2 -translate-x-1/2 bottom-2 z-10 shadow-sm" />
           </Link>
 
           <div className="grow space-y-4">
@@ -569,7 +620,7 @@ export default function CartItem({ item, onAuthRequired }) {
               <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white/90 border border-zinc-100 px-1.5 py-0.5 text-[8px] font-bold uppercase ${statusClass}`}>
                 {statusLabel}
               </span>
-              <WishlistBadge count={wishlistCount} compact className="absolute inset-x-1.5 bottom-1.5 z-10 shadow-sm" />
+              <SocialProofBand socialProof={socialProof} compact className="absolute left-1/2 -translate-x-1/2 bottom-1.5 z-10 shadow-sm" />
             </div>
 
             {/* Info Content */}
