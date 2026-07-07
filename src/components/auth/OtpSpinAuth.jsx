@@ -247,6 +247,7 @@ export function OtpSpinAuth({
   };
 
   const handleVerifyOtp = async (overrideOtp) => {
+    if (loading) return;
     const otpValue = typeof overrideOtp === "string" ? overrideOtp : otp.join("");
     if (otpValue.length !== 4) return toast.error("Enter 4-digit OTP");
     setLoading(true);

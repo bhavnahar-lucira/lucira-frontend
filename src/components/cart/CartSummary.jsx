@@ -45,13 +45,28 @@ export default function CartSummary({ onPlaceOrder }) {
       .catch(err => console.error("Error fetching gold coin threshold:", err));
   }, []);
 
-  const otherItemsQuantity = items
-    .filter(item => 
-      item.variantId !== INSURANCE_VARIANT_ID && 
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      item.variantId !== SILVER_PENDANT_VARIANT_ID
-    )
-    .reduce((acc, item) => acc + (Number(item.quantity || item.qty || 1)), 0);
+  const otherItemsQuantity = (() => {
+    let qty = 0;
+    const byjGroups = new Set();
+    items
+      .filter(item => 
+        item.variantId !== INSURANCE_VARIANT_ID && 
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        item.variantId !== SILVER_PENDANT_VARIANT_ID
+      )
+      .forEach(item => {
+        const byjGroupId = item.properties?.['_byj_group_id'];
+        if (byjGroupId) {
+          if (!byjGroups.has(byjGroupId)) {
+            byjGroups.add(byjGroupId);
+            qty += 1;
+          }
+        } else {
+          qty += Number(item.quantity || item.qty || 1);
+        }
+      });
+    return qty;
+  })();
 
   const diamondTotal = items
     .filter(item => 
@@ -160,7 +175,7 @@ export default function CartSummary({ onPlaceOrder }) {
     }
   }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
 
-  const subtotal = totalAmount - insuranceAmount;
+  const subtotal = otherItemsQuantity > 0 ? (totalAmount - insuranceAmount) : 0;
 
   // Total savings = sum of (original price - selling price) across all real cart products
   const totalSavings = items
@@ -333,7 +348,7 @@ export default function CartSummary({ onPlaceOrder }) {
 
           <div className="border-t border-zinc-200 pt-4 flex justify-between items-center">
             <span className="text-base font-bold text-[#443360] uppercase tracking-wider">GRAND TOTAL</span>
-            <span className="text-lg font-bold text-[#443360]">₹ {grandTotal  .toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="text-lg font-bold text-[#443360]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         </div>
       </div>
@@ -343,8 +358,6 @@ export default function CartSummary({ onPlaceOrder }) {
         <div className="space-y-4">
           <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>          
           
-
-
           <GoldCoinOption />
           
           <Sheet open={isCouponSheetOpen} onOpenChange={setIsCouponSheetOpen}>
@@ -413,7 +426,6 @@ export default function CartSummary({ onPlaceOrder }) {
       <div className="hidden lg:block space-y-4">
         <Button 
           onClick={() => {
-            // If user not logged in, fire promoClick and open login modal
             if (!user) {
               const firstItem = items && items.length > 0 ? items[0] : null;
               const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
@@ -426,7 +438,6 @@ export default function CartSummary({ onPlaceOrder }) {
               try {
                 pushPromoClick(promoData);
               } catch (e) {
-                // swallow errors from analytics
                 console.error('promo push failed', e);
               }
               openLogin();
@@ -442,8 +453,6 @@ export default function CartSummary({ onPlaceOrder }) {
         <GoldCoinOption />
 
         <div className="space-y-3">
-
-
           <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
             <DialogTrigger asChild>
               <button className="flex items-center justify-between w-full p-4 bg-white border border-accent/30 rounded-lg hover:border-accent transition-all group cursor-pointer">

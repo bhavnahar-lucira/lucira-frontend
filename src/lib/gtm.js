@@ -188,7 +188,7 @@ export const getStandardCartItem = (item, idx = 0) => {
     price: Number(item.price || 0),
     offer_price: Number(item.comparePrice || item.price || 0),
     quantity: item.quantity,
-    thumbnail_image: item.image,
+    thumbnail_image: item.properties?.['_byj_preview'] || item.image,
     index_position: idx + 1
   };
 };
