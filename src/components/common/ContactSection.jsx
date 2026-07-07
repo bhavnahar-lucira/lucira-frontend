@@ -48,6 +48,14 @@ const STORES = [
     address: "SCO-17, Wave One Courtyard, Sector 18,\nGautam Buddha Nagar, Noida,\nUttar Pradesh: 201301",
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Wave+One+Mall,+Noida/data=!4m2!3m1!1s0x0:0xbdc183588be81689?sa=X&ved=1t:2428&ictx=111"
+  },
+  {
+    name: "Paschim Vihar Store",
+    phone: "+91 7208007494",
+    email: "lcsdelpvh@lucirajewelry.com",
+    address: "B-8, Shubham Enclave, Reserve Bank Enclave,\nPaschim Vihar, New Delhi - 110063.",
+    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
+    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D"
   }
 ];
 
