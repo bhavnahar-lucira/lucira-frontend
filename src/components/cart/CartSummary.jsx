@@ -175,7 +175,39 @@ export default function CartSummary({ onPlaceOrder }) {
     }
   }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
 
+
+  const subtotal = totalAmount - insuranceAmount;
+
+  // Sum of original prices (comparePrice if it is greater than price, otherwise price)
+  const originalSubtotal = items
+    .filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+    )
+    .reduce((acc, item) => {
+      const qty = Number(item.quantity || item.qty || 1);
+      const compare = Number(item.comparePrice || 0);
+      const price = Number(item.price || 0);
+      const originalPrice = compare > price ? compare : price;
+      return acc + (originalPrice * qty);
+    }, 0);
+
+  // Total savings = sum of (original price - selling price) across all real cart products
+  const totalSavings = items
+    .filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+    )
+    .reduce((acc, item) => {
+      const qty = Number(item.quantity || item.qty || 1);
+      const compare = Number(item.comparePrice || 0);
+      const price = Number(item.price || 0);
+      return acc + (compare > price ? (compare - price) * qty : 0);
+    }, 0);
+
+
   const subtotal = otherItemsQuantity > 0 ? (totalAmount - insuranceAmount) : 0;
+
   let couponDiscountAmount = 0;
   if (appliedCoupon) {
     if (couponDetails.valueType === "FIXED_AMOUNT") {
@@ -232,13 +264,19 @@ export default function CartSummary({ onPlaceOrder }) {
   return (
     <div className="space-y-6">
       {/* Desktop Pricing Breakdown (LG) */}
-      <div className="hidden lg:block bg-white rounded-lg p-6 space-y-3 border-zinc-50 shadow-sm">
-        <div className="flex justify-between text-sm text-zinc-600">
+      <div className="hidden lg:block bg-white rounded-xl p-6 space-y-3.5 border border-zinc-100 shadow-sm">
+        <div className="flex justify-between items-center text-[15px] text-zinc-500">
           <span>Subtotal</span>
-          <span className="font-medium text-zinc-900">₹ {subtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span className="font-semibold text-zinc-900">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
+        {totalSavings > 0 && (
+          <div className="flex justify-between items-center text-[15px] text-zinc-500">
+            <span>Savings</span>
+            <span className="font-semibold text-[#189351] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          </div>
+        )}
         {appliedCoupon && (
-          <div className="flex justify-between text-sm text-[#189351]">
+          <div className="flex justify-between items-center text-[15px] text-[#189351]">
             <div className="flex items-center gap-2">
               <span className="font-bold uppercase tracking-wider">Coupon ({couponDetails.code})</span>
               <button 
@@ -252,25 +290,25 @@ export default function CartSummary({ onPlaceOrder }) {
           </div>
         )}
         {goldCoinItem && (
-          <div className="flex justify-between text-sm text-[#189351]">
+          <div className="flex justify-between items-center text-[15px] text-zinc-500">
             <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-            <span className="font-bold">₹ 0</span>
+            <span className="font-semibold text-[#189351]">₹ 0</span>
           </div>
         )}
         {insuranceItem && (
-          <div className="flex justify-between text-sm text-zinc-600">
+          <div className="flex justify-between items-center text-[15px] text-zinc-500">
             <span>Insurance</span>
-            <span className="font-medium text-zinc-900">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-semibold text-zinc-900">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         )}
-        <div className="flex justify-between text-sm text-[#189351]">
+        <div className="flex justify-between items-center text-[15px] text-zinc-500">
           <span>Shipping (Standard)</span>
-          <span className="font-bold">Free</span>
+          <span className="font-semibold text-[#189351]">Free</span>
         </div>
-        
+
         <div className="border-t border-zinc-100 mt-4 pt-4 flex justify-between items-center">
-          <span className="text-base font-bold text-[#443360] uppercase tracking-wider">GRAND TOTAL</span>
-          <span className="text-lg font-bold text-[#443360]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span className="text-[15px] font-bold text-[#443360] uppercase tracking-wider">Grand Total</span>
+          <span className="text-xl font-bold text-[#443360]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
       </div>
 
@@ -281,9 +319,16 @@ export default function CartSummary({ onPlaceOrder }) {
           <div className="space-y-3">
             <div className="flex justify-between text-[14px] text-zinc-500 font-medium">
               <span>Subtotal</span>
-              <span className="text-zinc-900">₹ {subtotal.toLocaleString('en-IN')}</span>
+              <span className="text-zinc-900">₹ {originalSubtotal.toLocaleString('en-IN')}</span>
             </div>
-            
+
+            {totalSavings > 0 && (
+              <div className="flex justify-between text-[14px] font-medium text-zinc-500">
+                <span>Savings</span>
+                <span className="font-bold text-[#189351]">- ₹ {totalSavings.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+
             {appliedCoupon && (
               <div className="flex justify-between text-[14px] font-medium items-center text-[#189351]">
                 <div className="flex items-center gap-2">
@@ -300,9 +345,9 @@ export default function CartSummary({ onPlaceOrder }) {
             )}
 
             {goldCoinItem && (
-              <div className="flex justify-between text-sm text-[#189351]">
+              <div className="flex justify-between text-[14px] font-medium text-zinc-500">
                 <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-                <span className="font-bold">₹ 0</span>
+                <span className="font-bold text-[#189351]">₹ 0</span>
               </div>
             )}
 
@@ -313,9 +358,9 @@ export default function CartSummary({ onPlaceOrder }) {
               </div>
             )}
 
-            <div className="flex justify-between text-[14px] text-[#189351]">
+            <div className="flex justify-between text-[14px] font-medium text-zinc-500">
               <span>Shipping (Standard)</span>
-              <span className="font-bold">Free</span>
+              <span className="font-bold text-[#189351]">Free</span>
             </div>
           </div>
 

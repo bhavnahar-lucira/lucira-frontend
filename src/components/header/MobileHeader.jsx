@@ -621,7 +621,7 @@ export default function MobileHeader({ menuData }) {
         last_name: user?.last_name || "",
         email: user?.email || ""
       });
-      await apiFetch("/api/auth/logout", { 
+      await apiFetch("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({
           email: user?.email,
@@ -1074,8 +1074,8 @@ export default function MobileHeader({ menuData }) {
                 // Derive page type for Find a Store datalayer location_id
                 const loc = !pathname || pathname === "/" ? "homepage"
                   : pathname.startsWith("/products/") ? "pdp"
-                  : pathname.startsWith("/collections/") ? "plp"
-                  : "internal page";
+                    : pathname.startsWith("/collections/") ? "plp"
+                      : "internal page";
                 pushPromoClick({
                   creative_name: "Find a store cta header",
                   location_id: loc,
@@ -1163,7 +1163,7 @@ export default function MobileHeader({ menuData }) {
                         <UserIconCustom />
                       </button>
                     )}
-                      <Link href="/checkout/cart" prefetch={false} onClick={() => { setIsMenuOpen(false); handleCartClick(); }} className="relative p-1">
+                    <Link href="/checkout/cart" prefetch={false} onClick={() => { setIsMenuOpen(false); handleCartClick(); }} className="relative p-1">
                       <CartIcon />
                       {displayQuantity > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
@@ -1251,22 +1251,22 @@ export default function MobileHeader({ menuData }) {
           {!isProductPage && (
             <>
               <Link href="/schemes" prefetch={false} className="relative w-8 h-8 flex items-center justify-center shrink-0">
-                <img 
-                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691" 
-                  alt="Scheme" 
+                <img
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691"
+                  alt="Scheme"
                   className="w-full h-full object-contain"
                 />
               </Link>
 
               {user ? (
-                <Link href="/admin" prefetch={false} className="p-1">
+                <Link href="/admin" prefetch={false} className="p-1" id="nitro-login">
                   <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
                     {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
                     <AvatarFallback className="bg-[#5a413f] text-white font-bold text-[10px]">{getInitials(user?.name)}</AvatarFallback>
                   </Avatar>
                 </Link>
               ) : (
-                <button onClick={handleAuthTrigger} className="p-1">
+                <button onClick={handleAuthTrigger} className="p-1" id="nitro-login">
                   <UserIconCustom />
                 </button>
               )}

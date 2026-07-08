@@ -93,6 +93,20 @@ export default function CheckoutSummary({
   const goldCoinItem = (items || []).find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
   const subtotalValue = (totalAmount || 0) - insuranceValue;
 
+  // Sum of original prices (comparePrice if comparePrice > price, else price)
+  const originalSubtotalValue = (items || [])
+    .filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+    )
+    .reduce((acc, item) => {
+      const qty = Number(item.quantity || item.qty || 1);
+      const compare = Number(item.comparePrice || 0);
+      const price = Number(item.price || 0);
+      const originalPrice = compare > price ? compare : price;
+      return acc + (originalPrice * qty);
+    }, 0);
+
   const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
 
   let couponDiscountAmount = 0;
@@ -295,7 +309,7 @@ export default function CheckoutSummary({
         <div className="space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
           <div className="flex justify-between text-sm text-zinc-600">
             <span>Subtotal</span>
-            <span className="font-medium text-zinc-900">₹{subtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-medium text-zinc-900">₹{originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
           {appliedCoupon && (
             <div className="flex justify-between text-sm text-[#189351]">

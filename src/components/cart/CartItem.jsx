@@ -12,7 +12,7 @@ import {
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
-import { pushRemoveFromCart, pushAddToWishlist, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
+import { pushRemoveFromCart, pushAddToWishlist, pushPromoClick, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import {
   Select,
   SelectContent,
@@ -21,9 +21,149 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check } from "lucide-react";
+import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, ShoppingBag, ShoppingCart } from "lucide-react";
 
-export default function CartItem({ item, onAuthRequired }) {
+// Builds the WhatsApp "schedule video call" link, including the product name/SKU for context.
+function buildVideoCallUrl(productName, sku) {
+  let message = "Hi, I want to schedule a video call";
+  if (productName) {
+    message += ` for ${productName}`;
+    if (sku) message += ` (SKU: ${sku})`;
+  }
+  return `https://api.whatsapp.com/send/?phone=919004435760&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+}
+
+// FOMO strip shown below in-stock cart items — lets the shopper book a live video call.
+function ViewLiveStrip({ productName, sku }) {
+  const handleViewLiveClick = () => {
+    try {
+      pushPromoClick({
+        creative_name: "view_live_cta_checkout",
+        location_id: "checkout page",
+        promo_id: productName || sku || "",
+        promo_name: "View Live",
+      });
+    } catch (e) {
+      console.error("promoClick push failed", e);
+    }
+  };
+
+  return (
+    <a
+      href={buildVideoCallUrl(productName, sku)}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={handleViewLiveClick}
+      className="flex items-center gap-2.5 lg:gap-3 border-t border-black/5 px-3.5 py-2.5 lg:px-4 lg:py-3 transition-opacity hover:opacity-95"
+      style={{ background: "linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)" }}
+    >
+      <span className="relative h-9 w-9 lg:h-10 lg:w-10 shrink-0 overflow-hidden rounded-full bg-white shadow-sm">
+        <Image
+          src="/images/explore/VirtualTryOn.jpg"
+          alt="Lucira consultant"
+          fill
+          sizes="40px"
+          className="object-cover"
+        />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-figtree font-medium text-[13px] lg:text-[15px] leading-[1.3] text-[#3D2B28] truncate">
+          Shop with Complete Confidence
+        </p>
+        <p className="font-figtree font-normal text-[11px] lg:text-[13px] leading-[1.3] text-[#6B5B54] truncate">
+          See every detail before you buy.
+        </p>
+      </div>
+      <span className="flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-9 lg:h-10 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[11px] lg:text-[13px] text-white">
+        <Video size={16} />
+        View Live
+      </span>
+    </a>
+  );
+}
+
+// Pink→red gradient heart used for the "Wishlisted" social-proof metric.
+function GradientHeart({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
+      <defs>
+        <linearGradient id="lucira-wishlist-heart" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#FF5CA0" />
+          <stop offset="100%" stopColor="#FB1D4A" />
+        </linearGradient>
+      </defs>
+      <path d="M12 20.7C6.1 16.9 2 13.3 2 9.3 2 6.6 4.1 4.7 6.7 4.7c1.7 0 3.3.8 4.3 2.2 1-1.4 2.6-2.2 4.3-2.2C21 4.7 22 6.6 22 9.3c0 4-4.1 7.6-10 11.4z" fill="url(#lucira-wishlist-heart)" />
+    </svg>
+  );
+}
+
+// Real counts are amplified 100x for social proof (e.g. 5 orders -> "500+ Orders").
+const SOCIAL_PROOF_AMPLIFY = 100;
+
+function formatSocialCount(n) {
+  if (n >= 1000) {
+    const k = n / 1000;
+    const rounded = k >= 10 ? Math.round(k) : Math.round(k * 10) / 10;
+    return `${String(rounded).replace(/\.0$/, "")}K+`;
+  }
+  return `${n}+`;
+}
+
+// Build the ordered list of available metrics: Orders -> Added to Cart -> Wishlisted.
+// A metric is only included when its real count is > 0 (per requirement: hide when absent).
+function buildSocialMetrics(sp) {
+  if (!sp) return [];
+  const metrics = [];
+  if (sp.orders > 0) metrics.push({ key: "orders", label: "Orders", value: sp.orders * SOCIAL_PROOF_AMPLIFY });
+  if (sp.addToCart > 0) metrics.push({ key: "cart", label: "in Carts", value: sp.addToCart * SOCIAL_PROOF_AMPLIFY });
+  if (sp.wishlist > 0) metrics.push({ key: "wishlist", label: "Wishlisted", value: sp.wishlist * SOCIAL_PROOF_AMPLIFY });
+  return metrics;
+}
+
+const SOCIAL_TINTS = {
+  orders: "bg-amber-50/95 text-amber-700 ring-1 ring-inset ring-amber-200/70",
+  cart: "bg-sky-50/95 text-sky-700 ring-1 ring-inset ring-sky-200/70",
+  wishlist: "bg-rose-100/95 text-rose-500 ring-1 ring-inset ring-rose-200/70",
+};
+
+function SocialMetricIcon({ type, size }) {
+  if (type === "wishlist") return <GradientHeart size={size} />;
+  if (type === "orders") return <ShoppingBag size={size} className="shrink-0" />;
+  return <ShoppingCart size={size} className="shrink-0" />;
+}
+
+// FOMO band that rotates one-at-a-time through the available metrics.
+function SocialProofBand({ socialProof, compact = false, className = "" }) {
+  const metrics = useMemo(() => buildSocialMetrics(socialProof), [socialProof]);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    setIdx(0);
+    if (metrics.length <= 1) return;
+    const timer = setInterval(() => {
+      setIdx((i) => (i + 1) % metrics.length);
+    }, 2600);
+    return () => clearInterval(timer);
+  }, [metrics.length]);
+
+  if (metrics.length === 0) return null;
+
+  const m = metrics[Math.min(idx, metrics.length - 1)];
+  const iconSize = compact ? 13 : 15;
+
+  return (
+    <div className={`w-fit max-w-[calc(100%-16px)] overflow-hidden rounded-full backdrop-blur-sm ${SOCIAL_TINTS[m.key]} ${compact ? "px-2.5 py-1" : "px-3 py-1.5"} ${className}`}>
+      <div key={m.key} className="flex items-center gap-1.5 min-w-0 animate-in fade-in slide-in-from-bottom-1 duration-500">
+        <SocialMetricIcon type={m.key} size={iconSize} />
+        <span className={`font-semibold truncate ${compact ? "text-[11px]" : "text-[13px]"}`}>
+          {formatSocialCount(m.value)} {m.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default function CartItem({ item, onAuthRequired, socialProof }) {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.user);
   const { items: allCartItems } = useSelector((state) => state.cart);
@@ -344,7 +484,7 @@ export default function CartItem({ item, onAuthRequired }) {
 
           <Link prefetch={false}
             href={productLink}
-            className="aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
+            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
           >
             <Image
               loader={isShopifyImage ? shopifyLoader : undefined}
@@ -355,6 +495,7 @@ export default function CartItem({ item, onAuthRequired }) {
               className="h-auto w-full object-contain mix-blend-multiply"
               style={{ color: 'transparent' }}
             />
+            <SocialProofBand socialProof={socialProof} className="absolute left-1/2 -translate-x-1/2 bottom-2 z-10 shadow-sm" />
           </Link>
 
           <div className="grow space-y-4">
@@ -536,7 +677,7 @@ export default function CartItem({ item, onAuthRequired }) {
               </div>
 
               {/* Row 3: Stone (If diamondTotalPcs > 0) */}
-              {item.diamondTotalPcs > 0 && (
+              {/* {item.diamondTotalPcs > 0 && (
                 <div className="flex border-b border-zinc-100 min-h-[44px]">
                   <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
                     Stone
@@ -545,7 +686,7 @@ export default function CartItem({ item, onAuthRequired }) {
                     {item.diamondTotalPcs} Diamond{item.diamondCarat ? `, ${item.diamondCarat} Carat` : ''}{item.diamondQuality ? `, ${item.diamondQuality}` : ''}
                   </div>
                 </div>
-              )}
+              )} */}
 
               {/* Row 4: Status */}
               <div className="flex min-h-[44px]">
@@ -581,6 +722,9 @@ export default function CartItem({ item, onAuthRequired }) {
             </button>
           )}
         </div>
+
+        {/* View Live strip (in-stock only) */}
+        {isInStock && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
       </div>
 
       {/* MOBILE DESIGN (< 1024px) */}
@@ -605,9 +749,10 @@ export default function CartItem({ item, onAuthRequired }) {
                   className="h-full w-full object-contain mix-blend-multiply"
                 />
               </Link>
-              <div className="w-full absolute bottom-0 flex items-center justify-center px-1 py-0.5 bg-white/90 border border-zinc-100 whitespace-nowrap">
-                <span className={`text-[8px] font-bold uppercase ${statusClass}`}>{statusLabel}</span>
-              </div>
+              <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white/90 border border-zinc-100 px-1.5 py-0.5 text-[8px] font-bold uppercase ${statusClass}`}>
+                {statusLabel}
+              </span>
+              <SocialProofBand socialProof={socialProof} compact className="absolute left-1/2 -translate-x-1/2 bottom-1.5 z-10 shadow-sm" />
             </div>
 
             {/* Info Content */}
@@ -737,6 +882,9 @@ export default function CartItem({ item, onAuthRequired }) {
             </button>
           </div>
         </div>
+
+        {/* View Live strip (in-stock only) */}
+        {isInStock && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
       </div>
 
       {/* Remove / Move to Wishlist Modal */}
