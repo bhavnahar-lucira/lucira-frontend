@@ -370,25 +370,25 @@ export const MEGA_MENU = [
             {
                 title: "Cotton Candy",
                 description: "Playful enamel hues meet fine diamonds",
-                image: "/images/menu/candy.jpg",
+                image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira2009-03-2026_104951.jpg?v=1783485838",
                 href: "/collections/cotton-candy"
             },
             {
                 title: "On The Move",
                 description: "Secure-fit designs with safety locks",
-                image: "/images/menu/move.jpg",
+                image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_24-5-25_46094_5e523af2-01f2-4b94-96a3-3d7fad6ba60e.jpg?v=1783485838",
                 href: "/collections/sports-collection"
             },
             {
                 title: "Hexa",
                 description: "Celestial-inspired hexagon collection",
-                image: "/images/menu/hexa.jpg",
+                image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_aug_2564003.jpg?v=1783485838",
                 href: "/collections/hexa"
             },
              {
                 title: "Eterna",
                 description: "More than forever",
-                image: "/images/menu/Eterna.jpg",
+                image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/DSC09789.jpg?v=1783485838",
                 href: "/collections/eterna"
             }
         ]
