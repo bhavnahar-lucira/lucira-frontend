@@ -175,9 +175,6 @@ export default function CartSummary({ onPlaceOrder }) {
     }
   }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
 
-
-  const subtotal = totalAmount - insuranceAmount;
-
   // Sum of original prices (comparePrice if it is greater than price, otherwise price)
   const originalSubtotal = items
     .filter(item =>

@@ -870,16 +870,20 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               Remove
             </button>
 
-            <div className="w-px h-4 bg-zinc-100" />
+            {!isBYJ && (
+              <>
+                <div className="w-px h-4 bg-zinc-100" />
 
-            <button
-              onClick={handleMoveToWishlist}
-              disabled={movingToWishlist}
-              className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#443360] transition-all active:scale-95 disabled:opacity-50"
-            >
-              {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} className={isWishlisted ? "fill-primary text-primary" : ""} />}
-              Move to Wishlist
-            </button>
+                <button
+                  onClick={handleMoveToWishlist}
+                  disabled={movingToWishlist}
+                  className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#443360] transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} className={isWishlisted ? "fill-primary text-primary" : ""} />}
+                  Move to Wishlist
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -912,33 +916,58 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
 
             {/* Text Content */}
-            <h3 className="text-lg sm:text-xl md:text-2xl lg:text-[28px] font-abhaya font-bold text-zinc-900 mb-1.5 sm:mb-2 text-center tracking-tight leading-tight">Move Design from Cart</h3>
+            <h3 className="text-lg sm:text-xl md:text-2xl lg:text-[28px] font-abhaya font-bold text-zinc-900 mb-1.5 sm:mb-2 text-center tracking-tight leading-tight">
+              {isBYJ ? "Remove Design from Cart" : "Move Design from Cart"}
+            </h3>
             <p className="text-zinc-500 text-[13px] sm:text-[14px] md:text-[15px] text-center mb-5 sm:mb-6 md:mb-8 font-figtree leading-relaxed px-1">
-              Are you sure you want to move this design from the cart?
+              {isBYJ ? "Are you sure you want to remove this design from the cart?" : "Are you sure you want to move this design from the cart?"}
             </p>
 
             {/* Actions */}
             <div className="flex w-full gap-2 sm:gap-3 md:gap-4 font-figtree">
-              <button
-                onClick={() => {
-                  handleRemove();
-                  setShowRemoveModal(false);
-                }}
-                disabled={removing || movingToWishlist}
-                className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 border border-[#5A413F] text-[#5A413F] font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-full hover:bg-[#5A413F]/5 transition-all flex items-center justify-center disabled:opacity-50"
-              >
-                {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
-              </button>
-              <button
-                onClick={() => {
-                  handleMoveToWishlist();
-                  setShowRemoveModal(false);
-                }}
-                disabled={removing || movingToWishlist}
-                className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 bg-gradient-to-r from-[#8C5A4C] to-[#5A413F] text-white font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-full hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center justify-center disabled:opacity-50"
-              >
-                {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "Move to Wishlist"}
-              </button>
+              {isBYJ ? (
+                <>
+                  <button
+                    onClick={() => setShowRemoveModal(false)}
+                    className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 border border-[#5A413F] text-[#5A413F] font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-full hover:bg-[#5A413F]/5 transition-all flex items-center justify-center"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleRemove();
+                      setShowRemoveModal(false);
+                    }}
+                    disabled={removing}
+                    className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 bg-gradient-to-r from-[#8C5A4C] to-[#5A413F] text-white font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-full hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center justify-center disabled:opacity-50"
+                  >
+                    {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      handleRemove();
+                      setShowRemoveModal(false);
+                    }}
+                    disabled={removing || movingToWishlist}
+                    className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 border border-[#5A413F] text-[#5A413F] font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-full hover:bg-[#5A413F]/5 transition-all flex items-center justify-center disabled:opacity-50"
+                  >
+                    {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleMoveToWishlist();
+                      setShowRemoveModal(false);
+                    }}
+                    disabled={removing || movingToWishlist}
+                    className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 bg-gradient-to-r from-[#8C5A4C] to-[#5A413F] text-white font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-full hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center justify-center disabled:opacity-50"
+                  >
+                    {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "Move to Wishlist"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>,
