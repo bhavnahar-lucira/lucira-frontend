@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { useDispatch, useSelector } from "react-redux";
-import { removeFromCart, updateCartItem } from "@/redux/features/cart/cartSlice";
+import { removeFromCart, updateCartItem, removeMultipleFromCart } from "@/redux/features/cart/cartSlice";
 import {
   addWishlistItem,
   removeWishlistItem,
@@ -166,11 +166,13 @@ function SocialProofBand({ socialProof, compact = false, className = "" }) {
 export default function CartItem({ item, onAuthRequired, socialProof }) {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.user);
+  const { items: allCartItems } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const [removing, setRemoving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [movingToWishlist, setMovingToWishlist] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -178,6 +180,16 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   }, []);
 
   if (!item) return null;
+
+  const isBYJ = item.properties?.['_byj_preview'];
+  const byjCharms = useMemo(() => {
+    if (!item.properties?.['_byj_charms_json']) return [];
+    try {
+      return JSON.parse(item.properties['_byj_charms_json']);
+    } catch (e) {
+      return [];
+    }
+  }, [item.properties]);
 
   const productId = item.id || item.productId || item.handle || item.shopifyId;
   const isWishlisted = useMemo(() => {
@@ -238,15 +250,20 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   const canEditSize = !isInStock && sizeOptions.length > 1;
   const canEditQuantity = !isInStock && !item.isFreeGift;
 
-  const lineAmount = (item.price || 0) * (item.quantity || 1);
+  const byjStylePrice = isBYJ ? parseFloat(item.properties?.['_byj_style_price'] || 0) / 100 : 0;
+  const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
+  
+  // For BYJ items, the unit price displayed should be the total of style + all charms
+  const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
+  const lineAmount = baseUnitPrice * (item.quantity || 1);
   const lineCompareAmount = (item.comparePrice || 0) * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
-  const statusLabel = isInStock ? "In Stock" : "Made to Order";
-  const statusClass = isInStock ? "text-green-500" : "text-primary";
+  const statusLabel = (isInStock && !isBYJ) ? "In Stock" : "Made to Order";
+  const statusClass = (isInStock && !isBYJ) ? "text-green-500" : "text-primary";
 
-  const displayImage = currentVariant?.image || item.image;
-  const isShopifyImage = displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"));
+  const displayImage = isBYJ ? item.properties['_byj_preview'] : (currentVariant?.image || item.image);
+  const isShopifyImage = !isBYJ && displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"));
 
   const handleRemove = async () => {
     setRemoving(true);
@@ -282,6 +299,32 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
         thumbnail_image: item.image
       });
 
+      // If it's a BYJ item, we should remove all linked items too
+      if (isBYJ) {
+        const groupId = item.properties?.['_byj_group_id'];
+        if (groupId) {
+          const linkedItems = allCartItems.filter(i => 
+            i.properties?.['_byj_group_id'] === groupId && i.lineId !== item.lineId
+          );
+          
+          if (linkedItems.length > 0) {
+            const lineIds = [item.lineId, ...linkedItems.map(i => i.lineId)].filter(Boolean);
+            const variantIds = [item.variantId, ...linkedItems.map(i => i.variantId)].filter(Boolean);
+            
+            await dispatch(removeMultipleFromCart({ 
+              userId: user?.id, 
+              lineIds, 
+              variantIds 
+            })).unwrap();
+            
+            toast.error("Removed from cart", {
+              icon: <Check className="w-4 h-4" />
+            });
+            return;
+          }
+        }
+      }
+
       await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Removed from cart", {
         icon: <Check className="w-4 h-4" />
@@ -315,7 +358,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
           productHandle: item.handle || "",
           title: item.title,
           sku: item.sku || "",
-          image: item.image || "",
+          image: displayImage || item.image || "",
           price: item.price,
           comparePrice: item.comparePrice || "",
           reviews: item.reviews || null,
@@ -449,7 +492,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               alt={item.title}
               width={200}
               height={200}
-              className="h-full w-full object-contain mix-blend-multiply"
+              className="h-auto w-full object-contain mix-blend-multiply"
+              style={{ color: 'transparent' }}
             />
             <SocialProofBand socialProof={socialProof} className="absolute left-1/2 -translate-x-1/2 bottom-2 z-10 shadow-sm" />
           </Link>
@@ -470,6 +514,15 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                     Engraving: &quot;{item.engraving}&quot;
                   </p>
                 )}
+                {isBYJ && (
+                  <button 
+                    onClick={() => setShowBreakdown(!showBreakdown)}
+                    className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-1"
+                  >
+                    {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
+                    <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
               </div>
               <div className="flex flex-col items-end whitespace-nowrap">
                 <div className="text-xl font-bold text-zinc-900">
@@ -482,6 +535,61 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 )}
               </div>
             </div>
+
+            {isBYJ && showBreakdown && (
+              <div className="mt-4 bg-[#fef5f1] p-6 rounded-md space-y-6 border border-[#e0d0ba]/30">
+                <div className="space-y-6">
+                  <div className="border-b border-[#e0d0ba] pb-2">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
+                    </div>
+                    <div className="text-sm font-medium">{item.properties['Product Type']}</div>
+                  </div>
+
+                  <div className="border-b border-[#e0d0ba] pb-2">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                      <span className="text-sm font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                    </div>
+                    <div className="text-sm font-medium text-zinc-800">{item.properties['Style']}</div>
+                  </div>
+
+                  <div className="border-b border-[#e0d0ba] pb-2">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
+                    </div>
+                    <div className="text-sm font-medium">{item.properties['Length']}</div>
+                  </div>
+
+                  <div className="pb-2">
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                    </div>
+                    <div className="space-y-3 mt-3">
+                      {byjCharms.map((charm, idx) => (
+                        <div key={idx} className="flex justify-between items-start gap-4">
+                          <div className="flex gap-3 items-center flex-1">
+                            <div className="w-10 h-10 bg-white border border-[#e0d0ba]/50 rounded-sm overflow-hidden shrink-0 p-1">
+                              <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                              {charm.sku && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
+                            </div>
+                          </div>
+                          <span className="text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {((parseFloat(charm.price) * (charm.qty || 1)) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t border-[#e0d0ba] flex justify-between items-center">
+                  <span className="text-sm font-medium text-[#5c4f3a]">Subtotal</span>
+                  <span className="text-lg font-bold text-[#1c1810]">₹ {lineAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[13px] font-medium text-zinc-800">
 
@@ -603,14 +711,16 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             {removing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
             Remove
           </button>
-          <button
-            onClick={handleMoveToWishlist}
-            disabled={movingToWishlist}
-            className="flex flex-1 items-center justify-center gap-2 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-all hover:bg-zinc-50 hover:text-primary disabled:opacity-50"
-          >
-            {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} />}
-            Move to Wishlist
-          </button>
+          {!isBYJ && (
+            <button
+              onClick={handleMoveToWishlist}
+              disabled={movingToWishlist}
+              className="flex flex-1 items-center justify-center gap-2 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-all hover:bg-zinc-50 hover:text-primary disabled:opacity-50"
+            >
+              {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} />}
+              Move to Wishlist
+            </button>
+          )}
         </div>
 
         {/* View Live strip (in-stock only) */}
@@ -663,7 +773,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 )}
               </div>
               <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-tight">
-                {currentVariant?.sku || item.sku || "N/A"}
+                SKU: {currentVariant?.sku || item.sku || "N/A"}
               </p>
               {item.engraving && (
                 <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
@@ -736,6 +846,16 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   )}
                 </div>
               </div>
+
+              {isBYJ && (
+                <button 
+                  onClick={() => setShowBreakdown(!showBreakdown)}
+                  className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-2"
+                >
+                  {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
+                  <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
+                </button>
+              )}
             </div>
           </div>
 
