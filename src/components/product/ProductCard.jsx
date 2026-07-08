@@ -784,11 +784,12 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       ` }} />
 
       <Dialog open={showVideoPopup} onOpenChange={setShowVideoPopup}>
-        <DialogContent className="max-w-2xl aspect-square bg-black border-none p-0 overflow-hidden shadow-2xl rounded-3xl w-4/5" showCloseButton={false}>
+        <DialogContent className="max-w-2xl aspect-square bg-transparent border-none p-0 overflow-hidden shadow-2xl rounded-3xl w-4/5" showCloseButton={false}>
           <DialogTitle className="sr-only">Product Video: {product.title}</DialogTitle>
           <DialogDescription className="sr-only">Video preview of the product</DialogDescription>
           <button onClick={() => setShowVideoPopup(false)} className="absolute top-4 right-4 z-[210] p-2 bg-black/50 hover:bg-black text-white rounded-full transition-all shadow-lg border border-white/10"><X size={24} /></button>
-          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain" poster={formatCdnUrl(videoMedia?.preview)}>
+          
+          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain bg-transparent rounded-3xl" poster={formatCdnUrl(videoMedia?.preview)}>
             {videoMedia?.sources?.length > 0 ? (
               <>
                 {videoMedia.sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
@@ -797,6 +798,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             ) : <source src={formatCdnUrl(videoMedia?.url)} type={videoMedia?.mimeType || "video/mp4"} />}
             Your browser does not support the video tag.
           </video>
+
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center z-[210]">
+            <Link 
+              href={`/products/${product.handle}`} 
+              onClick={() => setShowVideoPopup(false)}
+              className="bg-white/95 backdrop-blur-sm text-black border border-gray-100 px-8 py-3.5 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 hover:bg-white hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 transform hover:-translate-y-1"
+            >
+              View Details <ArrowRight size={16} />
+            </Link>
+          </div>
         </DialogContent>
       </Dialog>
     </>

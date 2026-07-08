@@ -237,6 +237,26 @@ export default function MyOrdersPage() {
         </div>
       </div>
 
+      {/* ── Monsoon Delay Banner ── */}
+      <div className="relative w-full rounded-xl md:rounded-2xl overflow-hidden flex items-center justify-center py-4 px-4 shadow-sm">
+        <img 
+          src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3526.jpg?v=1783507410" 
+          alt="Monsoon Background" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative z-10 flex items-center gap-3">
+          <img 
+            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257686.png?v=1783507437" 
+            alt="Rain Cloud Icon" 
+            className="w-8 h-8 md:w-10 md:h-10 object-contain"
+          />
+          <span className="text-white font-figtree text-sm md:text-base font-medium">
+            Orders are delayed due to the monsoon.
+          </span>
+        </div>
+      </div>
+
       {/* ── Filters ── */}
       {orders.length > 0 ? (
         <div className="flex flex-col md:flex-row gap-3 md:gap-4">
