@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { pushPromoClick } from "@/lib/gtm";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 import { fetchOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
 
@@ -432,8 +433,9 @@ const DesktpSavingCalculator = () => {
               {giftValue > 0 && (
                 <div className="w-full my-4">
                   <Image
-                    src={giftValue >= 10000 
-                      ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_10k.jpg?v=1781241879" 
+                    loader={shopifyLoader}
+                    src={giftValue >= 10000
+                      ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_10k.jpg?v=1781241879"
                       : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_5k.jpg?v=1781241879"
                     }
                     alt="Free Gift Banner"
