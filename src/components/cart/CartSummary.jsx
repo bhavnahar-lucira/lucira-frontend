@@ -162,6 +162,20 @@ export default function CartSummary({ onPlaceOrder }) {
 
   const subtotal = totalAmount - insuranceAmount;
 
+  // Sum of original prices (comparePrice if it is greater than price, otherwise price)
+  const originalSubtotal = items
+    .filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+    )
+    .reduce((acc, item) => {
+      const qty = Number(item.quantity || item.qty || 1);
+      const compare = Number(item.comparePrice || 0);
+      const price = Number(item.price || 0);
+      const originalPrice = compare > price ? compare : price;
+      return acc + (originalPrice * qty);
+    }, 0);
+
   // Total savings = sum of (original price - selling price) across all real cart products
   const totalSavings = items
     .filter(item =>
@@ -234,7 +248,7 @@ export default function CartSummary({ onPlaceOrder }) {
       <div className="hidden lg:block bg-white rounded-xl p-6 space-y-3.5 border border-zinc-100 shadow-sm">
         <div className="flex justify-between items-center text-[15px] text-zinc-500">
           <span>Subtotal</span>
-          <span className="font-semibold text-zinc-900">₹ {subtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span className="font-semibold text-zinc-900">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
         {totalSavings > 0 && (
           <div className="flex justify-between items-center text-[15px] text-zinc-500">
@@ -286,7 +300,7 @@ export default function CartSummary({ onPlaceOrder }) {
           <div className="space-y-3">
             <div className="flex justify-between text-[14px] text-zinc-500 font-medium">
               <span>Subtotal</span>
-              <span className="text-zinc-900">₹ {subtotal.toLocaleString('en-IN')}</span>
+              <span className="text-zinc-900">₹ {originalSubtotal.toLocaleString('en-IN')}</span>
             </div>
 
             {totalSavings > 0 && (
