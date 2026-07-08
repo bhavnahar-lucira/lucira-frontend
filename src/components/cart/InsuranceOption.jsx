@@ -17,9 +17,24 @@ export default function InsuranceOption() {
   const isAdded = !!insuranceItem;
 
   // Calculate total quantity of other items
-  const otherItemsQuantity = items
-    .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/47661824082138")
-    .reduce((acc, item) => acc + (item.quantity || 1), 0);
+  const otherItemsQuantity = (() => {
+    let qty = 0;
+    const byjGroups = new Set();
+    items
+      .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/47661824082138")
+      .forEach(item => {
+        const byjGroupId = item.properties?.['_byj_group_id'];
+        if (byjGroupId) {
+          if (!byjGroups.has(byjGroupId)) {
+            byjGroups.add(byjGroupId);
+            qty += 1;
+          }
+        } else {
+          qty += Number(item.quantity || item.qty || 1);
+        }
+      });
+    return qty;
+  })();
 
   const handleAdd = async () => {
     if (isAdded) return;

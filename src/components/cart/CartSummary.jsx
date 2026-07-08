@@ -45,13 +45,28 @@ export default function CartSummary({ onPlaceOrder }) {
       .catch(err => console.error("Error fetching gold coin threshold:", err));
   }, []);
 
-  const otherItemsQuantity = items
-    .filter(item => 
-      item.variantId !== INSURANCE_VARIANT_ID && 
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      item.variantId !== SILVER_PENDANT_VARIANT_ID
-    )
-    .reduce((acc, item) => acc + (Number(item.quantity || item.qty || 1)), 0);
+  const otherItemsQuantity = (() => {
+    let qty = 0;
+    const byjGroups = new Set();
+    items
+      .filter(item => 
+        item.variantId !== INSURANCE_VARIANT_ID && 
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        item.variantId !== SILVER_PENDANT_VARIANT_ID
+      )
+      .forEach(item => {
+        const byjGroupId = item.properties?.['_byj_group_id'];
+        if (byjGroupId) {
+          if (!byjGroups.has(byjGroupId)) {
+            byjGroups.add(byjGroupId);
+            qty += 1;
+          }
+        } else {
+          qty += Number(item.quantity || item.qty || 1);
+        }
+      });
+    return qty;
+  })();
 
   const diamondTotal = items
     .filter(item => 
@@ -160,7 +175,7 @@ export default function CartSummary({ onPlaceOrder }) {
     }
   }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
 
-  const subtotal = totalAmount - insuranceAmount;
+  const subtotal = otherItemsQuantity > 0 ? (totalAmount - insuranceAmount) : 0;
   let couponDiscountAmount = 0;
   if (appliedCoupon) {
     if (couponDetails.valueType === "FIXED_AMOUNT") {

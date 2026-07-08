@@ -6,7 +6,8 @@ import {
   CART_CREATE_MUTATION, 
   CART_LINES_ADD_MUTATION, 
   CART_LINES_UPDATE_MUTATION, 
-  CART_LINES_REMOVE_MUTATION 
+  CART_LINES_REMOVE_MUTATION,
+  CART_ATTRIBUTES_UPDATE_MUTATION
 } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 
@@ -40,12 +41,30 @@ const mapShopifyCart = (cart, backendCart = null) => {
   
   const items = cart.lines?.edges?.map(({ node }) => {
     const variantId = node.merchandise.id;
+
+    // Extract attributes from Shopify CartLine first
+    const shopifyAttributes = node.attributes || [];
+    const shopifyProperties = shopifyAttributes.reduce((acc, attr) => ({
+      ...acc,
+      [attr.key]: attr.value
+    }), {});
+
     // Find matching item in backend cart to restore custom dynamic attributes
     const backendItem = backendCart?.items?.find(i => {
       if (!i.variantId) return false;
       const bVarId = String(i.variantId).toLowerCase();
       const sVarId = String(variantId).toLowerCase();
-      return bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
+      const matchVar = bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
+      if (!matchVar) return false;
+
+      // If it is a BYJ item, also match the unique group ID
+      const shopifyGroupId = shopifyProperties['_byj_group_id'];
+      const backendGroupId = i.properties?.['_byj_group_id'];
+      if (shopifyGroupId || backendGroupId) {
+        return shopifyGroupId === backendGroupId;
+      }
+
+      return true;
     });
 
       // Extract attributes from Shopify selectedOptions as fallback
@@ -81,7 +100,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
         sku: node.merchandise.sku,
         price: finalUnitPrice,
         comparePrice: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,
-        image: node.merchandise.image?.url,
+        image: shopifyProperties['_byj_preview'] || node.merchandise.image?.url,
         altText: node.merchandise.image?.altText,
         productId: node.merchandise.product.id,
         inStock: backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock),
@@ -108,6 +127,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
         karat: backendItem?.karat || fallbackKarat || null,
         size: backendItem?.size || shopifySize || parsedTitle,
         variantOptions: backendItem?.variantOptions || [],
+        properties: { ...shopifyProperties, ...(backendItem?.properties || {}) },
       };
     }) || [];
 
@@ -152,7 +172,11 @@ export const fetchCart = createAsyncThunk(
 
     const [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
     
-    // Quantity correction logic removed to allow quantity > 1
+    // Heal stale cart if shopifyPromise returned nothing but we had a cartId
+    if (!data?.cart && cartId) {
+      console.warn("[fetchCart] Cart ID not found on Shopify, clearing...");
+      localStorage.removeItem("shopify_cart_id");
+    }
     
     // Auto-heal/sync backend cart from storefront lines if backend cart has no items
     let finalBackendCart = backendCart;
@@ -247,49 +271,66 @@ export const fetchCart = createAsyncThunk(
   }
 );
 
+export const updateCartAttributes = createAsyncThunk(
+  "cart/updateCartAttributes",
+  async ({ attributes }) => {
+    const cartId = getCartId();
+    if (!cartId || !attributes) return;
+
+    await shopifyStorefrontFetch(CART_ATTRIBUTES_UPDATE_MUTATION, {
+      cartId,
+      attributes
+    });
+  }
+);
+
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
-  async ({ userId, product, context = "storefront" }, { rejectWithValue, getState }) => {
+  async (args, { rejectWithValue, getState, dispatch }) => {
+    const { userId, product, products, context = "storefront" } = args || {};
     const state = getState();
     const finalUserId = userId || state.user?.user?.id || null;
     const sessionId = getSessionId();
     let cartId = getCartId();
     
-    const rawVariantId = product.shopifyVariantId || product.variantId || product.id;
-    const variantId = toShopifyGid(rawVariantId, "ProductVariant");
+    // Support multiple formats: 
+    // 1. { products: [...] }
+    // 2. { product: { ... } }
+    // 3. { variantId: ..., ... } (unwrapped product)
+    let productsToAdd = [];
+    if (products && Array.isArray(products)) {
+      productsToAdd = products;
+    } else if (product) {
+      productsToAdd = [product];
+    } else if (args && (args.variantId || args.id || args.shopifyVariantId)) {
+      // If args itself looks like a product (has variantId/id), use it
+      productsToAdd = [args];
+    }
 
-    // Enforce Quantity of 1 and avoid duplicates with same attributes
-    // We treat items with different attributes (engraving, metal, etc.) as distinct
-    const existingItems = state.cart?.items || [];
-    const isDuplicate = existingItems.some(item => {
-      // Skip duplicate check for Gold Coins to allow multiple quantities
-      if (String(variantId).toLowerCase() === GOLDCOIN_VARIANT_ID.toLowerCase()) return false;
+    // Filter out any potential undefined/null items
+    productsToAdd = productsToAdd.filter(Boolean);
+    
+    if (productsToAdd.length === 0) return state.cart;
 
-      const sameVariant = String(item.variantId).toLowerCase() === variantId.toLowerCase();
-      
-      const itemEngraving = (item.engraving || "").trim().toLowerCase();
-      const productEngraving = (product.engraving || "").trim().toLowerCase();
-      const sameEngraving = itemEngraving === productEngraving;
+    const lines = productsToAdd.map(p => {
+      const rawId = p.shopifyVariantId || p.variantId || p.id;
+      const attributes = p.properties ? Object.entries(p.properties).map(([key, value]) => ({
+        key,
+        value: String(value)
+      })) : [];
 
-      const sameKarat = String(item.karat || "").toLowerCase() === String(product.karat || "").toLowerCase();
-      const sameColor = String(item.color || "").toLowerCase() === String(product.color || "").toLowerCase();
-      const sameSize = String(item.size || "").toLowerCase() === String(product.size || "").toLowerCase();
-      
-      return sameVariant && sameEngraving && sameKarat && sameColor && sameSize;
+      return {
+        merchandiseId: toShopifyGid(rawId, "ProductVariant"),
+        quantity: p.quantity || 1,
+        attributes
+      };
     });
 
-    if (isDuplicate) {
-      console.log("[addToCart] Item already in cart with same attributes. Skipping add.");
-      return state.cart; // Return existing cart state
-    }
-    
     // 1. Shopify Storefront Mutation
     let shopifyCartData = null;
     if (!cartId) {
       const data = await shopifyStorefrontFetch(CART_CREATE_MUTATION, {
-        input: {
-          lines: [{ merchandiseId: variantId, quantity: product.quantity || 1 }]
-        }
+        input: { lines }
       });
       
       const userErrors = data?.cartCreate?.userErrors;
@@ -305,45 +346,102 @@ export const addToCart = createAsyncThunk(
         shopifyCartData = fullData?.cart;
       }
     } else {
-      const data = await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
-        cartId,
-        lines: [{ merchandiseId: variantId, quantity: product.quantity || 1 }]
-      });
+      let retries = 3;
+      let delayMs = 500;
+      
+      while (retries >= 0) {
+        let data = await shopifyStorefrontFetch(CART_LINES_ADD_MUTATION, {
+          cartId,
+          lines
+        });
 
-      const userErrors = data?.cartLinesAdd?.userErrors;
-      if (userErrors && userErrors.length > 0) {
-        console.error("Shopify cartLinesAdd UserErrors:", userErrors);
-        // If cart not found, clear local cartId and retry once
-        if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
-          localStorage.removeItem("shopify_cart_id");
-          return rejectWithValue("Cart not found, please try adding again.");
+        let userErrors = data?.cartLinesAdd?.userErrors || [];
+        
+        // If conflict, retry with jitter
+        const isConflict = userErrors.some(e => e.code === "CONFLICT" || e.message.includes("conflicted"));
+        if (isConflict && retries > 0) {
+          const jitter = Math.floor(Math.random() * 200);
+          console.warn(`[addToCart] User-level conflict detected, retrying in ${delayMs + jitter}ms...`);
+          await new Promise(r => setTimeout(r, delayMs + jitter));
+          retries--;
+          delayMs *= 2;
+          continue;
         }
-        return rejectWithValue(userErrors[0].message);
-      }
 
-      const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-      shopifyCartData = fullData?.cart;
+        // If cart not found, clear ID and try to create a new one instead of failing
+        if (userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+          console.warn("[addToCart] Cart ID stale, creating new cart...");
+          localStorage.removeItem("shopify_cart_id");
+          const newData = await shopifyStorefrontFetch(CART_CREATE_MUTATION, {
+            input: { lines }
+          });
+          const newCart = newData?.cartCreate?.cart;
+          if (newCart) {
+            setCartId(newCart.id);
+            const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId: newCart.id });
+            shopifyCartData = fullData?.cart;
+            break;
+          } else {
+            const createErrors = newData?.cartCreate?.userErrors;
+            return rejectWithValue(createErrors?.[0]?.message || "Failed to create new cart");
+          }
+        } else if (userErrors.length > 0) {
+          console.error("Shopify cartLinesAdd UserErrors:", userErrors);
+          return rejectWithValue(userErrors[0].message);
+        } else {
+          const fullData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+          shopifyCartData = fullData?.cart;
+          break;
+        }
+      }
+    }
+
+    // After adding to cart, check if we have a BYJ image to sync as a cart attribute
+    const byjProduct = productsToAdd.find(p => p.properties?.['byj_image'] || p.properties?.['_byj_preview']);
+    if (byjProduct && shopifyCartData?.id) {
+       const img = byjProduct.properties['byj_image'] || byjProduct.properties['_byj_preview'];
+       if (img) {
+         dispatch(updateCartAttributes({
+           attributes: [
+             { key: "byj_image", value: img },
+             { key: "custom.byj_image", value: img },
+             { key: "metafield:custom.byj_image", value: img },
+             { key: "_byj_image", value: img },
+             { key: "Preview Image", value: img }
+           ]
+         }));
+       }
     }
 
     // 2. Parallel Fastify Backend Call
     let backendCart = null;
     try {
+      // If adding multiple, we might need a batch endpoint, but for now we loop or send the first one
+      // For BYJ, the backend might handle the "main" item. 
+      // Let's assume the backend cart can handle a batch if we send it correctly or just sync later.
       backendCart = await apiFetch("/api/cart/add", {
         method: "POST",
         body: JSON.stringify({
           userId: finalUserId,
           sessionId,
           context,
+          products: productsToAdd.map(p => ({
+            ...p,
+            variantId: toShopifyGid(p.shopifyVariantId || p.variantId || p.id, "ProductVariant"),
+            price: Number(p.finalPrice || p.price || 0),
+            finalPrice: Number(p.finalPrice || p.price || 0),
+            quantity: p.quantity || 1
+          })),
+          // Fallback for single product
           product: {
-            ...product,
-            variantId: toShopifyGid(product.shopifyVariantId || product.variantId || product.id, "ProductVariant"),
-            price: Number(product.finalPrice || product.price || 0), // Prefer dynamic finalPrice for calculation
-            finalPrice: Number(product.finalPrice || product.price || 0),
-            quantity: product.quantity || 1
+            ...productsToAdd[0],
+            variantId: toShopifyGid(productsToAdd[0].shopifyVariantId || productsToAdd[0].variantId || productsToAdd[0].id, "ProductVariant"),
+            price: Number(productsToAdd[0].finalPrice || productsToAdd[0].price || 0),
+            finalPrice: Number(productsToAdd[0].finalPrice || productsToAdd[0].price || 0),
+            quantity: productsToAdd[0].quantity || 1
           }
         })
       });
-      console.log("[addToCart] Backend Cart updated successfully:", backendCart);
     } catch (e) {
       console.error("[addToCart] Backend Cart update failed:", e);
     }
@@ -369,7 +467,6 @@ export const removeFromCart = createAsyncThunk(
     // Check if the lineId passed is actually a variantId or productId
     const state = getState();
     const items = state.cart?.items || [];
-    const hasLineId = items.some(item => item.lineId === lineId);
 
     let variantId = null;
 
@@ -387,10 +484,17 @@ export const removeFromCart = createAsyncThunk(
     }
 
     // 1. Shopify storefront remove
-    await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
+    let data = await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
       cartId,
       lineIds: [targetLineId]
     });
+
+    // Heal stale cart
+    const userErrors = data?.cartLinesRemove?.userErrors || [];
+    if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+      localStorage.removeItem("shopify_cart_id");
+      return { items: [], totalQuantity: 0, totalAmount: 0, context };
+    }
 
     // 2. Fastify backend remove
     let backendCart = null;
@@ -410,8 +514,57 @@ export const removeFromCart = createAsyncThunk(
       }
     }
 
-    const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-    return mapShopifyCart(data?.cart, backendCart);
+    const finalData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+    return mapShopifyCart(finalData?.cart, backendCart);
+  }
+);
+
+export const removeMultipleFromCart = createAsyncThunk(
+  "cart/removeMultipleFromCart",
+  async ({ userId, lineIds, variantIds, context = "storefront" }, { getState }) => {
+    const finalUserId = userId || getState().user?.user?.id || null;
+    const sessionId = getSessionId();
+    const cartId = getCartId();
+    if (!cartId || !lineIds || lineIds.length === 0) {
+      const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+      return mapShopifyCart(data?.cart);
+    }
+
+    // 1. Shopify storefront remove (supports bulk)
+    let data = await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
+      cartId,
+      lineIds
+    });
+
+    // Heal stale cart
+    const userErrors = data?.cartLinesRemove?.userErrors || [];
+    if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+      localStorage.removeItem("shopify_cart_id");
+      return { items: [], totalQuantity: 0, totalAmount: 0, context };
+    }
+
+    // 2. Fastify backend remove (sequential to avoid backend race conditions if any)
+    let backendCart = null;
+    if (variantIds && variantIds.length > 0) {
+      for (const vId of variantIds) {
+        try {
+          backendCart = await apiFetch("/api/cart/remove", {
+            method: "POST",
+            body: JSON.stringify({
+              userId: finalUserId,
+              sessionId,
+              variantId: vId,
+              context
+            })
+          });
+        } catch (e) {
+          console.error("removeMultipleFromCart backend error:", e);
+        }
+      }
+    }
+
+    const finalData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+    return mapShopifyCart(finalData?.cart, backendCart);
   }
 );
 
@@ -449,10 +602,17 @@ export const updateCartItem = createAsyncThunk(
     if (quantity !== undefined) lineUpdate.quantity = quantity;
     if (nextVariantId) lineUpdate.merchandiseId = toShopifyGid(nextVariantId, "ProductVariant");
 
-    await shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
+    let data = await shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
       cartId,
       lines: [lineUpdate]
     });
+
+    // Heal stale cart
+    const userErrors = data?.cartLinesUpdate?.userErrors || [];
+    if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+      localStorage.removeItem("shopify_cart_id");
+      return { items: [], totalQuantity: 0, totalAmount: 0, context };
+    }
 
     // 2. Fastify backend update
     let backendCart = null;
@@ -485,8 +645,8 @@ export const updateCartItem = createAsyncThunk(
       }
     }
 
-    const data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
-    return mapShopifyCart(data?.cart, backendCart);
+    const finalData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+    return mapShopifyCart(finalData?.cart, backendCart);
   }
 );
 
@@ -695,6 +855,22 @@ const cartSlice = createSlice({
         }
       })
       .addCase(removeFromCart.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(removeMultipleFromCart.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(removeMultipleFromCart.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload) {
+          state.items = action.payload.items || [];
+          state.totalQuantity = action.payload.totalQuantity || 0;
+          state.totalAmount = action.payload.totalAmount || 0;
+        }
+      })
+      .addCase(removeMultipleFromCart.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })

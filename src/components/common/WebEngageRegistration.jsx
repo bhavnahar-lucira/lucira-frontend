@@ -11,7 +11,11 @@ export default function WebEngageRegistration() {
         const registration = await navigator.serviceWorker.register("/service-worker.js");
         console.log("WebEngage Service Worker registered: ", registration);
       } catch (error) {
-        console.error("WebEngage Service Worker registration failed: ", error);
+        if (error.name === 'InvalidStateError') {
+          console.warn("WebEngage Service Worker registration skipped: Document is in an invalid state (likely due to Turbopack HMR).");
+        } else {
+          console.error("WebEngage Service Worker registration failed: ", error);
+        }
       }
     };
 

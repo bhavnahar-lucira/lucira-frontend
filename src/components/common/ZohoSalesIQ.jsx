@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export default function ZohoSalesIQ() {
+  const pathname = usePathname();
+
   useEffect(() => {
+    if (pathname === "/build-your-jewelry" || pathname === "/pages/store-giveaway") {
+      // If already loaded, hide it
+      if (window.$zoho && window.$zoho.salesiq && window.$zoho.salesiq.floatwindow) {
+        window.$zoho.salesiq.floatwindow.visible('hide');
+      }
+      return;
+    }
+
     // 1. Initial setup for $zoho object
     window.$zoho = window.$zoho || {};
     window.$zoho.salesiq = window.$zoho.salesiq || { ready: function() {} };

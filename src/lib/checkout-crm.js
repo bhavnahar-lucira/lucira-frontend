@@ -109,11 +109,17 @@ export const sendCheckoutCrmEvent = async (type, data) => {
       };
     });
 
+    const byjImage = (data.cartItems || []).find(item => item.properties?.['byj_image'])?.properties?.['byj_image'] || 
+                     (data.cartItems || []).find(item => item.properties?.['_byj_preview'])?.properties?.['_byj_preview'] || "";
+
     const payload = {
       leaddetails: leadDetails,
       customerevent: customerEvent,
       products: products,
-      order: {}
+      order: {
+        byj_image: byjImage,
+        "custom.byj_image": byjImage
+      }
     };
 
     await apiFetch("/api/webhooks/checkout-crm", {

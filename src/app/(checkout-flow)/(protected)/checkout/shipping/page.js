@@ -432,12 +432,20 @@ export default function ShippingPage() {
         return match ? Number(match[0]) : 0;
       };
 
+      const filteredItemsForGtm = cartItems.filter(
+        (item) =>
+          item.variantId !== INSURANCE_VARIANT_ID &&
+          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.properties?.['_byj_parent'] &&
+          !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+      );
+
       const checkoutData = {
         payment_type: "Pay Via UPI / COD",
         send_to: "G-K6H0NZ4YJ8",
         value: Number(totalAmount),
         currency: "INR",
-        items: cartItems.map((item, idx) => {
+        items: filteredItemsForGtm.map((item, idx) => {
           const lowerTitle = (item.title || "").toLowerCase();
           let category = item.type || item.productType || "";
           if (!category) {
@@ -579,8 +587,15 @@ export default function ShippingPage() {
   }, [selectedAddress, searchCoords, dbStores]);
 
   const storeAvailability = useMemo(() => {
+    const filteredItems = cartItems.filter(
+      (item) =>
+        item.variantId !== INSURANCE_VARIANT_ID &&
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !item.properties?.['_byj_parent'] &&
+        !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+    );
     return sortedStores.reduce((acc, store) => {
-      acc[store.id] = cartItems.map((item, index) => ({
+      acc[store.id] = filteredItems.map((item, index) => ({
         ...item,
         isAvailable: true,
       }));
@@ -1021,10 +1036,18 @@ export default function ShippingPage() {
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
 
+    const filteredItemsForGtm = (cartItems || []).filter(
+      (item) =>
+        item.variantId !== INSURANCE_VARIANT_ID &&
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !item.properties?.['_byj_parent'] &&
+        !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
+    );
+
     const shippingData = {
       value: grandTotalValue,
       currency: "INR",
-      items: (cartItems || []).map((item, idx) => {
+      items: filteredItemsForGtm.map((item, idx) => {
         const lowerTitle = (item.title || "").toLowerCase();
         let category = item.type || item.productType || "";
         if (!category) {
