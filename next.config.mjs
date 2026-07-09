@@ -113,7 +113,11 @@ const nextConfig = {
       },
       {
         source: '/cart.js',
-        destination: '/cart.js', // Serve the static file in public/
+        destination: '/cart.json', // Serve the JSON file to avoid IDE syntax errors in .js files
+      },
+      {
+        source: '/cart.json',
+        destination: '/cart.json', // Serve the static file in public/
       },
       {
         source: '/images/:path*',

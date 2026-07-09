@@ -281,7 +281,7 @@ export const fetchSearchResults = async (query) => {
       return '₹' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
     };
     // Map products → results shape expected by SearchPopup
-    const productResults = (data.products || []).map(p => ({
+    const productResults = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map(p => ({
       id: p.shopifyId || p.id,
       title: p.title,
       url: `/products/${p.handle}`,
@@ -289,7 +289,7 @@ export const fetchSearchResults = async (query) => {
       price: formatPrice(p.price_breakup?.total || p.price),
       isCollection: false,
     }));
-    const collectionResults = (data.matchedCollections || []).map(c => ({
+    const collectionResults = (data.collections || []).filter(c => !c.title.toLowerCase().includes('byj') && !c.handle.toLowerCase().includes('byj')).map(c => ({
       id: c.shopifyId || c.id || c._id,
       title: c.title,
       url: `/collections/${c.handle}`,

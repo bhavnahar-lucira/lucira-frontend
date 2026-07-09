@@ -62,7 +62,7 @@ export default function SearchPopup({
 
   // Prioritize exact matches in collections
   const matchedCollections = searchResults
-    .filter((item) => item.isCollection)
+    .filter((item) => item.isCollection && !item.title.toLowerCase().includes('byj') && !item.url.toLowerCase().includes('byj'))
     .sort((a, b) => {
       const aExact = a.title.toLowerCase() === searchQuery.toLowerCase();
       const bExact = b.title.toLowerCase() === searchQuery.toLowerCase();
@@ -130,7 +130,7 @@ export default function SearchPopup({
               }).format(Math.round(Number(num)))
             );
           };
-          const mapped = (data.products || []).map((p) => ({
+          const mapped = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map((p) => ({
             id: p.shopifyId || p.id,
             title: p.title,
             url: `/products/${p.handle}`,

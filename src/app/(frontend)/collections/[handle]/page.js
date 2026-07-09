@@ -121,8 +121,9 @@ export default async function Page({ params }) {
         }
       }
 
-      // Keep product descriptions lean in the grid
+      // Keep product descriptions lean in the grid and filter hidden products
       if (collData?.products) {
+        collData.products = collData.products.filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
         collData.products.forEach(p => {
           delete p.descriptionHtml;
         });
@@ -132,6 +133,13 @@ export default async function Page({ params }) {
     }
   } catch(e) {
     console.error("Failed to fetch initial data for SSG", e);
+  }
+
+  // Check if collection is empty after fetching data
+  if (initialData?.collData && (!initialData.collData.products || initialData.collData.products.length === 0)) {
+    if (!initialData.collData.pageInfo?.hasNextPage) {
+      notFound();
+    }
   }
 
   return (

@@ -125,7 +125,7 @@ export default function SearchPage() {
         setFiltersLoading(false);
 
         const prodData = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&${filterParamsString}&limit=${limit}`);
-        setProducts(prodData.products || []);
+        setProducts((prodData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
         setPagination(prodData.pagination || { hasNextPage: false, endCursor: null });
         setTotalCount(prodData.pagination?.total || 0);
       } catch (err) {
@@ -142,7 +142,7 @@ export default function SearchPage() {
     setIsFetchingNextPage(true);
     try {
       const data = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&${filterParamsString}&limit=${limit}&cursor=${pagination.endCursor}`);
-      setProducts(prev => [...prev, ...(data.products || [])]);
+      setProducts(prev => [...prev, ...(data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'))]);
       setPagination(data.pagination || { hasNextPage: false, endCursor: null });
     } catch (err) {
       console.error("Failed to fetch next search page:", err);
