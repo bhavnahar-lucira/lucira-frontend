@@ -333,7 +333,7 @@ export default function SearchPage() {
             </div>
           )}
           {!productsLoading && products.length === 0 ? (
-            <div className="text-center py-0">
+            <div className="text-center py-12">
               <div className="flex justify-center items-center gap-2.5 w-[50%] mx-auto">
                 <img
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/7c770e5800dc9629cd5493df5a3f21822d0ba5a6_1.png?v=1750417853"
@@ -353,14 +353,14 @@ export default function SearchPage() {
                 <Link
                   href="/collections/jewelry"
                   prefetch={false}
-                  className="px-5 py-4 border border-primary bg-primary text-white rounded-xl text-base w-[90%] md:w-[25%] text-center"
+                  className="px-5 py-4 border border-primary bg-primary text-white rounded text-base w-[90%] md:w-[25%] text-center"
                 >
                   BROWSE OUR COLLECTIONS
                 </Link>
                 <Link
                   href="/"
                   prefetch={false}
-                  className="px-5 py-4 border border-primary text-primary rounded-xl text-base w-[90%] md:w-[25%] text-center"
+                  className="px-5 py-4 border border-primary text-primary rounded text-base w-[90%] md:w-[25%] text-center"
                 >
                   GO TO HOMEPAGE
                 </Link>
@@ -389,7 +389,7 @@ export default function SearchPage() {
       </div>
       {!productsLoading && products.length === 0 && (
         <div className="w-full">
-          <ExploreRange bgClass="bg-[#FEF5F1]" paddingClass="py-0" />
+          <ExploreRange bgClass="bg-[#FEF5F1]" paddingClass="py-12" />
         </div>
       )}
     </div>
