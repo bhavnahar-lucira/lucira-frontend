@@ -30,6 +30,7 @@ import {
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
+import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import { apiFetch } from "@/lib/api";
 
 const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar"];
@@ -41,6 +42,15 @@ const STORE_IMAGES = {
   "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
   "malad": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg"],
   "paschim-vihar": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
+};
+
+// Define custom collection banners here (e.g. to bypass the default pink layout with full-width images)
+// You can easily add other collections here by adding their handle and desktop/mobile image URLs
+const CUSTOM_COLLECTION_BANNERS = {
+  "eterna": {
+    desktop: "https://luciraonline.myshopify.com/cdn/shop/files/Eterna-Band-Desktop_2.jpg?v=1775304259&width=1920",
+    mobile: "https://luciraonline.myshopify.com/cdn/shop/files/Eterna-Band-Mobile_1.jpg?v=1775304292&width=750"
+  }
 };
 
 const SORT_OPTIONS = [
@@ -579,7 +589,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop20202B100.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop20202B100.jpg?v=1782902110" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
             </Link>
           </div>
         );
@@ -621,7 +631,38 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      {STORE_HANDLES.includes(handle) ? (
+      {CUSTOM_COLLECTION_BANNERS[handle] ? (
+        <>
+          {/* Mobile View with Breadcrumbs & Custom Mobile Image */}
+          <div className="w-full block md:hidden">
+            <div className="container-main mx-auto pt-2 px-4 py-3">
+              <Breadcrumb>
+                <BreadcrumbList className="text-[0.625rem] font-bold uppercase tracking-[0.15em] text-gray-400">
+                  <BreadcrumbItem><BreadcrumbLink href="/" className="hover:text-[#5a413f] transition-colors">Home</BreadcrumbLink></BreadcrumbItem>
+                  <BreadcrumbSeparator className="scale-75" />
+                  <BreadcrumbItem><BreadcrumbLink href="/collections/jewelry" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
+                  <BreadcrumbSeparator className="scale-75" />
+                  <BreadcrumbItem className="truncate line-clamp-1 whitespace-nowrap"><BreadcrumbPage className="text-[#5a413f]">{displayTitle}</BreadcrumbPage></BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+            <img
+              src={CUSTOM_COLLECTION_BANNERS[handle].mobile}
+              alt={displayTitle}
+              className="w-full h-auto"
+            />
+          </div>
+
+          {/* Desktop View with Custom Desktop Image */}
+          <div className="w-full hidden md:block">
+            <img
+              src={CUSTOM_COLLECTION_BANNERS[handle].desktop}
+              alt={displayTitle}
+              className="w-full h-auto"
+            />
+          </div>
+        </>
+      ) : STORE_HANDLES.includes(handle) ? (
         <StoreCollectionBanner collectionHandle={handle} bannerImages={STORE_IMAGES[handle] || []} />
       ) : isMobile ? (
         <div className="w-full">
@@ -664,6 +705,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           </div>
         </div>
       )}
+
+      {handle === "eterna" && <EternaBandsSection />}
 
       <div className={isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}>
         {/* ================= FILTERS SIDEBAR ================= */}
