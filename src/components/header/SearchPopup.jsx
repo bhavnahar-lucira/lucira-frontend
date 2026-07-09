@@ -62,7 +62,7 @@ export default function SearchPopup({
 
   // Prioritize exact matches in collections
   const matchedCollections = searchResults
-    .filter((item) => item.isCollection)
+    .filter((item) => item.isCollection && !item.title.toLowerCase().includes('byj') && !item.url.toLowerCase().includes('byj'))
     .sort((a, b) => {
       const aExact = a.title.toLowerCase() === searchQuery.toLowerCase();
       const bExact = b.title.toLowerCase() === searchQuery.toLowerCase();

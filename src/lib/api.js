@@ -289,7 +289,7 @@ export const fetchSearchResults = async (query) => {
       price: formatPrice(p.price_breakup?.total || p.price),
       isCollection: false,
     }));
-    const collectionResults = (data.matchedCollections || []).map(c => ({
+    const collectionResults = (data.collections || []).filter(c => !c.title.toLowerCase().includes('byj') && !c.handle.toLowerCase().includes('byj')).map(c => ({
       id: c.shopifyId || c.id || c._id,
       title: c.title,
       url: `/collections/${c.handle}`,
