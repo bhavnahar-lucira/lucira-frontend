@@ -130,7 +130,7 @@ export default function SearchPopup({
               }).format(Math.round(Number(num)))
             );
           };
-          const mapped = (data.products || []).map((p) => ({
+          const mapped = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map((p) => ({
             id: p.shopifyId || p.id,
             title: p.title,
             url: `/products/${p.handle}`,

@@ -232,7 +232,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return { title: "", description: "", descriptionHtml:"" };
   });
   const [dbCollection, setDbCollection] = useState(null);
-  const [products, setProducts] = useState(() => initialData?.collData?.products || []);
+  const [products, setProducts] = useState(() => (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
   const [pagination, setPagination] = useState(() => initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null });
   const [productsLoading, setProductsLoading] = useState(!initialData);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
@@ -457,7 +457,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           descriptionHtml: collData.collection.descriptionHtml || "",
           metafields: collData.collection?.metafields || {}
         });
-        setProducts(collData.products || []);
+        setProducts((collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
         setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
         setTotalCount(collData.totalProducts || 0);
 
@@ -486,7 +486,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       setProducts(prev => {
         const nextProducts = data.products || [];
         const existingIds = new Set(prev.map(p => p.id));
-        const filteredNew = nextProducts.filter(p => !existingIds.has(p.id));
+        const filteredNew = nextProducts.filter(p => !existingIds.has(p.id) && !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
         return [...prev, ...filteredNew];
       });
       setPagination(data.pageInfo || { hasNextPage: false, endCursor: null });

@@ -281,7 +281,7 @@ export const fetchSearchResults = async (query) => {
       return '₹' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
     };
     // Map products → results shape expected by SearchPopup
-    const productResults = (data.products || []).map(p => ({
+    const productResults = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map(p => ({
       id: p.shopifyId || p.id,
       title: p.title,
       url: `/products/${p.handle}`,
