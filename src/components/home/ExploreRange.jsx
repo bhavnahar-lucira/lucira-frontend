@@ -22,7 +22,7 @@ const CATEGORIES = [
   { name: "Men's Stud", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensStud.jpg", href: "/collections/mens-stud" },
 ];
 
-export default function ExploreRange() {
+export default function ExploreRange({ bgClass = "bg-white", paddingClass = "pt-5 pb-5 lg:pb-10" }) {
   const [activeIndex, setActiveIndex] = useState(0);
   
   const groupedCategories = [];
@@ -31,7 +31,7 @@ export default function ExploreRange() {
   }
 
   return (
-    <section className="w-full pt-5 bg-white overflow-hidden">
+    <section className={`w-full ${paddingClass} ${bgClass} overflow-hidden`}>
       <div className="container-main">
         <div className="text-left lg:text-center mb-6 px-1 lg:px-0">
           <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
