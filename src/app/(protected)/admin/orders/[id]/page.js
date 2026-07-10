@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { apiFetch } from "@/lib/api";
@@ -61,7 +61,7 @@ export default function OrderDetailsPage() {
   const { accessToken } = useSelector((state) => state.user);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [returnLoading, setReturnLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchOrderDetails() {
@@ -149,31 +149,12 @@ export default function OrderDetailsPage() {
     fetchOrderDetails();
   }, [id, accessToken]);
 
-  const handleReturnClick = async () => {
+  const handleReturnClick = () => {
     if (order.fulfillmentStatus !== 'FULFILLED') {
-      toast.info("Returns are only available after delivery");
+      toast.info("Returns are available once your order is delivered");
       return;
     }
-
-    try {
-      setReturnLoading(true);
-      const data = await apiFetch('/api/customer/returns', {
-        method: 'POST',
-        body: JSON.stringify({
-          orderNumber: order.orderNumber,
-          customerEmail: order.customerEmail,
-        }),
-      });
-      if (data.success) {
-        window.location.href = data.url;
-      } else {
-        toast.error(data.message || "Failed to initiate return");
-      }
-    } catch (err) {
-      toast.error("Failed to connect to Return Prime");
-    } finally {
-      setReturnLoading(false);
-    }
+    router.push(`/admin/orders/${id}/return`);
   };
 
   if (loading) {
@@ -536,12 +517,13 @@ export default function OrderDetailsPage() {
               <div className="space-y-3">
                 <button
                   onClick={handleReturnClick}
-                  disabled={returnLoading || order.fulfillmentStatus !== 'FULFILLED'}
+                  disabled={order.fulfillmentStatus !== 'FULFILLED'}
+                  title={order.fulfillmentStatus !== 'FULFILLED' ? "Available once your order is delivered" : "Request a return"}
                   className="w-full flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
                   <div className="flex items-center gap-3">
-                    {returnLoading ? <Loader2 className="size-5 animate-spin" /> : <RefreshCcw size={20} className="group-hover:rotate-180 transition-transform duration-500" />}
-                    <span className="text-base font-bold">Returns & Exchange</span>
+                    <RefreshCcw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+                    <span className="text-base font-bold">Request a Return</span>
                   </div>
                   <ChevronLeft className="rotate-180 size-6" />
                 </button>
