@@ -372,7 +372,7 @@ export default function CartSummary({ onPlaceOrder }) {
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
           <div className="w-full relative rounded-lg overflow-hidden mb-6 shadow-sm">
-            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/WhatsApp_Image_2026-07-10_at_12.53.17_PM.jpg?v=1783668268" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
           </div>
           <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>          
           
@@ -445,7 +445,7 @@ export default function CartSummary({ onPlaceOrder }) {
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
         <div className="w-full relative rounded-lg overflow-hidden mb-6 shadow-sm">
-          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/WhatsApp_Image_2026-07-10_at_12.53.17_PM.jpg?v=1783668268" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
         </div>
         <Button 
           onClick={() => {

@@ -265,7 +265,7 @@ export default function CheckoutSummary({
       >
         <div className="flex flex-col">
           <span className="font-figtree font-medium text-[13px] lg:text-[15px] leading-[1.3] text-[#3D2B28] truncate">
-            Eterna Products
+            Eterna Collection
           </span>
           <span 
             className="font-figtree font-medium text-[11px] lg:text-[12px] leading-[1.3] text-[#6B5B54] truncate" 
