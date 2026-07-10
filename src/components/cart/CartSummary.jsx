@@ -108,6 +108,12 @@ export default function CartSummary({ onPlaceOrder }) {
 
   const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
 
+  const firstProductName = items.find(item =>
+    item.variantId !== INSURANCE_VARIANT_ID &&
+    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+    item.variantId !== SILVER_PENDANT_VARIANT_ID
+  )?.title;
+
   // Auto-sync insurance and gold coin quantities
   useEffect(() => {
     // Sync Insurance
@@ -152,18 +158,25 @@ export default function CartSummary({ onPlaceOrder }) {
     }
 
     if (appliedCoupon && items.length > 0 && couponDetails?.code) {
-      const validateCurrentCoupon = async () => {
-        try {
-          await apiFetch("/api/cart/coupon/validate", {
-            method: "POST",
-            body: JSON.stringify({ 
-              items, 
-              couponCode: couponDetails.code,
-              customerEmail: user?.email 
-            }),
-            suppressErrorLog: true
-          });
-        } catch (err) {
+        const validateCurrentCoupon = async () => {
+          try {
+            const data = await apiFetch("/api/cart/coupon/validate", {
+              method: "POST",
+              body: JSON.stringify({ 
+                items, 
+                couponCode: couponDetails.code,
+                customerEmail: user?.email 
+              }),
+              suppressErrorLog: true
+            });
+            dispatch(applyCoupon({
+              code: data.code,
+              summary: data.summary,
+              value: data.value,
+              valueType: data.valueType,
+              applicableItemIds: data.applicableItemIds
+            }));
+          } catch (err) {
           dispatch(removeCoupon());
           toast.error("Coupon removed: items in cart are no longer eligible.", {
             icon: <Check className="w-4 h-4" />
@@ -210,7 +223,19 @@ export default function CartSummary({ onPlaceOrder }) {
     if (couponDetails.valueType === "FIXED_AMOUNT") {
       couponDiscountAmount = couponDetails.value;
     } else if (couponDetails.valueType === "PERCENTAGE") {
-      couponDiscountAmount = (subtotal * couponDetails.value) / 100;
+      if (couponDetails.applicableItemIds && couponDetails.applicableItemIds.length > 0) {
+        const applicableSubtotal = items.filter(item => {
+           if (item.variantId === INSURANCE_VARIANT_ID || (item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)) return false;
+           const rawId = item.shopifyId || item.productId || item.id;
+           const gid = (rawId && rawId.toString().includes("gid://")) ? rawId : `gid://shopify/Product/${rawId}`;
+           return couponDetails.applicableItemIds.includes(gid);
+        }).reduce((acc, item) => {
+          return acc + (Number(item.price || 0) * Number(item.quantity || 1));
+        }, 0);
+        couponDiscountAmount = (applicableSubtotal * couponDetails.value) / 100;
+      } else {
+        couponDiscountAmount = (subtotal * couponDetails.value) / 100;
+      }
     }
   }
 
@@ -235,7 +260,8 @@ export default function CartSummary({ onPlaceOrder }) {
         code: data.code, 
         summary: data.summary,
         value: data.value,
-        valueType: data.valueType
+        valueType: data.valueType,
+        applicableItemIds: data.applicableItemIds
       }));
       toast.success(`Coupon "${data.code}" applied!`);
       if (isMobile) {
@@ -275,7 +301,7 @@ export default function CartSummary({ onPlaceOrder }) {
         {appliedCoupon && (
           <div className="flex justify-between items-center text-[15px] text-[#189351]">
             <div className="flex items-center gap-2">
-              <span className="font-bold uppercase tracking-wider">Coupon ({couponDetails.code})</span>
+              <span className="font-bold uppercase tracking-wider">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
               <button 
                 onClick={handleRemoveCoupon}
                 className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
@@ -329,7 +355,7 @@ export default function CartSummary({ onPlaceOrder }) {
             {appliedCoupon && (
               <div className="flex justify-between text-[14px] font-medium items-center text-[#189351]">
                 <div className="flex items-center gap-2">
-                  <span className="uppercase">Coupon ({couponDetails.code})</span>
+                  <span className="uppercase">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
                   <button 
                     onClick={handleRemoveCoupon}
                     className="text-[10px] font-bold text-red-500 hover:underline uppercase"
@@ -371,6 +397,9 @@ export default function CartSummary({ onPlaceOrder }) {
       {/* Mobile Offers Group (Coupon, Gold Coin, Insurance) - ALL BELOW SUMMARY */}
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
+          <div className="w-full relative rounded-lg overflow-hidden mb-6 shadow-sm">
+            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+          </div>
           <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>          
           
 
@@ -387,7 +416,7 @@ export default function CartSummary({ onPlaceOrder }) {
                     <Tag size={20} className="text-primary" />
                   </div>
                   <span className="text-[15px] font-bold text-[#443360] uppercase font-figtree">
-                    {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
+                    {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
                   </span>
                 </div>
                 <div className="bg-accent p-1.5 rounded-full">
@@ -441,6 +470,9 @@ export default function CartSummary({ onPlaceOrder }) {
 
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
+        <div className="w-full relative rounded-lg overflow-hidden mb-6 shadow-sm">
+          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+        </div>
         <Button 
           onClick={() => {
             // If user not logged in, fire promoClick and open login modal
@@ -482,7 +514,7 @@ export default function CartSummary({ onPlaceOrder }) {
                     <Tag size={20} className="text-primary" />
                   </div>
                   <span className="text-[15px] font-bold text-[#443360] uppercase font-figtree">
-                    {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
+                    {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
                   </span>
                 </div>
                 <div className="bg-accent p-1.5 rounded-full">
@@ -523,7 +555,7 @@ export default function CartSummary({ onPlaceOrder }) {
       </div>
 
       {/* Desktop Only Contact Section */}
-      <CartContact />
+      <CartContact productName={firstProductName} />
     </div>
   );
 }
