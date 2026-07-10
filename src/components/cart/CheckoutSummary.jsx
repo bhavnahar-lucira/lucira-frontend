@@ -8,7 +8,7 @@ import { useCart } from "@/hooks/useCart";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { applyPoints, removePoints } from "@/redux/features/cart/cartSlice";
+import { applyPoints, removePoints, applyCoupon } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import { apiFetch } from "@/lib/api";
@@ -36,6 +36,7 @@ export default function CheckoutSummary({
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [isApplyingEterna, setIsApplyingEterna] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(10547);
 
   const isPaymentPage = pathname && (pathname === "/checkout/payment" || pathname.includes("/checkout/payment"));
@@ -107,6 +108,18 @@ export default function CheckoutSummary({
       return acc + (originalPrice * qty);
     }, 0);
 
+  const totalSavings = (items || [])
+    .filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+    )
+    .reduce((acc, item) => {
+      const qty = Number(item.quantity || item.qty || 1);
+      const compare = Number(item.comparePrice || 0);
+      const price = Number(item.price || 0);
+      return acc + (compare > price ? (compare - price) * qty : 0);
+    }, 0);
+
   const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
 
   let couponDiscountAmount = 0;
@@ -114,7 +127,19 @@ export default function CheckoutSummary({
     if (couponDetails.valueType === "FIXED_AMOUNT") {
       couponDiscountAmount = couponDetails.value;
     } else if (couponDetails.valueType === "PERCENTAGE") {
-      couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
+      if (couponDetails.applicableItemIds && couponDetails.applicableItemIds.length > 0) {
+        const applicableSubtotal = (items || []).filter(item => {
+           if (item.variantId === INSURANCE_VARIANT_ID || (item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)) return false;
+           const rawId = item.shopifyId || item.productId || item.id;
+           const gid = (rawId && rawId.toString().includes("gid://")) ? rawId : `gid://shopify/Product/${rawId}`;
+           return couponDetails.applicableItemIds.includes(gid);
+        }).reduce((acc, item) => {
+          return acc + (Number(item.price || 0) * Number(item.quantity || 1));
+        }, 0);
+        couponDiscountAmount = (applicableSubtotal * couponDetails.value) / 100;
+      } else {
+        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
+      }
     }
   }
 
@@ -214,6 +239,77 @@ export default function CheckoutSummary({
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
   const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
 
+  const ETERNA_COUPON = "EMBRACE3%";
+  
+  const handleApplyEternaCoupon = async () => {
+    setIsApplyingEterna(true);
+    try {
+      const data = await apiFetch("/api/cart/coupon/validate", {
+        method: "POST",
+        body: JSON.stringify({ 
+          items, 
+          couponCode: ETERNA_COUPON,
+          customerEmail: user?.email 
+        }),
+        suppressErrorLog: true
+      });
+      dispatch(applyCoupon({ 
+        code: data.code, 
+        summary: data.summary,
+        value: data.value,
+        valueType: data.valueType,
+        applicableItemIds: data.applicableItemIds
+      }));
+      toast.success(`Coupon "${data.code}" applied!`);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsApplyingEterna(false);
+    }
+  };
+
+  const isEternaApplied = appliedCoupon && (appliedCoupon === ETERNA_COUPON || (couponDetails && couponDetails.code && couponDetails.code.toLowerCase() === ETERNA_COUPON.toLowerCase()));
+
+  const eternaBannerContent = (
+    <div className="w-full bg-[#FAFAFA] border border-[#e8dccf] rounded-lg overflow-hidden flex flex-col shadow-sm mt-4 lg:mb-4">
+      <div 
+        className="p-3 flex items-center justify-between"
+        style={{ background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)" }}
+      >
+        <div className="flex flex-col">
+          <span className="font-figtree font-medium text-[13px] lg:text-[15px] leading-[1.3] text-[#3D2B28] truncate">
+            Eterna Collection
+          </span>
+          <span 
+            className="font-figtree font-medium text-[11px] lg:text-[12px] leading-[1.3] text-[#6B5B54] truncate" 
+            style={{ marginTop: "3px" }}
+          >
+            Additional 3% Discount
+          </span>
+        </div>
+        {isEternaApplied ? (
+          <div className="flex items-center gap-3">
+            <span className="text-[12px] font-bold text-[#189351] uppercase tracking-wide">Applied</span>
+            <button 
+              onClick={removeCoupon}
+              className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-wide"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={handleApplyEternaCoupon}
+            disabled={isApplyingEterna}
+            className="flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] hover:bg-[#4A3533] transition-colors h-9 lg:h-10 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[11px] lg:text-[13px] text-white cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isApplyingEterna ? <Loader2 className="animate-spin h-3 w-3" /> : "Apply Now"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className={`space-y-6 ${className}`}>
       {showItems && (
@@ -305,16 +401,24 @@ export default function CheckoutSummary({
         </div>
       )}
 
+      {showBreakdown && eternaBannerContent}
+
       {showBreakdown && (
         <div className="space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
           <div className="flex justify-between text-sm text-zinc-600">
             <span>Subtotal</span>
             <span className="font-medium text-zinc-900">₹{originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
+          {totalSavings > 0 && (
+            <div className="flex justify-between text-sm text-zinc-600">
+              <span>Savings</span>
+              <span className="font-medium text-[#189351]">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            </div>
+          )}
           {appliedCoupon && (
             <div className="flex justify-between text-sm text-[#189351]">
               <div className="flex items-center gap-2">
-                <span className="font-bold uppercase tracking-wider">Coupon ({typeof appliedCoupon === 'object' ? appliedCoupon.code : appliedCoupon})</span>
+                <span className="font-bold uppercase tracking-wider">{isEternaApplied ? "Coupon Applied" : `Coupon (${typeof appliedCoupon === 'object' ? appliedCoupon.code : appliedCoupon})`}</span>
                 {!isCheckoutPage && (
                   <button 
                     onClick={removeCoupon}
