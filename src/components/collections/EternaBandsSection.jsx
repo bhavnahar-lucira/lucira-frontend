@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -89,7 +90,8 @@ export default function EternaBandsSection() {
             }}
           >
             {ETERNA_CARDS.map((card, idx) => (
-              <a
+              <Link
+                prefetch={false}
                 href={card.link}
                 key={idx}
                 className="relative aspect-[3/4] w-[240px] md:w-[280px] lg:w-[calc((100%-4*1.5rem)/5)] shrink-0 rounded-[4px] overflow-hidden group flex flex-col justify-end snap-start shadow-md border border-gray-100/50 cursor-pointer bg-white"
@@ -105,7 +107,7 @@ export default function EternaBandsSection() {
                   className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 origin-center"
                   draggable={false}
                 />
-              </a>
+              </Link>
             ))}
           </div>
         </div>
