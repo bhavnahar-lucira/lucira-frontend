@@ -30,8 +30,9 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
+  const galleryRef = React.useRef(null);
+  const [stickyTop, setStickyTop] = useState("5rem");
   
-
   const displayLabels = useMemo(() => {
     const labels = [];
     if (product.label) labels.push(product.label);
@@ -189,6 +190,25 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   }, [media, activeColor, activeVariant]);
 
   useEffect(() => {
+    if (!galleryRef.current || !isDesktop) return;
+    const updateSticky = () => {
+      if (galleryRef.current) {
+        const height = galleryRef.current.offsetHeight;
+        const vh = window.innerHeight;
+        if (height > vh) {
+          setStickyTop(`${vh - height - 32}px`);
+        } else {
+          setStickyTop("5rem");
+        }
+      }
+    };
+    const observer = new ResizeObserver(() => updateSticky());
+    observer.observe(galleryRef.current);
+    updateSticky();
+    return () => observer.disconnect();
+  }, [isDesktop, sortedMedia]);
+
+  useEffect(() => {
     if (sortedMedia.length > 0) {
       console.log(`[Gallery Debug] Active Color: ${activeColor}`);
       console.log(`[Gallery Debug] Sorted Media Alt Texts:`, sortedMedia.map(m => m.alt || "NO ALT"));
@@ -259,7 +279,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   return (
     <>
       {/* Desktop Gallery */}
-      <div className="hidden lg:grid grid-cols-2 gap-4 sticky top-20">
+      <div ref={galleryRef} className="hidden lg:grid grid-cols-2 gap-4 sticky transition-all" style={{ top: stickyTop }}>
         {sortedMedia.map((item, index) => {
           const isVideo = item.mediaContentType === "VIDEO" || item.mediaContentType === "EXTERNAL_VIDEO" || item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
           const isFirst = index === 0;

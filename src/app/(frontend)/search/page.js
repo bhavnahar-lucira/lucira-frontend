@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { ChevronDown, XIcon, Search, ArrowUpDown, SlidersHorizontal, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area"
+import ExploreRange from "@/components/home/ExploreRange";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -253,7 +254,7 @@ export default function SearchPage() {
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        {!isMobile && (
+        {!isMobile && (productsLoading || products.length > 0) && (
           <div className="bg-[#F9F9F9] py-12"><div className="container-main mx-auto px-6"><h1 className="text-3xl md:text-4xl font-serif font-bold mb-4">Results for "{query}"</h1><p className="text-gray-600">{productsLoading ? "Searching..." : `Showing ${totalCount} products found for your request.`}</p></div></div>
         )}
       </div>
@@ -331,25 +332,66 @@ export default function SearchPage() {
               )}
             </div>
           )}
-          <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
-            {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : products.map((prod, idx) => {
-               // Trigger pagination when 10 products are scrolled
-               // For a batch of 25, this is the 11th product (index 10, or length - 15)
-               const isTrigger = pagination.hasNextPage && idx === products.length - 15;
-               return (
-                 <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
-                   <ProductCard 
-                     product={selectedColor ? { ...prod, selectedColor } : prod} 
-                     index={idx + 1} 
-                   />
-                 </div>
-               );
-            })}
-            {isFetchingNextPage && <><ProductCardSkeleton /><ProductCardSkeleton /></>}
-          </div>
-          <div ref={loadMoreRef} className="h-20" />
+          {!productsLoading && products.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="flex justify-center items-center gap-2.5 w-[50%] mx-auto">
+                <img
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/7c770e5800dc9629cd5493df5a3f21822d0ba5a6_1.png?v=1750417853"
+                  alt="No Results Found"
+                  title="No Results Found"
+                  loading="lazy"
+                  className="md:w-[70%] w-full h-auto"
+                />
+              </div>
+              <h2 className="mt-5 mb-2 text-[20px] md:text-[40px]">
+                NO RESULTS FOUND
+              </h2>
+              <p className="text-[#666] mb-7.5 text-[14px] md:text-[20px]">
+                Results for "{query}"
+              </p>
+              <div className="flex justify-center gap-3.75 flex-wrap">
+                <Link
+                  href="/collections/jewelry"
+                  prefetch={false}
+                  className="px-5 py-4 border border-primary bg-primary text-white rounded text-base w-[90%] md:w-[25%] text-center"
+                >
+                  BROWSE OUR COLLECTIONS
+                </Link>
+                <Link
+                  href="/"
+                  prefetch={false}
+                  className="px-5 py-4 border border-primary text-primary rounded text-base w-[90%] md:w-[25%] text-center"
+                >
+                  GO TO HOMEPAGE
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
+              {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : products.map((prod, idx) => {
+                 // Trigger pagination when 10 products are scrolled
+                 // For a batch of 25, this is the 11th product (index 10, or length - 15)
+                 const isTrigger = pagination.hasNextPage && idx === products.length - 15;
+                 return (
+                   <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
+                     <ProductCard 
+                       product={selectedColor ? { ...prod, selectedColor } : prod} 
+                       index={idx + 1} 
+                     />
+                   </div>
+                 );
+              })}
+              {isFetchingNextPage && <><ProductCardSkeleton /><ProductCardSkeleton /></>}
+            </div>
+          )}
+          {products.length > 0 && <div ref={loadMoreRef} className="h-20" />}
         </div>
       </div>
+      {!productsLoading && products.length === 0 && (
+        <div className="w-full">
+          <ExploreRange bgClass="bg-[#FEF5F1]" paddingClass="py-12" />
+        </div>
+      )}
     </div>
   );
 }

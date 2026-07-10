@@ -52,7 +52,7 @@ export default async function NotFound() {
             <Link
               href={data.collectionLink}
               prefetch={false}
-              className="px-5 py-4 border border-primary bg-primary text-white rounded-xl text-base w-[90%] md:w-[25%] text-center"
+              className="px-5 py-4 border border-primary bg-primary text-white rounded text-base w-[90%] md:w-[25%] text-center"
             >
               {data.collectionLabel}
             </Link>
@@ -61,7 +61,7 @@ export default async function NotFound() {
             <Link
               href={data.homeLink}
               prefetch={false}
-              className="px-5 py-4 border border-primary text-primary rounded-xl text-base w-[90%] md:w-[25%] text-center"
+              className="px-5 py-4 border border-primary text-primary rounded text-base w-[90%] md:w-[25%] text-center"
             >
               {data.homeLabel}
             </Link>

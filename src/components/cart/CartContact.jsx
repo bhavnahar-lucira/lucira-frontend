@@ -1,7 +1,12 @@
 import { Phone, MessageCircle, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
-export default function CartContact() {
+export default function CartContact({ productName }) {
+    const whatsappMessage = productName
+      ? `Hi, I'm on the cart page and need help with the ${productName}`
+      : "Hi, I want to get more information about Lucira";
+    const whatsappHref = `https://wa.me/919004435760?text=${encodeURIComponent(whatsappMessage)}`;
+
     return (
       <div className="bg-white border border-zinc-50 rounded-lg p-6 shadow-sm text-center space-y-4">
         <h4 className="text-[11px] font-bold text-black uppercase tracking-[0.2em]">CONTACT US FOR ASSISTANCE</h4>
@@ -10,7 +15,7 @@ export default function CartContact() {
             <Phone size={18} className="text-black" />
             <span className="text-xs font-bold text-black">Call</span>
           </Link>
-          <Link prefetch={false} href="https://wa.me/919004435760?text=Hi%2C+I+want+to+get+more+information+about+Lucira" target="_blank" className="flex items-center gap-2 bg-zinc-50 px-3 py-2.5 rounded-xl hover:bg-zinc-100 transition-colors">
+          <Link prefetch={false} href={whatsappHref} target="_blank" className="flex items-center gap-2 bg-zinc-50 px-3 py-2.5 rounded-xl hover:bg-zinc-100 transition-colors">
             <MessageCircle size={18} className="text-black" />
             <span className="text-xs font-bold text-black">Whatsapp</span>
           </Link>
