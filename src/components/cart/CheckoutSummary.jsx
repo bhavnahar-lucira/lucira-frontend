@@ -39,6 +39,12 @@ export default function CheckoutSummary({
   const [isApplyingEterna, setIsApplyingEterna] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(10547);
 
+  const firstProductName = (items || []).find(item =>
+    item.variantId !== INSURANCE_VARIANT_ID &&
+    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+    item.variantId !== SILVER_PENDANT_VARIANT_ID
+  )?.title;
+
   const isPaymentPage = pathname && (pathname === "/checkout/payment" || pathname.includes("/checkout/payment"));
 
   const isCheckoutPage = pathname && pathname.startsWith("/checkout") && pathname !== "/checkout/cart";
@@ -604,7 +610,7 @@ export default function CheckoutSummary({
         </div>
       )}
 
-      {showContact && <CartContact />}
+      {showContact && <CartContact productName={firstProductName} />}
     </div>
   );
 }
