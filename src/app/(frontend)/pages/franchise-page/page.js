@@ -213,6 +213,13 @@ export default function FranchisePage() {
     setHeroModalOpen(true);
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
+      event: "promoClick",
+      promoClick: {
+        creative_name: "franchise_page_register_now",
+        location_id: "franchise page",
+      },
+    });
+    window.dataLayer.push({
       event: "formOpen",
       formName: "Franchise Registration Form",
       formType: "google_form",
