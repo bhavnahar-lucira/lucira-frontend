@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, use, useRef, Fragment } from
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Sheet } from "react-modal-sheet";
 import ProductCard from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/product/ProductCardSkeleton";
@@ -632,8 +633,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       {CUSTOM_COLLECTION_BANNERS[handle] ? (
-        isMobile ? (
-          <div className="w-full">
+        <div className="w-full bg-white">
+          {/* Mobile Breadcrumbs */}
+          <div className="block lg:hidden">
             <div className="container-main mx-auto pt-2 px-4 py-3">
               <Breadcrumb>
                 <BreadcrumbList className="text-[0.625rem] font-bold uppercase tracking-[0.15em] text-gray-400">
@@ -645,19 +647,42 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
-            <img
-              src={CUSTOM_COLLECTION_BANNERS[handle].mobile}
-              alt={displayTitle}
-              className="w-full h-auto"
-            />
           </div>
-        ) : (
-          <img
-            src={CUSTOM_COLLECTION_BANNERS[handle].desktop}
-            alt={displayTitle}
-            className="w-full h-auto"
-          />
-        )
+
+          <div className="relative w-full">
+            {/* Desktop Image */}
+            <div className="hidden lg:block w-full">
+              <Image
+                loader={shopifyLoader}
+                src={CUSTOM_COLLECTION_BANNERS[handle].desktop}
+                alt={displayTitle}
+                width={1920}
+                height={800}
+                priority
+                loading="eager"
+                className="w-full h-auto object-cover object-center"
+                sizes="100vw"
+                draggable={false}
+              />
+            </div>
+
+            {/* Mobile Image */}
+            <div className="block lg:hidden w-full">
+              <Image
+                loader={shopifyLoader}
+                src={CUSTOM_COLLECTION_BANNERS[handle].mobile}
+                alt={displayTitle}
+                width={768}
+                height={960}
+                priority
+                loading="eager"
+                className="w-full h-auto object-cover object-center"
+                sizes="100vw"
+                draggable={false}
+              />
+            </div>
+          </div>
+        </div>
       ) : STORE_HANDLES.includes(handle) ? (
         <StoreCollectionBanner collectionHandle={handle} bannerImages={STORE_IMAGES[handle] || []} />
       ) : isMobile ? (

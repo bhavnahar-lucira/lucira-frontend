@@ -1,6 +1,8 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const ETERNA_CARDS = [
@@ -93,11 +95,15 @@ export default function EternaBandsSection() {
                 className="relative aspect-[3/4] w-[240px] md:w-[280px] lg:w-[calc((100%-4*1.5rem)/5)] shrink-0 rounded-[4px] overflow-hidden group flex flex-col justify-end snap-start shadow-md border border-gray-100/50 cursor-pointer bg-white"
               >
                 {/* Image with center origin zoom */}
-                <img
+                <Image
+                  loader={shopifyLoader}
                   src={card.image}
                   alt={card.title}
+                  fill
                   loading="lazy"
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 origin-center"
+                  sizes="(max-width: 768px) 240px, (max-width: 1024px) 280px, 20vw"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 origin-center"
+                  draggable={false}
                 />
               </a>
             ))}
