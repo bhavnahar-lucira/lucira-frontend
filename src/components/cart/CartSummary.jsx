@@ -108,6 +108,12 @@ export default function CartSummary({ onPlaceOrder }) {
 
   const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
 
+  const firstProductName = items.find(item =>
+    item.variantId !== INSURANCE_VARIANT_ID &&
+    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+    item.variantId !== SILVER_PENDANT_VARIANT_ID
+  )?.title;
+
   // Auto-sync insurance and gold coin quantities
   useEffect(() => {
     // Sync Insurance
@@ -523,7 +529,7 @@ export default function CartSummary({ onPlaceOrder }) {
       </div>
 
       {/* Desktop Only Contact Section */}
-      <CartContact />
+      <CartContact productName={firstProductName} />
     </div>
   );
 }
