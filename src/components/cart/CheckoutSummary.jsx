@@ -266,7 +266,7 @@ export default function CheckoutSummary({
         valueType: data.valueType,
         applicableItemIds: data.applicableItemIds
       }));
-      toast.success(`Coupon "${data.code}" applied!`);
+      toast.success(data.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon applied!' : `Coupon "${data.code}" applied!`);
     } catch (err) {
       toast.error(err.message);
     } finally {

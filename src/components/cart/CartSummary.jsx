@@ -263,7 +263,7 @@ export default function CartSummary({ onPlaceOrder }) {
         valueType: data.valueType,
         applicableItemIds: data.applicableItemIds
       }));
-      toast.success(`Coupon "${data.code}" applied!`);
+      toast.success(data.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon applied!' : `Coupon "${data.code}" applied!`);
       if (isMobile) {
         setIsCouponSheetOpen(false);
       } else {

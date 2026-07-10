@@ -2,7 +2,7 @@
 
 export default function ProductGallerySkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4 sticky top-5 animate-pulse w-full">
+    <div className="grid grid-cols-2 gap-4 sticky animate-pulse w-full" style={{ top: "min(5rem, calc(100vh - 100% - 2rem))" }}>
       {/* Skeleton for 6 items (similar to typical gallery) */}
       {[1, 2, 3, 4, 5, 6].map((i) => (
         <div 
