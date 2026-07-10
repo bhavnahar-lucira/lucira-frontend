@@ -127,7 +127,19 @@ export default function CheckoutSummary({
     if (couponDetails.valueType === "FIXED_AMOUNT") {
       couponDiscountAmount = couponDetails.value;
     } else if (couponDetails.valueType === "PERCENTAGE") {
-      couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
+      if (couponDetails.applicableItemIds && couponDetails.applicableItemIds.length > 0) {
+        const applicableSubtotal = (items || []).filter(item => {
+           if (item.variantId === INSURANCE_VARIANT_ID || (item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)) return false;
+           const rawId = item.shopifyId || item.productId || item.id;
+           const gid = (rawId && rawId.toString().includes("gid://")) ? rawId : `gid://shopify/Product/${rawId}`;
+           return couponDetails.applicableItemIds.includes(gid);
+        }).reduce((acc, item) => {
+          return acc + (Number(item.price || 0) * Number(item.quantity || 1));
+        }, 0);
+        couponDiscountAmount = (applicableSubtotal * couponDetails.value) / 100;
+      } else {
+        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
+      }
     }
   }
 
@@ -245,7 +257,8 @@ export default function CheckoutSummary({
         code: data.code, 
         summary: data.summary,
         value: data.value,
-        valueType: data.valueType
+        valueType: data.valueType,
+        applicableItemIds: data.applicableItemIds
       }));
       toast.success(`Coupon "${data.code}" applied!`);
     } catch (err) {
@@ -405,7 +418,7 @@ export default function CheckoutSummary({
           {appliedCoupon && (
             <div className="flex justify-between text-sm text-[#189351]">
               <div className="flex items-center gap-2">
-                <span className="font-bold uppercase tracking-wider">{isEternaApplied ? "Coupon" : `Coupon (${typeof appliedCoupon === 'object' ? appliedCoupon.code : appliedCoupon})`}</span>
+                <span className="font-bold uppercase tracking-wider">{isEternaApplied ? "Coupon Applied" : `Coupon (${typeof appliedCoupon === 'object' ? appliedCoupon.code : appliedCoupon})`}</span>
                 {!isCheckoutPage && (
                   <button 
                     onClick={removeCoupon}
