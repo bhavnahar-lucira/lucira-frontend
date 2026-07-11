@@ -10,7 +10,7 @@ import ProductCard from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/product/ProductCardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, XIcon, ChevronsDown, Hammer, Filter as FilterIcon, LayoutDashboard, ShoppingBag, Loader2, ListFilter, ArrowUpDown, LayoutGrid, X, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, XIcon, ChevronsDown, Hammer, Filter as FilterIcon, LayoutDashboard, ShoppingBag, Loader2, ListFilter, ArrowUpDown, LayoutGrid, X, SlidersHorizontal, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -60,7 +60,7 @@ const CUSTOM_COLLECTION_BANNERS = {
     desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Desktop.jpg?v=1783767788",
     mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Mobile.jpg?v=1783767788"
   },
-  "on-the-move": {
+  "sports-collection": {
     desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Desktop.jpg?v=1783767788",
     mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Mobile.jpg?v=1783767788"
   }
@@ -81,8 +81,8 @@ const SORT_OPTIONS = [
 // callers rotate it 180° to point down (v) when a section is expanded.
 const FilterChevron = ({ className = "" }) => (
   <svg
-    width="13"
-    height="7"
+    width="10"
+    height="5.4"
     viewBox="0 0 13 7"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -201,6 +201,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const [expandedFilters, setExpandedFilters] = useState({ "In Store Available": true });
   const loadMoreRef = useRef(null);
+  const productsTopRef = useRef(null);
+
+  // Scroll up to where the product grid starts (just below the header/banner),
+  // instead of jumping all the way to the top of the page.
+  const scrollToProductsTop = useCallback(() => {
+    productsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeMobileGroup, setActiveMobileGroup] = useState(null);
@@ -396,7 +403,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     }
     params.delete("cursor");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    scrollToTop();
+    scrollToProductsTop();
   };
 
   const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
@@ -493,7 +500,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         setCollection({
           title: collData.collection?.title || handle.replace(/-/g, " "),
           description: collData.collection?.description || "",
-          descriptionHtml: collData.collection.descriptionHtml || "",
+          descriptionHtml: collData.collection?.descriptionHtml || "",
           metafields: collData.collection?.metafields || {}
         });
         setProducts((collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
@@ -657,6 +664,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return `${loaded}/${total} Products`;
   }, [products.length, totalCount, pagination.hasNextPage]);
 
+  // Desktop count shown as a simple total, matching the design ("232 items")
+  const itemCountDisplay = useMemo(() => {
+    const count = totalCount > 0 ? totalCount : products.length;
+    return `${count} ${count === 1 ? "item" : "items"}`;
+  }, [totalCount, products.length]);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
@@ -757,20 +770,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       {handle === "eterna" && <EternaBandsSection />}
 
-      <div className={isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}>
+      <div ref={productsTopRef} className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
         {/* ================= FILTERS SIDEBAR ================= */}
         <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
           <div className="sticky top-19 self-start h-fit">
             <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
               {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
-                <div className={`space-y-3 px-4 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
-                  <div className="flex justify-between items-center border-b border-[#CECACA] m-0"><h3 className="mb-3 uppercase font-semibold font-['Figtree'] text-[12px] leading-[1.4] tracking-normal">Filters</h3><button onClick={clearAllFilters} className="mb-3 uppercase hover:text-black text-[10px] font-semibold text-[#696969]">Clear All</button></div>
+                <div className={`space-y-3 pr-4 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className="flex justify-between items-center border-b border-[#CECACA] pb-3"><h3 className="font-figtree font-bold text-black text-xl leading-none tracking-normal">Filters</h3><button onClick={clearAllFilters} className="font-figtree text-xs font-semibold uppercase tracking-wide text-[#696969] hover:text-black transition-colors">Clear All</button></div>
                   {Object.entries(availableFilters).map(([groupKey, options]) => {
                     const isExpanded = expandedFilters[groupKey] ?? false;
                     if (groupKey === "Price") {
                       return (
                         <div key={groupKey} className="border-b mb-0 border-gray-200">
-                          <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-180" : "rotate-0"}`} /></button>
+                          <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
                           {isExpanded && (
                             <div className="space-y-5 my-4 pb-5 px-2">
                               <Slider
@@ -794,15 +807,22 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                     }
                     return (
                       <div key={groupKey} className="border-b mb-0 border-gray-200">
-                        <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-180" : "rotate-0"}`} /></button>
+                        <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
                         {isExpanded && (
-                          <div className="space-y-4 my-2 pb-5">
-                            {Array.isArray(options) && options.map((opt) => (
-                              <div key={opt.label} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
-                                <input type="checkbox" checked={searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)} onChange={() => {}} className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" />
-                                <label className="flex-1 cursor-pointer flex justify-between items-center"><span>{opt.label}</span><span className="text-gray-400 text-xs">({opt.count})</span></label>
-                              </div>
-                            ))}
+                          <div className="space-y-4 mt-2 mb-4 pb-5">
+                            {Array.isArray(options) && options.map((opt) => {
+                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(opt.value);
+                              return (
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                  <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
+                                    {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
+                                  </span>
+                                  <span className={`font-figtree text-base leading-[1.4] ${isChecked ? "text-black font-medium" : "text-[#696969] font-normal"}`}>
+                                    {opt.label} ({opt.count})
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -818,35 +838,43 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         <div className="flex-1">
           <div className={`flex gap-4 items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "py-5 border-b border-gray-50 px-4" : "py-4"}`}>
             <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
-              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{countDisplay}</span></>) : (<span className="text-sm text-gray-500">{countDisplay}</span>)}
+              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{countDisplay}</span></>) : (<span className="font-figtree text-sm text-[#696969]">{itemCountDisplay}</span>)}
             </div>
             {!isMobile && (
-              <div className="flex items-center gap-4"><div className="flex items-center gap-2"><span className="text-sm text-gray-600">Sort:</span><select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="text-sm border rounded-md px-3 py-2 bg-white">{SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}</select></div></div>
+              <div className="flex items-center gap-2">
+                <span className="font-figtree text-sm text-[#696969] whitespace-nowrap">Sort by:</span>
+                <div className="relative flex items-center">
+                  <select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="font-figtree appearance-none bg-transparent border-none pr-6 pl-1 text-sm font-semibold text-black cursor-pointer focus:outline-none">
+                    {SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-0 size-4 text-black" />
+                </div>
+              </div>
             )}
           </div>
 
-          {!isMobile && (
-            <div className="flex flex-wrap items-center gap-2 mb-4">
+          {!isMobile && activeFilterCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2.5 mb-4">
               {Object.entries(availableFilters).map(([groupKey, options]) => (
                 <Fragment key={groupKey}>
                   {groupKey === "Price" ? (
                     (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) && (
-                      <Badge variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={resetPriceFilter}>
-                        <span className="text-xs font-medium">Price: {searchParams.get("filter.v.price.gte") ? `₹${searchParams.get("filter.v.price.gte")}` : "0"} - {searchParams.get("filter.v.price.lte") ? `₹${searchParams.get("filter.v.price.lte")}` : "Max"}</span>
-                        <XIcon className="size-3" />
+                      <Badge variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={resetPriceFilter}>
+                        <span className="font-figtree text-base font-normal leading-[1.2]">Price: {searchParams.get("filter.v.price.gte") ? `₹${searchParams.get("filter.v.price.gte")}` : "0"} - {searchParams.get("filter.v.price.lte") ? `₹${searchParams.get("filter.v.price.lte")}` : "Max"}</span>
+                        <XIcon className="size-3.5 text-[#696969]" />
                       </Badge>
                     )
                   ) : (
                     Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).map((opt) => (
-                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
-                        <span className="text-xs font-medium">{opt.label.split(" (")[0]}</span>
-                        <XIcon className="size-3" />
+                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                        <span className="font-figtree text-base font-normal leading-[1.2]">{opt.label.split(" (")[0]}</span>
+                        <XIcon className="size-3.5 text-[#696969]" />
                       </Badge>
                     ))
                   )}
                 </Fragment>
               ))}
-              {(activeFilterCount > 0) && <button onClick={clearAllFilters} className="text-sm text-gray-400 hover:text-black font-medium ml-2">Remove all</button>}
+              <button onClick={clearAllFilters} className="font-figtree text-sm text-black underline underline-offset-2 hover:text-[#5a413f] ml-1 whitespace-nowrap">Remove All</button>
             </div>
           )}
 
@@ -1242,15 +1270,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                     if (groupKey === "Price") { if (localPriceRange.min || localPriceRange.max) count = 1; }
                     else { count = availableFilters[groupKey].filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).length; }
                     return (
-                      <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left px-4 py-5 text-[0.6875rem] font-bold uppercase tracking-tight border-b border-gray-100 relative leading-tight ${activeMobileGroup === groupKey ? "bg-white text-[#5a413f]" : "text-gray-500"}`}>
-                        {groupKey} {count > 0 && <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#5a413f] text-white text-[0.5625rem] w-5 h-5 rounded-md flex items-center justify-center font-bold">{count}</span>}
+                      <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left pl-4 pr-8 py-4 font-figtree text-xs font-semibold uppercase tracking-normal border-b border-gray-100 relative leading-snug ${activeMobileGroup === groupKey ? "bg-white text-[#5a413f]" : "text-gray-500"}`}>
+                        {groupKey} {count > 0 && <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#5a413f] text-white text-[0.625rem] w-5 h-5 rounded-md flex items-center justify-center font-bold">{count}</span>}
                       </button>
                     );
                   })}
                 </div>
                 <div className="w-[55%] bg-white overflow-y-auto p-4">
                   {activeMobileGroup && availableFilters[activeMobileGroup] && (
-                    <div className="space-y-6 pb-20">
+                    <div className="space-y-4 pb-20">
                       {activeMobileGroup === "Price" ? (
                         <div className="space-y-5 py-4 px-2">
                           <Slider
@@ -1272,12 +1300,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         availableFilters[activeMobileGroup].map((option) => {
                           const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(option.value);
                           return (
-                            <div key={option.label} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
-                              <div className="flex items-center gap-3">
-                                {isSelected ? <div className="w-4 h-4 bg-[#5a413f] rounded flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-4 h-4 border border-gray-300 rounded group-hover:border-[#5a413f]" />}
-                                <span className={`text-[0.8125rem] ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>
+                            <div key={option.label} className="flex items-center justify-between gap-2 py-1.5 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                {isSelected ? <div className="w-[18px] h-[18px] shrink-0 bg-[#5a413f] rounded flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[18px] h-[18px] shrink-0 border border-gray-300 rounded group-hover:border-[#5a413f]" />}
+                                <span className={`font-figtree text-sm leading-snug ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>
                               </div>
-                              <span className="text-[0.6875rem] text-gray-400">({option.count})</span>
+                              <span className="font-figtree text-xs text-gray-400 shrink-0">({option.count})</span>
                             </div>
                           );
                         })

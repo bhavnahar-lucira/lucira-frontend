@@ -9,7 +9,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { Navigation, Pagination } from "swiper/modules";
 import { motion, AnimatePresence } from "framer-motion";
-import { Star, ChevronLeft, ChevronRight, ArrowRight, Copy, X, Loader2, Play, ShieldCheck, Heart, Check } from "lucide-react";
+import { Star, ChevronLeft, ChevronRight, ArrowRight, Copy, X, Loader2, Play, Heart, Check } from "lucide-react";
 import { toast } from "react-toastify";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -382,7 +382,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
   useEffect(() => {
     if (displayLabels.length > 1) {
-      const interval = setInterval(() => { setCurrentLabelIndex((prev) => (prev + 1) % 2); }, 4000);
+      const interval = setInterval(() => { setCurrentLabelIndex((prev) => (prev + 1) % 2); }, 4500);
       return () => clearInterval(interval);
     } else { setCurrentLabelIndex(0); }
   }, [displayLabels.length]);
@@ -545,21 +545,35 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               </div>
             )}
 
-            {/* Labels - Top Left */}
-            {displayLabels.length > 0 && (
-              <div className={`absolute top-0 lg:top-3 left-0 z-10 w-28 lg:w-28 h-6 lg:h-7 overflow-hidden bg-[#F1E4D1]`}>
-                <AnimatePresence initial={false}>
-                  <motion.div
-                    key={displayLabels[currentLabelIndex]}
-                    initial={{ y: 28 }} animate={{ y: 0 }} exit={{ y: -28 }}
-                    transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-                    className="absolute inset-0 text-black text-[10px] lg:text-xs font-bold px-2 lg:px-2 font-figtree uppercase tracking-wider flex items-center justify-center whitespace-nowrap"
-                  >
-                    {displayLabels[currentLabelIndex]}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            )}
+            {/* Labels - Top Left. Auto-fits its width and morphs smoothly between labels.
+                Best Seller uses the #B77767 brand tone; others stay beige. */}
+            {displayLabels.length > 0 && (() => {
+              const label = displayLabels[currentLabelIndex];
+              const isBestSeller = label === "Best Seller";
+              return (
+                <motion.div
+                  layout
+                  transition={{ layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } }}
+                  className={`absolute top-0 lg:top-3 left-0 z-10 h-6 lg:h-7 overflow-hidden rounded-none flex items-center ${isBestSeller ? "bg-[#B77767]" : "bg-[#F1E4D1]"}`}
+                >
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span
+                      key={label}
+                      initial={{ y: "115%", opacity: 0 }}
+                      animate={{ y: "0%", opacity: 1 }}
+                      exit={{ y: "-115%", opacity: 0 }}
+                      transition={{
+                        y: { duration: 0.62, ease: [0.22, 1, 0.36, 1], delay: 0.06 },
+                        opacity: { duration: 0.4, ease: "easeOut", delay: 0.06 },
+                      }}
+                      className={`block font-figtree font-bold text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap ${isBestSeller ? "text-white" : "text-black"}`}
+                    >
+                      {label}
+                    </motion.span>
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })()}
 
             {/* View Similar - Bottom Right */}
             {hasSimilar && (
@@ -718,7 +732,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                           [...Array(5)].map((_, i) => <Star key={i} size={12} fill={i < Math.floor(average) ? "currentColor" : "none"} className={i < Math.floor(average) ? "" : "text-zinc-200"} />)
                         }
                       </div>
-                      <span className="text-sm font-semibold text-black mt-0.5">({count})</span>
+                      <span className="text-sm font-semibold text-black mt-0.5">{Number(average).toFixed(1)}</span>
                     </div>
                   );
                 }
@@ -734,7 +748,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             <div className="flex flex-col items-start gap-0.5">
               <Link href={`/products/${product.handle}`} prefetch={false} onClick={handleProductClick}>
-                <h3 className="text-sm font-figtree font-semibold hover:underline underline-offset-4 leading-snug hover:text-gray-900 transition-colors line-clamp-1 min-h-5">{product.title}</h3>
+                <h3 className="text-base font-figtree font-[450] leading-[1.6] tracking-normal hover:underline underline-offset-4 hover:text-gray-900 transition-colors line-clamp-1 min-h-5">{product.title}</h3>
               </Link>
               <div className="flex flex-col justify-center items-start gap-2">
                 {(() => {
@@ -756,17 +770,21 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
                   if (weight) parts.push(weight);
                   if (parts.length === 0) return null;
-                  return <p className="font-figtree text-[10px] lg:text-xs font-medium text-gray-500 tracking-tight">{parts.join(" · ")}</p>;
+                  return <p className="font-figtree text-sm font-medium text-gray-500 leading-[1.4] tracking-normal mt-0.5">{parts.join(" · ")}</p>;
                 })()}
               </div>
             </div>
 
             {productOffers.length > 0 && (
               <div className="inline-flex items-center gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 lg:px-3 py-1 mt-1 w-fit">
-                <ShieldCheck size={12} />
+                <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 lg:w-5 lg:h-5 shrink-0">
+                  <path d="M8.7583 3.05392C8.91463 2.87933 9.10601 2.73967 9.31996 2.64406C9.53391 2.54844 9.76563 2.49902 9.99997 2.49902C10.2343 2.49902 10.466 2.54844 10.68 2.64406C10.8939 2.73967 11.0853 2.87933 11.2416 3.05392L11.825 3.70558C11.9917 3.89183 12.1982 4.03819 12.4291 4.13383C12.6601 4.22947 12.9096 4.27193 13.1591 4.25808L14.0341 4.20975C14.2682 4.19685 14.5023 4.23346 14.7212 4.31718C14.9402 4.40091 15.139 4.52988 15.3047 4.69566C15.4704 4.86144 15.5992 5.0603 15.6829 5.27927C15.7665 5.49824 15.803 5.73238 15.79 5.96642L15.7416 6.84058C15.7279 7.09003 15.7704 7.33936 15.8661 7.57016C15.9617 7.80095 16.108 8.00729 16.2941 8.17392L16.9458 8.75725C17.1205 8.91358 17.2603 9.10501 17.356 9.31904C17.4517 9.53307 17.5012 9.76488 17.5012 9.99933C17.5012 10.2338 17.4517 10.4656 17.356 10.6796C17.2603 10.8937 17.1205 11.0851 16.9458 11.2414L16.2941 11.8247C16.1079 11.9915 15.9615 12.1979 15.8659 12.4289C15.7703 12.6598 15.7278 12.9093 15.7416 13.1589L15.79 14.0339C15.8029 14.268 15.7663 14.5021 15.6825 14.721C15.5988 14.9399 15.4698 15.1387 15.3041 15.3044C15.1383 15.4701 14.9394 15.599 14.7204 15.6826C14.5015 15.7663 14.2673 15.8028 14.0333 15.7898L13.1591 15.7414C12.9097 15.7277 12.6604 15.7702 12.4296 15.8659C12.1988 15.9615 11.9924 16.1078 11.8258 16.2939L11.2425 16.9456C11.0861 17.1203 10.8947 17.2601 10.6807 17.3558C10.4666 17.4515 10.2348 17.5009 10.0004 17.5009C9.76594 17.5009 9.53412 17.4515 9.32009 17.3558C9.10606 17.2601 8.91463 17.1203 8.7583 16.9456L8.17497 16.2939C8.00825 16.1077 7.80178 15.9613 7.57083 15.8657C7.33989 15.77 7.09038 15.7276 6.8408 15.7414L5.9658 15.7898C5.73177 15.8027 5.49764 15.766 5.27871 15.6823C5.05978 15.5986 4.86098 15.4696 4.69528 15.3038C4.52957 15.1381 4.4007 14.9392 4.31708 14.7202C4.23346 14.5013 4.19696 14.2671 4.20997 14.0331L4.2583 13.1589C4.27203 12.9095 4.2295 12.6601 4.13387 12.4293C4.03823 12.1986 3.89194 11.9922 3.7058 11.8256L3.05414 11.2422C2.87941 11.0859 2.73964 10.8945 2.64394 10.6805C2.54824 10.4664 2.49878 10.2346 2.49878 10.0002C2.49878 9.76572 2.54824 9.5339 2.64394 9.31987C2.73964 9.10584 2.87941 8.91441 3.05414 8.75808L3.7058 8.17475C3.89205 8.00803 4.03841 7.80156 4.13405 7.57061C4.22969 7.33966 4.27215 7.09016 4.2583 6.84058L4.20997 5.96558C4.19719 5.73161 4.23389 5.49758 4.31767 5.27875C4.40145 5.05992 4.53044 4.86122 4.6962 4.69561C4.86197 4.53 5.0608 4.40121 5.2797 4.31763C5.49861 4.23406 5.73268 4.19758 5.96664 4.21058L6.8408 4.25892C7.09025 4.27264 7.33959 4.23011 7.57038 4.13448C7.80117 4.03884 8.00751 3.89255 8.17414 3.70642L8.7583 3.05392Z" stroke="#189351" strokeWidth="1.5" />
+                  <path d="M7.91675 7.91602H7.92508V7.92435H7.91675V7.91602ZM12.0834 12.0827H12.0917V12.091H12.0834V12.0827Z" stroke="#189351" strokeWidth="2" strokeLinejoin="round" />
+                  <path d="M12.5 7.5L7.5 12.5" stroke="#189351" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                 <div className="overflow-hidden">
                   <AnimatePresence mode="wait" initial={false}>
-                    <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="text-[8px] lg:text-[10px] font-bold uppercase tracking-tight whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
+                    <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="font-figtree font-semibold text-sm leading-[1.4] tracking-normal capitalize whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
                   </AnimatePresence>
                 </div>
               </div>
