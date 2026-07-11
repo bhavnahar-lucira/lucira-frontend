@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -226,6 +226,32 @@ export default function MainHeader() {
     performSearch();
   }, [debouncedSearchQuery]);
 
+  // --- Track what users actually search (the typed term, not just the bar click) ---
+  // A longer debounce so we capture the settled term the user finished typing,
+  // instead of every intermediate keystroke prefix.
+  const trackedSearchQuery = useDebounce(searchQuery, 1200);
+  const lastTrackedSearchRef = useRef("");
+
+  const trackSearchTerm = (term) => {
+    const cleaned = (term || "").trim();
+    if (cleaned.length < 2) return;
+    // Avoid pushing the same term twice in a row
+    if (cleaned.toLowerCase() === lastTrackedSearchRef.current.toLowerCase()) return;
+    lastTrackedSearchRef.current = cleaned;
+
+    pushPromoClick({
+      creative_name: "Search Bar Term",
+      location_id: getFindStoreLocationId(),
+      promo_id: cleaned,
+      promo_name: cleaned,
+    });
+  };
+
+  useEffect(() => {
+    trackSearchTerm(trackedSearchQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackedSearchQuery]);
+
   const suggestionData = useMemo(() => {
     if (!searchQuery.trim()) return null;
 
@@ -290,6 +316,7 @@ export default function MainHeader() {
       e.preventDefault();
       setSearchQuery(searchQuery + suggestionSuffix);
     } else if (e.key === "Enter" && searchQuery.trim().length > 0) {
+      trackSearchTerm(searchQuery);
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setIsFocused(false);
     }
