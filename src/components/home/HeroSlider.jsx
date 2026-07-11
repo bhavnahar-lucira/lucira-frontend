@@ -49,7 +49,7 @@ export default function HeroBanner() {
             el: `.${paginationElClass}`,
             clickable: true,
             renderBullet: (index, className) => {
-              return `<span class="${className} w-2! h-2! rounded-full! bg-gray-700! transition-all duration-300 [&.swiper-pagination-bullet-active]:bg-primary! [&.swiper-pagination-bullet-active]:w-6! md:[&.swiper-pagination-bullet-active]:w-6!"></span>`;
+              return `<span class="${className} lucira-dot"></span>`;
             },
           }}
           className="h-full"
