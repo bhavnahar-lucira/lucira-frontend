@@ -249,6 +249,49 @@ export default function CheckoutSummary({
   
   const handleApplyEternaCoupon = async () => {
     setIsApplyingEterna(true);
+
+    try {
+      const appliedProducts = (items || [])
+        .filter(item => 
+          item.variantId !== INSURANCE_VARIANT_ID && 
+          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) && 
+          item.variantId !== SILVER_PENDANT_VARIANT_ID
+        );
+
+      const productIds = appliedProducts
+        .map(item => {
+          const rawId = item.shopifyId || item.productId || item.id;
+          const match = String(rawId).match(/\d+$/);
+          return match ? match[0] : rawId;
+        })
+        .join(",");
+
+      const productUrls = appliedProducts
+        .map(item => {
+          const origin = typeof window !== "undefined" ? window.location.origin : "";
+          const handle = item.handle || "";
+          const vIdMatch = String(item.variantId || "").match(/\d+$/);
+          const vId = vIdMatch ? vIdMatch[0] : "";
+          return `${origin}/products/${handle}${vId ? `?variant=${vId}` : ''}`;
+        })
+        .join(",");
+
+      if (typeof window !== "undefined") {
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: "promoClick",
+          promoClick: {
+            creative_name: "Eterna Coupon Applied",
+            location_id: "checkout summary",
+            promo_id: productIds,
+            promo_name: productUrls
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error pushing to dataLayer:", error);
+    }
+
     try {
       const data = await apiFetch("/api/cart/coupon/validate", {
         method: "POST",
