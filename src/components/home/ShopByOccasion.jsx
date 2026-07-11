@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import LazyImage from "../common/LazyImage";
+import { pushPromoClick } from "@/lib/gtm";
 
 const OCCASIONS = [
   { name: "Engagement", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Occasion_1.jpg", href: "/collections/engagement-rings" },
@@ -12,6 +13,15 @@ const OCCASIONS = [
 ];
 
 export default function ShopByOccasion() {
+  const handleOccasionClick = (occ) => {
+    pushPromoClick({
+      creative_name: "shop by occasion homepage",
+      location_id: "homepage",
+      promo_id: occ.name,
+      promo_name: occ.name,
+    });
+  };
+
   return (
     <section className="w-full my-8 md:my-12 bg-white">
       <div className="container-main">
@@ -26,6 +36,7 @@ export default function ShopByOccasion() {
             <Link prefetch={false}
               key={index}
               href={occ.href}
+              onClick={() => handleOccasionClick(occ)}
               className="relative aspect-[3/4.2] overflow-hidden group bg-gray-100 rounded-lg shadow-sm"
             >
               <LazyImage

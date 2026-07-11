@@ -29,9 +29,9 @@ export const metadata = {
   manifest: "/manifest.json",
 };
 
-export default function RootLayout({ children }) {  
-  const isProd = process.env.NODE_ENV === "production";
-
+export default function RootLayout({ children }) {
+  //const isProd = process.env.NODE_ENV === "production";
+  const isProd = true;
   return (
     <html lang="en">
       <head>

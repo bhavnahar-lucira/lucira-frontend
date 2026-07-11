@@ -60,6 +60,11 @@ export default function ExploreCollectionSection({ initialData }) {
         products={products.length > 0 ? products : (loading ? [] : null)}
         loading={loading}
         collectionHandle={activeHandle}
+        promoClickMeta={{
+          creative_name: "collections section homepage",
+          location_id: "homepage",
+          promo_id: activeTab,
+        }}
       />
     </CollectionSection>
   );
