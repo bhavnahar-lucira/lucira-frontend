@@ -9,7 +9,6 @@ const AWAY_MESSAGES = [
   "💎 Come back to sparkle",
   "👀 Still thinking it over?",
   "✨ Your Lucira awaits",
-  "India's Best Lab Grown Diamonds",
 ];
 
 // Swap the favicon while the tab is inactive for a bit more personality, then
