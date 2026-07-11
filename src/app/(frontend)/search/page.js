@@ -267,7 +267,7 @@ export default function SearchPage() {
               <ScrollArea className="w-full h-[calc(100vh-5rem)]">
                 {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
                   <div className={`space-y-3 px-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
-                    <div className="flex justify-between items-center border-b"><h3 className="font-semibold mb-3 font-black uppercase tracking-widest text-sm">Filters</h3><button onClick={clearAllFilters} className="text-[10px] font-bold uppercase text-zinc-400 hover:text-black mb-3">Clear All</button></div>
+                    <div className="flex justify-between items-center border-b border-[#CECACA] m-0"><h3 className="mb-3 uppercase font-semibold font-['Figtree'] text-[12px] leading-[1.4] tracking-normal">Filters</h3><button onClick={clearAllFilters} className="mb-3 uppercase hover:text-black text-[10px] font-semibold text-[#696969]">Clear All</button></div>
                     {(() => {
                       const filterEntries = Object.entries(availableFilters);
                       const priceIdx = filterEntries.findIndex(([key]) => key === "Price");

@@ -10,7 +10,7 @@ import ProductCard from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/product/ProductCardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, XIcon, ChevronsDown, Hammer, Filter as FilterIcon, LayoutDashboard, ShoppingBag, Loader2, ListFilter, ArrowUpDown, LayoutGrid, X, SlidersHorizontal, ChevronUp } from "lucide-react";
+import { ChevronDown, XIcon, ChevronsDown, Hammer, Filter as FilterIcon, LayoutDashboard, ShoppingBag, Loader2, ListFilter, ArrowUpDown, LayoutGrid, X, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -51,6 +51,18 @@ const CUSTOM_COLLECTION_BANNERS = {
   "eterna": {
     desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Desktop_PLP_jpg.jpg?v=1783673522",
     mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Mobile_PLP_jpg.jpg?v=1783673523"
+  },
+  "hexa": {
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Desktop.jpg?v=1783767788",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Mobile.jpg?v=1783767788"
+  },
+  "cotton-candy": {
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Desktop.jpg?v=1783767788",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Mobile.jpg?v=1783767788"
+  },
+  "on-the-move": {
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Desktop.jpg?v=1783767788",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Mobile.jpg?v=1783767788"
   }
 };
 
@@ -64,6 +76,22 @@ const SORT_OPTIONS = [
   { value: "price_high_low", label: "Price: high to low" },
   { value: "az", label: "Alphabetically: A-Z" },
 ];
+
+// Custom caret used in the filter accordion headers. Base orientation points up (^);
+// callers rotate it 180° to point down (v) when a section is expanded.
+const FilterChevron = ({ className = "" }) => (
+  <svg
+    width="13"
+    height="7"
+    viewBox="0 0 13 7"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M12.2219 6.01562L6.32839 0.87798L0.434863 6.01562" stroke="currentColor" strokeWidth="1.32364" />
+  </svg>
+);
 
 const FilterSidebarSkeleton = () => (
   <div className="space-y-6 px-4 animate-pulse">
@@ -736,13 +764,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
               {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
                 <div className={`space-y-3 px-4 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
-                  <div className="flex justify-between items-center border-b"><h3 className="font-semibold mb-3 uppercase tracking-widest text-sm">Filters</h3><button onClick={clearAllFilters} className="text-[0.625rem] font-bold uppercase text-zinc-400 hover:text-black mb-3">Clear All</button></div>
+                  <div className="flex justify-between items-center border-b border-[#CECACA] m-0"><h3 className="mb-3 uppercase font-semibold font-['Figtree'] text-[12px] leading-[1.4] tracking-normal">Filters</h3><button onClick={clearAllFilters} className="mb-3 uppercase hover:text-black text-[10px] font-semibold text-[#696969]">Clear All</button></div>
                   {Object.entries(availableFilters).map(([groupKey, options]) => {
                     const isExpanded = expandedFilters[groupKey] ?? false;
                     if (groupKey === "Price") {
                       return (
                         <div key={groupKey} className="border-b mb-0 border-gray-200">
-                          <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronUp size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                          <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-180" : "rotate-0"}`} /></button>
                           {isExpanded && (
                             <div className="space-y-5 my-4 pb-5 px-2">
                               <Slider
@@ -766,7 +794,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                     }
                     return (
                       <div key={groupKey} className="border-b mb-0 border-gray-200">
-                        <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronUp size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                        <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-180" : "rotate-0"}`} /></button>
                         {isExpanded && (
                           <div className="space-y-4 my-2 pb-5">
                             {Array.isArray(options) && options.map((opt) => (
