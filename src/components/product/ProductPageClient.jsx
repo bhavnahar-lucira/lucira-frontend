@@ -2100,15 +2100,17 @@ export default function ProductPageClient({
             </div>
 
             {/* Unlock Free Coupons Box */}
-            <div className="mb-6">
-              <UnlockCoupon
-                user={user}
-                dispatch={dispatch}
-                toast={toast}
-                currentPrice={currentPrice}
-                productId={getNumericId(product?.shopifyId || product?.id) || ""}
-              />
-            </div>
+            {!(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold")) && (
+              <div className="mb-6">
+                <UnlockCoupon
+                  user={user}
+                  dispatch={dispatch}
+                  toast={toast}
+                  currentPrice={currentPrice}
+                  productId={getNumericId(product?.shopifyId || product?.id) || ""}
+                />
+              </div>
+            )}
 
             <div className="space-y-6 mt-4">
               {/* Mobile Customizer */}
