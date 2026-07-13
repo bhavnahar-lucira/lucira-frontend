@@ -33,6 +33,7 @@ import WearThisWith from "@/components/product/WearThisWith";
 import ProductCard from "@/components/product/ProductCard";
 import { Separator } from "@/components/ui/separator";
 import ProductGallery from "@/components/product/ProductGallery";
+import ProductSocialProofBand from "@/components/product/ProductSocialProofBand";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
@@ -1029,6 +1030,28 @@ export default function ProductPageClient({
   const productId = product.shopifyId || product.id || product.handle;
   const activeVariantId = activeVariant?.id || activeVariant?.shopifyId || "";
 
+  // Real social-proof counts (orders / add-to-cart / wishlist) for this product.
+  // Reuses the same endpoint + amplification as the checkout cart band.
+  const [socialProof, setSocialProof] = useState(null);
+  useEffect(() => {
+    const rawId = product?.shopifyId || product?.id;
+    if (!rawId) return;
+    const key = String(rawId);
+    let active = true;
+    apiFetch("/api/products/social-proof", {
+      method: "POST",
+      body: JSON.stringify({ productIds: [key] }),
+      suppressErrorLog: true,
+    })
+      .then((data) => {
+        if (!active) return;
+        const counts = data?.counts || {};
+        setSocialProof(counts[key] || Object.values(counts)[0] || null);
+      })
+      .catch(() => { /* graceful: no band shown */ });
+    return () => { active = false; };
+  }, [product?.shopifyId, product?.id]);
+
   const isCentralInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
   const isAvailableInAnyStore = availableStores.some(s => s.isInStock);
   const showShipsToStore = isAvailableInAnyStore;
@@ -1914,6 +1937,8 @@ export default function ProductPageClient({
                     {product.title}
                   </h1>
                   <div className="flex justify-between gap-2 items-center">
+                    {/* Spec line + social-proof badge, grouped left (badge hugs the spec line) */}
+                    <div className="flex items-center gap-2 min-w-0">
                     {(() => {
                       const variantMeta = activeVariant?.metafields;
                       const prodMeta = product.productMetafields;
@@ -1960,11 +1985,13 @@ export default function ProductPageClient({
                       if (parts.length === 0) return null;
 
                       return (
-                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 tracking-tight">
+                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 tracking-tight truncate">
                           {parts.join(" · ")}
                         </p>
                       );
                     })()}
+                      <ProductSocialProofBand socialProof={socialProof} />
+                    </div>
                     {/* Rating */}
                     {(reviewStats.count > 0) && (
                       <div
