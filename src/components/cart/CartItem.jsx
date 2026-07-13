@@ -96,8 +96,13 @@ function GradientHeart({ size = 15 }) {
   );
 }
 
-// Real counts are amplified 100x for social proof (e.g. 5 orders -> "500+ Orders").
-const SOCIAL_PROOF_AMPLIFY = 100;
+// Real counts are amplified for social proof so the numbers look credible to customers.
+// Each metric uses its own multiplier (e.g. 1 order -> "20+ Orders", 2 carts -> "100+ in Carts").
+const SOCIAL_PROOF_AMPLIFY = {
+  orders: 20,
+  cart: 50,
+  wishlist: 100,
+};
 
 function formatSocialCount(n) {
   if (n >= 1000) {
@@ -113,9 +118,9 @@ function formatSocialCount(n) {
 function buildSocialMetrics(sp) {
   if (!sp) return [];
   const metrics = [];
-  if (sp.orders > 0) metrics.push({ key: "orders", label: "Orders", value: sp.orders * SOCIAL_PROOF_AMPLIFY });
-  if (sp.addToCart > 0) metrics.push({ key: "cart", label: "in Carts", value: sp.addToCart * SOCIAL_PROOF_AMPLIFY });
-  if (sp.wishlist > 0) metrics.push({ key: "wishlist", label: "Wishlisted", value: sp.wishlist * SOCIAL_PROOF_AMPLIFY });
+  if (sp.orders > 0) metrics.push({ key: "orders", label: "Orders", value: sp.orders * SOCIAL_PROOF_AMPLIFY.orders });
+  if (sp.addToCart > 0) metrics.push({ key: "cart", label: "in Carts", value: sp.addToCart * SOCIAL_PROOF_AMPLIFY.cart });
+  if (sp.wishlist > 0) metrics.push({ key: "wishlist", label: "Wishlisted", value: sp.wishlist * SOCIAL_PROOF_AMPLIFY.wishlist });
   return metrics;
 }
 
