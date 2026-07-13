@@ -1235,24 +1235,38 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       {/* Sticky Mobile Filter Bar & Sheets */}
       {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 z-10 bg-[#5a413f] text-white flex justify-around items-center py-4 border-t border-white/10 px-4 gap-2">
-          <button onClick={() => setIsSortSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider border-r border-white/20"><ArrowUpDown size={16} /> Sort</button>
-          <button onClick={() => setIsFilterSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider"><SlidersHorizontal size={16} /> Filter {activeFilterCount > 0 && <span className="bg-white text-[#5a413f] text-[0.625rem] min-w-4 h-4 rounded-full flex items-center justify-center px-1 font-bold">{activeFilterCount}</span>}</button>
+        <div className="fixed bottom-4 left-4 right-4 z-[500] flex items-stretch rounded-full bg-[#5a413f] text-white shadow-[0_10px_30px_-8px_rgba(90,65,63,0.55)] ring-1 ring-white/10 overflow-hidden backdrop-blur-sm">
+          <button onClick={() => setIsSortSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.8125rem] font-figtree font-semibold tracking-[0.08em] active:bg-white/10 transition-colors">
+            <ArrowUpDown size={15} strokeWidth={2} className="opacity-90" /> Sort
+          </button>
+          <span className="w-px my-3 bg-white/20" />
+          <button onClick={() => setIsFilterSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.8125rem] font-figtree font-semibold tracking-[0.08em] active:bg-white/10 transition-colors">
+            <SlidersHorizontal size={15} strokeWidth={2} className="opacity-90" /> Filter
+            {activeFilterCount > 0 && <span className="bg-[#FFE4D9] text-[#5a413f] text-[0.6875rem] min-w-[1.15rem] h-[1.15rem] rounded-full flex items-center justify-center px-1 font-bold leading-none">{activeFilterCount}</span>}
+          </button>
         </div>
       )}
 
       {/* Sort Sheet */}
       <Sheet isOpen={isSortSheetOpen} onClose={() => setIsSortSheetOpen(false)} snapPoints={[0, 1]} initialSnap={1}>
-        <Sheet.Container className="!rounded-t-[24px] !h-auto max-h-[60vh] bottom-0">
-          <Sheet.Content className="bg-white">
+        <Sheet.Container className="!rounded-t-[28px] !h-auto max-h-[68vh] bottom-0 !shadow-[0_-12px_40px_-12px_rgba(90,65,63,0.35)]">
+          <Sheet.Content className="bg-white !rounded-t-[28px]">
             <div className="flex flex-col">
-              <div className="flex items-center gap-4 p-4 border-b border-gray-100"><button onClick={() => setIsSortSheetOpen(false)} className="p-1"><X size={20} className="text-black" /></button><h3 className="text-sm font-bold uppercase tracking-widest">Sort By</h3></div>
-              <div className="p-4 space-y-2 overflow-y-auto pb-10">
-                {SORT_OPTIONS.map((opt) => (
-                  <button key={opt.value} onClick={() => { handleSort(opt.value); setIsSortSheetOpen(false); }} className={`w-full text-left py-4 px-4 rounded-lg transition-colors flex justify-between items-center ${activeSort === opt.value ? "bg-[#FFF5F1] text-[#5a413f] font-bold" : "hover:bg-gray-50 text-gray-900"}`}>
-                    {opt.label} {activeSort === opt.value && <div className="w-2 h-2 rounded-full bg-[#5a413f]" />}
-                  </button>
-                ))}
+              <div className="pt-3 pb-1 flex justify-center"><span className="h-1 w-10 rounded-full bg-gray-200" /></div>
+              <div className="flex items-center justify-between px-5 pt-2 pb-4 border-b border-[#F0E7E2]">
+                <h3 className="font-abhaya text-xl font-bold text-[#5a413f] leading-none">Sort By</h3>
+                <button onClick={() => setIsSortSheetOpen(false)} className="p-1.5 -mr-1.5 rounded-full active:bg-gray-100 transition-colors"><X size={19} className="text-gray-500" /></button>
+              </div>
+              <div className="px-3 py-2.5 space-y-0.5 overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+                {SORT_OPTIONS.map((opt) => {
+                  const isActive = activeSort === opt.value;
+                  return (
+                    <button key={opt.value} onClick={() => { handleSort(opt.value); setIsSortSheetOpen(false); }} className={`w-full text-left py-3.5 px-4 rounded-xl transition-colors flex justify-between items-center font-figtree text-[0.9375rem] ${isActive ? "bg-[#FFF5F1] text-[#5a413f] font-semibold" : "text-gray-700 active:bg-gray-50 font-normal"}`}>
+                      <span>{opt.label}</span>
+                      {isActive && <Check size={17} strokeWidth={2.5} className="text-[#5a413f] shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </Sheet.Content>
@@ -1265,25 +1279,34 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         <Sheet.Container className="!rounded-t-none">
           <Sheet.Content className="bg-white">
             <div className="flex flex-col h-full">
-              <div className="flex items-center gap-4 p-4 border-b border-gray-100"><button onClick={() => setIsFilterSheetOpen(false)} className="p-1"><X size={20} className="text-black" /></button><h3 className="text-sm font-bold uppercase tracking-widest">Filters</h3></div>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0E7E2]">
+                <h3 className="font-abhaya text-xl font-bold text-[#5a413f] leading-none">Filters</h3>
+                <div className="flex items-center gap-3">
+                  {activeFilterCount > 0 && <button onClick={clearAllFilters} className="font-figtree text-xs font-semibold text-[#5a413f] underline underline-offset-2 active:opacity-70">Clear All</button>}
+                  <button onClick={() => setIsFilterSheetOpen(false)} className="p-1.5 -mr-1.5 rounded-full active:bg-gray-100 transition-colors"><X size={19} className="text-gray-500" /></button>
+                </div>
+              </div>
               <div className="flex-1 flex overflow-hidden">
-                <div className="w-[45%] bg-[#FEF5F1] border-r border-gray-100 overflow-y-auto">
+                <div className="w-[42%] bg-[#FBF3EF] border-r border-[#F0E7E2] overflow-y-auto">
                   {Object.entries(availableFilters).map(([groupKey]) => {
                     let count = 0;
                     if (groupKey === "Price") { if (localPriceRange.min || localPriceRange.max) count = 1; }
                     else { count = availableFilters[groupKey].filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).length; }
+                    const isActive = activeMobileGroup === groupKey;
                     return (
-                      <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left pl-4 pr-8 py-4 font-figtree text-xs font-semibold uppercase tracking-normal border-b border-gray-100 relative leading-snug ${activeMobileGroup === groupKey ? "bg-white text-[#5a413f]" : "text-gray-500"}`}>
-                        {groupKey} {count > 0 && <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#5a413f] text-white text-[0.625rem] w-5 h-5 rounded-md flex items-center justify-center font-bold">{count}</span>}
+                      <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left pl-5 pr-9 py-4 font-figtree text-[0.8125rem] tracking-normal relative leading-snug transition-colors ${isActive ? "bg-white text-[#5a413f] font-semibold" : "text-gray-500 font-medium active:bg-white/60"}`}>
+                        {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#5a413f]" />}
+                        {groupKey}
+                        {count > 0 && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-[#5a413f] text-white text-[0.625rem] min-w-[1.15rem] h-[1.15rem] px-1 rounded-full flex items-center justify-center font-bold leading-none">{count}</span>}
                       </button>
                     );
                   })}
                 </div>
-                <div className="w-[55%] bg-white overflow-y-auto p-4">
+                <div className="w-[58%] bg-white overflow-y-auto px-4 py-3">
                   {activeMobileGroup && availableFilters[activeMobileGroup] && (
-                    <div className="space-y-4 pb-20">
+                    <div className="space-y-1 pb-24">
                       {activeMobileGroup === "Price" ? (
-                        <div className="space-y-5 py-4 px-2">
+                        <div className="space-y-6 py-5 px-1.5">
                           <Slider
                             min={absolutePrice.min || 0}
                             max={absolutePrice.max || 500000}
@@ -1295,20 +1318,22 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                             onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
                             onValueCommit={applyPriceFilter}
                           />
-                          <div className="text-sm font-semibold text-gray-900 text-center">
-                            ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
+                          <div className="rounded-xl bg-[#FBF3EF] py-3 px-4 text-center">
+                            <span className="font-figtree text-[0.9375rem] font-semibold text-[#5a413f]">
+                              ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} – ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
+                            </span>
                           </div>
                         </div>
                       ) : (
                         availableFilters[activeMobileGroup].map((option) => {
                           const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(option.value);
                           return (
-                            <div key={option.label} className="flex items-center justify-between gap-2 py-1.5 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
+                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
                               <div className="flex items-center gap-3 min-w-0">
-                                {isSelected ? <div className="w-[18px] h-[18px] shrink-0 bg-[#5a413f] rounded flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[18px] h-[18px] shrink-0 border border-gray-300 rounded group-hover:border-[#5a413f]" />}
-                                <span className={`font-figtree text-sm leading-snug ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>
+                                {isSelected ? <div className="w-[19px] h-[19px] shrink-0 bg-[#5a413f] rounded-[5px] flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[19px] h-[19px] shrink-0 border border-gray-300 rounded-[5px] group-hover:border-[#5a413f] transition-colors" />}
+                                <span className={`font-figtree text-sm leading-snug truncate ${isSelected ? "text-[#5a413f] font-semibold" : "text-gray-600"}`}>{option.label}</span>
                               </div>
-                              <span className="font-figtree text-xs text-gray-400 shrink-0">({option.count})</span>
+                              <span className={`font-figtree text-xs shrink-0 ${isSelected ? "text-[#5a413f]/60" : "text-gray-400"}`}>({option.count})</span>
                             </div>
                           );
                         })
@@ -1317,9 +1342,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-2 border-t border-gray-300 bg-white">
-                <button onClick={clearAllFilters} className="py-4 px-2 text-[0.6875rem] font-black bg-[#FFE4D9] text-[#5a413f] uppercase tracking-[0.1em]">Clear All</button>
-                <button onClick={() => setIsFilterSheetOpen(false)} className="py-4 px-2 text-[0.6875rem] font-black bg-[#5a413f] text-white uppercase tracking-[0.1em]">APPLY FILTERS</button>    
+              <div className="grid grid-cols-2 gap-3 border-t border-[#F0E7E2] bg-white px-4 py-3.5 pb-[calc(env(safe-area-inset-bottom)+0.875rem)]">
+                <button onClick={clearAllFilters} className="py-3.5 rounded-full text-xs font-figtree font-bold bg-[#FBF3EF] text-[#5a413f] uppercase tracking-[0.12em] active:bg-[#F4E9E3] transition-colors">Clear All</button>
+                <button onClick={() => setIsFilterSheetOpen(false)} className="py-3.5 rounded-full text-xs font-figtree font-bold bg-[#5a413f] text-white uppercase tracking-[0.12em] shadow-[0_6px_18px_-6px_rgba(90,65,63,0.6)] active:bg-[#4a3432] transition-colors">Apply Filters</button>
               </div>
             </div>
           </Sheet.Content>
