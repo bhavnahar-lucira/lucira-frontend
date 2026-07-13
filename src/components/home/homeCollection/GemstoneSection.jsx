@@ -122,6 +122,11 @@ export default function GemstoneSection({ initialProducts, initialCategories }) 
         products={products.length > 0 ? products : (loading ? [] : null)}
         loading={loading}
         priorityCount={2}
+        promoClickMeta={{
+          creative_name: "gemstone edits section homepage",
+          location_id: "homepage",
+          promo_id: activeTab,
+        }}
       />
     </CollectionSection>
   );
