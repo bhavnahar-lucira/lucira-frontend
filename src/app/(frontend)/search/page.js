@@ -323,7 +323,7 @@ export default function SearchPage() {
         {/* Products */}
         <div className="flex-1">
           {products.length > 0 && (
-            <div className={`flex gap-4 items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "py-5 border-b border-gray-50 px-4" : "py-4"}`}>
+            <div className={`flex items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "gap-3 py-5 border-b border-gray-50 px-4" : "gap-4 py-4"}`}>
               <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
                 {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">"{query}"</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{totalCount} Results</span></>) : (<span className="text-sm text-gray-500">{products.length}/{totalCount} products</span>)}
               </div>

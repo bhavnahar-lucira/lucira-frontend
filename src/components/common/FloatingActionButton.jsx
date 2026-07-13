@@ -216,8 +216,8 @@ export default function FloatingActionButton() {
       z-[499] flex flex-col items-center`}>
       {/* Tooltip */}
       {!isFabOpen && !isZohoActive && tooltipShown && (
-        <div className="absolute right-0 bottom-[60px] bg-white text-[#5a413f] text-xs font-semibold py-1.5 px-3 rounded-md whitespace-nowrap shadow-md border border-[#F0E7E2] animate-fab-tooltip pointer-events-none z-[1]
-          after:content-[''] after:absolute after:right-[19px] after:bottom-[-5px] after:w-2.5 after:h-2.5 after:bg-white after:rotate-45 after:border-b after:border-r after:border-[#F0E7E2] after:z-[1]">
+        <div className="absolute right-[65px] bottom-[11px] bg-white text-[#5a413f] text-xs font-semibold py-1.5 px-3 rounded-md whitespace-nowrap shadow-md border border-[#F0E7E2] animate-fab-tooltip pointer-events-none z-[1]
+          after:content-[''] after:absolute after:right-[-5px] after:top-[50%] after:-translate-y-1/2 after:w-2.5 after:h-2.5 after:bg-white after:rotate-45 after:border-t after:border-r after:border-[#F0E7E2] after:z-[1]">
           At your Service
         </div>
       )}
