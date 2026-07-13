@@ -211,13 +211,13 @@ export default function FloatingActionButton() {
 
   return (
     <div className={`fixed 
-      ${isProductPage ? 'bottom-22 md:bottom-22' : isCollectionPage ? 'bottom-16 md:bottom-10' : 'bottom-10'} 
+      ${isProductPage ? 'bottom-22 md:bottom-22' : isCollectionPage ? 'bottom-20 md:bottom-10' : 'bottom-10'}
       ${isCollectionPage ? 'right-[20px] md:right-[30px]' : 'right-[30px]'} 
       z-[499] flex flex-col items-center`}>
       {/* Tooltip */}
       {!isFabOpen && !isZohoActive && tooltipShown && (
-        <div className="absolute right-5 bottom-16 bg-white text-black text-xs py-1.5 px-3 rounded-md whitespace-nowrap shadow-md border border-[#b76f79] animate-fab-tooltip pointer-events-none z-[1]
-          after:content-[''] after:absolute after:right-[10px] after:bottom-[-6px] after:w-3 after:height-3 after:bg-white after:rotate-45 after:shadow-[1px_1px_0_rgba(183,111,121,1)] after:z-[1]">
+        <div className="absolute right-[65px] bottom-[11px] bg-white text-[#5a413f] text-xs font-semibold py-1.5 px-3 rounded-md whitespace-nowrap shadow-md border border-[#F0E7E2] animate-fab-tooltip pointer-events-none z-[1]
+          after:content-[''] after:absolute after:right-[-5px] after:top-[50%] after:-translate-y-1/2 after:w-2.5 after:h-2.5 after:bg-white after:rotate-45 after:border-t after:border-r after:border-[#F0E7E2] after:z-[1]">
           At your Service
         </div>
       )}

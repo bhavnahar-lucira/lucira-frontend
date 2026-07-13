@@ -1,53 +1,15 @@
 import ProductCardSkeleton from "@/components/product/ProductCardSkeleton";
-import Image from "next/image";
 
 export default function Loading() {
   return (
     <main className="min-h-screen bg-white">
-      {/* Desktop Banner Skeleton (matches actual banner) */}
-      <div className="hidden md:block bg-[#FFF5F1] overflow-hidden">
-        <div className="container-main flex flex-col md:flex-row items-center">
-          <div className="flex-1 py-12">
-            {/* Title Skeleton */}
-            <div className="h-10 bg-gray-200/60 rounded animate-pulse w-3/4 mb-4"></div>
-            {/* Description Skeleton */}
-            <div className="h-4 bg-gray-200/60 rounded animate-pulse w-full mb-2"></div>
-            <div className="h-4 bg-gray-200/60 rounded animate-pulse w-5/6 mb-8"></div>
-            
-            {/* Static Features (these don't change between collections) */}
-            <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
-              <div className="flex items-center gap-2">
-                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" unoptimized />
-                <span>Free & secure shipping</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" unoptimized />
-                <span>100% value guarantee</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" unoptimized />
-                <span>15-day Money Back Guarantee</span>
-              </div>
-            </div>
-          </div>
-          {/* Static Image */}
-          <div className="flex-1 relative w-full h-[230px]">
-            <Image 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_1_e098831b-f04d-4b6c-ba2c-d1209cdec211.jpg?v=1783671698" 
-              alt="Loading" 
-              fill 
-              className="object-cover" 
-              unoptimized 
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Banner Skeleton */}
-      <div className="md:hidden w-full relative h-40">
-        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_1_e098831b-f04d-4b6c-ba2c-d1209cdec211.jpg?v=1783671698" alt="Loading" fill className="object-cover" priority unoptimized />
-        <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-      </div>
+      {/* Neutral banner-shaped skeleton.
+          loading.js can't read the route handle, so it cannot know whether this
+          collection uses the default hero or a custom full-width banner. Showing a
+          plain shimmer (instead of a specific "old" banner + Offer image) avoids the
+          jarring flash of the wrong banner during client-side navigation. */}
+      <div className="hidden md:block w-full aspect-[1920/720] bg-[#FFF5F1] animate-pulse" />
+      <div className="md:hidden w-full aspect-[768/520] bg-[#FFF5F1] animate-pulse" />
 
       <div className="container-main py-8">
         <div className="flex gap-8">

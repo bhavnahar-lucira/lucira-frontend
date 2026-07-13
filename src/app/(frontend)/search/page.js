@@ -255,7 +255,7 @@ export default function SearchPage() {
           </Breadcrumb>
         </div>
         {!isMobile && (productsLoading || products.length > 0) && (
-          <div className="bg-[#F9F9F9] py-12"><div className="container-main mx-auto px-6"><h1 className="text-3xl md:text-4xl font-serif font-bold mb-4">Results for "{query}"</h1><p className="text-gray-600">{productsLoading ? "Searching..." : `Showing ${totalCount} products found for your request.`}</p></div></div>
+          <div className="bg-[#F9F9F9] py-12"><div className="container-main mx-auto px-6"><h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px]">Results for "{query}"</h1><p className="text-gray-600">{productsLoading ? "Searching..." : `Showing ${totalCount} products found for your request.`}</p></div></div>
         )}
       </div>
 
@@ -267,7 +267,7 @@ export default function SearchPage() {
               <ScrollArea className="w-full h-[calc(100vh-5rem)]">
                 {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
                   <div className={`space-y-3 px-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
-                    <div className="flex justify-between items-center border-b"><h3 className="font-semibold mb-3 font-black uppercase tracking-widest text-sm">Filters</h3><button onClick={clearAllFilters} className="text-[10px] font-bold uppercase text-zinc-400 hover:text-black mb-3">Clear All</button></div>
+                    <div className="flex justify-between items-center border-b border-[#CECACA] m-0"><h3 className="mb-3 uppercase font-semibold font-['Figtree'] text-[12px] leading-[1.4] tracking-normal">Filters</h3><button onClick={clearAllFilters} className="mb-3 uppercase hover:text-black text-[10px] font-semibold text-[#696969]">Clear All</button></div>
                     {(() => {
                       const filterEntries = Object.entries(availableFilters);
                       const priceIdx = filterEntries.findIndex(([key]) => key === "Price");
@@ -323,7 +323,7 @@ export default function SearchPage() {
         {/* Products */}
         <div className="flex-1">
           {products.length > 0 && (
-            <div className={`flex gap-4 items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "py-5 border-b border-gray-50 px-4" : "py-4"}`}>
+            <div className={`flex items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "gap-3 py-5 border-b border-gray-50 px-4" : "gap-4 py-4"}`}>
               <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
                 {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">"{query}"</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{totalCount} Results</span></>) : (<span className="text-sm text-gray-500">{products.length}/{totalCount} products</span>)}
               </div>
