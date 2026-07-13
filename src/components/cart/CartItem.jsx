@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, ShoppingBag, ShoppingCart } from "lucide-react";
+import { formatSocialCount, buildSocialMetrics } from "@/lib/socialProof";
 
 // Builds the WhatsApp "schedule video call" link, including the product name for context.
 function buildVideoCallUrl(productName, sku) {
@@ -96,33 +97,8 @@ function GradientHeart({ size = 15 }) {
   );
 }
 
-// Real counts are amplified for social proof so the numbers look credible to customers.
-// Each metric uses its own multiplier (e.g. 1 order -> "20+ Orders", 2 carts -> "100+ in Carts").
-const SOCIAL_PROOF_AMPLIFY = {
-  orders: 20,
-  cart: 50,
-  wishlist: 100,
-};
-
-function formatSocialCount(n) {
-  if (n >= 1000) {
-    const k = n / 1000;
-    const rounded = k >= 10 ? Math.round(k) : Math.round(k * 10) / 10;
-    return `${String(rounded).replace(/\.0$/, "")}K+`;
-  }
-  return `${n}+`;
-}
-
-// Build the ordered list of available metrics: Orders -> Added to Cart -> Wishlisted.
-// A metric is only included when its real count is > 0 (per requirement: hide when absent).
-function buildSocialMetrics(sp) {
-  if (!sp) return [];
-  const metrics = [];
-  if (sp.orders > 0) metrics.push({ key: "orders", label: "Orders", value: sp.orders * SOCIAL_PROOF_AMPLIFY.orders });
-  if (sp.addToCart > 0) metrics.push({ key: "cart", label: "in Carts", value: sp.addToCart * SOCIAL_PROOF_AMPLIFY.cart });
-  if (sp.wishlist > 0) metrics.push({ key: "wishlist", label: "Wishlisted", value: sp.wishlist * SOCIAL_PROOF_AMPLIFY.wishlist });
-  return metrics;
-}
+// Social-proof amplify/format/build logic lives in "@/lib/socialProof" so the cart
+// and the product page stay in sync. The cart uses the default labels.
 
 const SOCIAL_TINTS = {
   orders: "bg-amber-50/95 text-amber-700 ring-1 ring-inset ring-amber-200/70",
