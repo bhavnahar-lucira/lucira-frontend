@@ -1241,8 +1241,8 @@ export default function MobileHeader({ menuData }) {
               <Image
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
                 alt="Lucira Jewelry"
-                width={100}
-                height={40}
+                width={80}
+                height={32}
                 priority
               />
             )}

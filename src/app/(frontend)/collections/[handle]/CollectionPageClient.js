@@ -752,8 +752,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="w-full relative h-34 md:h-54">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_1_e098831b-f04d-4b6c-ba2c-d1209cdec211.jpg?v=1783671698" alt={displayTitle} fill className="object-cover" priority />
+          <div className="w-full relative">
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_1_e098831b-f04d-4b6c-ba2c-d1209cdec211.jpg?v=1783671698" alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
           </div>
         </div>
       ) : (
@@ -849,9 +849,14 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
         {/* ================= PRODUCTS SECTION ================= */}
         <div className="flex-1">
-          <div className={`flex items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "gap-3 py-5 border-b border-gray-50 px-4" : "gap-4 py-4"}`}>
-            <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
-              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{countDisplay}</span></>) : (<span className="font-figtree text-sm text-[#696969]">{itemCountDisplay}</span>)}
+          <div className={`flex items-center justify-between sticky top-0 z-20 ${isMobile ? "gap-3 p-4 bg-white/95 backdrop-blur-sm border-b border-[#F0E7E2]" : "gap-4 py-4 bg-white"}`}>
+            <div className={isMobile ? "flex items-center gap-2.5" : "flex gap-3 items-center"}>
+              {isMobile ? (
+                <>
+                  <h2 className="font-abhaya text-[1.5rem] font-extrabold text-[#2B1F1E] capitalize leading-none tracking-[-0.01em]">{displayTitle}</h2>
+                  <span className="inline-flex items-center rounded-full bg-[#F4E9E3] px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[#5a413f] whitespace-nowrap">{countDisplay}</span>
+                </>
+              ) : (<span className="font-figtree text-sm text-[#696969]">{itemCountDisplay}</span>)}
             </div>
             {!isMobile && (
               <div className="flex items-center gap-2">
