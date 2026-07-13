@@ -66,6 +66,24 @@ const CUSTOM_COLLECTION_BANNERS = {
   }
 };
 
+// In-page promo banners injected into the product grid. They alternate in order
+// (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
+// then every 10 products after that.
+// TODO(banner): replace creative B's `src` with the second (right) banner image URL.
+const INPAGE_BANNERS = [
+  {
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg",
+    alt: "Promo",
+    href: "/collections/bestsellers",
+  },
+  {
+    // Placeholder — falls back to creative A until the second image is provided.
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg",
+    alt: "Promo",
+    href: "/collections/bestsellers",
+  },
+];
+
 const SORT_OPTIONS = [
   { value: "manual", label: "Featured" },
   { value: "best_selling", label: "Best selling" },
@@ -632,16 +650,21 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const renderGridItems = () => {
     const items = [];
     let renderedCount = 0;
+    let bannerCount = 0;
     products.forEach((prod, idx) => {
       if (!prod) return;
-      if (renderedCount === 3 || renderedCount === 10) {
+      // First banner after 6 products, then repeat every 10 (6, 16, 26, ...).
+      // Creatives alternate A, B, A, B, ... on each appearance.
+      if (renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
+        const banner = INPAGE_BANNERS[bannerCount % INPAGE_BANNERS.length];
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
-            <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-[4px]" />
+            <Link prefetch={false} className="cursor-default" href={banner.href} onClick={(e) => e.preventDefault()}>
+              <Image src={banner.src} alt={banner.alt} width={800} height={400} className="w-full h-full object-cover rounded-[4px]" />
             </Link>
           </div>
         );
+        bannerCount++;
       }
       
       // Trigger pagination when 10 products are scrolled
