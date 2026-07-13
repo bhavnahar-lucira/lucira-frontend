@@ -538,7 +538,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             {/* Recently Viewed Hover Overlay */}
             {!disableLastViewed && isRecentlyViewed && (
-              <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-sm opacity-100 group-hover:opacity-0 transition-opacity duration-300">
+              <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-sm opacity-100 group-hover/card:opacity-0 transition-opacity duration-300">
                 <span className="text-white font-figtree font-semibold text-xs sm:text-sm tracking-widest uppercase">
                   LAST VIEWED
                 </span>
