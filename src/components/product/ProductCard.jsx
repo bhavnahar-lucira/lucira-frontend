@@ -500,7 +500,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   nested={true}
                   touchStartPreventDefault={false}
                   modules={[Navigation, Pagination]}
-                  pagination={galleryImages.length > 1 ? { clickable: true, el: `.pagination-${swiperId}` } : false}
+                  pagination={galleryImages.length > 1 ? { type: 'progressbar', el: `.pagination-${swiperId}` } : false}
                   navigation={{
                     prevEl: `.custom-prev-${swiperId}`,
                     nextEl: `.custom-next-${swiperId}`,
@@ -707,11 +707,11 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
           <div className="flex flex-col gap-1.5 px-1">
             <div className="flex flex-row items-center justify-between gap-2">
               {baseColors.length > 0 && (
-                <div className="flex gap-4 items-center">
+                <div className="flex gap-3 lg:gap-4 items-center">
                   {baseColors.map((base) => {
                     const isActive = base === activeBase;
                     return (
-                      <button key={`${product.shopifyId}-${base}`} type="button" title={base} onClick={() => setActiveBase(base)} className={`rounded-full transition-all hover:scale-110 cursor-pointer ${isActive ? "ring-1 ring-black ring-offset-2 ring-offset-white" : ""}`} style={{ background: colorMap[base], width: isActive ? "20px" : "24px", height: isActive ? "20px" : "24px" }} />
+                      <button key={`${product.shopifyId}-${base}`} type="button" title={base} onClick={() => setActiveBase(base)} className={`rounded-full transition-all hover:scale-110 cursor-pointer ${isActive ? "ring-1 ring-black ring-offset-[1.5px] lg:ring-offset-2 ring-offset-white w-[18px] h-[18px] lg:w-[20px] lg:h-[20px]" : "w-[22px] h-[22px] lg:w-[24px] lg:h-[24px]"}`} style={{ background: colorMap[base] }} />
                     );
                   })}
                 </div>
@@ -794,9 +794,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       <style dangerouslySetInnerHTML={{
         __html: `
         .custom-product-swiper .swiper-button-prev, .custom-product-swiper .swiper-button-next { display: none !important; }
-        .custom-product-swiper .swiper-pagination { bottom: 10px !important; }
-        .custom-product-swiper .swiper-pagination-bullet { width: 6px !important; height: 6px !important; background: #D1D1D1 !important; opacity: 1 !important; margin: 0 3px !important; transition: all 0.3s ease; }
-        .custom-product-swiper .swiper-pagination-bullet-active { background: #5A413F !important; width: 6px !important; height: 6px !important; }
+        .custom-product-swiper .swiper-pagination-progressbar { background: rgba(0,0,0,0.05) !important; height: 2px !important; bottom: 0 !important; top: auto !important; }
+        .custom-product-swiper .swiper-pagination-progressbar-fill { background: #5A413F !important; }
         @media (min-width: 1024px) { .custom-product-swiper .swiper-pagination { display: none !important; } }
       ` }} />
 
