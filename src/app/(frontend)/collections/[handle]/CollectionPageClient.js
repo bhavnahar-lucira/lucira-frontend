@@ -281,6 +281,16 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return { title: "", description: "", descriptionHtml:"" };
   });
   const [dbCollection, setDbCollection] = useState(null);
+
+  // Expose the collection title globally so shared widgets (e.g. the floating
+  // WhatsApp button) can read the exact collection name instead of parsing document.title.
+  useEffect(() => {
+    window.__LUCIRA_COLLECTION__ = collection?.title || "";
+    return () => {
+      delete window.__LUCIRA_COLLECTION__;
+    };
+  }, [collection?.title]);
+
   const [products, setProducts] = useState(() => (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
   const [pagination, setPagination] = useState(() => initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null });
   const [productsLoading, setProductsLoading] = useState(!initialData);

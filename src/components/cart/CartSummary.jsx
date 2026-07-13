@@ -498,7 +498,7 @@ export default function CartSummary({ onPlaceOrder }) {
           }}
           className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 uppercase tracking-[0.2em] shadow-lg shadow-zinc-100 transition-all rounded-lg text-base"
         >
-          Place Order
+          Proceed To Checkout
         </Button>
         
         <GoldCoinOption />

@@ -35,7 +35,7 @@ import {
   DialogPortal,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { pushProductClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
+import { pushProductClick, pushPromoClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
 import { apiFetch, fetchVariantPricing } from "@/lib/api";
@@ -170,7 +170,7 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false, disableLastViewed = false }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false, disableLastViewed = false, promoClickMeta = null }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
@@ -451,7 +451,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     };
     if (index !== undefined && index !== null && index !== "") clickData.indexPosition = String(index);
     pushProductClick(clickData);
-  }, [product, currentVariant, galleryImages, displayPrice, displayComparePrice, index, collectionHandle, dispatch]);
+
+    if (promoClickMeta) {
+      pushPromoClick({
+        creative_name: promoClickMeta.creative_name,
+        location_id: promoClickMeta.location_id,
+        promo_id: promoClickMeta.promo_id,
+        promo_name: product.title,
+      });
+    }
+  }, [product, currentVariant, galleryImages, displayPrice, displayComparePrice, index, collectionHandle, dispatch, promoClickMeta]);
 
   const productOffers = useMemo(() => {
     const offers = [];

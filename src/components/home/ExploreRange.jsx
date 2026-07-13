@@ -7,6 +7,7 @@ import shopifyLoader from "@/utils/shopifyLoader";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
 import { useState } from "react";
+import { pushPromoClick } from "@/lib/gtm";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -85,9 +86,19 @@ export default function ExploreRange({ bgClass = "bg-white", paddingClass = "pt-
 }
 
 function CategoryCard({ cat }) {
+  const handleCategoryClick = () => {
+    pushPromoClick({
+      creative_name: "Explore Our Range",
+      location_id: "homepage",
+      promo_id: cat.name,
+      promo_name: cat.name,
+    });
+  };
+
   return (
-    <Link prefetch={false} 
+    <Link prefetch={false}
       href={cat.href}
+      onClick={handleCategoryClick}
       className="group relative aspect-313/362 block overflow-hidden rounded-md bg-gray-50"
     >
       <Image 

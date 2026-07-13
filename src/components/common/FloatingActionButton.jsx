@@ -20,17 +20,30 @@ export default function FloatingActionButton() {
 
   const getPageContext = () => {
     const globalProduct = typeof window !== 'undefined' ? window.__LUCIRA_PRODUCT__ : null;
+    const globalCollection = typeof window !== 'undefined' ? window.__LUCIRA_COLLECTION__ : null;
     const title = globalProduct?.title || (typeof document !== 'undefined' ? document.title.split('|')[0].trim() : "FAB Enquiry");
     const sku = globalProduct?.sku || "N/A";
-    
+
     if (pathname === "/") return { type: "index", title, sku };
-    if (pathname.startsWith("/collections")) return { type: "collection", title, sku };
+    if (pathname.startsWith("/collections")) return { type: "collection", title: globalCollection || title, sku };
     if (pathname.startsWith("/products")) return { type: "product", title, sku };
     if (pathname.startsWith("/blogs")) return { type: "blog", title, sku };
     if (pathname.includes("gold-rate")) return { type: "gold-rate", title, slug: pathname.split('/').pop() };
     if (pathname.includes("platinum-rate")) return { type: "platinum-rate", title, slug: pathname.split('/').pop() };
-    
+    if (pathname.includes("silver-rate")) return { type: "silver-rate", title, slug: pathname.split('/').pop() };
+
     return { type: "other", title, sku };
+  };
+
+  // Extract & title-case the city from a rate-page handle, e.g.
+  // "new-delhi-gold-rate-today" -> "New Delhi" (mirrors /pages/[handle] route logic)
+  const getRateCity = (slug, metal) => {
+    const citySlug = (slug || "").replace(`-${metal}-rate-today`, "");
+    return citySlug
+      .split("-")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
   };
 
   const getWhatsAppUrl = () => {
@@ -48,11 +61,11 @@ export default function FloatingActionButton() {
         ? `Hi, can you tell me more about this blog: ${ctx.title}`
         : "Hi, Can you Tell me more about Lucira Blogs";
     } else if (ctx.type === "gold-rate") {
-      const city = ctx.slug.replace('gold-rate-', '').replace(/-/g, ' ');
-      message = `Tell me more about ${city} gold rate`;
+      message = `Tell me more about ${getRateCity(ctx.slug, 'gold')} gold rate`;
     } else if (ctx.type === "platinum-rate") {
-      const city = ctx.slug.replace('platinum-rate-', '').replace(/-/g, ' ');
-      message = `Tell me more about ${city} platinum rate`;
+      message = `Tell me more about ${getRateCity(ctx.slug, 'platinum')} platinum rate`;
+    } else if (ctx.type === "silver-rate") {
+      message = `Tell me more about ${getRateCity(ctx.slug, 'silver')} silver rate`;
     }
 
     return `https://wa.me/919004435760?text=${encodeURIComponent(message)}`;
@@ -186,7 +199,10 @@ export default function FloatingActionButton() {
     pushPromoClick("salesiq-callUs");
   };
 
-  const handleWhatsAppClick = () => {
+  const handleWhatsAppClick = (e) => {
+    // Rebuild the URL at click time so it always reflects the CURRENT page /
+    // collection, even after client-side navigation (href set on render can go stale).
+    if (e?.currentTarget) e.currentTarget.href = getWhatsAppUrl();
     pushPromoClick("chatWithExperts");
   };
 

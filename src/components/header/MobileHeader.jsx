@@ -372,6 +372,29 @@ export default function MobileHeader({ menuData }) {
 
   const suggestionSuffix = suggestionData ? suggestionData.suffix : "";
 
+  // --- Track what users actually search (the typed term, not just the bar tap) ---
+  const trackedSearchQuery = useDebounce(searchQuery, 1200);
+  const lastTrackedSearchRef = useRef("");
+
+  const trackSearchTerm = (term) => {
+    const cleaned = (term || "").trim();
+    if (cleaned.length < 2) return;
+    if (cleaned.toLowerCase() === lastTrackedSearchRef.current.toLowerCase()) return;
+    lastTrackedSearchRef.current = cleaned;
+
+    pushPromoClick({
+      creative_name: "Search Bar Term",
+      location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+      promo_id: cleaned,
+      promo_name: cleaned,
+    });
+  };
+
+  useEffect(() => {
+    trackSearchTerm(trackedSearchQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackedSearchQuery]);
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
@@ -381,6 +404,7 @@ export default function MobileHeader({ menuData }) {
       e.preventDefault();
       setSearchQuery(searchQuery + suggestionSuffix);
     } else if (e.key === "Enter" && searchQuery.trim().length > 0) {
+      trackSearchTerm(searchQuery);
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setShowSearch(false);
     }

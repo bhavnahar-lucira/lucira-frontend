@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import shopifyLoader from '@/utils/shopifyLoader';
+import { pushPromoClick } from '@/lib/gtm';
 
 // Move data outside the component to prevent re-creation on every render
 const SHAPES = [
@@ -17,6 +18,15 @@ const SHAPES = [
 ];
 
 export default function DiamondShapes() {
+  const handleCutClick = (shape) => {
+    pushPromoClick({
+      creative_name: "Diamond cuts section homepage",
+      location_id: "homepage",
+      promo_id: shape.name,
+      promo_name: shape.name,
+    });
+  };
+
   return (
     <section className="w-full bg-[#FEF5F1] py-12 md:py-14 mt-12 md:mt-15 overflow-hidden">
       <div className="container-main">
@@ -34,6 +44,7 @@ export default function DiamondShapes() {
             <Link prefetch={false}
               key={shape.slug}
               href={`/collections/${shape.slug}`}
+              onClick={() => handleCutClick(shape)}
               className="group flex flex-col items-center"
             >
               <div className="w-14 md:w-full lg:w-18 relative aspect-square max-w-24 mb-4">

@@ -67,10 +67,15 @@ export default function BestsellerSection({ initialData }) {
       onTabChange={(tab) => setActiveTab(tab)}
       loading={loading}
     >        
-      <CollectionSlider 
-        products={products.length > 0 ? products : (loading ? [] : undefined)} 
+      <CollectionSlider
+        products={products.length > 0 ? products : (loading ? [] : undefined)}
         loading={loading}
         priorityCount={4}
+        promoClickMeta={{
+          creative_name: "shop bestseller section homepage",
+          location_id: "homepage",
+          promo_id: activeTab,
+        }}
       />
     </CollectionSection>
   );

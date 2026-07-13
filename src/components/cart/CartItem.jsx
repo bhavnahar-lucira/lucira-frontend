@@ -23,12 +23,11 @@ import {
 
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, ShoppingBag, ShoppingCart } from "lucide-react";
 
-// Builds the WhatsApp "schedule video call" link, including the product name/SKU for context.
+// Builds the WhatsApp "schedule video call" link, including the product name for context.
 function buildVideoCallUrl(productName, sku) {
-  let message = "Hi, I want to schedule a video call";
+  let message = "Hi, I'm on the cart page and want to schedule a video call";
   if (productName) {
-    message += ` for ${productName}`;
-    if (sku) message += ` (SKU: ${sku})`;
+    message += ` for : ${productName}`;
   }
   return `https://api.whatsapp.com/send/?phone=919004435760&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
 }

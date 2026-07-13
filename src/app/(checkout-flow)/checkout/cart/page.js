@@ -223,7 +223,7 @@ const filteredItems = items.filter(
             onClick={handlePlaceOrder}
             className="grow bg-primary hover:bg-accent text-white font-bold h-12 uppercase tracking-widest rounded-lg text-sm"
           >
-            Place Order
+            Proceed To Checkout
           </Button>
         </div>
       </div>
