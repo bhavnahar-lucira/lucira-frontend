@@ -11,11 +11,21 @@ export const SOCIAL_PROOF_AMPLIFY = {
   wishlist: 100,
 };
 
-// Default labels (used by the checkout cart). The product page passes its own.
-export const DEFAULT_SOCIAL_LABELS = {
-  orders: "Orders",
-  cart: "in Carts",
+// Display labels shared by the product page AND the checkout cart (from design).
+export const SOCIAL_DISPLAY_LABELS = {
+  orders: "Ordered",
+  cart: "In Cart",
   wishlist: "Wishlisted",
+};
+
+// Backwards-compatible alias.
+export const DEFAULT_SOCIAL_LABELS = SOCIAL_DISPLAY_LABELS;
+
+// Exact badge colours (from design), shared by the product page and the checkout cart.
+export const SOCIAL_BADGE_STYLES = {
+  orders: { backgroundColor: "#FED5A9", color: "#E54C2C" },
+  cart: { backgroundColor: "#E7D3F8", color: "#7926BC" },
+  wishlist: { backgroundColor: "#FF4A591F", color: "#FF4A59" }, // 12% tint bg, solid text
 };
 
 export function formatSocialCount(n) {
