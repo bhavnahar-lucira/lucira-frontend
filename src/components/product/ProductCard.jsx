@@ -491,7 +491,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       <div className="space-y-4">
         <div className="group/card block space-y-4">
           <div className="relative aspect-square w-full bg-[#fafafa] overflow-hidden">
-            <Link href={`/products/${product.handle}`} prefetch={false} className="block w-full h-full mix-blend-multiply" onClick={handleProductClick}>
+            <Link href={`/products/${product.handle}`} prefetch={false} className="block w-full h-full mix-blend-multiply cursor-pointer" onClick={handleProductClick}>
               {galleryImages.length > 0 ? (
                 <Swiper
                   spaceBetween={0}
@@ -500,7 +500,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   nested={true}
                   touchStartPreventDefault={false}
                   modules={[Navigation, Pagination]}
-                  pagination={galleryImages.length > 1 ? { type: 'progressbar', el: `.pagination-${swiperId}` } : false}
+                  pagination={galleryImages.length > 1 ? { clickable: true, el: `.pagination-${swiperId}` } : false}
                   navigation={{
                     prevEl: `.custom-prev-${swiperId}`,
                     nextEl: `.custom-next-${swiperId}`,
@@ -538,8 +538,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             {/* Recently Viewed Hover Overlay */}
             {!disableLastViewed && isRecentlyViewed && (
-              <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-sm">
-                <span className="text-white font-figtree font-bold text-xs sm:text-sm tracking-widest uppercase">
+              <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center pointer-events-none rounded-sm opacity-100 group-hover:opacity-0 transition-opacity duration-300">
+                <span className="text-white font-figtree font-semibold text-xs sm:text-sm tracking-widest uppercase">
                   LAST VIEWED
                 </span>
               </div>
@@ -566,7 +566,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                         y: { duration: 0.62, ease: [0.22, 1, 0.36, 1], delay: 0.06 },
                         opacity: { duration: 0.4, ease: "easeOut", delay: 0.06 },
                       }}
-                      className={`block font-figtree font-bold text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap ${isBestSeller ? "text-white" : "text-black"}`}
+                      className={`block font-figtree font-semibold text-xs lg:text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap ${isBestSeller ? "text-white" : "text-black"}`}
                     >
                       {label}
                     </motion.span>
@@ -580,11 +580,11 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               <div className="absolute bottom-4 right-2 lg:right-4 z-10">
                 <Drawer open={showSimilar} onOpenChange={setShowSimilar}>
                   <DrawerTrigger asChild>
-                    <button onClick={(e) => { e.preventDefault(); fetchSimilar(); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300">
-                      <svg width="24" height="24" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-                        <path d="M11.4322 10.4118C11.4293 10.2235 11.5012 10.0417 11.6321 9.90627C11.763 9.77087 11.9422 9.69288 12.1305 9.6894L21.4657 9.52505C21.6544 9.5214 21.8368 9.59284 21.9728 9.72366C22.1088 9.85448 22.1872 10.034 22.1909 10.2226L22.4232 23.5881C22.4262 23.7767 22.3542 23.9588 22.223 24.0943C22.0917 24.2299 21.9121 24.3078 21.7234 24.3109L12.3883 24.4752C12.1998 24.4785 12.0177 24.4068 11.882 24.2759C11.7463 24.1451 11.668 23.9657 11.6645 23.7772L11.4322 10.4118Z" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M11.5349 11.5293L6.05123 12.9986C5.89057 13.0417 5.75356 13.1468 5.67029 13.2908C5.58702 13.4348 5.56428 13.606 5.60707 13.7667L8.65801 25.1594C8.70135 25.3201 8.80674 25.457 8.95101 25.5401C9.09527 25.6231 9.26661 25.6455 9.42735 25.6022L13.8263 24.4235" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M22.4632 11.5293L27.9468 12.9986C28.1075 13.0417 28.2445 13.1468 28.3278 13.2908C28.411 13.4348 28.4338 13.606 28.391 13.7667L25.34 25.1594C25.2967 25.3201 25.1913 25.457 25.047 25.5401C24.9028 25.6231 24.7314 25.6455 24.5707 25.6022L19.8192 24.3291" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round" />
+                    <button onClick={(e) => { e.preventDefault(); fetchSimilar(); }} className="w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300 cursor-pointer">
+                      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                        <path d="M11.4326 10.4118C11.4298 10.2235 11.5017 10.0417 11.6326 9.90627C11.7635 9.77087 11.9427 9.69288 12.131 9.6894L21.4662 9.52505C21.6549 9.5214 21.8372 9.59284 21.9732 9.72366C22.1093 9.85448 22.1877 10.034 22.1914 10.2226L22.4237 23.5881C22.4267 23.7767 22.3547 23.9588 22.2235 24.0943C22.0922 24.2299 21.9126 24.3078 21.7239 24.3109L12.3888 24.4752C12.2003 24.4785 12.0182 24.4068 11.8825 24.2759C11.7468 24.1451 11.6685 23.9657 11.6649 23.7772L11.4326 10.4118Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M11.5359 11.5298L6.05221 12.9991C5.89154 13.0422 5.75454 13.1473 5.67127 13.2913C5.58799 13.4353 5.56526 13.6064 5.60805 13.7672L8.65898 25.1599C8.70233 25.3206 8.80772 25.4575 8.95198 25.5406C9.09625 25.6236 9.26758 25.646 9.42833 25.6027L13.8273 24.424" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M22.4641 11.5298L27.9478 12.9991C28.1085 13.0422 28.2455 13.1473 28.3287 13.2913C28.412 13.4353 28.4347 13.6064 28.3919 13.7672L25.341 25.1599C25.2977 25.3206 25.1923 25.4575 25.048 25.5406C24.9038 25.6236 24.7324 25.646 24.5717 25.6027L19.8202 24.3296" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
                   </DrawerTrigger>
@@ -592,7 +592,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                     <div className="mx-auto w-full flex flex-col h-full overflow-hidden">
                       <DrawerHeader className="px-10 py-6 flex flex-row items-center justify-between border-b border-zinc-100 shrink-0">
                         <DrawerTitle className="text-xl font-medium text-black uppercase">VIEW SIMILAR</DrawerTitle>
-                        <DrawerClose asChild><button className="text-zinc-400 hover:text-black p-1"><X size={22} /></button></DrawerClose>
+                        <DrawerClose asChild><button className="text-zinc-400 hover:text-black p-1 cursor-pointer"><X size={22} /></button></DrawerClose>
                       </DrawerHeader>
                       <div className="sm:px-10 sm:py-10 px-5 py-5 overflow-y-auto flex-1">
                         {loadingSimilar ? <div className="flex flex-col items-center justify-center py-20 gap-4"><Loader2 className="animate-spin text-zinc-400" size={40} /><p className="text-sm font-bold uppercase tracking-widest text-zinc-400">Searching matching designs...</p></div> :
@@ -600,7 +600,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-8 gap-y-12 pb-10">
                               {similarProducts.slice(0, 10).map((item) => (
                                 <div key={item.id} className="space-y-4">
-                                  <Link href={`/products/${item.handle}`} prefetch={false} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
+                                  <Link href={`/products/${item.handle}`} prefetch={false} onClick={() => setShowSimilar(false)} className="block space-y-4 group cursor-pointer">
                                     <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden">
                                       <LazyImage src={item.image} alt={item.title} fill className="object-contain transition-transform duration-500 group-hover:scale-105 mix-blend-multiply" />
                                       {item.media?.some(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO") && (
@@ -610,7 +610,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                                             const vMedia = item.media.find(m => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO");
                                             if (vMedia) onVideoPlay?.(vMedia, item.title);
                                           }}
-                                          className="absolute bottom-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300"
+                                          className="absolute bottom-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300 cursor-pointer"
                                         >
                                           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 ml-0.5">
                                             <path d="M7 6V18L19 12L7 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -643,7 +643,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             {/* Video - Bottom Left */}
             {videoMedia && (
-              <button onClick={(e) => { e.preventDefault(); setShowVideoPopup(true); }} className="absolute bottom-4 left-2 lg:left-4 z-10 w-8 h-8 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300">
+              <button onClick={(e) => { e.preventDefault(); setShowVideoPopup(true); }} className="absolute bottom-4 left-2 lg:left-4 z-10 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300 cursor-pointer">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
                   <path d="M11.084 18.1814V9.81869C11.0842 9.71406 11.1125 9.6114 11.166 9.52147C11.2194 9.43155 11.2961 9.35766 11.388 9.30756C11.4798 9.25745 11.5835 9.23298 11.688 9.2367C11.7926 9.24042 11.8943 9.27219 11.9823 9.32869L18.4877 13.5089C18.57 13.5616 18.6378 13.6343 18.6847 13.7201C18.7317 13.8059 18.7563 13.9022 18.7563 14C18.7563 14.0979 18.7317 14.1941 18.6847 14.2799C18.6378 14.3658 18.57 14.4384 18.4877 14.4912L11.9823 18.6725C11.8943 18.729 11.7926 18.7608 11.688 18.7645C11.5835 18.7682 11.4798 18.7438 11.388 18.6937C11.2961 18.6436 11.2194 18.5697 11.166 18.4797C11.1125 18.3898 11.0842 18.2872 11.084 18.1825V18.1814Z" fill="currentColor" />
                   <path d="M1.16602 14.0001C1.16602 6.91258 6.91185 1.16675 13.9993 1.16675C21.0868 1.16675 26.8327 6.91258 26.8327 14.0001C26.8327 21.0876 21.0868 26.8334 13.9993 26.8334C6.91185 26.8334 1.16602 21.0876 1.16602 14.0001ZM13.9993 2.91675C11.0599 2.91675 8.24078 4.08445 6.16225 6.16298C4.08372 8.24151 2.91602 11.0606 2.91602 14.0001C2.91602 16.9396 4.08372 19.7587 6.16225 21.8372C8.24078 23.9157 11.0599 25.0834 13.9993 25.0834C16.9388 25.0834 19.7579 23.9157 21.8364 21.8372C23.915 19.7587 25.0827 16.9396 25.0827 14.0001C25.0827 11.0606 23.915 8.24151 21.8364 6.16298C19.7579 4.08445 16.9388 2.91675 13.9993 2.91675Z" fill="currentColor" />
@@ -679,9 +679,9 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                 };
                 handleWishlistToggle();
               }}
-              className={`absolute top-0 right-1 lg:top-2 lg:right-4 z-10 px-1.5 py-1 lg:p-1.5 transition-transform duration-200 ${isWishlistAnimating ? "scale-110" : ""}`}
+              className={`absolute top-0 right-1 lg:top-2 lg:right-4 z-10 px-1.5 py-1 lg:p-1.5 transition-transform duration-200 cursor-pointer ${isWishlistAnimating ? "scale-110" : ""}`}
             >
-              <Heart fill={isWishlisted ? "currentColor" : "none"} className={`${isWishlisted ? "text-rose-500 w-5 lg:w-6" : "text-black"} stroke-[1.5px] w-5 lg:w-6`} />
+              <Heart fill={isWishlisted ? "currentColor" : "none"} className={`${isWishlisted ? "text-rose-500" : "text-black"} stroke-[1.5px] w-5 h-5 lg:w-6 lg:h-6`} />
             </button>
 
             {galleryImages.length > 1 && (
@@ -689,14 +689,14 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                 <button
                   ref={prevImageBtnRef}
                   type="button"
-                  className={`custom-prev-${swiperId} absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/85 text-black shadow-md opacity-0 group-hover/card:opacity-100 transition-opacity`}
+                  className={`custom-prev-${swiperId} absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/85 text-black shadow-md opacity-0 group-hover/card:opacity-100 transition-opacity cursor-pointer`}
                 >
                   <ChevronLeft size={18} />
                 </button>
                 <button
                   ref={nextImageBtnRef}
                   type="button"
-                  className={`custom-next-${swiperId} absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/85 text-black shadow-md opacity-0 group-hover/card:opacity-100 transition-opacity`}
+                  className={`custom-next-${swiperId} absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/85 text-black shadow-md opacity-0 group-hover/card:opacity-100 transition-opacity cursor-pointer`}
                 >
                   <ChevronRight size={18} />
                 </button>
@@ -707,13 +707,11 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
           <div className="flex flex-col gap-1.5 px-1">
             <div className="flex flex-row items-center justify-between gap-2">
               {baseColors.length > 0 && (
-                <div className="flex gap-3">
+                <div className="flex gap-4 items-center">
                   {baseColors.map((base) => {
                     const isActive = base === activeBase;
                     return (
-                      <button key={`${product.shopifyId}-${base}`} type="button" title={base} onClick={() => setActiveBase(base)} className={`w-5 h-5 lg:w-7 lg:h-7 rounded-full border transition-all flex items-center justify-center hover:scale-110 ${isActive ? "border-black" : "border-transparent"}`}>
-                        <span className="w-full h-full rounded-full" style={{ background: colorMap[base] }} />
-                      </button>
+                      <button key={`${product.shopifyId}-${base}`} type="button" title={base} onClick={() => setActiveBase(base)} className={`rounded-full transition-all hover:scale-110 cursor-pointer ${isActive ? "ring-1 ring-black ring-offset-2 ring-offset-white" : ""}`} style={{ background: colorMap[base], width: isActive ? "20px" : "24px", height: isActive ? "20px" : "24px" }} />
                     );
                   })}
                 </div>
@@ -742,13 +740,13 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-2 font-figtree">
               <p className="text-base lg:text-xl font-bold">₹{formatPrice(displayPrice)}</p>
-              {displayComparePrice > displayPrice && <p className="text-[14px] lg:text-base text-gray-400 line-through">₹{formatPrice(displayComparePrice)}</p>}
-              {displayComparePrice > displayPrice && discountPercent > 0 && <span className="hidden lg:inline-block bg-[#F2F2F2] text-black px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">{discountPercent}% OFF</span>}
+              {displayComparePrice > displayPrice && <p className="text-[14px] lg:text-base text-[#909090] line-through">₹{formatPrice(displayComparePrice)}</p>}
+              {displayComparePrice > displayPrice && discountPercent > 0 && <span className="hidden lg:inline-block bg-[#EFE5DE] text-black px-2 py-0.5 rounded-full text-[10px] font-semibold font-figtree leading-[1.6] tracking-normal uppercase">{discountPercent}% OFF</span>}
             </div>
 
             <div className="flex flex-col items-start gap-0.5">
-              <Link href={`/products/${product.handle}`} prefetch={false} onClick={handleProductClick}>
-                <h3 className="text-base font-figtree font-[450] leading-[1.6] tracking-normal hover:underline underline-offset-4 hover:text-gray-900 transition-colors line-clamp-1 min-h-5">{product.title}</h3>
+              <Link href={`/products/${product.handle}`} prefetch={false} onClick={handleProductClick} className="cursor-pointer">
+                <h3 className="text-[14px] lg:text-base font-figtree font-[450] leading-[1.6] tracking-normal hover:underline underline-offset-4 hover:text-gray-900 transition-colors line-clamp-1 min-h-5">{product.title}</h3>
               </Link>
               <div className="flex flex-col justify-center items-start gap-2">
                 {(() => {
@@ -770,7 +768,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
                   if (weight) parts.push(weight);
                   if (parts.length === 0) return null;
-                  return <p className="font-figtree text-sm font-medium text-gray-500 leading-[1.4] tracking-normal mt-0.5">{parts.join(" · ")}</p>;
+                  return <p className="font-figtree text-[12px] lg:text-sm font-light lg:font-medium text-black lg:text-gray-500 leading-[1.4] tracking-normal mt-0.5">{parts.join(" · ")}</p>;
                 })()}
               </div>
             </div>
@@ -784,7 +782,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                 </svg>
                 <div className="overflow-hidden">
                   <AnimatePresence mode="wait" initial={false}>
-                    <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="font-figtree font-semibold text-sm leading-[1.4] tracking-normal capitalize whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
+                    <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="font-figtree font-semibold text-[10px] lg:text-sm leading-[1.4] tracking-normal capitalize whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
                   </AnimatePresence>
                 </div>
               </div>
@@ -796,8 +794,9 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       <style dangerouslySetInnerHTML={{
         __html: `
         .custom-product-swiper .swiper-button-prev, .custom-product-swiper .swiper-button-next { display: none !important; }
-        .custom-product-swiper .swiper-pagination-progressbar { background: rgba(0,0,0,0.05) !important; height: 2px !important; bottom: 0 !important; top: auto !important; }
-        .custom-product-swiper .swiper-pagination-progressbar-fill { background: #5A413F !important; }
+        .custom-product-swiper .swiper-pagination { bottom: 10px !important; }
+        .custom-product-swiper .swiper-pagination-bullet { width: 6px !important; height: 6px !important; background: #D1D1D1 !important; opacity: 1 !important; margin: 0 3px !important; transition: all 0.3s ease; }
+        .custom-product-swiper .swiper-pagination-bullet-active { background: #5A413F !important; width: 6px !important; height: 6px !important; }
         @media (min-width: 1024px) { .custom-product-swiper .swiper-pagination { display: none !important; } }
       ` }} />
 
@@ -805,7 +804,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
         <DialogContent className="max-w-2xl aspect-square bg-transparent border-none p-0 overflow-hidden shadow-2xl rounded-3xl w-4/5" showCloseButton={false}>
           <DialogTitle className="sr-only">Product Video: {product.title}</DialogTitle>
           <DialogDescription className="sr-only">Video preview of the product</DialogDescription>
-          <button onClick={() => setShowVideoPopup(false)} className="absolute top-4 right-4 z-[210] p-2 bg-black/50 hover:bg-black text-white rounded-full transition-all shadow-lg border border-white/10"><X size={24} /></button>
+          <button onClick={() => setShowVideoPopup(false)} className="absolute top-4 right-4 z-[210] p-2 bg-black/50 hover:bg-black text-white rounded-full transition-all shadow-lg border border-white/10 cursor-pointer"><X size={24} /></button>
           
           <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain bg-transparent rounded-3xl" poster={formatCdnUrl(videoMedia?.preview)}>
             {videoMedia?.sources?.length > 0 ? (
@@ -821,7 +820,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             <Link 
               href={`/products/${product.handle}`} 
               onClick={() => setShowVideoPopup(false)}
-              className="bg-white/95 backdrop-blur-sm text-black border border-gray-100 px-8 py-3.5 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 hover:bg-white hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 transform hover:-translate-y-1"
+              className="bg-white/95 backdrop-blur-sm text-black border border-gray-100 px-8 py-3.5 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 hover:bg-white hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
             >
               View Details <ArrowRight size={16} />
             </Link>

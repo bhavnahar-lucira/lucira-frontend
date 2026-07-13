@@ -255,7 +255,7 @@ export default function SearchPage() {
           </Breadcrumb>
         </div>
         {!isMobile && (productsLoading || products.length > 0) && (
-          <div className="bg-[#F9F9F9] py-12"><div className="container-main mx-auto px-6"><h1 className="text-3xl md:text-4xl font-serif font-bold mb-4">Results for "{query}"</h1><p className="text-gray-600">{productsLoading ? "Searching..." : `Showing ${totalCount} products found for your request.`}</p></div></div>
+          <div className="bg-[#F9F9F9] py-12"><div className="container-main mx-auto px-6"><h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px]">Results for "{query}"</h1><p className="text-gray-600">{productsLoading ? "Searching..." : `Showing ${totalCount} products found for your request.`}</p></div></div>
         )}
       </div>
 

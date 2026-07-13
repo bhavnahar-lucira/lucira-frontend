@@ -246,6 +246,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         sortedData[groupKey] = options;
       } else if (Array.isArray(options)) {
         sortedData[groupKey] = [...options].sort((a, b) => {
+          if (b.count !== a.count) {
+            return b.count - a.count;
+          }
           const aLabel = a.label?.toString() || "";
           const bLabel = b.label?.toString() || "";
           const aNum = parseFloat(aLabel);
@@ -623,9 +626,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       if (!prod) return;
       if (renderedCount === 3 || renderedCount === 10) {
         items.push(
-          <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
+          <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
             <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-[4px]" />
             </Link>
           </div>
         );
@@ -747,7 +750,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         <div className="bg-[#FFF5F1] overflow-hidden">
           <div className="container-main flex flex-col md:flex-row items-center">
             <div className="flex-1">
-              <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4 capitalize">{displayTitle}</h1>
+              <h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px] capitalize">{displayTitle}</h1>
               {/* <p className="text-gray-900 text-sm md:text-base mb-8 max-w-xl">{collection.description || "Find the perfect piece for your special moment."}</p> */}
               <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
@@ -844,7 +847,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               <div className="flex items-center gap-2">
                 <span className="font-figtree text-sm text-[#696969] whitespace-nowrap">Sort by:</span>
                 <div className="relative flex items-center">
-                  <select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="font-figtree appearance-none bg-transparent border-none pr-6 pl-1 text-sm font-semibold text-black cursor-pointer focus:outline-none">
+                  <select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="font-figtree appearance-none bg-transparent border-none pr-6 pl-1 text-sm font-semibold text-black cursor-pointer focus:outline-none capitalize">
                     {SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-0 size-4 text-black" />
@@ -860,14 +863,14 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   {groupKey === "Price" ? (
                     (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) && (
                       <Badge variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={resetPriceFilter}>
-                        <span className="font-figtree text-base font-normal leading-[1.2]">Price: {searchParams.get("filter.v.price.gte") ? `₹${searchParams.get("filter.v.price.gte")}` : "0"} - {searchParams.get("filter.v.price.lte") ? `₹${searchParams.get("filter.v.price.lte")}` : "Max"}</span>
+                        <span className="font-figtree text-sm font-normal leading-[1.2]">Price: {searchParams.get("filter.v.price.gte") ? `₹${searchParams.get("filter.v.price.gte")}` : "0"} - {searchParams.get("filter.v.price.lte") ? `₹${searchParams.get("filter.v.price.lte")}` : "Max"}</span>
                         <XIcon className="size-3.5 text-[#696969]" />
                       </Badge>
                     )
                   ) : (
                     Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).map((opt) => (
                       <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
-                        <span className="font-figtree text-base font-normal leading-[1.2]">{opt.label.split(" (")[0]}</span>
+                        <span className="font-figtree text-sm font-normal leading-[1.2]">{opt.label.split(" (")[0]}</span>
                         <XIcon className="size-3.5 text-[#696969]" />
                       </Badge>
                     ))
