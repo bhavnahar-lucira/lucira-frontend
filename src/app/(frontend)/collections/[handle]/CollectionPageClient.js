@@ -1173,15 +1173,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         [&_hr]:my-8
         [&_hr]:border-gray-100
 
+        [&_table]:block
         [&_table]:w-full
+        [&_table]:max-w-full
+        [&_table]:overflow-x-auto
         [&_table]:my-6
         [&_table]:text-sm
         [&_table]:border-collapse
         [&_table]:rounded-lg
-        [&_table]:overflow-hidden
         [&_table]:shadow-sm
         [&_table]:border
         [&_table]:border-gray-200
+
+        [&_th]:whitespace-nowrap
+        [&_td]:whitespace-nowrap
 
         [&_thead]:bg-[#FFF5F1]
         [&_thead_th]:text-xs
