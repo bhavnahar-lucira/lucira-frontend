@@ -58,7 +58,7 @@ export default function EternaBandsSection() {
             Eterna Collection
           </h2>
           <p className="text-black font-normal md:text-base text-sm leading-[1.5] tracking-normal align-middle max-w-[600px] mx-auto mt-3 mb-3">
-            Eterna is not just jewelry you put on. It’s a keepsake that stays across seasons, cities, losses, and celebrations. Each band is an unbroken line of light that says: this moment mattered. This love is real. This woman is eternal.
+            Eterna is not just jewelry you put on. It’s a keepsake that stays across seasons, cities, losses, and celebrations. Each product is an unbroken line of light that says: this moment mattered. This love is real. This woman is eternal.
           </p>
         </div>
 

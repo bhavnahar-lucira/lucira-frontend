@@ -365,10 +365,17 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [displayPrice, displayComparePrice]);
 
   const displayLabels = useMemo(() => {
-    const labels = [];
-    if (product.label) labels.push(product.label);
     const tags = Array.isArray(product.tags) ? product.tags : [];
     const lowerTags = tags.map(t => String(t).toLowerCase());
+
+    // In the Eterna collection, products tagged "embrace" show two badges
+    // ("3% OFF" and "Eterna", styled like Best Seller) — all other badges are suppressed.
+    if (collectionHandle === "eterna" && lowerTags.some(t => t.includes("embrace"))) {
+      return ["Extra 3% OFF", "Eterna"];
+    }
+
+    const labels = [];
+    if (product.label) labels.push(product.label);
     const bestsellerMeta = String(product.productMetafields?.bestsellers || "").toLowerCase();
 
     if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Fast Shipping");
@@ -377,7 +384,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product.label, product.tags, product.productMetafields?.bestsellers]);
+  }, [product.label, product.tags, product.productMetafields?.bestsellers, collectionHandle]);
 
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
   useEffect(() => {
@@ -558,7 +565,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                 Best Seller uses the #B77767 brand tone; others stay beige. */}
             {displayLabels.length > 0 && (() => {
               const label = displayLabels[currentLabelIndex];
-              const isBestSeller = label === "Best Seller";
+              const isBestSeller = label === "Best Seller" || label === "Extra 3% OFF" || label === "Eterna";
               return (
                 <motion.div
                   layout
