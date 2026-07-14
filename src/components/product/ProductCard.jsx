@@ -575,12 +575,12 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   <AnimatePresence mode="popLayout" initial={false}>
                     <motion.span
                       key={label}
-                      initial={{ y: "115%", opacity: 0 }}
+                      initial={{ y: "110%", opacity: 0 }}
                       animate={{ y: "0%", opacity: 1 }}
-                      exit={{ y: "-115%", opacity: 0 }}
+                      exit={{ y: "-110%", opacity: 0 }}
                       transition={{
-                        y: { duration: 0.62, ease: [0.22, 1, 0.36, 1], delay: 0.06 },
-                        opacity: { duration: 0.4, ease: "easeOut", delay: 0.06 },
+                        y: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+                        opacity: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
                       }}
                       className={`block font-figtree font-semibold text-xs lg:text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap ${isBestSeller ? "text-white" : "text-black"}`}
                     >
