@@ -368,9 +368,9 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     const tags = Array.isArray(product.tags) ? product.tags : [];
     const lowerTags = tags.map(t => String(t).toLowerCase());
 
-    // In the Eterna collection, products tagged "embrace" show two badges
-    // ("3% OFF" and "Eterna", styled like Best Seller) — all other badges are suppressed.
-    if (collectionHandle === "eterna" && lowerTags.some(t => t.includes("embrace"))) {
+    // Any product tagged "embrace" shows two badges ("Extra 3% OFF" and "Eterna",
+    // styled like Best Seller) — all other badges are suppressed for these products.
+    if (lowerTags.some(t => t.includes("embrace"))) {
       return ["Extra 3% OFF", "Eterna"];
     }
 
@@ -384,7 +384,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product.label, product.tags, product.productMetafields?.bestsellers, collectionHandle]);
+  }, [product.label, product.tags, product.productMetafields?.bestsellers]);
 
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
   useEffect(() => {
