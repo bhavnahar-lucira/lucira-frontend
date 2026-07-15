@@ -365,10 +365,17 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [displayPrice, displayComparePrice]);
 
   const displayLabels = useMemo(() => {
-    const labels = [];
-    if (product.label) labels.push(product.label);
     const tags = Array.isArray(product.tags) ? product.tags : [];
     const lowerTags = tags.map(t => String(t).toLowerCase());
+
+    // In the Eterna collection, products tagged "embrace" show two badges
+    // ("3% OFF" and "Eterna", styled like Best Seller) — all other badges are suppressed.
+    if (collectionHandle === "eterna" && lowerTags.some(t => t.includes("embrace"))) {
+      return ["Extra 3% OFF", "Eterna"];
+    }
+
+    const labels = [];
+    if (product.label) labels.push(product.label);
     const bestsellerMeta = String(product.productMetafields?.bestsellers || "").toLowerCase();
 
     if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Fast Shipping");
@@ -377,7 +384,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product.label, product.tags, product.productMetafields?.bestsellers]);
+  }, [product.label, product.tags, product.productMetafields?.bestsellers, collectionHandle]);
 
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
   useEffect(() => {
@@ -558,7 +565,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                 Best Seller uses the #B77767 brand tone; others stay beige. */}
             {displayLabels.length > 0 && (() => {
               const label = displayLabels[currentLabelIndex];
-              const isBestSeller = label === "Best Seller";
+              const isBestSeller = label === "Best Seller" || label === "Extra 3% OFF" || label === "Eterna";
               return (
                 <motion.div
                   layout
@@ -568,12 +575,12 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   <AnimatePresence mode="popLayout" initial={false}>
                     <motion.span
                       key={label}
-                      initial={{ y: "115%", opacity: 0 }}
+                      initial={{ y: "110%", opacity: 0 }}
                       animate={{ y: "0%", opacity: 1 }}
-                      exit={{ y: "-115%", opacity: 0 }}
+                      exit={{ y: "-110%", opacity: 0 }}
                       transition={{
-                        y: { duration: 0.62, ease: [0.22, 1, 0.36, 1], delay: 0.06 },
-                        opacity: { duration: 0.4, ease: "easeOut", delay: 0.06 },
+                        y: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+                        opacity: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
                       }}
                       className={`block font-figtree font-semibold text-xs lg:text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap ${isBestSeller ? "text-white" : "text-black"}`}
                     >
