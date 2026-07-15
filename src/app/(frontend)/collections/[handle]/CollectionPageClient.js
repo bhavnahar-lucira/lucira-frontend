@@ -254,7 +254,7 @@ function RecentlyViewedRow({ products }) {
               prefetch={false}
               key={item.id || item.shopifyId || item.handle}
               href={`/products/${item.handle}`}
-              className="shrink-0 w-[120px] snap-start cursor-pointer"
+              className="shrink-0 w-[144px] snap-start cursor-pointer"
             >
               <div className="relative aspect-square bg-white rounded-[8px] overflow-hidden">
                 <Image
@@ -262,7 +262,7 @@ function RecentlyViewedRow({ products }) {
                   src={imgSrc}
                   alt={item.title || "Recently viewed"}
                   fill
-                  sizes="120px"
+                  sizes="144px"
                   className="object-contain mix-blend-multiply p-2"
                 />
               </div>
