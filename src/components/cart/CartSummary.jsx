@@ -28,6 +28,7 @@ export default function CartSummary({ onPlaceOrder }) {
   const [isCouponSheetOpen, setIsCouponSheetOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplying, setIsApplying] = useState(false);
+  const [eternaEligible, setEternaEligible] = useState(false);
   
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart } = useCart();
   const user = useSelector((state) => state.user.user);
@@ -194,6 +195,46 @@ export default function CartSummary({ onPlaceOrder }) {
     }
   }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
 
+  // Determine whether any cart item is eligible for the Eterna (EMBRACE3%) offer.
+  // Eligibility is decided server-side (Shopify collection/tag matching), so we
+  // validate against the current cart and only surface the Eterna banner when at
+  // least one product qualifies. Skip the call when there are no real products.
+  useEffect(() => {
+    const realItems = items.filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      item.variantId !== SILVER_PENDANT_VARIANT_ID
+    );
+
+    if (realItems.length === 0) {
+      setEternaEligible(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiFetch("/api/cart/coupon/validate", {
+          method: "POST",
+          body: JSON.stringify({
+            items,
+            couponCode: "EMBRACE3%",
+            customerEmail: user?.email
+          }),
+          suppressErrorLog: true
+        });
+        if (!cancelled) {
+          setEternaEligible(Boolean(data?.applicableItemIds?.length));
+        }
+      } catch (err) {
+        // Backend returns 400 when no cart item is eligible — treat as not eligible.
+        if (!cancelled) setEternaEligible(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [items, user?.email]);
+
   // Sum of original prices (comparePrice if it is greater than price, otherwise price)
   const originalSubtotal = items
     .filter(item =>
@@ -304,9 +345,11 @@ export default function CartSummary({ onPlaceOrder }) {
   return (
     <div className="space-y-4">
       {/* Mobile Eterna Offer Banner - ON TOP so it's visible first */}
-      <div className="lg:hidden w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
-        <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-      </div>
+      {eternaEligible && (
+        <div className="lg:hidden w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+        </div>
+      )}
 
       {/* Desktop Pricing Breakdown (LG) */}
       <div className="hidden lg:block bg-white rounded-2xl p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
@@ -492,10 +535,12 @@ export default function CartSummary({ onPlaceOrder }) {
 
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
-        <div className="w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
-          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-        </div>
-        <Button 
+        {eternaEligible && (
+          <div className="w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+          </div>
+        )}
+        <Button
           onClick={() => {
             // If user not logged in, fire promoClick and open login modal
             if (!user) {
