@@ -38,6 +38,7 @@ export default function CheckoutSummary({
   const [isApplying, setIsApplying] = useState(false);
   const [isApplyingEterna, setIsApplyingEterna] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(10547);
+  const [eternaEligible, setEternaEligible] = useState(false);
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
@@ -251,7 +252,47 @@ export default function CheckoutSummary({
   const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
 
   const ETERNA_COUPON = "EMBRACE3%";
-  
+
+  // Check whether any cart item is actually eligible for the Eterna (EMBRACE3%)
+  // coupon. Eligibility is decided server-side (Shopify collection/tag matching),
+  // so we validate against the current cart and only surface the banner when at
+  // least one product qualifies. Skip the call when there are no real products.
+  useEffect(() => {
+    const realItems = (items || []).filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      item.variantId !== SILVER_PENDANT_VARIANT_ID
+    );
+
+    if (realItems.length === 0) {
+      setEternaEligible(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiFetch("/api/cart/coupon/validate", {
+          method: "POST",
+          body: JSON.stringify({
+            items,
+            couponCode: ETERNA_COUPON,
+            customerEmail: user?.email
+          }),
+          suppressErrorLog: true
+        });
+        if (!cancelled) {
+          setEternaEligible(Boolean(data?.applicableItemIds?.length));
+        }
+      } catch (err) {
+        // Backend returns 400 when no cart item is eligible — treat as not eligible.
+        if (!cancelled) setEternaEligible(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [items, user?.email]);
+
   const handleApplyEternaCoupon = async () => {
     setIsApplyingEterna(true);
 
@@ -474,7 +515,7 @@ export default function CheckoutSummary({
         </div>
       )}
 
-      {showBreakdown && eternaBannerContent}
+      {showBreakdown && displayItems.length > 0 && (isEternaApplied || eternaEligible) && eternaBannerContent}
 
       {showBreakdown && (
         <div className="space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
