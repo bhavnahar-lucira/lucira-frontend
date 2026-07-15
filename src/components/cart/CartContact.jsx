@@ -8,28 +8,30 @@ export default function CartContact({ productName }) {
     const whatsappHref = `https://wa.me/919004435760?text=${encodeURIComponent(whatsappMessage)}`;
 
     return (
-      <div className="bg-white border border-zinc-50 rounded-lg p-6 shadow-sm text-center space-y-4">
-        <h4 className="text-[11px] font-bold text-black uppercase tracking-[0.2em]">CONTACT US FOR ASSISTANCE</h4>
-        <div className="flex justify-around items-center pt-2">
-          <Link prefetch={false} href="tel:+919004436052" className="flex items-center gap-2 bg-zinc-50 px-3 py-2.5 rounded-xl hover:bg-zinc-100 transition-colors">
-            <Phone size={18} className="text-black" />
-            <span className="text-xs font-bold text-black">Call</span>
+      <div className="bg-white border border-[#EADFD8] rounded-lg p-6 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] text-center space-y-4">
+        <h4 className="font-figtree font-semibold text-xs lg:text-sm leading-[1.3] text-[#3D2B28] uppercase tracking-[0.7px]">
+          Contact Us For Assistance
+        </h4>
+        <div className="flex justify-center items-center gap-2.5 lg:gap-3 pt-1">
+          <Link prefetch={false} href="tel:+919004436052" className="flex items-center gap-2 border border-[#EADFD8] bg-[#FEF9F6] px-3.5 py-2.5 rounded-full transition-colors hover:bg-[#F1E4D1]/50">
+            <Phone size={16} className="text-[#5A413F]" />
+            <span className="font-figtree font-medium text-xs lg:text-sm text-[#3D2B28]">Call</span>
           </Link>
-          <Link prefetch={false} href={whatsappHref} target="_blank" className="flex items-center gap-2 bg-zinc-50 px-3 py-2.5 rounded-xl hover:bg-zinc-100 transition-colors">
-            <MessageCircle size={18} className="text-black" />
-            <span className="text-xs font-bold text-black">Whatsapp</span>
+          <Link prefetch={false} href={whatsappHref} target="_blank" className="flex items-center gap-2 border border-[#EADFD8] bg-[#FEF9F6] px-3.5 py-2.5 rounded-full transition-colors hover:bg-[#F1E4D1]/50">
+            <MessageCircle size={16} className="text-[#5A413F]" />
+            <span className="font-figtree font-medium text-xs lg:text-sm text-[#3D2B28]">Whatsapp</span>
           </Link>
-          <button 
+          <button
             onClick={(e) => {
               e.preventDefault();
               if (window.$zoho && window.$zoho.salesiq) {
                 window.$zoho.salesiq.floatwindow.visible("show");
               }
             }}
-            className="flex items-center gap-2 bg-zinc-50 px-3 py-2.5 rounded-xl hover:bg-zinc-100 transition-colors hover:cursor-pointer"
+            className="flex items-center gap-2 border border-[#EADFD8] bg-[#FEF9F6] px-3.5 py-2.5 rounded-full transition-colors hover:bg-[#F1E4D1]/50 hover:cursor-pointer"
           >
-            <MessageSquare size={18} className="text-black" />
-            <span className="text-xs font-bold text-black">Chat</span>
+            <MessageSquare size={16} className="text-[#5A413F]" />
+            <span className="font-figtree font-medium text-xs lg:text-sm text-[#3D2B28]">Chat</span>
           </button>
         </div>
     </div>
