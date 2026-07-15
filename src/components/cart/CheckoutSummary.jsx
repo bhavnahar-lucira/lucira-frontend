@@ -255,64 +255,73 @@ export default function CheckoutSummary({
   const handleApplyEternaCoupon = async () => {
     setIsApplyingEterna(true);
 
-    try {
-      const appliedProducts = (items || [])
-        .filter(item => 
-          item.variantId !== INSURANCE_VARIANT_ID && 
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) && 
-          item.variantId !== SILVER_PENDANT_VARIANT_ID
-        );
+    // Build the promoClick payload once so it can be fired for either outcome —
+    // coupon applied OR not applicable. productIds/productUrls describe the items
+    // the shopper attempted to apply the Eterna offer to.
+    const appliedProducts = (items || [])
+      .filter(item =>
+        item.variantId !== INSURANCE_VARIANT_ID &&
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        item.variantId !== SILVER_PENDANT_VARIANT_ID
+      );
 
-      const productIds = appliedProducts
-        .map(item => {
-          const rawId = item.shopifyId || item.productId || item.id;
-          const match = String(rawId).match(/\d+$/);
-          return match ? match[0] : rawId;
-        })
-        .join(",");
+    const productIds = appliedProducts
+      .map(item => {
+        const rawId = item.shopifyId || item.productId || item.id;
+        const match = String(rawId).match(/\d+$/);
+        return match ? match[0] : rawId;
+      })
+      .join(",");
 
-      const productUrls = appliedProducts
-        .map(item => {
-          const origin = typeof window !== "undefined" ? window.location.origin : "";
-          const handle = item.handle || "";
-          const vIdMatch = String(item.variantId || "").match(/\d+$/);
-          const vId = vIdMatch ? vIdMatch[0] : "";
-          return `${origin}/products/${handle}${vId ? `?variant=${vId}` : ''}`;
-        })
-        .join(",");
+    const productUrls = appliedProducts
+      .map(item => {
+        const origin = typeof window !== "undefined" ? window.location.origin : "";
+        const handle = item.handle || "";
+        const vIdMatch = String(item.variantId || "").match(/\d+$/);
+        const vId = vIdMatch ? vIdMatch[0] : "";
+        return `${origin}/products/${handle}${vId ? `?variant=${vId}` : ''}`;
+      })
+      .join(",");
 
-      if (typeof window !== "undefined") {
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({
-          event: "promoClick",
-          promoClick: {
-            creative_name: "Eterna Coupon Applied",
-            location_id: "checkout summary",
-            promo_id: productIds,
-            promo_name: productUrls
-          }
-        });
+    const firePromoClick = (creativeName) => {
+      try {
+        if (typeof window !== "undefined") {
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({
+            event: "promoClick",
+            promoClick: {
+              creative_name: creativeName,
+              location_id: "checkout summary",
+              promo_id: productIds,
+              promo_name: productUrls
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error pushing to dataLayer:", error);
       }
-    } catch (error) {
-      console.error("Error pushing to dataLayer:", error);
-    }
+    };
 
     try {
       const data = await apiFetch("/api/cart/coupon/validate", {
         method: "POST",
-        body: JSON.stringify({ 
-          items, 
+        body: JSON.stringify({
+          items,
           couponCode: ETERNA_COUPON,
-          customerEmail: user?.email 
+          customerEmail: user?.email
         }),
         suppressErrorLog: true
       });
       // EMBRACE3% only applies to Eterna products. If the backend found none
       // eligible, don't apply it (otherwise it would discount the whole cart).
       if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
+        // Not applicable — still fire promoClick so the click is tracked.
+        firePromoClick("Eterna Coupon Not Applicable");
         toast.error('This coupon is valid only on Eterna Collection products.');
         return;
       }
+      // Coupon applied successfully.
+      firePromoClick("Eterna Coupon Applied");
       dispatch(applyCoupon({
         code: data.code,
         summary: data.summary,
@@ -322,6 +331,10 @@ export default function CheckoutSummary({
       }));
       toast.success(data.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon applied!' : `Coupon "${data.code}" applied!`);
     } catch (err) {
+      // The backend returns HTTP 400 ("...not applicable to the items in your cart.")
+      // when no Eterna items are eligible, which lands here — fire promoClick too so
+      // the not-applicable click is still tracked in the dataLayer.
+      firePromoClick("Eterna Coupon Not Applicable");
       toast.error(err.message);
     } finally {
       setIsApplyingEterna(false);

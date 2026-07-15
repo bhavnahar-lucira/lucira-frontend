@@ -198,7 +198,7 @@ const filteredItems = items.filter(
           <div className="w-full lg:basis-[40%] lg:shrink-0 lg:self-start relative" ref={summaryRef}>
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen bg-[#FAFAFA] border-l border-zinc-100 z-0" />
             
-            <div className="relative z-10 pt-5 pb-28 lg:py-10 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
+            <div className="relative z-10 pt-0 pb-28 lg:py-10 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
               <div className="lg:sticky lg:top-6">
                 <CartSummary onPlaceOrder={handlePlaceOrder} />
               </div>
