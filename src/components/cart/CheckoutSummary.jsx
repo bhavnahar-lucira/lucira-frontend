@@ -143,6 +143,11 @@ export default function CheckoutSummary({
           return acc + (Number(item.price || 0) * Number(item.quantity || 1));
         }, 0);
         couponDiscountAmount = (applicableSubtotal * couponDetails.value) / 100;
+      } else if (String(couponDetails.code || "").toUpperCase() === "EMBRACE3%") {
+        // EMBRACE3% is restricted to Eterna products. With no eligible items in
+        // the cart the backend returns no applicableItemIds, so it must NOT fall
+        // back to discounting the whole cart.
+        couponDiscountAmount = 0;
       } else {
         couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
       }
@@ -302,8 +307,14 @@ export default function CheckoutSummary({
         }),
         suppressErrorLog: true
       });
-      dispatch(applyCoupon({ 
-        code: data.code, 
+      // EMBRACE3% only applies to Eterna products. If the backend found none
+      // eligible, don't apply it (otherwise it would discount the whole cart).
+      if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
+        toast.error('This coupon is valid only on Eterna Collection products.');
+        return;
+      }
+      dispatch(applyCoupon({
+        code: data.code,
         summary: data.summary,
         value: data.value,
         valueType: data.valueType,

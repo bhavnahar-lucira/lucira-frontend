@@ -34,12 +34,18 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const [stickyTop, setStickyTop] = useState("5rem");
   
   const displayLabels = useMemo(() => {
-    const labels = [];
-    if (product.label) labels.push(product.label);
-    
     const tags = Array.isArray(product.tags) ? product.tags : [];
     const lowerTags = tags.map(t => String(t).toLowerCase());
-    
+
+    // Any product tagged "embrace" shows only the "Extra 3% OFF" badge
+    // (styled like Best Seller) — all other badges are suppressed for these products.
+    if (lowerTags.some(t => t.includes("embrace"))) {
+      return ["Extra 3% OFF"];
+    }
+
+    const labels = [];
+    if (product.label) labels.push(product.label);
+
     // Priority order: Fast Shipping > Best Seller > New Arrival > Trending
     if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Fast Shipping");
     if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller"))) labels.push("Best Seller");
@@ -327,9 +333,12 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               {isFirst && (
                 <>
                   <div className="absolute top-4 left-4 flex flex-row gap-2 z-10">
-                    {displayLabels.map((label, index) => (
-                      <span key={index} className="bg-[#F1E4D1] px-3 py-1.5 text-[10px] font-semibold uppercase w-fit">{label}</span>
-                    ))}
+                    {displayLabels.map((label, index) => {
+                      const isBrandBadge = label === "Extra 3% OFF" || label === "Eterna";
+                      return (
+                        <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                      );
+                    })}
                   </div>
                   <div onClick={(e) => e.stopPropagation()}>
                     {mounted && isDesktop && (
@@ -432,9 +441,12 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
           {/* Badges Overlay */}
           <div className="absolute top-4 left-2 flex flex-row gap-2 z-10 pointer-events-none">
-            {displayLabels.map((label, index) => (
-              <span key={index} className="bg-[#F1E4D1] text-black px-3 py-1.5 text-[10px] font-semibold uppercase w-fit">{label}</span>
-            ))}
+            {displayLabels.map((label, index) => {
+              const isBrandBadge = label === "Extra 3% OFF" || label === "Eterna";
+              return (
+                <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+              );
+            })}
           </div>
           {product.tags?.includes("Only Pendant") && (
             <div className="absolute top-4 right-2 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation">
