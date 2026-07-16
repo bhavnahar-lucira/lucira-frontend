@@ -2,6 +2,12 @@
 // Usage: add `if (handle === "sitemap") return <SitemapPage />;` in your pages/[handle]/page.js
 
 import Link from "next/link";
+import {
+  getAllCollectionsForSitemap,
+  getAllProductsForSitemap,
+} from "@/lib/shopify";
+import { getAllArticlesForSitemap } from "@/lib/blogs";
+import { getAllPages } from "@/lib/pages";
 
 // ─── Hardcoded/Manual Sections (kept from original) ─────────────────────────
 
@@ -664,12 +670,27 @@ function SitemapSection({ section, url, columns }) {
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export default function SitemapPage() {
-  // If you ever want to fetch dynamic data during build time from an API or other source, you can populate these arrays.
-  const collections = [];
-  const pages = [];
-  const articles = [];
-  const products = [];
+export default async function SitemapPage() {
+  // Dynamic data is fetched from Shopify at build time (SSG). Each fetch is
+  // guarded so a single failing source never blanks out the whole sitemap.
+  const [collections, pages, articles, products] = await Promise.all([
+    getAllCollectionsForSitemap().catch((e) => {
+      console.error("Sitemap page: Collections fetch failed", e?.message);
+      return [];
+    }),
+    getAllPages().catch((e) => {
+      console.error("Sitemap page: Pages fetch failed", e?.message);
+      return [];
+    }),
+    getAllArticlesForSitemap().catch((e) => {
+      console.error("Sitemap page: Articles fetch failed", e?.message);
+      return [];
+    }),
+    getAllProductsForSitemap().catch((e) => {
+      console.error("Sitemap page: Products fetch failed", e?.message);
+      return [];
+    }),
+  ]);
 
   // Transform data into sections
   const splitIntoColumns = (items, type, perColumn = 15) => {

@@ -534,3 +534,50 @@ export async function getAllArticleHandles() {
     return [];
   }
 }
+
+/**
+ * Fetches all articles (title + full path) for the sitemap page.
+ * The returned `handle` is an absolute path so the sitemap UI links to the
+ * correct blog for each article rather than assuming a single blog handle.
+ */
+export async function getAllArticlesForSitemap() {
+  const query = `
+    query GetAllArticles {
+      blogs(first: 250) {
+        edges {
+          node {
+            handle
+            articles(first: 250) {
+              edges {
+                node {
+                  title
+                  handle
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const data = await shopifyStorefrontFetch(query, {}, {
+      cache: 'force-cache',
+      useRwToken: true
+    });
+    const items = [];
+    data?.blogs?.edges?.forEach(blogEdge => {
+      const blogHandle = blogEdge.node.handle;
+      blogEdge.node.articles?.edges?.forEach(articleEdge => {
+        items.push({
+          title: articleEdge.node.title,
+          handle: `/blogs/${blogHandle}/${articleEdge.node.handle}`,
+        });
+      });
+    });
+    return items;
+  } catch (e) {
+    console.error("Error fetching all articles for sitemap:", e);
+    return [];
+  }
+}

@@ -407,3 +407,101 @@ export async function getAllCollectionHandles() {
     return [];
   }
 }
+
+/**
+ * Fetches all collections (title + handle) for the sitemap page.
+ * Unlike getAllCollectionHandles (which returns only handle strings), this
+ * returns objects the sitemap UI can render as labelled links.
+ */
+export async function getAllCollectionsForSitemap() {
+  const query = `
+    query getAllCollections($cursor: String) {
+      collections(first: 250, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        edges {
+          node {
+            title
+            handle
+          }
+        }
+      }
+    }
+  `;
+
+  let items = [];
+  let cursor = null;
+  let hasNextPage = true;
+
+  try {
+    while (hasNextPage) {
+      const data = await shopifyStorefrontFetch(query, { cursor }, {
+        cache: 'force-cache',
+        useRwToken: true
+      });
+      if (!data?.collections) break;
+
+      const newItems = data.collections.edges.map(edge => ({
+        title: edge.node.title,
+        handle: edge.node.handle,
+      }));
+      items = [...items, ...newItems];
+      hasNextPage = data.collections.pageInfo.hasNextPage;
+      cursor = data.collections.pageInfo.endCursor;
+    }
+    return items;
+  } catch (error) {
+    console.error("Error fetching all collections for sitemap:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetches all products (title + handle) for the sitemap page.
+ */
+export async function getAllProductsForSitemap() {
+  const query = `
+    query getAllProducts($cursor: String) {
+      products(first: 250, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        edges {
+          node {
+            title
+            handle
+          }
+        }
+      }
+    }
+  `;
+
+  let items = [];
+  let cursor = null;
+  let hasNextPage = true;
+
+  try {
+    while (hasNextPage) {
+      const data = await shopifyStorefrontFetch(query, { cursor }, {
+        cache: 'force-cache',
+        useRwToken: true
+      });
+      if (!data?.products) break;
+
+      const newItems = data.products.edges.map(edge => ({
+        title: edge.node.title,
+        handle: edge.node.handle,
+      }));
+      items = [...items, ...newItems];
+      hasNextPage = data.products.pageInfo.hasNextPage;
+      cursor = data.products.pageInfo.endCursor;
+    }
+    return items;
+  } catch (error) {
+    console.error("Error fetching all products for sitemap:", error);
+    return [];
+  }
+}
