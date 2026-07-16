@@ -39,7 +39,7 @@ export const getSessionId = () => {
 const mapShopifyCart = (cart, backendCart = null) => {
   if (!cart) return { items: [], totalQuantity: 0, totalAmount: 0 };
   
-  const items = cart.lines?.edges?.map(({ node }) => {
+  const items = cart?.lines?.edges?.map(({ node }) => {
     const variantId = node.merchandise.id;
 
     // Extract attributes from Shopify CartLine first
@@ -89,11 +89,14 @@ const mapShopifyCart = (cart, backendCart = null) => {
       const backendPrice = Number(backendItem?.finalPrice || backendItem?.price || 0);
       const shopifyPrice = Number(node.merchandise.price.amount);
       const finalUnitPrice = isFreeGift ? 0 : (backendPrice > 0 ? backendPrice : shopifyPrice);
+      
+      const inStock = backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock);
+      const computedQuantity = (inStock && !isFreeGift) ? 1 : node.quantity;
 
       return {
         lineId: node.id,
         variantId,
-        quantity: node.quantity,
+        quantity: computedQuantity,
         title: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gold Coin" : node.merchandise.product.title,
         variantTitle: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gift" : node.merchandise.title,
         handle: node.merchandise.product.handle,
@@ -104,7 +107,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
         image: shopifyProperties['_byj_preview'] || node.merchandise.image?.url,
         altText: node.merchandise.image?.altText,
         productId: node.merchandise.product.id,
-        inStock: backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock),
+        inStock,
         isFreeGift,
         category: backendItem?.category || backendItem?.type || "",
         estDelivery: backendItem?.estDelivery || null,
@@ -132,13 +135,63 @@ const mapShopifyCart = (cart, backendCart = null) => {
       };
     }) || [];
 
+  // FORCE INCLUSION of missing backend items to avoid ghost cart items mismatch
+  if (backendCart?.items?.length > 0) {
+    backendCart.items.forEach(bItem => {
+      const bVarId = String(bItem.variantId).toLowerCase();
+      const foundInShopify = items.find(sItem => {
+        const sVarId = String(sItem.variantId).toLowerCase();
+        return bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
+      });
+
+      if (!foundInShopify) {
+        items.push({
+          lineId: "backend_only_" + Math.random().toString(36).substr(2, 9),
+          variantId: bItem.variantId,
+          quantity: bItem.quantity,
+          title: bItem.title || bItem.productName || "Product",
+          variantTitle: bItem.variantTitle || "",
+          handle: bItem.handle || "",
+          tags: bItem.tags || [],
+          sku: bItem.sku || "",
+          price: Number(bItem.finalPrice || bItem.price || 0),
+          comparePrice: bItem.originalPrice || null,
+          image: bItem.image || "",
+          altText: bItem.title,
+          productId: bItem.productId || bItem.id,
+          inStock: bItem.inStock !== undefined ? bItem.inStock : true,
+          isFreeGift: bItem.isFreeGift || false,
+          category: bItem.category || bItem.type || "",
+          goldWeight: bItem.goldWeight || 0,
+          goldPrice: bItem.goldPrice || 0,
+          goldPricePerGram: bItem.goldPricePerGram || 0,
+          makingCharges: bItem.makingCharges || 0,
+          diamondCharges: bItem.diamondCharges || 0,
+          gst: bItem.gst || 0,
+          finalPrice: bItem.finalPrice || 0,
+          diamondTotalPcs: bItem.diamondTotalPcs || 0,
+          engraving: bItem.engraving || "",
+          engravingText: bItem.engravingText || "",
+          engravingFont: bItem.engravingFont || "",
+          giftText: bItem.giftText || "",
+          color: bItem.color || null,
+          karat: bItem.karat || null,
+          size: bItem.size || null,
+          variantOptions: bItem.variantOptions || [],
+          properties: bItem.properties || {},
+          _backendOnly: true,
+        });
+      }
+    });
+  }
+
   // Recalculate totals locally
   const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const totalAmount = items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
 
   return {
-    id: cart.id,
-    checkoutUrl: cart.checkoutUrl,
+    id: cart?.id || "local_cart",
+    checkoutUrl: cart?.checkoutUrl || "",
     items,
     totalQuantity,
     totalAmount,
@@ -153,8 +206,7 @@ export const fetchCart = createAsyncThunk(
   async (params = {}, { getState }) => {
     const userId = params?.userId || getState().user?.user?.id || null;
     const context = params?.context || "storefront";
-    const cartId = getCartId();
-    if (!cartId) return { items: [], totalQuantity: 0, totalAmount: 0, context };
+    let cartId = getCartId();
     
     // If there's an ongoing sync, wait for it instead of starting a new one
     // this prevents double-adding in React StrictMode (dev) or rapid transitions
@@ -162,8 +214,6 @@ export const fetchCart = createAsyncThunk(
       await ongoingSyncPromise;
     }
 
-    const shopifyPromise = shopifyStorefrontFetch(CART_QUERY, { cartId });
-    
     const sessionId = getSessionId();
     const backendPromise = apiFetch(`/api/cart/get?userId=${userId || ""}&sessionId=${sessionId || ""}&context=${context}`)
       .catch(e => {
@@ -171,12 +221,34 @@ export const fetchCart = createAsyncThunk(
         return null;
       });
 
-    const [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
+    const shopifyPromise = cartId ? shopifyStorefrontFetch(CART_QUERY, { cartId }) : Promise.resolve(null);
+    let [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
     
     // Heal stale cart if shopifyPromise returned nothing but we had a cartId
-    if (!data?.cart && cartId) {
+    if (cartId && !data?.cart) {
       console.warn("[fetchCart] Cart ID not found on Shopify, clearing...");
       localStorage.removeItem("shopify_cart_id");
+      cartId = null;
+    }
+
+    // Auto-restore Shopify cart if we have backend items but no cartId
+    if (!cartId && backendCart?.items?.length > 0) {
+      console.log("[fetchCart] Missing Shopify Cart but backend has items. Restoring Shopify Cart...");
+      try {
+        const lines = backendCart.items.map(item => ({
+          merchandiseId: toShopifyGid(item.variantId, "ProductVariant"),
+          quantity: item.quantity
+        }));
+        const createData = await shopifyStorefrontFetch(CART_CREATE_MUTATION, { input: { lines } });
+        const newCart = createData?.cartCreate?.cart;
+        if (newCart) {
+          setCartId(newCart.id);
+          cartId = newCart.id;
+          data = await shopifyStorefrontFetch(CART_QUERY, { cartId });
+        }
+      } catch (err) {
+        console.error("[fetchCart] Failed to restore Shopify cart from backend:", err);
+      }
     }
     
     // Auto-heal/sync backend cart from storefront lines if backend cart has no items
@@ -311,6 +383,24 @@ export const addToCart = createAsyncThunk(
     // Filter out any potential undefined/null items
     productsToAdd = productsToAdd.filter(Boolean);
     
+    // Check if item is already in cart and is in-stock
+    const existingItems = state.cart?.items || [];
+    productsToAdd = productsToAdd.filter(p => {
+      const rawId = p.shopifyVariantId || p.variantId || p.id;
+      const targetGid = toShopifyGid(rawId, "ProductVariant").toLowerCase();
+      
+      const existsInCart = existingItems.some(item => 
+        item.variantId && toShopifyGid(item.variantId, "ProductVariant").toLowerCase() === targetGid
+      );
+      
+      const isInstock = p.inStock !== undefined ? p.inStock : true;
+      
+      if (existsInCart && isInstock) {
+        return false;
+      }
+      return true;
+    });
+
     if (productsToAdd.length === 0) return state.cart;
 
     const lines = productsToAdd.map(p => {
@@ -485,16 +575,18 @@ export const removeFromCart = createAsyncThunk(
     }
 
     // 1. Shopify storefront remove
-    let data = await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
-      cartId,
-      lineIds: [targetLineId]
-    });
+    if (!targetLineId.startsWith("backend_only_")) {
+      let data = await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
+        cartId,
+        lineIds: [targetLineId]
+      });
 
-    // Heal stale cart
-    const userErrors = data?.cartLinesRemove?.userErrors || [];
-    if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
-      localStorage.removeItem("shopify_cart_id");
-      return { items: [], totalQuantity: 0, totalAmount: 0, context };
+      // Heal stale cart
+      const userErrors = data?.cartLinesRemove?.userErrors || [];
+      if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+        localStorage.removeItem("shopify_cart_id");
+        return { items: [], totalQuantity: 0, totalAmount: 0, context };
+      }
     }
 
     // 2. Fastify backend remove
@@ -532,16 +624,19 @@ export const removeMultipleFromCart = createAsyncThunk(
     }
 
     // 1. Shopify storefront remove (supports bulk)
-    let data = await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
-      cartId,
-      lineIds
-    });
+    const validLineIds = lineIds.filter(id => !id.startsWith("backend_only_"));
+    if (validLineIds.length > 0) {
+      let data = await shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
+        cartId,
+        lineIds: validLineIds
+      });
 
-    // Heal stale cart
-    const userErrors = data?.cartLinesRemove?.userErrors || [];
-    if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
-      localStorage.removeItem("shopify_cart_id");
-      return { items: [], totalQuantity: 0, totalAmount: 0, context };
+      // Heal stale cart
+      const userErrors = data?.cartLinesRemove?.userErrors || [];
+      if (!data || userErrors.some(e => e.message.includes("not found") || e.code === "NOT_FOUND")) {
+        localStorage.removeItem("shopify_cart_id");
+        return { items: [], totalQuantity: 0, totalAmount: 0, context };
+      }
     }
 
     // 2. Fastify backend remove (sequential to avoid backend race conditions if any)
