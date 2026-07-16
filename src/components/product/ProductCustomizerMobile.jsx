@@ -183,7 +183,7 @@ export function ProductCustomizerMobile({
                   )}
 
                   {/* Ring Size */}
-                  {availableSizes.length > 1 &&
+                  {availableSizes.length > 0 &&
                     availableSizes[0] !== null &&
                     availableSizes[0] !== undefined && (
                       <div className="space-y-4 pb-4">

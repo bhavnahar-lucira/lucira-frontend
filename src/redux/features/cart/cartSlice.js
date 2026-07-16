@@ -89,11 +89,14 @@ const mapShopifyCart = (cart, backendCart = null) => {
       const backendPrice = Number(backendItem?.finalPrice || backendItem?.price || 0);
       const shopifyPrice = Number(node.merchandise.price.amount);
       const finalUnitPrice = isFreeGift ? 0 : (backendPrice > 0 ? backendPrice : shopifyPrice);
+      
+      const inStock = backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock);
+      const computedQuantity = (inStock && !isFreeGift) ? 1 : node.quantity;
 
       return {
         lineId: node.id,
         variantId,
-        quantity: node.quantity,
+        quantity: computedQuantity,
         title: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gold Coin" : node.merchandise.product.title,
         variantTitle: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gift" : node.merchandise.title,
         handle: node.merchandise.product.handle,
@@ -104,7 +107,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
         image: shopifyProperties['_byj_preview'] || node.merchandise.image?.url,
         altText: node.merchandise.image?.altText,
         productId: node.merchandise.product.id,
-        inStock: backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock),
+        inStock,
         isFreeGift,
         category: backendItem?.category || backendItem?.type || "",
         estDelivery: backendItem?.estDelivery || null,
@@ -380,6 +383,24 @@ export const addToCart = createAsyncThunk(
     // Filter out any potential undefined/null items
     productsToAdd = productsToAdd.filter(Boolean);
     
+    // Check if item is already in cart and is in-stock
+    const existingItems = state.cart?.items || [];
+    productsToAdd = productsToAdd.filter(p => {
+      const rawId = p.shopifyVariantId || p.variantId || p.id;
+      const targetGid = toShopifyGid(rawId, "ProductVariant").toLowerCase();
+      
+      const existsInCart = existingItems.some(item => 
+        item.variantId && toShopifyGid(item.variantId, "ProductVariant").toLowerCase() === targetGid
+      );
+      
+      const isInstock = p.inStock !== undefined ? p.inStock : true;
+      
+      if (existsInCart && isInstock) {
+        return false;
+      }
+      return true;
+    });
+
     if (productsToAdd.length === 0) return state.cart;
 
     const lines = productsToAdd.map(p => {
