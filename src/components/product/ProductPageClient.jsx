@@ -1785,9 +1785,15 @@ export default function ProductPageClient({
     ? priceBreakup.price
     : (activeVariant ? activeVariant.price : product.price);
 
-  const currentComparePrice = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
-    ? (priceBreakup.raw_breakup?.original_total || (activeVariant ? activeVariant.compare_price : product.compare_price))
-    : (activeVariant ? activeVariant.compare_price : product.compare_price);
+  // Static compare-at price from the variant/product (same source the AtcBar & ProductCard use).
+  const staticComparePrice = Number(activeVariant ? activeVariant.compare_price : product.compare_price) || 0;
+  // Dynamic pre-discount total from the pricing breakup, only when it matches the active variant.
+  const dynamicOriginalTotal = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
+    ? Number(priceBreakup.raw_breakup?.original_total) || 0
+    : 0;
+  // Use whichever is higher so the cut price shows consistently for gold products where the
+  // breakup's original_total is present but not greater than the (dynamic) selling price.
+  const currentComparePrice = Math.max(staticComparePrice, dynamicOriginalTotal);
   // const mounted = useMounted();
   const isMobileView = useMediaQuery("(max-width: 1023px)");
   // if (!mounted) return null;
