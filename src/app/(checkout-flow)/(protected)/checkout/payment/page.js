@@ -963,7 +963,7 @@ export default function PaymentPage() {
         prefill: {
           name: order.customer?.name || customerName,
           email: order.customer?.email || checkoutSelection?.customerEmail || "",
-          contact: order.customer?.contact || "",
+          contact: order.customer?.phone || order.customer?.contact || normalizePhone(customer?.phone || user?.mobile || selectedAddress?.phone || ""),
           method: "upi",
         },
         notes: {

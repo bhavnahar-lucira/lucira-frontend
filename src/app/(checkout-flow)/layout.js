@@ -5,6 +5,8 @@ import CheckoutFooter from "@/components/common/CheckoutFooter";
 import { useCart } from "@/hooks/useCart";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchCart } from "@/redux/features/cart/cartSlice";
 
 export default function CheckoutLayout({ children }) {
   const { items, loading } = useCart();
@@ -24,6 +26,14 @@ export default function CheckoutLayout({ children }) {
       setIsVerifying(false);
     }
   }, [items, loading, pathname, router, isCompletionPage]);
+
+  // Make sure we fetch the latest cart on checkout flow mount
+  // Otherwise refreshing the cart page will just show stale localStorage data
+  const dispatch = useDispatch();
+  const user = useSelector(state => state.user?.user);
+  useEffect(() => {
+    dispatch(fetchCart({ userId: user?.id }));
+  }, [dispatch, user?.id]);
 
   // Show nothing while verifying to prevent layout flash of protected pages
   const needsVerification = pathname === "/checkout/shipping" || pathname === "/checkout/payment";
