@@ -69,11 +69,11 @@ export default function BlogArticleClient({
               </div>
             </div>
 
-            {article.image?.url && (
+            {(article.bannerImage || article.image?.url) && (
               <div className="hero-image-container">
                 <img
-                  src={article.image.url}
-                  alt={article.image.altText || article.title}
+                  src={article.bannerImage || article.image.url}
+                  alt={article.image?.altText || article.title}
                   className="hero-image"
                 />
               </div>

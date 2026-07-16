@@ -43,6 +43,9 @@ export async function getArticleByBlogAndHandle(blogHandle, articleHandle) {
     contentHtml: baseArticle.contentHtml || adminArticle?.contentHtml || liveArticle?.contentHtml || baseArticle.content,
     content: baseArticle.content || adminArticle?.content || stripHtml(baseArticle.contentHtml || adminArticle?.contentHtml || liveArticle?.contentHtml),
     image: baseArticle.image || adminArticle?.image || storefrontArticle?.image || liveArticle?.image,
+    // Real hero banner scraped from the live theme (section-based articles hide
+    // this from the API). Falls back to the featured image in the component.
+    bannerImage: baseArticle.bannerImage || liveArticle?.bannerImage || null,
     authorV2: baseArticle.authorV2 || adminArticle?.authorV2 || storefrontArticle?.authorV2,
     publishedAt: baseArticle.publishedAt || adminArticle?.publishedAt || storefrontArticle?.publishedAt || liveArticle?.publishedAt,
   };
@@ -231,8 +234,8 @@ export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) 
   if (!res || !res.ok) return null;
 
   const pageHtml = await res.text();
-  const liveContentHtml = extractLiveMainContent(pageHtml);
-  
+  const { contentHtml: liveContentHtml, bannerImage } = extractLiveMainContent(pageHtml);
+
   // Extract title from HTML
   let title = pageHtml.match(/<h1[^>]*>(.*?)<\/h1>/i)?.[1]?.replace(/<[^>]*>?/gm, '').trim();
   if (!title) {
@@ -251,19 +254,44 @@ export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) 
     title,
     content: stripHtml(contentHtml),
     contentHtml,
+    bannerImage,
     blogHandle,
   };
 }
 
 function extractLiveMainContent(html) {
   const mainContent = extractFirstDivByClass(html, "main-content");
-  if (!mainContent) return "";
+  if (!mainContent) return { contentHtml: "", bannerImage: null };
 
-  return mainContent
+  // The article's real hero banner lives inside a "banner" div at the top of
+  // the content. Capture its image URL BEFORE we strip banner divs, so it can
+  // be used as the article hero instead of the featured/card image.
+  const bannerImage = extractBannerImage(mainContent);
+
+  const contentHtml = mainContent
     .replace(/<div[^>]*class=["'][^"']*banner[^"']*["'][\s\S]*?<\/div>/gi, "")
     .replace(/<script\b[\s\S]*?<\/script>/gi, "")
     .replace(/<style\b[\s\S]*?<\/style>/gi, "")
     .replace(/\sloading="lazy"/g, "");
+
+  return { contentHtml, bannerImage };
+}
+
+// Pull the best image URL out of the first "banner" block. Prefers the desktop
+// <img src>, falling back to a <source srcset>. Normalizes protocol-relative URLs.
+function extractBannerImage(mainContentHtml) {
+  const bannerDiv = extractDivsByClass(mainContentHtml, "banner")[0]?.html;
+  if (!bannerDiv) return null;
+
+  let url =
+    bannerDiv.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ||
+    bannerDiv.match(/<source[^>]+srcset=["']([^"'\s,]+)/i)?.[1];
+
+  if (!url) return null;
+
+  url = url.trim();
+  if (url.startsWith("//")) url = `https:${url}`;
+  return url;
 }
 
 function extractFirstDivByClass(html, className) {
