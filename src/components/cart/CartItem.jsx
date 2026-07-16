@@ -21,14 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, ShoppingBag, ShoppingCart } from "lucide-react";
+import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
+import { formatSocialCount, buildSocialMetrics, SOCIAL_BADGE_STYLES } from "@/lib/socialProof";
+import SocialBadgeIcon from "@/components/common/SocialBadgeIcon";
 
-// Builds the WhatsApp "schedule video call" link, including the product name/SKU for context.
+// Builds the WhatsApp "schedule video call" link, including the product name for context.
 function buildVideoCallUrl(productName, sku) {
-  let message = "Hi, I want to schedule a video call";
+  let message = "Hi, I'm on the cart page and want to schedule a video call";
   if (productName) {
-    message += ` for ${productName}`;
-    if (sku) message += ` (SKU: ${sku})`;
+    message += ` for : ${productName}`;
   }
   return `https://api.whatsapp.com/send/?phone=919004435760&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
 }
@@ -82,57 +83,11 @@ function ViewLiveStrip({ productName, sku }) {
   );
 }
 
-// Pink→red gradient heart used for the "Wishlisted" social-proof metric.
-function GradientHeart({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0">
-      <defs>
-        <linearGradient id="lucira-wishlist-heart" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FF5CA0" />
-          <stop offset="100%" stopColor="#FB1D4A" />
-        </linearGradient>
-      </defs>
-      <path d="M12 20.7C6.1 16.9 2 13.3 2 9.3 2 6.6 4.1 4.7 6.7 4.7c1.7 0 3.3.8 4.3 2.2 1-1.4 2.6-2.2 4.3-2.2C21 4.7 22 6.6 22 9.3c0 4-4.1 7.6-10 11.4z" fill="url(#lucira-wishlist-heart)" />
-    </svg>
-  );
-}
-
-// Real counts are amplified 100x for social proof (e.g. 5 orders -> "500+ Orders").
-const SOCIAL_PROOF_AMPLIFY = 100;
-
-function formatSocialCount(n) {
-  if (n >= 1000) {
-    const k = n / 1000;
-    const rounded = k >= 10 ? Math.round(k) : Math.round(k * 10) / 10;
-    return `${String(rounded).replace(/\.0$/, "")}K+`;
-  }
-  return `${n}+`;
-}
-
-// Build the ordered list of available metrics: Orders -> Added to Cart -> Wishlisted.
-// A metric is only included when its real count is > 0 (per requirement: hide when absent).
-function buildSocialMetrics(sp) {
-  if (!sp) return [];
-  const metrics = [];
-  if (sp.orders > 0) metrics.push({ key: "orders", label: "Orders", value: sp.orders * SOCIAL_PROOF_AMPLIFY });
-  if (sp.addToCart > 0) metrics.push({ key: "cart", label: "in Carts", value: sp.addToCart * SOCIAL_PROOF_AMPLIFY });
-  if (sp.wishlist > 0) metrics.push({ key: "wishlist", label: "Wishlisted", value: sp.wishlist * SOCIAL_PROOF_AMPLIFY });
-  return metrics;
-}
-
-const SOCIAL_TINTS = {
-  orders: "bg-amber-50/95 text-amber-700 ring-1 ring-inset ring-amber-200/70",
-  cart: "bg-sky-50/95 text-sky-700 ring-1 ring-inset ring-sky-200/70",
-  wishlist: "bg-rose-100/95 text-rose-500 ring-1 ring-inset ring-rose-200/70",
-};
-
-function SocialMetricIcon({ type, size }) {
-  if (type === "wishlist") return <GradientHeart size={size} />;
-  if (type === "orders") return <ShoppingBag size={size} className="shrink-0" />;
-  return <ShoppingCart size={size} className="shrink-0" />;
-}
+// Social-proof amplify/format/build logic lives in "@/lib/socialProof" so the cart
+// and the product page stay in sync. The cart uses the default labels.
 
 // FOMO band that rotates one-at-a-time through the available metrics.
+// Icons, colours and labels are shared with the product page (SocialBadgeIcon + "@/lib/socialProof").
 function SocialProofBand({ socialProof, compact = false, className = "" }) {
   const metrics = useMemo(() => buildSocialMetrics(socialProof), [socialProof]);
   const [idx, setIdx] = useState(0);
@@ -149,12 +104,14 @@ function SocialProofBand({ socialProof, compact = false, className = "" }) {
   if (metrics.length === 0) return null;
 
   const m = metrics[Math.min(idx, metrics.length - 1)];
-  const iconSize = compact ? 13 : 15;
 
   return (
-    <div className={`w-fit max-w-[calc(100%-16px)] overflow-hidden rounded-full backdrop-blur-sm ${SOCIAL_TINTS[m.key]} ${compact ? "px-2.5 py-1" : "px-3 py-1.5"} ${className}`}>
+    <div
+      className={`w-fit max-w-[calc(100%-16px)] overflow-hidden rounded-full backdrop-blur-sm ${compact ? "px-2.5 py-1" : "px-3 py-1.5"} ${className}`}
+      style={SOCIAL_BADGE_STYLES[m.key]}
+    >
       <div key={m.key} className="flex items-center gap-1.5 min-w-0 animate-in fade-in slide-in-from-bottom-1 duration-500">
-        <SocialMetricIcon type={m.key} size={iconSize} />
+        <SocialBadgeIcon type={m.key} className={compact ? "[&_svg]:h-[13px] [&_svg]:w-auto" : "[&_svg]:h-[15px] [&_svg]:w-auto"} />
         <span className={`font-semibold truncate ${compact ? "text-[11px]" : "text-[13px]"}`}>
           {formatSocialCount(m.value)} {m.label}
         </span>

@@ -11,6 +11,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import VideoCallPopup from "./VideoCallPopup";
 import TryAtHomePopup from "./TryAtHomePopup";
 import BookAppointmentPopup from "./BookAppointmentPopup";
+import { pushPromoClick } from "@/lib/gtm";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -49,6 +50,15 @@ export default function WaysToExplore() {
   const [isBookAppointmentPopupOpen, setIsBookAppointmentPopupOpen] = useState(false);
   
   const swiperRef = useRef(null);
+
+  const handlePromoClick = (way) => {
+    pushPromoClick({
+      creative_name: "features section homepage",
+      location_id: "homepage",
+      promo_id: way.title,
+      promo_name: way.title,
+    });
+  };
 
   const handleAction = (buttonText) => {
     if (isMobile) {
@@ -113,7 +123,7 @@ export default function WaysToExplore() {
                           <Button asChild
                             className="w-fit h-10 px-8 text-sm font-bold uppercase bg-primary hover:bg-primary text-white transition-all rounded-sm"
                           >
-                            <a href={way.url} target="_blank">{way.buttonText}</a>
+                            <a href={way.url} target="_blank" onClick={() => handlePromoClick(way)}>{way.buttonText}</a>
                           </Button>
                           <Button 
                             onClick={() => handleAction(way.buttonText)}
@@ -177,7 +187,7 @@ export default function WaysToExplore() {
                         variant="outline" 
                         className="h-9 px-8 text-sm font-bold uppercase hover:bg-primary hover:text-white hover:border-primary cursor-pointer"
                       >
-                        <a href={way.url} target="_blank">{way.buttonText}</a>
+                        <a href={way.url} target="_blank" onClick={() => handlePromoClick(way)}>{way.buttonText}</a>
                       </Button>
                       <Button 
                         variant="outline" 

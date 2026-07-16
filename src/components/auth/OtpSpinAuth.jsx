@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import {
+  apiFetch,
   sendOtpApi,
   verifyOtpApi,
   registerCustomer,
@@ -41,6 +42,30 @@ const COUPON_MAP = {
   "1000_off": "GRAND1000",
   "1500_off": "GRAND1500",
 };
+
+const NITRO_ORG_ID = process.env.NEXT_PUBLIC_NITRO_ORG_ID;
+
+// User Profile Enrichment: tell Nitro this user consented (first-party) and
+// hand over the PII from a fresh pop-up submission so Nitro can stitch it to
+// its event stream and act as a one-click login next time. Best-effort only.
+function nitroEnrich({ email, phone, name, isConsented }) {
+  if (typeof window === "undefined" || typeof window.nitro?.identify !== "function") return;
+  if (!phone) return;
+  try {
+    window.nitro.identify(
+      email || "",
+      phone,
+      name || "",
+      { source: "popup", org_token: NITRO_ORG_ID, is_consented: !!isConsented },
+      function () {
+        try {
+          if (isConsented) window.nitro.pushEvent("is_consented", { phone });
+          window.nitro.pushEvent("otp_verified", { phone });
+        } catch (_) {}
+      }
+    );
+  } catch (_) {}
+}
 
 export function OtpSpinAuth({ 
   onSuccess, 
@@ -87,7 +112,7 @@ export function OtpSpinAuth({
   useEffect(() => {
     if (initialMobile) setMobile(initialMobile);
   }, [initialMobile]);
-  
+
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -187,6 +212,19 @@ export function OtpSpinAuth({
         accessToken: data.accessToken,
       })
     );
+
+    // Nitro enrichment: push the verified PII + first-party consent so Nitro can
+    // stitch it and enable one-click login on the next visit. Best-effort.
+    nitroEnrich({
+      email: email || user?.email || "",
+      phone: mobile,
+      name:
+        [user?.first_name || firstName, user?.last_name || lastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim(),
+      isConsented: consent,
+    });
 
     try {
       const avData = await apiFetch("/api/customer/profile/avatar");

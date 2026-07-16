@@ -110,9 +110,7 @@ export default function HeroBanner({ initialData = [] }) {
             el: `.${paginationElClass}`,
             clickable: true,
             renderBullet: (index, className) => {
-              return `
-                <span class="${className} w-2! h-2! rounded-full! bg-gray-700! transition-all duration-300 [&.swiper-pagination-bullet-active]:bg-primary! [&.swiper-pagination-bullet-active]:w-6! md:[&.swiper-pagination-bullet-active]:w-6!"></span>
-              `;
+              return `<span class="${className} lucira-dot"></span>`;
             },
           }}
           className="w-full"
@@ -191,7 +189,7 @@ export default function HeroBanner({ initialData = [] }) {
         </button>
 
         {/* Pagination */}
-        <div className="absolute bottom-4 left-0 right-0 z-20 md:bottom-8">
+        <div className="absolute bottom-4 left-0 right-0 z-20 md:bottom-8 flex justify-center">
           <div
             className={`${paginationElClass} flex items-center justify-center gap-2`}
           />

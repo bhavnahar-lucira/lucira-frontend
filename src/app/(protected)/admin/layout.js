@@ -19,6 +19,7 @@ import {
   Gift,
   GraduationCap,
   TicketPercent,
+  RefreshCcw,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDispatch, useSelector } from "react-redux";
@@ -29,6 +30,7 @@ import Footer from "@/components/common/Footer";
 const sidebarLinks = [
   { name: "My Overview", href: "/admin", icon: LayoutDashboard, color: "text-blue-500", bg: "bg-blue-500/10" },
   { name: "My Orders", href: "/admin/orders", icon: ShoppingBag, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  { name: "My Returns", href: "/admin/returns", icon: RefreshCcw, color: "text-teal-500", bg: "bg-teal-500/10" },
   { name: "Wishlist", href: "/admin/wishlist", icon: Heart, color: "text-rose-500", bg: "bg-rose-500/10" },
   { name: "My Schemes", href: "/admin/schemes", icon: TicketPercent, color: "text-amber-700", bg: "bg-amber-700/10" },
   { name: "Saved Addresses", href: "/admin/addresses", icon: MapPin, color: "text-orange-500", bg: "bg-orange-500/10" },
@@ -55,7 +57,9 @@ function SidebarNav({ pathname, handleSignOut, setSheetOpen }) {
       <nav className="flex-1 overflow-y-auto pt-10 pb-8 px-4 space-y-1.5">
         <p className="px-4 text-[10px] font-black uppercase tracking-[0.15em] text-zinc-400 mb-4">Account Menu</p>
         {sidebarLinks.map((link) => {
-          const isActive = pathname === link.href;
+          const isActive = link.href === "/admin"
+            ? pathname === "/admin"
+            : pathname === link.href || pathname.startsWith(link.href + "/");
           const Icon = link.icon;
 
           return (

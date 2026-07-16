@@ -174,7 +174,7 @@ const filteredItems = items.filter(
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           
           {/* Left Column: Cart Items (60%) */}
-          <div className="grow lg:basis-[60%] lg:shrink-0 py-6 lg:py-10 lg:pr-12 bg-white">
+          <div className="grow lg:basis-[60%] lg:shrink-0 pt-6 pb-3 lg:py-10 lg:pr-12 bg-white">
             <div className="lg:sticky lg:top-10">
               <div className="hidden lg:flex items-baseline gap-2 mb-5">
                 <h1 className="text-xl font-bold text-zinc-800 font-abhaya">My Shopping Cart</h1>
@@ -198,7 +198,7 @@ const filteredItems = items.filter(
           <div className="w-full lg:basis-[40%] lg:shrink-0 lg:self-start relative" ref={summaryRef}>
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen bg-[#FAFAFA] border-l border-zinc-100 z-0" />
             
-            <div className="relative z-10 py-6 lg:py-10 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
+            <div className="relative z-10 pt-0 pb-28 lg:py-10 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
               <div className="lg:sticky lg:top-6">
                 <CartSummary onPlaceOrder={handlePlaceOrder} />
               </div>
@@ -209,21 +209,21 @@ const filteredItems = items.filter(
 
       {/* Mobile Sticky Footer */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col shrink-0">
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-            <button 
+            <button
               onClick={scrollToSummary}
               className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
             >
               View Order Summary
             </button>
           </div>
-          <Button 
+          <Button
             onClick={handlePlaceOrder}
-            className="grow bg-primary hover:bg-accent text-white font-bold h-12 uppercase tracking-widest rounded-lg text-sm"
+            className="flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-14 px-3 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap"
           >
-            Place Order
+            Proceed To Checkout
           </Button>
         </div>
       </div>

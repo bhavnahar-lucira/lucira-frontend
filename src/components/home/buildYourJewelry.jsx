@@ -1,11 +1,21 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import { pushPromoClick } from "@/lib/gtm";
 
 export default function BuildYourJewelry() {
+    const handleBannerClick = () => {
+        pushPromoClick({
+            creative_name: "build your jewelry banner homepage",
+            location_id: "homepage",
+            promo_id: "Build Your Jewelry",
+            promo_name: "Build Your Jewelry",
+        });
+    };
+
     return (
         <section className="w-full overflow-hidden">
-            <Link href="/build-your-jewelry" className="block w-full">
+            <Link href="/build-your-jewelry" onClick={handleBannerClick} className="block w-full">
                 {/* Desktop Banner */}
                 <div className="hidden md:block w-full">
                     <Image

@@ -19,7 +19,7 @@ export default function MyOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [returnLoading, setReturnLoading] = useState(null); // Track which order is loading return
+  const [returnsByOrder, setReturnsByOrder] = useState({}); // orderId(gid) -> return summary
 
   useEffect(() => {
     async function fetchOrders() {
@@ -159,33 +159,23 @@ export default function MyOrdersPage() {
     fetchOrders();
   }, [accessToken]);
 
-  const handleReturnClick = async (e, order) => {
-    e.preventDefault();
-    if (order.status !== 'Delivered') {
-      toast.info("Returns are only available after delivery");
-      return;
-    }
-
-    try {
-      setReturnLoading(order.id);
-      const data = await apiFetch('/api/customer/returns', {
-        method: 'POST',
-        body: JSON.stringify({
-          orderNumber: order.orderNumber,
-          customerEmail: order.customerEmail,
-        }),
-      });
-      if (data.success) {
-        window.location.href = data.url;
-      } else {
-        toast.error(data.message || "Failed to initiate return");
+  // Load this customer's returns so we can show "View Return" on orders that have one
+  useEffect(() => {
+    async function loadReturns() {
+      if (!accessToken || accessToken.startsWith("simulated_")) return;
+      try {
+        const res = await apiFetch("/api/customer/returns");
+        const map = {};
+        (res?.returns || []).forEach((r) => {
+          if (!map[r.orderId]) map[r.orderId] = r; // most recent per order (list is sorted desc)
+        });
+        setReturnsByOrder(map);
+      } catch (err) {
+        console.warn("[MyOrdersPage] returns fetch failed:", err);
       }
-    } catch (err) {
-      toast.error("Failed to connect to Return Prime");
-    } finally {
-      setReturnLoading(null);
     }
-  };
+    loadReturns();
+  }, [accessToken]);
 
   useEffect(() => {
     let result = orders;
@@ -362,14 +352,46 @@ export default function MyOrdersPage() {
 
                 {/* CTA Buttons - Row on mobile, Column on desktop */}
                 <div className="flex flex-row md:flex-col gap-3 w-full md:w-64 shrink-0 pt-2 md:pt-0">
-                  <button
-                    type="button"
-                    title="Return/Exchange portal is currently under maintenance. Please contact support."
-                    className="font-figtree flex-1 md:w-full py-3 md:py-4 border-[1.5px] border-zinc-200 text-zinc-400 text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] cursor-not-allowed flex items-center justify-center gap-1.5 md:gap-2.5 transition-colors"
-                  >
-                    <RefreshCcw size={13} className="opacity-40" />
-                    <span className="truncate">Return / Exchange</span>
-                  </button>
+                  {(() => {
+                    const numericId = order.id.split("/").pop();
+                    const existingReturn = returnsByOrder[order.id];
+
+                    if (existingReturn) {
+                      return (
+                        <Link prefetch={false}
+                          href={`/admin/returns/${existingReturn.numericId}`}
+                          className="font-figtree flex-1 md:w-full py-3 md:py-4 border-[1.5px] border-teal-500/30 text-teal-600 bg-teal-500/5 text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] hover:bg-teal-500/10 transition-colors flex items-center justify-center gap-1.5 md:gap-2.5"
+                        >
+                          <RefreshCcw size={13} />
+                          <span className="truncate">View Return</span>
+                        </Link>
+                      );
+                    }
+
+                    if (isDelivered) {
+                      return (
+                        <Link prefetch={false}
+                          href={`/admin/orders/${numericId}/return`}
+                          className="font-figtree flex-1 md:w-full py-3 md:py-4 border-[1.5px] border-[#5A413F]/25 text-[#5A413F] text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] hover:bg-[#5A413F]/5 transition-colors flex items-center justify-center gap-1.5 md:gap-2.5"
+                        >
+                          <RefreshCcw size={13} />
+                          <span className="truncate">Request Return</span>
+                        </Link>
+                      );
+                    }
+
+                    return (
+                      <button
+                        type="button"
+                        disabled
+                        title="Returns can be requested once your order is delivered."
+                        className="font-figtree flex-1 md:w-full py-3 md:py-4 border-[1.5px] border-zinc-200 text-zinc-400 text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] cursor-not-allowed flex items-center justify-center gap-1.5 md:gap-2.5"
+                      >
+                        <RefreshCcw size={13} className="opacity-40" />
+                        <span className="truncate">Request Return</span>
+                      </button>
+                    );
+                  })()}
                   <Link prefetch={false}
                     href={`/admin/orders/${order.id.split("/").pop()}`}
                     className="font-figtree flex-1 md:w-full py-3 md:py-4 bg-[#5A413F] text-white text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] hover:bg-[#4A3533] transition-all duration-300 shadow-md md:shadow-[0_10px_20px_rgba(90,65,63,0.15)] active:scale-[0.98] flex items-center justify-center"

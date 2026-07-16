@@ -169,6 +169,12 @@ export default function CartSummary({ onPlaceOrder }) {
               }),
               suppressErrorLog: true
             });
+            // EMBRACE3% only applies to Eterna products; if none remain eligible,
+            // drop the coupon instead of letting it discount the whole cart.
+            if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
+              dispatch(removeCoupon());
+              return;
+            }
             dispatch(applyCoupon({
               code: data.code,
               summary: data.summary,
@@ -233,6 +239,11 @@ export default function CartSummary({ onPlaceOrder }) {
           return acc + (Number(item.price || 0) * Number(item.quantity || 1));
         }, 0);
         couponDiscountAmount = (applicableSubtotal * couponDetails.value) / 100;
+      } else if (String(couponDetails.code || "").toUpperCase() === "EMBRACE3%") {
+        // EMBRACE3% is restricted to Eterna products. With no eligible items in
+        // the cart the backend returns no applicableItemIds, so it must NOT fall
+        // back to discounting the whole cart.
+        couponDiscountAmount = 0;
       } else {
         couponDiscountAmount = (subtotal * couponDetails.value) / 100;
       }
@@ -256,14 +267,20 @@ export default function CartSummary({ onPlaceOrder }) {
         }),
         suppressErrorLog: true
       });
-      dispatch(applyCoupon({ 
-        code: data.code, 
+      // EMBRACE3% only applies to Eterna products. Block it when no eligible
+      // item is present instead of discounting the whole cart.
+      if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
+        toast.error('This coupon is valid only on Eterna Collection products.');
+        return;
+      }
+      dispatch(applyCoupon({
+        code: data.code,
         summary: data.summary,
         value: data.value,
         valueType: data.valueType,
         applicableItemIds: data.applicableItemIds
       }));
-      toast.success(`Coupon "${data.code}" applied!`);
+      toast.success(data.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon applied!' : `Coupon "${data.code}" applied!`);
       if (isMobile) {
         setIsCouponSheetOpen(false);
       } else {
@@ -284,112 +301,125 @@ export default function CartSummary({ onPlaceOrder }) {
     });
   };
 
+  // The Eterna offer banner is only relevant when the cart contains at least one
+  // product tagged "embrace" (the Eterna Collection / EMBRACE3% eligible items).
+  const hasEmbraceItem = items.some(item =>
+    (item.tags || []).some(tag => String(tag).toLowerCase() === "embrace")
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Mobile Eterna Offer Banner - ON TOP so it's visible first */}
+      {hasEmbraceItem && (
+        <div className="lg:hidden w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+        </div>
+      )}
+
       {/* Desktop Pricing Breakdown (LG) */}
-      <div className="hidden lg:block bg-white rounded-xl p-6 space-y-3.5 border border-zinc-100 shadow-sm">
-        <div className="flex justify-between items-center text-[15px] text-zinc-500">
+      <div className="hidden lg:block bg-white rounded-2xl p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+        <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
           <span>Subtotal</span>
-          <span className="font-semibold text-zinc-900">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
         {totalSavings > 0 && (
-          <div className="flex justify-between items-center text-[15px] text-zinc-500">
+          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
             <span>Savings</span>
             <span className="font-semibold text-[#189351] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         )}
         {appliedCoupon && (
-          <div className="flex justify-between items-center text-[15px] text-[#189351]">
+          <div className="flex justify-between items-center font-figtree text-base text-[#189351]">
             <div className="flex items-center gap-2">
-              <span className="font-bold uppercase tracking-wider">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
-              <button 
+              <span className="font-semibold uppercase tracking-wide">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
+              <button
                 onClick={handleRemoveCoupon}
                 className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
               >
                 (Remove)
               </button>
             </div>
-            <span className="font-bold whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-semibold whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         )}
         {goldCoinItem && (
-          <div className="flex justify-between items-center text-[15px] text-zinc-500">
+          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
             <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
             <span className="font-semibold text-[#189351]">₹ 0</span>
           </div>
         )}
         {insuranceItem && (
-          <div className="flex justify-between items-center text-[15px] text-zinc-500">
+          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
             <span>Insurance</span>
-            <span className="font-semibold text-zinc-900">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         )}
-        <div className="flex justify-between items-center text-[15px] text-zinc-500">
+        <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
           <span>Shipping (Standard)</span>
           <span className="font-semibold text-[#189351]">Free</span>
         </div>
 
-        <div className="border-t border-zinc-100 mt-4 pt-4 flex justify-between items-center">
-          <span className="text-[15px] font-bold text-[#443360] uppercase tracking-wider">Grand Total</span>
-          <span className="text-xl font-bold text-[#443360]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+        <div className="border-t border-[#EADFD8] mt-4 pt-4 flex justify-between items-center">
+          <span className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
+          <span className="font-figtree text-2xl font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
       </div>
 
       {/* Mobile Order Summary (LG Hidden) */}
       <div className="lg:hidden space-y-4">
-        <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Order Summary</h3>
-        <div className="bg-white rounded-lg p-6 space-y-4 border border-zinc-50 shadow-sm">
+        <h3 className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
+        <div className="bg-white rounded-2xl p-6 space-y-4 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
           <div className="space-y-3">
-            <div className="flex justify-between text-[14px] text-zinc-500 font-medium">
+            <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
               <span>Subtotal</span>
-              <span className="text-zinc-900">₹ {originalSubtotal.toLocaleString('en-IN')}</span>
+              <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN')}</span>
             </div>
 
             {totalSavings > 0 && (
-              <div className="flex justify-between text-[14px] font-medium text-zinc-500">
+              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
                 <span>Savings</span>
-                <span className="font-bold text-[#189351]">- ₹ {totalSavings.toLocaleString('en-IN')}</span>
+                <span className="font-semibold text-[#189351]">- ₹ {totalSavings.toLocaleString('en-IN')}</span>
               </div>
             )}
 
             {appliedCoupon && (
-              <div className="flex justify-between text-[14px] font-medium items-center text-[#189351]">
+              <div className="flex justify-between font-figtree text-base items-center text-[#189351]">
                 <div className="flex items-center gap-2">
-                  <span className="uppercase">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
-                  <button 
+                  <span className="font-semibold uppercase tracking-wide">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
+                  <button
                     onClick={handleRemoveCoupon}
                     className="text-[10px] font-bold text-red-500 hover:underline uppercase"
                   >
                     (Remove)
                   </button>
                 </div>
-                <span className="font-bold">- ₹ {couponDiscountAmount.toLocaleString('en-IN')}</span>
+                <span className="font-semibold">- ₹ {couponDiscountAmount.toLocaleString('en-IN')}</span>
               </div>
             )}
 
             {goldCoinItem && (
-              <div className="flex justify-between text-[14px] font-medium text-zinc-500">
+              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
                 <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-                <span className="font-bold text-[#189351]">₹ 0</span>
+                <span className="font-semibold text-[#189351]">₹ 0</span>
               </div>
             )}
 
             {insuranceItem && (
-              <div className="flex justify-between text-[14px] text-zinc-500">
+              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
                 <span>Insurance</span>
-                <span className="text-zinc-900">₹ {insuranceAmount.toLocaleString('en-IN')}</span>
+                <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN')}</span>
               </div>
             )}
 
-            <div className="flex justify-between text-[14px] font-medium text-zinc-500">
+            <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
               <span>Shipping (Standard)</span>
-              <span className="font-bold text-[#189351]">Free</span>
+              <span className="font-semibold text-[#189351]">Free</span>
             </div>
           </div>
 
-          <div className="border-t border-zinc-200 pt-4 flex justify-between items-center">
-            <span className="text-base font-bold text-[#443360] uppercase tracking-wider">GRAND TOTAL</span>
-            <span className="text-lg font-bold text-[#443360]">₹ {grandTotal  .toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <div className="border-t border-[#EADFD8] pt-4 flex justify-between items-center">
+            <span className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
+            <span className="font-figtree text-xl font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         </div>
       </div>
@@ -397,10 +427,7 @@ export default function CartSummary({ onPlaceOrder }) {
       {/* Mobile Offers Group (Coupon, Gold Coin, Insurance) - ALL BELOW SUMMARY */}
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
-          <div className="w-full relative rounded-lg overflow-hidden mb-6 shadow-sm">
-            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-          </div>
-          <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>          
+          <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>
           
 
 
@@ -408,20 +435,23 @@ export default function CartSummary({ onPlaceOrder }) {
           
           <Sheet open={isCouponSheetOpen} onOpenChange={setIsCouponSheetOpen}>
             <SheetTrigger asChild>
-              <button 
-                className="flex items-center justify-between w-full p-4 bg-white border border-accent/30 rounded-lg group transition-all"
+              <button
+                className="flex items-center gap-3 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30"
               >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-full shadow-sm">
-                    <Tag size={20} className="text-primary" />
-                  </div>
-                  <span className="text-[15px] font-bold text-[#443360] uppercase font-figtree">
+                <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF9F6] border border-[#EADFD8]">
+                  <Tag size={18} className="text-[#5A413F]" />
+                </span>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]">
                     {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
-                  </span>
+                  </p>
+                  <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]">
+                    Unlock exclusive savings on your order.
+                  </p>
                 </div>
-                <div className="bg-accent p-1.5 rounded-full">
-                  <ChevronRight size={18} className="text-white" />
-                </div>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5A413F] text-white shadow-sm">
+                  <ChevronRight size={16} />
+                </span>
               </button>
             </SheetTrigger>
             <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()} className="rounded-t-2xl px-6 pb-8 pt-4 max-h-[85vh] overflow-y-auto [&>button]:hidden transition-all duration-300 ease-in-out focus-within:mb-0">
@@ -438,25 +468,25 @@ export default function CartSummary({ onPlaceOrder }) {
                 </SheetClose>
               </div>
               <SheetHeader className="space-y-3">
-                <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-2">
+                <div className="size-14 rounded-full bg-[#FEF9F6] border border-[#EADFD8] flex items-center justify-center text-[#5A413F] mx-auto mb-1 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.15)]">
                   <Tag size={24} />
                 </div>
-                <SheetTitle className="text-2xl font-light text-center text-zinc-800 font-abhaya">Apply Coupon</SheetTitle>
-                <SheetDescription className="text-sm text-center text-zinc-500">
+                <SheetTitle className="text-[26px] font-normal text-center text-[#3D2B28] font-abhaya leading-tight">Apply Coupon</SheetTitle>
+                <SheetDescription className="font-figtree text-base text-center text-[#6B5B54]">
                   Enter your coupon code below to unlock special discounts.
                 </SheetDescription>
               </SheetHeader>
-              <div className="space-y-4 py-4">
-                <Input 
+              <div className="space-y-3.5 py-4">
+                <Input
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="Enter Coupon Code" 
-                  className="h-12 text-center text-lg font-bold tracking-widest uppercase focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  placeholder="Enter Coupon Code"
+                  className="h-14 rounded-[8px] border-[#EADFD8] bg-[#FEF9F6] text-center font-figtree text-base font-semibold tracking-[0.15em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F]"
                 />
-                <Button 
+                <Button
                   onClick={() => handleApplyCoupon(true)}
                   disabled={isApplying || !couponCode.trim()}
-                  className="w-full h-12 bg-primary hover:bg-primary/90 uppercase font-bold tracking-widest text-white transition-all shadow-md"
+                  className="w-full h-14 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-medium tracking-[0.15em] text-sm text-white transition-colors shadow-[0_4px_16px_-4px_rgba(90,65,63,0.35)] disabled:opacity-50 disabled:shadow-none"
                 >
                   {isApplying ? <Loader2 className="animate-spin" /> : "Apply Coupon"}
                 </Button>
@@ -470,9 +500,11 @@ export default function CartSummary({ onPlaceOrder }) {
 
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
-        <div className="w-full relative rounded-lg overflow-hidden mb-6 shadow-sm">
-          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-        </div>
+        {hasEmbraceItem && (
+          <div className="w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+          </div>
+        )}
         <Button 
           onClick={() => {
             // If user not logged in, fire promoClick and open login modal
@@ -496,9 +528,9 @@ export default function CartSummary({ onPlaceOrder }) {
             }
             onPlaceOrder();
           }}
-          className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 uppercase tracking-[0.2em] shadow-lg shadow-zinc-100 transition-all rounded-lg text-base"
+          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white"
         >
-          Place Order
+          Proceed To Checkout
         </Button>
         
         <GoldCoinOption />
@@ -508,41 +540,46 @@ export default function CartSummary({ onPlaceOrder }) {
 
           <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
             <DialogTrigger asChild>
-              <button className="flex items-center justify-between w-full p-4 bg-white border border-accent/30 rounded-lg hover:border-accent transition-all group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-full shadow-sm">
-                    <Tag size={20} className="text-primary" />
-                  </div>
-                  <span className="text-[15px] font-bold text-[#443360] uppercase font-figtree">
+              <button
+                className="flex items-center gap-3 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
+              >
+                <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF9F6] border border-[#EADFD8]">
+                  <Tag size={18} className="text-[#5A413F]" />
+                </span>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]">
                     {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
-                  </span>
+                  </p>
+                  <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]">
+                    Unlock exclusive savings on your order.
+                  </p>
                 </div>
-                <div className="bg-accent p-1.5 rounded-full">
-                  <ChevronRight size={18} className="text-white" />
-                </div>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5A413F] text-white shadow-sm">
+                  <ChevronRight size={16} />
+                </span>
               </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md rounded-2xl p-8">
               <DialogHeader className="space-y-3">
-                <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-2">
+                <div className="size-14 rounded-full bg-[#FEF9F6] border border-[#EADFD8] flex items-center justify-center text-[#5A413F] mx-auto mb-1 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.15)]">
                   <Tag size={24} />
                 </div>
-                <DialogTitle className="text-2xl font-light text-center text-zinc-800 font-abhaya">Apply Coupon</DialogTitle>
-                <DialogDescription className="text-sm text-center text-zinc-500">
+                <DialogTitle className="text-[26px] font-normal text-center text-[#3D2B28] font-abhaya leading-tight">Apply Coupon</DialogTitle>
+                <DialogDescription className="font-figtree text-base text-center text-[#6B5B54]">
                   Enter your coupon code below to unlock special discounts.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <Input 
+              <div className="space-y-3.5 py-4">
+                <Input
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="Enter Coupon Code" 
-                  className="h-12 text-center text-lg font-bold tracking-widest uppercase"
+                  placeholder="Enter Coupon Code"
+                  className="h-14 rounded-[8px] border-[#EADFD8] bg-[#FEF9F6] text-center font-figtree text-base font-semibold tracking-[0.15em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F]"
                 />
-                <Button 
+                <Button
                   onClick={() => handleApplyCoupon(false)}
                   disabled={isApplying || !couponCode.trim()}
-                  className="w-full h-12 bg-primary hover:bg-primary/90 uppercase font-bold tracking-widest text-white transition-all shadow-md"
+                  className="w-full h-14 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-medium tracking-[0.15em] text-sm text-white transition-colors shadow-[0_4px_16px_-4px_rgba(90,65,63,0.35)] disabled:opacity-50 disabled:shadow-none"
                 >
                   {isApplying ? <Loader2 className="animate-spin" /> : "Apply Coupon"}
                 </Button>

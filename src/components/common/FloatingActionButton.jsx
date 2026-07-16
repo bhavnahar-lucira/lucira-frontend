@@ -20,17 +20,30 @@ export default function FloatingActionButton() {
 
   const getPageContext = () => {
     const globalProduct = typeof window !== 'undefined' ? window.__LUCIRA_PRODUCT__ : null;
+    const globalCollection = typeof window !== 'undefined' ? window.__LUCIRA_COLLECTION__ : null;
     const title = globalProduct?.title || (typeof document !== 'undefined' ? document.title.split('|')[0].trim() : "FAB Enquiry");
     const sku = globalProduct?.sku || "N/A";
-    
+
     if (pathname === "/") return { type: "index", title, sku };
-    if (pathname.startsWith("/collections")) return { type: "collection", title, sku };
+    if (pathname.startsWith("/collections")) return { type: "collection", title: globalCollection || title, sku };
     if (pathname.startsWith("/products")) return { type: "product", title, sku };
     if (pathname.startsWith("/blogs")) return { type: "blog", title, sku };
     if (pathname.includes("gold-rate")) return { type: "gold-rate", title, slug: pathname.split('/').pop() };
     if (pathname.includes("platinum-rate")) return { type: "platinum-rate", title, slug: pathname.split('/').pop() };
-    
+    if (pathname.includes("silver-rate")) return { type: "silver-rate", title, slug: pathname.split('/').pop() };
+
     return { type: "other", title, sku };
+  };
+
+  // Extract & title-case the city from a rate-page handle, e.g.
+  // "new-delhi-gold-rate-today" -> "New Delhi" (mirrors /pages/[handle] route logic)
+  const getRateCity = (slug, metal) => {
+    const citySlug = (slug || "").replace(`-${metal}-rate-today`, "");
+    return citySlug
+      .split("-")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
   };
 
   const getWhatsAppUrl = () => {
@@ -48,11 +61,11 @@ export default function FloatingActionButton() {
         ? `Hi, can you tell me more about this blog: ${ctx.title}`
         : "Hi, Can you Tell me more about Lucira Blogs";
     } else if (ctx.type === "gold-rate") {
-      const city = ctx.slug.replace('gold-rate-', '').replace(/-/g, ' ');
-      message = `Tell me more about ${city} gold rate`;
+      message = `Tell me more about ${getRateCity(ctx.slug, 'gold')} gold rate`;
     } else if (ctx.type === "platinum-rate") {
-      const city = ctx.slug.replace('platinum-rate-', '').replace(/-/g, ' ');
-      message = `Tell me more about ${city} platinum rate`;
+      message = `Tell me more about ${getRateCity(ctx.slug, 'platinum')} platinum rate`;
+    } else if (ctx.type === "silver-rate") {
+      message = `Tell me more about ${getRateCity(ctx.slug, 'silver')} silver rate`;
     }
 
     return `https://wa.me/919004435760?text=${encodeURIComponent(message)}`;
@@ -186,7 +199,10 @@ export default function FloatingActionButton() {
     pushPromoClick("salesiq-callUs");
   };
 
-  const handleWhatsAppClick = () => {
+  const handleWhatsAppClick = (e) => {
+    // Rebuild the URL at click time so it always reflects the CURRENT page /
+    // collection, even after client-side navigation (href set on render can go stale).
+    if (e?.currentTarget) e.currentTarget.href = getWhatsAppUrl();
     pushPromoClick("chatWithExperts");
   };
 
@@ -195,13 +211,13 @@ export default function FloatingActionButton() {
 
   return (
     <div className={`fixed 
-      ${isProductPage ? 'bottom-22 md:bottom-22' : isCollectionPage ? 'bottom-16 md:bottom-10' : 'bottom-10'} 
+      ${isProductPage ? 'bottom-22 md:bottom-22' : isCollectionPage ? 'bottom-20 md:bottom-10' : 'bottom-10'}
       ${isCollectionPage ? 'right-[20px] md:right-[30px]' : 'right-[30px]'} 
       z-[499] flex flex-col items-center`}>
       {/* Tooltip */}
       {!isFabOpen && !isZohoActive && tooltipShown && (
-        <div className="absolute right-5 bottom-16 bg-white text-black text-xs py-1.5 px-3 rounded-md whitespace-nowrap shadow-md border border-[#b76f79] animate-fab-tooltip pointer-events-none z-[1]
-          after:content-[''] after:absolute after:right-[10px] after:bottom-[-6px] after:w-3 after:height-3 after:bg-white after:rotate-45 after:shadow-[1px_1px_0_rgba(183,111,121,1)] after:z-[1]">
+        <div className="absolute right-[65px] bottom-[11px] bg-white text-[#5a413f] text-xs font-semibold py-1.5 px-3 rounded-md whitespace-nowrap shadow-md border border-[#F0E7E2] animate-fab-tooltip pointer-events-none z-[1]
+          after:content-[''] after:absolute after:right-[-5px] after:top-[50%] after:-translate-y-1/2 after:w-2.5 after:h-2.5 after:bg-white after:rotate-45 after:border-t after:border-r after:border-[#F0E7E2] after:z-[1]">
           At your Service
         </div>
       )}

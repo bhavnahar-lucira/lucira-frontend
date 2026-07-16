@@ -10,6 +10,7 @@ import Script from "next/script";
 import GtmPageView from "@/components/common/GtmPageView";
 import { organizationSchema, websiteSchema, storesSchema } from "@/lib/seo";
 import WebEngageRegistration from "@/components/common/WebEngageRegistration";
+import TabTitleAnimator from "@/components/common/TabTitleAnimator";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
 
@@ -29,9 +30,8 @@ export const metadata = {
   manifest: "/manifest.json",
 };
 
-export default function RootLayout({ children }) {  
+export default function RootLayout({ children }) {
   const isProd = process.env.NODE_ENV === "production";
-
   return (
     <html lang="en">
       <head>
@@ -68,6 +68,7 @@ export default function RootLayout({ children }) {
           </noscript>
         )}
         <ReduxProvider>
+          <TabTitleAnimator />
           <WebEngageRegistration />
           {isProd && (
             <Suspense fallback={null}>

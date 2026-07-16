@@ -10,7 +10,7 @@ import ProductCard from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/product/ProductCardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, XIcon, ChevronsDown, Hammer, Filter as FilterIcon, LayoutDashboard, ShoppingBag, Loader2, ListFilter, ArrowUpDown, LayoutGrid, X, SlidersHorizontal, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronRight, XIcon, ChevronsDown, Hammer, Filter as FilterIcon, LayoutDashboard, ShoppingBag, Loader2, ListFilter, ArrowUpDown, LayoutGrid, X, SlidersHorizontal, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -28,10 +28,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useSelector, useDispatch } from "react-redux";
+import { openAuthModal } from "@/redux/features/user/userSlice";
+import { selectRecentlyViewed } from "@/redux/features/recentlyViewed/recentlyViewedSlice";
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
+import VideoPopup from "@/components/home/VideoPopup";
+import { Play } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar"];
@@ -51,8 +56,38 @@ const CUSTOM_COLLECTION_BANNERS = {
   "eterna": {
     desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Desktop_PLP_jpg.jpg?v=1783673522",
     mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Mobile_PLP_jpg.jpg?v=1783673523"
+  },
+  "hexa": {
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Desktop.jpg?v=1783767788",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Mobile.jpg?v=1783767788"
+  },
+  "cotton-candy": {
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Desktop.jpg?v=1783767788",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Mobile.jpg?v=1783767788"
+  },
+  "sports-collection": {
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Desktop.jpg?v=1783767788",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Mobile.jpg?v=1783767788"
   }
 };
+
+// In-page promo banners injected into the product grid. They alternate in order
+// (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
+// then every 10 products after that.
+// TODO(banner): replace creative B's `src` with the second (right) banner image URL.
+const INPAGE_BANNERS = [
+  {
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg",
+    alt: "Promo",
+    href: "/collections/bestsellers",
+  },
+  {
+    // Placeholder — falls back to creative A until the second image is provided.
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg",
+    alt: "Promo",
+    href: "/collections/bestsellers",
+  },
+];
 
 const SORT_OPTIONS = [
   { value: "manual", label: "Featured" },
@@ -64,6 +99,22 @@ const SORT_OPTIONS = [
   { value: "price_high_low", label: "Price: high to low" },
   { value: "az", label: "Alphabetically: A-Z" },
 ];
+
+// Custom caret used in the filter accordion headers. Base orientation points up (^);
+// callers rotate it 180° to point down (v) when a section is expanded.
+const FilterChevron = ({ className = "" }) => (
+  <svg
+    width="10"
+    height="5.4"
+    viewBox="0 0 13 7"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    aria-hidden="true"
+  >
+    <path d="M12.2219 6.01562L6.32839 0.87798L0.434863 6.01562" stroke="currentColor" strokeWidth="1.32364" />
+  </svg>
+);
 
 const FilterSidebarSkeleton = () => (
   <div className="space-y-6 px-4 animate-pulse">
@@ -161,6 +212,168 @@ const renderRichTextNodes = (nodes) => {
   });
 };
 
+// Recently Viewed horizontal row with an always-visible 2px theme scrollbar.
+// The native scrollbar is hidden and replaced by a custom indicator whose thumb
+// width/position tracks the scroll offset, so it stays visible even on mobile.
+function RecentlyViewedRow({ products }) {
+  const scrollRef = useRef(null);
+  const [thumb, setThumb] = useState({ width: 100, left: 0 });
+
+  const updateThumb = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    if (scrollWidth <= clientWidth) {
+      setThumb({ width: 100, left: 0 });
+      return;
+    }
+    setThumb({
+      width: (clientWidth / scrollWidth) * 100,
+      left: (scrollLeft / scrollWidth) * 100,
+    });
+  }, []);
+
+  useEffect(() => { updateThumb(); }, [updateThumb, products]);
+
+  return (
+    <div className="bg-[#FEF5F1]/60 rounded-[10px] px-4 py-4">
+      <h3 className="font-figtree font-semibold text-xs leading-none tracking-normal text-black mb-3">
+        RECENTLY VIEWED
+      </h3>
+      <div
+        ref={scrollRef}
+        onScroll={updateThumb}
+        className="flex gap-3 overflow-x-auto snap-x"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {products.map((item) => {
+          const imgSrc = item.images?.[0]?.url || item.image?.url || item.image;
+          if (!imgSrc) return null;
+          return (
+            <Link
+              prefetch={false}
+              key={item.id || item.shopifyId || item.handle}
+              href={`/products/${item.handle}`}
+              className="shrink-0 w-[144px] snap-start cursor-pointer"
+            >
+              <div className="relative aspect-square bg-white rounded-[8px] overflow-hidden">
+                <Image
+                  loader={shopifyLoader}
+                  src={imgSrc}
+                  alt={item.title || "Recently viewed"}
+                  fill
+                  sizes="144px"
+                  className="object-contain mix-blend-multiply p-2"
+                />
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+      {/* Always-visible 2px custom scrollbar in theme colors */}
+      <div className="relative mt-3 h-[2px] w-full rounded-full bg-[#5A413F]/10 overflow-hidden">
+        <div
+          className="absolute top-0 h-full rounded-full bg-gradient-to-r from-[#B77767] to-[#5A413F]"
+          style={{ width: `${thumb.width}%`, left: `${thumb.left}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Styled By Lucira horizontal video row for the PLP grid — matches the Recently
+// Viewed card style with an always-visible 2px theme scrollbar. Fetches its own
+// videos and opens the shared VideoPopup on tap. Renders nothing if no videos.
+function StyledByLuciraRow() {
+  const scrollRef = useRef(null);
+  const [thumb, setThumb] = useState({ width: 100, left: 0 });
+  const [videos, setVideos] = useState([]);
+  const [popup, setPopup] = useState({ isOpen: false, index: 0 });
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const data = await apiFetch("/api/styled-videos", { cache: "no-store" });
+        if (!ignore && data?.success && data.videos?.length > 0) setVideos(data.videos);
+      } catch (err) {
+        console.error("Failed to fetch styled videos:", err);
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
+
+  const updateThumb = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    if (scrollWidth <= clientWidth) {
+      setThumb({ width: 100, left: 0 });
+      return;
+    }
+    setThumb({
+      width: (clientWidth / scrollWidth) * 100,
+      left: (scrollLeft / scrollWidth) * 100,
+    });
+  }, []);
+
+  useEffect(() => { updateThumb(); }, [updateThumb, videos]);
+
+  if (videos.length === 0) return null;
+
+  return (
+    <div className="bg-[#FEF5F1]/60 rounded-[10px] px-4 py-4">
+      <h3 className="font-figtree font-semibold text-xs leading-none tracking-normal text-black mb-3">
+        STYLED BY LUCIRA
+      </h3>
+      <div
+        ref={scrollRef}
+        onScroll={updateThumb}
+        className="flex gap-3 overflow-x-auto snap-x"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {videos.map((item, i) => (
+          <button
+            type="button"
+            key={`styled-${i}`}
+            onClick={() => setPopup({ isOpen: true, index: i })}
+            className="shrink-0 w-[150px] snap-start cursor-pointer"
+          >
+            <div className="relative aspect-[9/16] rounded-[8px] overflow-hidden bg-gray-200 shadow-sm">
+              <video
+                src={item.video || undefined}
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-[#00000066]">
+                <div className="w-11 h-11 bg-white/25 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-lg">
+                  <Play size={20} fill="white" className="text-white ml-0.5 opacity-90" />
+                </div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+      {/* Always-visible 2px custom scrollbar in theme colors */}
+      <div className="relative mt-3 h-[2px] w-full rounded-full bg-[#5A413F]/10 overflow-hidden">
+        <div
+          className="absolute top-0 h-full rounded-full bg-gradient-to-r from-[#B77767] to-[#5A413F]"
+          style={{ width: `${thumb.width}%`, left: `${thumb.left}%` }}
+        />
+      </div>
+      <VideoPopup
+        isOpen={popup.isOpen}
+        onClose={() => setPopup({ ...popup, isOpen: false })}
+        videoData={videos}
+        initialIndex={popup.index}
+      />
+    </div>
+  );
+}
+
 export default function CollectionPage({ params: paramsPromise, initialData }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
@@ -168,11 +381,22 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.user);
+  const recentlyViewed = useSelector(selectRecentlyViewed);
+  const recentlyViewedProducts = recentlyViewed?.products || [];
 
   const limit = 25;
 
   const [expandedFilters, setExpandedFilters] = useState({ "In Store Available": true });
   const loadMoreRef = useRef(null);
+  const productsTopRef = useRef(null);
+
+  // Scroll up to where the product grid starts (just below the header/banner),
+  // instead of jumping all the way to the top of the page.
+  const scrollToProductsTop = useCallback(() => {
+    productsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeMobileGroup, setActiveMobileGroup] = useState(null);
@@ -211,6 +435,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         sortedData[groupKey] = options;
       } else if (Array.isArray(options)) {
         sortedData[groupKey] = [...options].sort((a, b) => {
+          if (b.count !== a.count) {
+            return b.count - a.count;
+          }
           const aLabel = a.label?.toString() || "";
           const bLabel = b.label?.toString() || "";
           const aNum = parseFloat(aLabel);
@@ -243,6 +470,16 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return { title: "", description: "", descriptionHtml:"" };
   });
   const [dbCollection, setDbCollection] = useState(null);
+
+  // Expose the collection title globally so shared widgets (e.g. the floating
+  // WhatsApp button) can read the exact collection name instead of parsing document.title.
+  useEffect(() => {
+    window.__LUCIRA_COLLECTION__ = collection?.title || "";
+    return () => {
+      delete window.__LUCIRA_COLLECTION__;
+    };
+  }, [collection?.title]);
+
   const [products, setProducts] = useState(() => (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
   const [pagination, setPagination] = useState(() => initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null });
   const [productsLoading, setProductsLoading] = useState(!initialData);
@@ -368,7 +605,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     }
     params.delete("cursor");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    scrollToTop();
+    scrollToProductsTop();
   };
 
   const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
@@ -465,7 +702,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         setCollection({
           title: collData.collection?.title || handle.replace(/-/g, " "),
           description: collData.collection?.description || "",
-          descriptionHtml: collData.collection.descriptionHtml || "",
+          descriptionHtml: collData.collection?.descriptionHtml || "",
           metafields: collData.collection?.metafields || {}
         });
         setProducts((collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
@@ -584,18 +821,109 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const renderGridItems = () => {
     const items = [];
     let renderedCount = 0;
+    let bannerCount = 0;
+    let cellCount = 0;            // grid cells occupied so far (a col-span-full block = 2)
+    let rewardBannerAdded = false;
+    let rewardBannerAt = -1;      // renderedCount when the claim banner was inserted
+    let recentlyViewedAdded = false;
+    let recentlyViewedAt = -1;    // renderedCount when the recently-viewed row was inserted
+    let styledAdded = false;
     products.forEach((prod, idx) => {
       if (!prod) return;
-      if (renderedCount === 3 || renderedCount === 10) {
+      // First banner after 6 products, then repeat every 10 (6, 16, 26, ...).
+      // Creatives alternate A, B, A, B, ... on each appearance.
+      if (renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
+        const banner = INPAGE_BANNERS[bannerCount % INPAGE_BANNERS.length];
         items.push(
-          <div key={`inpage-${idx}`} className="overflow-hidden rounded-lg">
-            <Link prefetch={false} className="cursor-default" href="/collections/bestsellers" onClick={(e) => e.preventDefault()}>
-              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg" alt="Promo" width={800} height={400} className="w-full h-full object-cover rounded-lg" />
+          <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
+            <Link prefetch={false} className="cursor-default" href={banner.href} onClick={(e) => e.preventDefault()}>
+              <Image src={banner.src} alt={banner.alt} width={800} height={400} className="w-full h-full object-cover rounded-[4px]" />
             </Link>
           </div>
         );
+        cellCount += 1;
+        bannerCount++;
       }
-      
+
+      // Profile-completion reward banner — mobile only, full-width, once, after ~6 products.
+      // Only insert on a full mobile row (even cell count) so the row above always
+      // has 2 products, never a lone one (image banners can make the count odd).
+      if (isMobile && !rewardBannerAdded && renderedCount >= 6 && cellCount % 2 === 0) {
+        rewardBannerAdded = true;
+        rewardBannerAt = renderedCount;
+        items.push(
+          <div key={`reward-banner-${idx}`} className="col-span-full">
+            <Link
+              prefetch={false}
+              href="/admin/rewards"
+              onClick={(e) => {
+                if (!user?.id) {
+                  e.preventDefault();
+                  dispatch(openAuthModal());
+                }
+              }}
+              className="flex items-center justify-between gap-3 w-full bg-[#5A413F] rounded-[10px] px-4 py-3.5 lg:px-5 lg:py-4 cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Image
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494.png?v=1784099419"
+                  alt="Reward coin"
+                  width={28}
+                  height={28}
+                  className="shrink-0 w-6 h-6 lg:w-7 lg:h-7 object-contain"
+                />
+                <span className="text-white font-figtree text-sm lg:text-base font-normal">
+                  Free ₹500 on completing your profile
+                </span>
+              </div>
+              <span className="flex items-center gap-1 text-white font-figtree text-sm lg:text-base underline underline-offset-2 whitespace-nowrap">
+                Claim Now
+                <ChevronRight size={16} />
+              </span>
+            </Link>
+          </div>
+        );
+        cellCount += 2;
+      }
+
+      // Recently Viewed — mobile only, full-width, once, ~6 products AFTER the claim
+      // banner, on a full mobile row. Only shown if the shopper has recent products.
+      if (
+        isMobile &&
+        rewardBannerAdded &&
+        !recentlyViewedAdded &&
+        recentlyViewedProducts.length > 0 &&
+        renderedCount >= rewardBannerAt + 6 &&
+        cellCount % 2 === 0
+      ) {
+        recentlyViewedAdded = true;
+        recentlyViewedAt = renderedCount;
+        items.push(
+          <div key={`recently-viewed-${idx}`} className="col-span-full">
+            <RecentlyViewedRow products={recentlyViewedProducts} />
+          </div>
+        );
+        cellCount += 2;
+      }
+
+      // Styled By Lucira — mobile only, full-width, once, ~6 products AFTER the
+      // recently-viewed row, on a full mobile row. The row hides itself if no videos.
+      if (
+        isMobile &&
+        recentlyViewedAdded &&
+        !styledAdded &&
+        renderedCount >= recentlyViewedAt + 6 &&
+        cellCount % 2 === 0
+      ) {
+        styledAdded = true;
+        items.push(
+          <div key={`styled-by-lucira-${idx}`} className="col-span-full">
+            <StyledByLuciraRow />
+          </div>
+        );
+        cellCount += 2;
+      }
+
       // Trigger pagination when 10 products are scrolled
       // For a batch of 25, this is the 11th product (index 10, or length - 15)
       const isTrigger = pagination.hasNextPage && idx === products.length - 15;
@@ -610,6 +938,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           />
         </div>
       );
+      cellCount += 1;
       renderedCount++;
     });
     if (isFetchingNextPage) {
@@ -628,6 +957,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     const total = totalCount > 0 ? totalCount : (pagination.hasNextPage ? `${loaded}+` : loaded);
     return `${loaded}/${total} Products`;
   }, [products.length, totalCount, pagination.hasNextPage]);
+
+  // Desktop count shown as a simple total, matching the design ("232 items")
+  const itemCountDisplay = useMemo(() => {
+    const count = totalCount > 0 ? totalCount : products.length;
+    return `${count} ${count === 1 ? "item" : "items"}`;
+  }, [totalCount, products.length]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -698,15 +1033,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="w-full relative h-34 md:h-54">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_1_e098831b-f04d-4b6c-ba2c-d1209cdec211.jpg?v=1783671698" alt={displayTitle} fill className="object-cover" priority />
+          <div className="w-full relative">
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_1_e098831b-f04d-4b6c-ba2c-d1209cdec211.jpg?v=1783671698" alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
           </div>
         </div>
       ) : (
         <div className="bg-[#FFF5F1] overflow-hidden">
           <div className="container-main flex flex-col md:flex-row items-center">
             <div className="flex-1">
-              <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4 capitalize">{displayTitle}</h1>
+              <h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px] capitalize">{displayTitle}</h1>
               {/* <p className="text-gray-900 text-sm md:text-base mb-8 max-w-xl">{collection.description || "Find the perfect piece for your special moment."}</p> */}
               <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
                 <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
@@ -729,20 +1064,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       {handle === "eterna" && <EternaBandsSection />}
 
-      <div className={isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}>
+      <div ref={productsTopRef} className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
         {/* ================= FILTERS SIDEBAR ================= */}
         <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
           <div className="sticky top-19 self-start h-fit">
             <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
               {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
-                <div className={`space-y-3 px-4 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
-                  <div className="flex justify-between items-center border-b"><h3 className="font-semibold mb-3 uppercase tracking-widest text-sm">Filters</h3><button onClick={clearAllFilters} className="text-[0.625rem] font-bold uppercase text-zinc-400 hover:text-black mb-3">Clear All</button></div>
+                <div className={`space-y-3 pr-4 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className="flex justify-between items-center border-b border-[#CECACA] pb-3"><h3 className="font-figtree font-bold text-black text-xl leading-none tracking-normal">Filters</h3><button onClick={clearAllFilters} className="font-figtree text-xs font-semibold uppercase tracking-wide text-[#696969] hover:text-black transition-colors">Clear All</button></div>
                   {Object.entries(availableFilters).map(([groupKey, options]) => {
                     const isExpanded = expandedFilters[groupKey] ?? false;
                     if (groupKey === "Price") {
                       return (
                         <div key={groupKey} className="border-b mb-0 border-gray-200">
-                          <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronUp size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                          <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
                           {isExpanded && (
                             <div className="space-y-5 my-4 pb-5 px-2">
                               <Slider
@@ -766,15 +1101,22 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                     }
                     return (
                       <div key={groupKey} className="border-b mb-0 border-gray-200">
-                        <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronUp size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                        <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
                         {isExpanded && (
-                          <div className="space-y-4 my-2 pb-5">
-                            {Array.isArray(options) && options.map((opt) => (
-                              <div key={opt.label} className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
-                                <input type="checkbox" checked={searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)} onChange={() => {}} className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" />
-                                <label className="flex-1 cursor-pointer flex justify-between items-center"><span>{opt.label}</span><span className="text-gray-400 text-xs">({opt.count})</span></label>
-                              </div>
-                            ))}
+                          <div className="space-y-4 mt-2 mb-4 pb-5">
+                            {Array.isArray(options) && options.map((opt) => {
+                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(opt.value);
+                              return (
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                  <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
+                                    {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
+                                  </span>
+                                  <span className={`font-figtree text-base leading-[1.4] ${isChecked ? "text-black font-medium" : "text-[#696969] font-normal"}`}>
+                                    {opt.label} ({opt.count})
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -788,37 +1130,50 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
         {/* ================= PRODUCTS SECTION ================= */}
         <div className="flex-1">
-          <div className={`flex gap-4 items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "py-5 border-b border-gray-50 px-4" : "py-4"}`}>
-            <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
-              {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">{displayTitle}</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{countDisplay}</span></>) : (<span className="text-sm text-gray-500">{countDisplay}</span>)}
+          <div className={`flex items-center justify-between sticky top-0 z-20 ${isMobile ? "gap-3 p-4 bg-white/95 backdrop-blur-sm border-b border-[#F0E7E2]" : "gap-4 py-4 bg-white"}`}>
+            <div className={isMobile ? "flex items-center gap-2.5" : "flex gap-3 items-center"}>
+              {isMobile ? (
+                <>
+                  <h2 className="font-abhaya text-[1.5rem] font-extrabold text-[#2B1F1E] capitalize leading-none tracking-[-0.01em]">{displayTitle}</h2>
+                  <span className="inline-flex items-center rounded-full bg-[#F4E9E3] px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-[0.08em] text-[#5a413f] whitespace-nowrap">{countDisplay}</span>
+                </>
+              ) : (<span className="font-figtree text-sm text-[#696969]">{itemCountDisplay}</span>)}
             </div>
             {!isMobile && (
-              <div className="flex items-center gap-4"><div className="flex items-center gap-2"><span className="text-sm text-gray-600">Sort:</span><select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="text-sm border rounded-md px-3 py-2 bg-white">{SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}</select></div></div>
+              <div className="flex items-center gap-2">
+                <span className="font-figtree text-sm text-[#696969] whitespace-nowrap">Sort by:</span>
+                <div className="relative flex items-center">
+                  <select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="font-figtree appearance-none bg-transparent border-none pr-6 pl-1 text-sm font-semibold text-black cursor-pointer focus:outline-none capitalize">
+                    {SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-0 size-4 text-black" />
+                </div>
+              </div>
             )}
           </div>
 
-          {!isMobile && (
-            <div className="flex flex-wrap items-center gap-2 mb-4">
+          {!isMobile && activeFilterCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2.5 mb-4">
               {Object.entries(availableFilters).map(([groupKey, options]) => (
                 <Fragment key={groupKey}>
                   {groupKey === "Price" ? (
                     (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) && (
-                      <Badge variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={resetPriceFilter}>
-                        <span className="text-xs font-medium">Price: {searchParams.get("filter.v.price.gte") ? `₹${searchParams.get("filter.v.price.gte")}` : "0"} - {searchParams.get("filter.v.price.lte") ? `₹${searchParams.get("filter.v.price.lte")}` : "Max"}</span>
-                        <XIcon className="size-3" />
+                      <Badge variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={resetPriceFilter}>
+                        <span className="font-figtree text-sm font-normal leading-[1.2]">Price: {searchParams.get("filter.v.price.gte") ? `₹${searchParams.get("filter.v.price.gte")}` : "0"} - {searchParams.get("filter.v.price.lte") ? `₹${searchParams.get("filter.v.price.lte")}` : "Max"}</span>
+                        <XIcon className="size-3.5 text-[#696969]" />
                       </Badge>
                     )
                   ) : (
                     Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).map((opt) => (
-                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#FFF5F1] text-black hover:bg-[#FFE4D9] border-none px-3 py-1 rounded-full flex items-center gap-2 cursor-pointer" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
-                        <span className="text-xs font-medium">{opt.label.split(" (")[0]}</span>
-                        <XIcon className="size-3" />
+                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                        <span className="font-figtree text-sm font-normal leading-[1.2]">{opt.label.split(" (")[0]}</span>
+                        <XIcon className="size-3.5 text-[#696969]" />
                       </Badge>
                     ))
                   )}
                 </Fragment>
               ))}
-              {(activeFilterCount > 0) && <button onClick={clearAllFilters} className="text-sm text-gray-400 hover:text-black font-medium ml-2">Remove all</button>}
+              <button onClick={clearAllFilters} className="font-figtree text-sm text-black underline underline-offset-2 hover:text-[#5a413f] ml-1 whitespace-nowrap">Remove All</button>
             </div>
           )}
 
@@ -1076,15 +1431,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         [&_hr]:my-8
         [&_hr]:border-gray-100
 
+        [&_table]:block
         [&_table]:w-full
+        [&_table]:max-w-full
+        [&_table]:overflow-x-auto
         [&_table]:my-6
         [&_table]:text-sm
         [&_table]:border-collapse
         [&_table]:rounded-lg
-        [&_table]:overflow-hidden
         [&_table]:shadow-sm
         [&_table]:border
         [&_table]:border-gray-200
+
+        [&_th]:whitespace-nowrap
+        [&_td]:whitespace-nowrap
 
         [&_thead]:bg-[#FFF5F1]
         [&_thead_th]:text-xs
@@ -1176,24 +1536,38 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       {/* Sticky Mobile Filter Bar & Sheets */}
       {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 z-10 bg-[#5a413f] text-white flex justify-around items-center py-4 border-t border-white/10 px-4 gap-2">
-          <button onClick={() => setIsSortSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider border-r border-white/20"><ArrowUpDown size={16} /> Sort</button>
-          <button onClick={() => setIsFilterSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider"><SlidersHorizontal size={16} /> Filter {activeFilterCount > 0 && <span className="bg-white text-[#5a413f] text-[0.625rem] min-w-4 h-4 rounded-full flex items-center justify-center px-1 font-bold">{activeFilterCount}</span>}</button>
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-60 z-[500] flex items-stretch rounded-full bg-[#5a413f] text-white shadow-[0_10px_30px_-8px_rgba(90,65,63,0.55)] ring-1 ring-white/10 overflow-hidden backdrop-blur-sm">
+          <button onClick={() => setIsSortSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.8125rem] font-figtree font-semibold tracking-[0.08em] active:bg-white/10 transition-colors">
+            <ArrowUpDown size={15} strokeWidth={2} className="opacity-90" /> Sort
+          </button>
+          <span className="w-px my-3 bg-white/20" />
+          <button onClick={() => setIsFilterSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.8125rem] font-figtree font-semibold tracking-[0.08em] active:bg-white/10 transition-colors">
+            <SlidersHorizontal size={15} strokeWidth={2} className="opacity-90" /> Filter
+            {activeFilterCount > 0 && <span className="bg-[#FFE4D9] text-[#5a413f] text-[0.6875rem] min-w-[1.15rem] h-[1.15rem] rounded-full flex items-center justify-center px-1 font-bold leading-none">{activeFilterCount}</span>}
+          </button>
         </div>
       )}
 
       {/* Sort Sheet */}
       <Sheet isOpen={isSortSheetOpen} onClose={() => setIsSortSheetOpen(false)} snapPoints={[0, 1]} initialSnap={1}>
-        <Sheet.Container className="!rounded-t-[24px] !h-auto max-h-[60vh] bottom-0">
-          <Sheet.Content className="bg-white">
+        <Sheet.Container className="!rounded-t-[28px] !h-auto max-h-[68vh] bottom-0 !shadow-[0_-12px_40px_-12px_rgba(90,65,63,0.35)]">
+          <Sheet.Content className="bg-white !rounded-t-[28px]">
             <div className="flex flex-col">
-              <div className="flex items-center gap-4 p-4 border-b border-gray-100"><button onClick={() => setIsSortSheetOpen(false)} className="p-1"><X size={20} className="text-black" /></button><h3 className="text-sm font-bold uppercase tracking-widest">Sort By</h3></div>
-              <div className="p-4 space-y-2 overflow-y-auto pb-10">
-                {SORT_OPTIONS.map((opt) => (
-                  <button key={opt.value} onClick={() => { handleSort(opt.value); setIsSortSheetOpen(false); }} className={`w-full text-left py-4 px-4 rounded-lg transition-colors flex justify-between items-center ${activeSort === opt.value ? "bg-[#FFF5F1] text-[#5a413f] font-bold" : "hover:bg-gray-50 text-gray-900"}`}>
-                    {opt.label} {activeSort === opt.value && <div className="w-2 h-2 rounded-full bg-[#5a413f]" />}
-                  </button>
-                ))}
+              <div className="pt-3 pb-1 flex justify-center"><span className="h-1 w-10 rounded-full bg-gray-200" /></div>
+              <div className="flex items-center justify-between px-5 pt-2 pb-4 border-b border-[#F0E7E2]">
+                <h3 className="font-abhaya text-xl font-bold text-[#5a413f] leading-none">Sort By</h3>
+                <button onClick={() => setIsSortSheetOpen(false)} className="p-1.5 -mr-1.5 rounded-full active:bg-gray-100 transition-colors"><X size={19} className="text-gray-500" /></button>
+              </div>
+              <div className="px-3 py-2.5 space-y-0.5 overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+                {SORT_OPTIONS.map((opt) => {
+                  const isActive = activeSort === opt.value;
+                  return (
+                    <button key={opt.value} onClick={() => { handleSort(opt.value); setIsSortSheetOpen(false); }} className={`w-full text-left py-3.5 px-4 rounded-xl transition-colors flex justify-between items-center font-figtree text-[0.9375rem] ${isActive ? "bg-[#FFF5F1] text-[#5a413f] font-semibold" : "text-gray-700 active:bg-gray-50 font-normal"}`}>
+                      <span>{opt.label}</span>
+                      {isActive && <Check size={17} strokeWidth={2.5} className="text-[#5a413f] shrink-0" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </Sheet.Content>
@@ -1206,25 +1580,34 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         <Sheet.Container className="!rounded-t-none">
           <Sheet.Content className="bg-white">
             <div className="flex flex-col h-full">
-              <div className="flex items-center gap-4 p-4 border-b border-gray-100"><button onClick={() => setIsFilterSheetOpen(false)} className="p-1"><X size={20} className="text-black" /></button><h3 className="text-sm font-bold uppercase tracking-widest">Filters</h3></div>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0E7E2]">
+                <h3 className="font-abhaya text-xl font-bold text-[#5a413f] leading-none">Filters</h3>
+                <div className="flex items-center gap-3">
+                  {activeFilterCount > 0 && <button onClick={clearAllFilters} className="font-figtree text-xs font-semibold text-[#5a413f] underline underline-offset-2 active:opacity-70">Clear All</button>}
+                  <button onClick={() => setIsFilterSheetOpen(false)} className="p-1.5 -mr-1.5 rounded-full active:bg-gray-100 transition-colors"><X size={19} className="text-gray-500" /></button>
+                </div>
+              </div>
               <div className="flex-1 flex overflow-hidden">
-                <div className="w-[45%] bg-[#FEF5F1] border-r border-gray-100 overflow-y-auto">
+                <div className="w-[42%] bg-[#FBF3EF] border-r border-[#F0E7E2] overflow-y-auto">
                   {Object.entries(availableFilters).map(([groupKey]) => {
                     let count = 0;
                     if (groupKey === "Price") { if (localPriceRange.min || localPriceRange.max) count = 1; }
                     else { count = availableFilters[groupKey].filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).length; }
+                    const isActive = activeMobileGroup === groupKey;
                     return (
-                      <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left px-4 py-5 text-[0.6875rem] font-bold uppercase tracking-tight border-b border-gray-100 relative leading-tight ${activeMobileGroup === groupKey ? "bg-white text-[#5a413f]" : "text-gray-500"}`}>
-                        {groupKey} {count > 0 && <span className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#5a413f] text-white text-[0.5625rem] w-5 h-5 rounded-md flex items-center justify-center font-bold">{count}</span>}
+                      <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left pl-5 pr-9 py-4 font-figtree text-[0.8125rem] tracking-normal relative leading-snug transition-colors ${isActive ? "bg-white text-[#5a413f] font-semibold" : "text-gray-500 font-medium active:bg-white/60"}`}>
+                        {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#5a413f]" />}
+                        {groupKey}
+                        {count > 0 && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-[#5a413f] text-white text-[0.625rem] min-w-[1.15rem] h-[1.15rem] px-1 rounded-full flex items-center justify-center font-bold leading-none">{count}</span>}
                       </button>
                     );
                   })}
                 </div>
-                <div className="w-[55%] bg-white overflow-y-auto p-4">
+                <div className="w-[58%] bg-white overflow-y-auto px-4 py-3">
                   {activeMobileGroup && availableFilters[activeMobileGroup] && (
-                    <div className="space-y-6 pb-20">
+                    <div className="space-y-1 pb-24">
                       {activeMobileGroup === "Price" ? (
-                        <div className="space-y-5 py-4 px-2">
+                        <div className="space-y-6 py-5 px-1.5">
                           <Slider
                             min={absolutePrice.min || 0}
                             max={absolutePrice.max || 500000}
@@ -1236,20 +1619,22 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                             onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
                             onValueCommit={applyPriceFilter}
                           />
-                          <div className="text-sm font-semibold text-gray-900 text-center">
-                            ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
+                          <div className="rounded-xl bg-[#FBF3EF] py-3 px-4 text-center">
+                            <span className="font-figtree text-[0.9375rem] font-semibold text-[#5a413f]">
+                              ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} – ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
+                            </span>
                           </div>
                         </div>
                       ) : (
                         availableFilters[activeMobileGroup].map((option) => {
                           const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(option.value);
                           return (
-                            <div key={option.label} className="flex items-center justify-between py-1 cursor-pointer group" onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
-                              <div className="flex items-center gap-3">
-                                {isSelected ? <div className="w-4 h-4 bg-[#5a413f] rounded flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-4 h-4 border border-gray-300 rounded group-hover:border-[#5a413f]" />}
-                                <span className={`text-[0.8125rem] ${isSelected ? "text-black font-semibold" : "text-gray-600"}`}>{option.label}</span>
+                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                {isSelected ? <div className="w-[19px] h-[19px] shrink-0 bg-[#5a413f] rounded-[5px] flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[19px] h-[19px] shrink-0 border border-gray-300 rounded-[5px] group-hover:border-[#5a413f] transition-colors" />}
+                                <span className={`font-figtree text-sm leading-snug truncate ${isSelected ? "text-[#5a413f] font-semibold" : "text-gray-600"}`}>{option.label}</span>
                               </div>
-                              <span className="text-[0.6875rem] text-gray-400">({option.count})</span>
+                              <span className={`font-figtree text-xs shrink-0 ${isSelected ? "text-[#5a413f]/60" : "text-gray-400"}`}>({option.count})</span>
                             </div>
                           );
                         })
@@ -1258,9 +1643,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-2 border-t border-gray-300 bg-white">
-                <button onClick={clearAllFilters} className="py-4 px-2 text-[0.6875rem] font-black bg-[#FFE4D9] text-[#5a413f] uppercase tracking-[0.1em]">Clear All</button>
-                <button onClick={() => setIsFilterSheetOpen(false)} className="py-4 px-2 text-[0.6875rem] font-black bg-[#5a413f] text-white uppercase tracking-[0.1em]">APPLY FILTERS</button>    
+              <div className="grid grid-cols-2 gap-3 border-t border-[#F0E7E2] bg-white px-4 py-3.5 pb-[calc(env(safe-area-inset-bottom)+0.875rem)]">
+                <button onClick={clearAllFilters} className="py-3.5 rounded-full text-xs font-figtree font-bold bg-[#FBF3EF] text-[#5a413f] uppercase tracking-[0.12em] active:bg-[#F4E9E3] transition-colors">Clear All</button>
+                <button onClick={() => setIsFilterSheetOpen(false)} className="py-3.5 rounded-full text-xs font-figtree font-bold bg-[#5a413f] text-white uppercase tracking-[0.12em] shadow-[0_6px_18px_-6px_rgba(90,65,63,0.6)] active:bg-[#4a3432] transition-colors">Apply Filters</button>
               </div>
             </div>
           </Sheet.Content>

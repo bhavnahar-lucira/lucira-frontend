@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { pushPromoClick } from "@/lib/gtm";
 
 function isStoreOpenIST(store) {
   const indiaNow = new Date(
@@ -235,6 +236,15 @@ export default function StoreLocatorSection() {
   const activeStore = stores[activeIndex];
   const storeIsOpen = isStoreOpenIST(activeStore);
 
+  const handleStoreCtaClick = (action) => {
+    pushPromoClick({
+      creative_name: "visit store section homepage",
+      location_id: "homepage",
+      promo_id: activeStore.city,
+      promo_name: action,
+    });
+  };
+
   if (isMobile) {
     return (
       <section className="w-full bg-[#FEF5F1] py-6.5 mt-10 overflow-hidden">
@@ -325,17 +335,17 @@ export default function StoreLocatorSection() {
             <div className="space-y-3">
                <div className="grid grid-cols-2 gap-3">
                  <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                   <a href={activeStore.mapLink} target="_blank" rel="noopener noreferrer"><MapPinned className="mr-2 h-4 w-4" /> DIRECT ME</a>
+                   <a href={activeStore.mapLink} target="_blank" rel="noopener noreferrer" onClick={() => handleStoreCtaClick("Direct Me")}><MapPinned className="mr-2 h-4 w-4" /> DIRECT ME</a>
                  </Button>
                  <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                   <a href={activeStore.callLink}><Phone className="mr-2 h-4 w-4" /> CALL US</a>
+                   <a href={activeStore.callLink} onClick={() => handleStoreCtaClick("Call Us")}><Phone className="mr-2 h-4 w-4" /> CALL US</a>
                  </Button>
                </div>
                <Button asChild variant="outline" className="h-12 w-full rounded-sm border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                 <a href={activeStore.designLink}>VIEW AVAILABLE DESIGNS</a>
+                 <a href={activeStore.designLink} onClick={() => handleStoreCtaClick("View Available Designs")}>VIEW AVAILABLE DESIGNS</a>
                </Button>
                <Button asChild className="h-12 w-full rounded-sm bg-[#5A413F] text-white font-medium text-sm sm:text-base uppercase shadow-lg">
-                 <a href={activeStore.appointmentLink} target="_blank"><CalendarDays className="mr-2 h-4 w-4" />BOOK APPOINTMENT</a>
+                 <a href={activeStore.appointmentLink} target="_blank" onClick={() => handleStoreCtaClick("Book Appointment")}><CalendarDays className="mr-2 h-4 w-4" />BOOK APPOINTMENT</a>
                </Button>
             </div>
           </div>
@@ -431,22 +441,22 @@ export default function StoreLocatorSection() {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                <a href={activeStore.mapLink} target="_blank" rel="noopener noreferrer"><MapPinned className="mr-2 h-6 w-6" /> DIRECT ME</a>
+                <a href={activeStore.mapLink} target="_blank" rel="noopener noreferrer" onClick={() => handleStoreCtaClick("Direct Me")}><MapPinned className="mr-2 h-6 w-6" /> DIRECT ME</a>
               </Button>
               <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                <a href={activeStore.callLink}><Phone className="mr-2 h-6 w-6" /> CALL US</a>
+                <a href={activeStore.callLink} onClick={() => handleStoreCtaClick("Call Us")}><Phone className="mr-2 h-6 w-6" /> CALL US</a>
               </Button>
             </div>
 
             <div className="mt-3">
               <Button asChild variant="outline" className="h-12 w-full border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                <a href={activeStore.designLink}>VIEW AVAILABLE DESIGNS</a>
+                <a href={activeStore.designLink} onClick={() => handleStoreCtaClick("View Available Designs")}>VIEW AVAILABLE DESIGNS</a>
               </Button>
             </div>
 
             <div className="mt-3">
               <Button asChild className="h-12 w-full text-white font-medium text-sm sm:text-base uppercase">
-                <a href={activeStore.appointmentLink} target="_blank"><CalendarDays className="mr-2 h-6 w-6" /> BOOK APPOINTMENT</a>
+                <a href={activeStore.appointmentLink} target="_blank" onClick={() => handleStoreCtaClick("Book Appointment")}><CalendarDays className="mr-2 h-6 w-6" /> BOOK APPOINTMENT</a>
               </Button>
             </div>
           </div>

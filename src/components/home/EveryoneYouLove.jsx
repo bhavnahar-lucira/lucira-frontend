@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import LazyImage from "../common/LazyImage";
+import { pushPromoClick } from "@/lib/gtm";
 
 const OCCASIONS = [
   { name: "For Her", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Love_ForHer.jpg", href: "/collections/gifts-for-her" },
@@ -12,6 +13,15 @@ const OCCASIONS = [
 ];
 
 export default function EveryoneYouLove() {
+  const handleBlockClick = (occ) => {
+    pushPromoClick({
+      creative_name: "gender section",
+      location_id: "homepage",
+      promo_id: occ.name,
+      promo_name: occ.name,
+    });
+  };
+
   return (
     <section className="w-full mt-10 md:mt-15 bg-[#FEF5F1] py-10 md:py-12">
       <div className="container-main">
@@ -23,9 +33,10 @@ export default function EveryoneYouLove() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {OCCASIONS.map((occ, index) => (
-            <Link prefetch={false} 
-              key={index} 
+            <Link prefetch={false}
+              key={index}
               href={occ.href}
+              onClick={() => handleBlockClick(occ)}
               className="relative aspect-[3/4.2] overflow-hidden group bg-gray-100 rounded-xl shadow-sm"
             >
               <LazyImage 
