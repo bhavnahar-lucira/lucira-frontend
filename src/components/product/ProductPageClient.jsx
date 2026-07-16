@@ -1776,9 +1776,40 @@ export default function ProductPageClient({
     });
   };
 
-  // Extract unique sizes from variants and sort them numerically
-  const availableSizes = Array.from(new Set(product.variants?.map(v => v.size) || []))
-    .sort((a, b) => Number(a) - Number(b));
+  // Only surface sizes that actually exist for the currently selected
+  // karat + metal combination. A product can carry, say, 14 sizes in 14KT
+  // but a single size in 18KT; without this filter every size from every
+  // combination would render even though no such variant exists in Shopify.
+  const variantMatchesActiveCombo = (v) => {
+    const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+
+    const vKarat = normalize(v.metafields?.metal_purity || "");
+    const vMetal = normalize(v.metafields?.metal_color || "");
+    const targetKarat = normalize(activeKarat || "");
+    const targetMetal = normalize(activeColor || "");
+
+    // Prefer strict metafield matching when both are present.
+    if (vKarat && vMetal) {
+      return vKarat === targetKarat && vMetal === targetMetal;
+    }
+
+    // Fallback to the color string match used elsewhere in this component.
+    const vColor = normalize(v.color);
+    const targetColorFull = normalize(`${activeKarat} ${activeColor}`);
+    const targetColorSimple = normalize(activeColor);
+    return vColor === targetColorFull || vColor === targetColorSimple;
+  };
+
+  // Extract unique sizes for the active combination and sort them numerically.
+  const comboSizes = Array.from(
+    new Set((product.variants || []).filter(variantMatchesActiveCombo).map(v => v.size))
+  );
+  // Defensive fallback: if the combo match yields nothing (e.g. a product whose
+  // variants lack metafields/color), keep the previous all-variants behaviour.
+  const availableSizes = (comboSizes.length > 0
+    ? comboSizes
+    : Array.from(new Set(product.variants?.map(v => v.size) || []))
+  ).sort((a, b) => Number(a) - Number(b));
 
   // Get current display price from active variant or product, prioritized by dynamic breakup API if available
   const currentPrice = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
@@ -2169,83 +2200,88 @@ export default function ProductPageClient({
               {/* Desktop Selection Blocks */}
               <div className="hidden lg:block space-y-6">
                 {/* Gold Selection */}
-                <div className="space-y-3">
-                  <div className="text-base font-bold">
-                    Select Gold Color & Karat: <span className="text-gray-500 font-medium ml-1">{activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {(() => {
-                      const combinations = [];
-                      product.variants?.forEach(v => {
-                        const karat = v.metafields?.metal_purity || String(v.color || v.title || "").split(" ")[0];
-                        const metal = v.metafields?.metal_color || String(v.color || v.title || "").split(" ").slice(1).join(" ");
+                {(() => {
+                  const combinations = [];
+                  product.variants?.forEach(v => {
+                    const karat = v.metafields?.metal_purity || String(v.color || v.title || "").split(" ")[0];
+                    const metal = v.metafields?.metal_color || String(v.color || v.title || "").split(" ").slice(1).join(" ");
 
-                        if (karat && metal && !combinations.find(c => c.karat === karat && c.metal === metal)) {
-                          combinations.push({ karat, metal });
-                        }
-                      });
+                    if (karat && metal && !combinations.find(c => c.karat === karat && c.metal === metal)) {
+                      combinations.push({ karat, metal });
+                    }
+                  });
 
-                      // Sort combinations based on collection context
-                      const handles = product.collectionHandles || [];
-                      const isStrict9kt = collectionContext === "9kt-collection" &&
-                        handles.includes("9kt-collection") &&
-                        !handles.some(h => h !== "9kt-collection" && h !== "all" && h !== product.type?.toLowerCase() &&
-                          ["sports-collection", "cotton-candy", "hexa-collection", "solitaire-collection"].includes(h));
+                  if (combinations.length <= 1) return null;
 
-                      const karatOrder = ["9KT", "14KT", "18KT"];
-                      const metalOrder = ["Yellow Gold", "Rose Gold", "White Gold"];
+                  // Sort combinations based on collection context
+                  const handles = product.collectionHandles || [];
+                  const isStrict9kt = collectionContext === "9kt-collection" &&
+                    handles.includes("9kt-collection") &&
+                    !handles.some(h => h !== "9kt-collection" && h !== "all" && h !== product.type?.toLowerCase() &&
+                      ["sports-collection", "cotton-candy", "hexa-collection", "solitaire-collection"].includes(h));
 
-                      combinations.sort((a, b) => {
-                        const aKaratVal = parseInt(String(a.karat).replace(/\D/g, ""), 10) || 0;
-                        const bKaratVal = parseInt(String(b.karat).replace(/\D/g, ""), 10) || 0;
+                  const karatOrder = ["9KT", "14KT", "18KT"];
+                  const metalOrder = ["Yellow Gold", "Rose Gold", "White Gold"];
 
-                        if (aKaratVal !== bKaratVal) return aKaratVal - bKaratVal;
+                  combinations.sort((a, b) => {
+                    const aKaratVal = parseInt(String(a.karat).replace(/\D/g, ""), 10) || 0;
+                    const bKaratVal = parseInt(String(b.karat).replace(/\D/g, ""), 10) || 0;
 
-                        const aMetalIdx = metalOrder.findIndex(m => a.metal.toLowerCase().includes(m.split(" ")[0].toLowerCase()));
-                        const bMetalIdx = metalOrder.findIndex(m => b.metal.toLowerCase().includes(m.split(" ")[0].toLowerCase()));
+                    if (aKaratVal !== bKaratVal) return aKaratVal - bKaratVal;
 
-                        return (aMetalIdx === -1 ? 99 : aMetalIdx) - (bMetalIdx === -1 ? 99 : bMetalIdx);
-                      });
-                      const colorMap = {
-                        yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
-                        rose: "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)",
-                        white: "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)",
-                        platinum: "linear-gradient(154.03deg, #DDDDDD 27.25%, #FFFFFF 47.58%, #DDDDDD 74.61%)",
-                      };
+                    const aMetalIdx = metalOrder.findIndex(m => a.metal.toLowerCase().includes(m.split(" ")[0].toLowerCase()));
+                    const bMetalIdx = metalOrder.findIndex(m => b.metal.toLowerCase().includes(m.split(" ")[0].toLowerCase()));
 
-                      return combinations.map(({ karat, metal }) => {
-                        let colorClass = colorMap.yellow;
-                        const lowerMetal = metal.toLowerCase();
-                        if (lowerMetal.includes("yellow") && lowerMetal.includes("white")) {
-                          colorClass = "linear-gradient(to right, #c59922 50%, #dfdfdf 50%)";
-                        } else if (lowerMetal.includes("rose") && lowerMetal.includes("white")) {
-                          colorClass = "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)";
-                        } else if (lowerMetal.includes("white")) {
-                          colorClass = colorMap.white;
-                        } else if (lowerMetal.includes("rose")) {
-                          colorClass = colorMap.rose;
-                        } else if (lowerMetal.includes("platinum")) {
-                          colorClass = colorMap.platinum;
-                        }
+                    return (aMetalIdx === -1 ? 99 : aMetalIdx) - (bMetalIdx === -1 ? 99 : bMetalIdx);
+                  });
 
-                        const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
-                        const isActive = normalize(activeColor) === normalize(metal) && normalize(activeKarat) === normalize(karat);
+                  const colorMap = {
+                    yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
+                    rose: "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)",
+                    white: "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)",
+                    platinum: "linear-gradient(154.03deg, #DDDDDD 27.25%, #FFFFFF 47.58%, #DDDDDD 74.61%)",
+                  };
 
-                        return (
-                          <GoldOption
-                            key={`${karat}-${metal}`}
-                            metal={metal.includes("-") ? metal.replace(" Gold", "") : metal}
-                            karat={karat}
-                            onClick={() => handleGoldSelection(metal, karat)}
-                            active={isActive}
-                            color={colorClass}
-                            inStock={isColorInStock(metal, karat)}
-                          />
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
+                  return (
+                    <div className="space-y-3">
+                      <div className="text-base font-bold">
+                        Select Gold Color & Karat: <span className="text-gray-500 font-medium ml-1">{activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        {combinations.map(({ karat, metal }) => {
+                          let colorClass = colorMap.yellow;
+                          const lowerMetal = metal.toLowerCase();
+                          if (lowerMetal.includes("yellow") && lowerMetal.includes("white")) {
+                            colorClass = "linear-gradient(to right, #c59922 50%, #dfdfdf 50%)";
+                          } else if (lowerMetal.includes("rose") && lowerMetal.includes("white")) {
+                            colorClass = "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)";
+                          } else if (lowerMetal.includes("white")) {
+                            colorClass = colorMap.white;
+                          } else if (lowerMetal.includes("rose")) {
+                            colorClass = colorMap.rose;
+                          } else if (lowerMetal.includes("platinum")) {
+                            colorClass = colorMap.platinum;
+                          }
+
+                          const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
+                          const isActive = normalize(activeColor) === normalize(metal) && normalize(activeKarat) === normalize(karat);
+
+                          return (
+                            <GoldOption
+                              key={`${karat}-${metal}`}
+                              metal={metal.includes("-") ? metal.replace(" Gold", "") : metal}
+                              karat={karat}
+                              onClick={() => handleGoldSelection(metal, karat)}
+                              active={isActive}
+                              color={colorClass}
+                              inStock={isColorInStock(metal, karat)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Ring Size */}
                 <div className="space-y-4">

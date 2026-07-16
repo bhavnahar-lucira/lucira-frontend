@@ -301,12 +301,20 @@ export default function CartSummary({ onPlaceOrder }) {
     });
   };
 
+  // The Eterna offer banner is only relevant when the cart contains at least one
+  // product tagged "embrace" (the Eterna Collection / EMBRACE3% eligible items).
+  const hasEmbraceItem = items.some(item =>
+    (item.tags || []).some(tag => String(tag).toLowerCase() === "embrace")
+  );
+
   return (
     <div className="space-y-4">
       {/* Mobile Eterna Offer Banner - ON TOP so it's visible first */}
-      <div className="lg:hidden w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
-        <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-      </div>
+      {hasEmbraceItem && (
+        <div className="lg:hidden w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+        </div>
+      )}
 
       {/* Desktop Pricing Breakdown (LG) */}
       <div className="hidden lg:block bg-white rounded-2xl p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
@@ -492,9 +500,11 @@ export default function CartSummary({ onPlaceOrder }) {
 
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
-        <div className="w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
-          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-        </div>
+        {hasEmbraceItem && (
+          <div className="w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
+          </div>
+        )}
         <Button 
           onClick={() => {
             // If user not logged in, fire promoClick and open login modal

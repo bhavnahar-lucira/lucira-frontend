@@ -1536,7 +1536,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       {/* Sticky Mobile Filter Bar & Sheets */}
       {isMobile && (
-        <div className="fixed bottom-4 left-4 right-4 z-[500] flex items-stretch rounded-full bg-[#5a413f] text-white shadow-[0_10px_30px_-8px_rgba(90,65,63,0.55)] ring-1 ring-white/10 overflow-hidden backdrop-blur-sm">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-60 z-[500] flex items-stretch rounded-full bg-[#5a413f] text-white shadow-[0_10px_30px_-8px_rgba(90,65,63,0.55)] ring-1 ring-white/10 overflow-hidden backdrop-blur-sm">
           <button onClick={() => setIsSortSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.8125rem] font-figtree font-semibold tracking-[0.08em] active:bg-white/10 transition-colors">
             <ArrowUpDown size={15} strokeWidth={2} className="opacity-90" /> Sort
           </button>
