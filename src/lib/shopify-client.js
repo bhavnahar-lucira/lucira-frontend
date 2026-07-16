@@ -107,6 +107,7 @@ export const CART_QUERY = `
                   id
                   title
                   handle
+                  tags
                 }
               }
             }

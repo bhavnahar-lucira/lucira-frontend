@@ -45,19 +45,6 @@ const COUPON_MAP = {
 
 const NITRO_ORG_ID = process.env.NEXT_PUBLIC_NITRO_ORG_ID;
 
-// Read the visitor's Nitro identifiers exposed by the Nitro browser script.
-// The S2S contact-details lookup needs BOTH the roaming (parent) id and the
-// nitro id. Returns nulls on the server or before the script has identified.
-function getNitroIds() {
-  if (typeof window === "undefined" || !window.nitro) {
-    return { nitroId: null, parentId: null };
-  }
-  return {
-    nitroId: window.nitro.NITRO_ID || null,
-    parentId: window.nitro.ROAMING_ID || null,
-  };
-}
-
 // User Profile Enrichment: tell Nitro this user consented (first-party) and
 // hand over the PII from a fresh pop-up submission so Nitro can stitch it to
 // its event stream and act as a one-click login next time. Best-effort only.
@@ -137,34 +124,6 @@ export function OtpSpinAuth({
   const [consent, setConsent] = useState(true);
   const [pendingRegister, setPendingRegister] = useState(false);
   const [isMobileVerified, setIsMobileVerified] = useState(false);
-
-  // Prefill phone/email from Nitro identity resolution (server-to-server).
-  // Covers BOTH the login and register inputs (they share `mobile` state).
-  // An explicit initialMobile prop always wins; we never overwrite what the user types.
-  useEffect(() => {
-    if (initialMobile) return; // caller supplied a number — respect it
-    const { nitroId, parentId } = getNitroIds();
-    if (!nitroId || !parentId) return; // Nitro script absent / visitor not identified
-
-    let cancelled = false;
-    (async () => {
-      try {
-        // Backend proxies Nitro's S2S contact-details API (holds the Bearer token).
-        const data = await apiFetch(
-          `/api/nitro/contact-details?nitroId=${encodeURIComponent(nitroId)}&parentId=${encodeURIComponent(parentId)}`
-        );
-        if (cancelled || !data) return;
-        const { phone, email: nitroEmail } = data;
-        if (phone && /^[6-9]\d{9}$/.test(phone)) {
-          setMobile((prev) => (prev ? prev : phone)); // don't clobber user input
-        }
-        if (nitroEmail && nitroEmail.includes("@")) {
-          setEmail((prev) => (prev ? prev : nitroEmail));
-        }
-      } catch (_) {}
-    })();
-    return () => { cancelled = true; };
-  }, [initialMobile]);
 
   const isSchemeFlow = pathname?.startsWith("/schemes") || 
                        (typeof window !== "undefined" && localStorage.getItem("auth_redirect_path")?.startsWith("/schemes"));

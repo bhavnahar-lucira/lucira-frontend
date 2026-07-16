@@ -97,6 +97,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
         title: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gold Coin" : node.merchandise.product.title,
         variantTitle: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gift" : node.merchandise.title,
         handle: node.merchandise.product.handle,
+        tags: node.merchandise.product.tags || [],
         sku: node.merchandise.sku,
         price: finalUnitPrice,
         comparePrice: node.merchandise.compareAtPrice ? Number(node.merchandise.compareAtPrice.amount) : null,

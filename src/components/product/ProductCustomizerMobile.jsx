@@ -75,16 +75,18 @@ export function ProductCustomizerMobile({
 
   return (
     <div className="space-y-4 mt-4 lg:hidden">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">
-          SIZE & CUSTOMIZATION
-        </h3>
-        <SizeGuideMobile nearestStore={nearestStore} availableStores={availableStores} availableStoreCount={availableStoreCount} deliveryInfo={deliveryInfo} getStoreDisplayName={getStoreDisplayName}>
-          <button className="text-sm font-medium text-[#A67C7C] hover:cursor-pointer">
-            Size Guide
-          </button>
-        </SizeGuideMobile>
-      </div>
+      {(combinations.length > 1 || (availableSizes.length > 1 && availableSizes[0] !== null && availableSizes[0] !== undefined)) && (
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">
+            SIZE & CUSTOMIZATION
+          </h3>
+          <SizeGuideMobile nearestStore={nearestStore} availableStores={availableStores} availableStoreCount={availableStoreCount} deliveryInfo={deliveryInfo} getStoreDisplayName={getStoreDisplayName}>
+            <button className="text-sm font-medium text-[#A67C7C] hover:cursor-pointer">
+              Size Guide
+            </button>
+          </SizeGuideMobile>
+        </div>
+      )}
 
       <div className="border border-gray-200 rounded p-3 bg-white">
         <div className="flex items-center justify-center gap-4 mb-4">
@@ -97,18 +99,24 @@ export function ProductCustomizerMobile({
               {activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}
             </span>
           </div>
-          <div className="w-px h-4 bg-gray-300"></div>
-          <div className="text-sm font-medium text-gray-900">
-            Size : {selectedSize} IND
-          </div>
+          {selectedSize && (
+            <>
+              <div className="w-px h-4 bg-gray-300"></div>
+              <div className="text-sm font-medium text-gray-900">
+                Size : {selectedSize} IND
+              </div>
+            </>
+          )}
         </div>
 
-        <button 
-          onClick={() => setIsOpen(true)}
-          className="w-full py-3 bg-tertiary rounded text-white font-bold text-sm uppercase tracking-widest"
-        >
-          CUSTOMIZE
-        </button>
+        {(combinations.length > 1 || (availableSizes.length > 1 && availableSizes[0] !== null && availableSizes[0] !== undefined)) && (
+          <button 
+            onClick={() => setIsOpen(true)}
+            className="w-full py-3 bg-tertiary rounded text-white font-bold text-sm uppercase tracking-widest"
+          >
+            CUSTOMIZE
+          </button>
+        )}
 
         <Sheet 
           isOpen={isOpen} 
@@ -132,13 +140,14 @@ export function ProductCustomizerMobile({
                     <span className="text-lg text-gray-500 line-through font-medium">&#8377;{currentComparePrice}</span>
                   </div>
                   {/* Gold Selection */}
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-bold uppercase tracking-wider">
-                      Select Gold Color & Karat:{" "}
-                      <span className="text-gray-600 normal-case font-medium ml-1">
-                        {activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}
-                      </span>
-                    </h4>
+                  {combinations.length > 1 && (
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-bold uppercase tracking-wider">
+                        Select Gold Color & Karat:{" "}
+                        <span className="text-gray-600 normal-case font-medium ml-1">
+                          {activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}
+                        </span>
+                      </h4>
                     <div className="grid grid-cols-3 gap-3">
                       {combinations.map(({ karat, metal }) => {
                         const normalize = (s) => String(s || "").toLowerCase().replace(/kt/g, "k").trim();
@@ -169,11 +178,12 @@ export function ProductCustomizerMobile({
                           </div>
                         );
                       })}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Ring Size */}
-                  {availableSizes.length > 0 &&
+                  {availableSizes.length > 1 &&
                     availableSizes[0] !== null &&
                     availableSizes[0] !== undefined && (
                       <div className="space-y-4 pb-4">
