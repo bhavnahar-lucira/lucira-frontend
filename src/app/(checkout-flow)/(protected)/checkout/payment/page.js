@@ -256,10 +256,14 @@ export default function PaymentPage() {
   const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
+  const summaryBreakdownRef = useRef(null);
 
   const scrollToSummary = () => {
-    if (summaryRef.current) {
-      summaryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Land on the price breakdown rather than the top of the section, which sits above
+    // the items and offers. Falls back to the section if the breakdown isn't rendered.
+    const target = summaryBreakdownRef.current || summaryRef.current;
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -1210,12 +1214,13 @@ export default function PaymentPage() {
 
                 {/* 3. Order Summary */}
                 <div ref={summaryRef}>
-                  <CheckoutSummary 
-                    showPoints={false} 
-                    showContact={false} 
+                  <CheckoutSummary
+                    showPoints={false}
+                    showContact={false}
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                     showSilverPendantOffer={false}
+                    breakdownRef={summaryBreakdownRef}
                   />
                 </div>
 

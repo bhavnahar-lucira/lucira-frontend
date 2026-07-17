@@ -43,7 +43,7 @@ export default function VideoPopup({ isOpen, onClose, videoData, initialIndex })
 
   if (isMobile) {
     return (
-      <div className="fixed inset-0 z-[500] bg-black flex flex-col outline-none overflow-hidden">
+      <div className="fixed inset-0 z-[600] bg-black flex flex-col outline-none overflow-hidden">
           <Swiper
             direction="vertical"
             modules={[Pagination]}
@@ -169,7 +169,7 @@ export default function VideoPopup({ isOpen, onClose, videoData, initialIndex })
 
   // Desktop remains the same
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-10">
+    <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-10">
       <div className="relative w-full max-w-5xl">
         <button className="popup-prev absolute -left-12 md:-left-20 top-1/2 -translate-y-1/2 z-[110] text-white hover:text-gray-300 transition-colors cursor-pointer outline-none">
           <ChevronLeft size={56} strokeWidth={1} />

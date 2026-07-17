@@ -830,10 +830,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     let styledAdded = false;
     products.forEach((prod, idx) => {
       if (!prod) return;
-      // First banner after 6 products, then repeat every 10 (6, 16, 26, ...).
-      // Creatives alternate A, B, A, B, ... on each appearance.
-      if (renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
-        const banner = INPAGE_BANNERS[bannerCount % INPAGE_BANNERS.length];
+      // First banner after 6 products, the second 10 later (6, 16). Each creative shows
+      // once and then stops — the row is not repeated further down the grid.
+      if (bannerCount < INPAGE_BANNERS.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
+        const banner = INPAGE_BANNERS[bannerCount];
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
             <Link prefetch={false} className="cursor-default" href={banner.href} onClick={(e) => e.preventDefault()}>
@@ -872,11 +872,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   height={28}
                   className="shrink-0 w-6 h-6 lg:w-7 lg:h-7 object-contain"
                 />
-                <span className="text-white font-figtree text-sm lg:text-base font-normal">
+                <span className="text-white font-figtree text-xs lg:text-base font-normal">
                   Free ₹500 on completing your profile
                 </span>
               </div>
-              <span className="flex items-center gap-1 text-white font-figtree text-sm lg:text-base underline underline-offset-2 whitespace-nowrap">
+              <span className="flex items-center gap-1 text-white font-figtree text-xs lg:text-base underline underline-offset-2 whitespace-nowrap">
                 Claim Now
                 <ChevronRight size={16} />
               </span>
@@ -906,13 +906,17 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         cellCount += 2;
       }
 
-      // Styled By Lucira — mobile only, full-width, once, ~6 products AFTER the
-      // recently-viewed row, on a full mobile row. The row hides itself if no videos.
+      // Styled By Lucira — mobile only, full-width, once, on a full mobile row. Normally
+      // sits ~6 products after the recently-viewed row, but takes the recently-viewed
+      // slot itself when the shopper has nothing recent to show there. The row hides
+      // itself if no videos.
+      const styledAnchorAt = recentlyViewedAdded ? recentlyViewedAt : rewardBannerAt;
       if (
         isMobile &&
-        recentlyViewedAdded &&
+        rewardBannerAdded &&
+        (recentlyViewedAdded || recentlyViewedProducts.length === 0) &&
         !styledAdded &&
-        renderedCount >= recentlyViewedAt + 6 &&
+        renderedCount >= styledAnchorAt + 6 &&
         cellCount % 2 === 0
       ) {
         styledAdded = true;
@@ -953,16 +957,53 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const countDisplay = useMemo(() => {
     const loaded = products.length;
-    // Fallback if API returns 0 total but we have products (common with filters)
-    const total = totalCount > 0 ? totalCount : (pagination.hasNextPage ? `${loaded}+` : loaded);
+    let total = loaded;
+    
+    if (totalCount > 0) {
+      total = totalCount;
+    } else {
+      let maxSelectedCount = 0;
+      Array.from(searchParams.entries()).forEach(([key, value]) => {
+        const values = value.split(',');
+        Object.values(availableFilters).forEach(options => {
+          if (!Array.isArray(options)) return;
+          options.forEach(opt => {
+            if (values.includes(opt.value) && opt.count > maxSelectedCount) {
+              maxSelectedCount = opt.count;
+            }
+          });
+        });
+      });
+      if (maxSelectedCount > 0) {
+        total = maxSelectedCount;
+      } else if (pagination.hasNextPage) {
+        total = `${loaded}+`;
+      }
+    }
     return `${loaded}/${total} Products`;
-  }, [products.length, totalCount, pagination.hasNextPage]);
+  }, [products.length, totalCount, pagination.hasNextPage, searchParams, availableFilters]);
 
   // Desktop count shown as a simple total, matching the design ("232 items")
   const itemCountDisplay = useMemo(() => {
-    const count = totalCount > 0 ? totalCount : products.length;
-    return `${count} ${count === 1 ? "item" : "items"}`;
-  }, [totalCount, products.length]);
+    if (totalCount > 0) return `${totalCount} ${totalCount === 1 ? "item" : "items"}`;
+    
+    let maxSelectedCount = 0;
+    Array.from(searchParams.entries()).forEach(([key, value]) => {
+      const values = value.split(',');
+      Object.values(availableFilters).forEach(options => {
+        if (!Array.isArray(options)) return;
+        options.forEach(opt => {
+          if (values.includes(opt.value) && opt.count > maxSelectedCount) {
+            maxSelectedCount = opt.count;
+          }
+        });
+      });
+    });
+    
+    if (maxSelectedCount > 0) return `${maxSelectedCount} ${maxSelectedCount === 1 ? "item" : "items"}`;
+    if (pagination.hasNextPage) return `${products.length}+ items`;
+    return `${products.length} ${products.length === 1 ? "item" : "items"}`;
+  }, [totalCount, products.length, pagination.hasNextPage, searchParams, availableFilters]);
 
   return (
     <div className="min-h-screen bg-white">

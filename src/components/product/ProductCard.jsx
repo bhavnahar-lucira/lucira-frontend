@@ -831,13 +831,13 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             Your browser does not support the video tag.
           </video>
 
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center z-[210]">
-            <Link 
-              href={`/products/${product.handle}`} 
+          <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 flex justify-center z-[210]">
+            <Link
+              href={`/products/${product.handle}`}
               onClick={() => setShowVideoPopup(false)}
-              className="bg-white/95 backdrop-blur-sm text-black border border-gray-100 px-8 py-3.5 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 hover:bg-white hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+              className="bg-white/95 backdrop-blur-sm text-black border border-gray-100 px-5 py-2.5 text-xs sm:px-8 sm:py-3.5 sm:text-sm rounded-full font-bold tracking-wide flex items-center gap-1.5 sm:gap-2 hover:bg-white hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
             >
-              View Details <ArrowRight size={16} />
+              View Details <ArrowRight size={14} className="sm:w-4 sm:h-4" />
             </Link>
           </div>
         </DialogContent>

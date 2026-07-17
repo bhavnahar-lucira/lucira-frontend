@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector } from "react-redux";
 import { Check, ArrowRight, Loader2, Gift } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, fetchCustomerDashboardStats } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
 import { pushPromoClick } from "@/lib/gtm";
 
@@ -447,18 +447,31 @@ export default function EarnRewardsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
-  /* ── Nector coins (via Next.js proxy — no CORS) ── */
+  /* ── Coins balance ──
+     Sourced from dashboard-stats so this badge always agrees with the
+     Loyalty Points figure on the account overview. */
   async function fetchCoins() {
     setCoinsLoading(true);
     try {
-      const headers = accessToken ? { "Authorization": `Bearer ${accessToken}` } : {};
-      const data = await apiFetch("/api/customer/nector-coins", { 
-        cache: "no-store",
-        headers
-      });
-      if (data?.status !== false) setNectorCoins(data.coins_balance ?? 0);
+      const stats = await fetchCustomerDashboardStats(accessToken);
+      const points = Number(String(stats?.points ?? "").replace(/,/g, ""));
+      if (Number.isFinite(points)) {
+        setNectorCoins(points);
+        return;
+      }
+      throw new Error("dashboard-stats returned no usable points value");
     } catch (e) {
-      console.warn("Nector proxy error:", e);
+      console.warn("[Rewards] dashboard-stats coins fetch failed, falling back to nector-coins:", e);
+      try {
+        const headers = accessToken ? { "Authorization": `Bearer ${accessToken}` } : {};
+        const data = await apiFetch("/api/customer/nector-coins", {
+          cache: "no-store",
+          headers
+        });
+        if (data?.status !== false) setNectorCoins(data.coins_balance ?? 0);
+      } catch (err) {
+        console.warn("Nector proxy error:", err);
+      }
     } finally {
       setCoinsLoading(false);
     }
