@@ -2036,6 +2036,33 @@
                     }
                   },
                   "items": []
+                },
+                {
+                  "title": "Gold Rings",
+                  "url": "https://www.lucirajewelry.com/collections/gold-rings",
+                  "resource": {
+                    "__typename": "Collection",
+                    "handle": "gold-rings",
+                    "productsCount": {
+                      "count": 15
+                    },
+                    "image": null,
+                    "metafields": {
+                      "nodes": [
+                        {
+                          "namespace": "custom",
+                          "key": "menu_links_image_icon",
+                          "value": "gid://shopify/MediaImage/41983087149274",
+                          "reference": {
+                            "image": {
+                              "url": "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Gold_Rings_More_Jewelry_F2.png?v=1777356978"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "items": []
                 }
               ]
             },
@@ -3155,6 +3182,33 @@
                           "reference": {
                             "image": {
                               "url": "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mens_Shop_by_Style_Earrings_F2.png?v=1777550605"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "items": []
+                },
+                {
+                  "title": "Gold Earrings",
+                  "url": "https://www.lucirajewelry.com/collections/gold-earrings",
+                  "resource": {
+                    "__typename": "Collection",
+                    "handle": "gold-earrings",
+                    "productsCount": {
+                      "count": 35
+                    },
+                    "image": null,
+                    "metafields": {
+                      "nodes": [
+                        {
+                          "namespace": "custom",
+                          "key": "menu_links_image_icon",
+                          "value": "gid://shopify/MediaImage/41983087182042",
+                          "reference": {
+                            "image": {
+                              "url": "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/GOLDEA_1.png?v=1777356978"
                             }
                           }
                         }

@@ -28,6 +28,7 @@ export default function CartPage() {
   const { items, totalQuantity, totalAmount, appliedCoupon } = useSelector((state) => state.cart);  
   const { user, isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
+  const summaryBreakdownRef = useRef(null);
 
   const [socialProof, setSocialProof] = useState({});
 
@@ -63,8 +64,11 @@ export default function CartPage() {
   }, [items, totalAmount, appliedCoupon]);
 
   const scrollToSummary = () => {
-    if (summaryRef.current) {
-      summaryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Land on the order summary rather than the top of the column, which sits above
+    // the offer banner. Falls back to the column if the summary isn't rendered.
+    const target = summaryBreakdownRef.current || summaryRef.current;
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -200,7 +204,7 @@ const filteredItems = items.filter(
             
             <div className="relative z-10 pt-0 pb-28 lg:py-10 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
               <div className="lg:sticky lg:top-6">
-                <CartSummary onPlaceOrder={handlePlaceOrder} />
+                <CartSummary onPlaceOrder={handlePlaceOrder} breakdownRef={summaryBreakdownRef} />
               </div>
             </div>
           </div>

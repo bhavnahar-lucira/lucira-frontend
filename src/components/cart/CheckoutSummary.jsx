@@ -18,15 +18,16 @@ const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 
-export default function CheckoutSummary({ 
-  showItems = true, 
-  showBreakdown = true, 
-  showPoints = true, 
+export default function CheckoutSummary({
+  showItems = true,
+  showBreakdown = true,
+  showPoints = true,
   showContact = true,
   className = "",
   isSilverPendantClaimed = false,
   onToggleSilverPendant = () => {},
-  showSilverPendantOffer = false
+  showSilverPendantOffer = false,
+  breakdownRef = null
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
@@ -363,6 +364,14 @@ export default function CheckoutSummary({
       }
       // Coupon applied successfully.
       firePromoClick("Eterna Coupon Applied");
+      
+      if (nectorPoints) {
+        dispatch(removePoints());
+        toast.info("Loyalty points removed as a coupon is applied.", {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
+
       dispatch(applyCoupon({
         code: data.code,
         summary: data.summary,
@@ -518,7 +527,7 @@ export default function CheckoutSummary({
       {showBreakdown && displayItems.length > 0 && (isEternaApplied || eternaEligible) && eternaBannerContent}
 
       {showBreakdown && (
-        <div className="space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
+        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
           <div className="flex justify-between text-sm text-zinc-600">
             <span>Subtotal</span>
             <span className="font-medium text-zinc-900">₹{originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -569,7 +578,7 @@ export default function CheckoutSummary({
             </div>
           )}
           {nectorPoints && (
-            <div className="flex lg:hidden justify-between text-sm text-[#189351]">
+            <div className="flex justify-between text-sm text-[#189351]">
               <span className="font-bold uppercase tracking-wider">Redeemed {nectorPoints.coin_value} coins</span>
               <span className="font-bold">- ₹ {nectorPoints.fiat_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>

@@ -868,12 +868,14 @@ const cartSlice = createSlice({
     },
     applyCoupon: (state, action) => {
       state.appliedCoupon = action.payload;
+      state.nectorPoints = null; // Enforce only one discount type
     },
     removeCoupon: (state) => {
       state.appliedCoupon = null;
     },
     applyPoints: (state, action) => {
       state.nectorPoints = action.payload;
+      state.appliedCoupon = null; // Enforce only one discount type
     },
     removePoints: (state) => {
       state.nectorPoints = null;

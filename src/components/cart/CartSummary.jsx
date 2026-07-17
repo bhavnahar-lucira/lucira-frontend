@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import InsuranceOption from "./InsuranceOption";
 import GoldCoinOption, { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
 import { useCart } from "@/hooks/useCart";
-import { applyCoupon, removeCoupon } from "@/redux/features/cart/cartSlice";
+import { applyCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import { apiFetch } from "@/lib/api";
@@ -22,14 +22,14 @@ import { apiFetch } from "@/lib/api";
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 
-export default function CartSummary({ onPlaceOrder }) {
+export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const dispatch = useDispatch();
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [isCouponSheetOpen, setIsCouponSheetOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplying, setIsApplying] = useState(false);
   
-  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart } = useCart();
+  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: true, threshold: 20000 });
@@ -273,6 +273,13 @@ export default function CartSummary({ onPlaceOrder }) {
         toast.error('This coupon is valid only on Eterna Collection products.');
         return;
       }
+      if (nectorPoints) {
+        dispatch(removePoints());
+        toast.info("Loyalty points removed as a coupon is applied.", {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
+
       dispatch(applyCoupon({
         code: data.code,
         summary: data.summary,
@@ -366,7 +373,7 @@ export default function CartSummary({ onPlaceOrder }) {
       </div>
 
       {/* Mobile Order Summary (LG Hidden) */}
-      <div className="lg:hidden space-y-4">
+      <div ref={breakdownRef} className="lg:hidden scroll-mt-20 space-y-4">
         <h3 className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
         <div className="bg-white rounded-2xl p-6 space-y-4 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
           <div className="space-y-3">
