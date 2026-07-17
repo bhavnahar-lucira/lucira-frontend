@@ -22,8 +22,7 @@ import {
 } from "@/components/ui/select";
 
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
-import { formatSocialCount, buildSocialMetrics, SOCIAL_BADGE_STYLES } from "@/lib/socialProof";
-import SocialBadgeIcon from "@/components/common/SocialBadgeIcon";
+import SocialProofBand from "@/components/common/SocialProofBand";
 
 // Builds the WhatsApp "schedule video call" link, including the product name for context.
 function buildVideoCallUrl(productName, sku) {
@@ -83,42 +82,8 @@ function ViewLiveStrip({ productName, sku }) {
   );
 }
 
-// Social-proof amplify/format/build logic lives in "@/lib/socialProof" so the cart
-// and the product page stay in sync. The cart uses the default labels.
-
-// FOMO band that rotates one-at-a-time through the available metrics.
-// Icons, colours and labels are shared with the product page (SocialBadgeIcon + "@/lib/socialProof").
-function SocialProofBand({ socialProof, compact = false, className = "" }) {
-  const metrics = useMemo(() => buildSocialMetrics(socialProof), [socialProof]);
-  const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    setIdx(0);
-    if (metrics.length <= 1) return;
-    const timer = setInterval(() => {
-      setIdx((i) => (i + 1) % metrics.length);
-    }, 2600);
-    return () => clearInterval(timer);
-  }, [metrics.length]);
-
-  if (metrics.length === 0) return null;
-
-  const m = metrics[Math.min(idx, metrics.length - 1)];
-
-  return (
-    <div
-      className={`w-fit max-w-[calc(100%-16px)] overflow-hidden rounded-full backdrop-blur-sm ${compact ? "px-2.5 py-1" : "px-3 py-1.5"} ${className}`}
-      style={SOCIAL_BADGE_STYLES[m.key]}
-    >
-      <div key={m.key} className="flex items-center gap-1.5 min-w-0 animate-in fade-in slide-in-from-bottom-1 duration-500">
-        <SocialBadgeIcon type={m.key} className={compact ? "[&_svg]:h-[13px] [&_svg]:w-auto" : "[&_svg]:h-[15px] [&_svg]:w-auto"} />
-        <span className={`font-semibold truncate ${compact ? "text-[11px]" : "text-[13px]"}`}>
-          {formatSocialCount(m.value)} {m.label}
-        </span>
-      </div>
-    </div>
-  );
-}
+// Rotation, icons, colours and labels live in the shared band
+// ("@/components/common/SocialProofBand") so the cart and the product page stay in sync.
 
 export default function CartItem({ item, onAuthRequired, socialProof }) {
   const dispatch = useDispatch();
@@ -431,7 +396,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   return (
     <>
       {/* DESKTOP DESIGN */}
-      <div className="hidden lg:block mb-6 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-sm">
+      <div className="hidden lg:block mb-6 overflow-hidden rounded-card border border-zinc-100 bg-white shadow-sm">
         <div className="relative flex flex-col gap-6 p-4 md:flex-row md:p-6">
           {updating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
@@ -441,7 +406,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
           <Link prefetch={false}
             href={productLink}
-            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
+            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-card border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
           >
             <Image
               loader={isShopifyImage ? shopifyLoader : undefined}
@@ -452,7 +417,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               className="h-auto w-full object-contain mix-blend-multiply"
               style={{ color: 'transparent' }}
             />
-            <SocialProofBand socialProof={socialProof} className="absolute left-1/2 -translate-x-1/2 bottom-2 z-10 shadow-sm" />
+            <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10 shadow-sm" />
           </Link>
 
           <div className="grow space-y-4">
@@ -685,7 +650,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
       </div>
 
       {/* MOBILE DESIGN (< 1024px) */}
-      <div className="lg:hidden mb-4 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+      <div className="lg:hidden mb-4 overflow-hidden rounded-card border border-zinc-100 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
         <div className="relative p-4">
           {updating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
@@ -695,7 +660,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
           <div className="flex gap-4">
             {/* Image Container */}
-            <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-sm border border-zinc-100 bg-[#F9F9F9]">
+            <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-card border border-zinc-100 bg-[#F9F9F9]">
               <Link prefetch={false} href={productLink} className="block h-full w-full p-2">
                 <Image
                   loader={isShopifyImage ? shopifyLoader : undefined}
@@ -709,7 +674,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white/90 border border-zinc-100 px-1.5 py-0.5 text-[8px] font-bold uppercase ${statusClass}`}>
                 {statusLabel}
               </span>
-              <SocialProofBand socialProof={socialProof} compact className="absolute left-1/2 -translate-x-1/2 bottom-1.5 z-10 shadow-sm" />
+              <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10 shadow-sm" />
             </div>
 
             {/* Info Content */}
