@@ -221,7 +221,7 @@ const filteredItems = items.filter(
           </div>
           <Button
             onClick={handlePlaceOrder}
-            className="flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-14 px-3 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap"
+            className="flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-14 px-3 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer"
           >
             Proceed To Checkout
           </Button>

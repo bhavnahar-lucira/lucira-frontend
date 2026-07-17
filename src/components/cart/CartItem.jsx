@@ -23,6 +23,7 @@ import {
 
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
 import SocialProofBand from "@/components/common/SocialProofBand";
+import { formatMetal, realSize, sizeLabelFor } from "@/lib/metal";
 
 // Builds the WhatsApp "schedule video call" link, including the product name for context.
 function buildVideoCallUrl(productName, sku) {
@@ -385,10 +386,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
     }
   };
 
-  const lowerTitle = (item.title || "").toLowerCase();
-  const sizeLabel = lowerTitle.includes("ring") ? "Ring Size" :
-    (lowerTitle.includes("bracelet") || lowerTitle.includes("bangle")) ? "Wrist Size" :
-      lowerTitle.includes("necklace") ? "Length" : "Size";
+  const sizeLabel = sizeLabelFor(item.title);
+  // Pendants/studs have no size option — their variant option is the metal itself
+  // ("9KT Yellow Gold"), which belongs in the Metal row, not a Size row.
+  const displaySize = realSize(item.size);
 
   const variantIdForUrl = item.variantId ? String(item.variantId).split('/').pop() : "";
   const productLink = item.handle ? `/products/${item.handle}${variantIdForUrl ? `?variant=${variantIdForUrl}` : ""}` : "#";
@@ -517,7 +518,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 1: Size & Quantity */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
-                {item.size ? (
+                {displaySize ? (
                   <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
                     {sizeLabel}
                   </div>
@@ -528,7 +529,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 )}
 
                 <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2">
-                  {item.size && (
+                  {displaySize && (
                     <div className="flex items-center min-w-[60px]">
                       {canEditSize ? (
                         <Select
@@ -548,15 +549,15 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="font-medium">{item.size}</span>
+                        <span className="font-medium">{displaySize}</span>
                       )}
                     </div>
                   )}
 
-                  {item.size && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
+                  {displaySize && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
 
                   <div className="flex items-center gap-2">
-                    {item.size && <span className="text-zinc-500 font-normal">Quantity</span>}
+                    {displaySize && <span className="text-zinc-500 font-normal">Quantity</span>}
                     {canEditQuantity ? (
                       <Select
                         value={String(item.quantity)}
@@ -581,19 +582,13 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 </div>
               </div>
 
-              {/* Row 2: Metal */}
+              {/* Row 2: Metal (+ net weight, when the variant carries one) */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
                 <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
-                  Metal
+                  {item.goldWeight ? "Metal / Net Wt" : "Metal"}
                 </div>
                 <div className="flex-1 bg-white px-4 py-2 flex items-center">
-                  {(() => {
-                    const k = String(item.karat || "").trim();
-                    const c = String(item.color || "").trim();
-                    if (!k) return c;
-                    if (c.toLowerCase().includes(k.toLowerCase())) return c;
-                    return `${k} ${c}`;
-                  })()}
+                  {formatMetal(item.karat, item.color)}
                   {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
                 </div>
               </div>
@@ -704,19 +699,13 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               )}
               <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-tight">
                 Metal: <span className="text-zinc-900">
-                  {(() => {
-                    const k = String(item.karat || "").trim();
-                    const c = String(item.color || "").trim();
-                    if (!k) return c;
-                    if (c.toLowerCase().includes(k.toLowerCase())) return c;
-                    return `${k} ${c}`;
-                  })()}
+                  {formatMetal(item.karat, item.color)}
                 </span>
               </p>
 
               {/* Selectors */}
               <div className="flex items-center gap-3 pt-1 flex-wrap">
-                {item.size && (
+                {displaySize && (
                   <div className="flex items-center gap-0.5">
                     <span className="text-[13px] text-zinc-800 font-medium">
                       {sizeLabel.replace(" Size", "")}:
@@ -739,7 +728,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="text-[13px] font-bold text-zinc-800">{item.size}</span>
+                      <span className="text-[13px] font-bold text-zinc-800">{displaySize}</span>
                     )}
                   </div>
                 )}

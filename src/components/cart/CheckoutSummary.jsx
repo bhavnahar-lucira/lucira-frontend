@@ -11,6 +11,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { applyPoints, removePoints, applyCoupon } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
+import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 
@@ -459,7 +460,7 @@ export default function CheckoutSummary({
                       <h3 className="text-sm font-medium text-zinc-800 leading-tight transition-colors">{item.title}</h3>
                       <div className="flex flex-col gap-0.5">
                         <p className="text-xs text-zinc-500 font-medium uppercase tracking-tight">
-                          Metal: <span className="text-zinc-800">{item.karat} {item.color}</span>
+                          Metal: <span className="text-zinc-800">{formatMetal(item.karat, item.color)}</span>
                         </p>
                         <p className="text-xs text-zinc-500">Quantity: {item.quantity}</p>
                       </div>
