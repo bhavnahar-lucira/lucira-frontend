@@ -1,26 +1,48 @@
 "use client";
 
-import { ShoppingBag, ShoppingCart, Heart } from "lucide-react";
-import { ORDERS_ICON_SVG, CART_ICON_SVG, WISHLIST_ICON_SVG } from "@/lib/socialProofIcons";
+import { useEffect } from "react";
 
-const ICON_SVG = { orders: ORDERS_ICON_SVG, cart: CART_ICON_SVG, wishlist: WISHLIST_ICON_SVG };
+// Badge artwork for the social-proof band, shared by the product page and the
+// checkout cart. Hosted on the Shopify CDN; the colours are baked into each PNG
+// to match its badge (see SOCIAL_BADGE_STYLES in "@/lib/socialProof").
+const ICON_SRC = {
+  orders:
+    "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/orders.png?v=1784271964",
+  cart: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/cart_6fdf02a3-06a1-4db8-ab57-61f5f70d1acf.png?v=1784271963",
+  wishlist:
+    "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/wishlist.png?v=1784271963",
+};
 
-// Renders the custom social-proof badge icon for a metric type, shared by the
-// product page and the checkout cart. Falls back to a matching lucide icon if the
-// custom SVG hasn't been provided. `className` controls sizing (e.g. "[&_svg]:h-3").
-export default function SocialBadgeIcon({ type, className = "" }) {
-  const svg = ICON_SVG[type];
-  if (svg && svg.trim()) {
-    return (
-      <span
-        aria-hidden="true"
-        className={`inline-flex shrink-0 ${className}`}
-        dangerouslySetInnerHTML={{ __html: svg }}
-      />
-    );
+// The band rotates metrics every 2.6s, so the 2nd and 3rd icons are requested
+// long after first paint and would pop in late. Fetch all three once per page.
+let warmed = false;
+function warmIconCache() {
+  if (warmed || typeof window === "undefined") return;
+  warmed = true;
+  for (const src of Object.values(ICON_SRC)) {
+    const img = new window.Image();
+    img.src = src;
   }
-  const fallbackCls = "h-3 w-auto shrink-0";
-  if (type === "wishlist") return <Heart className={fallbackCls} fill="currentColor" />;
-  if (type === "orders") return <ShoppingBag className={fallbackCls} />;
-  return <ShoppingCart className={fallbackCls} />;
+}
+
+// `className` controls sizing and is applied to the icon itself, e.g. "h-3 w-auto".
+// `animate` plays this metric's entry gesture; the band keeps every metric mounted, so
+// only the visible one should gesture. Re-adding the class on rotation replays it.
+export default function SocialBadgeIcon({ type, className = "", animate = true }) {
+  useEffect(warmIconCache, []);
+
+  const src = ICON_SRC[type];
+  if (!src) return null;
+
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      decoding="async"
+      fetchPriority="low"
+      className={`shrink-0 select-none social-badge-icon ${animate ? `social-badge-icon--${type}` : ""} ${className}`}
+    />
+  );
 }

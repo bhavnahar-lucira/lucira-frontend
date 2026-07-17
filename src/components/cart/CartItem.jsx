@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/select";
 
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
-import { formatSocialCount, buildSocialMetrics, SOCIAL_BADGE_STYLES } from "@/lib/socialProof";
-import SocialBadgeIcon from "@/components/common/SocialBadgeIcon";
+import SocialProofBand from "@/components/common/SocialProofBand";
+import { formatMetal, realSize, sizeLabelFor } from "@/lib/metal";
 
 // Builds the WhatsApp "schedule video call" link, including the product name for context.
 function buildVideoCallUrl(productName, sku) {
@@ -83,42 +83,8 @@ function ViewLiveStrip({ productName, sku }) {
   );
 }
 
-// Social-proof amplify/format/build logic lives in "@/lib/socialProof" so the cart
-// and the product page stay in sync. The cart uses the default labels.
-
-// FOMO band that rotates one-at-a-time through the available metrics.
-// Icons, colours and labels are shared with the product page (SocialBadgeIcon + "@/lib/socialProof").
-function SocialProofBand({ socialProof, compact = false, className = "" }) {
-  const metrics = useMemo(() => buildSocialMetrics(socialProof), [socialProof]);
-  const [idx, setIdx] = useState(0);
-
-  useEffect(() => {
-    setIdx(0);
-    if (metrics.length <= 1) return;
-    const timer = setInterval(() => {
-      setIdx((i) => (i + 1) % metrics.length);
-    }, 2600);
-    return () => clearInterval(timer);
-  }, [metrics.length]);
-
-  if (metrics.length === 0) return null;
-
-  const m = metrics[Math.min(idx, metrics.length - 1)];
-
-  return (
-    <div
-      className={`w-fit max-w-[calc(100%-16px)] overflow-hidden rounded-full backdrop-blur-sm ${compact ? "px-2.5 py-1" : "px-3 py-1.5"} ${className}`}
-      style={SOCIAL_BADGE_STYLES[m.key]}
-    >
-      <div key={m.key} className="flex items-center gap-1.5 min-w-0 animate-in fade-in slide-in-from-bottom-1 duration-500">
-        <SocialBadgeIcon type={m.key} className={compact ? "[&_svg]:h-[13px] [&_svg]:w-auto" : "[&_svg]:h-[15px] [&_svg]:w-auto"} />
-        <span className={`font-semibold truncate ${compact ? "text-[11px]" : "text-[13px]"}`}>
-          {formatSocialCount(m.value)} {m.label}
-        </span>
-      </div>
-    </div>
-  );
-}
+// Rotation, icons, colours and labels live in the shared band
+// ("@/components/common/SocialProofBand") so the cart and the product page stay in sync.
 
 export default function CartItem({ item, onAuthRequired, socialProof }) {
   const dispatch = useDispatch();
@@ -420,10 +386,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
     }
   };
 
-  const lowerTitle = (item.title || "").toLowerCase();
-  const sizeLabel = lowerTitle.includes("ring") ? "Ring Size" :
-    (lowerTitle.includes("bracelet") || lowerTitle.includes("bangle")) ? "Wrist Size" :
-      lowerTitle.includes("necklace") ? "Length" : "Size";
+  const sizeLabel = sizeLabelFor(item.title);
+  // Pendants/studs have no size option — their variant option is the metal itself
+  // ("9KT Yellow Gold"), which belongs in the Metal row, not a Size row.
+  const displaySize = realSize(item.size);
 
   const variantIdForUrl = item.variantId ? String(item.variantId).split('/').pop() : "";
   const productLink = item.handle ? `/products/${item.handle}${variantIdForUrl ? `?variant=${variantIdForUrl}` : ""}` : "#";
@@ -431,7 +397,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   return (
     <>
       {/* DESKTOP DESIGN */}
-      <div className="hidden lg:block mb-6 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-sm">
+      <div className="hidden lg:block mb-6 overflow-hidden rounded-card border border-zinc-100 bg-white shadow-sm">
         <div className="relative flex flex-col gap-6 p-4 md:flex-row md:p-6">
           {updating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
@@ -441,7 +407,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
           <Link prefetch={false}
             href={productLink}
-            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-sm border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
+            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-card border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
           >
             <Image
               loader={isShopifyImage ? shopifyLoader : undefined}
@@ -452,7 +418,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               className="h-auto w-full object-contain mix-blend-multiply"
               style={{ color: 'transparent' }}
             />
-            <SocialProofBand socialProof={socialProof} className="absolute left-1/2 -translate-x-1/2 bottom-2 z-10 shadow-sm" />
+            <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10 shadow-sm" />
           </Link>
 
           <div className="grow space-y-4">
@@ -552,7 +518,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 1: Size & Quantity */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
-                {item.size ? (
+                {displaySize ? (
                   <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
                     {sizeLabel}
                   </div>
@@ -563,7 +529,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 )}
 
                 <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2">
-                  {item.size && (
+                  {displaySize && (
                     <div className="flex items-center min-w-[60px]">
                       {canEditSize ? (
                         <Select
@@ -583,15 +549,15 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="font-medium">{item.size}</span>
+                        <span className="font-medium">{displaySize}</span>
                       )}
                     </div>
                   )}
 
-                  {item.size && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
+                  {displaySize && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
 
                   <div className="flex items-center gap-2">
-                    {item.size && <span className="text-zinc-500 font-normal">Quantity</span>}
+                    {displaySize && <span className="text-zinc-500 font-normal">Quantity</span>}
                     {canEditQuantity ? (
                       <Select
                         value={String(item.quantity)}
@@ -616,19 +582,13 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 </div>
               </div>
 
-              {/* Row 2: Metal */}
+              {/* Row 2: Metal (+ net weight, when the variant carries one) */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
                 <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
-                  Metal
+                  {item.goldWeight ? "Metal / Net Wt" : "Metal"}
                 </div>
                 <div className="flex-1 bg-white px-4 py-2 flex items-center">
-                  {(() => {
-                    const k = String(item.karat || "").trim();
-                    const c = String(item.color || "").trim();
-                    if (!k) return c;
-                    if (c.toLowerCase().includes(k.toLowerCase())) return c;
-                    return `${k} ${c}`;
-                  })()}
+                  {formatMetal(item.karat, item.color)}
                   {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
                 </div>
               </div>
@@ -685,7 +645,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
       </div>
 
       {/* MOBILE DESIGN (< 1024px) */}
-      <div className="lg:hidden mb-4 overflow-hidden rounded-lg border border-zinc-100 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
+      <div className="lg:hidden mb-4 overflow-hidden rounded-card border border-zinc-100 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
         <div className="relative p-4">
           {updating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
@@ -695,7 +655,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
           <div className="flex gap-4">
             {/* Image Container */}
-            <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-sm border border-zinc-100 bg-[#F9F9F9]">
+            <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-card border border-zinc-100 bg-[#F9F9F9]">
               <Link prefetch={false} href={productLink} className="block h-full w-full p-2">
                 <Image
                   loader={isShopifyImage ? shopifyLoader : undefined}
@@ -709,7 +669,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white/90 border border-zinc-100 px-1.5 py-0.5 text-[8px] font-bold uppercase ${statusClass}`}>
                 {statusLabel}
               </span>
-              <SocialProofBand socialProof={socialProof} compact className="absolute left-1/2 -translate-x-1/2 bottom-1.5 z-10 shadow-sm" />
+              <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10 shadow-sm" />
             </div>
 
             {/* Info Content */}
@@ -739,19 +699,13 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               )}
               <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-tight">
                 Metal: <span className="text-zinc-900">
-                  {(() => {
-                    const k = String(item.karat || "").trim();
-                    const c = String(item.color || "").trim();
-                    if (!k) return c;
-                    if (c.toLowerCase().includes(k.toLowerCase())) return c;
-                    return `${k} ${c}`;
-                  })()}
+                  {formatMetal(item.karat, item.color)}
                 </span>
               </p>
 
               {/* Selectors */}
               <div className="flex items-center gap-3 pt-1 flex-wrap">
-                {item.size && (
+                {displaySize && (
                   <div className="flex items-center gap-0.5">
                     <span className="text-[13px] text-zinc-800 font-medium">
                       {sizeLabel.replace(" Size", "")}:
@@ -774,7 +728,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="text-[13px] font-bold text-zinc-800">{item.size}</span>
+                      <span className="text-[13px] font-bold text-zinc-800">{displaySize}</span>
                     )}
                   </div>
                 )}

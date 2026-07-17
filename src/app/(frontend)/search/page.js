@@ -301,9 +301,12 @@ export default function SearchPage() {
                         return (
                           <div key={groupKey} className="border-b mb-0">
                             <button onClick={() => setExpandedFilters(prev => ({...prev, [groupKey]: !prev[groupKey]}))} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-medium text-sm capitalize">{groupKey}</h4><ChevronDown size={18} className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                            {/* Shopify can return two facet values that reduce to the same `value`
+                                (e.g. a raw metafield value and a Search & Discovery filter group
+                                sharing a label), so `value` alone is not a unique key. */}
                             {isExpanded && Array.isArray(options) && (
-                              <div className="space-y-4 my-2 pb-5">{options.map(opt => (
-                                <div key={opt.value} className="flex items-start gap-3 text-sm">
+                              <div className="space-y-4 my-2 pb-5">{options.map((opt, optIdx) => (
+                                <div key={`${groupKey}-${opt.value}-${optIdx}`} className="flex items-start gap-3 text-sm">
                                   <input type="checkbox" checked={searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)} onChange={() => toggleFilter(opt.urlKey || groupKey, opt.value)} className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer" />
                                   <label className="flex-1 cursor-pointer flex justify-between"><span>{opt.label}</span><span className="text-gray-400 text-xs">({opt.count})</span></label>
                                 </div>

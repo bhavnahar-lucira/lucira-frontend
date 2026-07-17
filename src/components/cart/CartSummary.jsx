@@ -301,6 +301,31 @@ export default function CartSummary({ onPlaceOrder }) {
     });
   };
 
+  // Shared by the "Proceed To Checkout" CTA and the Eterna offer banner, which is a
+  // shortcut to the same action ("Proceed to payment to unlock"), so the two can't drift.
+  const handleProceedToCheckout = () => {
+    // If user not logged in, fire promoClick and open login modal
+    if (!user) {
+      const firstItem = items && items.length > 0 ? items[0] : null;
+      const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+      const promoData = {
+        creative_name: "cart page login popup",
+        promo_id: firstItem?.sku || variantId || "",
+        item_id: variantId || "",
+        promo_position: "Cart Page",
+      };
+      try {
+        pushPromoClick(promoData);
+      } catch (e) {
+        // swallow errors from analytics
+        console.error('promo push failed', e);
+      }
+      openLogin();
+      return;
+    }
+    onPlaceOrder();
+  };
+
   // The Eterna offer banner is only relevant when the cart contains at least one
   // product tagged "embrace" (the Eterna Collection / EMBRACE3% eligible items).
   const hasEmbraceItem = items.some(item =>
@@ -311,9 +336,14 @@ export default function CartSummary({ onPlaceOrder }) {
     <div className="space-y-4">
       {/* Mobile Eterna Offer Banner - ON TOP so it's visible first */}
       {hasEmbraceItem && (
-        <div className="lg:hidden w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+        <button
+          type="button"
+          onClick={handleProceedToCheckout}
+          aria-label="Proceed to checkout to unlock the Eterna Collection bank discount"
+          className="lg:hidden block w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] cursor-pointer transition-opacity active:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5A413F]"
+        >
           <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-        </div>
+        </button>
       )}
 
       {/* Desktop Pricing Breakdown (LG) */}
@@ -501,34 +531,18 @@ export default function CartSummary({ onPlaceOrder }) {
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
         {hasEmbraceItem && (
-          <div className="w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+          <button
+            type="button"
+            onClick={handleProceedToCheckout}
+            aria-label="Proceed to checkout to unlock the Eterna Collection bank discount"
+            className="block w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] cursor-pointer transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5A413F]"
+          >
             <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-          </div>
+          </button>
         )}
-        <Button 
-          onClick={() => {
-            // If user not logged in, fire promoClick and open login modal
-            if (!user) {
-              const firstItem = items && items.length > 0 ? items[0] : null;
-              const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
-              const promoData = {
-                creative_name: "cart page login popup",
-                promo_id: firstItem?.sku || variantId || "",
-                item_id: variantId || "",
-                promo_position: "Cart Page",
-              };
-              try {
-                pushPromoClick(promoData);
-              } catch (e) {
-                // swallow errors from analytics
-                console.error('promo push failed', e);
-              }
-              openLogin();
-              return;
-            }
-            onPlaceOrder();
-          }}
-          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white"
+        <Button
+          onClick={handleProceedToCheckout}
+          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer"
         >
           Proceed To Checkout
         </Button>
