@@ -39,7 +39,7 @@ import VideoPopup from "@/components/home/VideoPopup";
 import { Play } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
-const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar"];
+const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar", "lajpat-nagar-store"];
 
 const STORE_IMAGES = {
   "pune-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg"],
@@ -48,6 +48,8 @@ const STORE_IMAGES = {
   "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
   "malad": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg"],
   "paschim-vihar": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
+  // TODO(lajpat-nagar): replace with the actual Lajpat Nagar store image URL.
+  "lajpat-nagar-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
 };
 
 // Define custom collection banners here (e.g. to bypass the default pink layout with full-width images)
@@ -872,11 +874,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   height={28}
                   className="shrink-0 w-6 h-6 lg:w-7 lg:h-7 object-contain"
                 />
-                <span className="text-white font-figtree text-sm lg:text-base font-normal">
+                <span className="text-white font-figtree text-xs lg:text-sm font-normal">
                   Free ₹500 on completing your profile
                 </span>
               </div>
-              <span className="flex items-center gap-1 text-white font-figtree text-sm lg:text-base underline underline-offset-2 whitespace-nowrap">
+              <span className="flex items-center gap-1 text-white font-figtree text-xs lg:text-sm underline underline-offset-2 whitespace-nowrap">
                 Claim Now
                 <ChevronRight size={16} />
               </span>

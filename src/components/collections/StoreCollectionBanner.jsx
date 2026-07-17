@@ -170,6 +170,35 @@ const STORES_DATA = {
     ],
     address: "B-8, Shubham Enclave, Paschim Vihar, New Delhi -110063.",
   },
+  "lajpat-nagar-store": {
+    city: "Lajpat Nagar",
+    name: "Lajpat Nagar Lucira Store",
+    rating: 4.8,
+    // TODO(lajpat-nagar): replace with the actual Lajpat Nagar store image URL.
+    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
+    storeHours: {
+      weekday: { open: "10:30", close: "22:00" },
+      weekend: { open: "10:30", close: "22:00" },
+    },
+    mapLink: "https://maps.google.com/?q=Lajpat+Nagar+Lucira+Store",
+    callLink: "tel:+917208007495",
+    designLink: "/collections/lajpat-nagar-store",
+    appointmentLink: "https://wa.me/917208007495?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Lajpat%20Nagar%20Store",
+    facilities: [
+      "Open on Weekends",
+      "Banks Nearby",
+      "Parking Availability",
+      "Daily Offers",
+      "Piercing"
+    ],
+    services: [
+      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
+      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
+    ],
+    address: "A-59A, Ground Floor, Left Side Lajpat Nagar-2, New Delhi 110024.",
+  },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
