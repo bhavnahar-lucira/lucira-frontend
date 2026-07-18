@@ -289,8 +289,8 @@ export default function StoreLocatorSection() {
             <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">Visit Lucira Store Near You</h2>
           </div>
 
-          <div className="mb-8 flex justify-center">
-            <div className="flex gap-1.5">
+          <div className="mb-8 w-full overflow-x-auto pb-3">
+            <div className="flex gap-1.5 min-w-max px-1">
               {stores.map((store, index) => (
                 <button
                   key={store.city}
