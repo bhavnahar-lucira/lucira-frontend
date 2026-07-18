@@ -1,6 +1,9 @@
+"use client";
+
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { pushPromoClick } from '@/lib/gtm';
 
 const BuildYourJewelryHero = () => {
   const categories = [
@@ -58,7 +61,18 @@ const BuildYourJewelryHero = () => {
             
             <div className="grid grid-cols-2 gap-3 md:gap-5 mt-0 px-5 md:px-0 max-w-[340px] mx-auto">
               {categories.map((cat, index) => (
-                <Link key={index} href={cat.href} className="flex flex-col items-center group w-full">
+                <Link
+                  key={index}
+                  href={cat.href}
+                  onClick={() => {
+                    pushPromoClick({
+                      creative_name: "BYJ selection of jewelry",
+                      location_id: "build your jewelry",
+                      promo_id: cat.title,
+                    });
+                  }}
+                  className="flex flex-col items-center group w-full"
+                >
                   <div className="w-full relative overflow-hidden rounded-[5px]">
                     <Image 
                       src={cat.image} 

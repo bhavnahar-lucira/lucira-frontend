@@ -35,7 +35,7 @@ export default function BlogCard({ article, blogHandle }) {
             src={article.image.url}
             alt={article.title}
             fill
-            className="object-cover transition duration-500 group-hover:scale-105"
+            className="object-contain transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-zinc-400 uppercase tracking-widest">

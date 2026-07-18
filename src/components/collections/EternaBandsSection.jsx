@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { pushPromoClick } from "@/lib/gtm";
 
 const ETERNA_CARDS = [
   {
@@ -94,6 +95,13 @@ export default function EternaBandsSection() {
                 prefetch={false}
                 href={card.link}
                 key={idx}
+                onClick={() =>
+                  pushPromoClick({
+                    creative_name: "eterna collection grid",
+                    location_id: "eterna collection",
+                    promo_id: card.title,
+                  })
+                }
                 className="relative aspect-[3/4] w-[240px] md:w-[280px] lg:w-[calc((100%-4*1.5rem)/5)] shrink-0 rounded-[4px] overflow-hidden group flex flex-col justify-end snap-start shadow-md border border-gray-100/50 cursor-pointer bg-white"
               >
                 {/* Image with center origin zoom */}
