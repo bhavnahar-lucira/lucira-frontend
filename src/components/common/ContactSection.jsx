@@ -6,6 +6,7 @@ import { Phone, Mail, MapPin, ArrowRight } from "lucide-react";
 import { toast } from "react-toastify";
 import { setCookie } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { isStoreActive, handleFromStoreName } from "@/data/stores";
 
 const STORES = [
   {
@@ -54,8 +55,16 @@ const STORES = [
     phone: "+91 7208007494",
     email: "lcsdelpvh@lucirajewelry.com",
     address: "B-8, Shubham Enclave, Reserve Bank Enclave,\nPaschim Vihar, New Delhi - 110063.",
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D"
+  },
+  {
+    name: "Lajpat Nagar Store",
+    phone: "+91 7208007495",
+    email: "LCSDELLJN@lucirajewelry.com",
+    address: "A-59A, Ground Floor, Left Side,\nLajpat Nagar-2, New Delhi 110024",
+    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
+    mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi"
   }
 ];
 
@@ -136,7 +145,7 @@ export default function ContactSection() {
         </div>
 
         <div className="grid grid-cols-1 gap-12 md:gap-20">
-            {STORES.map((store, index) => (
+            {STORES.filter((store) => isStoreActive(handleFromStoreName(store.name))).map((store, index) => (
             <div 
                 key={index}
                 className="group grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-center"

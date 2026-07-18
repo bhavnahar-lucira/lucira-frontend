@@ -4,6 +4,8 @@ import { Phone, Calendar, Navigation, Clock, Star, ChevronLeft, ChevronRight, Lo
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
+import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
+import { isStoreActive, handleFromStoreName, isStoreOpeningSoon } from "@/data/stores";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation as SwiperNavigation, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -40,7 +42,11 @@ export function FindLuciraStore({
   // If no stores are found nearby (e.g. initial state or no results), we can still show a default or empty state.
   // The user wants a slider if more stores are there.
   
-  const storesToDisplay = availableStores.length > 0 ? availableStores : [];
+  // Hide any store whose location is switched off in the central registry
+  // (src/data/stores.js). Unknown/unmapped locations are left visible.
+  const storesToDisplay = (availableStores || []).filter(
+    (store) => isStoreActive(handleFromStoreName(store?.name))
+  );
 
   return (
     <section className="w-full py-10 bg-gray-50 mt-10">
@@ -103,10 +109,18 @@ export function FindLuciraStore({
                         fill
                         className="object-cover"
                       />
-                      <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-[#D1EBE3] text-[#006D4E] px-3 py-1.5 md:px-4 md:py-2 rounded-full flex items-center gap-2 text-xs md:text-sm font-medium border border-[#A3D9C9] z-10">
-                        <span className="w-2 h-2 bg-[#006D4E] rounded-full animate-pulse"></span>
-                        Open Now
-                      </div>
+                      {isStoreOpeningSoon(handleFromStoreName(store?.name)) ? (
+                        <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-[#D1EBE3] text-[#006D4E] px-3 py-1.5 md:px-4 md:py-2 rounded-full flex items-center gap-2 text-xs md:text-sm font-medium border border-[#A3D9C9] z-10">
+                          <span className="w-2 h-2 bg-[#006D4E] rounded-full"></span>
+                          Opening Soon
+                        </div>
+                      ) : (
+                        <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-[#D1EBE3] text-[#006D4E] px-3 py-1.5 md:px-4 md:py-2 rounded-full flex items-center gap-2 text-xs md:text-sm font-medium border border-[#A3D9C9] z-10">
+                          <span className="w-2 h-2 bg-[#006D4E] rounded-full animate-pulse"></span>
+                          Open Now
+                        </div>
+                      )}
+                      {isStoreOpeningSoon(handleFromStoreName(store?.name)) && <OpeningSoonOverlay label={null} />}
                     </div>
 
                     {/* Store Info */}
@@ -165,8 +179,16 @@ export function FindLuciraStore({
                                      </span>
                                   </div>
                                   {(() => {
+                                    const openingSoon = isStoreOpeningSoon(handleFromStoreName(store?.name));
                                     const isAvailableInAnyStore = availableStores.some(s => s.isInStock);
                                     const showShipsToStore = isAvailableInAnyStore;
+                                    if (openingSoon) {
+                                      return (
+                                        <p className="text-[10px] md:text-xs font-semibold text-amber-600">
+                                          Opening Soon
+                                        </p>
+                                      );
+                                    }
                                     return (
                                       <p className={`text-[10px] md:text-xs font-semibold ${store.isInStock ? "text-[#006D4E]" : (showShipsToStore ? "text-amber-600" : "text-gray-600")}`}>
                                         {store.isInStock ? "Available in Store" : (showShipsToStore ? "Ships to Store" : "Made to Order")}

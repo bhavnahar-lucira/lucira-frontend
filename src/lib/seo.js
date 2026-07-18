@@ -144,6 +144,28 @@ export const storesSchema = [
       "ratingValue": "4.9",
       "reviewCount": "86"
     }
+  },
+  {
+    "@type": "Store",
+    "@id": `${baseUrl}/#lajpat-nagar-store`,
+    "name": "Lajpat Nagar Lucira Store",
+    "url": `${baseUrl}/`,
+    "image": "https://luciraonline.myshopify.com/cdn/shop/files/LJ_Logo_Pink.svg?v=1759481962",
+    "telephone": "+917208007495",
+    "parentOrganization": { "@id": `${baseUrl}/#org` },
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "A-59A, Ground Floor, Left Side, Lajpat Nagar-2",
+      "addressLocality": "New Delhi",
+      "addressRegion": "DL",
+      "postalCode": "110024",
+      "addressCountry": "IN"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "40"
+    }
   }
 ];
 

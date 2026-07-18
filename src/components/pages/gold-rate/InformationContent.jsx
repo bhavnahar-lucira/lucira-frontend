@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Phone, Mail, MapPin } from "lucide-react";
+import { isStoreActive, handleFromStoreName } from "@/data/stores";
 
 export default function InformationContent({ cityName, stateName, sectionData, currentDate, todayRate }) {
   const { settings, blocks, block_order } = sectionData || {};
@@ -30,7 +31,7 @@ export default function InformationContent({ cityName, stateName, sectionData, c
 
   const storeBlocks = useMemo(() => {
     if (!blocks) return [];
-    return Object.values(blocks).filter(b => b.type === 'store_location');
+    return Object.values(blocks).filter(b => b.type === 'store_location' && isStoreActive(handleFromStoreName(b.settings?.store_name)));
   }, [blocks]);
 
   const contentBlocks = useMemo(() => {

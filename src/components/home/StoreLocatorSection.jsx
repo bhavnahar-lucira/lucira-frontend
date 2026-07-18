@@ -13,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushPromoClick } from "@/lib/gtm";
+import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
+import { isStoreActive, handleFromDesignLink } from "@/data/stores";
 
 function isStoreOpenIST(store) {
   const indiaNow = new Date(
@@ -65,7 +67,7 @@ function formatTimings(store) {
   return `Mon-Fri | ${formatTime(weekday.open)} - ${formatTime(weekday.close)}  •  Sat-Sun | ${formatTime(weekend.open)} - ${formatTime(weekend.close)}`;
 }
 
-const stores = [
+const ALL_STORES = [
   {
     city: "Pune",
     name: "Pune Lucira Store",
@@ -187,10 +189,10 @@ const stores = [
       "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",
   },
   {
-    city: "Delhi",
+    city: "Paschim Vihar",
     name: "Paschim Vihar Lucira Store",
     rating: 4.7,
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -215,7 +217,40 @@ const stores = [
     address:
       "B-8, Shubham Enclave, Paschim Vihar, New Delhi -110063.",
   },
+  {
+    city: "Lajpat Nagar",
+    name: "Lajpat Nagar Lucira Store",
+    rating: 4.8,
+    openingSoon: true,
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633",
+    storeHours: {
+      weekday: { open: "10:30", close: "22:00" },
+      weekend: { open: "10:30", close: "22:00" },
+    },
+    mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi",
+    callLink: "tel:+917208007495",
+    designLink: "/collections/lajpat-nagar-store",
+    appointmentLink: "https://wa.me/917208007495?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Lajpat%20Nagar%20Store",
+    facilities: [
+      "Open on Weekends",
+      "Banks Nearby",
+      "Parking Availability",
+      "Daily Offers",
+      "Piercing"
+    ],
+    services: [
+      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
+      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
+    ],
+    address:
+      "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
+  },
 ];
+
+// Only stores marked active in the central registry (src/data/stores.js) are shown.
+const stores = ALL_STORES.filter((s) => isStoreActive(handleFromDesignLink(s.designLink)));
 
 function ServiceCard({ item }) {
   return (
@@ -234,7 +269,8 @@ export default function StoreLocatorSection() {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeIndex, setActiveIndex] = useState(0);
   const activeStore = stores[activeIndex];
-  const storeIsOpen = isStoreOpenIST(activeStore);
+  const storeOpeningSoon = !!activeStore.openingSoon;
+  const storeIsOpen = !storeOpeningSoon && isStoreOpenIST(activeStore);
 
   const handleStoreCtaClick = (action) => {
     pushPromoClick({
@@ -275,10 +311,11 @@ export default function StoreLocatorSection() {
             <div className="relative overflow-hidden rounded-2xl shadow-xl">
               <div className="relative aspect-[4/3.5] w-full">
                 <LazyImage src={activeStore.image} alt={activeStore.name} fill className="object-cover" />
-                <div 
-                  className="absolute inset-0 pointer-events-none" 
-                  style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }} 
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }}
                 />
+                {storeOpeningSoon && <OpeningSoonOverlay />}
               </div>
 
               <div className="absolute left-5 right-5 top-5 flex items-start justify-between">
@@ -290,9 +327,9 @@ export default function StoreLocatorSection() {
               </div>
 
               <div className="absolute right-4 bottom-18">
-                <div className={`inline-flex items-center gap-2 rounded-full ${storeIsOpen ? "border-success bg-[#E8F5E9] text-[#28a745]" : "border-danger bg-[#f5e8e8] text-[#dc2626]"} border px-4 py-1.5 text-xs font-bold shadow-lg`}>
-                  <Circle size={8} className={ storeIsOpen ? "fill-[#28a745]" : "fill-[#dc2626]"} />
-                  {storeIsOpen ? "Open Now" : "Closed"}
+                <div className={`inline-flex items-center gap-2 rounded-full ${(storeOpeningSoon || storeIsOpen) ? "border-success bg-[#E8F5E9] text-[#28a745]" : "border-danger bg-[#f5e8e8] text-[#dc2626]"} border px-4 py-1.5 text-xs font-bold shadow-lg`}>
+                  <Circle size={8} className={ (storeOpeningSoon || storeIsOpen) ? "fill-[#28a745]" : "fill-[#dc2626]"} />
+                  {storeOpeningSoon ? "Opening Soon" : (storeIsOpen ? "Open Now" : "Closed")}
                 </div>
               </div>
 
@@ -382,10 +419,11 @@ export default function StoreLocatorSection() {
           <div className="relative overflow-hidden rounded-sm">
             <div className="relative aspect-[4/4.3] w-full h-full">
               <LazyImage src={activeStore.image} alt={activeStore.name} fill className="object-cover" />
-              <div 
-                className="absolute inset-0 pointer-events-none" 
-                style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }} 
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }}
               />
+              {storeOpeningSoon && <OpeningSoonOverlay />}
             </div>
 
             <div className="absolute left-4 right-4 top-4 flex items-start justify-between gap-4">
@@ -408,9 +446,9 @@ export default function StoreLocatorSection() {
                 </span>
               </div>
 
-              <div  className={`inline-flex items-center gap-2 rounded-full border ${storeIsOpen ? "border-success bg-success/10 text-[#28a745]" : "border-danger bg-danger/10 text-[#dc2626]"} px-3 py-1 text-base font-bold`}>
-                <Circle size={8} className={ storeIsOpen ? "fill-[#28a745]" : "fill-[#dc2626]"} />
-                {storeIsOpen ? "Open Now" : "Closed"}
+              <div  className={`inline-flex items-center gap-2 rounded-full border ${(storeOpeningSoon || storeIsOpen) ? "border-success bg-success/10 text-[#28a745]" : "border-danger bg-danger/10 text-[#dc2626]"} px-3 py-1 text-base font-bold`}>
+                <Circle size={8} className={ (storeOpeningSoon || storeIsOpen) ? "fill-[#28a745]" : "fill-[#dc2626]"} />
+                {storeOpeningSoon ? "Opening Soon" : (storeIsOpen ? "Open Now" : "Closed")}
               </div>
             </div>
           </div>

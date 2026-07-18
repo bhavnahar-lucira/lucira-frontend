@@ -21,6 +21,7 @@ const SEARCH_DATA = [
       { label: "Lab Grown Diamond Jewelry in Chembur", href: "https://www.lucirajewelry.com/collections/chembur-store" },
       { label: "Lab Grown Diamond Jewelry in Mumbai", href: "https://www.lucirajewelry.com/collections/lab-grown-diamonds-in-mumbai" },
       { label: "Lab Grown Diamond Jewelry in Paschim Vihar", href: "https://www.lucirajewelry.com/collections/paschim-vihar" },
+      { label: "Lab Grown Diamond Jewelry in Lajpat Nagar", href: "https://www.lucirajewelry.com/collections/lajpat-nagar-store" },
     ],
   },
   {

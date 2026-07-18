@@ -87,6 +87,16 @@ export const informationContentData = {
         "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D"
       }
     },
+    "store_location_LJN001": {
+      "type": "store_location",
+      "settings": {
+        "store_name": "Lajpat Nagar Store",
+        "phone": "+91 7208007495",
+        "email": "LCSDELLJN@lucirajewelry.com",
+        "address": "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
+        "map_url": "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi"
+      }
+    },
     "richtext_b9DWKE": {
       "type": "richtext",
       "settings": {
@@ -101,6 +111,7 @@ export const informationContentData = {
     "store_location_eMddbh",
     "store_location_aAA3ty",
     "store_location_eMfdbh",
+    "store_location_LJN001",
     "richtext_b9DWKE"
   ]
 };
