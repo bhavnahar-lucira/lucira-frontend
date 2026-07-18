@@ -429,22 +429,58 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       }
     });
 
+    // Carat ranges must read in natural ascending order (Below 0.25 → 2.00+),
+    // not by product count. Sort by each range's lower bound; "Below X" bands
+    // always sort first.
+    const caratLowerBound = (label) => {
+      const l = (label || "").toLowerCase();
+      if (l.includes("below") || l.includes("under") || l.includes("less than")) return -1;
+      const match = label?.match(/[\d.]+/);
+      return match ? parseFloat(match[0]) : Infinity;
+    };
+
+    // Material Type follows a fixed editorial order rather than product count.
+    // Matched on a normalized key so spacing and Colour/Color spelling don't break it.
+    const normalizeLabel = (label) =>
+      (label || "").toLowerCase().replace(/colour/g, "color").replace(/[^a-z0-9]/g, "");
+    const MATERIAL_TYPE_ORDER = [
+      "Gold & Diamond",
+      "Gold & Colour Diamond",
+      "Gold,Diamond & Gemstone",
+      "Plain Gold",
+      "Platinum & Diamond",
+    ].map(normalizeLabel);
+    const materialTypeRank = (label) => {
+      const idx = MATERIAL_TYPE_ORDER.indexOf(normalizeLabel(label));
+      return idx === -1 ? Infinity : idx; // unknown labels sort to the end
+    };
+
     const sortedData = {};
     Object.entries(mergedData).forEach(([groupKey, options]) => {
       if (groupKey === "Price") {
         sortedData[groupKey] = options;
       } else if (Array.isArray(options)) {
-        sortedData[groupKey] = [...options].sort((a, b) => {
-          if (b.count !== a.count) {
-            return b.count - a.count;
-          }
-          const aLabel = a.label?.toString() || "";
-          const bLabel = b.label?.toString() || "";
-          const aNum = parseFloat(aLabel);
-          const bNum = parseFloat(bLabel);
-          if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-          return aLabel.localeCompare(bLabel, undefined, { numeric: true, sensitivity: 'base' });
-        });
+        if (/carat/i.test(groupKey)) {
+          sortedData[groupKey] = [...options].sort(
+            (a, b) => caratLowerBound(a.label) - caratLowerBound(b.label)
+          );
+        } else if (/material\s*type/i.test(groupKey)) {
+          sortedData[groupKey] = [...options].sort(
+            (a, b) => materialTypeRank(a.label) - materialTypeRank(b.label)
+          );
+        } else {
+          sortedData[groupKey] = [...options].sort((a, b) => {
+            if (b.count !== a.count) {
+              return b.count - a.count;
+            }
+            const aLabel = a.label?.toString() || "";
+            const bLabel = b.label?.toString() || "";
+            const aNum = parseFloat(aLabel);
+            const bNum = parseFloat(bLabel);
+            if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+            return aLabel.localeCompare(bLabel, undefined, { numeric: true, sensitivity: 'base' });
+          });
+        }
       }
     });
     return sortedData;
