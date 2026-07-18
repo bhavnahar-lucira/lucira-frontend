@@ -1,28 +1,21 @@
 "use client";
 
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect } from "react";
 import LazyImage from "@/components/common/LazyImage";
 import Image from "next/image";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination, Autoplay, EffectFade } from "swiper/modules";
-import { 
-  MapPinned, 
-  Phone, 
-  CalendarDays, 
-  Search, 
+import {
+  MapPinned,
+  Phone,
+  CalendarDays,
+  Search,
   Navigation as NavIcon,
   Star,
   Clock3,
-  ChevronRight,
-  ChevronLeft
 } from "lucide-react";
 
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
-import "swiper/css/effect-fade";
-
 import { Button } from "@/components/ui/button";
+import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
+import { isStoreActive, handleFromDesignLink } from "@/data/stores";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   Accordion,
@@ -33,7 +26,7 @@ import {
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 
-const allStores = [
+const ALL_STORES = [
   {
     city: "Malad",
     name: "Head Office",
@@ -113,7 +106,7 @@ const allStores = [
     city: "Paschim Vihar",
     name: "Paschim Vihar Lucira Store",
     rating: 4.9,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D",
     whatsappLink: "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Paschim+Vihar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
@@ -124,7 +117,26 @@ const allStores = [
     lng: 77.0984,
     address: "B-8, Shubham Enclave, Reserve Bank Enclave, Paschim Vihar, New Delhi, Delhi, 110063",
   },
+  {
+    city: "Lajpat Nagar",
+    name: "Lajpat Nagar Lucira Store",
+    rating: 4.8,
+    openingSoon: true,
+    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
+    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
+    mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=917208007495&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Lajpat+Nagar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    callLink: "tel:+917208007495",
+    designLink: "/collections/lajpat-nagar-store",
+    directionsLink: "https://www.lucirajewelry.com/collections/lajpat-nagar-store",
+    lat: 28.5665,
+    lng: 77.2431,
+    address: "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
+  },
 ];
+
+// Only stores marked active in the central registry (src/data/stores.js) are shown.
+const allStores = ALL_STORES.filter((s) => isStoreActive(handleFromDesignLink(s.designLink)));
 
 const services = [
   {
@@ -228,27 +240,6 @@ export default function StoreLocatorPage() {
   const [statusMsg, setStatusMsg] = useState("");
   const isMobile = useMediaQuery("(max-width: 767px)");
 
-  const id = useId().replace(/:/g, "");
-  const paginationElClass = `pagination-${id}`;
-
-  const heroSlides = [
-    {
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg",
-      title: "Find a Store",
-      desc: "Experience the brilliance of Lucira in person. Visit our experience centers to explore over 700+ unique designs."
-    },
-    {
-      image: "/images/store/Noida.jpg",
-      title: "Visit Lucira",
-      desc: "Get expert guidance for your perfect piece at our nearest experience center."
-    },
-    {
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg",
-      title: "Store Locator",
-      desc: "Find us in your city and explore our latest collections with personalized assistance."
-    }
-  ];
-
   const handleSearch = () => {
     const query = searchQuery.toLowerCase().trim();
 
@@ -334,39 +325,6 @@ export default function StoreLocatorPage() {
     );
   };
 
-  const handleLocateNowClick = () => {
-    const element = document.getElementById("locator-section");
-    if (element) {
-      // 1. Scroll past the header collapse threshold (120px) instantly to trigger the header state change & collapse
-      window.scrollTo({
-        top: 130,
-        behavior: "auto"
-      });
-      
-      // 2. Wait 100ms for header collapse re-render to finish, then smooth scroll to the target
-      setTimeout(() => {
-        const headerOffset = isMobile ? 80 : 120; // Sticky header height offset dynamically based on device
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + (window.scrollY || window.pageYOffset) - headerOffset;
-        
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: "smooth"
-        });
-      }, 100);
-    }
-
-    // Delay locating & focusing until smooth scroll finishes to prevent React state changes from interrupting the scroll animation
-    setTimeout(() => {
-      handleLocateMe();
-
-      const inputEl = document.getElementById("store-search-input");
-      if (inputEl) {
-        inputEl.focus();
-      }
-    }, 900);
-  };
-
   useEffect(() => {
     if (searchQuery === "") {
       setFilteredStores(allStores);
@@ -377,104 +335,7 @@ export default function StoreLocatorPage() {
   return (
     <div className="font-figtree text-[#333]">
       {/* ═══════════════════════════════════════════
-          1. HERO SECTION (BANNER SLIDER)
-      ═══════════════════════════════════════════ */}
-      <section className="relative w-full overflow-hidden">
-        <Swiper
-          modules={[Navigation, Pagination, Autoplay, EffectFade]}
-          effect="fade"
-          fadeEffect={{ crossFade: true }}
-          slidesPerView={1}
-          loop
-          autoplay={{ delay: 5000, disableOnInteraction: false }}
-          navigation={{
-            nextEl: ".hero-next",
-            prevEl: ".hero-prev",
-          }}
-          pagination={{
-            el: `.${paginationElClass}`,
-            clickable: true,
-            renderBullet: (index, className) => {
-              return `<span class="${className} w-2! h-2! rounded-full! bg-gray-700! transition-all duration-300 [&.swiper-pagination-bullet-active]:bg-primary! [&.swiper-pagination-bullet-active]:w-6!"></span>`;
-            },
-          }}
-          className={`w-full ${isMobile ? "h-auto" : "h-145"}`}
-        >
-          {heroSlides.map((slide, index) => (
-            <SwiperSlide key={index}>
-              {isMobile ? (
-                <div className="flex flex-col bg-white">
-                  <div className="relative aspect-[4/3] w-full">
-                    <LazyImage
-                      src={slide.image}
-                      alt={slide.title}
-                      fill
-                      priority={index === 0}
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex flex-col items-start px-6 py-8 bg-[#FDF7F4]">
-                    <h2 className="text-3xl font-bold mb-3 font-abhaya text-zinc-900 leading-tight">
-                      {slide.title}
-                    </h2>
-                    <p className="text-zinc-600 text-sm mb-6 leading-relaxed">
-                      {slide.desc}
-                    </p>
-                    <Button
-                      onClick={handleLocateNowClick}
-                      className="h-12 px-8 py-3 w-full sm:w-fit text-sm font-bold tracking-widest bg-[#5B4740] hover:bg-[#4A3934] text-white uppercase rounded-sm transition-colors"
-                    >
-                      LOCATE NOW
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 h-full bg-secondary">
-                  <div className="flex flex-col justify-center pl-24 pr-16">
-                    <h1 className="text-[42px] font-semibold mb-4 font-abhaya text-zinc-900 leading-tight">
-                      {slide.title}
-                    </h1>
-                    <p className="text-black max-w-105 mb-8 leading-relaxed">
-                      {slide.desc}
-                    </p>
-                    <Button
-                      onClick={handleLocateNowClick}
-                      className="h-11 px-8 py-3 w-fit text-sm font-bold tracking-widest bg-primary hover:bg-primary/90 text-white uppercase rounded-sm transition-all"
-                    >
-                      LOCATE NOW
-                    </Button>
-                  </div>
-                  <div className="relative h-full">
-                    <LazyImage
-                      src={slide.image}
-                      alt={slide.title}
-                      fill
-                      priority={index === 0}
-                      className="object-cover"
-                    />
-                  </div>
-                </div>
-              )}
-            </SwiperSlide>
-          ))}
-        </Swiper>
-
-        {!isMobile && (
-          <>
-            <button className="hero-prev absolute left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:cursor-pointer transition-all hover:bg-black/80">
-              <ChevronLeft size={18} className="text-white" />
-            </button>
-            <button className="hero-next absolute right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center hover:cursor-pointer transition-all hover:bg-black/80">
-              <ChevronRight size={18} className="text-white" />
-            </button>
-          </>
-        )}
-
-        <div className={`${paginationElClass} flex items-center justify-center gap-2 mt-4 absolute bottom-6 left-0 right-0 z-20`}></div>
-      </section>
-
-      {/* ═══════════════════════════════════════════
-          2. STORE LOCATOR SECTION
+          STORE LOCATOR SECTION
       ═══════════════════════════════════════════ */}
       <section id="locator-section" className="w-full py-12 md:py-15 bg-white overflow-hidden">
         <div className="container-main">
@@ -536,8 +397,9 @@ export default function StoreLocatorPage() {
                       fill
                       className="object-cover group-hover:scale-105 transition-all duration-700"
                     />
+                    {store.openingSoon && <OpeningSoonOverlay label={null} />}
                     {store.openingSoon && (
-                      <div className="absolute top-4 left-4 bg-[#b76f79] text-white px-4 py-1.5 rounded-full text-[10px] font-semibold shadow-sm uppercase tracking-widest z-[1]">
+                      <div className="absolute top-4 left-4 bg-[#b76f79] text-white px-4 py-1.5 rounded-full text-[10px] font-semibold shadow-sm uppercase tracking-widest z-[4]">
                         Opening Soon
                       </div>
                     )}
@@ -671,7 +533,7 @@ export default function StoreLocatorPage() {
                 className="bg-white border border-[#e6e1de] rounded-sm overflow-hidden px-5 md:px-8"
               >
                 <AccordionTrigger className="hover:no-underline py-5 md:py-6 text-left group">
-                  <span className="text-base md:text-lg font-black text-zinc-900 font-abhaya pr-4 group-hover:text-primary transition-colors">
+                  <span className="text-base md:text-lg font-bold text-zinc-900 font-figtree pr-4 group-hover:text-primary transition-colors">
                     {item.question}
                   </span>
                 </AccordionTrigger>

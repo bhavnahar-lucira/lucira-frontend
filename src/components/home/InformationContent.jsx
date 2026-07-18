@@ -3,14 +3,15 @@
 import React from 'react';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import { informationContentData } from '@/data/informationContent';
+import { isStoreActive, handleFromStoreName } from '@/data/stores';
 
 const InformationContent = () => {
   const { settings, blocks, block_order } = informationContentData;
 
-  // Filter blocks by type
+  // Filter blocks by type (and hide stores switched off in the central registry)
   const storeLocations = block_order
     .map(id => blocks[id])
-    .filter(block => block && block.type === 'store_location');
+    .filter(block => block && block.type === 'store_location' && isStoreActive(handleFromStoreName(block.settings?.store_name)));
 
   const contentBlocks = block_order
     .map(id => blocks[id])

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
+import { isStoreActive } from "@/data/stores";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay, EffectFade } from "swiper/modules";
 
@@ -146,7 +148,10 @@ const STORES_DATA = {
     name: "Paschim Vihar Lucira Store",
     rating: 4.7,
     // openingSoon: true,
-    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
+    images: [
+      "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
+      "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
+    ],
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -169,6 +174,35 @@ const STORES_DATA = {
       { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
     ],
     address: "B-8, Shubham Enclave, Paschim Vihar, New Delhi -110063.",
+  },
+  "lajpat-nagar-store": {
+    city: "Lajpat Nagar",
+    name: "Lajpat Nagar Lucira Store",
+    rating: 4.8,
+    openingSoon: true,
+    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
+    storeHours: {
+      weekday: { open: "10:30", close: "22:00" },
+      weekend: { open: "10:30", close: "22:00" },
+    },
+    mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi",
+    callLink: "tel:+917208007495",
+    designLink: "/collections/lajpat-nagar-store",
+    appointmentLink: "https://wa.me/917208007495?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Lajpat%20Nagar%20Store",
+    facilities: [
+      "Open on Weekends",
+      "Banks Nearby",
+      "Parking Availability",
+      "Daily Offers",
+      "Piercing"
+    ],
+    services: [
+      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
+      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
+      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
+      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
+    ],
+    address: "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
   },
 };
 
@@ -232,7 +266,7 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const store = STORES_DATA[collectionHandle];
 
-  if (!store) return null;
+  if (!store || !isStoreActive(collectionHandle)) return null;
 
   const storeIsOpen = isStoreOpenIST(store);
   const displayImages = bannerImages.length > 0 ? bannerImages : store.images;
@@ -264,14 +298,21 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                   className="absolute inset-0 pointer-events-none z-[1]"
                   style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }}
                 />
+                {store.openingSoon && <OpeningSoonOverlay label={null} />}
               </div>
 
-              <div className="absolute left-5 right-5 top-5 flex items-start justify-between z-[2]">
+              <div className="absolute left-5 right-5 top-5 flex items-start justify-between z-[4]">
                 <h1 className="font-figtree text-xl italic font-bold text-white drop-shadow-md">{store.name}</h1>
-                <div className="flex items-center gap-1 bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg">
-                  <Star size={12} className="fill-[#f5c518] text-[#f5c518]" />
-                  <span className="text-sm font-black text-white">{store.rating}</span>
-                </div>
+                {store.openingSoon ? (
+                  <span className="rounded-full border border-white/60 bg-white/70 px-3 py-1.5 text-[10px] font-extrabold uppercase leading-none tracking-[0.7px] text-[#5A413F] shadow-sm backdrop-blur-sm">
+                    Opening Soon
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-1 bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                    <Star size={12} className="fill-[#f5c518] text-[#f5c518]" />
+                    <span className="text-sm font-black text-white">{store.rating}</span>
+                  </div>
+                )}
               </div>
 
               <div className="absolute right-4 bottom-18 z-[2]">
@@ -381,18 +422,25 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                   </button>
                 </>
               )}
+              {store.openingSoon && <OpeningSoonOverlay label={null} />}
             </div>
 
-            <div className="absolute left-4 right-4 top-4 flex items-start justify-between gap-4 z-[2]">
+            <div className="absolute left-4 right-4 top-4 flex items-start justify-between gap-4 z-[4]">
               <h2 className="font-figtree text-2xl italic leading-none font-semibold text-white drop-shadow-md">{store.name}</h2>
-              <div className="mt-0.5 flex items-center gap-1 text-white">
-                <div className="flex items-center gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} size={14} className={i < Math.floor(store.rating) ? "fill-[#f5c518] text-[#f5c518]" : "text-white/50"} />
-                  ))}
+              {store.openingSoon ? (
+                <span className="shrink-0 rounded-full border border-white/60 bg-white/70 px-4 py-1.5 text-xs font-extrabold uppercase leading-none tracking-[0.7px] text-[#5A413F] shadow-sm backdrop-blur-sm">
+                  Opening Soon
+                </span>
+              ) : (
+                <div className="mt-0.5 flex items-center gap-1 text-white">
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={14} className={i < Math.floor(store.rating) ? "fill-[#f5c518] text-[#f5c518]" : "text-white/50"} />
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium">{store.rating}</span>
                 </div>
-                <span className="text-sm font-medium">{store.rating}</span>
-              </div>
+              )}
             </div>
 
             <div className="absolute bottom-6 left-3 right-3 flex flex-wrap items-center xl:justify-between gap-2 lg:justify-center rounded-full bg-white/95 backdrop-blur-sm px-4 py-3 shadow-lg z-[2]">
