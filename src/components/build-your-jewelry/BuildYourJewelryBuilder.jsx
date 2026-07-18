@@ -12,6 +12,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn, uploadToShopify } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronRight } from 'lucide-react';
+import { pushPromoClick } from '@/lib/gtm';
 
 // Dynamic collection handles are determined based on category type
 const CHARM_COLLECTIONS = [
@@ -846,6 +847,12 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   };
 
   const handleConfirm = () => {
+    pushPromoClick({
+      creative_name: "review summary cta BYJ",
+      location_id: "build your jewelry",
+      promo_id: categoryConfig.label,
+    });
+
     const stage = stageRef.current;
     if (!stage) return;
 
@@ -867,6 +874,12 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
   };
 
   const handleAddToBag = async () => {
+    pushPromoClick({
+      creative_name: "BYJ Add to cart",
+      location_id: "build your jewelry",
+      promo_id: categoryConfig.label,
+    });
+
     if (!selectedStyle || selectedCharms.length === 0) return;
     setAddingToBag(true);
     try {

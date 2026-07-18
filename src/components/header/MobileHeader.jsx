@@ -987,11 +987,21 @@ export default function MobileHeader({ menuData }) {
 
         <div className="mt-4 space-y-6">
           <div className="px-4">
-            <Link href="/build-your-jewelry" onClick={() => setIsMenuOpen(false)} className="block w-full">
-              <img 
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Build_Your_Jewelry_Mobile_Menu_Bar_Upscale_jpg.jpg?v=1783416048" 
-                alt="Build Your Jewelry" 
-                className="w-full h-auto rounded-[4px] object-cover" 
+            <Link
+              href="/build-your-jewelry"
+              onClick={() => {
+                pushPromoClick({
+                  creative_name: "BYJ icon header",
+                  location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                });
+                setIsMenuOpen(false);
+              }}
+              className="block w-full"
+            >
+              <img
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Build_Your_Jewelry_Mobile_Menu_Bar_Upscale_jpg.jpg?v=1783416048"
+                alt="Build Your Jewelry"
+                className="w-full h-auto rounded-[4px] object-cover"
               />
             </Link>
           </div>
@@ -1050,7 +1060,18 @@ export default function MobileHeader({ menuData }) {
               <ChevronRight size={18} className="text-black" />
             </a>
 
-            <Link href="/schemes" prefetch={false} onClick={() => setIsMenuOpen(false)} className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
+            <Link
+              href="/schemes"
+              prefetch={false}
+              onClick={() => {
+                pushPromoClick({
+                  creative_name: "scheme icon header",
+                  location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                });
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]"
+            >
               <div className="flex items-center gap-4">
                 <div className="flex items-center justify-center">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1274,7 +1295,17 @@ export default function MobileHeader({ menuData }) {
         <div className={cn("flex items-center shrink-0", isProductPage ? "gap-3" : "gap-4")}>
           {!isProductPage && (
             <>
-              <Link href="/schemes" prefetch={false} className="relative w-8 h-8 flex items-center justify-center shrink-0">
+              <Link
+                href="/schemes"
+                prefetch={false}
+                onClick={() => {
+                  pushPromoClick({
+                    creative_name: "scheme icon header",
+                    location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                  });
+                }}
+                className="relative w-8 h-8 flex items-center justify-center shrink-0"
+              >
                 <img
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691"
                   alt="Scheme"

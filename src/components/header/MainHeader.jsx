@@ -453,7 +453,17 @@ export default function MainHeader() {
         <div className="flex items-center justify-end ml-auto lg:gap-3 xl:gap-6 text-sm">
 
           {!pathname?.startsWith("/build-your-jewelry") && (
-            <Link href="/build-your-jewelry" prefetch={false} className="hidden lg:inline-flex btn-shimmer-container bg-[#FEF5F1] hover:bg-[#5A413F] transition-colors duration-200 px-[14px] xl:px-[18px] py-[6px] xl:py-[8px] gap-1.5 shrink-0 group">
+            <Link
+              href="/build-your-jewelry"
+              prefetch={false}
+              onClick={() => {
+                pushPromoClick({
+                  creative_name: "BYJ icon header",
+                  location_id: getFindStoreLocationId(),
+                });
+              }}
+              className="hidden lg:inline-flex btn-shimmer-container bg-[#FEF5F1] hover:bg-[#5A413F] transition-colors duration-200 px-[14px] xl:px-[18px] py-[6px] xl:py-[8px] gap-1.5 shrink-0 group"
+            >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 transition-colors duration-200 z-10 relative icon-rotate-zoom">
                 <path d="M12 6C9.99602 6 6 9.99602 6 12C6 9.99602 2.00398 6 0 6C2.00398 6 6 2.00398 6 0C6 1.99205 9.99602 6 12 6Z" fill="currentColor"/>
               </svg>
@@ -463,7 +473,17 @@ export default function MainHeader() {
             </Link>
           )}
 
-          <Link href="/schemes" prefetch={false} className="hidden lg:flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shrink-0">
+          <Link
+            href="/schemes"
+            prefetch={false}
+            onClick={() => {
+              pushPromoClick({
+                creative_name: "scheme icon header",
+                location_id: getFindStoreLocationId(),
+              });
+            }}
+            className="hidden lg:flex items-center justify-center cursor-pointer transition-transform hover:scale-105 shrink-0"
+          >
             <img
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437257664.png?v=1781505570"
               alt="9+1 Scheme"
