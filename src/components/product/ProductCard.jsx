@@ -90,14 +90,26 @@ function getUniqueBaseColors(colors = []) {
   return order.filter((color) => availableBaseColors.has(color));
 }
 
-function getVariantForBase(product, selectedBase) {
-  const inStockVariant = product?.variants?.find(
-    (v) => (v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && v.inventoryQuantity > 0)) && getBaseColor(v.color || v.title) === selectedBase
-  );
+function getVariantForBase(product, selectedBase, prefer9KT = false) {
+  const variants = product?.variants || [];
+  const matchesBase = (v) => getBaseColor(v.color || v.title) === selectedBase;
+  const isInStock = (v) => v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && v.inventoryQuantity > 0);
+  const is9KT = (v) => String(v.color || v.title).includes("9KT");
+
+  // In the 9KT collection, prefer the 9KT variant of the selected colour so the
+  // card shows 9KT purity/weight (not the 14K variant of the same colour).
+  if (prefer9KT) {
+    const nineKtInStock = variants.find((v) => matchesBase(v) && is9KT(v) && isInStock(v));
+    if (nineKtInStock) return nineKtInStock;
+    const nineKtAny = variants.find((v) => matchesBase(v) && is9KT(v));
+    if (nineKtAny) return nineKtAny;
+  }
+
+  const inStockVariant = variants.find((v) => isInStock(v) && matchesBase(v));
   if (inStockVariant) return inStockVariant;
   return (
-    product?.variants?.find((variant) => getBaseColor(variant.color || variant.title) === selectedBase) ||
-    product?.variants?.[0] ||
+    variants.find((variant) => matchesBase(variant)) ||
+    variants[0] ||
     null
   );
 }
@@ -228,8 +240,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [product.reviews, product.reviewStats]);
 
   const currentVariant = useMemo(() => {
-    return getVariantForBase(product, activeBase);
-  }, [product, activeBase]);
+    return getVariantForBase(product, activeBase, collectionHandle === "9kt-collection");
+  }, [product, activeBase, collectionHandle]);
 
   const pricingVariant = prioritizedVariant || currentVariant;
 
@@ -779,7 +791,14 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                     if (quality && quality !== "NA") parts.push(quality);
                     if (carat && carat !== "NA" && !String(carat).startsWith("0ct")) parts.push(carat);
                   }
-                  if (parts.length === 0) { const metalPurity = variantMeta?.metal_purity; if (metalPurity) parts.push(metalPurity); }
+                  if (parts.length === 0) {
+                    let metalPurity = variantMeta?.metal_purity;
+                    if (metalPurity) {
+                      const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
+                      if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
+                      parts.push(metalPurity);
+                    }
+                  }
                   const weightVal = variantMeta?.metal_weight || prodMeta?.weight;
                   const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
                   if (weight) parts.push(weight);
