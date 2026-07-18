@@ -2,10 +2,7 @@
 // Usage: add `if (handle === "sitemap") return <SitemapPage />;` in your pages/[handle]/page.js
 
 import Link from "next/link";
-import {
-  getAllCollectionsForSitemap,
-  getAllProductsForSitemap,
-} from "@/lib/shopify";
+import { getAllCollectionsForSitemap } from "@/lib/shopify";
 import { getAllArticlesForSitemap } from "@/lib/blogs";
 import { getAllPages } from "@/lib/pages";
 
@@ -673,7 +670,7 @@ function SitemapSection({ section, url, columns }) {
 export default async function SitemapPage() {
   // Dynamic data is fetched from Shopify at build time (SSG). Each fetch is
   // guarded so a single failing source never blanks out the whole sitemap.
-  const [collections, pages, articles, products] = await Promise.all([
+  const [collections, pages, articles] = await Promise.all([
     getAllCollectionsForSitemap().catch((e) => {
       console.error("Sitemap page: Collections fetch failed", e?.message);
       return [];
@@ -684,10 +681,6 @@ export default async function SitemapPage() {
     }),
     getAllArticlesForSitemap().catch((e) => {
       console.error("Sitemap page: Articles fetch failed", e?.message);
-      return [];
-    }),
-    getAllProductsForSitemap().catch((e) => {
-      console.error("Sitemap page: Products fetch failed", e?.message);
       return [];
     }),
   ]);
@@ -726,11 +719,6 @@ export default async function SitemapPage() {
       section: "STORIES",
       url: "/blogs/stories",
       columns: splitIntoColumns(articles, "Article", 15)
-    },
-    {
-      section: "PRODUCTS",
-      url: "/collections/jewelry",
-      columns: splitIntoColumns(products, "Product", 30)
     }
   ];
 
