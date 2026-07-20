@@ -284,12 +284,12 @@ export const fetchSearchResults = async (query) => {
     const productResults = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map(p => ({
       id: p.shopifyId || p.id,
       title: p.title,
-      url: `/products/${p.handle}`,
+      url: p.type === 'page' ? `/pages/${p.handle}` : p.type === 'article' ? `/blogs/${p.handle}` : `/products/${p.handle}`,
       image: p.image || p.variants?.[0]?.image || '',
-      price: formatPrice(p.price_breakup?.total || p.price),
+      price: p.type === 'page' || p.type === 'article' ? '' : formatPrice(p.price_breakup?.total || p.price),
       isCollection: false,
     }));
-    const collectionResults = (data.collections || []).filter(c => !c.title.toLowerCase().includes('byj') && !c.handle.toLowerCase().includes('byj')).map(c => ({
+    const collectionResults = (data.matchedCollections || data.collections || []).filter(c => !c.title.toLowerCase().includes('byj') && !c.handle.toLowerCase().includes('byj')).map(c => ({
       id: c.shopifyId || c.id || c._id,
       title: c.title,
       url: `/collections/${c.handle}`,
