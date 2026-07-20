@@ -118,26 +118,34 @@ export default function CategoryCarousel({ heading, tiles }) {
             key={t.handle}
             href={t.href}
             prefetch={false}
-            className="w-[142px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white/70 shadow-[0_2px_10px_rgba(90,65,63,0.08)] transition-transform active:scale-[0.98]"
+            className="w-[142px] shrink-0 snap-start overflow-hidden rounded-[8px] bg-white/70 shadow-[0_2px_10px_rgba(90,65,63,0.08)] transition-transform active:scale-[0.98]"
           >
-            {/* Image plate */}
-            <div className="p-2.5 pb-0">
-              <div className="relative rounded-xl bg-white px-7 pb-[38px] pt-[18px] ring-1 ring-[#5A413F]/5">
-                <div className="relative aspect-square">
-                  <Image
-                    src={t.image}
-                    alt={t.title}
-                    fill
-                    sizes="142px"
-                    className="object-contain"
-                    unoptimized
-                  />
+            {/* Image plate — a skewed box behind + a bordered card in front */}
+            <div className="p-5 pb-2">
+              <div className="relative">
+                {/* skewed box on the back */}
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 -rotate-[6deg] rounded-[8px] border border-[#D8BBB4] bg-[#FBF1F1]"
+                />
+                {/* bordered card in front */}
+                <div className="relative rounded-[8px] border border-[#E7D5D1] bg-white px-6 pb-[38px] pt-[18px]">
+                  <div className="relative aspect-square">
+                    <Image
+                      src={t.image}
+                      alt={t.title}
+                      fill
+                      sizes="142px"
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                  {t.count > 0 && (
+                    <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f4f0f0] px-2.5 py-1 text-[10px] font-semibold text-[#5A413F] shadow-sm">
+                      {t.count}+ Designs
+                    </span>
+                  )}
                 </div>
-                {t.count > 0 && (
-                  <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#f4f0f0]/95 px-2.5 py-1 text-[10px] font-semibold text-[#5A413F] shadow-sm backdrop-blur-sm">
-                    {t.count}+ Designs
-                  </span>
-                )}
               </div>
             </div>
             {/* Name bar */}
