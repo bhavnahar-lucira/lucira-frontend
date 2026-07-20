@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/accordion";
 import { useSelector, useDispatch } from "react-redux";
 import { openAuthModal } from "@/redux/features/user/userSlice";
+import CategoryCarousel, { loadCategoryGroups } from "@/components/collection/CategoryCarousel";
 import { selectRecentlyViewed } from "@/redux/features/recentlyViewed/recentlyViewedSlice";
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -308,6 +309,24 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const [activeMobileGroup, setActiveMobileGroup] = useState(null);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+
+  // "Shop by …" category carousels — one per menu group that exists for this
+  // collection's category (empty for categories without such groups).
+  const [categoryGroups, setCategoryGroups] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const groups = await loadCategoryGroups(handle);
+        if (!cancelled) setCategoryGroups(groups);
+      } catch {
+        /* no carousels on failure */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [handle]);
 
   // Helper to process filters
   const processFilters = useCallback((filtersData) => {
@@ -769,6 +788,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     let rewardBannerAt = -1;      // renderedCount when the claim banner was inserted
     let recentlyViewedAdded = false;
     let recentlyViewedAt = -1;    // renderedCount when the recently-viewed row was inserted
+    let categoryGroupsPlaced = 0;
     products.forEach((prod, idx) => {
       if (!prod) return;
       // First banner after 6 products, the second 10 later (6, 16). Each creative shows
@@ -843,6 +863,33 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         items.push(
           <div key={`recently-viewed-${idx}`} className="col-span-full">
             <RecentlyViewedRow products={recentlyViewedProducts} />
+          </div>
+        );
+        cellCount += 2;
+      }
+
+      // Shop-by-… category carousels — mobile only, full-width, ONE PER menu
+      // group (Shop By Style, Shop By Shape, Gifts, Shop For, …), distributed
+      // every 8 products AFTER the recently-viewed row (or after the reward
+      // banner / a baseline when there's nothing recent). Only categories whose
+      // menu actually has such groups show any.
+      const categoryBaselineAt = recentlyViewedAdded
+        ? recentlyViewedAt
+        : rewardBannerAdded
+        ? rewardBannerAt
+        : 6;
+      if (
+        isMobile &&
+        categoryGroups.length > categoryGroupsPlaced &&
+        (recentlyViewedAdded || recentlyViewedProducts.length === 0) &&
+        renderedCount >= categoryBaselineAt + 8 * (categoryGroupsPlaced + 1) &&
+        cellCount % 2 === 0
+      ) {
+        const grp = categoryGroups[categoryGroupsPlaced];
+        categoryGroupsPlaced += 1;
+        items.push(
+          <div key={`category-carousel-${grp.key}-${idx}`} className="col-span-full">
+            <CategoryCarousel heading={grp.heading} tiles={grp.tiles} />
           </div>
         );
         cellCount += 2;
