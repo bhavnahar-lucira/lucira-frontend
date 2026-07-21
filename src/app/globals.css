@@ -703,6 +703,58 @@
 }
 
 
+/* ---------------- PRODUCT CARD LABEL FLAG ---------------- */
+
+/* Same stacked cross-fade as .social-badge-item above, applied to the collection-grid
+   corner flag (Fast Shipping / Best Seller / Trending / New Arrival). Kept in sync with
+   the checkout badge on purpose: identical durations and easings, so a tag swap reads
+   the same wherever the shopper meets one. */
+
+.product-badge-flag {
+  transition: background-color 460ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 460ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-badge-item {
+  transition: opacity 460ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.product-badge-item[data-state="active"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.product-badge-item[data-state="exit"] {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+/* Parked below, ready to rise. Untransitioned so resetting a spent label from the
+   exit position back down to the start is instant (and invisible). */
+.product-badge-item[data-state="idle"] {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .product-badge-flag,
+  .product-badge-item {
+    transition: none;
+  }
+
+  .product-badge-item[data-state="active"],
+  .product-badge-item[data-state="exit"],
+  .product-badge-item[data-state="idle"] {
+    transform: none;
+  }
+}
+
+
 /* ---------------- RIPPLE ---------------- */
 
 .ripple {

@@ -399,11 +399,34 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [product.label, product.tags, product.productMetafields?.bestsellers]);
 
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
+  // The label we just rotated away from — it lifts out while the next one rises in.
+  // Anything that is neither active nor exiting is parked below, ready for its turn.
+  const [exitingLabelIndex, setExitingLabelIndex] = useState(-1);
   useEffect(() => {
-    if (displayLabels.length > 1) {
-      const interval = setInterval(() => { setCurrentLabelIndex((prev) => (prev + 1) % 2); }, 4500);
-      return () => clearInterval(interval);
-    } else { setCurrentLabelIndex(0); }
+    if (displayLabels.length <= 1) {
+      setCurrentLabelIndex(0);
+      setExitingLabelIndex(-1);
+      return;
+    }
+    let resetTimer;
+    let index = 0;
+    const interval = setInterval(() => {
+      const outgoing = index;
+      index = (index + 1) % displayLabels.length;
+      setExitingLabelIndex(outgoing);
+      setCurrentLabelIndex(index);
+      // Once the exit has played out, park the spent label back BELOW the flag. The
+      // idle state is untransitioned so the reset is instant and, at opacity 0,
+      // invisible. Without it a two-label flag never passes back through idle, so the
+      // spent label would still be sitting above when its turn came round again and
+      // would drop in from the top instead of rising up.
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => setExitingLabelIndex(-1), 500);
+    }, 4500);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(resetTimer);
+    };
   }, [displayLabels.length]);
 
   const galleryImages = getImagesForBase(product, activeBase);
@@ -573,33 +596,39 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               </div>
             )}
 
-            {/* Labels - Top Left. Auto-fits its width and morphs smoothly between labels.
-                Best Seller uses the #B77767 brand tone; others stay beige. */}
+            {/* Labels - Top Left. A corner flag: flush to the card's left edge, rounded on
+                the outer edge only. Best Seller uses the #B77767 brand tone; others stay beige.
+
+                Every label stays mounted stacked in one grid cell (same technique as the
+                checkout SocialProofBand). That fixes the flag at the width of the WIDEST
+                label so it never stretches or shrinks mid-rotation, and keeps the outgoing
+                and incoming label on screen together so they cross-fade instead of cutting.
+                The beige <-> brown swap tweens because the colours transition on the flag
+                itself rather than being remounted with the text. */}
             {displayLabels.length > 0 && (() => {
-              const label = displayLabels[currentLabelIndex];
-              const isBestSeller = label === "Best Seller" || label === "Extra 3% OFF" || label === "Eterna";
+              const activeIndex = currentLabelIndex % displayLabels.length;
+              const activeLabel = displayLabels[activeIndex];
+              const isBestSeller = activeLabel === "Best Seller" || activeLabel === "Extra 3% OFF" || activeLabel === "Eterna";
               return (
-                <motion.div
-                  layout
-                  transition={{ layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } }}
-                  className={`absolute top-0 lg:top-3 left-0 z-10 h-6 lg:h-7 overflow-hidden rounded-none flex items-center ${isBestSeller ? "bg-[#B77767]" : "bg-[#F1E4D1]"}`}
+                <div
+                  className={`product-badge-flag absolute top-0 lg:top-3 left-0 z-10 h-6 lg:h-7 overflow-hidden rounded-l-none rounded-r-card flex items-center ${isBestSeller ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}
                 >
-                  <AnimatePresence mode="popLayout" initial={false}>
-                    <motion.span
-                      key={label}
-                      initial={{ y: "110%", opacity: 0 }}
-                      animate={{ y: "0%", opacity: 1 }}
-                      exit={{ y: "-110%", opacity: 0 }}
-                      transition={{
-                        y: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
-                        opacity: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
-                      }}
-                      className={`block font-figtree font-semibold text-xs lg:text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap ${isBestSeller ? "text-white" : "text-black"}`}
-                    >
-                      {label}
-                    </motion.span>
-                  </AnimatePresence>
-                </motion.div>
+                  <span className="grid items-center">
+                    {displayLabels.map((label, i) => {
+                      const state = i === activeIndex ? "active" : i === exitingLabelIndex ? "exit" : "idle";
+                      return (
+                        <span
+                          key={label}
+                          data-state={state}
+                          aria-hidden={state === "active" ? undefined : "true"}
+                          className="product-badge-item col-start-1 row-start-1 block font-figtree font-semibold text-xs lg:text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap text-center"
+                        >
+                          {label}
+                        </span>
+                      );
+                    })}
+                  </span>
+                </div>
               );
             })()}
 
