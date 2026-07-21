@@ -420,14 +420,17 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       // invisible. Without it a two-label flag never passes back through idle, so the
       // spent label would still be sitting above when its turn came round again and
       // would drop in from the top instead of rising up.
+      // Must outlast --badge-roll-duration in globals.css, or the label snaps back down
+      // while it is still visibly rolling out.
       clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => setExitingLabelIndex(-1), 500);
+      resetTimer = setTimeout(() => setExitingLabelIndex(-1), 760);
     }, 4500);
     return () => {
       clearInterval(interval);
       clearTimeout(resetTimer);
     };
   }, [displayLabels.length]);
+
 
   const galleryImages = getImagesForBase(product, activeBase);
   const swiperId = `card-swiper-${String(product.id || product.shopifyId || product.handle).replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -599,21 +602,37 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             {/* Labels - Top Left. A corner flag: flush to the card's left edge, rounded on
                 the outer edge only. Best Seller uses the #B77767 brand tone; others stay beige.
 
-                Every label stays mounted stacked in one grid cell (same technique as the
-                checkout SocialProofBand). That fixes the flag at the width of the WIDEST
-                label so it never stretches or shrinks mid-rotation, and keeps the outgoing
-                and incoming label on screen together so they cross-fade instead of cutting.
-                The beige <-> brown swap tweens because the colours transition on the flag
-                itself rather than being remounted with the text. */}
+                Vertical roll: on a swap the outgoing label travels up and out while the
+                incoming one arrives from below, the two moving in lockstep one line-height
+                apart. Clipped to the flag — the Figma prototype lets the departing label
+                spill outside the pill, but this flag sits at the very top-left of the card,
+                so an unclipped label escapes the card (and the viewport) instead of reading
+                as an overshoot. The roll happens inside the box.
+
+                Every label stays mounted stacked in one grid cell, so the flag is always as
+                wide as the WIDEST label and never resizes between tags. Shorter labels are
+                centred in that fixed box rather than left-aligned, so the slack sits evenly
+                on both sides instead of pooling on the right.
+
+                Only the BACKGROUND crosses between beige and brown. Each label keeps its own
+                text colour for its whole life, so a departing label just fades — it does not
+                also wash from black through grey to white on its way out, which is what made
+                the swap read as a jolt rather than a fade. Matches the Figma, where the
+                exiting dark label stays dark against the incoming brown.
+
+                The brown is a separate layer that fades in over the beige rather than the
+                flag animating background-color. background-color repaints on the main thread
+                every frame, and a full grid swaps every badge at once — as an opacity fade
+                this runs on the compositor instead. */}
             {displayLabels.length > 0 && (() => {
               const activeIndex = currentLabelIndex % displayLabels.length;
-              const activeLabel = displayLabels[activeIndex];
-              const isBestSeller = activeLabel === "Best Seller" || activeLabel === "Extra 3% OFF" || activeLabel === "Eterna";
+              const isAccent = (l) => l === "Best Seller" || l === "Extra 3% OFF" || l === "Eterna";
               return (
                 <div
-                  className={`product-badge-flag absolute top-0 lg:top-3 left-0 z-10 h-6 lg:h-7 overflow-hidden rounded-l-none rounded-r-card flex items-center ${isBestSeller ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}
+                  className="product-badge-flag absolute top-0 lg:top-3 left-0 z-10 h-6 lg:h-7 overflow-hidden rounded-l-none rounded-r-card flex items-center bg-[#F1E4D1]"
                 >
-                  <span className="grid items-center">
+                  <span className="product-badge-accent" data-on={isAccent(displayLabels[activeIndex]) ? "true" : "false"} aria-hidden="true" />
+                  <span className="relative z-10 grid items-center">
                     {displayLabels.map((label, i) => {
                       const state = i === activeIndex ? "active" : i === exitingLabelIndex ? "exit" : "idle";
                       return (
@@ -621,7 +640,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                           key={label}
                           data-state={state}
                           aria-hidden={state === "active" ? undefined : "true"}
-                          className="product-badge-item col-start-1 row-start-1 block font-figtree font-semibold text-xs lg:text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap text-center"
+                          className={`product-badge-item col-start-1 row-start-1 justify-self-center block font-figtree font-semibold text-xs lg:text-sm leading-[1.6] tracking-normal px-3 capitalize whitespace-nowrap ${isAccent(label) ? "text-white" : "text-black"}`}
                         >
                           {label}
                         </span>

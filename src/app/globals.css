@@ -705,19 +705,45 @@
 
 /* ---------------- PRODUCT CARD LABEL FLAG ---------------- */
 
-/* Same stacked cross-fade as .social-badge-item above, applied to the collection-grid
-   corner flag (Fast Shipping / Best Seller / Trending / New Arrival). Kept in sync with
-   the checkout badge on purpose: identical durations and easings, so a tag swap reads
-   the same wherever the shopper meets one. */
+/* Vertical roll for the collection-grid corner flag (Fast Shipping / Best Seller /
+   Trending / New Arrival): the spent label rides up and out while the next rises into
+   its place, one line-height apart.
 
-.product-badge-flag {
-  transition: background-color 460ms cubic-bezier(0.4, 0, 0.2, 1),
-    color 460ms cubic-bezier(0.4, 0, 0.2, 1);
+   Every animated property runs on the SAME duration and the same easing pair, so the
+   text movement, its fade and the beige <-> brown background change all start and land
+   together instead of finishing at staggered times. Tune the swap speed here — the
+   idle-reset timer in ProductCard.jsx must stay longer than this. */
+
+:root {
+  --badge-roll-duration: 640ms;
+  --badge-roll-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --badge-fade-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The flag itself never animates: its beige is static, and each label owns its text colour
+   (see ProductCard.jsx) so a departing label fades at its own colour instead of being
+   dragged across to the incoming one mid-exit. */
+
+/* Brown accent for Best Seller / Eterna / Extra 3% OFF, laid over the beige and faded in.
+   Doing it this way rather than transitioning the flag's background-color keeps the swap on
+   the compositor — background-color forces a main-thread repaint on every frame, and a full
+   collection grid swaps every badge at the same moment. */
+.product-badge-accent {
+  position: absolute;
+  inset: 0;
+  background-color: #B77767;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--badge-roll-duration) var(--badge-fade-ease);
+}
+
+.product-badge-accent[data-on="true"] {
+  opacity: 1;
 }
 
 .product-badge-item {
-  transition: opacity 460ms cubic-bezier(0.4, 0, 0.2, 1),
-    transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity var(--badge-roll-duration) var(--badge-fade-ease),
+    transform var(--badge-roll-duration) var(--badge-roll-ease);
 }
 
 .product-badge-item[data-state="active"] {
@@ -725,17 +751,20 @@
   transform: translateY(0);
 }
 
+/* One full line-height of travel, so the outgoing label clears the flag rather than
+   nudging. The flag clips, so this label rolls out of view inside the pill instead of
+   spilling over the top of the card. */
 .product-badge-item[data-state="exit"] {
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(-100%);
   pointer-events: none;
 }
 
-/* Parked below, ready to rise. Untransitioned so resetting a spent label from the
-   exit position back down to the start is instant (and invisible). */
+/* Parked one line-height below, ready to rise. Untransitioned so resetting a spent label
+   from the exit position back down to the start is instant (and, at opacity 0, invisible). */
 .product-badge-item[data-state="idle"] {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(100%);
   pointer-events: none;
   transition: none;
 }
@@ -743,6 +772,7 @@
 @media (prefers-reduced-motion: reduce) {
 
   .product-badge-flag,
+  .product-badge-accent,
   .product-badge-item {
     transition: none;
   }
