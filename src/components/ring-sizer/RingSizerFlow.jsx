@@ -73,7 +73,7 @@ function reducer(state, action) {
   }
 }
 
-export function RingSizerFlow({ onApplySize, onClose }) {
+export function RingSizerFlow({ onApplySize, onClose, products = [] }) {
   const router = useRouter();
   const [state, dispatch] = useReducer(reducer, INITIAL);
   const calibration = useRingSizerCalibration();
@@ -202,7 +202,13 @@ export function RingSizerFlow({ onApplySize, onClose }) {
       )}
 
       {state.step === STEPS.RESULT && (
-        <ResultStep result={state.result} onBack={back} onClose={close} onApply={onApplySize} />
+        <ResultStep
+          result={state.result}
+          products={products}
+          onBack={back}
+          onClose={close}
+          onApply={onApplySize}
+        />
       )}
     </Shell>
   );

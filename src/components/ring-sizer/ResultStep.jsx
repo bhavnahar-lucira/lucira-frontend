@@ -1,23 +1,63 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { StepHeader, Footer, PrimaryButton } from "./chrome";
 import { RingProductGlyph } from "./illustrations";
 import { suggestWideBandAdjustment } from "@/lib/ringSizer";
 
 /**
- * Placeholder product set. Replace with real recommendations - most likely a
- * Shopify collection filtered to variants available in the resolved size, so
- * the carousel only ever shows rings the customer can actually buy.
+ * Shopify stores ring sizes as zero-padded two-character strings ("05", "12"),
+ * while the size chart holds plain integers. Without this the filter silently
+ * matches nothing and every customer sees the full unfiltered list.
  */
-const PLACEHOLDER_PRODUCTS = [
-  { id: 1, name: "Solitaire Band" },
-  { id: 2, name: "Eternity Ring" },
-  { id: 3, name: "Halo Cluster" },
-  { id: 4, name: "Classic Trio" },
-  { id: 5, name: "Pavé Band" },
-];
+const toShopifySize = (ind) => String(ind).padStart(2, "0");
+
+/**
+ * Carousel sizing.
+ *
+ *   CAROUSEL_SIZE_PX  diameter of the centre ring
+ *   NEIGHBOUR_SCALE   side rings, as a fraction of that
+ *   RING_GAP_PX       visible space between centre ring and neighbour
+ *
+ * Spacing is DERIVED from the gap rather than set directly, so the gap stays
+ * what it says it is. Setting spacing directly meant every change to the ring
+ * size silently moved the gap too - growing the centre pushes its edges toward
+ * neighbours whose positions have not moved, closing the space.
+ */
+const CAROUSEL_SIZE_PX = 176;
+const NEIGHBOUR_SCALE = 0.5;
+
+/**
+ * Visible gap between the centre ring and each neighbour, in px. This is the
+ * dial to turn for carousel tightness - everything else is derived from it.
+ *
+ * Deliberately an absolute value rather than a fraction of the track width.
+ * The shell is capped at max-w-[480px], so a ratio produced a gap that changed
+ * with the container: ~22px on a 375px phone but ~65px once the shell hit its
+ * 480px ceiling. The spacing between two rings is a composition decision, not
+ * something that should drift with screen size.
+ */
+const RING_GAP_PX = 22;
+
+/* Centre-to-centre distance: half the centre ring + half a neighbour + the gap. */
+const RING_SPACING_PX =
+  CAROUSEL_SIZE_PX / 2 + (CAROUSEL_SIZE_PX * NEIGHBOUR_SCALE) / 2 + RING_GAP_PX;
+
+/**
+ * Keep only rings actually made in the customer's size.
+ *
+ * Falls back to the unfiltered list rather than showing an empty carousel -
+ * a customer who has just been told their size should never hit a dead end,
+ * and the sizes shown on each PDP will still be correct.
+ */
+function productsForSize(products, size) {
+  if (!products?.length || !size) return products ?? [];
+  const wanted = toShopifySize(size.ind);
+  const matching = products.filter((p) => p.sizes?.includes(wanted));
+  return matching.length ? matching : products;
+}
 
 /**
  * Centre-focus carousel with the neighbours peeking in at both edges, matching
@@ -28,7 +68,7 @@ const PLACEHOLDER_PRODUCTS = [
  * timing, easing and whether it auto-advances at all still need confirming
  * against that video.
  */
-function ProductCarousel({ products = PLACEHOLDER_PRODUCTS }) {
+function ProductCarousel({ products }) {
   const [active, setActive] = useState(Math.floor(products.length / 2));
   const [paused, setPaused] = useState(false);
 
@@ -40,7 +80,8 @@ function ProductCarousel({ products = PLACEHOLDER_PRODUCTS }) {
 
   return (
     <div
-      className="relative h-[190px] w-full overflow-hidden"
+      className="relative w-full overflow-hidden"
+      style={{ height: `${CAROUSEL_SIZE_PX + 40}px` }}
       onPointerDown={() => setPaused(true)}
       role="group"
       aria-label="Recommended rings"
@@ -56,60 +97,98 @@ function ProductCarousel({ products = PLACEHOLDER_PRODUCTS }) {
         const isActive = offset === 0;
         const distance = Math.abs(offset);
 
+        const inner = (
+          <span
+            className="relative flex items-center justify-center overflow-hidden rounded-full bg-white/80 shadow-[0_2px_16px_rgba(63,46,44,0.08)]"
+            style={{ height: `${CAROUSEL_SIZE_PX}px`, width: `${CAROUSEL_SIZE_PX}px` }}
+          >
+            {product.image ? (
+              <Image
+                src={product.image}
+                alt={product.alt || product.title}
+                width={CAROUSEL_SIZE_PX}
+                height={CAROUSEL_SIZE_PX}
+                sizes={`${CAROUSEL_SIZE_PX}px`}
+                // Only the centre item is worth prioritising; the peeking
+                // neighbours can load lazily.
+                priority={isActive}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <RingProductGlyph className="h-1/2 w-1/2" />
+            )}
+          </span>
+        );
+
         return (
-          <button
+          <div
             key={product.id}
-            type="button"
-            onClick={() => {
-              setPaused(true);
-              setActive(i);
-            }}
-            aria-label={product.name}
-            aria-current={isActive}
             className="absolute top-1/2 left-1/2 transition-all duration-500 ease-out"
             style={{
-              transform: `translate(-50%, -50%) translateX(${offset * 118}px) scale(${
-                isActive ? 1 : 0.58
+              transform: `translate(-50%, -50%) translateX(${offset * RING_SPACING_PX}px) scale(${
+                isActive ? 1 : NEIGHBOUR_SCALE
               })`,
               opacity: distance > 1.5 ? 0 : isActive ? 1 : 0.75,
               zIndex: 10 - distance,
               pointerEvents: distance > 1.5 ? "none" : "auto",
             }}
           >
-            <span className="flex h-[150px] w-[150px] flex-col items-center justify-center rounded-full bg-white/80 shadow-[0_2px_16px_rgba(63,46,44,0.08)]">
-              <RingProductGlyph className="h-[86px] w-[86px]" />
-              {isActive ? (
-                <span className="mt-1 px-3 text-center font-figtree text-[10px] tracking-wide text-[#8A7670] uppercase">
-                  {product.name}
-                </span>
-              ) : null}
-            </span>
-          </button>
+            {isActive && product.handle ? (
+              <Link
+                prefetch={false}
+                href={`/products/${product.handle}`}
+                aria-label={product.title}
+                className="block"
+              >
+                {inner}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setPaused(true);
+                  setActive(i);
+                }}
+                aria-label={product.title}
+                className="block"
+              >
+                {inner}
+              </button>
+            )}
+          </div>
         );
       })}
     </div>
   );
 }
 
-export function ResultStep({ result, onBack, onClose, onApply }) {
+export function ResultStep({ result, products = [], onBack, onClose, onApply }) {
   const size = result?.size;
   const wideBand = suggestWideBandAdjustment(size);
+  const recommended = useMemo(() => productsForSize(products, size), [products, size]);
 
   return (
     <>
       <StepHeader onBack={onBack} onClose={onClose} />
 
+      {/* Centred in the leftover space, same pattern as Step 03: the min-h-full
+          inner wrapper does the centring rather than justify-center on the
+          scroller, which would push overflow above the scroll origin and make
+          the heading unreachable on a short screen. */}
       <div className="flex-1 overflow-y-auto px-6">
-        <h2 className="mt-2 text-center font-abhaya text-[28px] leading-tight font-semibold text-[#3F2E2C]">
+        <div className="flex min-h-full flex-col justify-center py-4">
+        <h2 className="text-center font-abhaya text-[28px] leading-tight font-semibold text-[#3F2E2C]">
           Your size is {size?.indLabel ?? "—"}
         </h2>
         <p className="mt-1 text-center font-figtree text-[12px] text-[#8A7670]">
           Find diamond jewelry pieces that match your style.
         </p>
 
-        <div className="-mx-6 mt-4">
-          <ProductCarousel />
-        </div>
+        {recommended.length ? (
+          <div className="-mx-6 mt-4">
+            <ProductCarousel products={recommended} />
+          </div>
+        ) : null}
 
         {/* Honest about precision: the reading is only ever good to about half
             a size, and saying so up front costs far less than a return. */}
@@ -133,6 +212,7 @@ export function ResultStep({ result, onBack, onClose, onApply }) {
         <p className="mt-6 text-center font-figtree text-[12px] text-[#8A7670]">
           You&apos;re one step closer to finding your Lucira ring.
         </p>
+        </div>
       </div>
 
       <Footer>

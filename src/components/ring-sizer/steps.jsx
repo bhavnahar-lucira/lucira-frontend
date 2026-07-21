@@ -159,6 +159,43 @@ const COIN_BULLETS = [
 const STAGE_INSET_PX = 24;
 
 /**
+ * Outline border weight. Thick enough to align a card edge against by eye,
+ * but it stays SAFE for measurement only because Tailwind's preflight sets
+ * `box-sizing: border-box` globally: the inline height is the OUTER height,
+ * so the span between the outer edges of the two dashed rules is exactly
+ * 53.98mm no matter how heavy the border gets. The border eats into the fill,
+ * never into the measurement.
+ *
+ * That also fixes which edge the user aligns to - the card covers the rules
+ * and its edges sit flush with their OUTER sides, which is the same surface
+ * the maths uses. Aligning to the inner side instead would under-read by
+ * 2 x this value (~0.7mm of card at 6 px/mm), roughly a third of a ring size
+ * once it propagates.
+ */
+const OUTLINE_BORDER_PX = 2;
+
+/**
+ * Floor for the calibration slider, as pxPerMm x 100.
+ *
+ * Two reasons it exists, and they happen to agree:
+ *
+ * 1. No real handheld goes near it. Phones sit at 5.3-6.6 CSS px/mm
+ *    (Galaxy S23 5.58, iPhone 15 6.04, SE 6.42) and even a 12.9" iPad Pro is
+ *    4.76. Anything below 4.0 is a desktop monitor, which cannot measure
+ *    anything physical anyway - desktop gets the QR handoff instead.
+ *
+ * 2. Below ~3.5 the outline becomes shorter than the instructions printed
+ *    inside it and the text spills out of the box.
+ *
+ * Dragging into a range that is both physically impossible and visually
+ * broken is not a state worth supporting, so the track simply stops here.
+ */
+const SLIDER_MIN_X100 = 400;
+
+/** Vertical room the coin layout needs for the bullets that sit below it. */
+const COIN_TEXT_RESERVE_PX = 180;
+
+/**
  * The calibration target is a STABLE user choice, never derived from the
  * current slider value.
  *
@@ -209,13 +246,18 @@ export function CalibrateStep({ pxPerMmX100, onChange, onNext, onBack, targetId,
   const overhangsRight = !isCoin && stage.w > 0 && STAGE_INSET_PX + widthPx > stage.w;
   const closeRightEdge = isCoin || !overhangsRight;
 
+  // The coin's instructions sit BELOW the circle rather than inside it, so
+  // that text has to be subtracted from the room available to the outline.
+  const availableH = stageH - 16 - (isCoin ? COIN_TEXT_RESERVE_PX : 0);
   const sliderMax = stageH
-    ? Math.min(900, Math.floor(((stageH - 16) / referenceMm) * 100))
+    ? Math.max(SLIDER_MIN_X100, Math.min(900, Math.floor((availableH / referenceMm) * 100)))
     : 900;
 
-  // Keep the value legal when the target or the stage changes under it.
+  // Keep the value legal at BOTH ends when the target or stage changes under it.
   useEffect(() => {
-    if (stageH && pxPerMmX100 > sliderMax) onChange(sliderMax);
+    if (!stageH) return;
+    if (pxPerMmX100 > sliderMax) onChange(sliderMax);
+    else if (pxPerMmX100 < SLIDER_MIN_X100) onChange(SLIDER_MIN_X100);
   }, [stageH, sliderMax, pxPerMmX100, onChange]);
 
   return (
@@ -225,24 +267,42 @@ export function CalibrateStep({ pxPerMmX100, onChange, onNext, onBack, targetId,
       {/* Stage clips the outline's overhanging right side. The outline itself
           is shrink-0 - it is meant to overflow, not be squeezed to fit, or
           flex would quietly compress the declared 85.6mm width. */}
-      <div ref={stageRef} className="relative flex flex-1 items-center overflow-hidden">
+      <div ref={stageRef} className="relative flex flex-1 flex-col justify-center overflow-hidden">
         <div
-          className="relative shrink-0 border-y border-l border-dashed border-[#4A3A36] bg-[#D9D6D2]"
+          className="relative shrink-0 overflow-hidden border-dashed border-[#3F2E2C] bg-[#D9D6D2]"
           style={{
-            marginLeft: `${STAGE_INSET_PX}px`,
+            /* The card is pinned left: it overhangs the right edge, so a fixed
+               left edge is the only stable thing to align it against. A coin
+               fits entirely on screen and has no edge to anchor, so it centres. */
+            marginLeft: isCoin ? "auto" : `${STAGE_INSET_PX}px`,
+            marginRight: isCoin ? "auto" : undefined,
             width: `${widthPx}px`,
             height: `${heightPx}px`,
+            borderTopWidth: `${OUTLINE_BORDER_PX}px`,
+            borderBottomWidth: `${OUTLINE_BORDER_PX}px`,
+            borderLeftWidth: `${OUTLINE_BORDER_PX}px`,
+            borderRightWidth: closeRightEdge ? `${OUTLINE_BORDER_PX}px` : 0,
             borderTopLeftRadius: `${radiusPx}px`,
             borderBottomLeftRadius: `${radiusPx}px`,
             borderTopRightRadius: closeRightEdge ? `${radiusPx}px` : 0,
             borderBottomRightRadius: closeRightEdge ? `${radiusPx}px` : 0,
-            borderRightWidth: closeRightEdge ? 1 : 0,
           }}
         >
-          <div className="px-6 py-5">
-            <Bullets items={isCoin ? COIN_BULLETS : CARD_BULLETS} />
-          </div>
+          {/* Card only. A ₹10 coin is 27mm across - at any realistic density
+              that circle is far too small to hold four lines of instruction,
+              so the coin's bullets go underneath instead. */}
+          {!isCoin ? (
+            <div className="px-6 py-5">
+              <Bullets items={CARD_BULLETS} />
+            </div>
+          ) : null}
         </div>
+
+        {isCoin ? (
+          <div className="mx-auto w-full max-w-[300px] px-6 pt-6">
+            <Bullets items={COIN_BULLETS} />
+          </div>
+        ) : null}
       </div>
 
       <div className="px-6 pt-3">
@@ -262,7 +322,13 @@ export function CalibrateStep({ pxPerMmX100, onChange, onNext, onBack, targetId,
       </div>
 
       <div className="px-5 pt-3 pb-2">
-        <ScaleSlider value={pxPerMmX100} min={250} max={sliderMax} step={1} onChange={onChange} />
+        <ScaleSlider
+          value={pxPerMmX100}
+          min={SLIDER_MIN_X100}
+          max={sliderMax}
+          step={1}
+          onChange={onChange}
+        />
       </div>
 
       <Footer>
@@ -343,16 +409,21 @@ export function MeasureRingStep({ diameterMmX10, onChange, onNext, onBack, pxPer
     <>
       <StepHeader step="Step 04" onBack={onBack} />
 
+      {/* Centred in the leftover space, same pattern as Step 03 - the
+          min-h-full wrapper centres, rather than justify-center on the
+          scroller, which would put overflow above the scroll origin. */}
       <div className="flex-1 overflow-y-auto">
-        {/* Graph-paper stage: a fine 8px grid with a heavier line every 5th,
-            so the circle has a stable visual reference as it scales. The
-            crosshair through the centre gives the ring something to sit
-            square against. */}
-        <div className="px-5 pt-2">
+        <div className="flex min-h-full flex-col justify-center gap-3 py-3">
+          {/* Graph-paper stage: a fine 8px grid with a heavier line every 5th,
+              so the circle has a stable visual reference as it scales. The
+              crosshair through the centre gives the ring something to sit
+              square against. The stage hugs the circle (+40px of breathing
+              room) instead of holding a fixed block of empty grid. */}
+          <div className="px-5">
           <div
             className="relative flex items-center justify-center overflow-hidden rounded-[4px] border border-dashed border-[#C9AFA6]"
             style={{
-              minHeight: `${Math.max(circlePx + 64, 220)}px`,
+              minHeight: `${Math.max(circlePx + 40, 168)}px`,
               backgroundColor: "#FFFCFA",
               backgroundImage: [
                 "linear-gradient(#E8DAD3 1px, transparent 1px)",
@@ -371,10 +442,11 @@ export function MeasureRingStep({ diameterMmX10, onChange, onNext, onBack, pxPer
               style={{ width: `${circlePx}px`, height: `${circlePx}px` }}
             />
           </div>
-        </div>
+          </div>
 
-        <div className="px-6 pt-4">
-          <Bullets items={RING_BULLETS} />
+          <div className="px-6">
+            <Bullets items={RING_BULLETS} />
+          </div>
         </div>
       </div>
 
@@ -417,17 +489,22 @@ export function MeasureStripStep({ circumferenceMmX10, onChange, onNext, onBack,
     <>
       <StepHeader step="Step 04" onBack={onBack} />
 
-      <div className="flex flex-1 gap-4 overflow-y-auto px-6 pt-2">
-        <div className="flex-1 pt-2">
-          <Bullets items={STRIP_BULLETS} />
-        </div>
+      <div className="flex-1 overflow-y-auto px-6">
+        <div className="flex min-h-full items-center gap-4 py-3">
+          <div className="flex-1">
+            <Bullets items={STRIP_BULLETS} />
+          </div>
 
-        {/* Vertical measuring guide. The user lays the strip alongside it and
-            matches their pen mark to the lower cap. */}
-        <div className="flex shrink-0 flex-col items-center justify-start pt-2">
-          <div className="h-px w-6 bg-[#3F2E2C]" />
-          <div className="w-[3px] rounded-full bg-[#C9AFA6]" style={{ height: `${lengthPx}px` }} />
-          <div className="h-px w-6 bg-[#3F2E2C]" />
+          {/* Vertical measuring guide. The user lays the strip alongside it and
+              matches their pen mark to the lower cap. */}
+          <div className="flex shrink-0 flex-col items-center">
+            <div className="h-px w-6 bg-[#3F2E2C]" />
+            <div
+              className="w-[3px] rounded-full bg-[#C9AFA6]"
+              style={{ height: `${lengthPx}px` }}
+            />
+            <div className="h-px w-6 bg-[#3F2E2C]" />
+          </div>
         </div>
       </div>
 
