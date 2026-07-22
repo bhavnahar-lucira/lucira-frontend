@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import {
-  Loader2, Gift, Check, ChevronDown, ChevronUp, AlertCircle, MapPin, Plus
+  Loader2, Gift, Check, ChevronDown, ChevronUp, AlertCircle, MapPin, Plus, ChevronRight
 } from "lucide-react";
 import { apiFetch, fetchCustomerDashboardStats } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
@@ -30,18 +30,18 @@ function extractNumericId(gid = "") {
 /* ─── Underline Field — matches the HTML prototype ─── */
 function Field({ label, hint, children }) {
   return (
-    <div className="rewards-field">
-      {label && <label className="rewards-field__label">{label}</label>}
+    <div className="flex flex-col gap-1.5">
+      {label && <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 leading-none">{label}</label>}
       {children}
-      {hint && <span className="rewards-field__hint">{hint}</span>}
+      {hint && <span className="text-xs text-zinc-400">{hint}</span>}
     </div>
   );
 }
 
 function UnderlineInput({ id, type = "text", value, onChange, readOnly, placeholder = "", prefix, suffix }) {
   return (
-    <div className={`rewards-field__underline-wrap${readOnly ? " is-readonly" : ""}`}>
-      {prefix && <span className="rewards-field__prefix">{prefix}</span>}
+    <div className={`flex items-center gap-2 border-b border-zinc-200 transition-colors focus-within:border-primary ${readOnly ? "opacity-70" : ""}`}>
+      {prefix && <span className="text-sm font-medium text-zinc-500 pb-2 whitespace-nowrap shrink-0 border-r border-zinc-200 pr-3 mr-1">{prefix}</span>}
       <input
         id={id}
         type={type}
@@ -49,25 +49,25 @@ function UnderlineInput({ id, type = "text", value, onChange, readOnly, placehol
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         readOnly={readOnly}
         placeholder={placeholder}
-        className="rewards-field__input"
+        className="bg-transparent border-none outline-none py-1.5 px-0.5 flex-1 min-w-0 text-sm font-medium text-zinc-900 placeholder:text-zinc-300"
       />
-      {suffix && <span className="rewards-field__suffix">{suffix}</span>}
+      {suffix && <span className="text-[10px] font-bold uppercase tracking-widest text-primary whitespace-nowrap cursor-pointer pb-2 shrink-0 flex items-center gap-1">{suffix}</span>}
     </div>
   );
 }
 
 function UnderlineSelect({ id, value, onChange, children }) {
   return (
-    <div className="rewards-field__underline-wrap rewards-field__select-wrap">
+    <div className="flex items-center gap-2 border-b border-zinc-200 transition-colors focus-within:border-primary relative">
       <select
         id={id}
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
-        className="rewards-field__input rewards-field__select"
+        className="bg-transparent border-none outline-none py-1.5 px-0.5 flex-1 min-w-0 text-sm font-medium text-zinc-900 placeholder:text-zinc-300 appearance-none cursor-pointer pr-6"
       >
         {children}
       </select>
-      <ChevronDown size={13} className="rewards-field__select-icon" />
+      <ChevronDown size={13} className="absolute right-1 bottom-3 pointer-events-none text-zinc-400" />
     </div>
   );
 }
@@ -75,13 +75,13 @@ function UnderlineSelect({ id, value, onChange, children }) {
 /* ─── Segmented gender control ─── */
 function SegmentedControl({ options, value, onChange }) {
   return (
-    <div className="rewards-segmented">
+    <div className="flex gap-6 border-b border-zinc-200">
       {options.map((opt) => (
         <button
           key={opt}
           type="button"
           onClick={() => onChange(opt)}
-          className={`rewards-segmented__btn${value === opt ? " is-active" : ""}`}
+          className={`bg-transparent border-none cursor-pointer pb-3 relative text-sm font-medium transition-colors ${value === opt ? "text-primary font-bold after:absolute after:left-0 after:right-0 after:-bottom-[1px] after:h-[2px] after:bg-primary" : "text-zinc-500"}`}
         >
           {opt}
         </button>
@@ -91,7 +91,8 @@ function SegmentedControl({ options, value, onChange }) {
 }
 
 export default function EarnRewardsPage() {
-  const { accessToken } = useSelector((state) => state.user);
+  const { accessToken, user } = useSelector((state) => state.user);
+  const userStorageKey = user?.id ? `${CONFIG.storageKey}_${extractNumericId(user.id)}` : CONFIG.storageKey;
 
   const [formData, setFormData] = useState({
     first_name: "", last_name: "", mobile_number: "", date_of_birth: "",
@@ -119,7 +120,7 @@ export default function EarnRewardsPage() {
   useEffect(() => {
     async function init() {
       try {
-        const raw = localStorage.getItem(CONFIG.storageKey);
+        const raw = localStorage.getItem(userStorageKey);
         if (raw) {
           const p = JSON.parse(raw);
           if (p.formData?.step_1) setFormData(prev => ({ ...prev, ...p.formData.step_1 }));
@@ -158,8 +159,9 @@ export default function EarnRewardsPage() {
       const simpleId = extractNumericId(c?.id || "");
       if (!simpleId) return;
 
-      const d = await apiFetch(`${CONFIG.apiBase}/get-progress.php?customer_id=shopify-${simpleId}&t=${Date.now()}`);
-      setProfileComplete(!!d?.profile_complete);
+      const d = await apiFetch(`/api/customer/progress`);
+      
+      setProfileComplete(prev => prev || !!d?.profile_complete);
 
       const savedData = d?.form_data?.step_1 || {};
       setFormData(prev => ({
@@ -168,6 +170,8 @@ export default function EarnRewardsPage() {
         last_name: savedData.last_name || c?.lastName || "",
         email: savedData.email || c?.email || "",
         mobile_number: savedData.mobile_number || c?.phone || "",
+        marital_status: savedData.marital_status || "",
+        anniversary_date: savedData.anniversary_date || "",
       }));
     } catch (e) { console.warn("Server progress:", e); }
   }
@@ -187,7 +191,7 @@ export default function EarnRewardsPage() {
           last_name: stepData.last_name || "",
           email: stepData.email || "",
           phone: stepData.mobile_number || "",
-          note: `dob:${stepData.date_of_birth || ""};gender:${stepData.gender || ""};pincode:${stepData.pincode || ""};profession:${stepData.profession || ""}`,
+          note: `dob:${stepData.date_of_birth || ""};gender:${stepData.gender || ""};pincode:${stepData.pincode || ""};profession:${stepData.profession || ""};marital_status:${stepData.marital_status || ""};anniversary_date:${stepData.anniversary_date || ""}`,
           date_of_birth: stepData.date_of_birth || "",
         }),
       });
@@ -218,9 +222,9 @@ export default function EarnRewardsPage() {
     setFormData((prev) => {
       const next = { ...prev, [field]: value };
       try {
-        const raw = localStorage.getItem(CONFIG.storageKey) || "{}";
+        const raw = localStorage.getItem(userStorageKey) || "{}";
         const p = JSON.parse(raw);
-        localStorage.setItem(CONFIG.storageKey, JSON.stringify({ ...p, formData: { step_1: next } }));
+        localStorage.setItem(userStorageKey, JSON.stringify({ ...p, formData: { step_1: next } }));
       } catch {}
       return next;
     });
@@ -265,29 +269,32 @@ export default function EarnRewardsPage() {
   }
 
   async function completeProfile() {
-    if (!formData.first_name || !formData.date_of_birth || !formData.gender || !formData.pincode) {
+    if (!formData.first_name || !formData.date_of_birth || !formData.gender || !formData.pincode || !formData.marital_status) {
       alert("Please fill in all required fields marked with *");
+      return;
+    }
+    if (formData.marital_status === "Married" && !formData.anniversary_date) {
+      alert("Please provide your anniversary date.");
       return;
     }
     setCompleting(true);
     pushPromoClick({ creative_name: "Completed User Profile", location_id: "admin rewards" });
     await savePersonalInfo(formData);
-    await apiSave(4, formData, false);
     try {
       const profileData = await shopifyStorefrontFetch(CUSTOMER_QUERY, { customerAccessToken: accessToken });
       const simpleId = extractNumericId(profileData?.customer?.id || "");
       if (simpleId) {
         await apiFetch(`/api/customer/reward/profile-complete`, {
-          method: "POST", body: JSON.stringify({ customerId: simpleId })
+          method: "POST", body: JSON.stringify({ customerId: simpleId, formData })
         });
       }
     } catch {}
     setProfileComplete(true);
     fetchCoins();
     try {
-      const raw = localStorage.getItem(CONFIG.storageKey) || "{}";
+      const raw = localStorage.getItem(userStorageKey) || "{}";
       const p = JSON.parse(raw);
-      localStorage.setItem(CONFIG.storageKey, JSON.stringify({ ...p, profileComplete: true }));
+      localStorage.setItem(userStorageKey, JSON.stringify({ ...p, profileComplete: true }));
     } catch {}
     setCompleting(false);
   }
@@ -327,268 +334,70 @@ export default function EarnRewardsPage() {
   }
 
   return (
-    <div className="rewards-page">
-      <style>{`
-        /* ─── Design tokens — all derived from var(--primary) ─── */
-        .rewards-page {
-          --rw-primary: var(--primary, #5A413F);
-          --rw-primary-fg: var(--primary-foreground, #fff);
-          --rw-tint:   color-mix(in srgb, var(--primary) 7%,  white);
-          --rw-tint-md: color-mix(in srgb, var(--primary) 14%, white);
-          --rw-tint-border: color-mix(in srgb, var(--primary) 25%, white);
-          --rw-border: #E8DED6;
-          --rw-text:   #2B2321;
-          --rw-muted:  #8C7A73;
-          --rw-faint:  #B7A9A2;
-          font-family: 'Figtree', var(--font-figtree), ui-sans-serif, system-ui, -apple-system, sans-serif;
-          -webkit-font-smoothing: antialiased;
-          animation: rwFade .35s ease;
-          max-width: 900px;
-        }
-        @keyframes rwFade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-
-        /* ─── Coin strip ─── */
-        .rewards-strip {
-          background: linear-gradient(135deg, #1a1208 0%, #2d1f0e 40%, #1a1208 100%);
-          border-radius: 14px;
-          padding: 22px 24px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 28px;
-          position: relative;
-          overflow: hidden;
-        }
-        .rewards-strip::before {
-          content: "";
-          position: absolute; inset: 0;
-          background: linear-gradient(105deg, transparent 40%, rgba(176,141,87,.18) 60%, rgba(228,207,165,.22) 70%, transparent 80%);
-          pointer-events: none;
-        }
-        .rewards-strip::after {
-          content: "";
-          position: absolute; top: 0; left: 0; right: 0; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(228,207,165,.5) 40%, rgba(228,207,165,.5) 60%, transparent);
-          pointer-events: none;
-        }
-        .rewards-strip__left { display:flex; align-items:center; gap:14px; position:relative; }
-        .rewards-strip__icon {
-          width:46px; height:46px; border-radius:50%;
-          background:rgba(176,141,87,.2); border:1px solid rgba(228,207,165,.25);
-          display:flex; align-items:center; justify-content:center;
-          color:#E4CFA5; flex:0 0 auto;
-        }
-        .rewards-strip__coins { text-align:right; position:relative; }
-
-        /* ─── Section card ─── */
-        .rewards-card {
-          background:#fff;
-          border:1px solid var(--rw-border);
-          border-radius:16px;
-          overflow:hidden;
-          margin-bottom:20px;
-        }
-        .rewards-card__header {
-          display:flex; align-items:center; justify-content:space-between;
-          padding:18px 24px;
-          cursor:pointer;
-          border-bottom:1px solid transparent;
-          transition:background .15s ease;
-        }
-        .rewards-card__header:hover { background:var(--rw-tint); }
-        .rewards-card__header.is-open { border-bottom-color:var(--rw-border); }
-        .rewards-card__title {
-          font-weight:600; color:var(--rw-primary); margin:0;
-          display:flex; align-items:center; gap:8px;
-        }
-        .rewards-card__dot {
-          width:5px; height:5px; background:var(--rw-primary); transform:rotate(45deg); flex:0 0 auto; opacity:.45;
-        }
-        .rewards-card__chevron {
-          width:28px; height:28px; border-radius:50%;
-          background:var(--rw-tint);
-          border:1px solid var(--rw-tint-border);
-          display:flex; align-items:center; justify-content:center;
-          color:var(--rw-primary); flex:0 0 auto;
-          transition:background .15s ease;
-        }
-        .rewards-card__header:hover .rewards-card__chevron { background:var(--rw-tint-md); }
-        .rewards-card__body { padding:28px 24px 32px; }
-
-        /* ─── Form grid ─── */
-        .rewards-form-grid {
-          display:grid;
-          grid-template-columns:1fr 1fr;
-          column-gap:48px;
-          row-gap:28px;
-        }
-        @media(max-width:680px){ .rewards-form-grid{ grid-template-columns:1fr; } }
-
-        /* ─── Underline field ─── */
-        .rewards-field { display:flex; flex-direction:column; gap:8px; }
-        .rewards-field__label {
-          letter-spacing:.1em; text-transform:uppercase;
-          color:var(--rw-faint); line-height:1;
-        }
-        .rewards-field__hint { color:var(--rw-faint); margin-top:-2px; }
-        .rewards-field__underline-wrap {
-          display:flex; align-items:center; gap:8px;
-          border-bottom:1px solid var(--rw-border);
-          transition:border-color .2s ease;
-        }
-        .rewards-field__underline-wrap:focus-within { border-bottom-color:var(--rw-primary); }
-        .rewards-field__underline-wrap.is-readonly { opacity:.7; }
-        .rewards-field__input {
-          font-family:inherit; color:var(--rw-text);
-          background:transparent; border:none; outline:none; padding:6px 2px 10px;
-          flex:1; min-width:0; appearance:none;
-        }
-        .rewards-field__input::placeholder { color:var(--rw-faint); }
-        .rewards-field__select { cursor:pointer; padding-right:20px; }
-        .rewards-field__select-wrap { position:relative; }
-        .rewards-field__select-icon { position:absolute; right:2px; bottom:12px; pointer-events:none; color:var(--rw-faint); }
-        .rewards-field__prefix { color:var(--rw-muted); padding-bottom:10px; white-space:nowrap; flex:0 0 auto; }
-        .rewards-field__prefix--divider { border-right:1px solid var(--rw-border); padding-right:10px; margin-right:2px; }
-        .rewards-field__suffix { letter-spacing:.06em; text-transform:uppercase; color:var(--rw-primary); white-space:nowrap; cursor:pointer; padding-bottom:10px; flex:0 0 auto; }
-        .rewards-field__suffix--icon { display:flex; align-items:center; gap:4px; }
-
-        /* ─── Segmented ─── */
-        .rewards-segmented {
-          display:flex; gap:24px;
-          border-bottom:1px solid var(--rw-border);
-        }
-        .rewards-segmented__btn {
-          font-family:inherit; color:var(--rw-muted);
-          background:none; border:none; cursor:pointer;
-          padding:6px 0 12px; position:relative;
-          transition:color .15s ease;
-        }
-        .rewards-segmented__btn.is-active { color:var(--rw-primary); font-weight:600; }
-        .rewards-segmented__btn.is-active::after {
-          content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--rw-primary);
-        }
-
-        /* ─── Action row ─── */
-        .rewards-actions { margin-top:36px; display:flex; justify-content:flex-end; }
-        .rewards-btn-primary {
-          background:var(--rw-primary); color:#fff;
-          border:1px solid var(--rw-primary);
-          font-family:inherit; letter-spacing:.1em; text-transform:uppercase;
-          padding:14px 30px; border-radius:3px; cursor:pointer;
-          transition:opacity .2s ease;
-          display:flex; align-items:center; gap:8px;
-        }
-        .rewards-btn-primary:hover:not(:disabled) { opacity:.82; }
-        .rewards-btn-primary:disabled { opacity:.45; cursor:not-allowed; }
-
-        /* ─── Success banner ─── */
-        .rewards-success-banner {
-          display:flex; align-items:center; gap:14px;
-          background:var(--rw-tint);
-          border:1px solid var(--rw-tint-border);
-          border-radius:12px; padding:14px 18px; margin-bottom:28px;
-        }
-        .rewards-success-banner__check {
-          width:30px; height:30px; border-radius:50%; background:var(--rw-primary);
-          display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:#fff;
-        }
-
-        /* ─── Promo banner (occasions) ─── */
-        .rewards-promo {
-          background:var(--rw-primary); border-radius:14px;
-          padding:26px 28px; display:flex; align-items:flex-start;
-          justify-content:space-between; gap:20px; margin-bottom:28px;
-        }
-        .rewards-promo__icon {
-          width:42px; height:42px; border-radius:50%;
-          background:rgba(255,255,255,.15);
-          display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.9); flex:0 0 auto;
-        }
-
-        /* ─── Occasion cards header ─── */
-        .occ-header {
-          display:flex; align-items:center; justify-content:space-between; gap:16px;
-          margin-bottom:22px; flex-wrap:wrap;
-        }
-        .occ-add-btn {
-          display:flex; align-items:center; gap:7px;
-          font-family:inherit; letter-spacing:.09em; text-transform:uppercase;
-          background:var(--rw-primary); color:#fff;
-          border:1px solid var(--rw-primary); border-radius:3px;
-          padding:11px 20px; cursor:pointer; white-space:nowrap;
-          transition:opacity .15s ease;
-        }
-        .occ-add-btn:hover { opacity:.85; }
-
-        .occ-sheet-body { padding:0 24px 28px; }
-
-        input[type=date]::-webkit-calendar-picker-indicator { cursor:pointer; opacity:.5; }
-      `}</style>
-
-      {/* ── Coin strip ── */}
-      <div className="rewards-strip">
-        <div className="rewards-strip__left">
-          <div className="rewards-strip__icon">
-            {profileComplete
-              ? <Check size={22} strokeWidth={2.4} />
-              : <Gift size={22} strokeWidth={1.8} />}
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-4xl">
+      {/* ── Coin strip / Claim Banner ── */}
+      <div className="bg-gradient-to-r from-[#3D2927] to-[#291B1A] rounded-2xl p-4 md:py-4 md:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 mb-8 shadow-lg shadow-black/5 border border-[#523A37]">
+        <div className="flex items-center gap-3.5 md:gap-4 w-full sm:w-auto">
+          <div className="shrink-0 rounded-full bg-white/5 p-1 border border-white/10 shadow-sm">
+            <img 
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494_77267ae6-b0ed-4923-b485-e9c957ad34b2.png?v=1784708230" 
+              alt="Lucira Coins" 
+              className="size-9 md:size-11 object-contain drop-shadow-md" 
+            />
           </div>
-          <div>
-            <p className="text-base font-semibold mb-0.5" style={{color:"#F5EDD8",margin:"0 0 3px"}}>
-              {profileComplete ? "Profile completed" : "Complete profile & earn"}
-            </p>
-            <p className="text-sm" style={{color:"rgba(228,207,165,.7)",margin:0,lineHeight:1.5}}>
-              {profileComplete
-                ? "You've earned 500 Lucirá coins — thank you for keeping your details current."
-                : "Fill out your details below to earn 500 Lucirá coins instantly."}
-            </p>
-          </div>
+          <p className="text-white/95 font-medium text-sm md:text-base leading-snug">
+             {profileComplete 
+               ? "Welcome to your rewards! Enjoy exclusive offers and member benefits." 
+               : "Free 500 Lucirá coins on completing your profile"}
+          </p>
         </div>
-        <div className="rewards-strip__coins">
-          <p className="text-[10px] tracking-widest uppercase" style={{color:"rgba(228,207,165,.55)",margin:"0 0 3px"}}>
-            Lucirá Coins
-          </p>
-          <p className="text-3xl font-bold leading-none tracking-tight" style={{color:"#E4CFA5"}}>
-            {coinsLoading
-              ? <span className="inline-block w-12 h-7 rounded bg-white/10 animate-pulse" />
-              : nectorCoins !== null ? nectorCoins.toLocaleString("en-IN") : "—"}
-          </p>
+        
+        <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3 bg-black/20 backdrop-blur-sm border border-white/10 py-2.5 px-4 md:py-2 md:px-5 rounded-xl sm:rounded-full shadow-[inset_0_1px_10px_rgba(0,0,0,0.2)]">
+           <p className="text-[10px] md:text-xs tracking-widest uppercase text-white/60 font-bold mt-0.5">Balance</p>
+           <div className="flex items-center gap-1.5 md:gap-2">
+             <img 
+               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494_77267ae6-b0ed-4923-b485-e9c957ad34b2.png?v=1784708230" 
+               alt="Coins" 
+               className="size-4 md:size-5 object-contain drop-shadow-sm" 
+             />
+             <p className="text-xl md:text-2xl font-semibold leading-none tracking-tight text-[#FDE073]">
+                {coinsLoading ? <span className="inline-block w-8 h-4 rounded bg-[#FDE073]/20 animate-pulse" /> : nectorCoins !== null ? nectorCoins.toLocaleString("en-IN") : "—"}
+             </p>
+           </div>
         </div>
       </div>
 
       {/* ── Personal Details Card ── */}
-      <div className="rewards-card">
+      <div className="bg-white rounded-3xl border border-zinc-100 shadow-sm overflow-hidden mb-6 group">
         <div
-          className={`rewards-card__header${personalOpen ? " is-open" : ""}`}
+          className={`flex items-center justify-between p-6 cursor-pointer hover:bg-zinc-50 transition-colors border-b ${personalOpen ? "border-zinc-100" : "border-transparent"}`}
           onClick={() => setPersonalOpen(!personalOpen)}
         >
-          <h3 className="rewards-card__title">
-            <span className="rewards-card__dot" />
+          <h3 className="text-lg font-bold text-primary m-0 flex items-center gap-3">
             Personal details
           </h3>
-          <span className="rewards-card__chevron">
+          <span className="size-8 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-primary shrink-0 transition-colors hover:bg-zinc-100">
             {personalOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </span>
         </div>
 
         {personalOpen && (
-          <div className="rewards-card__body">
+          <div className="p-6 pt-2 md:p-8 md:pt-4">
             {profileComplete && (
-              <div className="rewards-success-banner">
-                <span className="rewards-success-banner__check">
+              <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-8">
+                <span className="size-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 text-white">
                   <Check size={14} strokeWidth={2.6} />
                 </span>
                 <div>
-                  <p className="text-sm font-medium" style={{color:"var(--rw-primary)",margin:0}}>Profile completed</p>
-                  <p className="text-sm" style={{color:"var(--rw-muted)",margin:"3px 0 0"}}>
+                  <p className="text-sm font-medium text-emerald-800 m-0">Profile completed</p>
+                  <p className="text-sm text-emerald-600/80 mt-1 mb-0">
                     You&apos;ve earned 500 Lucirá coins — thank you for keeping your details current.
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="rewards-form-grid">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
               {/* First Name */}
               <Field label="First name">
                 <UnderlineInput
@@ -615,54 +424,94 @@ export default function EarnRewardsPage() {
                   id="mobile_number"
                   value={formData.mobile_number}
                   readOnly
-                  prefix={
-                    <span className="rewards-field__prefix rewards-field__prefix--divider">
-                      IN +91
-                    </span>
-                  }
+                  prefix="IN +91"
                 />
               </Field>
 
               {/* Gender */}
-              <Field label="Gender">
-                <SegmentedControl
-                  options={["Male", "Female", "Other"]}
-                  value={formData.gender}
-                  onChange={(v) => handleChange("gender", v)}
-                />
+              <Field label="Gender *">
+                <div className="flex gap-6 mt-2 pb-2.5 border-b border-zinc-200">
+                  {["Male", "Female", "Other"].map((g) => (
+                    <label key={g} className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={g}
+                        checked={formData.gender === g}
+                        onChange={() => handleChange("gender", g)}
+                        className="sr-only"
+                      />
+                      <span className={`text-sm transition-colors ${formData.gender === g ? "text-primary font-bold border-b-[2px] border-primary pb-0.5" : "text-zinc-500 font-medium group-hover:text-zinc-700"}`}>
+                        {g}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </Field>
+
+              {/* Marital Status */}
+              <Field label="Marital Status *">
+                <div className="flex gap-6 mt-2 pb-2.5 border-b border-zinc-200">
+                  {["Married", "Unmarried"].map((status) => (
+                    <label key={status} className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="marital_status"
+                        value={status}
+                        checked={formData.marital_status === status}
+                        onChange={() => {
+                          handleChange("marital_status", status);
+                          if (status === "Unmarried") handleChange("anniversary_date", "");
+                        }}
+                        className="sr-only"
+                      />
+                      <span className={`text-sm transition-colors ${formData.marital_status === status ? "text-primary font-bold border-b-[2px] border-primary pb-0.5" : "text-zinc-500 font-medium group-hover:text-zinc-700"}`}>
+                        {status}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </Field>
 
               {/* Birthday */}
-              <Field label="Birthday" hint="Look out for a treat around your birthday">
+              <Field label="Birthday *" hint="Look out for a treat around your birthday">
                 <UnderlineInput
                   id="dob"
                   type="date"
                   value={formData.date_of_birth}
                   onChange={(v) => handleChange("date_of_birth", v)}
-                  placeholder="dd-mm-yyyy"
                 />
               </Field>
 
-              {/* Pincode — OSM Nominatim auto-detect */}
-              <Field label="Pincode">
+              {/* Anniversary (Conditional) */}
+              {formData.marital_status === "Married" && (
+                <Field label="Anniversary Date *" hint="Celebrate your special day with us">
+                  <UnderlineInput
+                    id="anniversary"
+                    type="date"
+                    value={formData.anniversary_date}
+                    onChange={(v) => handleChange("anniversary_date", v)}
+                  />
+                </Field>
+              )}
+
+              {/* Pincode */}
+              <Field label="Pincode *">
                 <UnderlineInput
                   id="pincode"
                   value={formData.pincode}
                   onChange={(v) => handleChange("pincode", v.replace(/\D/g, "").slice(0, 6))}
                   placeholder="Enter pincode"
-                  prefix={<MapPin size={15} className="rewards-field__prefix" style={{ paddingBottom: 10 }} />}
+                  prefix={<MapPin size={15} className="text-zinc-400" />}
                   suffix={
                     pincodeLoading ? (
-                      <span className="rewards-field__suffix" style={{ display: "flex", alignItems: "center", paddingBottom: 10 }}>
-                        <Loader2 size={13} className="animate-spin" />
-                      </span>
+                      <Loader2 size={13} className="animate-spin" />
                     ) : (
                       <button
                         type="button"
                         onClick={detectPincode}
-                        className="rewards-field__suffix rewards-field__suffix--icon"
+                        className="bg-transparent border-none cursor-pointer flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary p-0"
                         title="Auto-detect pincode using your location"
-                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z" />
@@ -692,16 +541,14 @@ export default function EarnRewardsPage() {
               </Field>
 
               {/* Email */}
-              <Field label="Email address">
+              <Field label="Email address *">
                 <UnderlineInput
                   id="email"
                   value={formData.email}
                   readOnly
                   suffix={
-                    <span className="rewards-field__suffix" style={{ display: "flex", alignItems: "center", gap: 4, paddingBottom: 10 }}>
-                      <span style={{ width: 18, height: 18, borderRadius: "50%", background: "#5bc236", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Check size={11} color="#fff" strokeWidth={3} />
-                      </span>
+                    <span className="size-[18px] rounded-full bg-emerald-500 flex items-center justify-center shrink-0 text-white">
+                      <Check size={11} strokeWidth={3} />
                     </span>
                   }
                 />
@@ -709,9 +556,15 @@ export default function EarnRewardsPage() {
             </div>
 
             {!profileComplete && (
-              <div className="rewards-actions">
+              <div className="mt-10 flex flex-col sm:flex-row items-end sm:items-center justify-end gap-4">
+                {(!formData.first_name || !formData.date_of_birth || !formData.gender || !formData.pincode) && (
+                  <p className="text-xs text-amber-600 font-medium bg-amber-50 py-2 px-3 rounded-lg border border-amber-100 flex items-center gap-1.5 m-0 max-w-[280px] sm:max-w-none text-right sm:text-left">
+                    <AlertCircle size={14} className="shrink-0" />
+                    Please fill out all required fields (*) to claim your coins.
+                  </p>
+                )}
                 <button
-                  className="rewards-btn-primary"
+                  className="bg-primary text-white border border-primary text-[10px] font-bold uppercase tracking-[0.15em] px-8 py-3.5 rounded-xl cursor-pointer transition-opacity flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 w-full sm:w-auto"
                   onClick={completeProfile}
                   disabled={completing || !formData.date_of_birth || !formData.gender || !formData.pincode || !formData.first_name}
                 >
@@ -724,46 +577,48 @@ export default function EarnRewardsPage() {
       </div>
 
       {/* ── Occasion Details Card ── */}
-      <div className="rewards-card">
+      <div className="bg-white rounded-3xl border border-zinc-100 shadow-sm overflow-hidden mb-6 group">
         <div
-          className={`rewards-card__header${occasionOpen ? " is-open" : ""}`}
+          className={`flex items-center justify-between p-6 cursor-pointer hover:bg-zinc-50 transition-colors border-b ${occasionOpen ? "border-zinc-100" : "border-transparent"}`}
           onClick={() => setOccasionOpen(!occasionOpen)}
         >
-          <h3 className="rewards-card__title">
-            <span className="rewards-card__dot" />
+          <h3 className="text-lg font-bold text-primary m-0 flex items-center gap-3">
             Occasion reminders
           </h3>
-          <span className="rewards-card__chevron">
+          <span className="size-8 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-primary shrink-0 transition-colors hover:bg-zinc-100">
             {occasionOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </span>
         </div>
 
         {occasionOpen && (
-          <div className="rewards-card__body">
-            <div className="rewards-promo">
-              <div>
-                <p className="text-base font-semibold" style={{color:"#fff",margin:"0 0 6px"}}>
-                  Perfectly timed, quietly personal
-                </p>
-                <p className="text-sm leading-relaxed" style={{color:"rgba(255,255,255,.72)",margin:0,maxWidth:380}}>
+          <div className="p-6 pt-2 md:p-8 md:pt-4">
+            <div className="bg-gradient-to-r from-[#BE4B64] to-[#E88A62] rounded-2xl p-4 md:px-8 md:py-4 flex flex-row items-center justify-between gap-6 mb-8 shadow-lg shadow-[#BE4B64]/20 relative overflow-hidden group">
+              <div className="relative z-10 max-w-xl">
+                <h4 className="text-lg md:text-xl font-semibold text-white mb-1.5 tracking-tight drop-shadow-sm">
+                  Personalised offers for your occasions!
+                </h4>
+                <p className="text-sm md:text-sm leading-relaxed text-white/95 m-0 font-medium">
                   We&apos;ll send a tailored offer 21 days before each occasion you add — never during the celebration itself.
                 </p>
               </div>
-              <span className="rewards-promo__icon">
-                <Gift size={20} strokeWidth={1.6} />
-              </span>
+              <div className="relative z-10 shrink-0 hidden sm:block">
+                <div className="size-14 md:size-[72px] bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 shadow-xl rotate-12 group-hover:rotate-3 transition-transform duration-500">
+                  <Gift className="size-7 md:size-9 text-white drop-shadow-md" strokeWidth={1.5} />
+                </div>
+              </div>
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 size-64 bg-white/20 rounded-full blur-3xl pointer-events-none transition-transform duration-700 group-hover:scale-110" />
             </div>
 
-            <div className="occ-header">
+            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap border-b border-zinc-100 pb-4">
               <div>
-                <p className="text-sm font-semibold" style={{color:"var(--rw-primary)",margin:"0 0 3px"}}>
+                <p className="text-sm font-bold text-primary mb-1">
                   Occasions on file
                 </p>
-                <p className="text-sm" style={{color:"var(--rw-muted)",margin:0}}>
+                <p className="text-sm text-zinc-500 m-0">
                   Manage your important dates to receive personalised offers.
                 </p>
               </div>
-              <button className="occ-add-btn text-xs" onClick={() => setIsOccasionSheetOpen(true)}>
+              <button className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest bg-primary text-white border border-primary rounded-xl px-5 py-2.5 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap shadow-md shadow-primary/20" onClick={() => setIsOccasionSheetOpen(true)}>
                 <Plus size={14} /> Add occasion
               </button>
             </div>
@@ -779,12 +634,24 @@ export default function EarnRewardsPage() {
 
       {/* ── Add Occasion Sheet ── */}
       <Sheet open={isOccasionSheetOpen} onOpenChange={setIsOccasionSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-[440px] overflow-y-auto p-0 font-[Figtree,var(--font-figtree),ui-sans-serif]">
-          <SheetHeader className="px-6 pt-6 pb-5 border-b border-[#E8DED6] sticky top-0 bg-white z-10">
-            <SheetTitle className="text-base font-semibold text-[#3E2B29]">Add occasion</SheetTitle>
-            <p className="text-sm text-[#8C7A73] mt-1">Add the people and dates you shop for — we&apos;ll take it from there.</p>
+        <SheetContent side="right" className="w-full sm:max-w-[440px] overflow-y-auto p-0 font-[Figtree,var(--font-figtree),ui-sans-serif] [&>button]:outline-none">
+          <SheetHeader className="px-6 pt-8 pb-5 border-b border-zinc-100 sticky top-0 bg-white z-10">
+            <div className="flex items-center justify-between gap-4">
+              <SheetTitle className="text-xl font-bold text-primary tracking-tight">Add occasion</SheetTitle>
+              <button
+                onClick={() => setIsOccasionSheetOpen(false)}
+                className="size-8 flex items-center justify-center rounded-full bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                title="Close"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-zinc-500 font-medium mt-1">Add the people and dates you shop for — we&apos;ll take it from there.</p>
           </SheetHeader>
-          <div className="px-6 pt-6">
+          <div className="px-6 pt-2 pb-8">
             <OccasionForm
               onAdd={addOccasion}
               adding={addingOcc}

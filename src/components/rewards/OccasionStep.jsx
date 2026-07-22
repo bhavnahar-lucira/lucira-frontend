@@ -26,10 +26,13 @@ function DiamondChip({ label, selected, onSelect }) {
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={`occ-chip${selected ? " occ-chip--selected" : ""}`}
+      className={`group flex items-center gap-2 border rounded-full px-4 py-2 transition-colors duration-200 cursor-pointer ${
+        selected
+          ? "bg-primary border-primary text-white shadow-md shadow-primary/20"
+          : "bg-white border-zinc-200 text-zinc-700 hover:border-primary"
+      }`}
     >
-      <span className="occ-chip__diamond" />
-      {label}
+      <span className="text-sm font-medium">{label}</span>
     </button>
   );
 }
@@ -37,8 +40,8 @@ function DiamondChip({ label, selected, onSelect }) {
 function FieldError({ children }) {
   if (!children) return null;
   return (
-    <p className="occ-field-error">
-      <AlertCircle size={11} /> {children}
+    <p className="flex items-center gap-1.5 text-xs text-red-500 mt-2 font-medium">
+      <AlertCircle size={13} className="shrink-0" /> {children}
     </p>
   );
 }
@@ -70,99 +73,11 @@ export function OccasionForm({ onAdd, onCancel, adding }) {
     form.relationship_name && form.event_date && form.occasion_name && form.occasion_title.trim();
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(); }}>
-      <style>{`
-        .occ-section { margin-bottom: 32px; }
-        .occ-section__title {
-          font-weight: 600; color: #2B2321; margin: 0 0 3px;
-        }
-        .occ-section__sub {
-          color: #8C7A73; margin: 0 0 14px; line-height: 1.5;
-        }
-
-        /* Diamond chip */
-        .occ-chip {
-          font-family: inherit;
-          padding: 9px 17px; border-radius: 999px;
-          border: 1px solid #E8DED6; background: transparent;
-          color: #2B2321; cursor: pointer;
-          display: flex; align-items: center; gap: 7px;
-          transition: all .15s ease;
-        }
-        .occ-chip:hover { border-color: var(--primary); }
-        .occ-chip__diamond {
-          width: 6px; height: 6px; background: color-mix(in srgb, var(--primary) 40%, white);
-          transform: rotate(45deg); opacity: 0; transition: opacity .15s ease; flex: 0 0 auto;
-        }
-        .occ-chip--selected {
-          background: var(--primary); border-color: var(--primary); color: #fff;
-        }
-        .occ-chip--selected .occ-chip__diamond { opacity: 1; background: rgba(255,255,255,.7); }
-
-        /* Date underline field */
-        .occ-date-wrap {
-          display: flex; align-items: center; gap: 8px;
-          border-bottom: 1px solid #E8DED6; max-width: 320px;
-          transition: border-color .2s ease;
-        }
-        .occ-date-wrap:focus-within { border-bottom-color: var(--primary); }
-        .occ-date-input {
-          font-family: inherit; color: #2B2321;
-          background: transparent; border: none; outline: none;
-          padding: 6px 2px 10px; flex: 1; min-width: 0; appearance: none;
-        }
-        .occ-date-input::placeholder { color: #B7A9A2; }
-        .occ-date-icon { color: var(--primary); opacity:.6; padding-bottom: 10px; flex: 0 0 auto; }
-
-        /* Title underline field */
-        .occ-title-wrap {
-          border-bottom: 1px solid #E8DED6; transition: border-color .2s ease;
-        }
-        .occ-title-wrap.has-error { border-bottom-color: #ef4444; }
-        .occ-title-wrap:focus-within { border-bottom-color: var(--primary); }
-        .occ-title-input {
-          font-family: inherit; color: #2B2321;
-          background: transparent; border: none; outline: none;
-          padding: 6px 2px 10px; width: 100%; min-width: 0; appearance: none;
-        }
-        .occ-title-input::placeholder { color: #B7A9A2; }
-
-        .occ-form-error {
-          display: flex; align-items: flex-start; gap: 8px;
-          color: #dc2626; margin-top: 6px;
-        }
-
-        /* Action buttons */
-        .occ-actions {
-          display: flex; gap: 10px;
-          padding-top: 20px; border-top: 1px solid color-mix(in srgb, var(--primary) 15%, white); margin-top: 28px;
-        }
-        .occ-btn-cancel {
-          flex: 1; font-family: inherit;
-          letter-spacing: .09em; text-transform: uppercase;
-          background: #fff; color: #8C7A73;
-          border: 1px solid #E8DED6; border-radius: 3px;
-          padding: 13px 16px; cursor: pointer;
-          transition: background .15s ease, color .15s ease;
-        }
-        .occ-btn-cancel:hover { background: color-mix(in srgb, var(--primary) 6%, white); color: var(--primary); }
-        .occ-btn-submit {
-          flex: 1; font-family: inherit;
-          letter-spacing: .09em; text-transform: uppercase;
-          background: var(--primary); color: #fff;
-          border: 1px solid var(--primary); border-radius: 3px;
-          padding: 13px 16px; cursor: pointer;
-          display: flex; align-items: center; justify-content: center; gap: 7px;
-          transition: opacity .15s ease;
-        }
-        .occ-btn-submit:hover:not(:disabled) { opacity: .85; }
-        .occ-btn-submit:disabled { opacity: .5; cursor: not-allowed; }
-      `}</style>
-
-      <div className="occ-section">
-        <p className="occ-section__title text-sm">Who do you shop for most?</p>
-        <p className="occ-section__sub text-xs">This helps us curate pieces suited to them.</p>
-        <div role="radiogroup" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+    <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="space-y-7">
+      <div>
+        <p className="text-sm font-bold text-primary mb-1">Who do you shop for most?</p>
+        <p className="text-sm text-zinc-500 mb-3.5">This helps us curate pieces suited to them.</p>
+        <div role="radiogroup" className="flex flex-wrap gap-3">
           {RELATIONSHIPS.map((r) => (
             <DiamondChip
               key={r.value}
@@ -175,30 +90,29 @@ export function OccasionForm({ onAdd, onCancel, adding }) {
         <FieldError>{errors.relationship_name}</FieldError>
       </div>
 
-      <div className="occ-section">
-        <p className="occ-section__title text-sm">Which date should we remember?</p>
-        <p className="occ-section__sub text-xs">We&apos;ll mark the calendar so you don&apos;t have to.</p>
-        <label className="text-[10px] tracking-widest uppercase text-[#B7A9A2] block mb-1.5">
+      <div>
+        <p className="text-sm font-bold text-primary mb-1">Which date should we remember?</p>
+        <p className="text-sm text-zinc-500 mb-3.5">We&apos;ll mark the calendar so you don&apos;t have to.</p>
+        <label className="text-[10px] tracking-widest uppercase text-zinc-400 font-bold block mb-2.5">
           Date of occasion
         </label>
-        <div className="occ-date-wrap">
+        <div className="flex items-center gap-2 border-b border-zinc-200 transition-colors focus-within:border-primary max-w-[320px]">
           <input
             id="occ-event_date"
             type="date"
             value={form.event_date}
             onChange={(e) => setField("event_date", e.target.value)}
-            className="occ-date-input text-sm"
+            className="bg-transparent border-none outline-none py-2 px-0.5 flex-1 min-w-0 text-sm font-medium text-zinc-900 placeholder:text-zinc-300 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50"
             placeholder="dd-mm-yyyy"
           />
-          <CalendarDays size={16} className="occ-date-icon" />
         </div>
         <FieldError>{errors.event_date}</FieldError>
       </div>
 
-      <div className="occ-section">
-        <p className="occ-section__title text-sm">What&apos;s the occasion?</p>
-        <p className="occ-section__sub text-xs">Occasions are private and only used to personalise your offers.</p>
-        <div role="radiogroup" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+      <div>
+        <p className="text-sm font-bold text-primary mb-1">What&apos;s the occasion?</p>
+        <p className="text-sm text-zinc-500 mb-3.5">Occasions are private and only used to personalise your offers.</p>
+        <div role="radiogroup" className="flex flex-wrap gap-3">
           {OCCASION_TYPES.map((o) => (
             <DiamondChip
               key={o.value}
@@ -211,16 +125,16 @@ export function OccasionForm({ onAdd, onCancel, adding }) {
         <FieldError>{errors.occasion_name}</FieldError>
       </div>
 
-      <div className="occ-section" style={{ marginBottom: 0 }}>
-        <p className="occ-section__title text-sm">Give it a name</p>
-        <p className="occ-section__sub text-xs">A short label you&apos;ll recognise, e.g. Mum&apos;s Birthday</p>
-        <div className={`occ-title-wrap${errors.occasion_title ? " has-error" : ""}`}>
+      <div>
+        <p className="text-sm font-bold text-primary mb-1">Give it a name</p>
+        <p className="text-sm text-zinc-500 mb-3.5">A short label you&apos;ll recognise, e.g. Mum&apos;s Birthday</p>
+        <div className={`flex items-center border-b transition-colors focus-within:border-primary ${errors.occasion_title ? "border-red-500" : "border-zinc-200"}`}>
           <input
             id="occ-occasion_title"
             type="text"
             value={form.occasion_title}
             onChange={(e) => setField("occasion_title", e.target.value)}
-            className="occ-title-input text-sm"
+            className="bg-transparent border-none outline-none py-2 px-0.5 w-full text-sm font-medium text-zinc-900 placeholder:text-zinc-300"
             placeholder="Occasion name"
             maxLength={80}
           />
@@ -229,17 +143,17 @@ export function OccasionForm({ onAdd, onCancel, adding }) {
       </div>
 
       {errors._form && (
-        <div className="occ-form-error text-xs">
-          <AlertCircle size={15} className="shrink-0" />
+        <div className="flex items-start gap-2 text-xs font-medium text-red-500 mt-2">
+          <AlertCircle size={15} className="shrink-0 mt-0.5" />
           {errors._form}
         </div>
       )}
 
-      <div className="occ-actions">
-        <button type="button" className="occ-btn-cancel text-[11px]" onClick={onCancel} disabled={adding}>Cancel</button>
+      <div className="flex gap-4 pt-6 border-t border-zinc-100">
+        <button type="button" className="flex-1 bg-white border border-zinc-200 text-zinc-500 text-[10px] font-bold uppercase tracking-widest px-4 py-4 rounded-xl transition-colors hover:bg-zinc-50 hover:text-primary hover:border-primary/30" onClick={onCancel} disabled={adding}>Cancel</button>
         <button
           type="submit"
-          className="occ-btn-submit text-[11px]"
+          className="flex-1 flex items-center justify-center gap-2 bg-primary text-white border border-primary text-[10px] font-bold uppercase tracking-[0.15em] px-4 py-4 rounded-xl transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-primary/20"
           disabled={adding || !isFormValid}
         >
           {adding ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : "Save occasion"}
@@ -271,11 +185,8 @@ const OCC_ICONS = {
 export function OccasionCards({ occasions, onDelete, deletingId }) {
   if (!occasions?.length) {
     return (
-      <div style={{
-        border: "1px dashed #E8DED6", borderRadius: 12,
-        padding: "32px 20px", textAlign: "center",
-      }} className="text-[13px] leading-relaxed text-[#8C7A73]">
-        <p className="font-semibold text-sm text-[#3E2B29] mb-1.5">
+      <div className="border border-dashed border-zinc-200 rounded-2xl p-8 text-center text-sm leading-relaxed text-zinc-500">
+        <p className="font-bold text-primary mb-2">
           Save the moments that matter
         </p>
         Add important occasions to help Lucirá make future gifting and reminders more relevant.
@@ -284,62 +195,50 @@ export function OccasionCards({ occasions, onDelete, deletingId }) {
   }
 
   return (
-    <ul style={{ listStyle: "none", margin: 0, padding: 0, position: "relative" }}>
+    <ul className="list-none m-0 p-0 relative space-y-4">
       {/* timeline line */}
       {occasions.length > 1 && (
-        <li aria-hidden style={{
-          position: "absolute", left: 19, top: 24, bottom: 24,
-          width: 1, background: "color-mix(in srgb, var(--primary) 30%, white)", pointerEvents: "none",
-        }} />
+        <li aria-hidden className="absolute left-[21px] top-6 bottom-8 w-px bg-primary/10 pointer-events-none" />
       )}
       {occasions.map((o) => (
-        <li key={o.occasion_id} style={{ position: "relative", paddingLeft: 54, paddingBottom: 22, display: "flex", alignItems: "flex-start" }}>
+        <li key={o.occasion_id} className="relative pl-[60px] pb-2 flex items-start group">
           {/* icon bubble */}
-          <span style={{
-            position: "absolute", left: 0, top: 0,
-            width: 38, height: 38, borderRadius: "50%",
-            background: "color-mix(in srgb, var(--primary) 8%, white)",
-            border: "1px solid color-mix(in srgb, var(--primary) 25%, white)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "var(--primary)", flexShrink: 0, zIndex: 1, opacity: .85,
-          }}>
+          <span className="absolute left-0 top-0 size-[42px] rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shrink-0 z-10 transition-colors group-hover:bg-primary/10">
             {OCC_ICONS[o.occasion_name] || OCC_ICONS.other}
           </span>
 
           {/* text */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p className="text-sm font-medium text-[#2B2321] my-0.5">
-              {o.occasion_title}
-            </p>
-            <p className="text-xs text-[#8C7A73] m-0">
-              {relationshipLabel(o.relationship_name)} · {occasionLabel(o.occasion_name)}
-            </p>
-            <p className="text-xs text-[#B7A9A2] mt-1 mb-0 flex items-center gap-1.5">
-              <CalendarDays size={12} />
-              {formatEventDate(o.event_date)}
-            </p>
+          <div className="flex-1 min-w-0 bg-zinc-50/50 rounded-2xl p-4 border border-zinc-100/50 group-hover:border-zinc-200 group-hover:bg-zinc-50 transition-colors">
+            <div className="flex justify-between items-start gap-4">
+              <div>
+                <p className="text-sm font-bold text-zinc-900 mb-1">
+                  {o.occasion_title}
+                </p>
+                <p className="text-xs font-medium text-zinc-500 mb-2">
+                  {relationshipLabel(o.relationship_name)} · {occasionLabel(o.occasion_name)}
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+                  <CalendarDays size={12} />
+                  {formatEventDate(o.event_date)}
+                </p>
+              </div>
+              
+              {/* delete */}
+              {o.deletable !== false && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(o)}
+                  disabled={deletingId === o.occasion_id}
+                  title="Remove occasion"
+                  className="bg-white border border-zinc-200 text-zinc-400 p-2 rounded-lg shrink-0 transition-colors hover:text-red-500 hover:border-red-200 hover:bg-red-50 focus:outline-none"
+                >
+                  {deletingId === o.occasion_id
+                    ? <Loader2 size={14} className="animate-spin" />
+                    : <Trash2 size={14} />}
+                </button>
+              )}
+            </div>
           </div>
-
-          {/* delete */}
-          {o.deletable !== false && onDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete(o)}
-              disabled={deletingId === o.occasion_id}
-              title="Remove occasion"
-              style={{
-                background: "none", border: "none", cursor: "pointer",
-                color: "#B7A9A2", padding: "4px 2px", flexShrink: 0,
-                transition: "color .15s ease",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#B7A9A2")}
-            >
-              {deletingId === o.occasion_id
-                ? <Loader2 size={14} className="animate-spin" />
-                : <Trash2 size={14} />}
-            </button>
-          )}
         </li>
       ))}
     </ul>

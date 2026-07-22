@@ -32,18 +32,27 @@ export const TITLE_MAX = 80;
 // Fixed relationship list. `value` is the stored/analytics enum (lowercase),
 // `label` is what the customer sees.
 export const RELATIONSHIPS = [
-  { value: "mother", label: "Mother" },
-  { value: "father", label: "Father" },
-  { value: "brother", label: "Brother" },
+  { value: "self", label: "Self" },
   { value: "wife", label: "Wife" },
+  { value: "mother", label: "Mother" },
+  { value: "sister", label: "Sister" },
+  { value: "friend", label: "Friend" },
+  { value: "girlfriend", label: "Girlfriend" },
   { value: "daughter", label: "Daughter" },
+  { value: "husband", label: "Husband" },
+  { value: "father", label: "Father" },
   { value: "son", label: "Son" },
+  { value: "niece_nephew", label: "Niece/ Nephew" },
+  { value: "grandparent", label: "Grandparent" },
+  { value: "others", label: "Others" },
 ];
 
 // Fixed occasion list.
 export const OCCASION_TYPES = [
-  { value: "birthday", label: "Birthday" },
   { value: "anniversary", label: "Anniversary" },
+  { value: "birthday", label: "Birthday" },
+  { value: "engagement", label: "Engagement" },
+  { value: "wedding", label: "Wedding" },
   { value: "other", label: "Other" },
 ];
 
