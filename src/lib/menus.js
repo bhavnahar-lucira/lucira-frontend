@@ -34,6 +34,9 @@ export function transformMenuData(shopifyMenuItems) {
       href = "/collections/engagement-bridal-rings";
     } else if (label === "Rings") {
       href = "/collections/rings";
+    } else if (label === "Collections") {
+      // Hover-only menu: keep the dropdown, but make the top-level item non-clickable
+      href = "#";
     }
     
     let transformedItem = {
