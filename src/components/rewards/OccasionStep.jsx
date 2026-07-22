@@ -1,90 +1,49 @@
 "use client";
 
-/**
- * OccasionStep — inline occasion capture used inside the Earn Rewards wizard.
- *
- * Exports:
- *   <OccasionForm onAdd adding />  — premium inline add form (chips + title + date)
- *   <OccasionCards ... />          — read-only immutable cards grid with delete
- *
- * Matches the wizard's chip aesthetic (see screenshot) but elevated: brand-fill
- * on select, soft blush when idle, smooth transitions, large tap targets.
- */
-
 import { useState } from "react";
-import {
-  Cake,
-  Sparkles,
-  Gift,
-  Plus,
-  Trash2,
-  Loader2,
-  CalendarDays,
-  AlertCircle,
-} from "lucide-react";
+import { Loader2, CalendarDays, AlertCircle, Trash2 } from "lucide-react";
 import {
   RELATIONSHIPS,
   OCCASION_TYPES,
-  TITLE_MAX,
-  DELETE_ENABLED,
-  relationshipLabel,
-  occasionLabel,
-  formatEventDate,
   validateOccasion,
+  occasionLabel,
+  relationshipLabel,
+  formatEventDate,
 } from "@/lib/occasions";
 
-const BRAND = "#5A413F";
-
-export const occasionIcon = (type, size = 16) => {
-  if (type === "birthday") return <Cake size={size} />;
-  if (type === "anniversary") return <Sparkles size={size} />;
-  return <Gift size={size} />;
-};
-
 const EMPTY = {
-  relationship_name: "",
   occasion_name: "",
+  relationship_name: "",
   occasion_title: "",
   event_date: "",
 };
 
-/* ─────────────────────────────────────────────────────────
-   CHIP
-───────────────────────────────────────────────────────── */
-function Chip({ label, icon, selected, onSelect }) {
+/* ─── Diamond chip (matches prototype) ─── */
+function DiamondChip({ label, selected, onSelect }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200 sm:px-5 ${
-        selected
-          ? "border-transparent bg-[#5A413F] text-white shadow-md shadow-[#5A413F]/25"
-          : "border-transparent bg-[#fbeeee] text-zinc-700 hover:bg-[#f6e2e2] active:scale-[0.98]"
-      }`}
+      className={`occ-chip${selected ? " occ-chip--selected" : ""}`}
     >
-      {icon}
+      <span className="occ-chip__diamond" />
       {label}
     </button>
   );
 }
 
-function FieldLabel({ children, htmlFor }) {
+function FieldError({ children }) {
+  if (!children) return null;
   return (
-    <label
-      htmlFor={htmlFor}
-      className="mb-3 block text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500"
-    >
-      {children}
-    </label>
+    <p className="occ-field-error">
+      <AlertCircle size={11} /> {children}
+    </p>
   );
 }
 
-/* ─────────────────────────────────────────────────────────
-   INLINE ADD FORM
-───────────────────────────────────────────────────────── */
-export function OccasionForm({ onAdd, adding, compact }) {
+export function OccasionForm({ onAdd, onCancel, adding }) {
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
 
@@ -98,31 +57,114 @@ export function OccasionForm({ onAdd, adding, compact }) {
     const validationErrors = validateOccasion(form);
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors);
-      const first = Object.keys(validationErrors)[0];
-      document.getElementById(`occ-${first}`)?.focus?.();
+      const firstKey = Object.keys(validationErrors)[0];
+      document.getElementById(`occ-${firstKey}`)?.focus();
       return;
     }
     const ok = await onAdd(form);
-    if (ok) {
-      setForm(EMPTY);
-      setErrors({});
-    } else {
-      setErrors({ _form: "We could not add this occasion. Please try again." });
-    }
+    if (ok) { setForm(EMPTY); setErrors({}); }
+    else setErrors({ _form: "We could not add this occasion. Please try again." });
   };
 
+  const isFormValid =
+    form.relationship_name && form.event_date && form.occasion_name && form.occasion_title.trim();
+
   return (
-    <div
-      className={`rounded-2xl border border-[#efe6e6] bg-[#fdf9f9] p-5 sm:p-6 ${
-        compact ? "" : ""
-      }`}
-    >
-      {/* Relationship */}
-      <div>
-        <FieldLabel>Who is this occasion for?</FieldLabel>
-        <div role="radiogroup" aria-label="Relationship" className="flex flex-wrap gap-2.5">
+    <form onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <style>{`
+        .occ-section { margin-bottom: 32px; }
+        .occ-section__title {
+          font-weight: 600; color: #2B2321; margin: 0 0 3px;
+        }
+        .occ-section__sub {
+          color: #8C7A73; margin: 0 0 14px; line-height: 1.5;
+        }
+
+        /* Diamond chip */
+        .occ-chip {
+          font-family: inherit;
+          padding: 9px 17px; border-radius: 999px;
+          border: 1px solid #E8DED6; background: transparent;
+          color: #2B2321; cursor: pointer;
+          display: flex; align-items: center; gap: 7px;
+          transition: all .15s ease;
+        }
+        .occ-chip:hover { border-color: var(--primary); }
+        .occ-chip__diamond {
+          width: 6px; height: 6px; background: color-mix(in srgb, var(--primary) 40%, white);
+          transform: rotate(45deg); opacity: 0; transition: opacity .15s ease; flex: 0 0 auto;
+        }
+        .occ-chip--selected {
+          background: var(--primary); border-color: var(--primary); color: #fff;
+        }
+        .occ-chip--selected .occ-chip__diamond { opacity: 1; background: rgba(255,255,255,.7); }
+
+        /* Date underline field */
+        .occ-date-wrap {
+          display: flex; align-items: center; gap: 8px;
+          border-bottom: 1px solid #E8DED6; max-width: 320px;
+          transition: border-color .2s ease;
+        }
+        .occ-date-wrap:focus-within { border-bottom-color: var(--primary); }
+        .occ-date-input {
+          font-family: inherit; color: #2B2321;
+          background: transparent; border: none; outline: none;
+          padding: 6px 2px 10px; flex: 1; min-width: 0; appearance: none;
+        }
+        .occ-date-input::placeholder { color: #B7A9A2; }
+        .occ-date-icon { color: var(--primary); opacity:.6; padding-bottom: 10px; flex: 0 0 auto; }
+
+        /* Title underline field */
+        .occ-title-wrap {
+          border-bottom: 1px solid #E8DED6; transition: border-color .2s ease;
+        }
+        .occ-title-wrap.has-error { border-bottom-color: #ef4444; }
+        .occ-title-wrap:focus-within { border-bottom-color: var(--primary); }
+        .occ-title-input {
+          font-family: inherit; color: #2B2321;
+          background: transparent; border: none; outline: none;
+          padding: 6px 2px 10px; width: 100%; min-width: 0; appearance: none;
+        }
+        .occ-title-input::placeholder { color: #B7A9A2; }
+
+        .occ-form-error {
+          display: flex; align-items: flex-start; gap: 8px;
+          color: #dc2626; margin-top: 6px;
+        }
+
+        /* Action buttons */
+        .occ-actions {
+          display: flex; gap: 10px;
+          padding-top: 20px; border-top: 1px solid color-mix(in srgb, var(--primary) 15%, white); margin-top: 28px;
+        }
+        .occ-btn-cancel {
+          flex: 1; font-family: inherit;
+          letter-spacing: .09em; text-transform: uppercase;
+          background: #fff; color: #8C7A73;
+          border: 1px solid #E8DED6; border-radius: 3px;
+          padding: 13px 16px; cursor: pointer;
+          transition: background .15s ease, color .15s ease;
+        }
+        .occ-btn-cancel:hover { background: color-mix(in srgb, var(--primary) 6%, white); color: var(--primary); }
+        .occ-btn-submit {
+          flex: 1; font-family: inherit;
+          letter-spacing: .09em; text-transform: uppercase;
+          background: var(--primary); color: #fff;
+          border: 1px solid var(--primary); border-radius: 3px;
+          padding: 13px 16px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; gap: 7px;
+          transition: opacity .15s ease;
+        }
+        .occ-btn-submit:hover:not(:disabled) { opacity: .85; }
+        .occ-btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+      `}</style>
+
+      <div className="occ-section">
+        <p className="occ-section__title text-sm">Who do you shop for most?</p>
+        <p className="occ-section__sub text-xs">This helps us curate pieces suited to them.</p>
+        <div role="radiogroup" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
           {RELATIONSHIPS.map((r) => (
-            <Chip
+            <DiamondChip
               key={r.value}
               label={r.label}
               selected={form.relationship_name === r.value}
@@ -130,145 +172,176 @@ export function OccasionForm({ onAdd, adding, compact }) {
             />
           ))}
         </div>
-        <FieldError id="occ-relationship_name">{errors.relationship_name}</FieldError>
+        <FieldError>{errors.relationship_name}</FieldError>
       </div>
 
-      {/* Occasion */}
-      <div className="mt-6">
-        <FieldLabel>What&apos;s the occasion?</FieldLabel>
-        <div role="radiogroup" aria-label="Occasion" className="flex flex-wrap gap-2.5">
-          {OCCASION_TYPES.map((o) => (
-            <Chip
-              key={o.value}
-              label={o.label}
-              icon={occasionIcon(o.value, 16)}
-              selected={form.occasion_name === o.value}
-              onSelect={() => setField("occasion_name", o.value)}
-            />
-          ))}
-        </div>
-        <FieldError id="occ-occasion_name">{errors.occasion_name}</FieldError>
-      </div>
-
-      {/* Title + Date */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <FieldLabel htmlFor="occ-occasion_title">Give it a title</FieldLabel>
-          <input
-            id="occ-occasion_title"
-            type="text"
-            value={form.occasion_title}
-            maxLength={TITLE_MAX}
-            placeholder="e.g. Mum's Birthday"
-            onChange={(e) => setField("occasion_title", e.target.value)}
-            className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-zinc-900 outline-none transition-colors focus:border-[#5A413F] ${
-              errors.occasion_title ? "border-red-300" : "border-[#e8dede]"
-            }`}
-          />
-          <FieldError>{errors.occasion_title}</FieldError>
-        </div>
-        <div>
-          <FieldLabel htmlFor="occ-event_date">When is it?</FieldLabel>
+      <div className="occ-section">
+        <p className="occ-section__title text-sm">Which date should we remember?</p>
+        <p className="occ-section__sub text-xs">We&apos;ll mark the calendar so you don&apos;t have to.</p>
+        <label className="text-[10px] tracking-widest uppercase text-[#B7A9A2] block mb-1.5">
+          Date of occasion
+        </label>
+        <div className="occ-date-wrap">
           <input
             id="occ-event_date"
             type="date"
             value={form.event_date}
             onChange={(e) => setField("event_date", e.target.value)}
-            className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-zinc-900 outline-none transition-colors focus:border-[#5A413F] ${
-              errors.event_date ? "border-red-300" : "border-[#e8dede]"
-            }`}
+            className="occ-date-input text-sm"
+            placeholder="dd-mm-yyyy"
           />
-          <FieldError>{errors.event_date}</FieldError>
+          <CalendarDays size={16} className="occ-date-icon" />
         </div>
+        <FieldError>{errors.event_date}</FieldError>
+      </div>
+
+      <div className="occ-section">
+        <p className="occ-section__title text-sm">What&apos;s the occasion?</p>
+        <p className="occ-section__sub text-xs">Occasions are private and only used to personalise your offers.</p>
+        <div role="radiogroup" style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+          {OCCASION_TYPES.map((o) => (
+            <DiamondChip
+              key={o.value}
+              label={o.label}
+              selected={form.occasion_name === o.value}
+              onSelect={() => setField("occasion_name", o.value)}
+            />
+          ))}
+        </div>
+        <FieldError>{errors.occasion_name}</FieldError>
+      </div>
+
+      <div className="occ-section" style={{ marginBottom: 0 }}>
+        <p className="occ-section__title text-sm">Give it a name</p>
+        <p className="occ-section__sub text-xs">A short label you&apos;ll recognise, e.g. Mum&apos;s Birthday</p>
+        <div className={`occ-title-wrap${errors.occasion_title ? " has-error" : ""}`}>
+          <input
+            id="occ-occasion_title"
+            type="text"
+            value={form.occasion_title}
+            onChange={(e) => setField("occasion_title", e.target.value)}
+            className="occ-title-input text-sm"
+            placeholder="Occasion name"
+            maxLength={80}
+          />
+        </div>
+        <FieldError>{errors.occasion_title}</FieldError>
       </div>
 
       {errors._form && (
-        <div className="mt-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-          <AlertCircle size={16} className="shrink-0" />
+        <div className="occ-form-error text-xs">
+          <AlertCircle size={15} className="shrink-0" />
           {errors._form}
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={submit}
-        disabled={adding}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[#5A413F] py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#5A413F]/20 transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto sm:px-8"
-      >
-        {adding ? (
-          <>
-            <Loader2 size={16} className="animate-spin" />
-            Adding…
-          </>
-        ) : (
-          <>
-            <Plus size={16} />
-            Add Occasion
-          </>
-        )}
-      </button>
-    </div>
+      <div className="occ-actions">
+        <button type="button" className="occ-btn-cancel text-[11px]" onClick={onCancel} disabled={adding}>Cancel</button>
+        <button
+          type="submit"
+          className="occ-btn-submit text-[11px]"
+          disabled={adding || !isFormValid}
+        >
+          {adding ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : "Save occasion"}
+        </button>
+      </div>
+    </form>
   );
 }
 
-/* ─────────────────────────────────────────────────────────
-   CARDS GRID
-───────────────────────────────────────────────────────── */
-export function OccasionCards({ occasions, onDelete, deletingId, emptyHint }) {
+const OCC_ICONS = {
+  birthday: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="3" y="8" width="18" height="13" rx="1" /><path d="M3 12h18" /><path d="M12 8v13" />
+      <path d="M12 8c-1.6 0-4-1-4-3a2 2 0 0 1 4-1" /><path d="M12 8c1.6 0 4-1 4-3a2 2 0 0 0-4-1" />
+    </svg>
+  ),
+  anniversary: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M12 21s-7-4.5-9.3-9A5.2 5.2 0 0 1 12 6a5.2 5.2 0 0 1 9.3 6c-2.3 4.5-9.3 9-9.3 9z" />
+    </svg>
+  ),
+  other: (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <circle cx="12" cy="12" r="9" /><path d="M12 8v4l3 3" />
+    </svg>
+  ),
+};
+
+export function OccasionCards({ occasions, onDelete, deletingId }) {
   if (!occasions?.length) {
-    return emptyHint ? (
-      <p className="rounded-2xl border border-dashed border-[#e8dede] bg-[#fdf9f9] px-5 py-8 text-center text-sm text-zinc-400">
-        {emptyHint}
-      </p>
-    ) : null;
+    return (
+      <div style={{
+        border: "1px dashed #E8DED6", borderRadius: 12,
+        padding: "32px 20px", textAlign: "center",
+      }} className="text-[13px] leading-relaxed text-[#8C7A73]">
+        <p className="font-semibold text-sm text-[#3E2B29] mb-1.5">
+          Save the moments that matter
+        </p>
+        Add important occasions to help Lucirá make future gifting and reminders more relevant.
+      </div>
+    );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+    <ul style={{ listStyle: "none", margin: 0, padding: 0, position: "relative" }}>
+      {/* timeline line */}
+      {occasions.length > 1 && (
+        <li aria-hidden style={{
+          position: "absolute", left: 19, top: 24, bottom: 24,
+          width: 1, background: "color-mix(in srgb, var(--primary) 30%, white)", pointerEvents: "none",
+        }} />
+      )}
       {occasions.map((o) => (
-        <div
-          key={o.occasion_id}
-          className="group relative flex items-center gap-3.5 rounded-2xl border border-[#efe6e6] bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#f4f0f0] text-[#5A413F]">
-            {occasionIcon(o.occasion_name, 20)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="truncate text-sm font-semibold text-zinc-900" title={o.occasion_title}>
+        <li key={o.occasion_id} style={{ position: "relative", paddingLeft: 54, paddingBottom: 22, display: "flex", alignItems: "flex-start" }}>
+          {/* icon bubble */}
+          <span style={{
+            position: "absolute", left: 0, top: 0,
+            width: 38, height: 38, borderRadius: "50%",
+            background: "color-mix(in srgb, var(--primary) 8%, white)",
+            border: "1px solid color-mix(in srgb, var(--primary) 25%, white)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "var(--primary)", flexShrink: 0, zIndex: 1, opacity: .85,
+          }}>
+            {OCC_ICONS[o.occasion_name] || OCC_ICONS.other}
+          </span>
+
+          {/* text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p className="text-sm font-medium text-[#2B2321] my-0.5">
               {o.occasion_title}
-            </h4>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-zinc-500">
-              <span className="font-medium text-[#5A413F]">{occasionLabel(o.occasion_name)}</span>
-              <span className="text-zinc-300">•</span>
-              <span>{relationshipLabel(o.relationship_name)}</span>
-            </div>
-            <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-zinc-600">
-              <CalendarDays size={12} className="text-zinc-400" />
+            </p>
+            <p className="text-xs text-[#8C7A73] m-0">
+              {relationshipLabel(o.relationship_name)} · {occasionLabel(o.occasion_name)}
+            </p>
+            <p className="text-xs text-[#B7A9A2] mt-1 mb-0 flex items-center gap-1.5">
+              <CalendarDays size={12} />
               {formatEventDate(o.event_date)}
-            </div>
+            </p>
           </div>
-          {DELETE_ENABLED && o.deletable !== false && (
+
+          {/* delete */}
+          {o.deletable !== false && onDelete && (
             <button
               type="button"
               onClick={() => onDelete(o)}
               disabled={deletingId === o.occasion_id}
-              aria-label={`Delete ${o.occasion_title}`}
-              className="shrink-0 rounded-lg p-2 text-zinc-300 transition-all hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed"
+              title="Remove occasion"
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                color: "#B7A9A2", padding: "4px 2px", flexShrink: 0,
+                transition: "color .15s ease",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "#B7A9A2")}
             >
-              {deletingId === o.occasion_id ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Trash2 size={16} />
-              )}
+              {deletingId === o.occasion_id
+                ? <Loader2 size={14} className="animate-spin" />
+                : <Trash2 size={14} />}
             </button>
           )}
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
-}
-
-function FieldError({ children }) {
-  if (!children) return null;
-  return <p className="mt-2 text-xs font-medium text-red-500">{children}</p>;
 }
