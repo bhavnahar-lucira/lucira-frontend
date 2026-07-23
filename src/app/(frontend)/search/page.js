@@ -449,7 +449,7 @@ export default function SearchPage() {
     <Link
       href={item.url}
       prefetch={false}
-      className="group flex h-full flex-col justify-center p-4 bg-zinc-50 border border-zinc-100 rounded-lg hover:border-primary/20 hover:bg-white transition-all duration-300"
+      className="group flex h-full flex-col p-4 bg-zinc-50 border border-zinc-100 rounded-lg hover:border-primary/20 hover:bg-white transition-all duration-300"
     >
       <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">
         {item.type === "article" ? "Blog" : "Page"}
@@ -463,43 +463,15 @@ export default function SearchPage() {
     </Link>
   );
 
-  /* Products first, with the blog/page cards sprinkled through the grid — the first
-     one after 6 products and one every 9 after that. Anything that does not fit
-     (few products loaded, more content than gaps) is appended after the last product
-     so nothing is dropped. */
-  const renderGridItems = () => {
-    const CONTENT_START = 6;
-    const CONTENT_GAP = 9;
-    const items = [];
-    let placed = 0;
-
-    products.forEach((prod, idx) => {
-      items.push(
-        <div key={`${prod.id || idx}-${idx}`}>
-          <ProductCard
-            product={selectedColor ? { ...prod, selectedColor } : prod}
-            index={idx + 1}
-          />
-        </div>
-      );
-      const rendered = idx + 1;
-      if (
-        placed < contentResults.length &&
-        rendered >= CONTENT_START &&
-        (rendered - CONTENT_START) % CONTENT_GAP === 0
-      ) {
-        const item = contentResults[placed];
-        placed += 1;
-        items.push(<ContentCard key={`content-${item.id}`} item={item} />);
-      }
-    });
-
-    contentResults.slice(placed).forEach((item) => {
-      items.push(<ContentCard key={`content-${item.id}`} item={item} />);
-    });
-
-    return items;
-  };
+  const renderGridItems = () =>
+    products.map((prod, idx) => (
+      <div key={`${prod.id || idx}-${idx}`}>
+        <ProductCard
+          product={selectedColor ? { ...prod, selectedColor } : prod}
+          index={idx + 1}
+        />
+      </div>
+    ));
   const countDisplay = `${totalCount} Results`;
 
   return (
@@ -690,6 +662,21 @@ export default function SearchPage() {
               {isFetchingNextPage && <><ProductCardSkeleton /><ProductCardSkeleton /></>}
             </div>
           )}
+          {/* Blogs & pages — their own section below all the products, behind a separator */}
+          {contentResults.length > 0 && (
+            <div className={`mt-10 pt-8 border-t border-[#E7DFDA] ${isMobile ? "px-4" : ""}`}>
+              <h2 className="font-abhaya text-xl lg:text-2xl font-extrabold text-[#2B1F1E] mb-1">Blogs &amp; Pages</h2>
+              <p className="font-figtree text-xs lg:text-sm text-[#696969] mb-5">
+                Reads and information matching &quot;{query}&quot;
+              </p>
+              <div className={`grid gap-4 ${isMobile ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-3"}`}>
+                {contentResults.map((item) => (
+                  <ContentCard key={`content-${item.id}`} item={item} />
+                ))}
+              </div>
+            </div>
+          )}
+
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
             {!pagination.hasNextPage && totalCount > 0 && products.length > 0 && (
               <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">You&apos;ve reached the end</p>
