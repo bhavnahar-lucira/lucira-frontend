@@ -1,5 +1,6 @@
 import { fetchWithRetry } from "@/utils/helpers";
 import { logout } from "@/redux/features/user/userSlice";
+import { searchContent } from "@/lib/contentSearch";
 
 /* ================= GENERIC API FETCH ================= */
 
@@ -275,7 +276,12 @@ export const createCartApi = () =>
 export const fetchSearchResults = async (query) => {
   if (!query) return { results: [] };
   try {
-    const data = await apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=6`);
+    // Products/collections come from the backend; blog articles and pages are not
+    // indexed there, so they are fetched from Shopify in parallel.
+    const [data, content] = await Promise.all([
+      apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=6`),
+      searchContent(query, 4),
+    ]);
     const formatPrice = (num) => {
       if (!num && num !== 0) return '';
       return '₹' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
@@ -296,7 +302,17 @@ export const fetchSearchResults = async (query) => {
       image: c.image || '',
       isCollection: true,
     }));
-    return { results: [...collectionResults, ...productResults] };
+    const contentResults = (content || []).map(c => ({
+      id: c.id,
+      title: c.title,
+      url: c.url,
+      image: c.image || '',
+      price: '',
+      isCollection: false,
+      isContent: true,
+      contentType: c.type === 'article' ? 'Blog' : 'Page',
+    }));
+    return { results: [...collectionResults, ...productResults, ...contentResults] };
   } catch (err) {
     console.error('[fetchSearchResults] Error:', err);
     return { results: [] };
