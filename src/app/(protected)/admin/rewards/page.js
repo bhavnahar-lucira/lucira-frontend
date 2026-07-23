@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import {
   Loader2, Gift, Check, ChevronDown, ChevronUp, AlertCircle, MapPin, Plus, ChevronRight,
@@ -77,6 +77,18 @@ function isProfileFilled(d = {}) {
       ? !!(d.anniversary_date && String(d.anniversary_date).trim())
       : true;
   return base && anniversaryOk;
+}
+
+/* How much of the personal-details form is filled, as a 0–100 integer.
+   Anniversary only counts toward the total when the customer is married. */
+function profileFillPercent(d = {}) {
+  const fields = [
+    "first_name", "last_name", "date_of_birth", "gender",
+    "marital_status", "pincode", "profession",
+  ];
+  if (d.marital_status === "Married") fields.push("anniversary_date");
+  const filled = fields.filter((k) => d[k] && String(d[k]).trim()).length;
+  return fields.length ? Math.round((filled / fields.length) * 100) : 0;
 }
 
 /* ─── Field label + control wrapper ─── */
@@ -173,24 +185,38 @@ export default function EarnRewardsPage() {
   const [personalOpen, setPersonalOpen] = useState(true);
   const [occasionOpen, setOccasionOpen] = useState(true);
 
-  // Sheet
+  // Sheet + occasion analytics funnel (one form_session_id per add attempt)
   const [isOccasionSheetOpen, setIsOccasionSheetOpen] = useState(false);
+  const [occFormSession, setOccFormSession] = useState(null);
+  const occFormProgressRef = useRef("empty");
+  const sectionViewedRef = useRef(false);
 
-  // Was the profile already complete-and-saved when the page finished loading (this device)?
-  const [completedOnLoad, setCompletedOnLoad] = useState(false);
+  // Delete confirmation (PRD §7.8) — the occasion pending confirmation, or null.
+  const [pendingDelete, setPendingDelete] = useState(null);
+
   // Did the user successfully save a complete profile during this session?
   const [savedThisSession, setSavedThisSession] = useState(false);
 
   const profileFilled = isProfileFilled(formData);
+
+  // Capture, once, whether the profile was already complete-and-saved when the data finished
+  // loading — computed during render (no setState-in-effect). Uses the server/localStorage
+  // values present on the first render after loading resolves.
+  const completedOnLoadRef = useRef(null);
+  if (!pageLoading && completedOnLoadRef.current === null) {
+    completedOnLoadRef.current = profileComplete && profileFilled;
+  }
+
   // "Completed" means it was genuinely complete on load, or the user just saved it — NOT
   // simply that the fields are full right now (that would hide the button mid-edit and let a
   // stale flag claim completion).
-  const isCompleted = completedOnLoad || savedThisSession;
+  const isCompleted = completedOnLoadRef.current === true || savedThisSession;
 
-  // Capture completion state once, from the data that loaded from the server / localStorage.
+  // GA4: My Occasions section viewed — at most once per page session (PRD GA-R01).
   useEffect(() => {
-    if (!pageLoading) {
-      setCompletedOnLoad(profileComplete && isProfileFilled(formData));
+    if (!pageLoading && !sectionViewedRef.current) {
+      sectionViewedRef.current = true;
+      occasionAnalytics.sectionViewed(occasions.length, occasions.length ? "populated" : "empty");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageLoading]);
@@ -356,7 +382,23 @@ export default function EarnRewardsPage() {
       return;
     }
     setCompleting(true);
-    pushPromoClick({ creative_name: "Completed User Profile", location_id: "admin rewards" });
+    pushPromoClick({
+      creative_name: "Complete My Profile CTA",
+      location_id: formData.mobile_number || "",
+      promo_id: "profile_completion",
+      promo_name: `${profileFillPercent(formData)}%`,
+      // full personal-details payload
+      first_name: formData.first_name || "",
+      last_name: formData.last_name || "",
+      email: formData.email || "",
+      mobile_number: formData.mobile_number || "",
+      date_of_birth: formData.date_of_birth || "",
+      gender: formData.gender || "",
+      marital_status: formData.marital_status || "",
+      anniversary_date: formData.anniversary_date || "",
+      pincode: formData.pincode || "",
+      profession: formData.profession || "",
+    });
     await savePersonalInfo(formData);
     await syncWebEngageProfile(formData);
     try {
@@ -379,17 +421,53 @@ export default function EarnRewardsPage() {
     setCompleting(false);
   }
 
+  // ── Add Occasion sheet: open / close with the shared funnel session ──
+  function openOccasionSheet() {
+    const sid = newFormSessionId();
+    setOccFormSession(sid);
+    occFormProgressRef.current = "empty";
+    occasionAnalytics.addClicked(occasions.length);
+    setIsOccasionSheetOpen(true);
+    occasionAnalytics.formOpened(sid, occasions.length); // sheet becomes interactive
+  }
+
+  // Any user-initiated dismissal (Cancel, X, overlay, Esc) is a cancel event.
+  // A successful create closes the sheet directly (below), bypassing this handler.
+  function handleOccasionOpenChange(open) {
+    if (!open && isOccasionSheetOpen) {
+      occasionAnalytics.cancelClicked(occFormSession, occFormProgressRef.current);
+    }
+    setIsOccasionSheetOpen(open);
+  }
+
   async function addOccasion(form) {
     setAddingOcc(true);
     try {
       const created = await createOccasion(form, accessToken);
       const next = sortOccasions([created, ...occasions.filter((o) => o.occasion_id !== created.occasion_id)]);
       setOccasions(next);
-      occasionAnalytics.created(newFormSessionId(), form, next.length);
-      setIsOccasionSheetOpen(false);
+      occasionAnalytics.created(occFormSession, form, next.length); // shared session id
+      setIsOccasionSheetOpen(false); // direct close — not a cancel
       return true;
-    } catch { return false; }
+    } catch {
+      occasionAnalytics.creationFailed(occFormSession, "CREATE_FAILED", "request");
+      return false;
+    }
     finally { setAddingOcc(false); }
+  }
+
+  // ── Delete: confirm-first (PRD §7.8) ──
+  function requestDeleteOccasion(o) {
+    occasionAnalytics.deleteClicked(o, occasions.length);
+    setPendingDelete(o);
+  }
+
+  async function confirmDeleteOccasion() {
+    const o = pendingDelete;
+    if (!o) return;
+    occasionAnalytics.deleteConfirmed(o, occasions.length);
+    setPendingDelete(null);
+    await removeOccasion(o);
   }
 
   async function removeOccasion(o) {
@@ -400,6 +478,7 @@ export default function EarnRewardsPage() {
       setOccasions(next);
       occasionAnalytics.deleted(o, next.length);
     } catch {
+      occasionAnalytics.deleteFailed("DELETE_FAILED", occasions.length);
       window.alert("We could not delete this occasion. Please try again.");
     } finally { setDeletingOccId(null); }
   }
@@ -686,14 +765,14 @@ export default function EarnRewardsPage() {
                   Manage your important dates to receive personalised offers.
                 </p>
               </div>
-              <button className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] bg-primary text-white border border-primary rounded-2xl px-5 py-3 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap shadow-md shadow-primary/20" onClick={() => setIsOccasionSheetOpen(true)}>
+              <button className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] bg-primary text-white border border-primary rounded-2xl px-5 py-3 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap shadow-md shadow-primary/20" onClick={openOccasionSheet}>
                 <Plus size={14} /> Add occasion
               </button>
             </div>
 
             <OccasionCards
               occasions={occasions}
-              onDelete={removeOccasion}
+              onDelete={requestDeleteOccasion}
               deletingId={deletingOccId}
             />
           </div>
@@ -701,13 +780,13 @@ export default function EarnRewardsPage() {
       </div>
 
       {/* ── Add Occasion Sheet ── */}
-      <Sheet open={isOccasionSheetOpen} onOpenChange={setIsOccasionSheetOpen}>
+      <Sheet open={isOccasionSheetOpen} onOpenChange={handleOccasionOpenChange}>
         <SheetContent side="right" className="w-full sm:max-w-[440px] overflow-y-auto p-0 font-[Figtree,var(--font-figtree),ui-sans-serif] [&>button]:outline-none">
           <SheetHeader className="px-6 pt-8 pb-5 border-b border-zinc-100 sticky top-0 bg-white z-10">
             <div className="flex items-center justify-between gap-4">
               <SheetTitle className="text-xl font-bold text-primary tracking-tight">Add occasion</SheetTitle>
               <button
-                onClick={() => setIsOccasionSheetOpen(false)}
+                onClick={() => handleOccasionOpenChange(false)}
                 className="size-8 flex items-center justify-center rounded-full bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
                 title="Close"
               >
@@ -723,11 +802,52 @@ export default function EarnRewardsPage() {
             <OccasionForm
               onAdd={addOccasion}
               adding={addingOcc}
-              onCancel={() => setIsOccasionSheetOpen(false)}
+              onCancel={() => handleOccasionOpenChange(false)}
+              formSessionId={occFormSession}
+              onProgressChange={(p) => { occFormProgressRef.current = p; }}
             />
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ── Delete confirmation (PRD §7.8 / Appendix B) ── */}
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setPendingDelete(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="occ-delete-title"
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="occ-delete-title" className="text-lg font-semibold text-zinc-900 tracking-tight m-0">
+              Delete this occasion?
+            </h3>
+            <p className="text-sm text-zinc-500 leading-relaxed mt-2 mb-6">
+              This occasion will be removed. To change its details, you will need to create a new occasion.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingDelete(null)}
+                className="flex-1 bg-white border border-zinc-200 text-zinc-600 text-xs font-semibold uppercase tracking-[0.13em] px-4 py-3 rounded-xl transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteOccasion}
+                className="flex-1 bg-red-500 text-white border border-red-500 text-xs font-semibold uppercase tracking-[0.13em] px-4 py-3 rounded-xl transition-colors hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, CalendarDays, AlertCircle, Trash2 } from "lucide-react";
 import {
   RELATIONSHIPS,
   OCCASION_TYPES,
   validateOccasion,
+  validationCodeFor,
+  occasionAnalytics,
   occasionLabel,
   relationshipLabel,
   formatEventDate,
@@ -46,7 +48,7 @@ function FieldError({ children }) {
   );
 }
 
-export function OccasionForm({ onAdd, onCancel, adding }) {
+export function OccasionForm({ onAdd, onCancel, adding, formSessionId, onProgressChange }) {
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
 
@@ -55,12 +57,25 @@ export function OccasionForm({ onAdd, onCancel, adding }) {
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
   };
 
+  // Report coarse progress (empty | partial | complete) for the cancel event (PRD §11.2).
+  useEffect(() => {
+    if (!onProgressChange) return;
+    const any =
+      form.relationship_name || form.occasion_name || form.occasion_title.trim() || form.event_date;
+    const all =
+      form.relationship_name && form.occasion_name && form.occasion_title.trim() && form.event_date;
+    onProgressChange(all ? "complete" : any ? "partial" : "empty");
+  }, [form, onProgressChange]);
+
   const submit = async () => {
     if (adding) return;
+    // Fires before the validation result is known (PRD GA-R02).
+    occasionAnalytics.submitClicked(formSessionId, form);
     const validationErrors = validateOccasion(form);
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors);
       const firstKey = Object.keys(validationErrors)[0];
+      occasionAnalytics.validationFailed(formSessionId, firstKey, validationCodeFor(firstKey, form));
       document.getElementById(`occ-${firstKey}`)?.focus();
       return;
     }

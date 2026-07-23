@@ -29,30 +29,21 @@ export const DELETE_ENABLED = true;
 // Shared client/server title limit (PRD §18 recommends ~80).
 export const TITLE_MAX = 80;
 
-// Fixed relationship list. `value` is the stored/analytics enum (lowercase),
-// `label` is what the customer sees.
+// Fixed relationship list — PRD §7.4 / AC-OCC-05: exactly these six values.
+// `value` is the stored/analytics enum (lowercase); `label` is customer-facing.
 export const RELATIONSHIPS = [
-  { value: "self", label: "Self" },
-  { value: "wife", label: "Wife" },
   { value: "mother", label: "Mother" },
-  { value: "sister", label: "Sister" },
-  { value: "friend", label: "Friend" },
-  { value: "girlfriend", label: "Girlfriend" },
-  { value: "daughter", label: "Daughter" },
-  { value: "husband", label: "Husband" },
   { value: "father", label: "Father" },
+  { value: "brother", label: "Brother" },
+  { value: "wife", label: "Wife" },
+  { value: "daughter", label: "Daughter" },
   { value: "son", label: "Son" },
-  { value: "niece_nephew", label: "Niece/ Nephew" },
-  { value: "grandparent", label: "Grandparent" },
-  { value: "others", label: "Others" },
 ];
 
-// Fixed occasion list.
+// Fixed occasion list — PRD §7.4 / AC-OCC-06: exactly these three values.
 export const OCCASION_TYPES = [
-  { value: "anniversary", label: "Anniversary" },
   { value: "birthday", label: "Birthday" },
-  { value: "engagement", label: "Engagement" },
-  { value: "wedding", label: "Wedding" },
+  { value: "anniversary", label: "Anniversary" },
   { value: "other", label: "Other" },
 ];
 
@@ -121,6 +112,21 @@ export function validateOccasion(form = {}) {
     if (!valid) errors.event_date = "Select a valid event date.";
   }
   return errors;
+}
+
+/**
+ * Map a failing field to a stable, non-sensitive GA4 validation_code
+ * (PRD §11.4: required | invalid_format | invalid_date | length_exceeded).
+ * Single source of truth so UI and analytics never drift.
+ */
+export function validationCodeFor(field, form = {}) {
+  if (field === "occasion_title") {
+    return (form.occasion_title || "").trim().length > TITLE_MAX ? "length_exceeded" : "required";
+  }
+  if (field === "event_date") {
+    return form.event_date ? "invalid_date" : "required";
+  }
+  return "required";
 }
 
 /** Coarse past/today/future classification for analytics (no exact date). */
@@ -350,6 +356,13 @@ export const occasionAnalytics = {
   deleteClicked: (form, count) =>
     pushToDataLayer({
       event: "my_occasion_delete_clicked",
+      occasion_name: form.occasion_name || "",
+      relationship_name: form.relationship_name || "",
+      occasion_count: count,
+    }),
+  deleteConfirmed: (form, count) =>
+    pushToDataLayer({
+      event: "my_occasion_delete_confirmed",
       occasion_name: form.occasion_name || "",
       relationship_name: form.relationship_name || "",
       occasion_count: count,
