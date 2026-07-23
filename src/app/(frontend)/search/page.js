@@ -255,7 +255,7 @@ export default function SearchPage() {
           </Breadcrumb>
         </div>
         {!isMobile && (productsLoading || products.length > 0) && (
-          <div className="bg-[#F9F9F9] py-12"><div className="container-main mx-auto px-6"><h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px]">Results for "{query}"</h1><p className="text-gray-600">{productsLoading ? "Searching..." : `Showing ${totalCount} products found for your request.`}</p></div></div>
+          <div className="bg-[#F9F9F9] py-12"><div className="container-main mx-auto px-6"><h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px]">Results for "{query}"</h1><p className="text-gray-600">{productsLoading ? "Searching..." : `Showing ${totalCount} results found for your request.`}</p></div></div>
         )}
       </div>
 
@@ -328,7 +328,7 @@ export default function SearchPage() {
           {products.length > 0 && (
             <div className={`flex items-center justify-between sticky top-0 bg-white z-20 ${isMobile ? "gap-3 py-5 border-b border-gray-50 px-4" : "gap-4 py-4"}`}>
               <div className={isMobile ? "flex items-baseline gap-2.5" : "flex gap-3 items-center"}>
-                {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">"{query}"</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{totalCount} Results</span></>) : (<span className="text-sm text-gray-500">{products.length}/{totalCount} products</span>)}
+                {isMobile ? (<><h2 className="text-lg font-bold text-black capitalize leading-none">"{query}"</h2><span className="text-xs text-gray-400 font-medium whitespace-nowrap">{totalCount} Results</span></>) : (<span className="text-sm text-gray-500">{products.length}/{totalCount} results</span>)}
               </div>
               {!isMobile && (
                 <div className="flex items-center gap-4"><div className="flex items-center gap-2"><span className="text-sm text-gray-600">Sort:</span><select value={activeSort} onChange={(e) => handleSort(e.target.value)} className="text-sm border rounded-md px-3 py-2 bg-white">{SORT_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}</select></div></div>
@@ -375,6 +375,18 @@ export default function SearchPage() {
                  // Trigger pagination when 10 products are scrolled
                  // For a batch of 25, this is the 11th product (index 10, or length - 15)
                  const isTrigger = pagination.hasNextPage && idx === products.length - 15;
+
+                 if (prod.type === 'page' || prod.type === 'article') {
+                   return (
+                     <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null} className="p-6 bg-zinc-50 border border-zinc-100 rounded-lg flex flex-col justify-center gap-2">
+                       <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{prod.type}</span>
+                       <Link href={prod.url || (prod.type === 'page' ? `/pages/${prod.handle}` : `/blogs/${prod.handle}`)} className="text-lg font-figtree font-medium hover:text-primary transition-colors">
+                         {prod.title}
+                       </Link>
+                     </div>
+                   );
+                 }
+
                  return (
                    <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
                      <ProductCard 

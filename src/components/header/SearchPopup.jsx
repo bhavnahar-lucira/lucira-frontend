@@ -171,7 +171,7 @@ export default function SearchPopup({
             {/* Left Column: Products (Shows when typing) */}
             <div className="md:pr-10 lg:border-r border-gray-100 flex flex-col">
               <h3 className="text-sm md:text-base font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">
-                {searchQuery.length === 0 ? "Bestseller Products" : "Products"}
+                {searchQuery.length === 0 ? "Bestseller Products" : "Search Results"}
               </h3>
 
               {searchQuery.length === 0 ? (
@@ -261,18 +261,26 @@ export default function SearchPopup({
                       onClick={onClose}
                       className="group flex gap-3 md:gap-4 items-center"
                     >
-                      <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                        <Image
-                          src={item.image || "/images/product/1.jpg"}
-                          alt={item.title}
-                          fill
-                          unoptimized={
-                            String(item.image).includes("cdn.shopify.com") ||
-                            String(item.image).includes("myshopify.com")
-                          }
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
+                      {item.url.includes('/pages/') || item.url.includes('/blogs/') ? (
+                        <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-zinc-100 flex items-center justify-center">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                            {item.url.includes('/pages/') ? 'Page' : 'Blog'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
+                          <Image
+                            src={item.image || "/images/product/1.jpg"}
+                            alt={item.title}
+                            fill
+                            unoptimized={
+                              String(item.image).includes("cdn.shopify.com") ||
+                              String(item.image).includes("myshopify.com")
+                            }
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs md:text-sm font-medium text-gray-800 truncate group-hover:text-primary transition-colors">
                           <HighlightMatch
@@ -280,9 +288,11 @@ export default function SearchPopup({
                             query={searchQuery}
                           />
                         </h4>
-                        <p className="text-xs font-bold text-gray-900 mt-0.5">
-                          {item.price}
-                        </p>
+                        {item.price && (
+                          <p className="text-xs font-bold text-gray-900 mt-0.5">
+                            {item.price}
+                          </p>
+                        )}
                       </div>
                     </Link>
                   ))}
