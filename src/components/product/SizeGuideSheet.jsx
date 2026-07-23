@@ -46,7 +46,7 @@ const sizeData = [
   { ind: 26, us: "13.5", diaIn: 0.84, cirIn: 2.63 },
 ];
 
-export function SizeGuideSheet({ children }) {
+export function SizeGuideSheet({ children, product }) {
   const [unit, setUnit] = useState("inch");
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
@@ -91,7 +91,7 @@ export function SizeGuideSheet({ children }) {
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 custom-scrollbar">
-            <RingSizerPromo />
+            <RingSizerPromo product={product} />
 
             <div
               onClick={() => setIsVideoOpen(true)}

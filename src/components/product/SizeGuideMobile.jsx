@@ -40,7 +40,7 @@ const sizeData = [
   { ind: 26, us: "13.5", diaIn: 0.84, cirIn: 2.63 },
 ];
 
-export function SizeGuideMobile({ children, nearestStore, availableStores = [], availableStoreCount = 0, deliveryInfo, getStoreDisplayName  }) {
+export function SizeGuideMobile({ children, product, nearestStore, availableStores = [], availableStoreCount = 0, deliveryInfo, getStoreDisplayName  }) {
   const [isOpen, setIsOpen] = useState(false);
   const [unit, setUnit] = useState("inch"); // 'inch' or 'cm'
   const [isVideoOpen, setIsVideoOpen] = useState(false);
@@ -101,7 +101,7 @@ export function SizeGuideMobile({ children, nearestStore, availableStores = [], 
                 {/* Close the sheet on navigate - react-modal-sheet keeps its
                     own open state, which would otherwise still be true if the
                     shopper came back to the PDP. */}
-                <RingSizerPromo isMobile onNavigate={() => setIsOpen(false)} />
+                <RingSizerPromo product={product} isMobile onNavigate={() => setIsOpen(false)} />
 
                 <div
                   onClick={() => setIsVideoOpen(true)}

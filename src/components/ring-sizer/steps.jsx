@@ -39,9 +39,10 @@ const NEED_PAPER = [
   { label: "Scissor / Cutter", Icon: Scissors },
 ];
 
-function ChecklistSheet({ title, items, hero, onNext, cta = "Next" }) {
+function ChecklistSheet({ title, items, hero, onNext, cta = "Next", header = null }) {
   return (
     <>
+      {header}
       <div className="flex-1 overflow-y-auto">
         <div className="w-full">{hero}</div>
 
@@ -80,21 +81,22 @@ function ChecklistSheet({ title, items, hero, onNext, cta = "Next" }) {
   );
 }
 
-export function IntroStep({ onNext }) {
+export function IntroStep({ onNext, onClose }) {
   return (
     <ChecklistSheet
       title="What you need"
       items={NEED_MEASURE}
       hero={<IntroHero className="w-full" />}
       onNext={onNext}
+      header={<StepHeader onClose={onClose} />}
     />
   );
 }
 
-export function PaperIntroStep({ onNext, onBack }) {
+export function PaperIntroStep({ onNext, onBack, onClose }) {
   return (
     <>
-      <StepHeader onBack={onBack} />
+      <StepHeader onBack={onBack} onClose={onClose} />
       <ChecklistSheet
         title="What you need"
         items={NEED_PAPER}
@@ -109,10 +111,10 @@ export function PaperIntroStep({ onNext, onBack }) {
  * Step 01 - flat surface
  * ===================================================================== */
 
-export function FlatSurfaceStep({ onNext, onBack }) {
+export function FlatSurfaceStep({ onNext, onBack, onClose }) {
   return (
     <>
-      <StepHeader step="Step 01" onBack={onBack} />
+      <StepHeader step="Step 01" onBack={onBack} onClose={onClose} />
       <div className="flex flex-1 flex-col items-center justify-center px-6">
         <FlatSurfaceIllustration className="w-full max-w-[300px]" />
         <p className="mt-6 text-center font-figtree text-[13px] font-semibold text-[#3F2E2C]">
@@ -205,7 +207,7 @@ const COIN_TEXT_RESERVE_PX = 180;
  * Whatever object they are physically holding cannot change because they
  * moved a slider.
  */
-export function CalibrateStep({ pxPerMmX100, onChange, onNext, onBack, targetId, onTargetChange }) {
+export function CalibrateStep({ pxPerMmX100, onChange, onNext, onBack, onClose, targetId, onTargetChange }) {
   const pxPerMm = pxPerMmX100 / 100;
   const isCoin = targetId === "coin";
   const referenceMm = isCoin ? COIN_10_MM : CARD_SHORT_MM;
@@ -262,7 +264,7 @@ export function CalibrateStep({ pxPerMmX100, onChange, onNext, onBack, targetId,
 
   return (
     <>
-      <StepHeader step="Step 02" onBack={onBack} />
+      <StepHeader step="Step 02" onBack={onBack} onClose={onClose} />
 
       {/* Stage clips the outline's overhanging right side. The outline itself
           is shrink-0 - it is meant to overflow, not be squeezed to fit, or
@@ -346,7 +348,7 @@ export function CalibrateStep({ pxPerMmX100, onChange, onNext, onBack, targetId,
  * Step 03 - branch
  * ===================================================================== */
 
-export function ChooseMethodStep({ onPick, onBack }) {
+export function ChooseMethodStep({ onPick, onBack, onClose }) {
   const Option = ({ label, sub, art, onClick }) => (
     <button
       type="button"
@@ -363,7 +365,7 @@ export function ChooseMethodStep({ onPick, onBack }) {
 
   return (
     <>
-      <StepHeader step="Step 03" onBack={onBack} />
+      <StepHeader step="Step 03" onBack={onBack} onClose={onClose} />
 
       {/* Centred in the leftover space. The inner min-h-full wrapper is what
           does the centring rather than justify-center on the scroller itself -
@@ -422,7 +424,7 @@ const RING_BULLETS = [
   "You're ready when the circle sits just inside your ring",
 ];
 
-export function MeasureRingStep({ diameterMmX10, onChange, onNext, onBack, pxPerMm }) {
+export function MeasureRingStep({ diameterMmX10, onChange, onNext, onBack, onClose, pxPerMm }) {
   const diameterMm = diameterMmX10 / 10;
   const result = useMemo(() => diameterToRingSize(diameterMm), [diameterMm]);
   const circlePx = diameterMm * pxPerMm;
@@ -459,7 +461,7 @@ export function MeasureRingStep({ diameterMmX10, onChange, onNext, onBack, pxPer
 
   return (
     <>
-      <StepHeader step="Step 04" onBack={onBack} />
+      <StepHeader step="Step 04" onBack={onBack} onClose={onClose} />
 
       {/* Centred in the leftover space, same pattern as Step 03 - the
           min-h-full wrapper centres, rather than justify-center on the
@@ -552,7 +554,7 @@ const STRIP_BULLETS = [
   "Align it with the measurement guide for your perfect fit",
 ];
 
-export function MeasureStripStep({ circumferenceMmX10, onChange, onNext, onBack, pxPerMm }) {
+export function MeasureStripStep({ circumferenceMmX10, onChange, onNext, onBack, onClose, pxPerMm }) {
   const circumferenceMm = circumferenceMmX10 / 10;
   const result = useMemo(() => circumferenceToRingSize(circumferenceMm), [circumferenceMm]);
   const lengthPx = circumferenceMm * pxPerMm;

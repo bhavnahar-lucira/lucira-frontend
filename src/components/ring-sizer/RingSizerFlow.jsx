@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useReducer } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SIZER_BG, PrimaryButton, Footer, StepHeader } from "./chrome";
 import {
   IntroStep,
@@ -20,6 +20,7 @@ import {
   CARD_SHORT_MM,
   CALIBRATION_TARGETS,
 } from "@/lib/ringSizer";
+import { RING_SIZER_CREATIVE, trackRingSizer } from "@/lib/ringSizerTracking";
 
 const RESULT_KEY = "lucira_ringsizer_result_v1";
 
@@ -75,8 +76,15 @@ function reducer(state, action) {
 
 export function RingSizerFlow({ onApplySize, onClose, products = [] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [state, dispatch] = useReducer(reducer, INITIAL);
   const calibration = useRingSizerCalibration();
+
+  /* Which step the shopper abandoned on, read at exit time. Held in a ref so
+     the close handler does not have to depend on state.step - otherwise it is
+     rebuilt on every step change and every header re-renders with it. */
+  const stepRef = useRef(state.step);
+  stepRef.current = state.step;
 
   const go = useCallback((step) => dispatch({ type: "GO", step }), []);
   const back = useCallback(() => dispatch({ type: "BACK" }), []);
@@ -107,12 +115,25 @@ export function RingSizerFlow({ onApplySize, onClose, products = [] }) {
       state.targetId === "coin" ? CALIBRATION_TARGETS.coin.referenceMm : CARD_SHORT_MM;
     const ratio = computePxPerMm(referenceMm * pxPerMm, referenceMm);
     calibration.save(ratio);
+    // pxPerMm is the single most diagnostic value here: if the live
+    // distribution drifts away from the 5-7 range real phones produce, it is
+    // the earliest signal that people are misreading the calibration step.
+    trackRingSizer(RING_SIZER_CREATIVE.CALIBRATION_COMPLETED, {
+      calibration_target: state.targetId,
+      px_per_mm: Number(ratio.toFixed(3)),
+    });
     go(STEPS.CHOOSE);
   }, [calibration, go, pxPerMm, state.targetId]);
 
   const finish = useCallback(
-    (result) => {
+    (result, method) => {
       dispatch({ type: "RESULT", result });
+      trackRingSizer(RING_SIZER_CREATIVE.SIZE_MEASURED, {
+        method,
+        ring_size: result?.size?.indLabel ?? null,
+        measured_mm: result?.measuredMm ? Number(result.measuredMm.toFixed(2)) : null,
+        confidence: result?.confidence ?? null,
+      });
       if (result?.size) {
         try {
           window.localStorage.setItem(
@@ -125,7 +146,24 @@ export function RingSizerFlow({ onApplySize, onClose, products = [] }) {
     []
   );
 
-  const close = onClose ?? (() => router.back());
+  /**
+   * Where "exit the sizer" goes.
+   *
+   * Prefers the ?from= product the shopper arrived from, because router.back()
+   * is unreliable here: a QR handoff opens the sizer as the first entry in a
+   * fresh tab's history, so there is nothing behind it. Only same-site paths
+   * are honoured, so a crafted ?from= cannot bounce anyone off-site.
+   */
+  const fromParam = searchParams?.get("from") || "";
+  const returnTo = /^\/(?!\/)/.test(fromParam) ? fromParam : null;
+
+  const close = useCallback(() => {
+    trackRingSizer(RING_SIZER_CREATIVE.EXITED, { step: stepRef.current });
+    if (onClose) return onClose();
+    if (returnTo) return router.push(returnTo);
+    if (typeof window !== "undefined" && window.history.length > 1) return router.back();
+    router.push("/collections/rings");
+  }, [onClose, returnTo, router]);
 
   /* Zoom guard. iOS Safari honours neither `user-scalable=no` nor
      `maximum-scale`, so a pinch can silently invalidate the calibration
@@ -153,16 +191,35 @@ export function RingSizerFlow({ onApplySize, onClose, products = [] }) {
 
   return (
     <Shell>
-      {state.step === STEPS.INTRO && <IntroStep onNext={() => go(STEPS.FLAT_SURFACE)} />}
+      {state.step === STEPS.INTRO && (
+        <IntroStep
+          onNext={() => {
+            trackRingSizer(RING_SIZER_CREATIVE.STARTED);
+            go(STEPS.FLAT_SURFACE);
+          }}
+          onClose={close}
+        />
+      )}
 
       {state.step === STEPS.FLAT_SURFACE && (
-        <FlatSurfaceStep onBack={back} onNext={() => go(STEPS.CALIBRATE)} />
+        <FlatSurfaceStep
+          onBack={back}
+          onClose={close}
+          onNext={() => {
+            trackRingSizer(RING_SIZER_CREATIVE.FLAT_SURFACE_NEXT);
+            go(STEPS.CALIBRATE);
+          }}
+        />
       )}
 
       {state.step === STEPS.CALIBRATE && (
         <CalibrateStep
+          onClose={close}
           targetId={state.targetId}
-          onTargetChange={(id) => set("targetId", id)}
+          onTargetChange={(id) => {
+            trackRingSizer(RING_SIZER_CREATIVE.CALIBRATION_TARGET_CHANGED, { calibration_target: id });
+            set("targetId", id);
+          }}
           pxPerMmX100={state.pxPerMmX100}
           onChange={(v) => set("pxPerMmX100", v)}
           onBack={back}
@@ -172,32 +229,49 @@ export function RingSizerFlow({ onApplySize, onClose, products = [] }) {
 
       {state.step === STEPS.CHOOSE && (
         <ChooseMethodStep
+          onClose={close}
           onBack={back}
-          onPick={(mode) => go(mode === "ring" ? STEPS.MEASURE_RING : STEPS.PAPER_INTRO)}
+          onPick={(mode) => {
+            trackRingSizer(
+              mode === "ring"
+                ? RING_SIZER_CREATIVE.METHOD_RING
+                : RING_SIZER_CREATIVE.METHOD_PAPER
+            );
+            go(mode === "ring" ? STEPS.MEASURE_RING : STEPS.PAPER_INTRO);
+          }}
         />
       )}
 
       {state.step === STEPS.MEASURE_RING && (
         <MeasureRingStep
+          onClose={close}
           pxPerMm={pxPerMm}
           diameterMmX10={state.diameterMmX10}
           onChange={(v) => set("diameterMmX10", v)}
           onBack={back}
-          onNext={finish}
+          onNext={(r) => finish(r, "ring")}
         />
       )}
 
       {state.step === STEPS.PAPER_INTRO && (
-        <PaperIntroStep onBack={back} onNext={() => go(STEPS.MEASURE_STRIP)} />
+        <PaperIntroStep
+          onBack={back}
+          onClose={close}
+          onNext={() => {
+            trackRingSizer(RING_SIZER_CREATIVE.PAPER_TOOLS_NEXT);
+            go(STEPS.MEASURE_STRIP);
+          }}
+        />
       )}
 
       {state.step === STEPS.MEASURE_STRIP && (
         <MeasureStripStep
+          onClose={close}
           pxPerMm={pxPerMm}
           circumferenceMmX10={state.circumferenceMmX10}
           onChange={(v) => set("circumferenceMmX10", v)}
           onBack={back}
-          onNext={finish}
+          onNext={(r) => finish(r, "paper_strip")}
         />
       )}
 

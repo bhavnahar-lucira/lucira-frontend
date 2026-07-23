@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { RING_SIZER_CREATIVE, trackRingSizerEntry } from "@/lib/ringSizerTracking";
 import { QRCodeSVG } from "qrcode.react";
 import {
   Dialog,
@@ -13,6 +15,36 @@ import {
 } from "@/components/ui/dialog";
 
 const RING_SIZER_PATH = "/ring-sizer";
+
+/**
+ * Tags that mark a product as an actual ring.
+ *
+ * Matched EXACTLY, never as a substring. "Earrings" contains "ring", so a
+ * substring test would show a ring sizer on every pair of studs - and the
+ * same trap catches "Earring", "Stud Earrings" and "trending earrings", all
+ * of which are live tags on this store.
+ *
+ * Category tags like "Engagement Rings" or "Wedding Rings" are not listed
+ * because every ring in the catalogue also carries the plain "Rings" tag;
+ * relying on the bare tag keeps the rule tight and predictable.
+ */
+const RING_TAGS = new Set(["ring", "rings"]);
+
+/**
+ * True only for products that are rings.
+ *
+ * Tag-driven rather than productType-driven, per merchandising: tags are what
+ * the team curates. Falls back to an exact productType check for products
+ * that somehow carry no tags.
+ */
+export function isRingProduct(product) {
+  const tags = product?.tags;
+  if (Array.isArray(tags) && tags.length) {
+    return tags.some((t) => RING_TAGS.has(String(t).trim().toLowerCase()));
+  }
+  const type = String(product?.type || product?.productType || "").trim().toLowerCase();
+  return RING_TAGS.has(type);
+}
 
 /**
  * Thumbnail for the size-guide entry point: a phone lying flat with a ring
@@ -50,9 +82,20 @@ function RingSizerThumb({ className = "" }) {
  * no fixed relationship between CSS pixels and millimetres - the reading
  * would be meaningless. So desktop shows a QR that hands the flow to a phone.
  */
-export function RingSizerPromo({ isMobile = false, onNavigate }) {
+export function RingSizerPromo({ product, isMobile = false, onNavigate }) {
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [url, setUrl] = useState("");
+  const pathname = usePathname();
+
+  /**
+   * Carry the product the shopper came from into the sizer, so it can offer a
+   * way back. Needed because the sizer is a full-screen takeover outside the
+   * storefront layout - and on a QR handoff the phone has no history at all,
+   * so router.back() would have nothing to return to.
+   */
+  const sizerHref = pathname?.startsWith("/products/")
+    ? `${RING_SIZER_PATH}?from=${encodeURIComponent(pathname)}`
+    : RING_SIZER_PATH;
 
   /**
    * Built from the live origin, not a hardcoded domain, so the QR resolves to
@@ -65,8 +108,12 @@ export function RingSizerPromo({ isMobile = false, onNavigate }) {
       typeof window !== "undefined"
         ? window.location.origin
         : process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
-    setUrl(`${origin}${RING_SIZER_PATH}`);
-  }, []);
+    setUrl(`${origin}${sizerHref}`);
+  }, [sizerHref]);
+
+  // The sizer only measures ring sizes, so it has no business appearing on a
+  // bracelet, bangle or pair of earrings. Bail after the hooks, never before.
+  if (!isRingProduct(product)) return null;
 
   const body = (
     <>
@@ -93,8 +140,11 @@ export function RingSizerPromo({ isMobile = false, onNavigate }) {
     return (
       <Link
         prefetch={false}
-        href={RING_SIZER_PATH}
-        onClick={onNavigate}
+        href={sizerHref}
+        onClick={() => {
+          trackRingSizerEntry(RING_SIZER_CREATIVE.MEASURE_NOW, product, { device: "mobile" });
+          onNavigate?.();
+        }}
         className={shell}
       >
         {body}
@@ -106,7 +156,10 @@ export function RingSizerPromo({ isMobile = false, onNavigate }) {
     <>
       <button
         type="button"
-        onClick={() => setIsQrOpen(true)}
+        onClick={() => {
+          trackRingSizerEntry(RING_SIZER_CREATIVE.SCAN_QR, product, { device: "desktop" });
+          setIsQrOpen(true);
+        }}
         className={`${shell} w-full text-left cursor-pointer hover:bg-gray-50 transition-colors`}
       >
         {body}

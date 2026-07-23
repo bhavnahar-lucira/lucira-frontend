@@ -6,6 +6,7 @@ import Link from "next/link";
 import { StepHeader, Footer, PrimaryButton } from "./chrome";
 import { RingProductGlyph } from "./illustrations";
 import { suggestWideBandAdjustment } from "@/lib/ringSizer";
+import { RING_SIZER_CREATIVE, trackRingSizer } from "@/lib/ringSizerTracking";
 
 /**
  * Shopify stores ring sizes as zero-padded two-character strings ("05", "12"),
@@ -68,7 +69,7 @@ function productsForSize(products, size) {
  * timing, easing and whether it auto-advances at all still need confirming
  * against that video.
  */
-function ProductCarousel({ products }) {
+function ProductCarousel({ products, size }) {
   const [active, setActive] = useState(Math.floor(products.length / 2));
   const [paused, setPaused] = useState(false);
 
@@ -138,6 +139,13 @@ function ProductCarousel({ products }) {
                 prefetch={false}
                 href={`/products/${product.handle}`}
                 aria-label={product.title}
+                onClick={() =>
+                  trackRingSizer(RING_SIZER_CREATIVE.RESULT_PRODUCT_CLICKED, {
+                    product_handle: product.handle,
+                    product_name: product.title,
+                    ring_size: size?.indLabel ?? null,
+                  })
+                }
                 className="block"
               >
                 {inner}
@@ -186,7 +194,7 @@ export function ResultStep({ result, products = [], onBack, onClose, onApply }) 
 
         {recommended.length ? (
           <div className="-mx-6 mt-4">
-            <ProductCarousel products={recommended} />
+            <ProductCarousel products={recommended} size={size} />
           </div>
         ) : null}
 
@@ -218,11 +226,27 @@ export function ResultStep({ result, products = [], onBack, onClose, onApply }) 
       <Footer>
         <div className="space-y-3">
           {onApply && size ? (
-            <PrimaryButton onClick={() => onApply(size)}>
+            <PrimaryButton
+              onClick={() => {
+                trackRingSizer(RING_SIZER_CREATIVE.RESULT_USE_SIZE, {
+                  ring_size: size.indLabel,
+                });
+                onApply(size);
+              }}
+            >
               Use size {size.indLabel}
             </PrimaryButton>
           ) : (
-            <Link prefetch={false} href="/collections/rings" className="block">
+            <Link
+              prefetch={false}
+              href="/collections/rings"
+              className="block"
+              onClick={() =>
+                trackRingSizer(RING_SIZER_CREATIVE.RESULT_BROWSE_RINGS, {
+                  ring_size: size?.indLabel ?? null,
+                })
+              }
+            >
               <PrimaryButton>Browse all rings</PrimaryButton>
             </Link>
           )}
@@ -232,6 +256,11 @@ export function ResultStep({ result, products = [], onBack, onClose, onApply }) 
             href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
             target="_blank"
             className="block"
+            onClick={() =>
+              trackRingSizer(RING_SIZER_CREATIVE.RESULT_VISIT_STORE, {
+                ring_size: size?.indLabel ?? null,
+              })
+            }
           >
             <PrimaryButton>Visit our store</PrimaryButton>
           </Link>

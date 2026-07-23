@@ -2290,7 +2290,7 @@ export default function ProductPageClient({
                       <div className="flex justify-between items-center text-sm">
                         <span className="font-semibold text-base">Select {(product.type || "").replace(/s$/, "")} Size: <span className="font-medium ml-1">{selectedSize} IND</span></span>
                         {String(product.type || "").toLowerCase().includes("ring") && (
-                          <SizeGuideSheet>
+                          <SizeGuideSheet product={product}>
                             <button
                               className="text-sm font-medium underline underline-offset-4 decoration-gray-300 hover:cursor-pointer"
                               onClick={() => handlePromoClick('Size Guide Clicked', null, { location_id: 'pdp' }, true)}

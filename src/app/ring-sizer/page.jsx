@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { shopifyStorefrontFetch } from "@/lib/shopify";
 import { RingSizerFlow } from "@/components/ring-sizer/RingSizerFlow";
 
@@ -93,5 +94,11 @@ async function getRecommendedRings() {
 
 export default async function RingSizerPage() {
   const products = await getRecommendedRings();
-  return <RingSizerFlow products={products} />;
+  // RingSizerFlow reads ?from= via useSearchParams, which needs a Suspense
+  // boundary or the whole route opts out of static rendering.
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100dvh", background: "#FAEFE9" }} />}>
+      <RingSizerFlow products={products} />
+    </Suspense>
+  );
 }
