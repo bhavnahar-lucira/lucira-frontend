@@ -290,9 +290,13 @@ export function CalibrateStep({ pxPerMmX100, onChange, onNext, onBack, targetId,
         >
           {/* Card only. A ₹10 coin is 27mm across - at any realistic density
               that circle is far too small to hold four lines of instruction,
-              so the coin's bullets go underneath instead. */}
+              so the coin's bullets go underneath instead.
+
+              h-full + centring keeps the text vertically centred in the
+              outline as it grows and shrinks with the slider, rather than
+              hugging the top edge and leaving a widening void beneath. */}
           {!isCoin ? (
-            <div className="px-6 py-5">
+            <div className="flex h-full flex-col justify-center px-6 py-5">
               <Bullets items={CARD_BULLETS} />
             </div>
           ) : null}
@@ -393,6 +397,24 @@ export function ChooseMethodStep({ onPick, onBack }) {
  * Step 04a - measure an existing ring
  * ===================================================================== */
 
+/**
+ * Slider bounds for the ring measurement, as diameter-mm x 10.
+ * 13.0mm-23.0mm spans IND 1 to beyond IND 36, comfortably covering the
+ * stocked 5-26 range at both ends.
+ */
+const RING_SLIDER_MIN_X10 = 130;
+const RING_SLIDER_MAX_X10 = 230;
+
+/** Inset from the screen edges, per side, for the graph-paper stage. */
+const GRID_INSET_PX = 20;
+
+/**
+ * Vertical room reserved below the grid for the bullet list, so a full-width
+ * square stage cannot squeeze the instructions off the screen on a short
+ * device. The grid takes the full width when it fits in what is left.
+ */
+const GRID_TEXT_RESERVE_PX = 172;
+
 const RING_BULLETS = [
   "Place your ring in the highlighted area",
   "Keep it flat and avoid tilting",
@@ -405,6 +427,36 @@ export function MeasureRingStep({ diameterMmX10, onChange, onNext, onBack, pxPer
   const result = useMemo(() => diameterToRingSize(diameterMm), [diameterMm]);
   const circlePx = diameterMm * pxPerMm;
 
+  /**
+   * The stage is a square that fills the available width, inset from the
+   * screen edges. Its size comes from the CONTAINER, never from the current
+   * circle - that is what keeps it static while the circle scales inside it.
+   *
+   * No feedback loop: the scroller is flex-sized by its siblings, so its own
+   * box does not depend on what is rendered inside it.
+   */
+  const stageRef = useRef(null);
+  const [stage, setStage] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const read = () => setStage({ w: el.clientWidth, h: el.clientHeight });
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const availableW = Math.max(0, stage.w - GRID_INSET_PX * 2);
+  // Never let a full-width square push the bullets off a short screen.
+  const heightBudget = stage.h ? stage.h - GRID_TEXT_RESERVE_PX : availableW;
+  // ...but always big enough to hold the largest circle the slider can reach.
+  const minGridPx = (RING_SLIDER_MAX_X10 / 10 + 4) * pxPerMm;
+  const gridPx = Math.max(minGridPx, Math.min(availableW, heightBudget));
+
+  const minorPx = pxPerMm; // 1mm
+  const majorPx = pxPerMm * 5; // 5mm
+
   return (
     <>
       <StepHeader step="Step 04" onBack={onBack} />
@@ -412,26 +464,40 @@ export function MeasureRingStep({ diameterMmX10, onChange, onNext, onBack, pxPer
       {/* Centred in the leftover space, same pattern as Step 03 - the
           min-h-full wrapper centres, rather than justify-center on the
           scroller, which would put overflow above the scroll origin. */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={stageRef} className="flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center gap-3 py-3">
-          {/* Graph-paper stage: a fine 8px grid with a heavier line every 5th,
-              so the circle has a stable visual reference as it scales. The
-              crosshair through the centre gives the ring something to sit
-              square against. The stage hugs the circle (+40px of breathing
-              room) instead of holding a fixed block of empty grid. */}
-          <div className="px-5">
+          {/* Graph-paper stage.
+              STATIC and square: its size comes from the container, so the only
+              thing that moves as the slider is dragged is the circle. A stage
+              that resized with the circle gave no frame of reference - both
+              grew together, so nothing looked like it was changing.
+
+              The squares are real millimetres (1mm minor, 5mm major) rather
+              than arbitrary screen pixels. Since pxPerMm is already known,
+              this costs nothing and turns the backdrop into a genuine ruler:
+              the circle spans exactly its diameter in squares. */}
+          <div style={{ paddingLeft: `${GRID_INSET_PX}px`, paddingRight: `${GRID_INSET_PX}px` }}>
           <div
-            className="relative flex items-center justify-center overflow-hidden rounded-[4px] border border-dashed border-[#C9AFA6]"
+            className="relative mx-auto flex aspect-square items-center justify-center overflow-hidden rounded-[4px] border border-dashed border-[#C9AFA6]"
             style={{
-              minHeight: `${Math.max(circlePx + 40, 168)}px`,
+              width: `${gridPx}px`,
+              maxWidth: "100%",
               backgroundColor: "#FFFCFA",
               backgroundImage: [
-                "linear-gradient(#E8DAD3 1px, transparent 1px)",
-                "linear-gradient(90deg, #E8DAD3 1px, transparent 1px)",
-                "linear-gradient(#C9AFA6 1px, transparent 1px)",
-                "linear-gradient(90deg, #C9AFA6 1px, transparent 1px)",
+                `linear-gradient(#E8DAD3 1px, transparent 1px)`,
+                `linear-gradient(90deg, #E8DAD3 1px, transparent 1px)`,
+                `linear-gradient(#C9AFA6 1px, transparent 1px)`,
+                `linear-gradient(90deg, #C9AFA6 1px, transparent 1px)`,
               ].join(","),
-              backgroundSize: "8px 8px, 8px 8px, 40px 40px, 40px 40px",
+              backgroundSize: [
+                `${minorPx}px ${minorPx}px`,
+                `${minorPx}px ${minorPx}px`,
+                `${majorPx}px ${majorPx}px`,
+                `${majorPx}px ${majorPx}px`,
+              ].join(","),
+              // Anchor the grid to the centre so the crosshair always lands on
+              // a major intersection, whatever the calibrated ratio.
+              backgroundPosition: "center",
             }}
           >
             <span className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-[#8A7670]/50" />
@@ -456,7 +522,13 @@ export function MeasureRingStep({ diameterMmX10, onChange, onNext, onBack, pxPer
           sizeLabel={result.size?.indLabel}
         />
         <div className="mt-3">
-          <ScaleSlider value={diameterMmX10} min={130} max={230} step={1} onChange={onChange} />
+          <ScaleSlider
+            value={diameterMmX10}
+            min={RING_SLIDER_MIN_X10}
+            max={RING_SLIDER_MAX_X10}
+            step={1}
+            onChange={onChange}
+          />
         </div>
       </div>
 
