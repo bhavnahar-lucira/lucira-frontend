@@ -197,7 +197,7 @@ export default function Footer() {
           {/* COPYRIGHT */}
           <div className="w-full pt-6 border-t border-white/10 text-center">
             <p className="text-[12px] font-figtree opacity-60">
-              ©{new Date().getFullYear()} LuciraJewelry.com. All Rights Reserved.
+              Copyright © {new Date().getFullYear()} DIVINECARAT LIFESTYLES PRIVATE LIMITED. All Rights Reserved.
             </p>
           </div>
         </div>
@@ -366,7 +366,7 @@ export default function Footer() {
       <div className="border-t border-white/20 py-4 text-sm">
         <div className="container-main flex flex-col items-center justify-between gap-3 md:flex-row">
           <p className="text-white text-sm">
-            ©{new Date().getFullYear()} LuciraJewelry.com. All Rights Reserved.
+            Copyright © {new Date().getFullYear()} DIVINECARAT LIFESTYLES PRIVATE LIMITED. All Rights Reserved.
           </p>
 
           <div className="flex items-center gap-4 text-white text-base">

@@ -30,13 +30,12 @@ import {
 } from "@/components/ui/accordion";
 import { useSelector, useDispatch } from "react-redux";
 import { openAuthModal } from "@/redux/features/user/userSlice";
+import CategoryCarousel, { loadCategoryGroups } from "@/components/collection/CategoryCarousel";
 import { selectRecentlyViewed } from "@/redux/features/recentlyViewed/recentlyViewedSlice";
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
-import VideoPopup from "@/components/home/VideoPopup";
-import { Play } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar", "lajpat-nagar-store"];
@@ -282,99 +281,6 @@ function RecentlyViewedRow({ products }) {
   );
 }
 
-// Styled By Lucira horizontal video row for the PLP grid — matches the Recently
-// Viewed card style with an always-visible 2px theme scrollbar. Fetches its own
-// videos and opens the shared VideoPopup on tap. Renders nothing if no videos.
-function StyledByLuciraRow() {
-  const scrollRef = useRef(null);
-  const [thumb, setThumb] = useState({ width: 100, left: 0 });
-  const [videos, setVideos] = useState([]);
-  const [popup, setPopup] = useState({ isOpen: false, index: 0 });
-
-  useEffect(() => {
-    let ignore = false;
-    (async () => {
-      try {
-        const data = await apiFetch("/api/styled-videos", { cache: "no-store" });
-        if (!ignore && data?.success && data.videos?.length > 0) setVideos(data.videos);
-      } catch (err) {
-        console.error("Failed to fetch styled videos:", err);
-      }
-    })();
-    return () => { ignore = true; };
-  }, []);
-
-  const updateThumb = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    if (scrollWidth <= clientWidth) {
-      setThumb({ width: 100, left: 0 });
-      return;
-    }
-    setThumb({
-      width: (clientWidth / scrollWidth) * 100,
-      left: (scrollLeft / scrollWidth) * 100,
-    });
-  }, []);
-
-  useEffect(() => { updateThumb(); }, [updateThumb, videos]);
-
-  if (videos.length === 0) return null;
-
-  return (
-    <div className="bg-[#FEF5F1]/60 rounded-[10px] px-4 py-4">
-      <h3 className="font-figtree font-semibold text-xs leading-none tracking-normal text-black mb-3">
-        STYLED BY LUCIRA
-      </h3>
-      <div
-        ref={scrollRef}
-        onScroll={updateThumb}
-        className="flex gap-3 overflow-x-auto snap-x"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        {videos.map((item, i) => (
-          <button
-            type="button"
-            key={`styled-${i}`}
-            onClick={() => setPopup({ isOpen: true, index: i })}
-            className="shrink-0 w-[150px] snap-start cursor-pointer"
-          >
-            <div className="relative aspect-[9/16] rounded-[8px] overflow-hidden bg-gray-200 shadow-sm">
-              <video
-                src={item.video || undefined}
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-[#00000066]">
-                <div className="w-11 h-11 bg-white/25 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40 shadow-lg">
-                  <Play size={20} fill="white" className="text-white ml-0.5 opacity-90" />
-                </div>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-      {/* Always-visible 2px custom scrollbar in theme colors */}
-      <div className="relative mt-3 h-[2px] w-full rounded-full bg-[#5A413F]/10 overflow-hidden">
-        <div
-          className="absolute top-0 h-full rounded-full bg-gradient-to-r from-[#B77767] to-[#5A413F]"
-          style={{ width: `${thumb.width}%`, left: `${thumb.left}%` }}
-        />
-      </div>
-      <VideoPopup
-        isOpen={popup.isOpen}
-        onClose={() => setPopup({ ...popup, isOpen: false })}
-        videoData={videos}
-        initialIndex={popup.index}
-      />
-    </div>
-  );
-}
-
 export default function CollectionPage({ params: paramsPromise, initialData }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
@@ -403,6 +309,24 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const [activeMobileGroup, setActiveMobileGroup] = useState(null);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+
+  // "Shop by …" category carousels — one per menu group that exists for this
+  // collection's category (empty for categories without such groups).
+  const [categoryGroups, setCategoryGroups] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const groups = await loadCategoryGroups(handle);
+        if (!cancelled) setCategoryGroups(groups);
+      } catch {
+        /* no carousels on failure */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [handle]);
 
   // Helper to process filters
   const processFilters = useCallback((filtersData) => {
@@ -864,7 +788,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     let rewardBannerAt = -1;      // renderedCount when the claim banner was inserted
     let recentlyViewedAdded = false;
     let recentlyViewedAt = -1;    // renderedCount when the recently-viewed row was inserted
-    let styledAdded = false;
+    let categoryGroupsPlaced = 0;
     products.forEach((prod, idx) => {
       if (!prod) return;
       // First banner after 6 products, the second 10 later (6, 16). Each creative shows
@@ -885,7 +809,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       // Profile-completion reward banner — mobile only, full-width, once, after ~6 products.
       // Only insert on a full mobile row (even cell count) so the row above always
       // has 2 products, never a lone one (image banners can make the count odd).
-      if (isMobile && !rewardBannerAdded && renderedCount >= 6 && cellCount % 2 === 0) {
+      const isProfileComplete = user && user.firstName && user.email && user.phone;
+      if (isMobile && !rewardBannerAdded && renderedCount >= 6 && cellCount % 2 === 0 && !isProfileComplete) {
         rewardBannerAdded = true;
         rewardBannerAt = renderedCount;
         items.push(
@@ -910,7 +835,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   className="shrink-0 w-6 h-6 lg:w-7 lg:h-7 object-contain"
                 />
                 <span className="text-white font-figtree text-xs lg:text-base font-normal">
-                  Free ₹500 on completing your profile
+                  Free 400 coins on completing your profile
                 </span>
               </div>
               <span className="flex items-center gap-1 text-white font-figtree text-xs lg:text-base underline underline-offset-2 whitespace-nowrap">
@@ -943,23 +868,28 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         cellCount += 2;
       }
 
-      // Styled By Lucira — mobile only, full-width, once, on a full mobile row. Normally
-      // sits ~6 products after the recently-viewed row, but takes the recently-viewed
-      // slot itself when the shopper has nothing recent to show there. The row hides
-      // itself if no videos.
-      const styledAnchorAt = recentlyViewedAdded ? recentlyViewedAt : rewardBannerAt;
+      // Shop-by-… category carousels — mobile only, full-width, ONE PER menu
+      // group (Shop By Style, Shop By Shape, Gifts, Shop For, …), distributed
+      // every 8 products AFTER the recently-viewed row (or after the reward
+      // banner / a baseline when there's nothing recent). Only categories whose
+      // menu actually has such groups show any.
+      const categoryBaselineAt = recentlyViewedAdded
+        ? recentlyViewedAt
+        : rewardBannerAdded
+        ? rewardBannerAt
+        : 6;
       if (
         isMobile &&
-        rewardBannerAdded &&
+        categoryGroups.length > categoryGroupsPlaced &&
         (recentlyViewedAdded || recentlyViewedProducts.length === 0) &&
-        !styledAdded &&
-        renderedCount >= styledAnchorAt + 6 &&
+        renderedCount >= categoryBaselineAt + 8 * (categoryGroupsPlaced + 1) &&
         cellCount % 2 === 0
       ) {
-        styledAdded = true;
+        const grp = categoryGroups[categoryGroupsPlaced];
+        categoryGroupsPlaced += 1;
         items.push(
-          <div key={`styled-by-lucira-${idx}`} className="col-span-full">
-            <StyledByLuciraRow />
+          <div key={`category-carousel-${grp.key}-${idx}`} className="col-span-full">
+            <CategoryCarousel heading={grp.heading} tiles={grp.tiles} />
           </div>
         );
         cellCount += 2;
