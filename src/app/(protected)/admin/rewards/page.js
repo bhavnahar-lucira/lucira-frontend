@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import {
-  Loader2, Gift, Check, ChevronDown, ChevronUp, AlertCircle, MapPin, Plus, ChevronRight
+  Loader2, Gift, Check, ChevronDown, ChevronUp, AlertCircle, MapPin, Plus, ChevronRight,
+  UserRound, CalendarHeart
 } from "lucide-react";
 import { apiFetch, fetchCustomerDashboardStats } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
@@ -21,27 +22,79 @@ const CONFIG = {
 };
 
 const PERSONAL_INFO_API = "https://personal-information-api-385594025448.asia-south1.run.app/";
+const WEBENGAGE_SYNC_API = "https://complete-my-profile-385594025448.asia-south1.run.app";
+
+/* Normalise an Indian mobile number to E.164 (+91XXXXXXXXXX) — used as the WebEngage userId */
+function toE164(phone) {
+  const raw = String(phone || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("+")) return raw.replace(/\s|-/g, "");
+  const digits = raw.replace(/\D/g, "");
+  return digits ? `+91${digits.slice(-10)}` : "";
+}
+
+/* Push the saved profile to WebEngage via the GCP Cloud Function ({ userId, attributes }) */
+async function syncWebEngageProfile(d = {}) {
+  const userId = toE164(d.mobile_number);
+  if (!userId) return; // WebEngage needs an identifier
+
+  // Only send attributes that have a value, so we never overwrite existing data with blanks.
+  const attributes = { we_phone: userId };
+  if (d.first_name) attributes.we_first_name = d.first_name;
+  if (d.last_name) attributes.we_last_name = d.last_name;
+  if (d.email) attributes.we_email = d.email;
+  if (d.date_of_birth) attributes.we_birth_date = d.date_of_birth;     // YYYY-MM-DD
+  if (d.gender) attributes.we_gender = String(d.gender).toLowerCase(); // male | female | other
+  if (d.marital_status) attributes.marital_status = d.marital_status;
+  if (d.anniversary_date) attributes.anniversary_date = d.anniversary_date;
+  if (d.pincode) attributes.pincode = d.pincode;
+  if (d.profession) attributes.profession = d.profession;
+
+  try {
+    await fetch(WEBENGAGE_SYNC_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, attributes }),
+      keepalive: true,
+    });
+  } catch (e) {
+    console.warn("WebEngage profile sync failed:", e);
+  }
+}
 
 function extractNumericId(gid = "") {
   const p = String(gid).split("/");
   return p[p.length - 1];
 }
 
-/* ─── Underline Field — matches the HTML prototype ─── */
+/* Required fields that define a "complete" profile */
+const REQUIRED_FIELDS = ["first_name", "date_of_birth", "gender", "pincode", "marital_status"];
+
+function isProfileFilled(d = {}) {
+  const base = REQUIRED_FIELDS.every((k) => d[k] && String(d[k]).trim());
+  const anniversaryOk =
+    d.marital_status === "Married"
+      ? !!(d.anniversary_date && String(d.anniversary_date).trim())
+      : true;
+  return base && anniversaryOk;
+}
+
+/* ─── Field label + control wrapper ─── */
 function Field({ label, hint, children }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      {label && <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 leading-none">{label}</label>}
+    <div className="flex flex-col gap-2">
+      {label && <label className="text-[11px] font-semibold uppercase tracking-[0.13em] text-zinc-400">{label}</label>}
       {children}
-      {hint && <span className="text-xs text-zinc-400">{hint}</span>}
+      {hint && <span className="text-xs text-zinc-400 font-normal leading-relaxed">{hint}</span>}
     </div>
   );
 }
 
-function UnderlineInput({ id, type = "text", value, onChange, readOnly, placeholder = "", prefix, suffix }) {
+/* ─── Filled input — refer & earn inspired ─── */
+function BoxInput({ id, type = "text", value, onChange, readOnly, placeholder = "", prefix, suffix }) {
   return (
-    <div className={`flex items-center gap-2 border-b border-zinc-200 transition-colors focus-within:border-primary ${readOnly ? "opacity-70" : ""}`}>
-      {prefix && <span className="text-sm font-medium text-zinc-500 pb-2 whitespace-nowrap shrink-0 border-r border-zinc-200 pr-3 mr-1">{prefix}</span>}
+    <div className={`flex items-center gap-3 border rounded-lg px-4 transition-colors focus-within:border-primary focus-within:bg-white ${readOnly ? "border-zinc-100 bg-zinc-50/60" : "bg-zinc-50 border-zinc-200"}`}>
+      {prefix && <span className="text-sm font-medium text-zinc-500 whitespace-nowrap shrink-0 border-r border-zinc-200 pr-3 flex items-center">{prefix}</span>}
       <input
         id={id}
         type={type}
@@ -49,43 +102,49 @@ function UnderlineInput({ id, type = "text", value, onChange, readOnly, placehol
         onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         readOnly={readOnly}
         placeholder={placeholder}
-        className="bg-transparent border-none outline-none py-1.5 px-0.5 flex-1 min-w-0 text-sm font-medium text-zinc-900 placeholder:text-zinc-300"
+        className="bg-transparent border-none outline-none py-3 flex-1 min-w-0 text-sm font-medium text-zinc-900 placeholder:text-zinc-300"
       />
-      {suffix && <span className="text-[10px] font-bold uppercase tracking-widest text-primary whitespace-nowrap cursor-pointer pb-2 shrink-0 flex items-center gap-1">{suffix}</span>}
+      {suffix && <span className="shrink-0 flex items-center">{suffix}</span>}
     </div>
   );
 }
 
-function UnderlineSelect({ id, value, onChange, children }) {
+/* ─── Filled select ─── */
+function BoxSelect({ id, value, onChange, children }) {
   return (
-    <div className="flex items-center gap-2 border-b border-zinc-200 transition-colors focus-within:border-primary relative">
+    <div className="relative flex items-center bg-zinc-50 border border-zinc-200 rounded-lg px-4 transition-colors focus-within:border-primary focus-within:bg-white">
       <select
         id={id}
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-transparent border-none outline-none py-1.5 px-0.5 flex-1 min-w-0 text-sm font-medium text-zinc-900 placeholder:text-zinc-300 appearance-none cursor-pointer pr-6"
+        className="bg-transparent border-none outline-none py-3 flex-1 min-w-0 text-sm font-medium text-zinc-900 appearance-none cursor-pointer pr-6"
       >
         {children}
       </select>
-      <ChevronDown size={13} className="absolute right-1 bottom-3 pointer-events-none text-zinc-400" />
+      <ChevronDown size={15} className="absolute right-4 pointer-events-none text-zinc-400" />
     </div>
   );
 }
 
-/* ─── Segmented gender control ─── */
-function SegmentedControl({ options, value, onChange }) {
+/* ─── Segmented pill control ─── */
+function ChipGroup({ options, value, onChange }) {
   return (
-    <div className="flex gap-6 border-b border-zinc-200">
-      {options.map((opt) => (
-        <button
-          key={opt}
-          type="button"
-          onClick={() => onChange(opt)}
-          className={`bg-transparent border-none cursor-pointer pb-3 relative text-sm font-medium transition-colors ${value === opt ? "text-primary font-bold after:absolute after:left-0 after:right-0 after:-bottom-[1px] after:h-[2px] after:bg-primary" : "text-zinc-500"}`}
-        >
-          {opt}
-        </button>
-      ))}
+    <div className="flex flex-wrap gap-2.5">
+      {options.map((opt) => {
+        const selected = value === opt;
+        return (
+          <button
+            key={opt}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(opt)}
+            className={`text-sm font-medium rounded-lg px-4 sm:px-5 py-3 border transition-colors ${selected ? "bg-primary border-primary text-white shadow-sm shadow-primary/20" : "bg-zinc-50 border-zinc-200 text-zinc-600 hover:border-primary/40 hover:text-zinc-900"}`}
+          >
+            {opt}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -116,6 +175,25 @@ export default function EarnRewardsPage() {
 
   // Sheet
   const [isOccasionSheetOpen, setIsOccasionSheetOpen] = useState(false);
+
+  // Was the profile already complete-and-saved when the page finished loading (this device)?
+  const [completedOnLoad, setCompletedOnLoad] = useState(false);
+  // Did the user successfully save a complete profile during this session?
+  const [savedThisSession, setSavedThisSession] = useState(false);
+
+  const profileFilled = isProfileFilled(formData);
+  // "Completed" means it was genuinely complete on load, or the user just saved it — NOT
+  // simply that the fields are full right now (that would hide the button mid-edit and let a
+  // stale flag claim completion).
+  const isCompleted = completedOnLoad || savedThisSession;
+
+  // Capture completion state once, from the data that loaded from the server / localStorage.
+  useEffect(() => {
+    if (!pageLoading) {
+      setCompletedOnLoad(profileComplete && isProfileFilled(formData));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageLoading]);
 
   useEffect(() => {
     async function init() {
@@ -280,6 +358,7 @@ export default function EarnRewardsPage() {
     setCompleting(true);
     pushPromoClick({ creative_name: "Completed User Profile", location_id: "admin rewards" });
     await savePersonalInfo(formData);
+    await syncWebEngageProfile(formData);
     try {
       const profileData = await shopifyStorefrontFetch(CUSTOMER_QUERY, { customerAccessToken: accessToken });
       const simpleId = extractNumericId(profileData?.customer?.id || "");
@@ -290,6 +369,7 @@ export default function EarnRewardsPage() {
       }
     } catch {}
     setProfileComplete(true);
+    setSavedThisSession(true);
     fetchCoins();
     try {
       const raw = localStorage.getItem(userStorageKey) || "{}";
@@ -334,26 +414,26 @@ export default function EarnRewardsPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-4xl">
+    <div className="font-figtree flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-4xl">
       {/* ── Coin strip / Claim Banner ── */}
-      <div className="bg-gradient-to-r from-[#3D2927] to-[#291B1A] rounded-2xl p-4 md:py-4 md:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 mb-8 shadow-lg shadow-black/5 border border-[#523A37]">
+      <div className="bg-[#5a413f] rounded-[2rem] md:rounded-[4px] p-4 md:py-4 md:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 shadow-lg shadow-black/5 border border-white/10">
         <div className="flex items-center gap-3.5 md:gap-4 w-full sm:w-auto">
-          <div className="shrink-0 rounded-full bg-white/5 p-1 border border-white/10 shadow-sm">
-            <img 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494_77267ae6-b0ed-4923-b485-e9c957ad34b2.png?v=1784708230" 
-              alt="Lucira Coins" 
-              className="size-9 md:size-11 object-contain drop-shadow-md" 
+          <div className="shrink-0 rounded-full bg-white/5 border border-white/10 shadow-sm">
+            <img
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494_77267ae6-b0ed-4923-b485-e9c957ad34b2.png?v=1784708230"
+              alt="Lucira Coins"
+              className="size-9 md:size-11 object-contain drop-shadow-md"
             />
           </div>
-          <p className="text-white/95 font-medium text-sm md:text-base leading-snug">
-             {profileComplete 
-               ? "Welcome to your rewards! Enjoy exclusive offers and member benefits." 
+          <p className="text-white/95 font-semibold text-base leading-snug">
+             {isCompleted
+               ? "Welcome to your rewards! Enjoy exclusive offers and member benefits."
                : "Free 500 Lucirá coins on completing your profile"}
           </p>
         </div>
         
         <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3 bg-black/20 backdrop-blur-sm border border-white/10 py-2.5 px-4 md:py-2 md:px-5 rounded-xl sm:rounded-full shadow-[inset_0_1px_10px_rgba(0,0,0,0.2)]">
-           <p className="text-[10px] md:text-xs tracking-widest uppercase text-white/60 font-bold mt-0.5">Balance</p>
+           <p className="text-[10px] md:text-xs tracking-widest uppercase text-white font-medium mt-0.5">Balance</p>
            <div className="flex items-center gap-1.5 md:gap-2">
              <img 
                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494_77267ae6-b0ed-4923-b485-e9c957ad34b2.png?v=1784708230" 
@@ -368,22 +448,28 @@ export default function EarnRewardsPage() {
       </div>
 
       {/* ── Personal Details Card ── */}
-      <div className="bg-white rounded-3xl border border-zinc-100 shadow-sm overflow-hidden mb-6 group">
+      <div className="bg-white rounded-[2rem] md:rounded-[4px] border border-zinc-100 shadow-sm overflow-hidden">
         <div
-          className={`flex items-center justify-between p-6 cursor-pointer hover:bg-zinc-50 transition-colors border-b ${personalOpen ? "border-zinc-100" : "border-transparent"}`}
+          className={`flex items-center justify-between gap-3 sm:gap-4 px-5 sm:px-6 md:px-8 py-5 md:py-6 cursor-pointer hover:bg-zinc-50/60 transition-colors border-b ${personalOpen ? "border-zinc-100" : "border-transparent"}`}
           onClick={() => setPersonalOpen(!personalOpen)}
         >
-          <h3 className="text-lg font-bold text-primary m-0 flex items-center gap-3">
-            Personal details
-          </h3>
-          <span className="size-8 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-primary shrink-0 transition-colors hover:bg-zinc-100">
-            {personalOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="size-11 md:size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <UserRound size={22} />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-lg md:text-xl font-semibold text-zinc-900 tracking-tight m-0">Personal details</h3>
+              <p className="text-xs md:text-sm text-zinc-400 font-normal mt-0.5 leading-relaxed">Keep your details current to personalise your rewards.</p>
+            </div>
+          </div>
+          <span className="size-9 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-400 shrink-0">
+            {personalOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </span>
         </div>
 
         {personalOpen && (
-          <div className="p-6 pt-2 md:p-8 md:pt-4">
-            {profileComplete && (
+          <div className="px-5 sm:px-6 pb-6 pt-5 md:px-8 md:pb-8 md:pt-6">
+            {isCompleted && (
               <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-8">
                 <span className="size-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 text-white">
                   <Check size={14} strokeWidth={2.6} />
@@ -397,10 +483,10 @@ export default function EarnRewardsPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-7">
               {/* First Name */}
               <Field label="First name">
-                <UnderlineInput
+                <BoxInput
                   id="first_name"
                   value={formData.first_name}
                   onChange={(v) => handleChange("first_name", v)}
@@ -410,7 +496,7 @@ export default function EarnRewardsPage() {
 
               {/* Last Name */}
               <Field label="Last name">
-                <UnderlineInput
+                <BoxInput
                   id="last_name"
                   value={formData.last_name}
                   onChange={(v) => handleChange("last_name", v)}
@@ -420,7 +506,7 @@ export default function EarnRewardsPage() {
 
               {/* Mobile — read-only, no edit action */}
               <Field label="Mobile number">
-                <UnderlineInput
+                <BoxInput
                   id="mobile_number"
                   value={formData.mobile_number}
                   readOnly
@@ -430,52 +516,28 @@ export default function EarnRewardsPage() {
 
               {/* Gender */}
               <Field label="Gender *">
-                <div className="flex gap-6 mt-2 pb-2.5 border-b border-zinc-200">
-                  {["Male", "Female", "Other"].map((g) => (
-                    <label key={g} className="flex items-center gap-2 cursor-pointer group">
-                      <input
-                        type="radio"
-                        name="gender"
-                        value={g}
-                        checked={formData.gender === g}
-                        onChange={() => handleChange("gender", g)}
-                        className="sr-only"
-                      />
-                      <span className={`text-sm transition-colors ${formData.gender === g ? "text-primary font-bold border-b-[2px] border-primary pb-0.5" : "text-zinc-500 font-medium group-hover:text-zinc-700"}`}>
-                        {g}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <ChipGroup
+                  options={["Male", "Female", "Other"]}
+                  value={formData.gender}
+                  onChange={(v) => handleChange("gender", v)}
+                />
               </Field>
 
               {/* Marital Status */}
-              <Field label="Marital Status *">
-                <div className="flex gap-6 mt-2 pb-2.5 border-b border-zinc-200">
-                  {["Married", "Unmarried"].map((status) => (
-                    <label key={status} className="flex items-center gap-2 cursor-pointer group">
-                      <input
-                        type="radio"
-                        name="marital_status"
-                        value={status}
-                        checked={formData.marital_status === status}
-                        onChange={() => {
-                          handleChange("marital_status", status);
-                          if (status === "Unmarried") handleChange("anniversary_date", "");
-                        }}
-                        className="sr-only"
-                      />
-                      <span className={`text-sm transition-colors ${formData.marital_status === status ? "text-primary font-bold border-b-[2px] border-primary pb-0.5" : "text-zinc-500 font-medium group-hover:text-zinc-700"}`}>
-                        {status}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+              <Field label="Marital status *">
+                <ChipGroup
+                  options={["Married", "Unmarried"]}
+                  value={formData.marital_status}
+                  onChange={(v) => {
+                    handleChange("marital_status", v);
+                    if (v === "Unmarried") handleChange("anniversary_date", "");
+                  }}
+                />
               </Field>
 
               {/* Birthday */}
               <Field label="Birthday *" hint="Look out for a treat around your birthday">
-                <UnderlineInput
+                <BoxInput
                   id="dob"
                   type="date"
                   value={formData.date_of_birth}
@@ -486,7 +548,7 @@ export default function EarnRewardsPage() {
               {/* Anniversary (Conditional) */}
               {formData.marital_status === "Married" && (
                 <Field label="Anniversary Date *" hint="Celebrate your special day with us">
-                  <UnderlineInput
+                  <BoxInput
                     id="anniversary"
                     type="date"
                     value={formData.anniversary_date}
@@ -497,7 +559,7 @@ export default function EarnRewardsPage() {
 
               {/* Pincode */}
               <Field label="Pincode *">
-                <UnderlineInput
+                <BoxInput
                   id="pincode"
                   value={formData.pincode}
                   onChange={(v) => handleChange("pincode", v.replace(/\D/g, "").slice(0, 6))}
@@ -526,7 +588,7 @@ export default function EarnRewardsPage() {
 
               {/* Profession */}
               <Field label="Profession" hint="Optional — helps us recommend the right pieces">
-                <UnderlineSelect
+                <BoxSelect
                   id="profession"
                   value={formData.profession}
                   onChange={(v) => handleChange("profession", v)}
@@ -537,12 +599,12 @@ export default function EarnRewardsPage() {
                   <option value="Salaried">Salaried</option>
                   <option value="Business">Business</option>
                   <option value="Other">Other</option>
-                </UnderlineSelect>
+                </BoxSelect>
               </Field>
 
               {/* Email */}
               <Field label="Email address *">
-                <UnderlineInput
+                <BoxInput
                   id="email"
                   value={formData.email}
                   readOnly
@@ -555,18 +617,18 @@ export default function EarnRewardsPage() {
               </Field>
             </div>
 
-            {!profileComplete && (
+            {!isCompleted && (
               <div className="mt-10 flex flex-col sm:flex-row items-end sm:items-center justify-end gap-4">
-                {(!formData.first_name || !formData.date_of_birth || !formData.gender || !formData.pincode) && (
+                {!profileFilled && (
                   <p className="text-xs text-amber-600 font-medium bg-amber-50 py-2 px-3 rounded-lg border border-amber-100 flex items-center gap-1.5 m-0 max-w-[280px] sm:max-w-none text-right sm:text-left">
                     <AlertCircle size={14} className="shrink-0" />
                     Please fill out all required fields (*) to claim your coins.
                   </p>
                 )}
                 <button
-                  className="bg-primary text-white border border-primary text-[10px] font-bold uppercase tracking-[0.15em] px-8 py-3.5 rounded-xl cursor-pointer transition-opacity flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 w-full sm:w-auto"
+                  className="bg-primary text-white border border-primary text-xs font-semibold uppercase tracking-[0.15em] px-8 py-3.5 rounded-2xl cursor-pointer transition-opacity flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 w-full sm:w-auto"
                   onClick={completeProfile}
-                  disabled={completing || !formData.date_of_birth || !formData.gender || !formData.pincode || !formData.first_name}
+                  disabled={completing || !profileFilled}
                 >
                   {completing ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : "Save details"}
                 </button>
@@ -577,21 +639,27 @@ export default function EarnRewardsPage() {
       </div>
 
       {/* ── Occasion Details Card ── */}
-      <div className="bg-white rounded-3xl border border-zinc-100 shadow-sm overflow-hidden mb-6 group">
+      <div className="bg-white rounded-[2rem] md:rounded-[4px] border border-zinc-100 shadow-sm overflow-hidden">
         <div
-          className={`flex items-center justify-between p-6 cursor-pointer hover:bg-zinc-50 transition-colors border-b ${occasionOpen ? "border-zinc-100" : "border-transparent"}`}
+          className={`flex items-center justify-between gap-3 sm:gap-4 px-5 sm:px-6 md:px-8 py-5 md:py-6 cursor-pointer hover:bg-zinc-50/60 transition-colors border-b ${occasionOpen ? "border-zinc-100" : "border-transparent"}`}
           onClick={() => setOccasionOpen(!occasionOpen)}
         >
-          <h3 className="text-lg font-bold text-primary m-0 flex items-center gap-3">
-            Occasion reminders
-          </h3>
-          <span className="size-8 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-primary shrink-0 transition-colors hover:bg-zinc-100">
-            {occasionOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="size-11 md:size-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+              <CalendarHeart size={22} />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-lg md:text-xl font-semibold text-zinc-900 tracking-tight m-0">Occasion reminders</h3>
+              <p className="text-xs md:text-sm text-zinc-400 font-normal mt-0.5 leading-relaxed">Add the dates that matter for tailored offers.</p>
+            </div>
+          </div>
+          <span className="size-9 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-400 shrink-0">
+            {occasionOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </span>
         </div>
 
         {occasionOpen && (
-          <div className="p-6 pt-2 md:p-8 md:pt-4">
+          <div className="px-5 sm:px-6 pb-6 pt-5 md:px-8 md:pb-8 md:pt-6">
             <div className="bg-gradient-to-r from-[#BE4B64] to-[#E88A62] rounded-2xl p-4 md:px-8 md:py-4 flex flex-row items-center justify-between gap-6 mb-8 shadow-lg shadow-[#BE4B64]/20 relative overflow-hidden group">
               <div className="relative z-10 max-w-xl">
                 <h4 className="text-lg md:text-xl font-semibold text-white mb-1.5 tracking-tight drop-shadow-sm">
@@ -611,14 +679,14 @@ export default function EarnRewardsPage() {
 
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap border-b border-zinc-100 pb-4">
               <div>
-                <p className="text-sm font-bold text-primary mb-1">
+                <p className="text-sm font-semibold text-zinc-900 mb-1">
                   Occasions on file
                 </p>
                 <p className="text-sm text-zinc-500 m-0">
                   Manage your important dates to receive personalised offers.
                 </p>
               </div>
-              <button className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest bg-primary text-white border border-primary rounded-xl px-5 py-2.5 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap shadow-md shadow-primary/20" onClick={() => setIsOccasionSheetOpen(true)}>
+              <button className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] bg-primary text-white border border-primary rounded-2xl px-5 py-3 cursor-pointer transition-opacity hover:opacity-90 whitespace-nowrap shadow-md shadow-primary/20" onClick={() => setIsOccasionSheetOpen(true)}>
                 <Plus size={14} /> Add occasion
               </button>
             </div>

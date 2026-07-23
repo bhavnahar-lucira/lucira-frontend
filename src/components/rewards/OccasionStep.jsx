@@ -26,10 +26,10 @@ function DiamondChip({ label, selected, onSelect }) {
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className={`group flex items-center gap-2 border rounded-full px-4 py-2 transition-colors duration-200 cursor-pointer ${
+      className={`group flex items-center gap-2 border rounded-lg px-4 py-2.5 transition-colors duration-200 cursor-pointer ${
         selected
-          ? "bg-primary border-primary text-white shadow-md shadow-primary/20"
-          : "bg-white border-zinc-200 text-zinc-700 hover:border-primary"
+          ? "bg-primary border-primary text-white shadow-sm shadow-primary/20"
+          : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:border-primary/40 hover:text-zinc-900"
       }`}
     >
       <span className="text-sm font-medium">{label}</span>
@@ -96,13 +96,13 @@ export function OccasionForm({ onAdd, onCancel, adding }) {
         <label className="text-[10px] tracking-widest uppercase text-zinc-400 font-bold block mb-2.5">
           Date of occasion
         </label>
-        <div className="flex items-center gap-2 border-b border-zinc-200 transition-colors focus-within:border-primary max-w-[320px]">
+        <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-4 transition-colors focus-within:border-primary focus-within:bg-white max-w-[320px]">
           <input
             id="occ-event_date"
             type="date"
             value={form.event_date}
             onChange={(e) => setField("event_date", e.target.value)}
-            className="bg-transparent border-none outline-none py-2 px-0.5 flex-1 min-w-0 text-sm font-medium text-zinc-900 placeholder:text-zinc-300 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50"
+            className="bg-transparent border-none outline-none py-3 flex-1 min-w-0 text-sm font-medium text-zinc-900 placeholder:text-zinc-300 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-50"
             placeholder="dd-mm-yyyy"
           />
         </div>
@@ -128,13 +128,13 @@ export function OccasionForm({ onAdd, onCancel, adding }) {
       <div>
         <p className="text-sm font-bold text-primary mb-1">Give it a name</p>
         <p className="text-sm text-zinc-500 mb-3.5">A short label you&apos;ll recognise, e.g. Mum&apos;s Birthday</p>
-        <div className={`flex items-center border-b transition-colors focus-within:border-primary ${errors.occasion_title ? "border-red-500" : "border-zinc-200"}`}>
+        <div className={`flex items-center bg-zinc-50 border rounded-lg px-4 transition-colors focus-within:border-primary focus-within:bg-white ${errors.occasion_title ? "border-red-500" : "border-zinc-200"}`}>
           <input
             id="occ-occasion_title"
             type="text"
             value={form.occasion_title}
             onChange={(e) => setField("occasion_title", e.target.value)}
-            className="bg-transparent border-none outline-none py-2 px-0.5 w-full text-sm font-medium text-zinc-900 placeholder:text-zinc-300"
+            className="bg-transparent border-none outline-none py-3 w-full text-sm font-medium text-zinc-900 placeholder:text-zinc-300"
             placeholder="Occasion name"
             maxLength={80}
           />
