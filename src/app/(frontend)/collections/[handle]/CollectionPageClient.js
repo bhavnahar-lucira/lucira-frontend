@@ -37,6 +37,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import { apiFetch } from "@/lib/api";
+import { useProfileComplete } from "@/hooks/useProfileComplete";
 
 const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar", "lajpat-nagar-store"];
 
@@ -290,6 +291,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
+  // Same "profile complete" signal the Earn Rewards page uses, so the claim banner
+  // disappears once the customer has actually completed their profile there.
+  const isProfileComplete = useProfileComplete();
   const recentlyViewed = useSelector(selectRecentlyViewed);
   const recentlyViewedProducts = recentlyViewed?.products || [];
 
@@ -809,43 +813,48 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       // Profile-completion reward banner — mobile only, full-width, once, after ~6 products.
       // Only insert on a full mobile row (even cell count) so the row above always
       // has 2 products, never a lone one (image banners can make the count odd).
-      const isProfileComplete = user && user.firstName && user.email && user.phone;
-      if (isMobile && !rewardBannerAdded && renderedCount >= 6 && cellCount % 2 === 0 && !isProfileComplete) {
+      // When the profile is already complete nothing is rendered here and the anchor is
+      // back-dated by the usual 6-product gap, so the next full-width section (recently
+      // viewed, else a category carousel) moves up into this exact slot instead of
+      // leaving a hole.
+      if (isMobile && !rewardBannerAdded && renderedCount >= 6 && cellCount % 2 === 0) {
         rewardBannerAdded = true;
-        rewardBannerAt = renderedCount;
-        items.push(
-          <div key={`reward-banner-${idx}`} className="col-span-full">
-            <Link
-              prefetch={false}
-              href="/admin/rewards"
-              onClick={(e) => {
-                if (!user?.id) {
-                  e.preventDefault();
-                  dispatch(openAuthModal());
-                }
-              }}
-              className="flex items-center justify-between gap-3 w-full bg-[#5A413F] rounded-[10px] px-4 py-3.5 lg:px-5 lg:py-4 cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <Image
-                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494.png?v=1784099419"
-                  alt="Reward coin"
-                  width={28}
-                  height={28}
-                  className="shrink-0 w-6 h-6 lg:w-7 lg:h-7 object-contain"
-                />
-                <span className="text-white font-figtree text-xs lg:text-base font-normal">
-                  Free 400 coins on completing your profile
+        rewardBannerAt = isProfileComplete ? renderedCount - 6 : renderedCount;
+        if (!isProfileComplete) {
+          items.push(
+            <div key={`reward-banner-${idx}`} className="col-span-full">
+              <Link
+                prefetch={false}
+                href="/admin/rewards"
+                onClick={(e) => {
+                  if (!user?.id) {
+                    e.preventDefault();
+                    dispatch(openAuthModal());
+                  }
+                }}
+                className="flex items-center justify-between gap-3 w-full bg-[#5A413F] rounded-[10px] px-4 py-3.5 lg:px-5 lg:py-4 cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Image
+                    src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494.png?v=1784099419"
+                    alt="Reward coin"
+                    width={28}
+                    height={28}
+                    className="shrink-0 w-6 h-6 lg:w-7 lg:h-7 object-contain"
+                  />
+                  <span className="text-white font-figtree text-xs lg:text-base font-normal">
+                    Free 500 coins on completing your profile
+                  </span>
+                </div>
+                <span className="flex items-center gap-1 text-white font-figtree text-xs lg:text-base underline underline-offset-2 whitespace-nowrap">
+                  Claim Now
+                  <ChevronRight size={16} />
                 </span>
-              </div>
-              <span className="flex items-center gap-1 text-white font-figtree text-xs lg:text-base underline underline-offset-2 whitespace-nowrap">
-                Claim Now
-                <ChevronRight size={16} />
-              </span>
-            </Link>
-          </div>
-        );
-        cellCount += 2;
+              </Link>
+            </div>
+          );
+          cellCount += 2;
+        }
       }
 
       // Recently Viewed — mobile only, full-width, once, ~6 products AFTER the claim
