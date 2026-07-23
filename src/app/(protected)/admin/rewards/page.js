@@ -446,7 +446,17 @@ export default function EarnRewardsPage() {
       const created = await createOccasion(form, accessToken);
       const next = sortOccasions([created, ...occasions.filter((o) => o.occasion_id !== created.occasion_id)]);
       setOccasions(next);
-      occasionAnalytics.created(occFormSession, form, next.length); // shared session id
+      occasionAnalytics.created(occFormSession, form, next.length); // shared session id (PII-free)
+      pushPromoClick({
+        creative_name: "Add Occasion CTA",
+        location_id: formData.mobile_number || "",
+        promo_id: "occasion_added",
+        promo_name: form.occasion_title || "",
+        relationship_name: form.relationship_name || "",
+        occasion_name: form.occasion_name || "",
+        occasion_title: form.occasion_title || "",
+        event_date: form.event_date || "",
+      });
       setIsOccasionSheetOpen(false); // direct close — not a cancel
       return true;
     } catch {
