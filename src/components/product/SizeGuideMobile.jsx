@@ -13,6 +13,7 @@ import {
   DialogPortal,
   DialogOverlay,
 } from "@/components/ui/dialog";
+import { RingSizerPromo } from "./RingSizerPromo";
 
 const sizeData = [
   { ind: 5, us: "3", diaIn: 0.56, cirIn: 1.77 },
@@ -97,7 +98,12 @@ export function SizeGuideMobile({ children, nearestStore, availableStores = [], 
               </div>
 
               <div className="flex-1 overflow-y-auto mt-6 space-y-8 custom-scrollbar pr-1">
-                <div 
+                {/* Close the sheet on navigate - react-modal-sheet keeps its
+                    own open state, which would otherwise still be true if the
+                    shopper came back to the PDP. */}
+                <RingSizerPromo isMobile onNavigate={() => setIsOpen(false)} />
+
+                <div
                   onClick={() => setIsVideoOpen(true)}
                   className="bg-[#F8F9FA] rounded-sm flex items-center mb-4 gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
