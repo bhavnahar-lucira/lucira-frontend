@@ -16,10 +16,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { getMenu } from "@/lib/menus";
 
-/* Resolve a tile image from a menu node's metafields / resource. */
+/* Resolve a tile image from a menu node's metafields / resource.
+   Prefer `menu_links_image_icon` (the dedicated "Shop by Style" tile art every
+   sibling uses) over `mega_menu_image` (the desktop mega-menu asset) — otherwise
+   a tile like Casual that has a stray mega_menu_image line-icon overrides its
+   proper photo tile. */
 function tileImage(node) {
   const nodes = node?.resource?.metafields?.nodes || [];
-  for (const key of ["menu_image", "mega_menu_image", "menu_links_image_icon"]) {
+  for (const key of ["menu_image", "menu_links_image_icon", "mega_menu_image"]) {
     const f = nodes.find((m) => m.namespace === "custom" && m.key === key);
     const url =
       f?.reference?.image?.url ||
