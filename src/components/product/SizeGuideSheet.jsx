@@ -19,6 +19,7 @@ import {
   DialogOverlay,
 } from "@/components/ui/dialog";
 import Link from "next/link";
+import { RingSizerPromo } from "./RingSizerPromo";
 
 const sizeData = [
   { ind: 5, us: "3", diaIn: 0.56, cirIn: 1.77 },
@@ -45,7 +46,7 @@ const sizeData = [
   { ind: 26, us: "13.5", diaIn: 0.84, cirIn: 2.63 },
 ];
 
-export function SizeGuideSheet({ children }) {
+export function SizeGuideSheet({ children, product }) {
   const [unit, setUnit] = useState("inch");
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
@@ -90,7 +91,9 @@ export function SizeGuideSheet({ children }) {
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 custom-scrollbar">
-            <div 
+            <RingSizerPromo product={product} />
+
+            <div
               onClick={() => setIsVideoOpen(true)}
               className="bg-[#F8F9FA] rounded-lg flex items-center gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
             >
