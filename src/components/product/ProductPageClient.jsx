@@ -3412,6 +3412,19 @@ export default function ProductPageClient({
         <ProductStory description={product.description} />
       )}
       
+      {isCentralInStock && (
+        <FindLuciraStore
+          pincode={localPincode}
+          setPincode={setLocalPincode}
+          handlePincodeCheck={handlePincodeCheck}
+          checkingPincode={checkingPincode}
+          deliveryInfo={deliveryInfo}
+          availableStores={availableStores}
+          product={product}
+          activeVariant={activeVariant}
+        />
+      )}
+
       {matchedCollectionTag ? (
         <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
       ) : (
@@ -3462,18 +3475,6 @@ export default function ProductPageClient({
       {!isGoldCoin && <DiamondComparison />}
       {/* <ExploreOtherRings /> */}
       {isMobile ? (<ExploreRange />) : (<CategorySlider />)}
-      {isCentralInStock && (
-        <FindLuciraStore
-          pincode={localPincode}
-          setPincode={setLocalPincode}
-          handlePincodeCheck={handlePincodeCheck}
-          checkingPincode={checkingPincode}
-          deliveryInfo={deliveryInfo}
-          availableStores={availableStores}
-          product={product}
-          activeVariant={activeVariant}
-        />
-      )}
       <JoinLuciraCommunity />
 
       {isMobileView ? (
