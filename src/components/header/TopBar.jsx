@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Navigation } from "swiper/modules";
@@ -10,6 +11,29 @@ import "swiper/css/navigation";
 import { apiFetch } from "@/lib/api";
 
 export default function TopBar() {
+  const pathname = usePathname();
+
+  const getLocationId = (path) => {
+    if (!path || path === '/') return 'homepage';
+    if (path.startsWith('/collections') || path.startsWith('/search')) return 'plp';
+    if (path.startsWith('/products')) return 'pdp';
+    return 'internal pages';
+  };
+
+  const handleAnnouncementClick = (item) => {
+    if (typeof window !== 'undefined') {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: 'promoClick',
+        promoClick: {
+          creative_name: 'announcement bar',
+          location_id: getLocationId(pathname),
+          promo_id: item.text,
+          promo_name: 'Embrace'
+        }
+      });
+    }
+  };
   const [announcements, setAnnouncements] = useState([]);
   const [settingsVisible, setSettingsVisible] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -58,12 +82,16 @@ export default function TopBar() {
             {item.url ? (
               <Link prefetch={false} 
                 href={item.url}
+                onClick={() => handleAnnouncementClick(item)}
                 className="text-center font-medium text-sm leading-none tracking-[0.7px] flex items-center justify-center h-full w-full px-6 hover:underline transition-all"
               >
                 {item.text}
               </Link>
             ) : (
-              <p className="text-center font-medium text-sm leading-none tracking-[0.7px] flex items-center justify-center h-full w-full px-12">
+              <p 
+                onClick={() => handleAnnouncementClick(item)}
+                className="text-center font-medium text-sm leading-none tracking-[0.7px] flex items-center justify-center h-full w-full px-12"
+              >
                 {item.text}
               </p>
             )}
