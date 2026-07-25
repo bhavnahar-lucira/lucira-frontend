@@ -505,7 +505,7 @@ export default function EarnRewardsPage() {
   return (
     <div className="font-figtree flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-4xl">
       {/* ── Coin strip / Claim Banner ── */}
-      <div className="bg-[#5a413f] rounded-[2rem] md:rounded-[4px] p-4 md:py-4 md:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 shadow-lg shadow-black/5 border border-white/10">
+      <div className="bg-[#5a413f] rounded-[8px] p-4 md:py-4 md:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 shadow-lg shadow-black/5 border border-white/10">
         <div className="flex items-center gap-3.5 md:gap-4 w-full sm:w-auto">
           <div className="shrink-0 rounded-full bg-white/5 border border-white/10 shadow-sm">
             <img

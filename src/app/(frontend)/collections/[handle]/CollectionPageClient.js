@@ -809,7 +809,17 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       // Profile-completion reward banner — mobile only, full-width, once, after ~6 products.
       // Only insert on a full mobile row (even cell count) so the row above always
       // has 2 products, never a lone one (image banners can make the count odd).
-      const isProfileComplete = user && user.firstName && user.email && user.phone;
+      let isProfileComplete = false;
+      if (typeof window !== 'undefined') {
+        try {
+          const key = user?.id ? `lucira_profile_data_${user.id.split('/').pop()}` : 'lucira_profile_data';
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p.profileComplete) isProfileComplete = true;
+          }
+        } catch (e) {}
+      }
       if (isMobile && !rewardBannerAdded && renderedCount >= 6 && cellCount % 2 === 0 && !isProfileComplete) {
         rewardBannerAdded = true;
         rewardBannerAt = renderedCount;
@@ -850,12 +860,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       // Recently Viewed — mobile only, full-width, once, ~6 products AFTER the claim
       // banner, on a full mobile row. Only shown if the shopper has recent products.
+      const recentlyViewedThreshold = isProfileComplete ? 6 : (rewardBannerAdded ? rewardBannerAt + 6 : Infinity);
+
       if (
         isMobile &&
-        rewardBannerAdded &&
         !recentlyViewedAdded &&
         recentlyViewedProducts.length > 0 &&
-        renderedCount >= rewardBannerAt + 6 &&
+        renderedCount >= recentlyViewedThreshold &&
         cellCount % 2 === 0
       ) {
         recentlyViewedAdded = true;
