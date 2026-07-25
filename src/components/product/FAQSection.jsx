@@ -36,7 +36,7 @@ export default function QuestionsAnswered() {
   ];
 
   return (
-    <section className="w-full py-12 bg-gray-50 mt-15"> 
+    <section className="w-full py-12 bg-gray-50"> 
 
       <div className="max-w-480 mx-auto px-5 md:px-17 min-[1440px]:px-17 grid lg:grid-cols-[1fr_480px] gap-16">
 

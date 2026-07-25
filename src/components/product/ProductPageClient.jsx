@@ -3437,7 +3437,7 @@ export default function ProductPageClient({
           products={matchingProducts}
         />
       )}
-      <FAQSection />
+
       <ProductSlider
         title={recentlyViewedState?.title || "Recently Viewed"}
         products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
@@ -3460,6 +3460,7 @@ export default function ProductPageClient({
         </section>
       )}
       {!isGoldCoin && <DiamondComparison />}
+      <FAQSection />
       {/* <ExploreOtherRings /> */}
       {isMobile ? (<ExploreRange />) : (<CategorySlider />)}
       {isCentralInStock && (
