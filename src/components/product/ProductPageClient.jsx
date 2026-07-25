@@ -2861,9 +2861,9 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               {isCentralInStock && isAvailableInAnyStore && (
-                <div className="border border-gray-200 rounded-xl p-3 sm:p-4 flex gap-4 bg-white">
+                <div className="border border-gray-200 rounded-xl p-2.5 sm:p-4 flex gap-2 sm:gap-4 bg-white">
                   {/* Left Side: Image */}
-                  <div className="w-[100px] sm:w-[110px] aspect-square shrink-0 self-center rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
+                  <div className="w-[72px] sm:w-[110px] aspect-square shrink-0 self-center rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
                     <Image 
                       src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Available_Store_1.png?v=1784981054" 
                       alt="Nearest Store" 
@@ -2873,10 +2873,10 @@ export default function ProductPageClient({
                   </div>
                   
                   {/* Right Side: Content */}
-                  <div className="flex-1 flex flex-col justify-center space-y-2.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Store size={18} className="text-black shrink-0" strokeWidth={1.8} />
-                      <span className="text-sm sm:text-base font-bold leading-tight">
+                  <div className="flex-1 flex flex-col justify-center space-y-2 sm:space-y-2.5">
+                    <div className="flex items-start sm:items-center gap-1.5 sm:gap-2 min-w-0">
+                      <Store size={14} className="text-black shrink-0 mt-0.5 sm:mt-0 sm:w-[18px] sm:h-[18px]" strokeWidth={1.8} />
+                      <span className="text-xs sm:text-sm md:text-base font-bold leading-tight">
                         {!hasConfirmedPincode ? (
                           <>Available at our <span className="italic font-semibold text-black">Lucira Store</span></>
                         ) : nearbyAvailableStore ? (
