@@ -57,8 +57,9 @@ export default function SearchPopup({
       },
     });
   };
-  // Extract matched collections and products
-  const productsOnly = searchResults.filter((item) => !item.isCollection);
+  // Extract matched collections, products and editorial content (blogs / pages)
+  const productsOnly = searchResults.filter((item) => !item.isCollection && !item.isContent);
+  const contentResults = searchResults.filter((item) => item.isContent);
 
   // Prioritize exact matches in collections
   const matchedCollections = searchResults
@@ -386,6 +387,32 @@ export default function SearchPopup({
                       </div>
                     )}
                   </div>
+
+                  {contentResults.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-xs md:text-sm font-semibold mb-3 text-[#1A1A1A] uppercase tracking-wider">
+                        Blogs & Pages
+                      </h3>
+                      <div className="space-y-2">
+                        {contentResults.slice(0, 5).map((item) => (
+                          <Link
+                            key={item.id}
+                            href={item.url}
+                            prefetch={false}
+                            onClick={onClose}
+                            className="group block p-3 bg-zinc-50 rounded-lg border border-zinc-100 hover:border-primary/20 hover:bg-white transition-all duration-300"
+                          >
+                            <h4 className="text-sm font-medium text-gray-900 group-hover:text-primary transition-colors">
+                              <HighlightMatch text={item.title} query={searchQuery} />
+                            </h4>
+                            <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mt-1">
+                              {item.contentType}
+                            </p>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 

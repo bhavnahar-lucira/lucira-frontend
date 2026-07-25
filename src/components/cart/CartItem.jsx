@@ -770,6 +770,61 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
           </div>
 
+          {isBYJ && showBreakdown && (
+            <div className="mt-4 bg-[#fef5f1] p-4 sm:p-5 rounded-md space-y-5 border border-[#e0d0ba]/30">
+              <div className="space-y-5">
+                <div className="border-b border-[#e0d0ba] pb-2">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-medium">{item.properties['Product Type']}</div>
+                </div>
+
+                <div className="border-b border-[#e0d0ba] pb-2">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                    <span className="text-xs sm:text-sm font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-medium text-zinc-800">{item.properties['Style']}</div>
+                </div>
+
+                <div className="border-b border-[#e0d0ba] pb-2">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
+                  </div>
+                  <div className="text-xs sm:text-sm font-medium">{item.properties['Length']}</div>
+                </div>
+
+                <div className="pb-2">
+                  <div className="flex justify-between items-end mb-1">
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                  </div>
+                  <div className="space-y-3 mt-3">
+                    {byjCharms.map((charm, idx) => (
+                      <div key={idx} className="flex justify-between items-start gap-3 sm:gap-4">
+                        <div className="flex gap-2 sm:gap-3 items-center flex-1">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white border border-[#e0d0ba]/50 rounded-sm overflow-hidden shrink-0 p-1">
+                            <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs sm:text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                            {charm.sku && <span className="text-[8px] sm:text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
+                          </div>
+                        </div>
+                        <span className="text-xs sm:text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {((parseFloat(charm.price) * (charm.qty || 1)) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t border-[#e0d0ba] flex justify-between items-center">
+                <span className="text-xs sm:text-sm font-medium text-[#5c4f3a]">Subtotal</span>
+                <span className="text-base sm:text-lg font-bold text-[#1c1810]">₹ {lineAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              </div>
+            </div>
+          )}
+
           {/* Mobile Actions - JUSTIFY BETWEEN */}
           <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center justify-between px-2">
             <button

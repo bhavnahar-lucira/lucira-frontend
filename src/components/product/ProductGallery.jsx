@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import LazyImage from "../common/LazyImage";
 import { Play, Copy, X, ChevronLeft, ChevronRight, Maximize2, Share2, ZoomIn, ZoomOut, Eye, BookCopy, Info } from "lucide-react";
@@ -215,6 +215,17 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   }, [isDesktop, sortedMedia]);
 
   useEffect(() => {
+    if (isLightboxOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isLightboxOpen]);
+
+  useEffect(() => {
     if (sortedMedia.length > 0) {
       console.log(`[Gallery Debug] Active Color: ${activeColor}`);
       console.log(`[Gallery Debug] Sorted Media Alt Texts:`, sortedMedia.map(m => m.alt || "NO ALT"));
@@ -236,8 +247,52 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     setZoomLevel(1);
   };
 
+  const initialPinchDistance = useRef(null);
+
+  const handleWheel = (e) => {
+    setZoomLevel((prev) => {
+      const newZoom = prev - e.deltaY * 0.005;
+      return Math.min(Math.max(1, newZoom), 4);
+    });
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      initialPinchDistance.current = Math.hypot(
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY
+      );
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2 && initialPinchDistance.current !== null) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const currentDistance = Math.hypot(
+        touch1.clientX - touch2.clientX,
+        touch1.clientY - touch2.clientY
+      );
+      
+      const delta = currentDistance - initialPinchDistance.current;
+      setZoomLevel((prev) => {
+        const newZoom = prev + delta * 0.015;
+        return Math.min(Math.max(1, newZoom), 4);
+      });
+      initialPinchDistance.current = currentDistance;
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (e.touches.length < 2) {
+      initialPinchDistance.current = null;
+    }
+  };
+
   const toggleZoom = () => {
-    setZoomLevel((prev) => (prev === 1 ? 2 : 1));
+    setZoomLevel((prev) => (prev <= 1.5 ? 2 : 1));
   };
 
   const toggleFullscreen = () => {
@@ -581,15 +636,19 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: zoomLevel, cursor: zoomLevel > 1 ? "grab" : "grab", }}
                   transition={{ type: "spring", damping: 30, stiffness: 300, }}
-                  drag
+                  drag={zoomLevel > 1 ? true : "x"}
                   dragDirectionLock
                   dragConstraints={
                     zoomLevel > 1
                       ? { left: -300, right: 300, top: -300, bottom: 300, }
-                      : { left: 0, right: 0, }
+                      : { left: 0, right: 0, top: 0, bottom: 0 }
                   }
                   dragElastic={zoomLevel > 1 ? 0.08 : 0.18}
                   whileDrag={{ cursor: "grabbing", }}
+                  onWheel={handleWheel}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                   onDragEnd={(e, info) => {
                     if (zoomLevel > 1) return;
                     const offsetX = info.offset.x;

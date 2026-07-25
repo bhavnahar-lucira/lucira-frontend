@@ -70,7 +70,7 @@ const SEARCH_PLACEHOLDERS = [
   "Solitaire Rings",
   "Diamond Earrings",
   "Gold Necklaces",
-  "Silver Bracelets"
+  "Tennis Necklaces",
 ];
 
 export default function MainHeader() {
