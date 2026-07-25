@@ -589,11 +589,11 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
             className="fixed inset-0 z-[2000] bg-black/95 flex flex-col"
           >
             {/* Header */}
-            <div className="flex justify-between items-center px-8 py-6 text-white z-[2001] static md:absolute w-full">
-              <div className="text-xl font-medium tracking-wider">
+            <div className="flex justify-between items-center px-4 md:px-8 py-4 md:py-6 text-white z-[2001] static md:absolute w-full">
+              <div className="text-lg md:text-xl font-medium tracking-wider">
                 {currentIndex + 1} / {sortedMedia.length}
               </div>
-              <div className="flex items-center gap-8">
+              <div className="flex items-center gap-3 sm:gap-6 md:gap-8">
                 <button 
                   onClick={toggleFullscreen}
                   className="hover:text-gray-300 transition-colors p-1"
@@ -632,9 +632,12 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               
                   <div className="w-full h-full flex items-center justify-center">
                 <motion.div
-                  key={currentIndex}
                   initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: zoomLevel, cursor: zoomLevel > 1 ? "grab" : "grab", }}
+                  animate={
+                    zoomLevel <= 1
+                      ? { opacity: 1, scale: zoomLevel, x: 0, y: 0, cursor: "grab" }
+                      : { opacity: 1, scale: zoomLevel, cursor: "grab" }
+                  }
                   transition={{ type: "spring", damping: 30, stiffness: 300, }}
                   drag={zoomLevel > 1 ? true : "x"}
                   dragDirectionLock
