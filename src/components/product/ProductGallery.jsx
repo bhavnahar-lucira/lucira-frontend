@@ -248,6 +248,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   };
 
   const initialPinchDistance = useRef(null);
+  const lastPinchTime = useRef(0);
 
   const handleWheel = (e) => {
     setZoomLevel((prev) => {
@@ -258,6 +259,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
+      lastPinchTime.current = Date.now();
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
       initialPinchDistance.current = Math.hypot(
@@ -269,6 +271,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
   const handleTouchMove = (e) => {
     if (e.touches.length === 2 && initialPinchDistance.current !== null) {
+      lastPinchTime.current = Date.now();
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
       const currentDistance = Math.hypot(
@@ -654,6 +657,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   onTouchEnd={handleTouchEnd}
                   onDragEnd={(e, info) => {
                     if (zoomLevel > 1) return;
+                    if (Date.now() - lastPinchTime.current < 500) return;
                     const offsetX = info.offset.x;
                     const velocityX = info.velocity.x;
                     const swipe = Math.abs(offsetX) * velocityX;
