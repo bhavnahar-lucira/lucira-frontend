@@ -835,7 +835,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   className="shrink-0 w-6 h-6 lg:w-7 lg:h-7 object-contain"
                 />
                 <span className="text-white font-figtree text-xs lg:text-base font-normal">
-                  Free 400 coins on completing your profile
+                  Free 500 coins on completing your profile
                 </span>
               </div>
               <span className="flex items-center gap-1 text-white font-figtree text-xs lg:text-base underline underline-offset-2 whitespace-nowrap">
