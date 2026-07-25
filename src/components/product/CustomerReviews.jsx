@@ -207,15 +207,6 @@ export default function CustomerReviews({
           </div>
         </div>
 
-        {/* Fallback Banner */}
-        {usedFallback && (
-          <div className="bg-[#f3f7fb] border-l-4 border-blue-400 p-4 mb-10 flex items-center gap-3 rounded-r-lg shadow-sm max-w-5xl mx-auto">
-            <Info className="text-blue-500 shrink-0" size={20} />
-            <p className="text-sm text-gray-600 font-medium font-figtree">
-              No reviews yet for this product. Showing reviews from other products instead.
-            </p>
-          </div>
-        )}
 
         {/* Filter & Sort Bar */}
         <div className="flex flex-row flex-wrap md:flex-nowrap justify-between items-center gap-6 mb-8 border-b border-gray-200 pb-6">

@@ -77,7 +77,7 @@ const SEARCH_PLACEHOLDERS = [
   "Solitaire Rings",
   "Diamond Earrings",
   "Gold Necklaces",
-  "Silver Bracelets"
+  "Tennis Necklaces"
 ];
 
 function SafeImage({ src, alt, fallback = null, ...props }) {
