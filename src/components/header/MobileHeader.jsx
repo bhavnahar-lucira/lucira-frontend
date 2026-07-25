@@ -361,7 +361,7 @@ export default function MobileHeader({ menuData }) {
     }
 
     // 3. Try products
-    const matchedProd = searchResults.find(item => !item.isCollection);
+    const matchedProd = searchResults.find(item => !item.isCollection && !item.isContent);
     if (matchedProd) {
       const match = getAutocompleteSuggestion(matchedProd.title, searchQuery);
       if (match) return match;
@@ -419,7 +419,8 @@ export default function MobileHeader({ menuData }) {
   };
 
   const renderSearchContent = () => {
-    const productsOnly = searchResults.filter(item => !item.isCollection);
+    const productsOnly = searchResults.filter(item => !item.isCollection && !item.isContent);
+    const contentResults = searchResults.filter(item => item.isContent);
     const matchedCollections = searchResults
       .filter(item => item.isCollection)
       .sort((a, b) => {
@@ -483,7 +484,7 @@ export default function MobileHeader({ menuData }) {
                     </div>
                   ))}
                 </div>
-              ) : (matchedCollections.length > 0 || productsOnly.length > 0) ? (
+              ) : (matchedCollections.length > 0 || productsOnly.length > 0 || contentResults.length > 0) ? (
                 <>
                   {/* Collections Section */}
                   {matchedCollections.length > 0 && (
@@ -536,6 +537,29 @@ export default function MobileHeader({ menuData }) {
                               <p className="text-xs text-gray-500 font-bold mt-1">{item.price}</p>
                             </div>
                             <ChevronRight size={16} className="text-gray-300" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Blogs & Pages Section */}
+                  {contentResults.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Blogs & Pages</h3>
+                      <div className="space-y-2">
+                        {contentResults.slice(0, 5).map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => handleResultClick(item.url)}
+                            className="group block p-3 bg-zinc-50 rounded-lg border border-zinc-100 active:bg-white transition-all duration-300"
+                          >
+                            <h4 className="text-sm font-medium text-gray-900">
+                              <HighlightMatch text={item.title} query={searchQuery} />
+                            </h4>
+                            <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mt-1">
+                              {item.contentType}
+                            </p>
                           </div>
                         ))}
                       </div>
