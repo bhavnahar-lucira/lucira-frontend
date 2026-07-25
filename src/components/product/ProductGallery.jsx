@@ -444,7 +444,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
             {displayLabels.map((label, index) => {
               const isBrandBadge = label === "Extra 3% OFF" || label === "Eterna";
               return (
-                <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                <span key={index} className={`w-fit px-2.5 py-1 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
               );
             })}
           </div>
