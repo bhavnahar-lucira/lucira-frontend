@@ -6,9 +6,9 @@
 // display credibility (e.g. 1 order -> "20+", 2 carts -> "100+", 2 wishlist -> "200+").
 
 export const SOCIAL_PROOF_AMPLIFY = {
-  orders: 20,
-  cart: 50,
-  wishlist: 100,
+  orders: 10,
+  cart: 25,
+  wishlist: 50,
 };
 
 // Display labels shared by the product page AND the checkout cart (from design).

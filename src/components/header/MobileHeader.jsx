@@ -201,7 +201,16 @@ export default function MobileHeader({ menuData }) {
   const baseMenu = useMemo(() => transformMenuData(menuData || []), [menuData]);
   const MEGA_MENU = useMemo(() => {
     let menu = [...baseMenu];
-    const index = menu.findIndex(item => (item.label || item.title || '').toLowerCase().includes('9kt'));
+    
+    // update 9kt icon
+    menu = menu.map(item => {
+      const label = (item.label || item.title || '').toLowerCase();
+      if (label.includes('9kt')) {
+        return { ...item, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00648YG_2_f24b5c82-262f-4de0-b2ae-389eb79e8eb8_1.jpg?v=1784963023" };
+      }
+      return item;
+    });
+
     const extraItems = [
       { label: "Kids Collection", href: "/collections/kids-collection", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-PD0417YG_1_c81d6a58-eb84-4f92-a1a5-22325dd77723.jpg?v=1784894469" },
       { label: "Men's", href: "/collections/mens-lab-grown-diamond-jewelry", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-MR0782YG_1_78496354-0115-4010-a1cd-9d7b047a5170.jpg?v=1784894470" },
@@ -211,12 +220,32 @@ export default function MobileHeader({ menuData }) {
       { label: "Mangalsutra", href: "/collections/mangalsutra", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-TN0027YG_1_cf5fe620-c57c-4931-8031-cbe1e1db0e2e.jpg?v=1784894470" },
       { label: "Plain Gold", href: "/collections/gold-jewelry", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-CH0003YG_1_a0f3e573-fe6b-4bac-9a3b-2f61087cc374.jpg?v=1784894469" }
     ];
-    if (index !== -1) {
-      menu.splice(index + 1, 0, ...extraItems);
-    } else {
-      menu.push(...extraItems);
-    }
-    return menu;
+    
+    const combinedMenu = [...menu, ...extraItems];
+
+    const getOrderIndex = (label) => {
+      const l = (label || '').toLowerCase().trim();
+      if (l.includes('bestseller')) return 1;
+      if (l.includes('new arrival')) return 2;
+      if (l.includes('express')) return 3;
+      if (l.includes('9kt')) return 4;
+      if (l.includes('engagement')) return 5;
+      if (l.includes('solitaire')) return 6;
+      if (l === 'collections') return 7;
+      if (l === 'rings') return 8;
+      if (l === 'earrings') return 9;
+      if (l.includes('bracelet')) return 10;
+      if (l.includes('necklace')) return 11;
+      if (l.includes('mangalsutra')) return 12;
+      if (l.includes("men's") || l.includes('mens')) return 13;
+      if (l.includes('more jewelry') || l.includes('more jewellery')) return 14;
+      if (l.includes('kids')) return 15;
+      if (l.includes('gifting')) return 16;
+      if (l.includes('plain gold') || l.includes('gold jewelry')) return 17;
+      return 99;
+    };
+
+    return combinedMenu.sort((a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title));
   }, [baseMenu]);
 
   const { user, logout: authLogout, openLogin } = useAuth();
