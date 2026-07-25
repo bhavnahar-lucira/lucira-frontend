@@ -336,7 +336,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     {displayLabels.map((label, index) => {
                       const isBrandBadge = label === "Extra 3% OFF" || label === "Eterna";
                       return (
-                        <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                        <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
                       );
                     })}
                   </div>
@@ -440,11 +440,11 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
           </Swiper>
 
           {/* Badges Overlay */}
-          <div className="absolute top-4 left-2 flex flex-row gap-2 z-10 pointer-events-none">
+          <div className="absolute top-3 left-3 flex flex-row gap-2 z-10 pointer-events-none">
             {displayLabels.map((label, index) => {
               const isBrandBadge = label === "Extra 3% OFF" || label === "Eterna";
               return (
-                <span key={index} className={`w-fit px-2.5 py-1 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                <span key={index} className={`w-fit px-2 py-0.5 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
               );
             })}
           </div>
