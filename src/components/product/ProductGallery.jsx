@@ -589,7 +589,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[2000] bg-black/95 flex flex-col"
+            className="fixed inset-0 z-[9999999] bg-black/95 flex flex-col"
           >
             {/* Header */}
             <div className="flex justify-between items-center px-4 md:px-8 py-4 md:py-6 text-white z-[2001] static md:absolute w-full">
