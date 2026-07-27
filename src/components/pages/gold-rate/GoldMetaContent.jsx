@@ -57,6 +57,52 @@ export default function GoldMetaContent({
       </>
     ) : null;
 
+  // Named slots above cover a fixed set of slugs, each paired with a hardcoded
+  // table. Any other active block authored in Shopify (e.g. last-10-days,
+  // city-comparison, ways-to-buy, selling-exchanging, storing-gold, gold-loans)
+  // used to be silently dropped because it had no matching named slot. Render
+  // those here, in sort_order, so every authored block reaches the page.
+  const KNOWN_SLUGS = new Set([
+    "gold-purity",
+    "hallmark-guide",
+    "buying-guide",
+    "investment-guide",
+    "factors-affecting-gold-prices",
+    "factors-affecting-gold-price",
+    "festival-calendar",
+    "market-guide",
+  ]);
+  const extraBlocks = (goldMeta.blocks || [])
+    .filter((b) => b.slug && !KNOWN_SLUGS.has(b.slug))
+    .sort((a, b) => (a.sort || 0) - (b.sort || 0));
+
+  // SEO: FAQPage + BreadcrumbList structured data, generated from the same
+  // metaobject content the page renders, so schema can never drift from the
+  // visible copy. Emitted in the SSR HTML (Next.js pre-renders this component).
+  const SITE_URL = "https://www.lucirajewelry.com";
+  const citySlugForUrl = (city || "").toLowerCase().replace(/\s+/g, "-");
+  const pageUrl = `${SITE_URL}/pages/${citySlugForUrl}-gold-rate-today`;
+  const stripHtml = (h) => (h || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  const faqJsonLd = (goldMeta.faqs || []).length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: goldMeta.faqs.map((f) => ({
+          "@type": "Question",
+          name: f.question,
+          acceptedAnswer: { "@type": "Answer", text: stripHtml(f.answerHtml) },
+        })),
+      }
+    : null;
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: `Gold Rate Today in ${city}`, item: pageUrl },
+    ],
+  };
+
   const changeCell = (today, yday) => {
     if (!yday) return "—";
     const d = today - yday;
@@ -311,6 +357,11 @@ export default function GoldMetaContent({
 
             {/* Market guide */}
             {renderBlockJsx(bySlug["market-guide"])}
+
+            {/* Any additional authored content blocks without a named slot above */}
+            {extraBlocks.map((b) => (
+              <div key={b.slug}>{renderBlockJsx(b)}</div>
+            ))}
           </div>
 
           {/* Karat rate cards */}
@@ -328,22 +379,182 @@ export default function GoldMetaContent({
         </div>
       </div>
 
-      {/* FAQ */}
+      {/* FAQ — dedicated minimal styling (gold-faq), intentionally NOT inside
+          .footer-pages so the heavy card styles in globals.css don't apply. */}
       {(goldMeta.faqs || []).length > 0 && (
         <div className="container-main">
           <div className="max-w-6xl mx-auto px-4 md:px-0">
-            <div className="footer-pages border-t border-zinc-200 pt-4 md:pt-6">
-              <h2>Frequently Asked Questions &mdash; Gold Rate in {city}</h2>
-              {goldMeta.faqs.map((f, i) => (
-                <details key={i} open={openFaq === i} onToggle={(e) => { if (e.target.open) setOpenFaq(i); else if (openFaq === i) setOpenFaq(null); }}>
-                  <summary>{f.question}</summary>
-                  <div dangerouslySetInnerHTML={{ __html: f.answerHtml }} />
-                </details>
-              ))}
+            <div className="gold-faq border-t border-zinc-200 pt-8 md:pt-10 pb-2">
+              <h2 className="gold-faq-title">Frequently Asked Questions</h2>
+              <p className="gold-faq-sub">Gold rate in {city}: buying, purity, tax and investment, answered briefly.</p>
+              <div className="gold-faq-list">
+                {goldMeta.faqs.map((f, i) => (
+                  <details key={i} open={openFaq === i} onToggle={(e) => { if (e.target.open) setOpenFaq(i); else if (openFaq === i) setOpenFaq(null); }}>
+                    <summary>
+                      <span className="gold-faq-q">{f.question}</span>
+                      <span className="gold-faq-icon" aria-hidden="true" />
+                    </summary>
+                    <div className="gold-faq-a" dangerouslySetInnerHTML={{ __html: f.answerHtml }} />
+                  </details>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Structured data (server-rendered into the initial HTML) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
+
+      <style jsx global>{`
+        /* ── Minimal FAQ (gold-faq) ─────────────────────────────────── */
+        .gold-faq-title {
+          font-family: var(--font-abhaya), serif;
+          font-size: 1.75rem;
+          font-weight: 600;
+          color: #18181b;
+          line-height: 1.2;
+          margin: 0;
+        }
+        .gold-faq-title::after {
+          content: "";
+          display: block;
+          width: 56px;
+          height: 3px;
+          margin-top: 0.6rem;
+          border-radius: 9999px;
+          background: linear-gradient(90deg, #d4b392, #f2e3c6);
+        }
+        .gold-faq-sub {
+          font-family: var(--font-figtree), sans-serif;
+          color: #71717a;
+          font-size: 0.95rem;
+          margin: 0.85rem 0 1.6rem;
+        }
+        .gold-faq-list {
+          background: #fff;
+          border: 1px solid #f2e3c6;
+          border-radius: 1rem;
+          overflow: hidden;
+          box-shadow: 0 2px 10px rgba(163, 130, 113, 0.06);
+        }
+        .gold-faq-list details {
+          border-bottom: 1px solid #f7ecd9;
+        }
+        .gold-faq-list details:last-child {
+          border-bottom: none;
+        }
+        .gold-faq-list summary {
+          list-style: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          padding: 1rem 1.25rem;
+          transition: background-color 0.25s ease;
+        }
+        .gold-faq-list summary::-webkit-details-marker {
+          display: none;
+        }
+        .gold-faq-list summary::after {
+          content: none;
+        }
+        .gold-faq-list summary:hover {
+          background: rgba(250, 243, 236, 0.55);
+        }
+        .gold-faq-list details[open] summary {
+          background: #fffdf9;
+        }
+        .gold-faq-q {
+          font-family: var(--font-figtree), sans-serif;
+          font-weight: 500;
+          font-size: 1rem;
+          color: #27272a;
+          line-height: 1.45;
+          transition: color 0.25s ease;
+        }
+        .gold-faq-list details[open] .gold-faq-q {
+          color: #3f332a;
+          font-weight: 600;
+        }
+        .gold-faq-icon {
+          position: relative;
+          flex: 0 0 auto;
+          width: 1.65rem;
+          height: 1.65rem;
+          border-radius: 9999px;
+          border: 1px solid #e8d5b5;
+          background: #fffdf9;
+          transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        .gold-faq-icon::before,
+        .gold-faq-icon::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 0.65rem;
+          height: 1.5px;
+          background: #a3826f;
+          transform: translate(-50%, -50%);
+        }
+        .gold-faq-icon::after {
+          transform: translate(-50%, -50%) rotate(90deg);
+        }
+        .gold-faq-list details[open] .gold-faq-icon {
+          transform: rotate(45deg);
+          background: #f2e3c6;
+        }
+        .gold-faq-a {
+          padding: 0.15rem 3.5rem 1.1rem 1.25rem;
+          font-family: var(--font-figtree), sans-serif;
+          color: #52525b;
+          font-size: 0.95rem;
+          line-height: 1.7;
+          animation: goldFaqIn 0.25s ease;
+        }
+        .gold-faq-a p {
+          margin: 0 0 0.55rem;
+        }
+        .gold-faq-a p:last-child {
+          margin-bottom: 0;
+        }
+        @keyframes goldFaqIn {
+          from {
+            opacity: 0;
+            transform: translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: none;
+          }
+        }
+        @media (min-width: 768px) {
+          .gold-faq-title {
+            font-size: 2.1rem;
+          }
+          .gold-faq-list summary {
+            padding: 1.15rem 1.5rem;
+          }
+          .gold-faq-q {
+            font-size: 1.08rem;
+          }
+          .gold-faq-a {
+            padding: 0.15rem 4rem 1.25rem 1.5rem;
+            font-size: 1rem;
+          }
+        }
+      `}</style>
     </section>
   );
 }

@@ -93,11 +93,38 @@ export async function generateMetadata({ params }) {
   const page = await getPageByHandle(handle, cacheStrategy);
   if (!page) return {};
 
+  let title = page.seo?.title || page.title || "Lucira Jewelry";
+  let description = page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
+
+  // Gold rate pages: the Gold Rate City metaobject carries curated seo_title /
+  // seo_description per city — prefer those over the Shopify page's SEO fields
+  // so the title tag matches the content actually rendered from the metaobject.
+  if (isGoldRatePage) {
+    try {
+      const goldMeta = await getGoldRateCityMeta(handle, "no-store");
+      if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
+      if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
+    } catch {
+      // fall back to page SEO fields
+    }
+  }
+
   return {
-    title: page.seo?.title || page.title || "Lucira Jewelry",
-    description: page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160),
+    title,
+    description,
     alternates: {
       canonical: `/pages/${handle}`,
+    },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      url: `/pages/${handle}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }

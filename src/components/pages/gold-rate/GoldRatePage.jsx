@@ -154,7 +154,7 @@ export default function GoldRatePage({ page }) {
                         {/* Header Row */}
                         <div className="flex flex-row justify-between items-center w-full gap-4">
                             <h1 className="text-white text-[18px] md:text-[24px] lg:text-[26px] font-medium tracking-tight font-abhaya uppercase whitespace-nowrap">
-                                TODAYS GOLD RATE IN {cityNameDisplay}
+                                {(goldMeta && goldMeta.heroTitle) || `TODAY'S GOLD RATE IN ${cityNameDisplay}`}
                             </h1>
                             <button onClick={() => setIsFlipped(!isFlipped)} className="text-white/80 hover:text-white text-[12px] md:text-[14px] underline underline-offset-4 tracking-wide font-figtree transition-colors text-right whitespace-nowrap shrink-0">
                                 {isFlipped ? "View Todays Gold Rate" : "Is Gold A Wise Investment?"}

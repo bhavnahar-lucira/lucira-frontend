@@ -90,7 +90,7 @@ const GOLD_CITY_META_QUERY = `
             nearby_city_name: field(key: "nearby_city_name") { value }
             nearby_city_note: field(key: "nearby_city_note") { value }
             content_blocks: field(key: "content_blocks") {
-              references(first: 25) {
+              references(first: 50) {
                 nodes {
                   ... on Metaobject {
                     slug: field(key: "slug") { value }
