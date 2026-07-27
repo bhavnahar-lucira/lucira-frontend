@@ -15,6 +15,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getMenu } from "@/lib/menus";
+import { usePathname } from "next/navigation";
+import { pushPromoClick } from "@/lib/gtm";
 
 /* Resolve a tile image from a menu node's metafields / resource.
    Prefer `menu_links_image_icon` (the dedicated "Shop by Style" tile art every
@@ -105,6 +107,8 @@ export async function loadCategoryGroups(currentHandle) {
 }
 
 export default function CategoryCarousel({ heading, tiles }) {
+  const pathname = usePathname();
+
   if (!tiles?.length) return null;
 
   return (
@@ -122,6 +126,14 @@ export default function CategoryCarousel({ heading, tiles }) {
             key={t.handle}
             href={t.href}
             prefetch={false}
+            onClick={() => {
+              pushPromoClick({
+                creative_name: `Plp Mobile - ${heading} Carousel`,
+                location_id: pathname,
+                promo_id: t.handle,
+                promo_name: t.title,
+              });
+            }}
             className="w-[142px] shrink-0 snap-start overflow-hidden rounded-[8px] bg-white/70 shadow-[0_2px_10px_rgba(90,65,63,0.08)] transition-transform active:scale-[0.98]"
           >
             {/* Image plate — a skewed box behind + a bordered card in front */}
