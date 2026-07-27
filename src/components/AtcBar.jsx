@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectPincode } from "@/redux/features/user/userSlice";
 import { useAuth } from "@/hooks/useAuth";
+import { pushPromoClick } from "@/lib/gtm";
 
 const STORE_FOOTFALL_WEBHOOK = "https://store-footfall-pdp-forn-385594025448.asia-south1.run.app";
 
@@ -19,7 +20,7 @@ function getCookieValue(name) {
 }
 
 // ─── Store Footfall Form Modal ────────────────────────────────────────────────
-function StoreFootfallModal({ open, onClose, product, activeVariant }) {
+function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
   const { user } = useAuth();
   const globalPincode = useSelector(selectPincode);
 
@@ -64,6 +65,12 @@ function StoreFootfallModal({ open, onClose, product, activeVariant }) {
           page_url: typeof window !== "undefined" ? window.location.href : "",
           timestamp: new Date().toISOString(),
         }),
+      });
+      pushPromoClick({
+        promo_id: device,
+        promo_name: phone,
+        creative_name: "store nearby sticky cta form filled",
+        location_id: pincode,
       });
       setSubmitted(true);
     } catch (err) {
@@ -261,6 +268,18 @@ export default function AtcBar({
   const [hasBottomAnimated, setHasBottomAnimated] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
   const [storeModalOpen, setStoreModalOpen] = React.useState(false);
+  const [storeModalDevice, setStoreModalDevice] = React.useState("desktop");
+
+  const openStoreModal = (device) => {
+    pushPromoClick({
+      promo_id: device,
+      promo_name: product?.title || "Stores Nearby",
+      creative_name: "store nearby sticky cta pdp for footfall",
+      location_id: "pdp",
+    });
+    setStoreModalDevice(device);
+    setStoreModalOpen(true);
+  };
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -332,6 +351,7 @@ export default function AtcBar({
         onClose={() => setStoreModalOpen(false)}
         product={product}
         activeVariant={activeVariant}
+        device={storeModalDevice}
       />
 
       {/* ── Sticky Top Bar (atcBar) ── */}
@@ -386,7 +406,7 @@ export default function AtcBar({
               <>
                 {/* Stores Nearby CTA — desktop sticky top bar */}
                 <button
-                  onClick={() => setStoreModalOpen(true)}
+                  onClick={() => openStoreModal("desktop")}
                   className="hidden lg:flex h-14 px-6 items-center justify-center gap-2 border border-primary text-primary font-bold text-sm rounded-sm uppercase tracking-wider whitespace-nowrap hover:bg-primary/5 transition-colors"
                 >
                   <StoreIcon size={16} />
@@ -394,7 +414,7 @@ export default function AtcBar({
                 </button>
 
                 <Button
-                  onClick={onAddToCart}
+                  onClick={() => onAddToCart("header sticky cta")}
                   disabled={addingToCart}
                   className="h-14 px-10 text-sm font-bold bg-primary hover:bg-accent text-white rounded-sm transition-colors uppercase tracking-wider min-w-40 relative overflow-hidden gold-shimmer"
                 >
@@ -442,7 +462,7 @@ export default function AtcBar({
             <div className="pointer-events-auto bg-white border border-gray-100 rounded-sm p-3 flex items-center gap-2 w-full">
               {!isBYJ && (
                 <button
-                  onClick={() => setStoreModalOpen(true)}
+                  onClick={() => openStoreModal("desktop")}
                   className="h-14 flex-1 border border-primary text-primary font-semibold text-base rounded-sm flex items-center justify-center gap-2 whitespace-nowrap px-2 hover:bg-accent/5 transition-colors uppercase"
                 >
                   <StoreIcon size={16} />
@@ -450,7 +470,7 @@ export default function AtcBar({
                 </button>
               )}
               <button
-                onClick={onAddToCart}
+                onClick={() => onAddToCart("bottom sticky cta")}
                 disabled={addingToCart}
                 className="h-14 flex-[1.5] bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden shimmer-btn"
               >
@@ -478,7 +498,7 @@ export default function AtcBar({
             {/* Stores CTA — replaces Scheme button in mobile sticky bottom bar */}
             {!isBYJ && (
               <button
-                onClick={() => setStoreModalOpen(true)}
+                onClick={() => openStoreModal("mobile")}
                 className="h-14 flex-1 border border-primary text-primary font-bold text-[13px] rounded-sm flex items-center justify-center gap-1.5 whitespace-nowrap px-2"
               >
                 <StoreIcon size={15} />
@@ -488,7 +508,7 @@ export default function AtcBar({
 
             {/* Add to Cart */}
             <button
-              onClick={onAddToCart}
+              onClick={() => onAddToCart("bottom sticky cta")}
               disabled={addingToCart}
               className="h-14 flex-[1.5] bg-primary text-white font-semibold text-sm rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors relative overflow-hidden shimmer-btn"
             >

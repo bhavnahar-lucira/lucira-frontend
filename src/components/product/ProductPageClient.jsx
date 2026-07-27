@@ -1222,7 +1222,10 @@ export default function ProductPageClient({
     return name;
   };
 
-  const handleAddToCart = async () => {
+  // ctaSource identifies which ATC button fired (header sticky / bottom
+  // sticky / in-page). Guarded because direct onClick usage passes the event.
+  const handleAddToCart = async (ctaSource) => {
+    const atcCtaLocation = typeof ctaSource === "string" ? ctaSource : "pdp page cta";
     if (!activeVariant) {
       toast.error("Please select a variant");
       return;
@@ -1370,7 +1373,8 @@ export default function ProductPageClient({
 
       pushAddToCart({
         eventId: `atc_${Date.now()}`,
-        products: atcData
+        products: atcData,
+        ctaLocation: atcCtaLocation
       });
 
       //gtm
@@ -2554,7 +2558,7 @@ export default function ProductPageClient({
             <div ref={mainAtcRef} className="mb-3">
               <div className="flex gap-2">
                 <button
-                  onClick={handleAddToCart}
+                  onClick={() => handleAddToCart("pdp page cta")}
                   disabled={addingToCart}
                   className="flex-1 h-12 md:h-14 bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors hover:cursor-pointer tracking-wider relative overflow-hidden shimmer-btn"
                 >

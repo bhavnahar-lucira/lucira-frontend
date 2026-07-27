@@ -17,6 +17,7 @@ import "swiper/css/thumbs";
 
 import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { pushPromoClick } from "@/lib/gtm";
 
 function formatCdnUrl(url) {
   if (!url || typeof url !== 'string') return url;
@@ -361,9 +362,14 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               )}
 
               {((index === 1) || (index === 0 && sortedMedia.length === 1)) && hasSimilar && (
-                <button 
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    pushPromoClick({
+                      creative_name: "View SImilar Button",
+                      promo_id: product?.title || title,
+                      location_id: "pdp",
+                    });
                     onViewSimilar();
                   }}
                   className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
@@ -471,10 +477,15 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                )}
              </div>
              {hasSimilar && (
-              <button 
+              <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  pushPromoClick({
+                    creative_name: "View SImilar Button",
+                    promo_id: product?.title || title,
+                    location_id: "pdp",
+                  });
                   onViewSimilar();
                 }}
                 className="bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
