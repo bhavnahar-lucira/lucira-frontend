@@ -71,7 +71,7 @@ function MenuBannerSlider({ onBannerClick }) {
   const scrollRef = useRef(null);
   const indexRef = useRef(1); // DOM index; starts on the real first banner
   const pausedRef = useRef(false);
-  const resetTimerRef = useRef(null);
+  const rafRef = useRef(null);
 
   const count = MENU_SLIDER_BANNERS.length;
 
@@ -91,20 +91,52 @@ function MenuBannerSlider({ onBannerClick }) {
     return Math.max(0, contentLeft - (el.clientWidth - child.offsetWidth) / 2);
   };
 
-  const scrollToIndex = (i, instant = false) => {
+  const cancelAnimation = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    const el = scrollRef.current;
+    if (el) el.style.scrollSnapType = ""; // hand control back to native snapping
+  };
+
+  // rAF-driven animation instead of native smooth scrollTo: mandatory
+  // scroll-snap fights programmatic smooth scrolling on several browsers
+  // (iOS Safari snaps instantly), which made the auto-advance look jerky.
+  // Snap is suspended for the few hundred ms we animate, then restored.
+  const scrollToIndex = (i, instant = false, onDone) => {
     const el = scrollRef.current;
     if (!el) return;
     const left = centeredLeft(el, i);
     if (left === null) return;
-    if (instant) {
-      const prevBehavior = el.style.scrollBehavior;
-      el.style.scrollBehavior = "auto";
-      el.scrollLeft = left;
-      el.style.scrollBehavior = prevBehavior;
-    } else {
-      el.scrollTo({ left, behavior: "smooth" });
-    }
     indexRef.current = i;
+
+    cancelAnimation();
+    if (instant) {
+      el.scrollLeft = left;
+      onDone?.();
+      return;
+    }
+
+    const start = el.scrollLeft;
+    const delta = left - start;
+    if (Math.abs(delta) < 1) { onDone?.(); return; }
+
+    const duration = 600;
+    const startTime = performance.now();
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+    el.style.scrollSnapType = "none";
+
+    const frame = (now) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      el.scrollLeft = start + delta * easeOutCubic(t);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(frame);
+      } else {
+        rafRef.current = null;
+        el.style.scrollSnapType = "";
+        onDone?.();
+      }
+    };
+    rafRef.current = requestAnimationFrame(frame);
   };
 
   useEffect(() => {
@@ -121,17 +153,20 @@ function MenuBannerSlider({ onBannerClick }) {
       if (indexRef.current <= 0) { scrollToIndex(count, true); return; }
 
       const next = indexRef.current + 1;
-      scrollToIndex(next);
       if (next === count + 1) {
-        // Animated onto the trailing clone - snap back to the real first
-        // banner once the animation settles (pixel-identical, invisible)
-        resetTimerRef.current = setTimeout(() => scrollToIndex(1, true), 700);
+        // Animate onto the trailing clone, then snap back to the real first
+        // banner the moment the animation completes (pixel-identical, invisible)
+        scrollToIndex(next, false, () => {
+          if (!pausedRef.current) scrollToIndex(1, true);
+        });
+      } else {
+        scrollToIndex(next);
       }
     }, 2500);
 
     return () => {
       clearInterval(interval);
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      cancelAnimation();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -140,7 +175,7 @@ function MenuBannerSlider({ onBannerClick }) {
   // continues from the banner they're actually looking at.
   const handleScroll = () => {
     const el = scrollRef.current;
-    if (!el || el.children.length < 2) return;
+    if (!el || el.children.length < 2 || rafRef.current) return;
     const step = el.children[1].offsetLeft - el.children[0].offsetLeft;
     if (step <= 0) return;
     const base = centeredLeft(el, 0) ?? 0;
@@ -152,9 +187,9 @@ function MenuBannerSlider({ onBannerClick }) {
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      onTouchStart={() => { pausedRef.current = true; }}
+      onTouchStart={() => { pausedRef.current = true; cancelAnimation(); }}
       onTouchEnd={() => { setTimeout(() => { pausedRef.current = false; }, 2500); }}
-      className="flex px-4 pt-4 pb-2 overflow-x-auto snap-x snap-mandatory scroll-smooth gap-4"
+      className="flex px-4 pt-4 pb-2 overflow-x-auto snap-x snap-mandatory gap-4"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
     >
       {slides.map((banner, index) => (
@@ -322,14 +357,24 @@ export default function MobileHeader({ menuData }) {
   const MEGA_MENU = useMemo(() => {
     // Bestsellers is dropped from the mobile grid; New Arrivals / Bracelets /
     // Necklaces are not in the CMS menu yet, so they're appended here.
-    const menu = transformMenuData(menuData || []).filter(
-      (item) => !((item.label || item.title || "").toLowerCase().includes("bestseller"))
-    );
+    const menu = transformMenuData(menuData || [])
+      .filter(
+        (item) => !((item.label || item.title || "").toLowerCase().includes("bestseller"))
+      )
+      .map((item) => {
+        const label = (item.label || item.title || "").toLowerCase();
+        // Force the mobile-grid icon for Lucira Express (overrides CMS icon
+        // and the hardcoded fallback in renderMainMenu)
+        if (label.includes("lucira express")) {
+          return { ...item, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" };
+        }
+        return item;
+      });
 
     const extraItems = [
-      { label: "New Arrivals", href: "/collections/new-arrivals", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-MBR012YG_1_dbf690b4-37c1-4601-bc92-b2d8f96c079f.jpg?v=1784894470" },
-      { label: "Bracelets", href: "/collections/bracelets", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-BR0053YG_1_bba64e2c-571e-4587-8f3f-9a396ed0923c.webp?v=1784894469" },
-      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/byj_BYJ-1784872451079-im2sk0tj0.png?v=1784872454" },
+      { label: "New Arrivals", href: "/collections/new-arrivals", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/New_arrival_bracelet.png?v=1785159196" },
+      { label: "Bracelets", href: "/collections/bracelets", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_50.png?v=1785157008" },
+      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_52.png?v=1785159194" },
     ].filter(
       (extra) => !menu.some((item) => (item.label || item.title || "").toLowerCase().includes(extra.label.toLowerCase()))
     );
@@ -1110,7 +1155,7 @@ export default function MobileHeader({ menuData }) {
             const isLuciraExpress = label.toLowerCase().includes('lucira express');
             const icon = item.menuIcon ||
               (label.toUpperCase() === "GIFTING" ? CATEGORY_IMAGES["GIFTING"] :
-                (isLuciraExpress ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/luciraExpress.png?v=1780129196" : null));
+                (isLuciraExpress ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" : null));
 
             return (
               <button
