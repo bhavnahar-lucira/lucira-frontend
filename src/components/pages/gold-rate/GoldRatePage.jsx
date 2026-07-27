@@ -54,7 +54,6 @@ const stateCityMap = {
 
 export default function GoldRatePage({ page }) {
     const router = useRouter();
-    const [isFlipped, setIsFlipped] = useState(false);
 
     // Extract city from URL handle if available
     const getInitialCity = () => {
@@ -139,147 +138,102 @@ export default function GoldRatePage({ page }) {
     const diff = todayRateNum - yesterdayRateNum;
     const THRESHOLD = 500;
 
+    // ── First-fold rates: prefer the server-fetched gold_rate_history entry so
+    // the direct-answer paragraph and rate strip are present in the SSR HTML
+    // (crawlers and AI engines read real numbers without waiting for JS).
+    const heroHistory = Array.isArray(goldMeta?.history) ? goldMeta.history : [];
+    const heroCur = heroHistory.find((e) => e.cur === "true") || heroHistory[0] || null;
+    const heroR24 = Math.round((heroCur && heroCur.r24) || todayRateNum || 0);
+    const heroR22 = Math.round((heroCur && heroCur.r22) || parseInt((goldWidgetSettings.rate_avg || "").replace(/[₹, ]/g, "")) || Math.round(heroR24 * 22 / 24));
+    const heroR18 = Math.round((heroCur && heroCur.r18) || Math.round(heroR24 * 18 / 24));
+    const heroR14 = Math.round((heroCur && heroCur.r14) || Math.round(heroR24 * 14 / 24));
+    const perGram = (v) => Math.round(v / 10).toLocaleString("en-IN");
+    const per10g = (v) => Math.round(v).toLocaleString("en-IN");
+    let heroDateStr = "";
+    try {
+        if (heroCur && heroCur.date) {
+            heroDateStr = new Date(heroCur.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+        }
+    } catch { heroDateStr = ""; }
+
     return (
         <div className="gold-rate-page bg-white min-h-screen font-figtree overflow-x-hidden">
-            {/* Hero Section */}
-            <section className="relative w-full flex flex-col justify-start overflow-hidden pt-6 md:pt-10 lg:pt-12 pb-12 lg:pb-10 min-h-[600px] lg:min-h-[600px]">
-                <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-[20s] hover:scale-105"
-                    style={{ backgroundImage: "url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/qwer.png?v=1781953219')" }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/10 z-[1]" />
+            {/* First fold: content-first, SEO/AEO optimised. Breadcrumb, H1,
+                direct-answer paragraph and rate strip are all server-rendered. */}
+            <section className="relative w-full bg-[#FFFDF9] border-b border-[#F2E3C6]/70 pt-6 md:pt-10 pb-8 md:pb-12">
+                <div className="container-main max-w-6xl mx-auto px-4 md:px-6">
+                    <nav aria-label="Breadcrumb" className="text-[11px] md:text-xs text-zinc-400 font-figtree mb-3">
+                        <Link prefetch={false} href="/" className="hover:text-zinc-600 transition-colors">Home</Link>
+                        <span className="mx-1.5">/</span>
+                        <span className="text-zinc-600">Gold Rate in {cityNameDisplay}</span>
+                    </nav>
 
-                <div className="relative z-10 w-full px-6 md:px-10 lg:px-12 flex flex-col items-start">
-                    <div className="w-full lg:w-[600px] xl:w-[650px] space-y-5 lg:space-y-6">
-                        {/* Header Row */}
-                        <div className="flex flex-row justify-between items-center w-full gap-4">
-                            <h1 className="text-white text-[18px] md:text-[24px] lg:text-[26px] font-medium tracking-tight font-abhaya uppercase whitespace-nowrap">
-                                {(goldMeta && goldMeta.heroTitle) || `TODAY'S GOLD RATE IN ${cityNameDisplay}`}
-                            </h1>
-                            <button onClick={() => setIsFlipped(!isFlipped)} className="text-white/80 hover:text-white text-[12px] md:text-[14px] underline underline-offset-4 tracking-wide font-figtree transition-colors text-right whitespace-nowrap shrink-0">
-                                {isFlipped ? "View Todays Gold Rate" : "Is Gold A Wise Investment?"}
-                            </button>
-                        </div>
+                    <h1 className="font-abhaya text-[30px] md:text-[44px] leading-tight text-zinc-900 font-semibold">
+                        {(goldMeta && goldMeta.heroTitle) || `Gold Rate in ${cityNameDisplay} Today`}
+                    </h1>
 
-                        {/* Flip Container */}
-                        <div className="perspective-2000 w-full group relative h-[140px] md:h-[180px]">
-                            <div
-                                className={`relative w-full h-full transition-all duration-1000 preserve-3d cursor-pointer hover:scale-[1.02] ${isFlipped ? 'rotate-x-180' : ''}`}
-                                style={{ transformStyle: 'preserve-3d' }}
-                                onClick={() => setIsFlipped(!isFlipped)}
+                    <p className="font-figtree text-[15px] md:text-[17px] text-zinc-700 leading-relaxed mt-3 md:mt-4 max-w-3xl">
+                        The gold rate in {cityNameDisplay} today is <strong>₹{perGram(heroR22)} per gram for 22 karat gold (916)</strong> and{" "}
+                        <strong>₹{perGram(heroR24)} per gram for 24 karat gold (999)</strong>. 18 karat gold is priced at ₹{perGram(heroR18)} per gram
+                        and 14 karat at ₹{perGram(heroR14)} per gram. Rates are indicative bullion rates updated every business day from MCX and IBJA
+                        benchmarks, and exclude GST and making charges.{heroDateStr ? ` Last updated ${heroDateStr}.` : ""}
+                    </p>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-5 md:mt-7">
+                        {[["24K · 999", heroR24], ["22K · 916", heroR22], ["18K · 750", heroR18], ["14K · 585", heroR14]].map(([k, v]) => (
+                            <div key={k} className="bg-white border border-[#F2E3C6] rounded-xl p-3.5 md:p-4 shadow-[0_2px_10px_rgba(163,130,113,0.06)]">
+                                <span className="block text-[10px] md:text-[11px] uppercase tracking-widest text-zinc-400 font-figtree">{k}</span>
+                                <span className="block text-zinc-900 text-lg md:text-2xl font-bold font-figtree mt-1">
+                                    ₹{perGram(v)}<span className="text-[11px] md:text-xs font-normal text-zinc-400 ml-0.5">/g</span>
+                                </span>
+                                <span className="block text-[11px] md:text-xs text-zinc-500 font-figtree mt-0.5">₹{per10g(v)} /10g</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 md:mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto] gap-3 items-end max-w-4xl">
+                        <div className="relative group">
+                            <label className="block text-[11px] text-zinc-500 font-figtree mb-1">State</label>
+                            <select
+                                value={selectedState}
+                                onChange={handleStateChange}
+                                className="w-full h-11 border border-[#E8D5B5] bg-white rounded-lg px-3 pr-8 text-zinc-800 text-[13px] font-figtree font-medium uppercase appearance-none focus:outline-none focus:ring-1 focus:ring-[#D4B392] transition-all cursor-pointer"
                             >
-
-                                {/* FRONT FACE: Rates Card */}
-                                <div className="absolute inset-0 bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col justify-center" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'translateZ(1px)' }}>
-                                    <div className="grid grid-cols-2 gap-2 md:gap-4 divide-x divide-zinc-100 md:pt-4">
-                                        <div className="space-y-1 md:space-y-2 pr-2">
-                                            <p className="text-[10px] md:text-[12px] text-zinc-600 uppercase tracking-widest font-figtree">GOLD RATE: 24 KT</p>
-                                            <p className="text-[24px] md:text-[32px] font-bold text-black font-figtree leading-none">
-                                                <span className="text-[18px] md:text-[22px] mr-0.5">₹</span>{goldWidgetSettings.rate_today.replace('₹ ', '')}
-                                                <span className="text-[10px] md:text-[12px] text-zinc-500 font-normal ml-1">/10 gm</span>
-                                            </p>
-                                        </div>
-                                        <div className="space-y-1 md:space-y-2 pl-4">
-                                            <p className="text-[10px] md:text-[12px] text-zinc-600 uppercase tracking-widest font-figtree">GOLD RATE: 22 KT</p>
-                                            <p className="text-[24px] md:text-[32px] font-bold text-black font-figtree leading-none">
-                                                <span className="text-[18px] md:text-[22px] mr-0.5">₹</span>{goldWidgetSettings.rate_avg.replace('₹ ', '')}
-                                                <span className="text-[10px] md:text-[12px] text-zinc-500 font-normal ml-1">/10 gm</span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-2 pt-2 md:pt-3 border-t border-zinc-100">
-                                        <p className="text-[9px] md:text-[11px] text-zinc-500 font-figtree">Last Updated - {currentDate}, 10:00 AM</p>
-                                    </div>
-                                </div>
-
-                                {/* BACK FACE: Founder Quote */}
-                                <div className="absolute inset-0 bg-white rounded-xl md:rounded-2xl p-4 md:p-5 shadow-2xl flex items-center justify-center" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateX(180deg) translateZ(1px)' }}>
-                                    <div className="flex gap-3 md:gap-5 items-center w-full h-full">
-                                        {goldWidgetSettings.flip_founder_image && (
-                                            <img
-                                                src={goldWidgetSettings.flip_founder_image.startsWith('shopify://')
-                                                    ? goldWidgetSettings.flip_founder_image.replace('shopify://shop_images/', 'https://luciraonline.myshopify.com/cdn/shop/files/')
-                                                    : goldWidgetSettings.flip_founder_image
-                                                }
-                                                alt={goldWidgetSettings.flip_founder_name}
-                                                className="w-16 h-16 md:w-24 md:h-24 object-cover rounded-full shadow-md border-2 md:border-4 border-zinc-50 shrink-0"
-                                            />
-                                        )}
-                                        <div className="flex-1 flex flex-col h-full overflow-hidden justify-center">
-                                            <h3 className="text-[12px] md:text-[15px] font-bold text-zinc-900 mb-0.5 md:mb-1 uppercase tracking-tight font-abhaya leading-tight truncate">
-                                                {goldWidgetSettings.flip_card_title}
-                                            </h3>
-                                            <p className="text-zinc-500 text-[9px] md:text-[14px] leading-snug font-figtree italic mb-1 md:mb-2 md:mt-2 line-clamp-none md:line-clamp-none">
-                                                "{goldWidgetSettings.flip_card_description}"
-                                            </p>
-                                            <div className="flex items-end justify-between mt-auto">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] md:text-[10px] font-bold text-zinc-900 uppercase tracking-widest">{goldWidgetSettings.flip_founder_name}</span>
-                                                    <span className="text-[7px] md:text-[8px] text-primary uppercase tracking-widest">{goldWidgetSettings.flip_founder_designation}</span>
-                                                </div>
-                                                {goldWidgetSettings.flip_card_link_label && (
-                                                    <Link prefetch={false} href={goldWidgetSettings.flip_card_link_url || "#"} className="text-[9px] md:text-[10px] font-bold text-primary uppercase tracking-widest hover:text-black transition-colors flex items-center gap-1">
-                                                        KNOW MORE <ArrowRight size={12} />
-                                                    </Link>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                <option value="">Select State</option>
+                                {Object.keys(stateCityMap).map(state => (
+                                    <option key={state} value={state}>{state.replace(/-/g, " ")}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 bottom-3.5 text-zinc-400 pointer-events-none" size={15} />
                         </div>
-
-                        {/* Selectors and Buttons */}
-                        <div className="space-y-3 md:space-y-4 pt-2">
-                            {/* Selectors */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="relative group">
-                                    <label className="absolute -top-2 left-3 px-1 bg-transparent text-[10px] text-white/80 font-figtree z-10 backdrop-blur-[2px]">State</label>
-                                    <select
-                                        value={selectedState}
-                                        onChange={handleStateChange}
-                                        className="w-full h-12 border border-white/30 bg-white/5 hover:bg-white/10 rounded-lg px-4 text-white text-[13px] font-figtree font-medium uppercase appearance-none focus:outline-none focus:ring-1 focus:ring-white focus:bg-white/10 transition-all cursor-pointer shadow-inner backdrop-blur-sm"
-                                    >
-                                        <option value="" className="text-black">Select State</option>
-                                        {Object.keys(stateCityMap).map(state => (
-                                            <option key={state} value={state} className="text-black">{state.replace(/-/g, ' ')}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none group-hover:text-white transition-colors" size={16} />
-                                </div>
-                                <div className="relative group">
-                                    <label className="absolute -top-2 left-3 px-1 bg-transparent text-[10px] text-white/80 font-figtree z-10 backdrop-blur-[2px]">City</label>
-                                    <select
-                                        value={selectedCity}
-                                        onChange={(e) => setSelectedCity(e.target.value)}
-                                        disabled={!selectedState}
-                                        className="w-full h-12 border border-white/30 bg-white/5 hover:bg-white/10 rounded-lg px-4 text-white text-[13px] font-figtree font-medium uppercase appearance-none focus:outline-none focus:ring-1 focus:ring-white focus:bg-white/10 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-inner backdrop-blur-sm"
-                                    >
-                                        <option value="" className="text-black">Select City</option>
-                                        {(stateCityMap[selectedState] || []).map(city => (
-                                            <option key={city} value={city.toLowerCase().replace(/\s+/g, '-')} className="text-black">{city}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none group-hover:text-white transition-colors" size={16} />
-                                </div>
-                            </div>
-
-                            {/* Buttons */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <button onClick={handleNavigate} className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
-                                    CHECK GOLD RATE <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                                </button>
-                                <Link prefetch={false} href="/collections/jewelry" className="group h-12 bg-white text-zinc-900 font-figtree font-bold text-[12px] md:text-[13px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-100 hover:shadow-xl transition-all shadow-lg active:scale-95">
-                                    <ShoppingBag size={16} className="group-hover:-translate-y-0.5 group-hover:scale-110 transition-transform" /> EXPLORE LUCIRA
-                                </Link>
-                            </div>
+                        <div className="relative group">
+                            <label className="block text-[11px] text-zinc-500 font-figtree mb-1">City</label>
+                            <select
+                                value={selectedCity}
+                                onChange={(e) => setSelectedCity(e.target.value)}
+                                disabled={!selectedState}
+                                className="w-full h-11 border border-[#E8D5B5] bg-white rounded-lg px-3 pr-8 text-zinc-800 text-[13px] font-figtree font-medium uppercase appearance-none focus:outline-none focus:ring-1 focus:ring-[#D4B392] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <option value="">Select City</option>
+                                {(stateCityMap[selectedState] || []).map(city => (
+                                    <option key={city} value={city.toLowerCase().replace(/\s+/g, "-")}>{city}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 bottom-3.5 text-zinc-400 pointer-events-none" size={15} />
                         </div>
+                        <button onClick={handleNavigate} className="group h-11 px-5 bg-zinc-900 text-white font-figtree font-bold text-[12px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-zinc-700 transition-all active:scale-95">
+                            CHECK RATE <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                        <Link prefetch={false} href="/collections/gold-jewelry" className="group h-11 px-5 bg-white border border-[#E8D5B5] text-zinc-800 font-figtree font-bold text-[12px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-[#FAF3EC] transition-all active:scale-95">
+                            <ShoppingBag size={15} className="group-hover:-translate-y-0.5 transition-transform" /> SHOP GOLD
+                        </Link>
                     </div>
                 </div>
             </section>
 
-            {/* Calculator Section */}
-            <GoldCalculator cityName={cityNameDisplay} baseRate={todayRateNum} />
+            {/* Calculator Section — prefer server-fetched history rate over the
+                client-fetched widget rate so the calculator is correct on first paint */}
+            <GoldCalculator cityName={cityNameDisplay} baseRate={heroR24 || todayRateNum} />
 
             {/* Loop through all sections from template JSON in exact order */}
             <div className="sections-wrapper">
@@ -296,7 +250,7 @@ export default function GoldRatePage({ page }) {
                                         settings={section.settings}
                                     />
                                     {/* Moving PriceTable right after the InvestmentSection as requested */}
-                                    <PriceTable baseRate={todayRateNum} />
+                                    <PriceTable baseRate={heroR24 || todayRateNum} />
 
                                     {/* Market Analysis / Stable/Rise/Fall Info moved here so it is directly below the table */}
 
