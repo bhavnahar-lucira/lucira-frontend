@@ -440,7 +440,21 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return { title: "", description: "", descriptionHtml:"" };
   });
   const [dbCollection, setDbCollection] = useState(null);
-  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [isProfileComplete, setIsProfileComplete] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Fallback: check both the logged-in key and the generic key on initial load
+        const specificKey = user?.id ? `lucira_profile_data_${user.id.split('/').pop()}` : null;
+        let raw = specificKey ? localStorage.getItem(specificKey) : null;
+        if (!raw) raw = localStorage.getItem('lucira_profile_data');
+        if (raw) {
+          const p = JSON.parse(raw);
+          return !!p.profileComplete;
+        }
+      } catch (e) {}
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -449,7 +463,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const raw = localStorage.getItem(key);
         if (raw) {
           const p = JSON.parse(raw);
-          if (p.profileComplete) setIsProfileComplete(true);
+          setIsProfileComplete(!!p.profileComplete);
+        } else {
+          setIsProfileComplete(false);
         }
       } catch (e) {}
     }
