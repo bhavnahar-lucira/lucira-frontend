@@ -17,6 +17,7 @@ import "swiper/css/thumbs";
 
 import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { pushPromoClick } from "@/lib/gtm";
 
 function formatCdnUrl(url) {
   if (!url || typeof url !== 'string') return url;
@@ -394,7 +395,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     {displayLabels.map((label, index) => {
                       const isBrandBadge = label === "Extra 3% OFF" || label === "Eterna";
                       return (
-                        <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                        <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
                       );
                     })}
                   </div>
@@ -419,9 +420,14 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               )}
 
               {((index === 1) || (index === 0 && sortedMedia.length === 1)) && hasSimilar && (
-                <button 
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    pushPromoClick({
+                      creative_name: "View SImilar Button",
+                      promo_id: product?.title || title,
+                      location_id: "pdp",
+                    });
                     onViewSimilar();
                   }}
                   className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
@@ -498,11 +504,11 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
           </Swiper>
 
           {/* Badges Overlay */}
-          <div className="absolute top-4 left-2 flex flex-row gap-2 z-10 pointer-events-none">
+          <div className="absolute top-3 left-3 flex flex-row gap-2 z-10 pointer-events-none">
             {displayLabels.map((label, index) => {
               const isBrandBadge = label === "Extra 3% OFF" || label === "Eterna";
               return (
-                <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                <span key={index} className={`w-fit px-2 py-0.5 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
               );
             })}
           </div>
@@ -529,10 +535,15 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                )}
              </div>
              {hasSimilar && (
-              <button 
+              <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  pushPromoClick({
+                    creative_name: "View SImilar Button",
+                    promo_id: product?.title || title,
+                    location_id: "pdp",
+                  });
                   onViewSimilar();
                 }}
                 className="bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"

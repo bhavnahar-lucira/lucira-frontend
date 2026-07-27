@@ -17,18 +17,18 @@ export default function MobileCategorySlider() {
   return (
     <section className="block lg:hidden py-2 px-2.5">
       <div className="w-full overflow-hidden">
-        <div 
+        <div
           role="list"
           className="flex overflow-x-auto overflow-y-hidden scroll-smooth gap-3.5 items-center py-2.5 px-1 no-scrollbar touch-pan-x"
         >
           {collections.map((collection, index) => (
-            <div 
-              key={index} 
-              role="listitem" 
+            <div
+              key={index}
+              role="listitem"
               className="flex flex-col items-center text-center min-w-[100px] w-[100px] shrink-0 last:mr-3"
             >
-              <Link prefetch={false} 
-                href={collection.url} 
+              <Link prefetch={false}
+                href={collection.url}
                 className="flex flex-col gap-2 no-underline active:opacity-70 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-800"
                 aria-label={`Shop ${collection.name}`}
               >

@@ -92,6 +92,17 @@ export const pushAddToCart = (data) => {
     eventId: data.eventId,
     products: data.products
   });
+
+  // Companion promoClick so ATC clicks show up in the promo funnel alongside
+  // banners/CTAs. Fired here (not per call site) so every addToCart is paired.
+  // promo_id says WHICH atc button fired: "header sticky cta" (top bar),
+  // "bottom sticky cta" (bottom bar, desktop + mobile), "pdp page cta" (buy box).
+  const firstProduct = Array.isArray(data.products) ? data.products[0] : data.products;
+  pushPromoClick({
+    creative_name: "add to cart cta",
+    promo_id: data.ctaLocation || "pdp page cta",
+    promo_name: firstProduct?.productName || firstProduct?.name || firstProduct?.title || "",
+  });
 };
 
 export const getNumericId = (gid) => {
@@ -270,7 +281,15 @@ const pushEcommerceEvent = (event, data) => {
   });
 };
 
-export const pushBeginCheckout = (checkoutData) => pushEventModel("begin_checkout", checkoutData);
+export const pushBeginCheckout = (checkoutData) => {
+  pushEventModel("begin_checkout", checkoutData);
+
+  // Companion promoClick so checkout starts show up in the promo funnel,
+  // mirroring the addToCart pairing. Fires with every begin_checkout.
+  pushPromoClick({
+    creative_name: "Begin checkout cta",
+  });
+};
 export const pushAddShippingInfo = (shippingData) => pushEventModel("add_shipping_info", shippingData);
 export const pushAddPaymentInfo = (paymentData) => pushEventModel("add_payment_info", paymentData);
 

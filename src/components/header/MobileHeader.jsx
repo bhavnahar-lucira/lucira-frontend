@@ -64,6 +64,127 @@ const MENU_SLIDER_BANNERS = [
   }
 ];
 
+// Auto-advancing banner slider for the mobile menu. Keeps the native
+// scroll-snap swiping; the timer just nudges to the next banner and pauses
+// while the user's finger is down so it never fights a manual swipe.
+function MenuBannerSlider({ onBannerClick }) {
+  const scrollRef = useRef(null);
+  const indexRef = useRef(1); // DOM index; starts on the real first banner
+  const pausedRef = useRef(false);
+  const resetTimerRef = useRef(null);
+
+  const count = MENU_SLIDER_BANNERS.length;
+
+  // Clones on both ends so EVERY banner (including first and last) sits
+  // centered with a neighbor peeking on each side, and the loop always
+  // moves forward: [cloneOfLast, ...banners, cloneOfFirst].
+  // DOM index 1..count are the real banners.
+  const slides = count > 1
+    ? [MENU_SLIDER_BANNERS[count - 1], ...MENU_SLIDER_BANNERS, MENU_SLIDER_BANNERS[0]]
+    : MENU_SLIDER_BANNERS;
+
+  // scrollLeft that puts slide i in the horizontal center of the viewport
+  const centeredLeft = (el, i) => {
+    const child = el.children[i];
+    if (!child) return null;
+    const contentLeft = child.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft;
+    return Math.max(0, contentLeft - (el.clientWidth - child.offsetWidth) / 2);
+  };
+
+  const scrollToIndex = (i, instant = false) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const left = centeredLeft(el, i);
+    if (left === null) return;
+    if (instant) {
+      const prevBehavior = el.style.scrollBehavior;
+      el.style.scrollBehavior = "auto";
+      el.scrollLeft = left;
+      el.style.scrollBehavior = prevBehavior;
+    } else {
+      el.scrollTo({ left, behavior: "smooth" });
+    }
+    indexRef.current = i;
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || count < 2) return;
+
+    // Land on the real first banner, centered between the two clones
+    scrollToIndex(1, true);
+
+    const interval = setInterval(() => {
+      if (pausedRef.current) return;
+      // If a manual swipe left us parked on a clone, resync invisibly first
+      if (indexRef.current >= count + 1) { scrollToIndex(1, true); return; }
+      if (indexRef.current <= 0) { scrollToIndex(count, true); return; }
+
+      const next = indexRef.current + 1;
+      scrollToIndex(next);
+      if (next === count + 1) {
+        // Animated onto the trailing clone - snap back to the real first
+        // banner once the animation settles (pixel-identical, invisible)
+        resetTimerRef.current = setTimeout(() => scrollToIndex(1, true), 700);
+      }
+    }, 2500);
+
+    return () => {
+      clearInterval(interval);
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep indexRef in sync when the user swipes manually, so autoplay
+  // continues from the banner they're actually looking at.
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el || el.children.length < 2) return;
+    const step = el.children[1].offsetLeft - el.children[0].offsetLeft;
+    if (step <= 0) return;
+    const base = centeredLeft(el, 0) ?? 0;
+    const idx = Math.round((el.scrollLeft - base) / step);
+    indexRef.current = Math.min(slides.length - 1, Math.max(0, idx));
+  };
+
+  return (
+    <div
+      ref={scrollRef}
+      onScroll={handleScroll}
+      onTouchStart={() => { pausedRef.current = true; }}
+      onTouchEnd={() => { setTimeout(() => { pausedRef.current = false; }, 2500); }}
+      className="flex px-4 pt-4 pb-2 overflow-x-auto snap-x snap-mandatory scroll-smooth gap-4"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+    >
+      {slides.map((banner, index) => (
+        <Link
+          key={index}
+          href={banner.href}
+          prefetch={false}
+          onClick={() => {
+            pushPromoClick({
+              creative_name: "Mobile-menu banner's",
+              promo_id: banner.alt,
+            });
+            onBannerClick?.();
+          }}
+          className="shrink-0 snap-center rounded-xl overflow-hidden relative"
+          style={{ width: 'calc(100% - 32px)', height: '165px' }}
+        >
+          <Image
+            src={banner.image}
+            alt={banner.alt}
+            fill
+            priority={index === 1}
+            className="object-cover rounded-xl block transition-opacity duration-300"
+          />
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 const METAL_COLORS = {
   "Yellow Gold": "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
   "White Gold": "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)",
@@ -198,7 +319,42 @@ export default function MobileHeader({ menuData }) {
   const [isLoadingBestsellers, setIsLoadingBestsellers] = useState(false);
   const searchInputRef = useRef(null);
 
-  const MEGA_MENU = useMemo(() => transformMenuData(menuData || []), [menuData]);
+  const MEGA_MENU = useMemo(() => {
+    // Bestsellers is dropped from the mobile grid; New Arrivals / Bracelets /
+    // Necklaces are not in the CMS menu yet, so they're appended here.
+    const menu = transformMenuData(menuData || []).filter(
+      (item) => !((item.label || item.title || "").toLowerCase().includes("bestseller"))
+    );
+
+    const extraItems = [
+      { label: "New Arrivals", href: "/collections/new-arrivals", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-MBR012YG_1_dbf690b4-37c1-4601-bc92-b2d8f96c079f.jpg?v=1784894470" },
+      { label: "Bracelets", href: "/collections/bracelets", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-BR0053YG_1_bba64e2c-571e-4587-8f3f-9a396ed0923c.webp?v=1784894469" },
+      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/byj_BYJ-1784872451079-im2sk0tj0.png?v=1784872454" },
+    ].filter(
+      (extra) => !menu.some((item) => (item.label || item.title || "").toLowerCase().includes(extra.label.toLowerCase()))
+    );
+
+    const getOrderIndex = (label) => {
+      const l = (label || "").toLowerCase().trim();
+      if (l.includes("new arrival")) return 1;
+      if (l.includes("express")) return 2;
+      if (l.includes("engagement")) return 3;
+      if (l.includes("solitaire")) return 4;
+      if (l.includes("9kt")) return 12;
+      if (l === "collections") return 5;
+      if (l.includes("earring")) return 7;
+      if (l === "rings" || l.includes("ring")) return 6;
+      if (l.includes("bracelet")) return 8;
+      if (l.includes("necklace")) return 9;
+      if (l.includes("more jewelry") || l.includes("more jewellery")) return 10;
+      if (l.includes("gifting")) return 11;
+      return 99;
+    };
+
+    return [...menu, ...extraItems].sort(
+      (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
+    );
+  }, [menuData]);
 
   const { user, logout: authLogout, openLogin } = useAuth();
   const { totalQuantity, items, totalAmount } = useSelector((state) => state.cart);
@@ -943,27 +1099,8 @@ export default function MobileHeader({ menuData }) {
   const renderMainMenu = () => {
     return (
       <div className="flex flex-col pb-8">
-        {/* Horizontal Banner Slider */}
-        <div className="flex px-4 pt-4 pb-2 overflow-x-auto snap-x snap-mandatory scroll-smooth gap-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
-          {MENU_SLIDER_BANNERS.map((banner, index) => (
-            <Link
-              key={index}
-              href={banner.href}
-              prefetch={false}
-              onClick={() => setIsMenuOpen(false)}
-              className="shrink-0 snap-center rounded-xl overflow-hidden relative"
-              style={{ width: 'calc(100% - 32px)', height: '165px' }}
-            >
-              <Image
-                src={banner.image}
-                alt={banner.alt}
-                fill
-                priority={index === 0}
-                className="object-cover rounded-xl block transition-opacity duration-300"
-              />
-            </Link>
-          ))}
-        </div>
+        {/* Horizontal Banner Slider — auto-advances every 3s */}
+        <MenuBannerSlider onBannerClick={() => setIsMenuOpen(false)} />
 
         {/* Text Category Links Grid */}
         <div className="grid grid-cols-2 gap-2.5 px-4 py-4">
@@ -978,7 +1115,13 @@ export default function MobileHeader({ menuData }) {
             return (
               <button
                 key={index}
-                onClick={() => handleItemClick(item, index)}
+                onClick={() => {
+                  pushPromoClick({
+                    creative_name: "mobile menu collections",
+                    promo_id: label,
+                  });
+                  handleItemClick(item, index);
+                }}
                 className="bg-[#f8f8f8] rounded-xl p-2 text-left flex items-center gap-2 active:bg-gray-200 transition-all border border-gray-50/50"
               >
                 <div className={cn(

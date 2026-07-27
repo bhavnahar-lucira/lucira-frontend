@@ -1222,7 +1222,10 @@ export default function ProductPageClient({
     return name;
   };
 
-  const handleAddToCart = async () => {
+  // ctaSource identifies which ATC button fired (header sticky / bottom
+  // sticky / in-page). Guarded because direct onClick usage passes the event.
+  const handleAddToCart = async (ctaSource) => {
+    const atcCtaLocation = typeof ctaSource === "string" ? ctaSource : "pdp page cta";
     if (!activeVariant) {
       toast.error("Please select a variant");
       return;
@@ -1370,7 +1373,8 @@ export default function ProductPageClient({
 
       pushAddToCart({
         eventId: `atc_${Date.now()}`,
-        products: atcData
+        products: atcData,
+        ctaLocation: atcCtaLocation
       });
 
       //gtm
@@ -2554,7 +2558,7 @@ export default function ProductPageClient({
             <div ref={mainAtcRef} className="mb-3">
               <div className="flex gap-2">
                 <button
-                  onClick={handleAddToCart}
+                  onClick={() => handleAddToCart("pdp page cta")}
                   disabled={addingToCart}
                   className="flex-1 h-12 md:h-14 bg-primary text-white font-semibold text-base rounded-sm flex items-center justify-center gap-2 disabled:opacity-70 hover:bg-[#8F5D5D] transition-colors hover:cursor-pointer tracking-wider relative overflow-hidden shimmer-btn"
                 >
@@ -2861,11 +2865,22 @@ export default function ProductPageClient({
 
               {/* Nearest Store */}
               {isCentralInStock && isAvailableInAnyStore && (
-                <div className="border border-gray-200 rounded p-4 space-y-3 bg-gray-50">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Store size={20} className="text-black shrink-0 mt-0.5" strokeWidth={1.2} />
-                      <span className="text-sm sm:text-base font-bold leading-tight">
+                <div className="border border-gray-200 rounded-xl p-2.5 sm:p-4 flex gap-2 sm:gap-4 bg-white">
+                  {/* Left Side: Image */}
+                  <div className="w-[72px] sm:w-[110px] aspect-square shrink-0 self-center rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
+                    <Image 
+                      src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Available_Store_1.png?v=1784981054" 
+                      alt="Nearest Store" 
+                      fill 
+                      className="object-cover" 
+                    />
+                  </div>
+                  
+                  {/* Right Side: Content */}
+                  <div className="flex-1 flex flex-col justify-center space-y-2 sm:space-y-2.5">
+                    <div className="flex items-start sm:items-center gap-1.5 sm:gap-2 min-w-0">
+                      <Store size={14} className="text-black shrink-0 mt-0.5 sm:mt-0 sm:w-[18px] sm:h-[18px]" strokeWidth={1.8} />
+                      <span className="text-xs sm:text-sm md:text-base font-bold leading-tight">
                         {!hasConfirmedPincode ? (
                           <>Available at our <span className="italic font-semibold text-black">Lucira Store</span></>
                         ) : nearbyAvailableStore ? (
@@ -2875,8 +2890,9 @@ export default function ProductPageClient({
                         )}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 bg-[#E3F5E0] text-black px-3 py-1.5 rounded-full shrink-0 w-fit">
-                      <svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+                    <div className="flex items-center gap-1.5 bg-[#E3F5E0] text-black px-2.5 py-1 rounded-full shrink-0 w-fit">
+                      <svg width="15" height="15" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <g clipPath="url(#clip0_2_63372)">
                           <mask id="mask0_2_63372" style={{ maskType: "luminance" }} maskUnits="userSpaceOnUse" x="0" y="0" width="17" height="17">
                             <path d="M8.50033 15.5832C9.43069 15.5843 10.3521 15.4016 11.2117 15.0456C12.0712 14.6895 12.8519 14.1672 13.509 13.5085C14.1676 12.8514 14.69 12.0707 15.0461 11.2112C15.4021 10.3516 15.5848 9.43021 15.5837 8.49984C15.5848 7.56948 15.4021 6.64806 15.0461 5.78852C14.69 4.92898 14.1676 4.14826 13.509 3.49122C12.8519 2.83252 12.0712 2.31015 11.2117 1.9541C10.3521 1.59806 9.43069 1.41536 8.50033 1.41651C7.56997 1.41536 6.64854 1.59806 5.789 1.9541C4.92946 2.31015 4.14875 2.83252 3.49171 3.49122C2.83301 4.14826 2.31064 4.92898 1.95459 5.78852C1.59855 6.64806 1.41585 7.56948 1.417 8.49984C1.41585 9.43021 1.59855 10.3516 1.95459 11.2112C2.31064 12.0707 2.83301 12.8514 3.49171 13.5085C4.14875 14.1672 4.92946 14.6895 5.789 15.0456C6.64854 15.4016 7.56997 15.5843 8.50033 15.5832Z" fill="white" stroke="white" strokeWidth={2} strokeLinejoin="round"/>
@@ -2892,102 +2908,105 @@ export default function ProductPageClient({
                           </clipPath>
                         </defs>
                       </svg>
-                      <span className="font-figtree font-semibold text-[10px] leading-none tracking-normal">Design Available</span>
+                      <span className="font-figtree font-semibold text-[11px] leading-none tracking-normal">Design Available</span>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="w-full">
+                      {hasConfirmedPincode && !nearbyAvailableStore ? (
+                        <div className="flex flex-col min-[430px]:grid min-[430px]:grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setIsStoreDrawerOpen(true);
+                              pushToDataLayer({
+                                event: "promoClick",
+                                promoClick: {
+                                  creative_name: "view all stores cta pdp",
+                                  promo_id: getNumericId(activeVariant?.id),
+                                  promo_name: "View All Stores",
+                                  promo_position: "Product Details Section",
+                                  location_id: "pdp",
+                                  product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                                }
+                              });
+                            }}
+                            className="w-full h-10 font-bold rounded text-xs border-primary text-primary uppercase tracking-wide"
+                          >
+                            <Store size={14} className="mr-1.5" />
+                            VIEW ALL STORES
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              pushToDataLayer({
+                                event: "promoClick",
+                                promoClick: {
+                                  creative_name: "book video call cta pdp",
+                                  promo_id: getNumericId(activeVariant?.id),
+                                  promo_name: "Book Video Call",
+                                  promo_position: "Product Details Section",
+                                  location_id: "pdp",
+                                  product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                                }
+                              });
+                              window.open("https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
+                            }}
+                            className="w-full h-10 font-bold rounded text-xs bg-tertiary uppercase tracking-wide"
+                          >
+                            <Video size={14} className="mr-1.5" />
+                            BOOK VIDEO CALL
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            setIsStoreDrawerOpen(true);
+                            pushToDataLayer({
+                              event: "promoClick",
+                              promoClick: {
+                                creative_name: "find nearest store cta pdp",
+                                promo_id: getNumericId(activeVariant?.id),
+                                promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                                promo_position: "Product Details Section",
+                                location_id: "pdp",
+                                product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                              }
+                            });
+                          }}
+                          className="w-full h-10 font-figtree font-bold leading-[1.4] tracking-normal rounded text-xs md:text-sm bg-[#5A413F] hover:bg-[#5A413F]/90 text-white uppercase flex items-center justify-center gap-2"
+                        >
+                          {!hasConfirmedPincode
+                            ? "FIND OUR NEAREST STORE"
+                            : "FIND ALL STORES"}
+                        </Button>
+                      )}
+                      
+                      {hasConfirmedPincode && nearbyAvailableStore && otherAvailableStoreCount > 0 && (
+                        <p className="text-xs text-black mt-2">
+                          Also available in {" "}
+                          <button
+                            onClick={() => {
+                              setIsStoreDrawerOpen(true);
+                              pushToDataLayer({
+                                event: "promoClick",
+                                promoClick: {
+                                  creative_name: "find nearest store cta pdp",
+                                  promo_id: getNumericId(activeVariant?.id),
+                                  promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                                  promo_position: "Product Details Section",
+                                  location_id: "pdp",
+                                  product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                                }
+                              });
+                            }}
+                            className="underline underline-offset-2 font-bold"
+                          >
+                            {otherAvailableStoreCount} {otherAvailableStoreCount === 1 ? "other store" : "other stores"}
+                          </button>
+                        </p>
+                      )}
                     </div>
                   </div>
-
-                  {hasConfirmedPincode && nearbyAvailableStore && otherAvailableStoreCount > 0 && (
-                    <p className="text-sm text-black">
-                      Also available in {" "}
-                      <button
-                        onClick={() => {
-                          setIsStoreDrawerOpen(true);
-                          pushToDataLayer({
-                            event: "promoClick",
-                            promoClick: {
-                              creative_name: "find nearest store cta pdp",
-                              promo_id: getNumericId(activeVariant?.id),
-                              promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
-                              promo_position: "Product Details Section",
-                              location_id: "pdp",
-                              product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                            }
-                          });
-                        }}
-                        className="underline underline-offset-2 font-bold"
-                      >
-                        {otherAvailableStoreCount} {otherAvailableStoreCount === 1 ? "other store" : "other stores"}
-                      </button>
-                    </p>
-                  )}
-
-                  {hasConfirmedPincode && !nearbyAvailableStore ? (
-                    <div className="flex flex-col min-[430px]:grid min-[430px]:grid-cols-2 gap-3 pt-1">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setIsStoreDrawerOpen(true);
-                          pushToDataLayer({
-                            event: "promoClick",
-                            promoClick: {
-                              creative_name: "view all stores cta pdp",
-                              promo_id: getNumericId(activeVariant?.id),
-                              promo_name: "View All Stores",
-                              promo_position: "Product Details Section",
-                              location_id: "pdp",
-                              product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                            }
-                          });
-                        }}
-                        className="w-full h-12 font-bold rounded-md text-sm border-primary text-primary uppercase tracking-wide"
-                      >
-                        <Store size={16} />
-                        VIEW ALL STORES
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          pushToDataLayer({
-                            event: "promoClick",
-                            promoClick: {
-                              creative_name: "book video call cta pdp",
-                              promo_id: getNumericId(activeVariant?.id),
-                              promo_name: "Book Video Call",
-                              promo_position: "Product Details Section",
-                              location_id: "pdp",
-                              product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                            }
-                          });
-                          window.open("https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
-                        }}
-                        className="w-full h-12 font-bold rounded-md text-sm bg-tertiary uppercase tracking-wide"
-                      >
-                        <Video size={16} />
-                        BOOK VIDEO CALL
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => {
-                        setIsStoreDrawerOpen(true);
-                        pushToDataLayer({
-                          event: "promoClick",
-                          promoClick: {
-                            creative_name: "find nearest store cta pdp",
-                            promo_id: getNumericId(activeVariant?.id),
-                            promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
-                            promo_position: "Product Details Section",
-                            location_id: "pdp",
-                            product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                          }
-                        });
-                      }}
-                      className="w-full h-[2.4375rem] md:h-10.5 font-figtree font-bold md:font-semibold leading-[1.4] tracking-normal rounded mt-1 text-xs md:text-sm bg-[#5A413F] hover:bg-[#5A413F]/90 text-white uppercase flex items-center justify-center gap-2"
-                    >
-                      {!hasConfirmedPincode
-                        ? "FIND OUR NEAREST STORE"
-                        : "FIND ALL STORES"}
-                    </Button>
-                  )}
                 </div>
               )}
               <Separator />
@@ -3412,6 +3431,19 @@ export default function ProductPageClient({
         <ProductStory description={product.description} />
       )}
       
+      {isCentralInStock && (
+        <FindLuciraStore
+          pincode={localPincode}
+          setPincode={setLocalPincode}
+          handlePincodeCheck={handlePincodeCheck}
+          checkingPincode={checkingPincode}
+          deliveryInfo={deliveryInfo}
+          availableStores={availableStores}
+          product={product}
+          activeVariant={activeVariant}
+        />
+      )}
+
       {matchedCollectionTag ? (
         <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
       ) : (
@@ -3463,18 +3495,6 @@ export default function ProductPageClient({
       <FAQSection />
       {/* <ExploreOtherRings /> */}
       {isMobile ? (<ExploreRange />) : (<CategorySlider />)}
-      {isCentralInStock && (
-        <FindLuciraStore
-          pincode={localPincode}
-          setPincode={setLocalPincode}
-          handlePincodeCheck={handlePincodeCheck}
-          checkingPincode={checkingPincode}
-          deliveryInfo={deliveryInfo}
-          availableStores={availableStores}
-          product={product}
-          activeVariant={activeVariant}
-        />
-      )}
       <JoinLuciraCommunity />
 
       {isMobileView ? (

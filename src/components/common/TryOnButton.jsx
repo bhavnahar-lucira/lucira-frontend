@@ -104,27 +104,39 @@ export default function TryOnButton({
     };
   }, [formattedSku]);
 
-  // ✅ GTM Tracking
-  const pushDataLayer = () => {
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({
-      event: "promoClick",
-      promoClick: {
-        promo_id: productSku,          // 👈 use productSku for consistent tracking
-        creative_name: "Virtual Try On",
-        promo_position: "Above Media Gallery",
-        promo_name: productName,
-        location_id: "pdp",
-      },
-    });
-  };
+  // ✅ GTM Tracking — native capture-phase listener instead of React onClick.
+  // Camweara's script takes over the button after init (rewrites content /
+  // binds its own click), which can swallow React's synthetic onClick, so the
+  // promoClick silently never fired. Capture on document runs before
+  // Camweara's handler and survives any DOM rewriting inside the button.
+  useEffect(() => {
+    if (!productSku) return;
+
+    const handleCaptureClick = (e) => {
+      if (e.target instanceof Element && e.target.closest(`#${id}`)) {
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({
+          event: "promoClick",
+          promoClick: {
+            promo_id: productSku,          // 👈 use productSku for consistent tracking
+            creative_name: "Virtual Try On",
+            promo_position: "Above Media Gallery",
+            promo_name: productName,
+            location_id: "pdp",
+          },
+        });
+      }
+    };
+
+    document.addEventListener("click", handleCaptureClick, true);
+    return () => document.removeEventListener("click", handleCaptureClick, true);
+  }, [id, productSku, productName]);
 
   if (!productSku) return null;
 
   return (
     <button
       id={id}
-      onClick={pushDataLayer}
       style={{ visibility: "hidden" }}
       className={
         className ||

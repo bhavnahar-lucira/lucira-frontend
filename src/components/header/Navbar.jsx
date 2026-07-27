@@ -10,7 +10,95 @@ import { cn } from "@/lib/utils";
 import { transformMenuData } from "@/lib/menus";
 
 export default function Navbar({ hideTop, menuData }) {
-  const MEGA_MENU = useMemo(() => transformMenuData(menuData), [menuData]);
+  const MEGA_MENU = useMemo(() => {
+    const menus = transformMenuData(menuData);
+    
+    return menus.map(menu => {
+      const label = (menu.label || menu.title || '').toLowerCase();
+      
+      if (label.includes('more jewelry') || label.includes('more jewellery')) {
+        let goldBracelets = null;
+        let goldNecklaces = null;
+
+        // First find the items in PLAIN GOLD column
+        menu.columns?.forEach(col => {
+          if ((col.title || '').toLowerCase().includes('plain gold')) {
+            col.items?.forEach(item => {
+              if (item.label === 'Gold Bracelets') goldBracelets = item;
+              if (item.label === 'Gold Necklaces') goldNecklaces = item;
+            });
+          }
+        });
+
+        const newCols = menu.columns?.map(col => {
+          const colTitle = (col.title || '').toLowerCase();
+          
+          if (colTitle.includes('others')) {
+            if (!col.items?.find(i => i.label === 'Kids Collection')) {
+              return {
+                ...col,
+                items: [
+                  ...(col.items || []),
+                  {
+                    label: 'Kids Collection',
+                    href: '/collections/kids-collection',
+                    menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-N00126YG_1_35d904d4-fd5f-4701-b9e6-c77a770e5e9e.jpg?v=1784963525'
+                  }
+                ]
+              };
+            }
+          }
+          
+          if (colTitle === 'bracelets' && goldBracelets) {
+            if (!col.items?.find(i => i.label === 'Gold Bracelets')) {
+              return {
+                ...col,
+                items: [...(col.items || []), goldBracelets]
+              };
+            }
+          }
+          
+          if (colTitle === 'necklaces' && goldNecklaces) {
+            if (!col.items?.find(i => i.label === 'Gold Necklaces')) {
+              return {
+                ...col,
+                items: [...(col.items || []), goldNecklaces]
+              };
+            }
+          }
+          
+          return col;
+        });
+        
+        return { ...menu, columns: newCols };
+      }
+      
+      if (label === 'rings') {
+        const newCols = menu.columns?.map(col => {
+          const colTitle = (col.title || '').toLowerCase();
+          if (colTitle.includes('shop by style')) {
+            if (!col.items?.find(i => i.label === 'Chunky Rings')) {
+              return {
+                ...col,
+                items: [
+                  ...(col.items || []),
+                  {
+                    label: 'Chunky Rings',
+                    href: '/collections/chunky-rings',
+                    menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00972YG_1_180452a9-733e-438b-a7de-d7ee75b6bf6f.jpg?v=1784963998'
+                  }
+                ]
+              };
+            }
+          }
+          return col;
+        });
+        return { ...menu, columns: newCols };
+      }
+      
+      return menu;
+    });
+  }, [menuData]);
   const [activeMenu, setActiveMenu] = useState(null);
   const pathname = usePathname();
   const timeoutRef = useRef(null);

@@ -656,7 +656,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               <div className="absolute bottom-4 right-2 lg:right-4 z-10">
                 <Drawer open={showSimilar} onOpenChange={setShowSimilar}>
                   <DrawerTrigger asChild>
-                    <button onClick={(e) => { e.preventDefault(); fetchSimilar(); }} className="w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300 cursor-pointer">
+                    <button onClick={(e) => {
+                      e.preventDefault();
+                      const path = typeof window !== "undefined" ? window.location.pathname : "";
+                      pushPromoClick({
+                        creative_name: "View SImilar Button",
+                        promo_id: product?.title || "",
+                        location_id: path === "/" ? "homepage" : path.startsWith("/products/") ? "pdp" : path.startsWith("/collections/") ? "plp" : "inner pages",
+                      });
+                      fetchSimilar();
+                    }} className="w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300 cursor-pointer">
                       <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
                         <path d="M11.4326 10.4118C11.4298 10.2235 11.5017 10.0417 11.6326 9.90627C11.7635 9.77087 11.9427 9.69288 12.131 9.6894L21.4662 9.52505C21.6549 9.5214 21.8372 9.59284 21.9732 9.72366C22.1093 9.85448 22.1877 10.034 22.1914 10.2226L22.4237 23.5881C22.4267 23.7767 22.3547 23.9588 22.2235 24.0943C22.0922 24.2299 21.9126 24.3078 21.7239 24.3109L12.3888 24.4752C12.2003 24.4785 12.0182 24.4068 11.8825 24.2759C11.7468 24.1451 11.6685 23.9657 11.6649 23.7772L11.4326 10.4118Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         <path d="M11.5359 11.5298L6.05221 12.9991C5.89154 13.0422 5.75454 13.1473 5.67127 13.2913C5.58799 13.4353 5.56526 13.6064 5.60805 13.7672L8.65898 25.1599C8.70233 25.3206 8.80772 25.4575 8.95198 25.5406C9.09625 25.6236 9.26758 25.646 9.42833 25.6027L13.8273 24.424" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
