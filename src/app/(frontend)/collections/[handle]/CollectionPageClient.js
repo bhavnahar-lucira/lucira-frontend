@@ -217,6 +217,7 @@ const renderRichTextNodes = (nodes) => {
 // width/position tracks the scroll offset, so it stays visible even on mobile.
 function RecentlyViewedRow({ products }) {
   const scrollRef = useRef(null);
+  const pathname = usePathname();
   const [thumb, setThumb] = useState({ width: 100, left: 0 });
 
   const updateThumb = useCallback(() => {
@@ -254,6 +255,14 @@ function RecentlyViewedRow({ products }) {
               prefetch={false}
               key={item.id || item.shopifyId || item.handle}
               href={`/products/${item.handle}`}
+              onClick={() => {
+                pushPromoClick({
+                  creative_name: "Plp Mobile - Recently Viewed Carousel",
+                  location_id: pathname,
+                  promo_id: item.handle,
+                  promo_name: item.title,
+                });
+              }}
               className="shrink-0 w-[144px] snap-start cursor-pointer"
             >
               <div className="relative aspect-square bg-white rounded-[8px] overflow-hidden">
@@ -431,6 +440,36 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return { title: "", description: "", descriptionHtml:"" };
   });
   const [dbCollection, setDbCollection] = useState(null);
+  const [isProfileComplete, setIsProfileComplete] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Fallback: check both the logged-in key and the generic key on initial load
+        const specificKey = user?.id ? `lucira_profile_data_${user.id.split('/').pop()}` : null;
+        let raw = specificKey ? localStorage.getItem(specificKey) : null;
+        if (!raw) raw = localStorage.getItem('lucira_profile_data');
+        if (raw) {
+          const p = JSON.parse(raw);
+          return !!p.profileComplete;
+        }
+      } catch (e) {}
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const key = user?.id ? `lucira_profile_data_${user.id.split('/').pop()}` : 'lucira_profile_data';
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const p = JSON.parse(raw);
+          setIsProfileComplete(!!p.profileComplete);
+        } else {
+          setIsProfileComplete(false);
+        }
+      } catch (e) {}
+    }
+  }, [user?.id]);
 
   // Expose the collection title globally so shared widgets (e.g. the floating
   // WhatsApp button) can read the exact collection name instead of parsing document.title.
@@ -779,7 +818,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return foundColor;
   }, [searchParams]);
 
-  const renderGridItems = () => {
+  const gridItems = useMemo(() => {
     const items = [];
     let renderedCount = 0;
     let bannerCount = 0;
@@ -809,17 +848,6 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       // Profile-completion reward banner — mobile only, full-width, once, after ~6 products.
       // Only insert on a full mobile row (even cell count) so the row above always
       // has 2 products, never a lone one (image banners can make the count odd).
-      let isProfileComplete = false;
-      if (typeof window !== 'undefined') {
-        try {
-          const key = user?.id ? `lucira_profile_data_${user.id.split('/').pop()}` : 'lucira_profile_data';
-          const raw = localStorage.getItem(key);
-          if (raw) {
-            const p = JSON.parse(raw);
-            if (p.profileComplete) isProfileComplete = true;
-          }
-        } catch (e) {}
-      }
       if (isMobile && !rewardBannerAdded && renderedCount >= 6 && cellCount % 2 === 0 && !isProfileComplete) {
         rewardBannerAdded = true;
         rewardBannerAt = renderedCount;
@@ -833,6 +861,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   e.preventDefault();
                   dispatch(openAuthModal());
                 }
+                pushPromoClick({
+                  creative_name: "Plp Mobile - Reward Banner",
+                  location_id: pathname,
+                  promo_id: "rewards",
+                  promo_name: "Free 500 coins on completing your profile",
+                });
               }}
               className="flex items-center justify-between gap-3 w-full bg-[#5A413F] rounded-[10px] px-4 py-3.5 lg:px-5 lg:py-4 cursor-pointer"
             >
@@ -927,7 +961,19 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       items.push(<ProductCardSkeleton key="next-1" />, <ProductCardSkeleton key="next-2" />, <ProductCardSkeleton key="next-3" />);
     }
     return items;
-  };
+  }, [
+    products,
+    isMobile,
+    isProfileComplete,
+    user?.id,
+    categoryGroups,
+    recentlyViewedProducts,
+    pagination.hasNextPage,
+    isFetchingNextPage,
+    handle,
+    selectedColor,
+    dispatch
+  ]);
 
   const displayTitle = isMobile
     ? (handle === "all" ? "All Products" : handle.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "))
@@ -1197,7 +1243,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           )}
 
           <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
-            {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : renderGridItems()}
+            {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : gridItems}
           </div>
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
             {!pagination.hasNextPage && totalCount > 0 && <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">You've reached the end</p>}
