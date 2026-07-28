@@ -17,10 +17,11 @@ export default function FAQSection({ cityName, stateName, todayRate, sectionData
       .replaceAll('{cityName}', cityName)
       .replaceAll('{stateName}', stateName);
 
-    const rate24_10 = todayRate;
-    const rate22_10 = Math.round(todayRate * (22 / 24));
-    const rate24_1 = Math.round(todayRate / 10);
-    const rate22_1 = Math.round((todayRate / 10) * (22 / 24));
+    // todayRate is per gram
+    const rate24_10 = todayRate * 10;
+    const rate22_10 = Math.round(todayRate * 10 * (22 / 24));
+    const rate24_1 = Math.round(todayRate);
+    const rate22_1 = Math.round(todayRate * (22 / 24));
 
     processed = processed.replaceAll('[gold_rate_24kt_10gm]', `₹${rate24_10.toLocaleString('en-IN')}`);
     processed = processed.replaceAll('[gold_rate_22kt_10gm]', `₹${rate22_10.toLocaleString('en-IN')}`);

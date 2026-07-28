@@ -147,8 +147,9 @@ export default function GoldRatePage({ page }) {
     const heroR22 = Math.round((heroCur && heroCur.r22) || parseInt((goldWidgetSettings.rate_avg || "").replace(/[₹, ]/g, "")) || Math.round(heroR24 * 22 / 24));
     const heroR18 = Math.round((heroCur && heroCur.r18) || Math.round(heroR24 * 18 / 24));
     const heroR14 = Math.round((heroCur && heroCur.r14) || Math.round(heroR24 * 14 / 24));
-    const perGram = (v) => Math.round(v / 10).toLocaleString("en-IN");
-    const per10g = (v) => Math.round(v).toLocaleString("en-IN");
+    // gold_rate_history values are per gram; multiply for the /10g line.
+    const perGram = (v) => Math.round(v).toLocaleString("en-IN");
+    const per10g = (v) => Math.round(v * 10).toLocaleString("en-IN");
     let heroDateStr = "";
     try {
         if (heroCur && heroCur.date) {

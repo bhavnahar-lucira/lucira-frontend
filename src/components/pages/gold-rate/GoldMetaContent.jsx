@@ -12,9 +12,9 @@ export default function GoldMetaContent({
   goldMeta,
   cityName,
   stateName,
-  rate24k, // per 10g
-  rate22k, // per 10g
-  rate24kYesterday, // per 10g
+  rate24k, // per gram
+  rate22k, // per gram
+  rate24kYesterday, // per gram
   currentDate,
 }) {
   const [openFaq, setOpenFaq] = useState(null);
@@ -30,13 +30,13 @@ export default function GoldMetaContent({
   const curEntry = history.find((e) => e.cur === "true") || history[0] || null;
   const yEntry = history.find((e) => e !== curEntry) || null;
 
-  // All rate values are per 10 gram; divide by 10 for per-gram.
+  // All rate values are per gram (gold_rate_history stores per-gram rates).
   const r24 = Math.round((curEntry && curEntry.r24) || Number(rate24k) || 0);
   const r22 = Math.round((curEntry && curEntry.r22) || Number(rate22k) || Math.round(r24 * 22 / 24));
   const r18 = Math.round((curEntry && curEntry.r18) || Math.round(r24 * 18 / 24));
   const r14 = Math.round((curEntry && curEntry.r14) || Math.round(r24 * 14 / 24));
-  const per10 = { "24": r24, "22": r22, "18": r18, "14": r14 };
-  const g = (k) => Math.round(per10[k] / 10); // per gram
+  const perGramRates = { "24": r24, "22": r22, "18": r18, "14": r14 };
+  const g = (k) => Math.round(perGramRates[k]); // per gram
   const fmt = (v) => "₹" + Math.round(v).toLocaleString("en-IN");
   const wt = (k, grams) => fmt(g(k) * grams);
 
@@ -146,10 +146,10 @@ export default function GoldMetaContent({
             <table>
               <thead><tr><th>Gold Type</th><th>Per Gram</th><th>Per 8g</th><th>Per 10g</th><th>Per 100g</th></tr></thead>
               <tbody>
-                <tr><th scope="row">24 Carat (99.9%)</th><td>{fmt(g("24"))}</td><td>{wt("24", 8)}</td><td>{fmt(r24)}</td><td>{wt("24", 100)}</td></tr>
-                <tr><th scope="row">22 Carat (91.6%)</th><td>{fmt(g("22"))}</td><td>{wt("22", 8)}</td><td>{fmt(r22)}</td><td>{wt("22", 100)}</td></tr>
-                <tr><th scope="row">18 Carat (75%)</th><td>{fmt(g("18"))}</td><td>{wt("18", 8)}</td><td>{fmt(r18)}</td><td>{wt("18", 100)}</td></tr>
-                <tr><th scope="row">14 Carat (58.5%)</th><td>{fmt(g("14"))}</td><td>{wt("14", 8)}</td><td>{fmt(r14)}</td><td>{wt("14", 100)}</td></tr>
+                <tr><th scope="row">24 Carat (99.9%)</th><td>{fmt(g("24"))}</td><td>{wt("24", 8)}</td><td>{wt("24", 10)}</td><td>{wt("24", 100)}</td></tr>
+                <tr><th scope="row">22 Carat (91.6%)</th><td>{fmt(g("22"))}</td><td>{wt("22", 8)}</td><td>{wt("22", 10)}</td><td>{wt("22", 100)}</td></tr>
+                <tr><th scope="row">18 Carat (75%)</th><td>{fmt(g("18"))}</td><td>{wt("18", 8)}</td><td>{wt("18", 10)}</td><td>{wt("18", 100)}</td></tr>
+                <tr><th scope="row">14 Carat (58.5%)</th><td>{fmt(g("14"))}</td><td>{wt("14", 8)}</td><td>{wt("14", 10)}</td><td>{wt("14", 100)}</td></tr>
               </tbody>
             </table>
             <p>Prices shown are indicative base rates. Actual jewellery prices will include making charges, GST, and stone setting costs.</p>
@@ -161,9 +161,9 @@ export default function GoldMetaContent({
                 <table>
                   <thead><tr><th>Karat</th><th>Today (₹/g)</th><th>Yesterday (₹/g)</th><th>Change</th></tr></thead>
                   <tbody>
-                    <tr><th scope="row">24 Carat (24K)</th><td>{fmt(g("24"))}</td><td>{fmt(Math.round(y24 / 10))}</td><td>{changeCell(g("24"), Math.round(y24 / 10))}</td></tr>
-                    <tr><th scope="row">22 Carat (22K)</th><td>{fmt(g("22"))}</td><td>{fmt(Math.round(y22 / 10))}</td><td>{changeCell(g("22"), Math.round(y22 / 10))}</td></tr>
-                    <tr><th scope="row">18 Carat (18K)</th><td>{fmt(g("18"))}</td><td>{fmt(Math.round(y18 / 10))}</td><td>{changeCell(g("18"), Math.round(y18 / 10))}</td></tr>
+                    <tr><th scope="row">24 Carat (24K)</th><td>{fmt(g("24"))}</td><td>{fmt(y24)}</td><td>{changeCell(g("24"), y24)}</td></tr>
+                    <tr><th scope="row">22 Carat (22K)</th><td>{fmt(g("22"))}</td><td>{fmt(y22)}</td><td>{changeCell(g("22"), y22)}</td></tr>
+                    <tr><th scope="row">18 Carat (18K)</th><td>{fmt(g("18"))}</td><td>{fmt(y18)}</td><td>{changeCell(g("18"), y18)}</td></tr>
                   </tbody>
                 </table>
               </>
@@ -246,9 +246,9 @@ export default function GoldMetaContent({
                     {weekly.map((e, i) => (
                       <tr key={i}>
                         <th scope="row">{dayName(e.date)}</th>
-                        <td>{fmt(Math.round(e.r22 / 10))}</td>
-                        <td>{fmt(Math.round(e.r24 / 10))}</td>
-                        <td>{fmt(Math.round(e.r18 / 10))}</td>
+                        <td>{fmt(e.r22)}</td>
+                        <td>{fmt(e.r24)}</td>
+                        <td>{fmt(e.r18)}</td>
                         <td>{e.note || "—"}</td>
                       </tr>
                     ))}
@@ -267,9 +267,9 @@ export default function GoldMetaContent({
                     {monthly.map((e, i) => (
                       <tr key={i}>
                         <th scope="row">{monthName(e.date)}</th>
-                        <td>{fmt(Math.round(e.r22 / 10))}</td>
-                        <td>{fmt(Math.round(e.r24 / 10))}</td>
-                        <td>{fmt(Math.round(e.r18 / 10))}</td>
+                        <td>{fmt(e.r22)}</td>
+                        <td>{fmt(e.r24)}</td>
+                        <td>{fmt(e.r18)}</td>
                       </tr>
                     ))}
                   </tbody>

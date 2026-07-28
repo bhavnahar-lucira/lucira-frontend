@@ -135,12 +135,13 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
   const ratePerGram = useMemo(() => {
     const activeRates = rates || defaultRates;
     if (activeMetal === "gold") {
-      if (goldPurity === 24) return Number(activeRates.gold_price_24k) / 10;
-      if (goldPurity === 22) return Number(activeRates.gold_price_22k) / 10;
+      // gold_price_* values are per gram (from gold_rate_history)
+      if (goldPurity === 24) return Number(activeRates.gold_price_24k);
+      if (goldPurity === 22) return Number(activeRates.gold_price_22k);
       if (goldPurity === 18) {
         return activeRates.gold_price_18k
-          ? Number(activeRates.gold_price_18k) / 10
-          : (Number(activeRates.gold_price_24k) / 10) * 18 / 24;
+          ? Number(activeRates.gold_price_18k)
+          : Number(activeRates.gold_price_24k) * 18 / 24;
       }
     } else if (activeMetal === "silver") {
       return Number(activeRates.silver_price_10g) / 10;
@@ -156,28 +157,28 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
     const yesterday24 = Number(activeRates.gold_price_24k_yesterday) || (Number(activeRates.gold_price_24k) - 220);
     const yesterday22 = Number(activeRates.gold_price_22k_yesterday) || (Number(activeRates.gold_price_22k) - 200);
 
-    const diff24 = Math.round((Number(activeRates.gold_price_24k) - yesterday24) / 10);
-    const diff22 = Math.round((Number(activeRates.gold_price_22k) - yesterday22) / 10);
+    const diff24 = Math.round(Number(activeRates.gold_price_24k) - yesterday24);
+    const diff22 = Math.round(Number(activeRates.gold_price_22k) - yesterday22);
     const diff18 = Math.round(diff24 * 18 / 24);
 
     return {
       gold: [
         {
           label: "24K Gold /g",
-          price: Math.round(Number(activeRates.gold_price_24k) / 10),
+          price: Math.round(Number(activeRates.gold_price_24k)),
           change: diff24,
         },
         {
           label: "22K Gold /g",
-          price: Math.round(Number(activeRates.gold_price_22k) / 10),
+          price: Math.round(Number(activeRates.gold_price_22k)),
           change: diff22,
         },
         {
           label: "18K Gold /g",
           price: Math.round(
             activeRates.gold_price_18k
-              ? Number(activeRates.gold_price_18k) / 10
-              : (Number(activeRates.gold_price_24k) / 10) * 18 / 24
+              ? Number(activeRates.gold_price_18k)
+              : Number(activeRates.gold_price_24k) * 18 / 24
           ),
           change: diff18,
         },

@@ -4,7 +4,7 @@ const KARATS = [24, 22, 18, 14, 9];
 const WEIGHTS = [1, 5, 10, 100];
 
 export default function PriceTable({ baseRate }) {
-    const perGramRate24 = baseRate / 10;
+    const perGramRate24 = baseRate; // baseRate is already per gram
 
     return (
         <section id="gold-price-breakdown-weight" className="gold-price-breakdown-weight py-8 md:py-10 bg-white border-t border-zinc-50 relative overflow-hidden">
