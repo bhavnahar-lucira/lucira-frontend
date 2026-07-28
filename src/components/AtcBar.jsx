@@ -357,7 +357,7 @@ export default function AtcBar({
       {/* ── Sticky Top Bar (atcBar) ── */}
       <div
         className={cn(
-          "atcBar fixed top-0 left-0 w-full bg-white z-200 border-b border-gray-100 transition-all duration-500 transform shadow-sm px-4 lg:px-17 py-3",
+          "atcBar fixed top-0 left-0 w-full bg-white z-[40] border-b border-gray-100 transition-all duration-500 transform shadow-sm px-4 lg:px-17 py-3",
           isTopVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
         )}
       >
@@ -451,7 +451,7 @@ export default function AtcBar({
       {/* ── Sticky Bottom Bar (atc-2) ── */}
       <div
         className={cn(
-          "atc-2 fixed bottom-0 left-0 w-full z-200 transition-all duration-300 transform pointer-events-none",
+          "atc-2 fixed bottom-0 left-0 w-full z-[40] transition-all duration-300 transform pointer-events-none",
           isBottomVisible ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
         )}
       >
