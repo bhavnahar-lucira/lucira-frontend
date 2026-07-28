@@ -26,6 +26,7 @@ import CustomerReviews from "@/components/product/CustomerReviews";
 import FAQSection from "@/components/product/FAQSection";
 import DiamondComparison from "@/components/product/DiamondComparison";
 import { FindLuciraStore } from "@/components/product/FindLuciraStore";
+const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { suspense: true });
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
 import ExploreOtherRings from "@/components/product/ExploreOtherRings";
@@ -3431,7 +3432,7 @@ export default function ProductPageClient({
         <ProductStory description={product.description} />
       )}
       
-      {isCentralInStock && (
+      {isCentralInStock ? (
         <FindLuciraStore
           pincode={localPincode}
           setPincode={setLocalPincode}
@@ -3442,6 +3443,10 @@ export default function ProductPageClient({
           product={product}
           activeVariant={activeVariant}
         />
+      ) : (
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+          <StoreLocatorSection locationId="product page" />
+        </Suspense>
       )}
 
       {matchedCollectionTag ? (
