@@ -11,6 +11,7 @@ import GtmPageView from "@/components/common/GtmPageView";
 import { organizationSchema, websiteSchema, storesSchema } from "@/lib/seo";
 import WebEngageRegistration from "@/components/common/WebEngageRegistration";
 import TabTitleAnimator from "@/components/common/TabTitleAnimator";
+import BodyClassManager from "@/components/common/BodyClassManager";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
 
@@ -68,6 +69,7 @@ export default function RootLayout({ children }) {
           </noscript>
         )}
         <ReduxProvider>
+          <BodyClassManager />
           <TabTitleAnimator />
           <WebEngageRegistration />
           {isProd && (
