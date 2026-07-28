@@ -11,6 +11,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { applyPoints, removePoints, applyCoupon } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
+import {
+  isAdditionalOfferCode,
+  getAdditionalOfferLabel,
+  getAdditionalOfferBenefit,
+  getEternaBenefit,
+} from "@/lib/cartOffers";
 import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
@@ -394,6 +400,14 @@ export default function CheckoutSummary({
 
   const isEternaApplied = appliedCoupon && (appliedCoupon === ETERNA_COUPON || (couponDetails && couponDetails.code && couponDetails.code.toLowerCase() === ETERNA_COUPON.toLowerCase()));
 
+  // Only one coupon fits a cart. When the Additional Offers slab is worth strictly more
+  // than the Eterna 3%, that offer takes the sale and this banner steps aside — unless
+  // Eterna is already the applied coupon, which must always stay visible/removable.
+  const isOutrankedByAdditional = useMemo(() => {
+    if (isEternaApplied) return false;
+    return getAdditionalOfferBenefit(items).amount > getEternaBenefit(items).amount;
+  }, [items, isEternaApplied]);
+
   const eternaBannerContent = (
     <div className="w-full bg-[#FAFAFA] border border-[#e8dccf] rounded-lg overflow-hidden flex flex-col shadow-sm mt-4 lg:mb-4">
       <div 
@@ -525,7 +539,7 @@ export default function CheckoutSummary({
         </div>
       )}
 
-      {showBreakdown && displayItems.length > 0 && (isEternaApplied || eternaEligible) && eternaBannerContent}
+      {showBreakdown && displayItems.length > 0 && (isEternaApplied || eternaEligible) && !isOutrankedByAdditional && eternaBannerContent}
 
       {showBreakdown && (
         <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
@@ -542,7 +556,13 @@ export default function CheckoutSummary({
           {appliedCoupon && (
             <div className="flex justify-between text-sm text-[#189351]">
               <div className="flex items-center gap-2">
-                <span className="font-bold uppercase tracking-wider">{isEternaApplied ? "Coupon Applied" : `Coupon (${typeof appliedCoupon === 'object' ? appliedCoupon.code : appliedCoupon})`}</span>
+                <span className="font-bold uppercase tracking-wider">
+                  {isEternaApplied
+                    ? "Coupon Applied"
+                    : isAdditionalOfferCode(couponDetails.code)
+                      ? getAdditionalOfferLabel(couponDetails.code)
+                      : `Coupon (${typeof appliedCoupon === 'object' ? appliedCoupon.code : appliedCoupon})`}
+                </span>
                 {!isCheckoutPage && (
                   <button 
                     onClick={removeCoupon}
