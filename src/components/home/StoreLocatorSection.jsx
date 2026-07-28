@@ -265,7 +265,7 @@ function ServiceCard({ item }) {
   );
 }
 
-export default function StoreLocatorSection() {
+export default function StoreLocatorSection({ locationId = "homepage" }) {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeIndex, setActiveIndex] = useState(0);
   const activeStore = stores[activeIndex];
@@ -274,8 +274,8 @@ export default function StoreLocatorSection() {
 
   const handleStoreCtaClick = (action) => {
     pushPromoClick({
-      creative_name: "visit store section homepage",
-      location_id: "homepage",
+      creative_name: `visit store section ${locationId}`,
+      location_id: locationId,
       promo_id: activeStore.city,
       promo_name: action,
     });

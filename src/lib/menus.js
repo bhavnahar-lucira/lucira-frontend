@@ -1,5 +1,18 @@
 import menuData from "@/data/menu-data.json";
 
+// Small collection tiles rendered beside the image cards in the desktop
+// Collections menu and below the 2x2 grid in the mobile menu. Cotton Candy is
+// desktop-only: on mobile it stays as a card in the image grid.
+export const COLLECTION_QUICK_LINKS = [
+  { label: "Cotton Candy", href: "/collections/cotton-candy", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Ellipse_2966.png?v=1785231957", desktopOnly: true },
+  { label: "Evil Eye", href: "/collections/evil-eye", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/evil_eye.png?v=1785231427" },
+  { label: "Pearl", href: "/collections/pearl", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/pearl_030670d5-2823-41f2-8f9c-0e3edc770719.png?v=1785231427" },
+  { label: "Nakshatra", href: "/collections/nakshatra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Nakshatra.png?v=1785231427" },
+  { label: "Peacock", href: "/collections/peacock", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Peacock.png?v=1785231427" },
+  { label: "Hexa Moving Diamond", href: "/collections/hexa-moving-diamond", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_Moving_Diamond.png?v=1785231427" },
+  { label: "Petalique", href: "/collections/petalique", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Petalique.png?v=1785231427" },
+];
+
 export async function getMenu(handle = "main-menu-official") {
   try {
     if (menuData.success && menuData.menus) {
@@ -143,6 +156,13 @@ export function transformMenuData(shopifyMenuItems) {
             image: getFileUrl(getMetafield(sub.resource?.metafields?.nodes || [], "custom", "menu_image") || getMetafield(sub.resource?.metafields?.nodes || [], "custom", "image")) || sub.resource?.image?.url,
             href: sub.url.replace(/https:\/\/[^/]+/, "")
         }));
+    }
+
+    // The Collections menu renders as an image grid (whether it arrives as
+    // "image-grid" or as a "mega" whose children all have menu_image cards),
+    // so the quick-link tiles are attached independent of menu type.
+    if ((item.title || "").toLowerCase().trim() === "collections") {
+        transformedItem.quickLinks = COLLECTION_QUICK_LINKS;
     }
 
     return transformedItem;
