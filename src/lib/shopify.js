@@ -345,11 +345,18 @@ export async function getAllProductHandles() {
     while (hasNextPage) {
       // force-cache: reuse build-time cache. These functions only run during generateStaticParams
       // (build time). No background revalidation needed — timers here cause Vercel function invocations.
-      const data = await shopifyStorefrontFetch(query, { cursor }, { 
-        cache: 'force-cache',
-        useRwToken: true 
+      //
+      // Use the default STOREFRONT_TOKEN, NOT the RW token. The RW token belongs to a
+      // sales channel that only has ~1,950 of the ~2,590 active products published to
+      // it, which silently shrank the sitemap and generateStaticParams.
+      const data = await shopifyStorefrontFetch(query, { cursor }, {
+        cache: 'force-cache'
       });
-      if (!data?.products) break;
+      // Never `break` here: a mid-pagination failure would silently publish a partial
+      // sitemap. Fail the build instead.
+      if (!data?.products) {
+        throw new Error(`Failed to fetch products at cursor ${cursor}. Halting to prevent a partial sitemap.`);
+      }
 
       const newHandles = data.products.edges.map(edge => edge.node.handle);
       handles = [...handles, ...newHandles];
@@ -390,11 +397,13 @@ export async function getAllCollectionHandles() {
   try {
     while (hasNextPage) {
       // force-cache: reuse build-time cache. These functions only run during generateStaticParams.
-      const data = await shopifyStorefrontFetch(query, { cursor }, { 
-        cache: 'force-cache',
-        useRwToken: true 
+      // Default STOREFRONT_TOKEN, not the RW token — see getAllProductHandles.
+      const data = await shopifyStorefrontFetch(query, { cursor }, {
+        cache: 'force-cache'
       });
-      if (!data?.collections) break;
+      if (!data?.collections) {
+        throw new Error(`Failed to fetch collections at cursor ${cursor}. Halting to prevent a partial sitemap.`);
+      }
 
       const newHandles = data.collections.edges.map(edge => edge.node.handle);
       handles = [...handles, ...newHandles];
@@ -437,11 +446,13 @@ export async function getAllCollectionsForSitemap() {
 
   try {
     while (hasNextPage) {
+      // Default STOREFRONT_TOKEN, not the RW token — see getAllProductHandles.
       const data = await shopifyStorefrontFetch(query, { cursor }, {
-        cache: 'force-cache',
-        useRwToken: true
+        cache: 'force-cache'
       });
-      if (!data?.collections) break;
+      if (!data?.collections) {
+        throw new Error(`Failed to fetch collections at cursor ${cursor}. Halting to prevent a partial list.`);
+      }
 
       const newItems = data.collections.edges.map(edge => ({
         title: edge.node.title,

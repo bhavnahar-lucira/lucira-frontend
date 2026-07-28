@@ -77,7 +77,10 @@ export default async function sitemap() {
     priority: 0.5,
   }));
 
-  return [
+  // A URL can be produced by more than one source — e.g. "/blogs/stories" is both a
+  // static route and a blog handle. Duplicate <loc> entries are invalid in a sitemap,
+  // so keep the first occurrence. The order below is the precedence order.
+  const all = [
     ...staticRoutes,
     ...productEntries,
     ...collectionEntries,
@@ -85,4 +88,11 @@ export default async function sitemap() {
     ...articleEntries,
     ...pageEntries,
   ];
+
+  const seen = new Set();
+  return all.filter((entry) => {
+    if (seen.has(entry.url)) return false;
+    seen.add(entry.url);
+    return true;
+  });
 }
