@@ -454,7 +454,32 @@ export default function GoldRatePage({ page }) {
                 .footer-pages tr:hover td {
                   background: linear-gradient(to bottom, #FFFDF9, #FDF4E5);
                 }
-                
+                @media (max-width: 768px) {
+                  /* Wide tables exceed the phone viewport; scroll them
+                     horizontally instead of clipping the right columns. */
+                  .footer-pages table {
+                    display: block;
+                    max-width: 100%;
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                  }
+                  .footer-pages table thead,
+                  .footer-pages table tbody {
+                    width: max-content;
+                    min-width: 100%;
+                  }
+                  .footer-pages th,
+                  .footer-pages td {
+                    padding: 0.75rem;
+                  }
+                  .footer-pages th {
+                    font-size: 0.75rem;
+                  }
+                  .footer-pages td {
+                    font-size: 0.8125rem;
+                  }
+                }
+
                 /* FAQ Details / Summary styling */
                 .footer-pages details {
                   border-bottom: 1px solid #e4e4e7;

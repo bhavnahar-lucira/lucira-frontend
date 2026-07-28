@@ -1380,6 +1380,19 @@ img.marquee-img {
 @media (max-width: 768px) {
   .footer-pages table {
     @apply text-xs;
+    /* Wide tables (buying guide, comparisons) exceed the viewport on phones;
+       scroll them horizontally instead of clipping the right-hand columns. */
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Keep narrow tables stretching to full container width */
+  .footer-pages table thead,
+  .footer-pages table tbody {
+    width: max-content;
+    min-width: 100%;
   }
 
   .footer-pages table th,
