@@ -115,7 +115,7 @@ export function getEstimatedDispatchDate(isInStock, leadTime = 12) {
       months[dispatchDate.getMonth()]
     } ${dispatchDate.getDate()}, ${dispatchDate.getFullYear()}`;
   } else {
-    const totalDays = (parseInt(leadTime) || 12) + 3;
+    const totalDays = parseInt(leadTime) || 12;
     const dispatchDate = new Date(today);
     dispatchDate.setDate(today.getDate() + totalDays);
     return `Estimated dispatch by ${
