@@ -3378,39 +3378,37 @@ export default function ProductPageClient({
             {!isGoldCoin && (
               <div className="pt-6">
                 <div className="bg-gray-50 border border-gray-100 rounded p-4">
-                  <div className="flex items-start justify-between flex-col md:flex-row gap-2 text-base font-semibold text-black mb-4">
-                    Certified Quality Guaranteed.
-                    <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black mt-0 whitespace-nowrap p-0 h-auto" asChild>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 md:gap-4 mb-4">
+                    <span className="text-base font-semibold text-black whitespace-nowrap">Certified Quality Guaranteed.</span>
+                    <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black p-0 h-auto shrink-0 whitespace-nowrap self-start md:self-auto" asChild>
                       <a href="/images/certificate/SampleCertificate.jpg" alt="Sample Certificate" download>
                         See Sample Certificate
                       </a>
                     </Button>
                   </div>
-                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">
-                    <div className="flex items-center gap-7">
-                      <div className="w-14 h-14 relative">
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
-                      </div>
-                      <div className="w-14 h-14 relative">
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/SGL_528e2e93-e563-40b6-a8a6-c098475a6de9.png" alt="SGL" fill className="object-contain" />
-                      </div>
-                      <div className="w-14 h-14 relative">
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BIS.png" alt="BIS Hallmark" fill className="object-contain" />
-                      </div>
+                  <div className="flex items-center justify-start gap-7 flex-wrap">
+                    <div className="w-14 h-14 relative">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
+                    </div>
+                    <div className="w-14 h-14 relative">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/SGL_528e2e93-e563-40b6-a8a6-c098475a6de9.png" alt="SGL" fill className="object-contain" />
+                    </div>
+                    <div className="w-14 h-14 relative">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BIS.png" alt="BIS Hallmark" fill className="object-contain" />
                     </div>
                   </div>
-                  <div className="flex items-center justify-center flex-col mt-5">
+                  <div className="mt-4">
                     {product.tags?.includes("Tennis Bracelets") || product.tags?.includes("Eternity") ? (
-                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                      <p className="text-sm text-black text-left"><strong>Note: </strong>
                        Handcrafted and personalized with care - slight variations in metal weight, diamond weight and quantity are natural with different sizes.
                       </p>
                     ) : 
-                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                      <p className="text-sm text-black text-left"><strong>Note: </strong>
                         Handcrafted and personalized with care - slight variations in metal weight are natural with different sizes.
                       </p>
                     }                    
                     {product.tags?.includes("Only Pendant") && (
-                      <p className="text-sm text-black text-center mt-1">Chain is not included in the purchase.</p>
+                      <p className="text-sm text-black text-left mt-1">Chain is not included in the purchase.</p>
                     )}
                   </div>
                 </div>
