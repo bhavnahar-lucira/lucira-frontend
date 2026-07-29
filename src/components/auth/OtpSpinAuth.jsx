@@ -875,6 +875,7 @@ export function OtpSpinAuth({
                 )}
               </>
             )}
+            <p className="text-[10px] text-zinc-500 font-medium text-center mt-3 mb-0">*T&C Applicable</p>
             <button 
               className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-4 bg-[#5a413f] rounded-lg" 
               onClick={() => {
