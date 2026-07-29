@@ -78,7 +78,15 @@ export default function CouponCard({
         {/* Action Button Box — copy on the PDP, apply in the cart */}
         {mode === "apply" ? (
           <button
-            onClick={() => (isApplied ? onRemove?.(coupon.code) : onApply?.(coupon.code))}
+            onClick={() => {
+              if (typeof window !== "undefined" && window.dataLayer) {
+                window.dataLayer.push({
+                  event: "promoClick",
+                  couponCode: coupon.code,
+                });
+              }
+              isApplied ? onRemove?.(coupon.code) : onApply?.(coupon.code);
+            }}
             disabled={isOutOfTier || isBlockedByOther || !!applyingCode}
             title={
               isOutOfTier
@@ -111,7 +119,15 @@ export default function CouponCard({
           </button>
         ) : (
           <button
-            onClick={() => onCopy?.(coupon.code)}
+            onClick={() => {
+              if (typeof window !== "undefined" && window.dataLayer) {
+                window.dataLayer.push({
+                  event: "promoClick",
+                  couponCode: coupon.code,
+                });
+              }
+              onCopy?.(coupon.code);
+            }}
             className={`w-full ${isMini ? 'h-7 md:h-8 text-[0.75rem] md:text-[0.85rem] px-[8px] md:px-[12px]' : 'h-8 text-[0.875rem] px-[12px]'} flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-semibold uppercase tracking-normal font-figtree leading-[1.4] ${
               isCopied
                 ? "bg-emerald-50/50 border-emerald-200 text-emerald-600"
