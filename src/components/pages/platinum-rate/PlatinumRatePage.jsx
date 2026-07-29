@@ -323,6 +323,9 @@ export default function PlatinumRatePage({ page }) {
                     }
                 })}
             </div>
+
+            {/* Shopify page.body content hidden for gold-only launch (silver/platinum) */}
+
             <style jsx>{`
                 .perspective-2000 { perspective: 2000px; }
                 .preserve-3d { transform-style: preserve-3d; }
