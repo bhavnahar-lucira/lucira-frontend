@@ -58,8 +58,9 @@ export function AuthDialog({
       <Sheet 
         isOpen={open} 
         onClose={() => onOpenChange(false)}
+        style={{ zIndex: 2000 }}
       >
-        <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto">
+        <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !z-[2000]">
           <Sheet.Content className="!p-0">
             <div className="sr-only">
               <h2>{currentStep === "register" ? "Registration" : "Authentication"}</h2>
@@ -79,7 +80,7 @@ export function AuthDialog({
             </div>
           </Sheet.Content>
         </Sheet.Container>
-        <Sheet.Backdrop onTap={() => onOpenChange(false)} />
+        <Sheet.Backdrop onTap={() => onOpenChange(false)} className="!z-[1999]" />
       </Sheet>
     );
   }
