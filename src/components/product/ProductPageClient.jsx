@@ -3449,15 +3449,6 @@ export default function ProductPageClient({
         </Suspense>
       )}
 
-      {matchedCollectionTag ? (
-        <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
-      ) : (
-        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-          <StyledByLucira />
-        </Suspense>
-      )}
-
-      <OurProcess />
       <div ref={reviewsRef}>
         <CustomerReviews
           reviews={product.reviews}
@@ -3467,6 +3458,16 @@ export default function ProductPageClient({
           productHandle={product.handle}
         />
       </div>
+
+      {matchedCollectionTag ? (
+        <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
+      ) : (
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+          <StyledByLucira />
+        </Suspense>
+      )}
+
+      <OurProcess />
       {matchingProducts.length > 0 && (
         <ProductSlider
           title="From the Same Collection"
