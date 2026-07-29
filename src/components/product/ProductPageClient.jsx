@@ -3014,91 +3014,6 @@ export default function ProductPageClient({
               <Separator />
             </div>
 
-            {/* Promo Cards Slider */}
-            {(() => {
-              const raw = priceBreakup?.raw_breakup;
-              const isDiamondJewelry = (raw?.diamond?.final || 0) > 0;
-              const currentTotalPrice = activeVariant?.price || 0;
-
-              const isGoldCoinEligible =
-                isDiamondJewelry &&
-                currentTotalPrice >= goldCoinConfig.threshold &&
-                goldCoinConfig.enabled;
-
-              const slides = [];
-
-              if (isGoldCoinEligible) {
-                slides.push({
-                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPGoldCoin.png",
-                  title: "Complimentary Gold Coin",
-                  desc: goldCoinConfig.message || "Receive a free gold coin with this ring, making your order even more special."
-                });
-              }
-
-              slides.push(
-                {
-                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPOldGoldExchange.jpg",
-                  title: "Old Gold Exchange",
-                  desc: "Exchange your old gold at the best value and upgrade to new Lucira Jewelry with ease."
-                },
-                {
-                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPScheme.png",
-                  title: "9 + 1 Scheme",
-                  desc: "Complete 9 monthly payments and enjoy an extra month benefit from Lucira Jewelry."
-                }
-              );
-
-              return (
-                <div className="space-y-4 mt-4">
-                  <div className="overflow-hidden">
-                    <Swiper
-                      spaceBetween={12}
-                      slidesPerView={1.1}
-                      onSlideChange={(swiper) =>
-                        setActivePromoSlide(swiper.activeIndex + 1)
-                      }
-                      className="w-full overflow-visible!"
-                    >
-                      {slides.map((item, i) => (
-                        <SwiperSlide key={`promo-${i}`}>
-                          <div className="bg-[#F9F9F9] border border-gray-100 rounded p-2 md:p-5 flex items-stretch gap-2.5 md:gap-5 h-full">
-                            <div className="relative w-18 h-18 rounded overflow-hidden shrink-0">
-                              <Image
-                                src={item.img}
-                                alt={item.title}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <p className="text-base md:text-lg font-semibold italic leading-tight">
-                                {item.title}
-                              </p>
-
-                              <p className="text-xs md:text-sm leading-relaxed">
-                                {item.desc}
-                              </p>
-                            </div>
-                          </div>
-                        </SwiperSlide>
-                      ))}
-                    </Swiper>
-                    <div className="flex items-center gap-5 mt-4">
-                      <div className="flex-1 h-0.75 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-black rounded-full transition-all duration-300"
-                          style={{ width: `${(activePromoSlide / slides.length) * 100}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-[12px] font-bold tracking-tight text-black">{activePromoSlide}/{slides.length}</span>
-                    </div>
-                  </div>
-                  <Separator />
-                </div>
-
-              );
-            })()}
             {/* Explore Section */}
             {isCentralInStock && (
               <div className="space-y-4 mt-4">
@@ -3375,43 +3290,126 @@ export default function ProductPageClient({
               </div>
             )}
 
+            {/* Promo Cards Slider */}
+            {(() => {
+              const raw = priceBreakup?.raw_breakup;
+              const isDiamondJewelry = (raw?.diamond?.final || 0) > 0;
+              const currentTotalPrice = activeVariant?.price || 0;
+
+              const isGoldCoinEligible =
+                isDiamondJewelry &&
+                currentTotalPrice >= goldCoinConfig.threshold &&
+                goldCoinConfig.enabled;
+
+              const slides = [];
+
+              if (isGoldCoinEligible) {
+                slides.push({
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPGoldCoin.png",
+                  title: "Complimentary Gold Coin",
+                  desc: goldCoinConfig.message || "Receive a free gold coin with this ring, making your order even more special."
+                });
+              }
+
+              slides.push(
+                {
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPOldGoldExchange.jpg",
+                  title: "Old Gold Exchange",
+                  desc: "Exchange your old gold at the best value and upgrade to new Lucira Jewelry with ease."
+                },
+                {
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPScheme.png",
+                  title: "9 + 1 Scheme",
+                  desc: "Complete 9 monthly payments and enjoy an extra month benefit from Lucira Jewelry."
+                }
+              );
+
+              return (
+                <div className="space-y-4 mt-4">
+                  <div className="overflow-hidden">
+                    <Swiper
+                      spaceBetween={12}
+                      slidesPerView={1.1}
+                      onSlideChange={(swiper) =>
+                        setActivePromoSlide(swiper.activeIndex + 1)
+                      }
+                      className="w-full overflow-visible!"
+                    >
+                      {slides.map((item, i) => (
+                        <SwiperSlide key={`promo-${i}`}>
+                          <div className="bg-[#F9F9F9] border border-gray-100 rounded p-2 md:p-5 flex items-stretch gap-2.5 md:gap-5 h-full">
+                            <div className="relative w-18 h-18 rounded overflow-hidden shrink-0">
+                              <Image
+                                src={item.img}
+                                alt={item.title}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <p className="text-base md:text-lg font-semibold italic leading-tight">
+                                {item.title}
+                              </p>
+
+                              <p className="text-xs md:text-sm leading-relaxed">
+                                {item.desc}
+                              </p>
+                            </div>
+                          </div>
+                        </SwiperSlide>
+                      ))}
+                    </Swiper>
+                    <div className="flex items-center gap-5 mt-4">
+                      <div className="flex-1 h-0.75 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-black rounded-full transition-all duration-300"
+                          style={{ width: `${(activePromoSlide / slides.length) * 100}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-[12px] font-bold tracking-tight text-black">{activePromoSlide}/{slides.length}</span>
+                    </div>
+                  </div>
+                </div>
+
+              );
+            })()}
+
             {/* Certification */}
             {!isGoldCoin && (
               <div className="pt-6">
                 <div className="bg-gray-50 border border-gray-100 rounded p-4">
-                  <div className="flex items-start justify-between flex-col md:flex-row gap-2 text-base font-semibold text-black mb-4">
-                    Certified Quality Guaranteed.
-                    <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black mt-0 whitespace-nowrap p-0 h-auto" asChild>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 md:gap-4 mb-4">
+                    <span className="text-base font-semibold text-black whitespace-nowrap">Certified Quality Guaranteed.</span>
+                    <Button variant="link" className="text-sm font-semibold underline underline-offset-[6px] decoration-black p-0 h-auto shrink-0 whitespace-nowrap self-start md:self-auto" asChild>
                       <a href="/images/certificate/SampleCertificate.jpg" alt="Sample Certificate" download>
                         See Sample Certificate
                       </a>
                     </Button>
                   </div>
-                  <div className="flex items-start justify-center gap-4 xl:flex-nowrap flex-wrap">
-                    <div className="flex items-center gap-7">
-                      <div className="w-14 h-14 relative">
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
-                      </div>
-                      <div className="w-14 h-14 relative">
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/SGL_528e2e93-e563-40b6-a8a6-c098475a6de9.png" alt="SGL" fill className="object-contain" />
-                      </div>
-                      <div className="w-14 h-14 relative">
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BIS.png" alt="BIS Hallmark" fill className="object-contain" />
-                      </div>
+                  <div className="flex items-center justify-start gap-7 flex-wrap">
+                    <div className="w-14 h-14 relative">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
+                    </div>
+                    <div className="w-14 h-14 relative">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/SGL_528e2e93-e563-40b6-a8a6-c098475a6de9.png" alt="SGL" fill className="object-contain" />
+                    </div>
+                    <div className="w-14 h-14 relative">
+                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BIS.png" alt="BIS Hallmark" fill className="object-contain" />
                     </div>
                   </div>
-                  <div className="flex items-center justify-center flex-col mt-5">
+                  <div className="mt-4">
                     {product.tags?.includes("Tennis Bracelets") || product.tags?.includes("Eternity") ? (
-                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                      <p className="text-sm text-black text-left"><strong>Note: </strong>
                        Handcrafted and personalized with care - slight variations in metal weight, diamond weight and quantity are natural with different sizes.
                       </p>
                     ) : 
-                      <p className="text-sm text-black text-center"><strong>Note: </strong> 
+                      <p className="text-sm text-black text-left"><strong>Note: </strong>
                         Handcrafted and personalized with care - slight variations in metal weight are natural with different sizes.
                       </p>
                     }                    
                     {product.tags?.includes("Only Pendant") && (
-                      <p className="text-sm text-black text-center mt-1">Chain is not included in the purchase.</p>
+                      <p className="text-sm text-black text-left mt-1">Chain is not included in the purchase.</p>
                     )}
                   </div>
                 </div>
@@ -3450,15 +3448,6 @@ export default function ProductPageClient({
         </Suspense>
       )}
 
-      {matchedCollectionTag ? (
-        <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
-      ) : (
-        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-          <StyledByLucira />
-        </Suspense>
-      )}
-
-      <OurProcess />
       <div ref={reviewsRef}>
         <CustomerReviews
           reviews={product.reviews}
@@ -3468,6 +3457,16 @@ export default function ProductPageClient({
           productHandle={product.handle}
         />
       </div>
+
+      {matchedCollectionTag ? (
+        <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
+      ) : (
+        <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+          <StyledByLucira />
+        </Suspense>
+      )}
+
+      <OurProcess />
       {matchingProducts.length > 0 && (
         <ProductSlider
           title="From the Same Collection"

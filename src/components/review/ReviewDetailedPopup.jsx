@@ -75,7 +75,7 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
       </button>
 
       {/* Main Container */}
-      <div className={`relative w-full h-[calc(90vh-64px)] md:h-auto ${currentImage ? 'max-w-5xl' : 'max-w-2xl'} bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300`}>
+      <div className={`relative w-full ${currentImage ? 'h-[calc(90vh-64px)] md:h-auto max-w-5xl' : 'h-auto max-w-2xl'} bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300`}>
         
         {/* Close Button */}
         <button
@@ -85,7 +85,7 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
             <X size={24} />
         </button>
 
-        <div className="flex flex-col md:flex-row h-full min-h-[400px] md:h-[600px]">
+        <div className={`flex flex-col md:flex-row ${currentImage ? 'h-full min-h-[400px] md:h-[600px]' : 'max-h-[80vh]'}`}>
           
           {/* Left Side: Image Gallery */}
           {currentImage && (
@@ -165,40 +165,20 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
           <div className={`w-full ${currentImage ? 'md:w-1/2' : 'md:w-full'} p-6 md:p-10 flex flex-col bg-white overflow-y-auto custom-scrollbar font-figtree`}>
             
             {/* User Info */}
-            <div className="flex items-center justify-between gap-4 mb-8">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-[#5A413F] text-white flex items-center justify-center font-bold text-2xl uppercase border-4 border-white shadow-md relative overflow-hidden flex-shrink-0">
-                  {review.personImage ? (
-                      <Image src={getValidSrc(review.personImage)} alt={review.personName} fill className="object-cover" unoptimized={true} />
-                  ) : (
-                      (review.personName || "C").charAt(0)
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-xl leading-tight mb-1 capitalize tracking-wide">{review.personName}</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-[#A8715A] font-bold uppercase">
-                      <BadgeCheck size={16} className="fill-[#A8715A] text-white" />
-                      Verified Customer
-                  </div>
-                </div>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-16 h-16 rounded-full bg-[#5A413F] text-white flex items-center justify-center font-bold text-2xl uppercase border-4 border-white shadow-md relative overflow-hidden flex-shrink-0">
+                {review.personImage ? (
+                    <Image src={getValidSrc(review.personImage)} alt={review.personName} fill className="object-cover" unoptimized={true} />
+                ) : (
+                    (review.personName || "C").charAt(0)
+                )}
               </div>
-
-              {/* Mobile Review Navigation Arrows */}
-              <div className="flex md:hidden items-center gap-1">
-                <button 
-                  onClick={handlePrev}
-                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-black transition-colors shadow-sm"
-                  aria-label="Previous review"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <button 
-                  onClick={handleNext}
-                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-black transition-colors shadow-sm"
-                  aria-label="Next review"
-                >
-                  <ChevronRight size={20} />
-                </button>
+              <div>
+                <h3 className="font-bold text-gray-900 text-xl leading-tight mb-1 capitalize tracking-wide">{review.personName}</h3>
+                <div className="flex items-center gap-1.5 text-xs text-[#A8715A] font-bold uppercase">
+                    <BadgeCheck size={16} className="fill-[#A8715A] text-white" />
+                    Verified Customer
+                </div>
               </div>
             </div>
 
@@ -246,6 +226,24 @@ export default function ReviewDetailedPopup({ isOpen, onClose, reviews, activeIn
                 </div>
               </Link>
             )}
+
+            {/* Mobile Review Navigation Arrows (Bottom Right) */}
+            <div className={`flex md:hidden items-center justify-end gap-2 ${review.productHandle ? 'mt-4' : 'mt-auto'}`}>
+              <button 
+                onClick={handlePrev}
+                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-black transition-colors shadow-sm"
+                aria-label="Previous review"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button 
+                onClick={handleNext}
+                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-black transition-colors shadow-sm"
+                aria-label="Next review"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

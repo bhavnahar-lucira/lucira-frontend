@@ -373,26 +373,26 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
         </div>
 
         {/* Calculator Header Row */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-zinc-900 text-lg font-bold">Calculator</h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <h2 className="text-zinc-900 text-xl font-extrabold tracking-tight">Calculator</h2>
           {/* Mode Tabs */}
-          <div className="flex bg-[#FAF3EC]/50 border border-[#F2E3C6] p-1 rounded-xl w-fit">
+          <div className="flex bg-[#FAF3EC]/50 border border-[#F2E3C6] p-1 rounded-xl w-full md:w-fit">
             <button
               onClick={() => setCalcMode("weight")}
-              className={`px-5 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
+              className={`flex-1 md:flex-none px-3 md:px-5 py-2 text-xs font-bold uppercase rounded-lg transition-all text-center ${
                 calcMode === "weight"
-                  ? "bg-[#B77767] text-zinc-900"
-                  : "text-zinc-500 hover:text-zinc-900"
+                  ? "bg-[#B77767] text-white shadow-md"
+                  : "text-zinc-500 hover:text-zinc-900 hover:bg-white/50"
               }`}
             >
               Calculate By Weight
             </button>
             <button
               onClick={() => setCalcMode("amount")}
-              className={`px-5 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
+              className={`flex-1 md:flex-none px-3 md:px-5 py-2 text-xs font-bold uppercase rounded-lg transition-all text-center ${
                 calcMode === "amount"
-                  ? "bg-[#B77767] text-zinc-900"
-                  : "text-zinc-500 hover:text-zinc-900"
+                  ? "bg-[#B77767] text-white shadow-md"
+                  : "text-zinc-500 hover:text-zinc-900 hover:bg-white/50"
               }`}
             >
               Calculate By Amount
