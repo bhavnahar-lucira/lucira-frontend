@@ -36,15 +36,25 @@ export function AuthDialog({
     }
   }, [open, initialStep]);
 
+  // Registering dispatches `login`, which flips isAuthModalOpen to false in Redux
+  // and would yank the modal away before the reward coupon is ever seen. Latch it
+  // open on the success step until the user dismisses it themselves.
+  const isOpen = open || currentStep === "success";
+
+  const handleClose = () => {
+    setCurrentStep(initialStep); // releases the success latch
+    onOpenChange(false);
+  };
+
   const handleSuccess = (redirectPath) => {
     // 1. Explicitly navigate first if a path is provided
     if (redirectPath) {
       router.push(redirectPath);
     }
-    
+
     // 2. Then close the modal after a short delay to allow navigation to initiate
     setTimeout(() => {
-      onOpenChange(false);
+      handleClose();
       if (onSuccess) onSuccess();
     }, 50);
   };
@@ -55,9 +65,9 @@ export function AuthDialog({
 
   if (isMobile) {
     return (
-      <Sheet 
-        isOpen={open} 
-        onClose={() => onOpenChange(false)}
+      <Sheet
+        isOpen={isOpen}
+        onClose={handleClose}
         style={{ zIndex: 2000 }}
       >
         <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !z-[2000]">
@@ -67,9 +77,9 @@ export function AuthDialog({
               <p>{currentStep === "register" ? "Join Lucira to win rewards." : "Login to your account."}</p>
             </div>
             <div className="custom-scrollbar-hide">
-              <OtpSpinAuth 
-                onSuccess={handleSuccess} 
-                onClose={() => onOpenChange(false)} 
+              <OtpSpinAuth
+                onSuccess={handleSuccess}
+                onClose={handleClose}
                 initialStep={currentStep}
                 onStepChange={handleStepChange}
                 forceShowWheel={forceShowWheel}
@@ -80,15 +90,15 @@ export function AuthDialog({
             </div>
           </Sheet.Content>
         </Sheet.Container>
-        <Sheet.Backdrop onTap={() => onOpenChange(false)} className="!z-[1999]" />
+        <Sheet.Backdrop onTap={handleClose} />
       </Sheet>
     );
   }
 
   return (
     <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
+      open={isOpen}
+      onOpenChange={(val) => (val ? onOpenChange(true) : handleClose())}
     >
       <DialogContent className="w-full max-w-[95vw] sm:max-w-[1200px] p-0 border-none bg-transparent shadow-none overflow-visible" showCloseButton={false}>
         <div className="sr-only">
@@ -97,9 +107,9 @@ export function AuthDialog({
             Login or register to access your account and win prizes.
           </DialogDescription>
         </div>
-        <OtpSpinAuth 
-          onSuccess={handleSuccess} 
-          onClose={() => onOpenChange(false)} 
+        <OtpSpinAuth
+          onSuccess={handleSuccess}
+          onClose={handleClose}
           initialStep={currentStep}
           onStepChange={handleStepChange}
           forceShowWheel={forceShowWheel}

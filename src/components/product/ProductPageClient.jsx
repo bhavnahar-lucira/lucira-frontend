@@ -1330,6 +1330,7 @@ export default function ProductPageClient({
         gst: raw?.raw_breakup?.gst?.amount || 0,
         finalPrice: raw?.raw_breakup?.total || activeVariant.price,
         diamondTotalPcs: raw?.raw_breakup?.diamond?.pcs || fallbackDiamondPcs,
+        diamondCarat: raw?.raw_breakup?.diamond?.carat || 0,
         metafields: activeVariant.metafields || {},
         hasVideo: Boolean(product.media?.some((m) => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO")),
         hasSimilar: Boolean(product.handle),
