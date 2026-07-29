@@ -17,7 +17,6 @@ import { useCart } from "@/hooks/useCart";
 import { applyCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
-import AdditionalOffersSlab from "./AdditionalOffersSlab";
 import { isAdditionalOfferCode, getAdditionalOfferLabel } from "@/lib/cartOffers";
 import { apiFetch } from "@/lib/api";
 
@@ -159,8 +158,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       return;
     }
 
-    // The ADDITIONALRS* slab codes manage their own tier/eligibility inside
-    // AdditionalOffersSlab, so this generic re-validation must leave them alone.
+    // ADDITIONALRS* codes carry their own tier/eligibility rules (see
+    // @/lib/cartOffers), so this generic re-validation must leave them alone.
     if (isAdditionalOfferCode(couponDetails?.code)) return;
 
     if (appliedCoupon && items.length > 0 && couponDetails?.code) {
@@ -489,8 +488,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
           <GoldCoinOption />
 
-          <AdditionalOffersSlab />
-
           <Sheet open={isCouponSheetOpen} onOpenChange={setIsCouponSheetOpen}>
             <SheetTrigger asChild>
               <button
@@ -578,8 +575,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         <GoldCoinOption />
 
         <div className="space-y-3">
-          <AdditionalOffersSlab />
-
           <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
             <DialogTrigger asChild>
               <button
