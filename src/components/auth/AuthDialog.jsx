@@ -68,8 +68,9 @@ export function AuthDialog({
       <Sheet
         isOpen={isOpen}
         onClose={handleClose}
+        style={{ zIndex: 2000 }}
       >
-        <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto">
+        <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !z-[2000]">
           <Sheet.Content className="!p-0">
             <div className="sr-only">
               <h2>{currentStep === "register" ? "Registration" : "Authentication"}</h2>

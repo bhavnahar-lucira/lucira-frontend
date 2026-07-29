@@ -1,0 +1,194 @@
+/* ═══════════════════════════════════════════════════════════════
+   GOLD RATE PAGE CONTENT STYLING
+   Tables, lists, rich content and FAQ accordions for the
+   Shopify-powered rate pages (.footer-pages content).
+
+   Moved out of globals.css. The `.footer-pages` selectors are shared
+   by the silver/platinum rate pages, generic /pages/* footer pages
+   and the home information section, so this file is imported by:
+   - src/app/(frontend)/pages/[handle]/page.js  (all /pages/* routes)
+   - src/components/home/InformationContent.jsx (home page)
+═══════════════════════════════════════════════════════════════ */
+
+/* Tailwind v4: resolve @apply utilities + custom theme (primary, fonts)
+   against the main stylesheet without duplicating its output. */
+@reference "../app/globals.css";
+
+.gold-rate-page__hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* ── Tables ─────────────────────────────────────────────────── */
+
+.footer-pages table {
+  @apply w-full border-collapse border border-zinc-200 my-6 overflow-hidden;
+  font-family: var(--font-figtree), sans-serif;
+}
+
+.footer-pages table thead {
+  @apply bg-zinc-50 border-b-2 border-zinc-200;
+}
+
+.footer-pages table th {
+  @apply py-4 px-5 text-left text-sm font-semibold text-zinc-900 uppercase tracking-wider border border-zinc-200;
+  font-family: var(--font-abhaya), serif;
+}
+
+.footer-pages table tbody tr {
+  @apply transition-colors hover:bg-zinc-50;
+}
+
+.footer-pages table tbody tr:last-child {
+  @apply border-b-0;
+}
+
+.footer-pages table td {
+  @apply py-4 px-5 text-sm text-zinc-600 leading-relaxed border border-zinc-200;
+  font-family: var(--font-figtree), sans-serif;
+}
+
+.footer-pages table td:first-child {
+  @apply font-medium text-zinc-800;
+}
+
+/* Responsive tables */
+@media (max-width: 768px) {
+  .footer-pages table {
+    @apply text-xs;
+    /* Wide tables (buying guide, comparisons) exceed the viewport on phones;
+       scroll them horizontally instead of clipping the right-hand columns. */
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Keep narrow tables stretching to full container width */
+  .footer-pages table thead,
+  .footer-pages table tbody {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .footer-pages table th,
+  .footer-pages table td {
+    @apply py-3 px-3;
+  }
+}
+
+/* ── Lists ──────────────────────────────────────────────────── */
+
+.footer-pages ul {
+  @apply flex flex-col gap-3 my-5 pl-0;
+  list-style: none;
+}
+
+.footer-pages ul li {
+  @apply relative text-zinc-600 text-sm leading-relaxed pl-6;
+  font-family: var(--font-figtree), sans-serif;
+}
+
+.footer-pages ul li::before {
+  content: "";
+  @apply absolute left-0 top-2 w-1.5 h-1.5 bg-primary rounded-full;
+}
+
+/* Nested lists */
+.footer-pages ul ul {
+  @apply ml-6 mt-3;
+}
+
+/* ── Rich content ───────────────────────────────────────────── */
+
+/* Strong/bold text in Shopify content */
+.footer-pages strong,
+.footer-pages b {
+  @apply font-semibold text-zinc-900;
+}
+
+/* Links in Shopify content */
+.footer-pages a {
+  @apply text-primary underline underline-offset-2 hover:text-primary/80 transition-colors;
+}
+
+/* Blockquotes in Shopify content */
+.footer-pages blockquote {
+  @apply border-l-4 border-primary bg-zinc-50 pl-4 py-3 my-5 italic text-zinc-700 rounded-r;
+}
+
+/* Code blocks in Shopify content */
+.footer-pages code {
+  @apply bg-zinc-100 px-2 py-1 rounded text-sm text-zinc-800 font-mono;
+}
+
+.footer-pages pre {
+  @apply bg-zinc-900 text-zinc-100 p-4 rounded-lg overflow-x-auto my-5;
+}
+
+.footer-pages pre code {
+  @apply bg-transparent text-inherit p-0;
+}
+
+/* Horizontal rule in Shopify content */
+.footer-pages hr {
+  @apply border-zinc-200 my-8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FAQ/ACCORDION STYLING for Shopify content
+   Matches the old FAQSection component styling
+═══════════════════════════════════════════════════════════════ */
+
+/* FAQ accordion container */
+.footer-pages details {
+  @apply bg-white rounded-3xl overflow-hidden border border-zinc-100 shadow-sm mb-6;
+}
+
+/* FAQ summary/question */
+.footer-pages summary {
+  @apply w-full p-4 md:p-6 text-left flex justify-between items-center cursor-pointer list-none transition-colors duration-300;
+  font-family: var(--font-figtree), sans-serif;
+}
+
+.footer-pages summary::-webkit-details-marker {
+  display: none;
+}
+
+.footer-pages summary::after {
+  content: "";
+  @apply flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors bg-zinc-50 text-zinc-400;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='5' x2='12' y2='19'%3E%3C/line%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.footer-pages details[open] summary::after {
+  @apply bg-primary text-white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3C/svg%3E");
+}
+
+.footer-pages summary>* {
+  @apply text-[14px] md:text-[18px] capitalize tracking-tight text-zinc-800 transition-colors duration-300;
+}
+
+.footer-pages details[open] summary>* {
+  @apply text-primary;
+}
+
+/* FAQ content/answer */
+.footer-pages details>div {
+  @apply p-4 md:p-6 pt-0 text-zinc-500 leading-relaxed text-[14px] md:text-[18px] border-t border-zinc-50;
+  font-family: var(--font-figtree), sans-serif;
+}
+
+/* FAQ heading within Shopify content */
+.footer-pages .faq-heading {
+  @apply text-[18px] md:text-[28px] font-medium text-zinc-900 uppercase tracking-tight mb-12 text-center;
+  font-family: var(--font-abhaya), serif;
+}
+
+/* FAQ container with divider */
+.footer-pages .faq-container {
+  @apply py-12 md:pt-24 border-t border-zinc-100;
+}
