@@ -44,7 +44,7 @@ export default function InsuranceOption() {
         productId: "gid://shopify/Product/9207163617498",
         variantId: INSURANCE_VARIANT_ID,
         title: "Insurance",
-        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/story-ring.jpg",
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Insurance_Img_on_Cart_no_radius.png?v=1785224168",
         price: INSURANCE_PRICE,
         quantity: otherItemsQuantity || 1,
         variantTitle: "Shipping Protection",
@@ -73,15 +73,20 @@ export default function InsuranceOption() {
       <div className="relative w-full aspect-[2.2/1] lg:aspect-[3.4/1] rounded-xl overflow-hidden bg-[#FEF9F6]">
         <Image
           loader={shopifyLoader}
-          src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/story-ring.jpg"
+          src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/New_Insurance_Image_Mob.png?v=1785230431"
           alt="Insurance"
           fill
-          sizes="(max-width: 1024px) 100vw, 480px"
-          className="object-cover"
+          sizes="100vw"
+          className="object-cover lg:hidden"
         />
-        <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm rounded-md p-1 border border-zinc-100">
-          <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/small-logo.svg" alt="Lucira" width={18} height={18} />
-        </div>
+        <Image
+          loader={shopifyLoader}
+          src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/New_Insurance_Image_Web.png?v=1785230430"
+          alt="Insurance"
+          fill
+          sizes="480px"
+          className="object-cover hidden lg:block"
+        />
       </div>
 
       {/* Title */}

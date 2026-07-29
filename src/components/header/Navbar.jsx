@@ -292,11 +292,22 @@ export default function Navbar({ hideTop, menuData }) {
 
                 /* IMAGE GRID */
                 if (isImageOnly) {
-                  const items = menu.items || menu.cards;
+                  const allItems = menu.items || menu.cards || [];
+                  const quickLinks = menu.quickLinks || [];
+                  // Collections whose quick-link tile is desktop-only replace
+                  // their big image card here (e.g. Cotton Candy).
+                  const items = quickLinks.length
+                    ? allItems.filter(
+                        (it) => !quickLinks.some((q) => q.desktopOnly && q.href === it.href)
+                      )
+                    : allItems;
+                  const imageGridTemplate = quickLinks.length
+                    ? `repeat(${items.length}, minmax(0, 1fr)) minmax(0, 1.15fr)`
+                    : gridTemplate;
                   return (
                     <div
                       className="grid gap-x-6"
-                      style={{ gridTemplateColumns: gridTemplate }}
+                      style={{ gridTemplateColumns: imageGridTemplate }}
                     >
                       {items.map((item, i) => (
                         <Link
@@ -334,6 +345,33 @@ export default function Navbar({ hideTop, menuData }) {
                           </div>
                         </Link>
                       ))}
+
+                      {quickLinks.length > 0 && (
+                        <div className="grid grid-cols-2 auto-rows-fr gap-3">
+                          {quickLinks.map((link, i) => (
+                            <Link
+                              key={i}
+                              href={link.href || "#"}
+                              prefetch={false}
+                              onClick={closeMenu}
+                              className="flex items-center gap-2.5 rounded-lg bg-[#F8F8F8] px-3 py-2.5 hover:bg-[#F0EBE7] transition-colors"
+                            >
+                              <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                                <Image
+                                  src={link.image}
+                                  alt={link.label}
+                                  fill
+                                  unoptimized={link.image?.includes("cdn.shopify.com")}
+                                  className="object-contain"
+                                />
+                              </span>
+                              <span className="text-sm font-medium text-zinc-900 leading-snug">
+                                {link.label}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 }
