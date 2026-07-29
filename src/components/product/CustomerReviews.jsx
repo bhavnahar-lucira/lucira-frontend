@@ -51,12 +51,11 @@ export default function CustomerReviews({
   const [usedFallback, setUsedFallback] = useState(false);
   const [isWriteReviewOpen, setIsWriteReviewOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
   const isMobile = useMediaQuery("(max-width: 767px)");
   const listTopRef = useRef(null);
 
-  const MOBILE_REVIEWS_PER_PAGE = 2;
+  const reviewsPerPage = isMobile ? 2 : 3;
 
   // Jump back to the top of the review list when the user changes page
   const handlePageChange = (page) => {
@@ -238,25 +237,27 @@ export default function CustomerReviews({
           </button>
         </div>
 
-        {/* Desktop: full summary */}
-        <div className="hidden md:flex flex-row items-center justify-center gap-24 mb-12">
-          <div className="flex flex-col items-center">
-            <span className="text-6xl font-medium text-[#1A1A1A] mb-4">{data.average}</span>
-            <div className="flex gap-1 mb-4 text-[#D4A373]">
+        {/* Desktop: Premium Unified Summary Card */}
+        <div className="hidden md:grid grid-cols-4 gap-8 items-center bg-white/70 border border-[#EBE0D8] rounded-3xl p-8 mb-12 shadow-sm">
+          {/* Average Rating Column */}
+          <div className="flex flex-col items-center border-r border-[#EBE0D8]/60 pr-6 text-center">
+            <span className="text-6xl font-medium text-[#1A1A1A] mb-2">{data.average}</span>
+            <div className="flex gap-1 mb-2 text-[#D4A373]">
               {[1, 2, 3, 4, 5].map((i) => (
                 <Star key={`summary-star-${i}`} size={18} fill={i <= Math.round(data.average) ? "currentColor" : "none"} className={i <= Math.round(data.average) ? "" : "text-zinc-200"} />
               ))}
             </div>
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">{data.count} reviews</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">{data.count} reviews</span>
           </div>
 
-          <div className="flex-grow max-w-lg w-full space-y-2">
+          {/* Progress Bars Column (Spans 2) */}
+          <div className="col-span-2 px-6 space-y-2.5">
             {[5, 4, 3, 2, 1].map((num) => {
               const count = data.list?.filter((r) => Math.round(r.rating) === num).length || 0;
               const percent = data.count ? Math.round((count / data.count) * 100) : 0;
               return (
                 <div key={`progress-${num}`} className="flex items-center gap-6 group">
-                  <span className="text-[11px] font-normal text-gray-600 w-12 whitespace-nowrap">{num} Stars</span>
+                  <span className="text-[11px] font-medium text-gray-600 w-12 whitespace-nowrap">{num} Stars</span>
                   <div className="flex-grow h-[3px] bg-[#EBE0D8] rounded-full overflow-hidden">
                     <div className="h-full bg-[#A36B6F] transition-all duration-500" style={{ width: `${percent}%` }}></div>
                   </div>
@@ -266,9 +267,18 @@ export default function CustomerReviews({
             })}
           </div>
 
-          <div className="flex flex-col items-center">
-            <span className="text-5xl font-medium text-[#1A1A1A] mb-2">{recommendPct}%</span>
-            <p className="text-[10px] text-gray-500 max-w-[120px] uppercase tracking-widest leading-relaxed text-center font-figtree">Would recommend this product</p>
+          {/* Recommend & CTA Column */}
+          <div className="flex flex-col items-center border-l border-[#EBE0D8]/60 pl-6 gap-4 text-center">
+            <div>
+              <span className="text-4xl font-semibold text-[#1A1A1A] mb-1 block">{recommendPct}%</span>
+              <p className="text-[10px] text-gray-500 max-w-[120px] uppercase tracking-widest leading-relaxed text-center font-figtree">Would recommend this product</p>
+            </div>
+            <button 
+              onClick={() => setIsWriteReviewOpen(true)} 
+              className="w-full max-w-[180px] py-3 text-[10px] font-bold uppercase tracking-widest bg-[#5A413F] text-white hover:bg-[#4E3533] transition-all font-figtree rounded-full shadow-md active:scale-95"
+            >
+              Write a Review
+            </button>
           </div>
         </div>
 
@@ -331,15 +341,15 @@ export default function CustomerReviews({
         {/* Reviews Grid */}
         {(() => {
           const totalReviews = mappedReviews.length;
-          const totalPages = Math.ceil(totalReviews / MOBILE_REVIEWS_PER_PAGE);
+          const totalPages = Math.ceil(totalReviews / reviewsPerPage);
           const safePage = Math.min(currentPage, Math.max(totalPages, 1));
-          const pageStart = isMobile ? (safePage - 1) * MOBILE_REVIEWS_PER_PAGE : 0;
-          const pageEnd = isMobile ? pageStart + MOBILE_REVIEWS_PER_PAGE : visibleCount;
+          const pageStart = (safePage - 1) * reviewsPerPage;
+          const pageEnd = pageStart + reviewsPerPage;
           const visibleReviews = mappedReviews.slice(pageStart, pageEnd);
 
           return (
             <>
-              {isMobile && totalReviews > 0 && (
+              {totalReviews > 0 && (
                 <p className="text-center text-xs font-medium text-gray-500 tracking-wide mb-5 font-figtree">
                   Showing {pageStart + 1} - {Math.min(pageEnd, totalReviews)} out of {totalReviews}
                 </p>
@@ -351,17 +361,14 @@ export default function CustomerReviews({
                 ))}
               </div>
 
-              {isMobile && totalPages > 1 && (
+              {totalPages > 1 && (
                 <ReviewsPagination currentPage={safePage} totalPages={totalPages} onPageChange={handlePageChange} />
               )}
             </>
           );
         })()}
 
-        <div className="mt-20 text-center hidden md:flex flex-col items-center gap-6">
-           <button onClick={() => setIsWriteReviewOpen(true)} className="text-xs font-bold uppercase tracking-widest border-b border-black pb-1 hover:text-gray-500 hover:border-gray-500 transition-colors font-figtree">Write a Review</button>
-           <Link prefetch={false} href="/reviews" target="_blank" className="w-auto px-10 py-4 text-sm font-bold uppercase bg-[#5A413F] hover:bg-[#4A3934] text-white transition-colors font-figtree tracking-widest">View All Reviews</Link>
-        </div>
+
       </div>
 
       <ReviewDetailedPopup isOpen={popupState.isOpen} onClose={() => setPopupState({ ...popupState, isOpen: false })} reviews={mappedReviews} activeIndex={popupState.index} onIndexChange={(index) => setPopupState({ ...popupState, index })} />
