@@ -149,13 +149,8 @@ export function OtpSpinAuth({
 
   // Focus management for different steps
   useEffect(() => {
-    if (step === "login") {
-      setTimeout(() => mobileRef.current?.focus(), 100);
-    } else if (step === "otp") {
-      setTimeout(() => otpRefs[0]?.current?.focus(), 100);
-    } else if (step === "register") {
-      setTimeout(() => firstNameRef.current?.focus(), 100);
-    }
+    // Disabled auto-focus as it causes keyboard to pop up on mobile unexpectedly
+    // and causes confusion when clicking non-interactive elements due to focus trap.
   }, [step]);
 
 
@@ -623,7 +618,13 @@ export function OtpSpinAuth({
           className={`flex flex-col items-center justify-center relative w-full h-[220px] md:h-auto overflow-hidden bg-center bg-cover bg-no-repeat md:w-[50%] md:self-stretch`}
           style={{ backgroundImage: 'url("https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BG_1_1.png?v=1770198650")' }}
         >
-          <div className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px]`}>
+          <div 
+            className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px] ${(step === "login" || step === "otp") ? "cursor-pointer" : ""}`}
+            onClick={() => {
+              if (step === "login") mobileRef.current?.focus();
+              else if (step === "otp") otpRefs[0]?.current?.focus();
+            }}
+          >
             <motion.img
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Below_Banner_Trust_Icon_Strip_1_1.png?v=1770784760"
               alt="Spin the Wheel"
@@ -666,8 +667,8 @@ export function OtpSpinAuth({
 
         {step === "login" && (
           <>
-            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0">{overrideHeading || "WELCOME TO LUCIRA"}</p>
-            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto">{overrideSubtext || "Welcome To The Jewelry World Of Lucira!"}</p>
+            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "WELCOME TO LUCIRA"}</p>
+            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideSubtext || "Welcome To The Jewelry World Of Lucira!"}</p>
             <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
               <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
               <input
@@ -756,8 +757,8 @@ export function OtpSpinAuth({
 
         {step === "register" && (
           <div className="overflow-hidden">
-            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0">Register to Win a Reward</p>
-            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto">Try Your Luck! Win a Diamond Pendant</p>
+            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 cursor-pointer" onClick={() => firstNameRef.current?.focus()}>Register to Win a Reward</p>
+            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto cursor-pointer" onClick={() => firstNameRef.current?.focus()}>Try Your Luck! Win a Diamond Pendant</p>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3.5 mb-2">
                 <div className="flex flex-col">
