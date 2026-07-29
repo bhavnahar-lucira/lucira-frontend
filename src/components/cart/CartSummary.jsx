@@ -17,7 +17,7 @@ import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
-import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode } from "@/lib/coupons";
+import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -360,6 +360,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   // The tiers are exclusive bands, so at most one code ever qualifies; the rest
   // render disabled in the drawer.
   const applicableCouponCode = getApplicableCouponCode(diamondTotal);
+  const applicableCouponCodes = getApplicableCouponCodes(diamondTotal);
 
   // Lead with the coupon the customer can actually use — an applied one first,
   // otherwise the qualifying tier — so the drawer never opens on a disabled
@@ -377,16 +378,33 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     <button
       type="button"
       onClick={() => setIsCouponDrawerOpen(true)}
-      className="flex items-center gap-3 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
+      className="flex items-center gap-4 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
     >
       <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF9F6] border border-[#EADFD8]">
         <Tag size={18} className="text-[#5A413F]" />
       </span>
       <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]">
+        <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]" style={{
+            fontFamily: "Figtree",
+            fontSize: "1rem",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            marginBottom: "4px",
+            marginTop: "2px",
+            color: "#000000",
+            fontWeight: "600"
+        }}>
           {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
         </p>
-        <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]">
+        <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]" style={{
+            marginTop: "5px",
+            fontFamily: "Figtree",
+            fontWeight: "400",
+            fontSize: "0.9rem",
+            lineHeight: "140%",
+            letterSpacing: "0%",
+            color: "#000000"
+        }}>
           Unlock exclusive savings on your order.
         </p>
       </div>
@@ -633,7 +651,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         ) : (
           <>
             {/* Every card is disabled — say why rather than leaving a dead list */}
-            {!appliedCoupon && !applicableCouponCode && items.length > 0 && (
+            {!appliedCoupon && applicableCouponCodes.length === 0 && items.length > 0 && (
               <div className="rounded-[8px] border border-[#EADFD8] bg-white px-3.5 py-2.5">
                 <p className="font-figtree text-xs font-medium leading-[1.4] text-[#6B5B54]">
                   These coupons apply to diamond products only. Add a diamond product to unlock them.
@@ -642,20 +660,31 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             )}
 
             {/* The same coupon ladder the PDP shows, in the same card design */}
-            {COUPONS.map((coupon) => (
-              <div key={coupon.code} className="w-full">
-                <CouponCard
-                  coupon={coupon}
-                  className="w-full"
-                  mode="apply"
-                  onApply={handleApplyCoupon}
-                  onRemove={handleRemoveCoupon}
-                  applyingCode={applyingCode}
-                  appliedCode={appliedCoupon ? couponDetails.code : null}
-                  isApplicable={coupon.code === applicableCouponCode}
-                />
-              </div>
-            ))}
+            {[...COUPONS]
+              .sort((a, b) => {
+                const aApp = applicableCouponCodes.includes(a.code);
+                const bApp = applicableCouponCodes.includes(b.code);
+                if (aApp && !bApp) return -1;
+                if (!aApp && bApp) return 1;
+                if (aApp && bApp) {
+                   return COUPONS.findIndex(c => c.code === b.code) - COUPONS.findIndex(c => c.code === a.code);
+                }
+                return COUPONS.findIndex(c => c.code === a.code) - COUPONS.findIndex(c => c.code === b.code);
+              })
+              .map((coupon) => (
+                <div key={coupon.code} className="w-full">
+                  <CouponCard
+                    coupon={coupon}
+                    className="w-full"
+                    mode="apply"
+                    onApply={handleApplyCoupon}
+                    onRemove={handleRemoveCoupon}
+                    applyingCode={applyingCode}
+                    appliedCode={appliedCoupon ? couponDetails.code : null}
+                    isApplicable={applicableCouponCodes.includes(coupon.code)}
+                  />
+                </div>
+              ))}
           </>
         )}
 

@@ -66,3 +66,14 @@ export const getApplicableCouponCode = (cartValue) => {
   if (value <= 0) return null;
   return COUPONS[getCouponIndexForPrice(value)]?.code ?? null;
 };
+
+/**
+ * Returns an array of all coupon codes that the cart qualifies for.
+ * This includes the highest tier achieved and all lower tiers.
+ */
+export const getApplicableCouponCodes = (cartValue) => {
+  const value = parsePrice(cartValue);
+  if (value <= 0) return [];
+  const maxIndex = getCouponIndexForPrice(value);
+  return COUPONS.slice(0, maxIndex + 1).map(c => c.code);
+};
