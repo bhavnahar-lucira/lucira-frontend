@@ -3013,91 +3013,6 @@ export default function ProductPageClient({
               <Separator />
             </div>
 
-            {/* Promo Cards Slider */}
-            {(() => {
-              const raw = priceBreakup?.raw_breakup;
-              const isDiamondJewelry = (raw?.diamond?.final || 0) > 0;
-              const currentTotalPrice = activeVariant?.price || 0;
-
-              const isGoldCoinEligible =
-                isDiamondJewelry &&
-                currentTotalPrice >= goldCoinConfig.threshold &&
-                goldCoinConfig.enabled;
-
-              const slides = [];
-
-              if (isGoldCoinEligible) {
-                slides.push({
-                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPGoldCoin.png",
-                  title: "Complimentary Gold Coin",
-                  desc: goldCoinConfig.message || "Receive a free gold coin with this ring, making your order even more special."
-                });
-              }
-
-              slides.push(
-                {
-                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPOldGoldExchange.jpg",
-                  title: "Old Gold Exchange",
-                  desc: "Exchange your old gold at the best value and upgrade to new Lucira Jewelry with ease."
-                },
-                {
-                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPScheme.png",
-                  title: "9 + 1 Scheme",
-                  desc: "Complete 9 monthly payments and enjoy an extra month benefit from Lucira Jewelry."
-                }
-              );
-
-              return (
-                <div className="space-y-4 mt-4">
-                  <div className="overflow-hidden">
-                    <Swiper
-                      spaceBetween={12}
-                      slidesPerView={1.1}
-                      onSlideChange={(swiper) =>
-                        setActivePromoSlide(swiper.activeIndex + 1)
-                      }
-                      className="w-full overflow-visible!"
-                    >
-                      {slides.map((item, i) => (
-                        <SwiperSlide key={`promo-${i}`}>
-                          <div className="bg-[#F9F9F9] border border-gray-100 rounded p-2 md:p-5 flex items-stretch gap-2.5 md:gap-5 h-full">
-                            <div className="relative w-18 h-18 rounded overflow-hidden shrink-0">
-                              <Image
-                                src={item.img}
-                                alt={item.title}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <p className="text-base md:text-lg font-semibold italic leading-tight">
-                                {item.title}
-                              </p>
-
-                              <p className="text-xs md:text-sm leading-relaxed">
-                                {item.desc}
-                              </p>
-                            </div>
-                          </div>
-                        </SwiperSlide>
-                      ))}
-                    </Swiper>
-                    <div className="flex items-center gap-5 mt-4">
-                      <div className="flex-1 h-0.75 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-black rounded-full transition-all duration-300"
-                          style={{ width: `${(activePromoSlide / slides.length) * 100}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-[12px] font-bold tracking-tight text-black">{activePromoSlide}/{slides.length}</span>
-                    </div>
-                  </div>
-                  <Separator />
-                </div>
-
-              );
-            })()}
             {/* Explore Section */}
             {isCentralInStock && (
               <div className="space-y-4 mt-4">
@@ -3373,6 +3288,91 @@ export default function ProductPageClient({
                 <span className="text-lg font-bold text-success">{priceBreakup.price_breakup.total_savings}</span>
               </div>
             )}
+
+            {/* Promo Cards Slider */}
+            {(() => {
+              const raw = priceBreakup?.raw_breakup;
+              const isDiamondJewelry = (raw?.diamond?.final || 0) > 0;
+              const currentTotalPrice = activeVariant?.price || 0;
+
+              const isGoldCoinEligible =
+                isDiamondJewelry &&
+                currentTotalPrice >= goldCoinConfig.threshold &&
+                goldCoinConfig.enabled;
+
+              const slides = [];
+
+              if (isGoldCoinEligible) {
+                slides.push({
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPGoldCoin.png",
+                  title: "Complimentary Gold Coin",
+                  desc: goldCoinConfig.message || "Receive a free gold coin with this ring, making your order even more special."
+                });
+              }
+
+              slides.push(
+                {
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPOldGoldExchange.jpg",
+                  title: "Old Gold Exchange",
+                  desc: "Exchange your old gold at the best value and upgrade to new Lucira Jewelry with ease."
+                },
+                {
+                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPScheme.png",
+                  title: "9 + 1 Scheme",
+                  desc: "Complete 9 monthly payments and enjoy an extra month benefit from Lucira Jewelry."
+                }
+              );
+
+              return (
+                <div className="space-y-4 mt-4">
+                  <div className="overflow-hidden">
+                    <Swiper
+                      spaceBetween={12}
+                      slidesPerView={1.1}
+                      onSlideChange={(swiper) =>
+                        setActivePromoSlide(swiper.activeIndex + 1)
+                      }
+                      className="w-full overflow-visible!"
+                    >
+                      {slides.map((item, i) => (
+                        <SwiperSlide key={`promo-${i}`}>
+                          <div className="bg-[#F9F9F9] border border-gray-100 rounded p-2 md:p-5 flex items-stretch gap-2.5 md:gap-5 h-full">
+                            <div className="relative w-18 h-18 rounded overflow-hidden shrink-0">
+                              <Image
+                                src={item.img}
+                                alt={item.title}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <p className="text-base md:text-lg font-semibold italic leading-tight">
+                                {item.title}
+                              </p>
+
+                              <p className="text-xs md:text-sm leading-relaxed">
+                                {item.desc}
+                              </p>
+                            </div>
+                          </div>
+                        </SwiperSlide>
+                      ))}
+                    </Swiper>
+                    <div className="flex items-center gap-5 mt-4">
+                      <div className="flex-1 h-0.75 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-black rounded-full transition-all duration-300"
+                          style={{ width: `${(activePromoSlide / slides.length) * 100}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-[12px] font-bold tracking-tight text-black">{activePromoSlide}/{slides.length}</span>
+                    </div>
+                  </div>
+                </div>
+
+              );
+            })()}
 
             {/* Certification */}
             {!isGoldCoin && (
