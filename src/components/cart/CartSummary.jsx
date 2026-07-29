@@ -17,7 +17,6 @@ import { useCart } from "@/hooks/useCart";
 import { applyCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
-import { isAdditionalOfferCode, getAdditionalOfferLabel } from "@/lib/cartOffers";
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -158,10 +157,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       return;
     }
 
-    // ADDITIONALRS* codes carry their own tier/eligibility rules (see
-    // @/lib/cartOffers), so this generic re-validation must leave them alone.
-    if (isAdditionalOfferCode(couponDetails?.code)) return;
-
     if (appliedCoupon && items.length > 0 && couponDetails?.code) {
         const validateCurrentCoupon = async () => {
           try {
@@ -255,20 +250,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     }
   }
 
-  // Label shown in the price breakdown / coupon tile for the applied coupon.
-  const couponLabel = couponDetails.code?.toUpperCase() === 'EMBRACE3%'
-    ? 'Coupon Applied'
-    : isAdditionalOfferCode(couponDetails.code)
-      ? getAdditionalOfferLabel(couponDetails.code)
-      : `Coupon (${couponDetails.code})`;
-
-  const couponTileLabel = couponDetails.code?.toUpperCase() === 'EMBRACE3%'
-    ? 'Coupon Applied'
-    : isAdditionalOfferCode(couponDetails.code)
-      ? `Applied: ${getAdditionalOfferLabel(couponDetails.code)}`
-      : `Applied: ${couponDetails.code}`;
-
-  const discount = couponDiscountAmount;
+  const discount = couponDiscountAmount; 
   const shipping = 0; 
   const grandTotal = subtotal + insuranceAmount - discount + shipping;
 
@@ -386,7 +368,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {appliedCoupon && (
           <div className="flex justify-between items-center font-figtree text-base text-[#189351]">
             <div className="flex items-center gap-2">
-              <span className="font-semibold uppercase tracking-wide">{couponLabel}</span>
+              <span className="font-semibold uppercase tracking-wide">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
               <button
                 onClick={handleRemoveCoupon}
                 className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
@@ -440,7 +422,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             {appliedCoupon && (
               <div className="flex justify-between font-figtree text-base items-center text-[#189351]">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold uppercase tracking-wide">{couponLabel}</span>
+                  <span className="font-semibold uppercase tracking-wide">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
                   <button
                     onClick={handleRemoveCoupon}
                     className="text-[10px] font-bold text-red-500 hover:underline uppercase"
@@ -487,7 +469,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
 
           <GoldCoinOption />
-
+          
           <Sheet open={isCouponSheetOpen} onOpenChange={setIsCouponSheetOpen}>
             <SheetTrigger asChild>
               <button
@@ -498,7 +480,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 </span>
                 <div className="min-w-0 flex-1 text-left">
                   <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]">
-                    {appliedCoupon ? couponTileLabel : "Apply Coupon"}
+                    {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
                   </p>
                   <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]">
                     Unlock exclusive savings on your order.
@@ -575,6 +557,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         <GoldCoinOption />
 
         <div className="space-y-3">
+
+
           <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
             <DialogTrigger asChild>
               <button
@@ -585,7 +569,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 </span>
                 <div className="min-w-0 flex-1 text-left">
                   <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]">
-                    {appliedCoupon ? couponTileLabel : "Apply Coupon"}
+                    {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
                   </p>
                   <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]">
                     Unlock exclusive savings on your order.
