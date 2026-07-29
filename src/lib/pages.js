@@ -30,8 +30,12 @@ function parseNextPageInfo(linkHeader) {
 
 export async function getAllPages() {
   const query = `
-      query {
-        pages(first: 250) {
+      query getAllPages($cursor: String) {
+        pages(first: 250, after: $cursor) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
           edges {
             node {
               id
@@ -42,11 +46,35 @@ export async function getAllPages() {
         }
       }
     `;
-  const data = await shopifyStorefrontFetch(query, {}, {
-    cache: 'force-cache',
-    useRwToken: true
-  });
-  return data?.pages?.edges.map(e => e.node) || [];
+
+  // The store has ~700 pages (most of them the city gold/silver/platinum rate pages),
+  // so a single unpaginated `first: 250` silently dropped ~450 of them from the sitemap
+  // and from generateStaticParams. Walk every page of results.
+  //
+  // useRwToken is required: the default STOREFRONT_TOKEN lacks the
+  // `unauthenticated_read_content` scope and gets ACCESS_DENIED on `pages`.
+  let nodes = [];
+  let cursor = null;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const data = await shopifyStorefrontFetch(query, { cursor }, {
+      cache: 'force-cache',
+      useRwToken: true
+    });
+
+    // Never `break` on a mid-pagination failure — that publishes a partial page list
+    // that looks complete. Throw so the caller (sitemap / generateStaticParams) sees it.
+    if (!data?.pages) {
+      throw new Error(`Failed to fetch pages at cursor ${cursor}. Halting to prevent a partial page list.`);
+    }
+
+    nodes = [...nodes, ...data.pages.edges.map(e => e.node)];
+    hasNextPage = data.pages.pageInfo.hasNextPage;
+    cursor = data.pages.pageInfo.endCursor;
+  }
+
+  return nodes;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

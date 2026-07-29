@@ -138,6 +138,23 @@ export const registerCustomer = (payload) =>
     }),
   });
 
+/* ================= SPIN THE WHEEL PRIZE ================= */
+
+// Stores the wheel reward on the Shopify customer record
+// (metafield custom.win_prize_spin_the_sheel). This hits the Next.js route
+// directly — not apiFetch — because the write needs the Admin token, which
+// only exists server-side in this app.
+export const saveSpinPrize = async ({ customerId, email, mobile, prize }) => {
+  const res = await fetch("/api/customer/spin-prize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customerId, email, mobile, prize }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  return data;
+};
+
 export const fetchCustomerProfile = (accessToken) =>
   apiFetch("/api/customer/profile", {
     headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}

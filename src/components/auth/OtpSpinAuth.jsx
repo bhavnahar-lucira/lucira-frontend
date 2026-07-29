@@ -13,6 +13,7 @@ import {
   checkCustomerApi,
   fetchOrnaverseCustomer,
   createOrnaverseCustomer,
+  saveSpinPrize,
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
@@ -124,6 +125,7 @@ export function OtpSpinAuth({
   const [consent, setConsent] = useState(true);
   const [pendingRegister, setPendingRegister] = useState(false);
   const [isMobileVerified, setIsMobileVerified] = useState(false);
+  const [couponCopied, setCouponCopied] = useState(false);
 
   const isSchemeFlow = pathname?.startsWith("/schemes") || 
                        (typeof window !== "undefined" && localStorage.getItem("auth_redirect_path")?.startsWith("/schemes"));
@@ -147,13 +149,8 @@ export function OtpSpinAuth({
 
   // Focus management for different steps
   useEffect(() => {
-    if (step === "login") {
-      setTimeout(() => mobileRef.current?.focus(), 100);
-    } else if (step === "otp") {
-      setTimeout(() => otpRefs[0]?.current?.focus(), 100);
-    } else if (step === "register") {
-      setTimeout(() => firstNameRef.current?.focus(), 100);
-    }
+    // Disabled auto-focus as it causes keyboard to pop up on mobile unexpectedly
+    // and causes confusion when clicking non-interactive elements due to focus trap.
   }, [step]);
 
 
@@ -268,6 +265,23 @@ export function OtpSpinAuth({
     }
   };
 
+  // Persist the wheel reward on the customer's Shopify record so it is visible
+  // in Admin and usable by marketing. Best-effort: never block the success UI.
+  const persistPrize = async (regData, prize) => {
+    if (!prize?.value) return;
+    const user = regData?.user || regData?.customer || {};
+    try {
+      await saveSpinPrize({
+        customerId: user.id || user.customerId || "",
+        email: email || user.email || "",
+        mobile,
+        prize: prize.value,
+      });
+    } catch (err) {
+      console.warn("[OtpSpinAuth] Failed to store spin prize metafield:", err.message);
+    }
+  };
+
   const handleSendOtp = async () => {
     if (mobile.length !== 10) return toast.error("Please enter a valid 10-digit mobile number");
     if (!/^[6-9]/.test(mobile)) return toast.error("Please enter a valid Indian mobile number starting with 6, 7, 8 or 9");
@@ -341,9 +355,15 @@ export function OtpSpinAuth({
           });
 
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-            await loginSuccess(regData, true, false, ornaUser);
+            // Switch to the coupon screen BEFORE logging in: the `login` dispatch
+            // flips Redux to authenticated, and the auth pages / global modal tear
+            // this component down the moment that happens.
             handleStepChange("success");
             setPendingRegister(false);
+            // skipRedirect: hold the popup open on the coupon screen instead of
+            // navigating away. "CONTINUE SHOPPING" there performs the redirect.
+            await loginSuccess(regData, true, true, ornaUser);
+            await persistPrize(regData, wonPrize);
           }
         } else {
           setIsMobileVerified(true);
@@ -497,9 +517,14 @@ export function OtpSpinAuth({
             prizeLabel: prize?.label,
           });
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
-            await loginSuccess(regData, true, false, ornaUser);
+            // See note above: the coupon screen has to be in place before `login`
+            // is dispatched, otherwise the parent unmounts us first.
             handleStepChange("success");
             setPendingRegister(false);
+            // skipRedirect: hold the popup open on the coupon screen instead of
+            // navigating away. "CONTINUE SHOPPING" there performs the redirect.
+            await loginSuccess(regData, true, true, ornaUser);
+            await persistPrize(regData, prize);
           }
         } catch (err) {
           toast.error(err.message || "Registration failed");
@@ -525,10 +550,26 @@ export function OtpSpinAuth({
     }, 500);
   };
 
-  const copyCoupon = () => {
-    const code = COUPON_MAP[wonPrize?.value] || "LUCIRA10";
-    navigator.clipboard.writeText(code);
+  const couponCode = COUPON_MAP[wonPrize?.value];
+
+  const copyCoupon = async () => {
+    if (!couponCode) return;
+    try {
+      await navigator.clipboard.writeText(couponCode);
+    } catch (err) {
+      // Clipboard API is unavailable on insecure origins / older browsers
+      const el = document.createElement("textarea");
+      el.value = couponCode;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    setCouponCopied(true);
     toast.success("Coupon copied!");
+    setTimeout(() => setCouponCopied(false), 2000);
   };
 
   const showWheel = step === "register" || forceShowWheel;
@@ -559,7 +600,12 @@ export function OtpSpinAuth({
       {showCloseButton && (
         <button 
           className="absolute top-5 right-5 z-20 p-1 rounded-full text-black cursor-pointer border-none flex items-center justify-center bg-white/50 backdrop-blur-sm" 
-          onClick={onClose || onSuccess}
+          onClick={() => {
+            // Dismissing the coupon screen still leaves the user logged in, so
+            // refresh to pick up server-rendered logged-in state.
+            if (step === "success") router.refresh();
+            (onClose || onSuccess)?.();
+          }}
           aria-label="Close"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -572,7 +618,13 @@ export function OtpSpinAuth({
           className={`flex flex-col items-center justify-center relative w-full h-[220px] md:h-auto overflow-hidden bg-center bg-cover bg-no-repeat md:w-[50%] md:self-stretch`}
           style={{ backgroundImage: 'url("https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BG_1_1.png?v=1770198650")' }}
         >
-          <div className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px]`}>
+          <div 
+            className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px] ${(step === "login" || step === "otp") ? "cursor-pointer" : ""}`}
+            onClick={() => {
+              if (step === "login") mobileRef.current?.focus();
+              else if (step === "otp") otpRefs[0]?.current?.focus();
+            }}
+          >
             <motion.img
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Below_Banner_Trust_Icon_Strip_1_1.png?v=1770784760"
               alt="Spin the Wheel"
@@ -615,8 +667,8 @@ export function OtpSpinAuth({
 
         {step === "login" && (
           <>
-            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0">{overrideHeading || "WELCOME TO LUCIRA"}</p>
-            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto">{overrideSubtext || "Welcome To The Jewelry World Of Lucira!"}</p>
+            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "WELCOME TO LUCIRA"}</p>
+            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideSubtext || "Welcome To The Jewelry World Of Lucira!"}</p>
             <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
               <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
               <input
@@ -705,8 +757,8 @@ export function OtpSpinAuth({
 
         {step === "register" && (
           <div className="overflow-hidden">
-            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0">Register to Win a Reward</p>
-            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto">Try Your Luck! Win a Diamond Pendant</p>
+            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 cursor-pointer" onClick={() => firstNameRef.current?.focus()}>Register to Win a Reward</p>
+            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto cursor-pointer" onClick={() => firstNameRef.current?.focus()}>Try Your Luck! Win a Diamond Pendant</p>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3.5 mb-2">
                 <div className="flex flex-col">
@@ -782,17 +834,47 @@ export function OtpSpinAuth({
 
         {step === "success" && (
           <div className="text-center">
-            <div className="text-4xl mb-4 text-center">🎉</div>
-            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 max-w-[245px]">Your Account has been created Successfully</p>
-            <p className="text-xs font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[280px] mx-auto mt-3">
-              Your reward is ready, Apply this on checkout
-            </p>
-            <div className="flex items-center justify-between gap-2 mx-auto my-3 p-2 pl-5 rounded-lg border border-dashed border-green-600 bg-green-50 max-w-[205px] font-semibold text-black">
-              <span className="text-sm md:text-base">{COUPON_MAP[wonPrize?.value] || "LUCIRA10"}</span>
-              <button className="border-none bg-transparent cursor-pointer text-lg p-1" onClick={copyCoupon}>
-                📋
-              </button>
+            <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-green-50 border border-green-200 flex items-center justify-center">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
             </div>
+            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 max-w-[245px]">Your Account has been created Successfully</p>
+            {wonPrize?.label && (
+              <p className="text-sm md:text-base font-semibold text-[#5a413f] text-center mt-2">
+                🎉 You won {wonPrize.label}
+              </p>
+            )}
+            {couponCode && (
+              <>
+                <p className="text-xs font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[280px] mx-auto mt-3">
+                  Your reward is ready, Apply this on checkout
+                </p>
+                <div className="flex items-center justify-between gap-2 mx-auto my-3 p-2 pl-5 rounded-lg border border-dashed border-green-600 bg-green-50 max-w-[205px] font-semibold text-black">
+                  <span className="text-sm md:text-base tracking-wider">{couponCode}</span>
+                  <button
+                    className="border-none bg-transparent cursor-pointer p-1 flex items-center text-[#16a34a]"
+                    onClick={copyCoupon}
+                    aria-label={couponCopied ? "Coupon code copied" : "Copy coupon code"}
+                    title={couponCopied ? "Copied!" : "Copy code"}
+                  >
+                    {couponCopied ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5a413f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {couponCopied && (
+                  <p className="text-xs font-medium text-green-600 -mt-1 mb-1">Code copied to clipboard</p>
+                )}
+              </>
+            )}
             <button 
               className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-4 bg-[#5a413f] rounded-lg" 
               onClick={() => {
