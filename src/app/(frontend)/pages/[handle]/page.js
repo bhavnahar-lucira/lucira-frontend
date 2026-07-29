@@ -1,6 +1,7 @@
 import { getPageByHandle, getAllPages } from "@/lib/pages";
 import { getGoldRateCityMeta, getGoldRateHistory } from "@/lib/goldRate";
 import { notFound } from "next/navigation";
+import "@/styles/gold-rate.css";
 
 import ContactSection from "@/components/common/ContactSection";
 import SitemapPage from "@/components/sitemap/SitemapPage";

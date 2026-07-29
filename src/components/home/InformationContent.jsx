@@ -4,6 +4,7 @@ import React from 'react';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import { informationContentData } from '@/data/informationContent';
 import { isStoreActive, handleFromStoreName } from '@/data/stores';
+import '@/styles/gold-rate.css';
 
 const InformationContent = () => {
   const { settings, blocks, block_order } = informationContentData;
