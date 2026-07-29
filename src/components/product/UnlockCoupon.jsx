@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Lock, Unlock, CheckCircle, Loader2, Pencil, Copy, X } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { motion, AnimatePresence } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
+import CouponCard from "@/components/coupons/CouponCard";
+import CouponDrawer from "@/components/coupons/CouponDrawer";
+import { COUPONS, COUPON_DISCLAIMER, parsePrice, getCouponIndexForPrice } from "@/lib/coupons";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
@@ -25,35 +27,6 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  const COUPONS = [
-    {
-      code: "GRAND250",
-      title: "Flat ₹250 off*",
-      condition: "On Purchase below ₹15000/-"
-    },
-    {
-      code: "GRAND500",
-      title: "Flat ₹500 off*",
-      condition: "On Purchase ₹15001 - ₹30000/-"
-    },
-    {
-      code: "GRAND750",
-      title: "Flat ₹750 off*",
-      condition: "On Purchase ₹30001 - ₹50000/-"
-    },
-    {
-      code: "GRAND1000",
-      title: "Flat ₹1000 off*",
-      condition: "On Purchase ₹50001 - ₹100000/-"
-    },
-    {
-      code: "GRAND1500",
-      title: "Flat ₹1500 off*",
-      condition: "On Purchase ₹1 Lakh & Above"
-    }
-  ];
 
   const handleCopyCode = (code) => {
     navigator.clipboard.writeText(code);
@@ -79,18 +52,6 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
       };
       window.addEventListener("storage", handleStorageChange);
       return () => window.removeEventListener("storage", handleStorageChange);
-    }
-  }, []);
-
-  // Track responsive screen size for drawer presentation
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleResize = () => {
-        setIsMobile(window.innerWidth < 640);
-      };
-      handleResize();
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
     }
   }, []);
 
@@ -362,22 +323,6 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
     window.location.href = "/collections/pendants";
   };
 
-  const parsePrice = (price) => {
-    if (price === undefined || price === null) return 0;
-    if (typeof price === "number") return price;
-    const clean = String(price).replace(/[^0-9.]/g, "");
-    return parseFloat(clean) || 0;
-  };
-
-  const getCouponIndexForPrice = (price) => {
-    const numericPrice = parsePrice(price);
-    if (numericPrice <= 15000) return 0;
-    if (numericPrice <= 30000) return 1;
-    if (numericPrice <= 50000) return 2;
-    if (numericPrice <= 100000) return 3;
-    return 4;
-  };
-
   const activeIndex = getCouponIndexForPrice(currentPrice);
   const visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
 
@@ -573,141 +518,27 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
       )}
 
       {/* Side Drawer for All Coupons */}
-      <AnimatePresence>
-        {isDrawerOpen && (
-          <div className="fixed inset-0 z-[999] flex justify-center sm:justify-end items-end sm:items-stretch">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-xs"
-              onClick={() => setIsDrawerOpen(false)}
+      <CouponDrawer
+        open={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        title="Available Coupons"
+      >
+        {COUPONS.map((coupon, idx) => (
+          <div key={idx} className="w-full">
+            <CouponCard
+              coupon={coupon}
+              onCopy={handleCopyCode}
+              copiedCode={copiedCode}
+              className="w-full"
             />
-
-            {/* Drawer Body */}
-            <motion.div
-              initial={isMobile ? { y: "100%", x: 0 } : { x: "100%", y: 0 }}
-              animate={isMobile ? { y: 0, x: 0 } : { x: 0, y: 0 }}
-              exit={isMobile ? { y: "100%", x: 0 } : { x: "100%", y: 0 }}
-              transition={{ type: "spring", damping: 30, stiffness: 250 }}
-              className="relative w-full sm:max-w-[380px] h-[85vh] sm:h-full rounded-t-3xl sm:rounded-none bg-[#FFF8F6] shadow-2xl flex flex-col z-10"
-            >
-              {/* Header */}
-              <div className="p-5 border-b border-[#FBE3DC] flex flex-col bg-white rounded-t-3xl sm:rounded-none shrink-0">
-                {/* Drag Handle for Mobile */}
-                <div className="flex justify-center pb-3.5 sm:hidden">
-                  <div className="w-12 h-1 bg-zinc-200 rounded-full" />
-                </div>
-                <div className="flex items-center justify-between w-full">
-                  <h3
-                    className="text-base font-figtree font-semibold text-[#5C3E35] tracking-wide uppercase"
-                  >
-                    Available Coupons
-                  </h3>
-                  <button
-                    onClick={() => setIsDrawerOpen(false)}
-                    className="p-1.5 hover:bg-[#FFF8F6] rounded-full transition-colors text-zinc-500 hover:text-zinc-900 cursor-pointer"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Coupon List */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                {COUPONS.map((coupon, idx) => (
-                  <div key={idx} className="w-full">
-                    <CouponCard
-                      coupon={coupon}
-                      onCopy={handleCopyCode}
-                      copiedCode={copiedCode}
-                      className="w-full"
-                    />
-                  </div>
-                ))}
-                
-                {/* Disclaimer Footnote */}
-                <p className="text-[11px] text-zinc-500 font-figtree font-medium text-center pt-2 leading-relaxed">
-                  *This coupons applicable for Diamond products
-                </p>
-              </div>
-            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+        ))}
 
-function CouponCard({ coupon, onCopy, copiedCode, className = "w-[280px]", isMini = false }) {
-  const isCopied = copiedCode === coupon.code;
-
-  return (
-    <div className={`flex ${isMini ? 'h-24 md:h-28' : 'h-30 sm:h-30 min-[1500px]:h-30'} rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
-      {/* Left Discount Vertical Tab (No border around it) */}
-      <div className={`${isMini ? 'w-[32px] md:w-[38px]' : 'w-[40px]'} bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l`}>
-        {/* Left Ticket Cutout/Notch (clean bite, no border) */}
-        <div className={`absolute ${isMini ? '-left-[5px] w-2.5 h-2.5 md:-left-[6px] md:w-3.5 md:h-3.5' : '-left-[7px] w-3.5 h-3.5'} bg-[#FFF8F6] rounded-full z-20 top-1/2 -translate-y-1/2`} />
-        
-        <span
-          className={`font-figtree font-semibold ${isMini ? 'text-[9px] md:text-[11px] tracking-wider' : 'text-[0.75rem] sm:text-[0.875rem] tracking-widest'} leading-[1.4] text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle`}
-        >
-          DISCOUNT
-        </span>
-      </div>
-
-      {/* Vertical Dashed Divider */}
-      <div className="border-l border-dashed border-[#FBE3DC] h-full z-10" />
-
-      {/* Right Content Area (With border on top, right, bottom) */}
-      <div className={`flex-1 ${isMini ? 'p-2 md:p-3' : 'p-3'} flex flex-col justify-between min-w-0 bg-white rounded-r border-y border-r border-[#FBE3DC] relative`}>
-        {/* Top Info & Vertical Capsule Logo */}
-        <div className="flex justify-between items-start gap-1">
-          <div className="min-w-0">
-            <h4 
-              className={`${isMini ? 'text-[0.8rem] md:text-[0.95rem] font-semibold' : 'text-[1rem] sm:text-[1.1rem] font-semibold'} text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree`}
-            >
-              {coupon.title}
-            </h4>
-            <span 
-              className={`${isMini ? 'text-[0.625rem] md:text-[0.725rem] font-normal md:font-medium' : 'text-[0.7rem] sm:text-[0.75rem] font-medium'} text-black block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal`}
-            >
-              {coupon.condition}
-            </span>
-          </div>
-          
-          {/* Vertical Capsule Logo */}
-          <img
-            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
-            alt="Lucira Logo"
-            className={`${isMini ? 'w-[18px] h-[28px] md:w-[22px] md:h-[32px]' : 'w-[24px] h-[36px]'} object-contain shrink-0 mt-0.5`}
-          />
-        </div>
-
-        {/* Copy Coupon Action Button Box */}
-        <button
-          onClick={() => onCopy(coupon.code)}
-          className={`w-full ${isMini ? 'h-7 md:h-8 text-[0.75rem] md:text-[0.85rem] px-[8px] md:px-[12px]' : 'h-8 text-[0.875rem] px-[12px]'} flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-semibold uppercase tracking-normal font-figtree leading-[1.4] ${
-            isCopied 
-              ? "bg-emerald-50/50 border-emerald-200 text-emerald-600" 
-              : "bg-white border-[#EBEBEB] text-[#1A1A1A] hover:bg-[#FFF8F6] hover:border-[#FBE3DC]"
-          }`}
-        >
-          {isCopied ? (
-            <>
-              <span className="lowercase first-letter:uppercase">copied</span>
-              <CheckCircle className={`${isMini ? 'w-2.5 h-2.5 md:w-3.5 md:h-3.5' : 'w-3.5 h-3.5'} text-emerald-600 animate-scale-in shrink-0`} />
-            </>
-          ) : (
-            <>
-              <span className="normal-case">Copy Coupon Code</span>
-              <Copy className={`${isMini ? 'w-2.5 h-2.5 md:w-3 md:h-3' : 'w-3 h-3'} text-[#5C3E35] ml-1 shrink-0`} />
-            </>
-          )}
-        </button>
-      </div>
+        {/* Disclaimer Footnote */}
+        <p className="text-[11px] text-zinc-500 font-figtree font-medium text-center pt-2 leading-relaxed">
+          {COUPON_DISCLAIMER}
+        </p>
+      </CouponDrawer>
     </div>
   );
 }

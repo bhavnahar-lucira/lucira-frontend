@@ -120,8 +120,7 @@ const ALL_STORES = [
   {
     city: "Lajpat Nagar",
     name: "Lajpat Nagar Lucira Store",
-    rating: 4.8,
-    openingSoon: true,
+    openingSoon: false,
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi",
