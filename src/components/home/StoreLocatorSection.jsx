@@ -220,9 +220,8 @@ const ALL_STORES = [
   {
     city: "Lajpat Nagar",
     name: "Lajpat Nagar Lucira Store",
-    rating: 4.8,
-    openingSoon: true,
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633",
+    openingSoon: false,
+    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -320,10 +319,12 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
 
               <div className="absolute left-5 right-5 top-5 flex items-start justify-between">
                 <h3 className="font-figtree text-xl italic font-black text-white">{activeStore.name}</h3>
-                <div className="flex items-center gap-1 bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg">
-                  <Star size={12} className="fill-[#f5c518] text-[#f5c518]" />
-                  <span className="text-sm font-black text-white">{activeStore.rating}</span>
-                </div>
+                {activeStore.rating && (
+                  <div className="flex items-center gap-1 bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg">
+                    <Star size={12} className="fill-[#f5c518] text-[#f5c518]" />
+                    <span className="text-sm font-black text-white">{activeStore.rating}</span>
+                  </div>
+                )}
               </div>
 
               <div className="absolute right-4 bottom-18">
@@ -428,14 +429,16 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
 
             <div className="absolute left-4 right-4 top-4 flex items-start justify-between gap-4">
               <h3 className="font-figtree text-2xl italic leading-none font-semibold text-white drop-shadow-md">{activeStore.name}</h3>
-              <div className="mt-0.5 flex items-center gap-1 text-white">
-                <div className="flex items-center gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} size={14} className="fill-[#f5c518] text-[#f5c518]" />
-                  ))}
+              {activeStore.rating && (
+                <div className="mt-0.5 flex items-center gap-1 text-white">
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={14} className={i < Math.floor(activeStore.rating) ? "fill-[#f5c518] text-[#f5c518]" : "text-white/50"} />
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium">{activeStore.rating}</span>
                 </div>
-                <span className="text-sm font-medium">{activeStore.rating}</span>
-              </div>
+              )}
             </div>
 
             <div className="absolute bottom-6 left-3 right-3 flex flex-wrap items-center xl:justify-between gap-2 lg:justify-center rounded-full bg-[#f7efec] px-4 py-3 shadow-sm">

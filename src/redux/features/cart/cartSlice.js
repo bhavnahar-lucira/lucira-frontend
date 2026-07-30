@@ -91,7 +91,8 @@ const mapShopifyCart = (cart, backendCart = null) => {
       const finalUnitPrice = isFreeGift ? 0 : (backendPrice > 0 ? backendPrice : shopifyPrice);
       
       const inStock = backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock);
-      const computedQuantity = (inStock && !isFreeGift) ? 1 : node.quantity;
+      const isInsurance = variantId === "gid://shopify/ProductVariant/47709366026458";
+      const computedQuantity = (inStock && !isFreeGift && !isInsurance) ? 1 : node.quantity;
 
       return {
         lineId: node.id,

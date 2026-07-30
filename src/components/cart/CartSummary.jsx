@@ -1,8 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose, SheetDescription } from "@/components/ui/sheet";
 import { useState, useEffect } from "react";
 import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, BadgePercent, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -17,6 +15,9 @@ import { useCart } from "@/hooks/useCart";
 import { applyCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
+import CouponDrawer from "@/components/coupons/CouponDrawer";
+import CouponCard from "@/components/coupons/CouponCard";
+import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -24,10 +25,13 @@ const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 
 export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const dispatch = useDispatch();
-  const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
-  const [isCouponSheetOpen, setIsCouponSheetOpen] = useState(false);
+  // One drawer serves both breakpoints — it slides in from the right on desktop
+  // and up from the bottom on mobile, so the old Dialog/Sheet pair is gone.
+  const [isCouponDrawerOpen, setIsCouponDrawerOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplying, setIsApplying] = useState(false);
+  // Which listed coupon is mid-apply, so only that card shows a spinner.
+  const [applyingCode, setApplyingCode] = useState(null);
   
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
@@ -59,7 +63,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         if (byjGroupId) {
           if (!byjGroups.has(byjGroupId)) {
             byjGroups.add(byjGroupId);
-            qty += 1;
+            qty += Number(item.quantity || item.qty || 1);
           }
         } else {
           qty += Number(item.quantity || item.qty || 1);
@@ -158,17 +162,23 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     }
 
     if (appliedCoupon && items.length > 0 && couponDetails?.code) {
+        // Clearing the timer is not enough: once the request is in flight, its
+        // resolution would re-dispatch applyCoupon and resurrect a coupon the
+        // user just removed — which is why removing used to take several taps.
+        let cancelled = false;
+
         const validateCurrentCoupon = async () => {
           try {
             const data = await apiFetch("/api/cart/coupon/validate", {
               method: "POST",
-              body: JSON.stringify({ 
-                items, 
+              body: JSON.stringify({
+                items,
                 couponCode: couponDetails.code,
-                customerEmail: user?.email 
+                customerEmail: user?.email
               }),
               suppressErrorLog: true
             });
+            if (cancelled) return;
             // EMBRACE3% only applies to Eterna products; if none remain eligible,
             // drop the coupon instead of letting it discount the whole cart.
             if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
@@ -183,6 +193,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               applicableItemIds: data.applicableItemIds
             }));
           } catch (err) {
+          if (cancelled) return;
           dispatch(removeCoupon());
           toast.error("Coupon removed: items in cart are no longer eligible.", {
             icon: <Check className="w-4 h-4" />
@@ -190,7 +201,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }
       };
       const timer = setTimeout(validateCurrentCoupon, 500);
-      return () => clearTimeout(timer);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
     }
   }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
 
@@ -254,16 +268,20 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const shipping = 0; 
   const grandTotal = subtotal + insuranceAmount - discount + shipping;
 
-  const handleApplyCoupon = async (isMobile = false) => {
-    if (!couponCode.trim()) return;
+  // codeOverride is passed when a listed coupon card is tapped; otherwise the
+  // code typed into the drawer's input is used.
+  const handleApplyCoupon = async (codeOverride) => {
+    const code = (codeOverride ?? couponCode).trim();
+    if (!code) return;
     setIsApplying(true);
+    if (codeOverride) setApplyingCode(code);
     try {
       const data = await apiFetch("/api/cart/coupon/validate", {
         method: "POST",
-        body: JSON.stringify({ 
-          items, 
-          couponCode: couponCode.trim(),
-          customerEmail: user?.email 
+        body: JSON.stringify({
+          items,
+          couponCode: code,
+          customerEmail: user?.email
         }),
         suppressErrorLog: true
       });
@@ -288,16 +306,13 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         applicableItemIds: data.applicableItemIds
       }));
       toast.success(data.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon applied!' : `Coupon "${data.code}" applied!`);
-      if (isMobile) {
-        setIsCouponSheetOpen(false);
-      } else {
-        setIsCouponDialogOpen(false);
-      }
+      setIsCouponDrawerOpen(false);
       setCouponCode("");
     } catch (err) {
       toast.error(err.message);
     } finally {
       setIsApplying(false);
+      setApplyingCode(null);
     }
   };
 
@@ -337,6 +352,66 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   // product tagged "embrace" (the Eterna Collection / EMBRACE3% eligible items).
   const hasEmbraceItem = items.some(item =>
     (item.tags || []).some(tag => String(tag).toLowerCase() === "embrace")
+  );
+
+  // Tiers run off diamondTotal, not subtotal: these coupons do not apply to
+  // plain gold, so only the diamond-bearing lines count toward the band. An
+  // all-gold cart yields 0 and therefore no applicable coupon at all.
+  // The tiers are exclusive bands, so at most one code ever qualifies; the rest
+  // render disabled in the drawer.
+  const applicableCouponCode = getApplicableCouponCode(diamondTotal);
+  const applicableCouponCodes = getApplicableCouponCodes(diamondTotal);
+
+  // Lead with the coupon the customer can actually use — an applied one first,
+  // otherwise the qualifying tier — so the drawer never opens on a disabled
+  // card. The remaining coupons keep their original ladder order beneath it.
+  const leadCouponCode = (appliedCoupon && couponDetails.code) || applicableCouponCode;
+  const orderedCoupons = leadCouponCode
+    ? [
+        ...COUPONS.filter((c) => c.code.toUpperCase() === leadCouponCode.toUpperCase()),
+        ...COUPONS.filter((c) => c.code.toUpperCase() !== leadCouponCode.toUpperCase()),
+      ]
+    : COUPONS;
+
+  // Same tile in the mobile and desktop offer groups; both open the one drawer.
+  const couponTrigger = (
+    <button
+      type="button"
+      onClick={() => setIsCouponDrawerOpen(true)}
+      className="flex items-center gap-4 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
+    >
+      <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF9F6] border border-[#EADFD8]">
+        <Tag size={18} className="text-[#5A413F]" />
+      </span>
+      <div className="min-w-0 flex-1 text-left">
+        <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]" style={{
+            fontFamily: "Figtree",
+            fontSize: "1rem",
+            lineHeight: "100%",
+            letterSpacing: "0%",
+            marginBottom: "4px",
+            marginTop: "2px",
+            color: "#000000",
+            fontWeight: "600"
+        }}>
+          {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
+        </p>
+        <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]" style={{
+            marginTop: "5px",
+            fontFamily: "Figtree",
+            fontWeight: "400",
+            fontSize: "0.9rem",
+            lineHeight: "140%",
+            letterSpacing: "0%",
+            color: "#000000"
+        }}>
+          Unlock exclusive savings on your order.
+        </p>
+      </div>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5A413F] text-white shadow-sm">
+        <ChevronRight size={16} />
+      </span>
+    </button>
   );
 
   return (
@@ -470,66 +545,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
           <GoldCoinOption />
           
-          <Sheet open={isCouponSheetOpen} onOpenChange={setIsCouponSheetOpen}>
-            <SheetTrigger asChild>
-              <button
-                className="flex items-center gap-3 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30"
-              >
-                <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF9F6] border border-[#EADFD8]">
-                  <Tag size={18} className="text-[#5A413F]" />
-                </span>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]">
-                    {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
-                  </p>
-                  <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]">
-                    Unlock exclusive savings on your order.
-                  </p>
-                </div>
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5A413F] text-white shadow-sm">
-                  <ChevronRight size={16} />
-                </span>
-              </button>
-            </SheetTrigger>
-            <SheetContent side="bottom" onOpenAutoFocus={(e) => e.preventDefault()} className="rounded-t-2xl px-6 pb-8 pt-4 max-h-[85vh] overflow-y-auto [&>button]:hidden transition-all duration-300 ease-in-out focus-within:mb-0">
-              <div className="absolute top-4 right-4">
-                <SheetClose asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 rounded-full bg-zinc-100 text-zinc-500 hover:bg-zinc-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
-                    aria-label="Close coupon panel"
-                  >
-                    <X size={16} />
-                  </Button>
-                </SheetClose>
-              </div>
-              <SheetHeader className="space-y-3">
-                <div className="size-14 rounded-full bg-[#FEF9F6] border border-[#EADFD8] flex items-center justify-center text-[#5A413F] mx-auto mb-1 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.15)]">
-                  <Tag size={24} />
-                </div>
-                <SheetTitle className="text-[26px] font-normal text-center text-[#3D2B28] font-abhaya leading-tight">Apply Coupon</SheetTitle>
-                <SheetDescription className="font-figtree text-base text-center text-[#6B5B54]">
-                  Enter your coupon code below to unlock special discounts.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="space-y-3.5 py-4">
-                <Input
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="Enter Coupon Code"
-                  className="h-14 rounded-[8px] border-[#EADFD8] bg-[#FEF9F6] text-center font-figtree text-base font-semibold tracking-[0.15em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F]"
-                />
-                <Button
-                  onClick={() => handleApplyCoupon(true)}
-                  disabled={isApplying || !couponCode.trim()}
-                  className="w-full h-14 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-medium tracking-[0.15em] text-sm text-white transition-colors shadow-[0_4px_16px_-4px_rgba(90,65,63,0.35)] disabled:opacity-50 disabled:shadow-none"
-                >
-                  {isApplying ? <Loader2 className="animate-spin" /> : "Apply Coupon"}
-                </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
+          {couponTrigger}
 
           <InsuranceOption />
         </div>
@@ -559,54 +575,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         <div className="space-y-3">
 
 
-          <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
-            <DialogTrigger asChild>
-              <button
-                className="flex items-center gap-3 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
-              >
-                <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF9F6] border border-[#EADFD8]">
-                  <Tag size={18} className="text-[#5A413F]" />
-                </span>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]">
-                    {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
-                  </p>
-                  <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]">
-                    Unlock exclusive savings on your order.
-                  </p>
-                </div>
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5A413F] text-white shadow-sm">
-                  <ChevronRight size={16} />
-                </span>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md rounded-2xl p-8">
-              <DialogHeader className="space-y-3">
-                <div className="size-14 rounded-full bg-[#FEF9F6] border border-[#EADFD8] flex items-center justify-center text-[#5A413F] mx-auto mb-1 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.15)]">
-                  <Tag size={24} />
-                </div>
-                <DialogTitle className="text-[26px] font-normal text-center text-[#3D2B28] font-abhaya leading-tight">Apply Coupon</DialogTitle>
-                <DialogDescription className="font-figtree text-base text-center text-[#6B5B54]">
-                  Enter your coupon code below to unlock special discounts.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-3.5 py-4">
-                <Input
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="Enter Coupon Code"
-                  className="h-14 rounded-[8px] border-[#EADFD8] bg-[#FEF9F6] text-center font-figtree text-base font-semibold tracking-[0.15em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F]"
-                />
-                <Button
-                  onClick={() => handleApplyCoupon(false)}
-                  disabled={isApplying || !couponCode.trim()}
-                  className="w-full h-14 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-medium tracking-[0.15em] text-sm text-white transition-colors shadow-[0_4px_16px_-4px_rgba(90,65,63,0.35)] disabled:opacity-50 disabled:shadow-none"
-                >
-                  {isApplying ? <Loader2 className="animate-spin" /> : "Apply Coupon"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          {couponTrigger}
         </div>
 
         <InsuranceOption />
@@ -614,6 +583,115 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
       {/* Desktop Only Contact Section */}
       <CartContact productName={firstProductName} />
+
+      {/* Saving Zone — one drawer for both breakpoints, rendered once at the
+          root so the mobile/desktop trigger groups share a single instance. */}
+      <CouponDrawer
+        open={isCouponDrawerOpen}
+        onClose={() => setIsCouponDrawerOpen(false)}
+        title="Saving Zone"
+      >
+        {/* Manual code entry — locked while a coupon is live, since a cart can
+            only carry one at a time. */}
+        <div className="flex items-stretch gap-2">
+          <Input
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon) handleApplyCoupon();
+            }}
+            disabled={!!appliedCoupon}
+            placeholder="Enter Coupon Code"
+            className="h-12 flex-1 rounded-[8px] border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
+          />
+          <Button
+            onClick={() => handleApplyCoupon()}
+            disabled={isApplying || !couponCode.trim() || !!appliedCoupon}
+            className="h-12 shrink-0 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] px-5 font-figtree uppercase font-semibold tracking-[0.1em] text-xs text-white transition-colors disabled:opacity-50"
+          >
+            {isApplying && !applyingCode ? <Loader2 className="animate-spin" /> : "Apply"}
+          </Button>
+        </div>
+
+        {appliedCoupon && (
+          <div className="flex items-center justify-between gap-3 rounded-[8px] border border-emerald-200 bg-emerald-50/50 px-3.5 py-2.5">
+            <p className="font-figtree text-xs font-medium leading-[1.4] text-emerald-700">
+              Only one coupon can be used at a time.
+            </p>
+            <button
+              onClick={handleRemoveCoupon}
+              className="shrink-0 font-figtree text-[11px] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        {!user ? (
+          <div className="rounded-[8px] border border-[#EADFD8] bg-[#FFF8F6] px-5 py-6 flex flex-col items-center justify-center text-center mt-2">
+            <div className="w-12 h-12 rounded-full bg-[#5A413F]/10 flex items-center justify-center mb-3">
+              <Gift className="w-6 h-6 text-[#5A413F]" />
+            </div>
+            <h4 className="font-figtree font-semibold text-[#3D2B28] text-sm md:text-base mb-1.5 uppercase tracking-wide">
+              Login to Unlock Coupons
+            </h4>
+            <p className="font-figtree text-xs md:text-sm text-[#6B5B54] mb-4">
+              Login or register to access members-only discounts and rewards.
+            </p>
+            <Button
+              onClick={() => {
+                setIsCouponDrawerOpen(false);
+                openLogin();
+              }}
+              className="h-11 px-6 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-semibold tracking-wide text-xs text-white transition-colors cursor-pointer"
+            >
+              Login / Register
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Every card is disabled — say why rather than leaving a dead list */}
+            {!appliedCoupon && applicableCouponCodes.length === 0 && items.length > 0 && (
+              <div className="rounded-[8px] border border-[#EADFD8] bg-white px-3.5 py-2.5">
+                <p className="font-figtree text-xs font-medium leading-[1.4] text-[#6B5B54]">
+                  These coupons apply to diamond products only. Add a diamond product to unlock them.
+                </p>
+              </div>
+            )}
+
+            {/* The same coupon ladder the PDP shows, in the same card design */}
+            {[...COUPONS]
+              .sort((a, b) => {
+                const aApp = applicableCouponCodes.includes(a.code);
+                const bApp = applicableCouponCodes.includes(b.code);
+                if (aApp && !bApp) return -1;
+                if (!aApp && bApp) return 1;
+                if (aApp && bApp) {
+                   return COUPONS.findIndex(c => c.code === b.code) - COUPONS.findIndex(c => c.code === a.code);
+                }
+                return COUPONS.findIndex(c => c.code === a.code) - COUPONS.findIndex(c => c.code === b.code);
+              })
+              .map((coupon) => (
+                <div key={coupon.code} className="w-full">
+                  <CouponCard
+                    coupon={coupon}
+                    className="w-full"
+                    mode="apply"
+                    onApply={handleApplyCoupon}
+                    onRemove={handleRemoveCoupon}
+                    applyingCode={applyingCode}
+                    appliedCode={appliedCoupon ? couponDetails.code : null}
+                    isApplicable={applicableCouponCodes.includes(coupon.code)}
+                  />
+                </div>
+              ))}
+          </>
+        )}
+
+        <p className="text-[11px] text-zinc-500 font-figtree font-medium text-center pt-2 leading-relaxed">
+          {COUPON_DISCLAIMER}
+        </p>
+      </CouponDrawer>
     </div>
   );
 }

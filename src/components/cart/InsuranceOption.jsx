@@ -21,13 +21,17 @@ export default function InsuranceOption() {
     let qty = 0;
     const byjGroups = new Set();
     items
-      .filter(item => item.variantId !== INSURANCE_VARIANT_ID && item.variantId !== "gid://shopify/ProductVariant/47661824082138")
+      .filter(item => 
+        item.variantId !== INSURANCE_VARIANT_ID && 
+        !(item.variantId === "gid://shopify/ProductVariant/47661824082138" && item.isFreeGift) &&
+        item.variantId !== "gid://shopify/ProductVariant/48052809498842"
+      )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
         if (byjGroupId) {
           if (!byjGroups.has(byjGroupId)) {
             byjGroups.add(byjGroupId);
-            qty += 1;
+            qty += Number(item.quantity || item.qty || 1);
           }
         } else {
           qty += Number(item.quantity || item.qty || 1);

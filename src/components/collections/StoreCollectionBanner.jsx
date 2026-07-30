@@ -178,9 +178,8 @@ const STORES_DATA = {
   "lajpat-nagar-store": {
     city: "Lajpat Nagar",
     name: "Lajpat Nagar Lucira Store",
-    rating: 4.8,
-    openingSoon: true,
-    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
+    openingSoon: false,
+    images: ["https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892"],
     storeHours: {
       weekday: { open: "10:30", close: "22:00" },
       weekend: { open: "10:30", close: "22:00" },
@@ -307,12 +306,12 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                   <span className="rounded-full border border-white/60 bg-white/70 px-3 py-1.5 text-[10px] font-extrabold uppercase leading-none tracking-[0.7px] text-[#5A413F] shadow-sm backdrop-blur-sm">
                     Opening Soon
                   </span>
-                ) : (
+                ) : store.rating ? (
                   <div className="flex items-center gap-1 bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg">
                     <Star size={12} className="fill-[#f5c518] text-[#f5c518]" />
                     <span className="text-sm font-black text-white">{store.rating}</span>
                   </div>
-                )}
+                ) : null}
               </div>
 
               <div className="absolute right-4 bottom-18 z-[2]">
@@ -431,7 +430,7 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                 <span className="shrink-0 rounded-full border border-white/60 bg-white/70 px-4 py-1.5 text-xs font-extrabold uppercase leading-none tracking-[0.7px] text-[#5A413F] shadow-sm backdrop-blur-sm">
                   Opening Soon
                 </span>
-              ) : (
+              ) : store.rating ? (
                 <div className="mt-0.5 flex items-center gap-1 text-white">
                   <div className="flex items-center gap-0.5">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -440,7 +439,7 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                   </div>
                   <span className="text-sm font-medium">{store.rating}</span>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="absolute bottom-6 left-3 right-3 flex flex-wrap items-center xl:justify-between gap-2 lg:justify-center rounded-full bg-white/95 backdrop-blur-sm px-4 py-3 shadow-lg z-[2]">

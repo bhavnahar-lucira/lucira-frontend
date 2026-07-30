@@ -23,7 +23,7 @@ export const STORES = [
   { handle: "pune-store", city: "Pune", name: "Pune Lucira Store", active: true },
   { handle: "noida-store", city: "Noida", name: "Noida Lucira Store", active: true },
   { handle: "paschim-vihar", city: "Paschim Vihar", name: "Paschim Vihar Lucira Store", active: true },
-  { handle: "lajpat-nagar-store", city: "Lajpat Nagar", name: "Lajpat Nagar Lucira Store", active: true, openingSoon: true },
+  { handle: "lajpat-nagar-store", city: "Lajpat Nagar", name: "Lajpat Nagar Lucira Store", active: true, openingSoon: false },
 ];
 
 const _byHandle = Object.fromEntries(STORES.map((s) => [s.handle, s]));

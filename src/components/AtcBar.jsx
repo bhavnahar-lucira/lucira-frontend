@@ -357,7 +357,7 @@ export default function AtcBar({
       {/* ── Sticky Top Bar (atcBar) ── */}
       <div
         className={cn(
-          "atcBar fixed top-0 left-0 w-full bg-white z-[99] border-b border-gray-100 transition-all duration-500 transform shadow-sm px-4 lg:px-17 py-3",
+          "atcBar fixed top-0 left-0 w-full bg-white z-[100] border-b border-gray-100 transition-all duration-500 transform shadow-sm px-4 lg:px-17 py-3",
           isTopVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
         )}
       >
