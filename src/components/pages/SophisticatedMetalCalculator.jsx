@@ -319,7 +319,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                   }}
                   className={`px-6 py-1.5 text-sm font-semibold rounded-lg transition-all capitalize ${
                     activeMetal === metal
-                      ? "bg-[#B77767] text-zinc-900 shadow-md"
+                      ? "bg-[#B77767] text-white shadow-md"
                       : "text-zinc-500 hover:text-zinc-900"
                   }`}
                 >
@@ -421,7 +421,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                           onClick={() => setGoldPurity(karat)}
                           className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
                             goldPurity === karat
-                              ? "bg-[#B77767] text-zinc-900 shadow-sm"
+                              ? "bg-[#B77767] text-white shadow-sm"
                               : "text-zinc-500 hover:text-zinc-900"
                           }`}
                         >
@@ -532,7 +532,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                     />
                     <button
                       onClick={handleTryNow}
-                      className="bg-[#B77767] hover:bg-[#A36455] text-zinc-900 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 shrink-0"
+                      className="bg-[#B77767] hover:bg-[#A36455] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 shrink-0"
                     >
                       Try now
                     </button>
@@ -559,7 +559,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                           onClick={() => setGoldPurity(karat)}
                           className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${
                             goldPurity === karat
-                              ? "bg-[#B77767] text-zinc-900 shadow-sm"
+                              ? "bg-[#B77767] text-white shadow-sm"
                               : "text-zinc-500 hover:text-zinc-900"
                           }`}
                         >

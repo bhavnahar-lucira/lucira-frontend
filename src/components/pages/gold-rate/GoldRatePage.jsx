@@ -222,7 +222,7 @@ export default function GoldRatePage({ page }) {
                             </select>
                             <ChevronDown className="absolute right-3 bottom-3.5 text-zinc-400 pointer-events-none" size={15} />
                         </div>
-                        <button onClick={handleNavigate} className="group h-11 px-5 bg-[#B77767] text-zinc-900 font-figtree font-bold text-[12px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-[#A36455] transition-all active:scale-95">
+                        <button onClick={handleNavigate} className="group h-11 px-5 bg-[#B77767] text-white font-figtree font-bold text-[12px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-[#A36455] transition-all active:scale-95">
                             CHECK RATE <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                         <Link prefetch={false} href="/collections/gold-jewelry" className="group h-11 px-5 bg-white border border-[#E8D5B5] text-zinc-800 font-figtree font-bold text-[12px] tracking-widest uppercase rounded-lg flex justify-center items-center gap-2 hover:bg-[#FAF3EC] transition-all active:scale-95">
