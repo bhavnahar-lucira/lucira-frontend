@@ -63,7 +63,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         if (byjGroupId) {
           if (!byjGroups.has(byjGroupId)) {
             byjGroups.add(byjGroupId);
-            qty += 1;
+            qty += Number(item.quantity || item.qty || 1);
           }
         } else {
           qty += Number(item.quantity || item.qty || 1);

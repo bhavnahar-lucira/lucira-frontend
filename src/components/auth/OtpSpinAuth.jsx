@@ -619,10 +619,11 @@ export function OtpSpinAuth({
           style={{ backgroundImage: 'url("https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BG_1_1.png?v=1770198650")' }}
         >
           <div 
-            className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px] ${(step === "login" || step === "otp") ? "cursor-pointer" : ""}`}
+            className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px] ${(step === "login" || step === "otp" || step === "register") ? "cursor-pointer" : ""}`}
             onClick={() => {
               if (step === "login") mobileRef.current?.focus();
               else if (step === "otp") otpRefs[0]?.current?.focus();
+              else if (step === "register") firstNameRef.current?.focus();
             }}
           >
             <motion.img

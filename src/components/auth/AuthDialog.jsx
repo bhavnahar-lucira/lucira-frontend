@@ -68,15 +68,17 @@ export function AuthDialog({
       <Sheet
         isOpen={isOpen}
         onClose={handleClose}
+        detent="content-height"
+        avoidKeyboard={true}
         style={{ zIndex: 2000 }}
       >
-        <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !z-[2000]">
+        <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !max-h-[95dvh] !z-[2000]">
           <Sheet.Content className="!p-0">
             <div className="sr-only">
               <h2>{currentStep === "register" ? "Registration" : "Authentication"}</h2>
               <p>{currentStep === "register" ? "Join Lucira to win rewards." : "Login to your account."}</p>
             </div>
-            <div className="custom-scrollbar-hide">
+            <div className="custom-scrollbar-hide overflow-y-auto">
               <OtpSpinAuth
                 onSuccess={handleSuccess}
                 onClose={handleClose}

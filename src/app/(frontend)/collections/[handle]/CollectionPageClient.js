@@ -553,7 +553,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         if (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) count++;
       } else if (Array.isArray(options)) {
         options.forEach((opt) => {
-          if (searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)) count++;
+          if (searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))) count++;
         });
       }
     });
@@ -992,7 +992,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         Object.values(availableFilters).forEach(options => {
           if (!Array.isArray(options)) return;
           options.forEach(opt => {
-            if (values.includes(opt.value) && opt.count > maxSelectedCount) {
+            if (values.includes(String(opt.value)) && opt.count > maxSelectedCount) {
               maxSelectedCount = opt.count;
             }
           });
@@ -1017,7 +1017,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       Object.values(availableFilters).forEach(options => {
         if (!Array.isArray(options)) return;
         options.forEach(opt => {
-          if (values.includes(opt.value) && opt.count > maxSelectedCount) {
+          if (values.includes(String(opt.value)) && opt.count > maxSelectedCount) {
             maxSelectedCount = opt.count;
           }
         });
@@ -1170,7 +1170,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         {isExpanded && (
                           <div className="space-y-4 mt-2 mb-4 pb-5">
                             {Array.isArray(options) && options.map((opt) => {
-                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(opt.value);
+                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
                               return (
                                 <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
                                   <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
@@ -1229,7 +1229,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                       </Badge>
                     )
                   ) : (
-                    Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).map((opt) => (
+                    Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))).map((opt) => (
                       <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
                         <span className="font-figtree text-sm font-normal leading-[1.2]">{opt.label.split(" (")[0]}</span>
                         <XIcon className="size-3.5 text-[#696969]" />
@@ -1657,7 +1657,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   {Object.entries(availableFilters).map(([groupKey]) => {
                     let count = 0;
                     if (groupKey === "Price") { if (localPriceRange.min || localPriceRange.max) count = 1; }
-                    else { count = availableFilters[groupKey].filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(opt.value)).length; }
+                    else { count = availableFilters[groupKey].filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))).length; }
                     const isActive = activeMobileGroup === groupKey;
                     return (
                       <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left pl-5 pr-9 py-4 font-figtree text-[0.8125rem] tracking-normal relative leading-snug transition-colors ${isActive ? "bg-white text-[#5a413f] font-semibold" : "text-gray-500 font-medium active:bg-white/60"}`}>
@@ -1692,7 +1692,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         </div>
                       ) : (
                         availableFilters[activeMobileGroup].map((option) => {
-                          const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(option.value);
+                          const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
                           return (
                             <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
                               <div className="flex items-center gap-3 min-w-0">
