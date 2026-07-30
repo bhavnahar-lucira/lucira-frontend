@@ -1158,6 +1158,7 @@ export default function PaymentPage() {
                   showContact={false} 
                   isSilverPendantClaimed={isSilverPendantClaimed}
                   onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                  showCouponBanner={false}
                 />
 
                 {/* 2. Payment options */}
@@ -1221,6 +1222,7 @@ export default function PaymentPage() {
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                     showSilverPendantOffer={false}
                     breakdownRef={summaryBreakdownRef}
+                    showCouponBanner={false}
                   />
                 </div>
 
@@ -1310,7 +1312,7 @@ export default function PaymentPage() {
                 </div>
 
                 {/* 6. CONTACT US FOR ASSISTANCE */}
-                <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} showSilverPendantOffer={false} />
+                <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} showSilverPendantOffer={false} showCouponBanner={false} />
               </div>
             )}
 
@@ -1480,6 +1482,7 @@ export default function PaymentPage() {
                   <CheckoutSummary 
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                    showCouponBanner={false}
                   />
                 </div>
               </div>

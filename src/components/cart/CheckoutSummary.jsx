@@ -28,7 +28,8 @@ export default function CheckoutSummary({
   isSilverPendantClaimed = false,
   onToggleSilverPendant = () => {},
   showSilverPendantOffer = false,
-  breakdownRef = null
+  breakdownRef = null,
+  showCouponBanner = true
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
@@ -525,7 +526,7 @@ export default function CheckoutSummary({
         </div>
       )}
 
-      {showBreakdown && displayItems.length > 0 && (isEternaApplied || eternaEligible) && eternaBannerContent}
+      {showCouponBanner && showBreakdown && displayItems.length > 0 && (isEternaApplied || eternaEligible) && eternaBannerContent}
 
       {showBreakdown && (
         <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
