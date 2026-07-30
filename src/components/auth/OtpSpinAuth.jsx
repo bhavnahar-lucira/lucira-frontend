@@ -77,6 +77,7 @@ export function OtpSpinAuth({
   forceShowWheel = false,
   overrideHeading = "",
   overrideSubtext = "",
+  overrideButtonText = "",
   showCloseButton = true,
   isPopup = false,
   hideRegisterLink = false
@@ -700,7 +701,7 @@ export function OtpSpinAuth({
               onClick={handleSendOtp} 
               disabled={loading}
             >
-              {loading ? "SENDING..." : "REQUEST OTP"}
+              {loading ? "SENDING..." : (overrideButtonText || "REQUEST OTP")}
             </button>
             <div className="flex items-center justify-center gap-2 text-sm md:text-base text-black mt-3">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
