@@ -21,7 +21,8 @@ export function AuthDialog({
   initialStep = "login",
   forceShowWheel = false,
   overrideHeading = "",
-  overrideSubtext = ""
+  overrideSubtext = "",
+  overrideButtonText = ""
 }) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const router = useRouter();
@@ -87,6 +88,7 @@ export function AuthDialog({
                 forceShowWheel={forceShowWheel}
                 overrideHeading={overrideHeading}
                 overrideSubtext={overrideSubtext}
+                overrideButtonText={overrideButtonText}
                 hideRegisterLink={hideRegisterLink}
               />
             </div>
@@ -117,6 +119,7 @@ export function AuthDialog({
           forceShowWheel={forceShowWheel}
           overrideHeading={overrideHeading}
           overrideSubtext={overrideSubtext}
+          overrideButtonText={overrideButtonText}
           isPopup={true}
           hideRegisterLink={hideRegisterLink}
         />

@@ -78,6 +78,7 @@ export function AutoAuthPopup() {
       forceShowWheel={true}
       overrideHeading="Register to Win a Reward"
       overrideSubtext="Try Your Luck! Win a Diamond Pendant"
+      overrideButtonText="Request OTP & Spin"
     />
   );
 }
