@@ -373,9 +373,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     <button
       type="button"
       onClick={() => setIsCouponDrawerOpen(true)}
-      className="flex items-center gap-4 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
+      className="flex items-center gap-4 w-full rounded-sm border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
     >
-      <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF9F6] border border-[#EADFD8]">
+      <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
         <Tag size={18} className="text-[#5A413F]" />
       </span>
       <div className="min-w-0 flex-1 text-left">
@@ -400,10 +400,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             letterSpacing: "0%",
             color: "#000000"
         }}>
-          Unlock exclusive savings on your order.
+          View all available coupons.
         </p>
       </div>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5A413F] text-white shadow-sm">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[50%] bg-[#5A413F] text-white shadow-sm">
         <ChevronRight size={16} />
       </span>
     </button>
@@ -411,10 +411,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   return (
     <div className="space-y-4">
-
+      {/* Coupon Trigger placed above summary for all views */}
+      {couponTrigger}
 
       {/* Desktop Pricing Breakdown (LG) */}
-      <div className="hidden lg:block bg-white rounded-2xl p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+      <div className="hidden lg:block bg-white rounded-sm p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
         <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
           <span>Subtotal</span>
           <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -465,7 +466,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       {/* Mobile Order Summary (LG Hidden) */}
       <div ref={breakdownRef} className="lg:hidden scroll-mt-20 space-y-4">
         <h3 className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
-        <div className="bg-white rounded-2xl p-6 space-y-4 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+        <div className="bg-white rounded-sm p-6 space-y-4 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
           <div className="space-y-3">
             <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
               <span>Subtotal</span>
@@ -521,17 +522,13 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         </div>
       </div>
 
-      {/* Mobile Offers Group (Coupon, Gold Coin, Insurance) - ALL BELOW SUMMARY */}
+      {/* Mobile Offers Group (Gold Coin, Insurance) - ALL BELOW SUMMARY */}
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
           <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>
           
-
-
           <GoldCoinOption />
           
-          {couponTrigger}
-
           <InsuranceOption />
         </div>
       </div>
@@ -541,18 +538,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
         <Button
           onClick={handleProceedToCheckout}
-          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer"
+          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-sm bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer"
         >
           Proceed To Checkout
         </Button>
         
         <GoldCoinOption />
-
-        <div className="space-y-3">
-
-
-          {couponTrigger}
-        </div>
 
         <InsuranceOption />
       </div>
@@ -578,19 +569,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             }}
             disabled={!!appliedCoupon}
             placeholder="Enter Coupon Code"
-            className="h-12 flex-1 rounded-[8px] border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
+            className="h-12 flex-1 rounded-sm border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
           />
           <Button
             onClick={() => handleApplyCoupon()}
             disabled={isApplying || !couponCode.trim() || !!appliedCoupon}
-            className="h-12 shrink-0 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] px-5 font-figtree uppercase font-semibold tracking-[0.1em] text-xs text-white transition-colors disabled:opacity-50"
+            className="h-12 shrink-0 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] px-5 font-figtree uppercase font-semibold tracking-[0.1em] text-xs text-white transition-colors disabled:opacity-50"
           >
             {isApplying && !applyingCode ? <Loader2 className="animate-spin" /> : "Apply"}
           </Button>
         </div>
 
         {appliedCoupon && (
-          <div className="flex items-center justify-between gap-3 rounded-[8px] border border-emerald-200 bg-emerald-50/50 px-3.5 py-2.5">
+          <div className="flex items-center justify-between gap-3 rounded-sm border border-emerald-200 bg-emerald-50/50 px-3.5 py-2.5">
             <p className="font-figtree text-xs font-medium leading-[1.4] text-emerald-700">
               Only one coupon can be used at a time.
             </p>
@@ -604,8 +595,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         )}
 
         {!user ? (
-          <div className="rounded-[8px] border border-[#EADFD8] bg-[#FFF8F6] px-5 py-6 flex flex-col items-center justify-center text-center mt-2">
-            <div className="w-12 h-12 rounded-full bg-[#5A413F]/10 flex items-center justify-center mb-3">
+          <div className="rounded-sm border border-[#EADFD8] bg-[#FFF8F6] px-5 py-6 flex flex-col items-center justify-center text-center mt-2">
+            <div className="w-12 h-12 rounded-sm bg-[#5A413F]/10 flex items-center justify-center mb-3">
               <Gift className="w-6 h-6 text-[#5A413F]" />
             </div>
             <h4 className="font-figtree font-semibold text-[#3D2B28] text-sm md:text-base mb-1.5 uppercase tracking-wide">
@@ -619,7 +610,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 setIsCouponDrawerOpen(false);
                 openLogin();
               }}
-              className="h-11 px-6 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-semibold tracking-wide text-xs text-white transition-colors cursor-pointer"
+              className="h-11 px-6 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-semibold tracking-wide text-xs text-white transition-colors cursor-pointer"
             >
               Login / Register
             </Button>
@@ -628,7 +619,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           <>
             {/* Every card is disabled — say why rather than leaving a dead list */}
             {!appliedCoupon && applicableCouponCodes.length === 0 && items.length > 0 && (
-              <div className="rounded-[8px] border border-[#EADFD8] bg-white px-3.5 py-2.5">
+              <div className="rounded-sm border border-[#EADFD8] bg-white px-3.5 py-2.5">
                 <p className="font-figtree text-xs font-medium leading-[1.4] text-[#6B5B54]">
                   These coupons apply to diamond products only. Add a diamond product to unlock them.
                 </p>
