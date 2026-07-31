@@ -31,6 +31,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const [couponCode, setCouponCode] = useState("");
   const [isApplying, setIsApplying] = useState(false);
   const [applyingCode, setApplyingCode] = useState(null);
+  const [dynamicCoupons, setDynamicCoupons] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/cart/coupons/active", { suppressErrorLog: true })
+      .then(res => {
+        if (!cancelled && res?.coupons) {
+          setDynamicCoupons(res.coupons);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   // Which listed coupon is mid-apply, so only that card shows a spinner.
   
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, nectorPoints } = useCart();
