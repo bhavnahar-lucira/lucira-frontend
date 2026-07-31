@@ -205,7 +205,7 @@ const filteredItems = items.filter(
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#EADFD8] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col shrink-0">
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -218,7 +218,7 @@ const filteredItems = items.filter(
           </div>
           <Button
             onClick={handlePlaceOrder}
-            className="flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-14 px-3 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer"
+            className="flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-[45px] px-3 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer"
           >
             Proceed To Checkout
           </Button>

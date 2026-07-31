@@ -518,60 +518,60 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       </div>
 
       {/* Mobile Order Summary (LG Hidden) */}
-      <div ref={breakdownRef} className="lg:hidden scroll-mt-20 space-y-4">
-        <h3 className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
-        <div className="bg-white rounded-sm p-6 space-y-4 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
-          <div className="space-y-3">
-            <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+      <div ref={breakdownRef} className="lg:hidden scroll-mt-20 space-y-3">
+        <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
+        <div className="bg-white rounded-sm p-4 space-y-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+          <div className="space-y-2.5">
+            <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
               <span>Subtotal</span>
-              <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN')}</span>
+              <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
 
             {totalSavings > 0 && (
-              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
                 <span>Savings</span>
-                <span className="font-semibold text-[#189351]">- ₹ {totalSavings.toLocaleString('en-IN')}</span>
+                <span className="font-semibold text-[#189351] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
             {appliedCoupon && (
-              <div className="flex justify-between font-figtree text-base items-center text-[#189351]">
-                <div className="flex items-center gap-2">
+              <div className="flex justify-between font-figtree text-sm items-center text-[#189351]">
+                <div className="flex items-center gap-1.5">
                   <span className="font-semibold uppercase tracking-wide">{`Coupon (${couponDetails.code})`}</span>
                   <button
                     onClick={handleRemoveCoupon}
-                    className="text-[10px] font-bold text-red-500 hover:underline uppercase"
+                    className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
                   >
                     (Remove)
                   </button>
                 </div>
-                <span className="font-semibold">- ₹ {couponDiscountAmount.toLocaleString('en-IN')}</span>
+                <span className="font-semibold whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
             {goldCoinItem && (
-              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
                 <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
                 <span className="font-semibold text-[#189351]">₹ 0</span>
               </div>
             )}
 
             {insuranceItem && (
-              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
                 <span>Insurance</span>
-                <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN')}</span>
+                <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
-            <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+            <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
               <span>Shipping (Standard)</span>
               <span className="font-semibold text-[#189351]">Free</span>
             </div>
           </div>
 
-          <div className="border-t border-[#EADFD8] pt-4 flex justify-between items-center">
-            <span className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
-            <span className="font-figtree text-xl font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <div className="border-t border-[#EADFD8] pt-3 flex justify-between items-center">
+            <span className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
+            <span className="font-figtree text-lg font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         </div>
       </div>
