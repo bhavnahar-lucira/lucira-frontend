@@ -152,7 +152,7 @@ export default function ProductPage({ product = {} }) {
                <Image src="/images/product/1.jpg" alt="Product" fill className="object-cover" />
                <div className="absolute top-4 left-4 flex flex-col gap-2">
                  <span className="bg-white/95 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.05em] shadow-sm">Best Seller</span>
-                 <span className="bg-white/95 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.05em] shadow-sm">Fast Shipping</span>
+                 <span className="bg-white/95 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-[0.05em] shadow-sm">Faster Delivery</span>
                </div>
                <button className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full text-[12px] font-semibold flex items-center gap-2 shadow-sm border border-gray-100">
                  <Play size={14} className="fill-black" /> Virtual try on
