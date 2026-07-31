@@ -394,6 +394,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
     if (lowerTags.some(t => t.includes("new arrival") || t === "new")) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
+    if (lowerTags.some(t => t.includes("only pendant"))) labels.push("Only Pendant");
 
     return [...new Set(labels)].slice(0, 2);
   }, [product.label, product.tags, product.productMetafields?.bestsellers]);
