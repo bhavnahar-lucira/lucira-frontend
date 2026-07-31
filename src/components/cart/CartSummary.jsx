@@ -579,7 +579,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       {/* Mobile Offers Group (Gold Coin, Insurance) - ALL BELOW SUMMARY */}
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
-          <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>
+          <h3 className="text-[14px] font-bold text-[#3D2B28] uppercase tracking-wider ml-1">Lucira Offers</h3>
           
           <GoldCoinOption />
           
