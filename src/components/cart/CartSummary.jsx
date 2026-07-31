@@ -30,9 +30,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const [isCouponDrawerOpen, setIsCouponDrawerOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplying, setIsApplying] = useState(false);
-  // Which listed coupon is mid-apply, so only that card shows a spinner.
   const [applyingCode, setApplyingCode] = useState(null);
-  const [eternaEligible, setEternaEligible] = useState(false);
+  // Which listed coupon is mid-apply, so only that card shows a spinner.
   
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
@@ -153,40 +152,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   const ETERNA_COUPON = "EMBRACE3%";
 
-  useEffect(() => {
-    const realItems = (items || []).filter(item =>
-      item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      item.variantId !== SILVER_PENDANT_VARIANT_ID
-    );
+  const hasEternaTag = (tags) => Array.isArray(tags) && tags.some(t => typeof t === 'string' && (t.trim().toLowerCase() === 'embrace' || t.trim().toLowerCase() === 'eterna'));
 
-    if (realItems.length === 0) {
-      setEternaEligible(false);
-      return;
-    }
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await apiFetch("/api/cart/coupon/validate", {
-          method: "POST",
-          body: JSON.stringify({
-            items,
-            couponCode: ETERNA_COUPON,
-            customerEmail: user?.email
-          }),
-          suppressErrorLog: true
-        });
-        if (!cancelled) {
-          setEternaEligible(Boolean(data?.applicableItemIds?.length));
-        }
-      } catch (err) {
-        if (!cancelled) setEternaEligible(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [items, user?.email]);
+  const eternaEligible = (items || []).some(item => 
+    hasEternaTag(item.tags) || 
+    (item.properties && (item.properties['Collection'] === 'Eterna' || item.properties['collection'] === 'Eterna'))
+  );
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
