@@ -41,6 +41,7 @@ import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -300,15 +301,7 @@ export default function PaymentPage() {
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-    let couponDiscountAmount = 0;
-    if (appliedCoupon) {
-      if (couponDetails.valueType === "FIXED_AMOUNT") {
-        couponDiscountAmount = couponDetails.value;
-      } else if (couponDetails.valueType === "PERCENTAGE") {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -334,16 +327,8 @@ export default function PaymentPage() {
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
 
-  // Remove points and coupons on page reload, and points when leaving
+  // Remove points when leaving the payment page to prevent stale points
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const navEntries = window.performance.getEntriesByType("navigation");
-      if (navEntries.length > 0 && navEntries[0].type === "reload") {
-        dispatch(removePoints());
-        dispatch(removeCoupon());
-      }
-    }
-
     return () => {
       dispatch(removePoints());
     };
@@ -701,14 +686,7 @@ export default function PaymentPage() {
       const subtotalValue = (totalAmount || 0) - insuranceValue;
 
       const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-      let couponDiscountAmount = 0;
-      if (appliedCoupon) {
-        if (couponDetails.valueType === "FIXED_AMOUNT") {
-          couponDiscountAmount = couponDetails.value;
-        } else if (couponDetails.valueType === "PERCENTAGE") {
-          couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-        }
-      }
+      const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
       const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
       const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -812,6 +790,7 @@ export default function PaymentPage() {
 
       const order = await createRazorpayOrder({
         userId: user?.id || "",
+        context: process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront',
         sessionId: getCartSessionId(),
         items: checkoutItems,
         customer: {
@@ -821,7 +800,11 @@ export default function PaymentPage() {
         },
         shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
         billingAddress: selectedBillingAddress,
-        appliedCoupon: appliedCoupon,
+        appliedCoupon: appliedCoupon ? {
+          ...couponDetails,
+          value: couponDiscountAmount,
+          valueType: "FIXED_AMOUNT"
+        } : null,
         nectorPoints: nectorPoints,
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
@@ -849,14 +832,7 @@ export default function PaymentPage() {
             const subtotalValue = (totalAmount || 0) - insuranceValue;
 
             const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-            let couponDiscountAmount = 0;
-            if (appliedCoupon) {
-              if (couponDetails.valueType === "FIXED_AMOUNT") {
-                couponDiscountAmount = couponDetails.value;
-              } else if (couponDetails.valueType === "PERCENTAGE") {
-                couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-              }
-            }
+            const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
             const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
             const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -932,7 +908,11 @@ export default function PaymentPage() {
               },
               shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
               billingAddress: selectedBillingAddress,
-              appliedCoupon: appliedCoupon,
+              appliedCoupon: appliedCoupon ? {
+                ...couponDetails,
+                value: couponDiscountAmount,
+                valueType: "FIXED_AMOUNT"
+              } : null,
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
               cartItems: checkoutItems, // Pass items explicitly as fallback for backend
@@ -1016,14 +996,7 @@ export default function PaymentPage() {
         const subtotalValue = (totalAmount || 0) - insuranceValue;
 
         const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-        let couponDiscountAmount = 0;
-        if (appliedCoupon) {
-          if (couponDetails.valueType === "FIXED_AMOUNT") {
-            couponDiscountAmount = couponDetails.value;
-          } else if (couponDetails.valueType === "PERCENTAGE") {
-            couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-          }
-        }
+        const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
         const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount;
 

@@ -47,6 +47,7 @@ import { selectUser, updateUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { pushAddShippingInfo, pushBeginCheckout } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -496,15 +497,7 @@ export default function ShippingPage() {
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-    let couponDiscountAmount = 0;
-    if (appliedCoupon) {
-      if (couponDetails.valueType === "FIXED_AMOUNT") {
-        couponDiscountAmount = couponDetails.value;
-      } else if (couponDetails.valueType === "PERCENTAGE") {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, cartItems, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -1024,14 +1017,7 @@ export default function ShippingPage() {
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
     const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-    let couponDiscountAmount = 0;
-    if (appliedCoupon) {
-      if (couponDetails.valueType === "FIXED_AMOUNT") {
-        couponDiscountAmount = couponDetails.value;
-      } else if (couponDetails.valueType === "PERCENTAGE") {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, cartItems, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;

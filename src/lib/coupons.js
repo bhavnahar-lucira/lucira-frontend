@@ -77,3 +77,74 @@ export const getApplicableCouponCodes = (cartValue) => {
   const maxIndex = getCouponIndexForPrice(value);
   return COUPONS.slice(0, maxIndex + 1).map(c => c.code);
 };
+
+const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
+
+/**
+ * The one place the coupon discount is computed. Every surface that shows or
+ * charges a total — cart page, cart drawer, shipping, payment, order creation —
+ * must call this, otherwise the summary and the amount charged drift apart.
+ *
+ * A PERCENTAGE coupon can be restricted to specific products or collections in
+ * Shopify. The backend reports that as `restricted` plus the `applicableItemIds`
+ * it resolved; a restricted coupon discounts only those lines, never the whole
+ * subtotal. No coupon code is special-cased here — eligibility comes entirely
+ * from what the backend resolved.
+ *
+ * @param appliedCoupon  the coupon from the cart (object, or a bare code string)
+ * @param items          cart line items
+ * @param subtotalValue  subtotal the caller already computed (insurance excluded)
+ */
+export const calculateCouponDiscount = (appliedCoupon, items, subtotalValue) => {
+  if (!appliedCoupon) return 0;
+
+  const couponDetails =
+    typeof appliedCoupon === "object"
+      ? appliedCoupon
+      : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
+
+  if (couponDetails.valueType === "FIXED_AMOUNT") {
+    return Number(couponDetails.value || 0);
+  }
+
+  if (couponDetails.valueType !== "PERCENTAGE") return 0;
+
+  const applicableItemIds = couponDetails.applicableItemIds || [];
+  // `restricted` is authoritative. Older cart entries persisted before the flag
+  // existed only carry applicableItemIds, so treat a non-empty list as
+  // restricted too — otherwise a product-limited coupon silently discounts the
+  // whole cart.
+  const isRestricted = couponDetails.restricted ?? applicableItemIds.length > 0;
+
+  if (String(couponDetails.code || "").toUpperCase() === "EMBRACE3%" && applicableItemIds.length === 0) {
+    // EMBRACE3% is restricted to Eterna products. With no eligible items in
+    // the cart the backend returns no applicableItemIds, so it must NOT fall
+    // back to discounting the whole cart.
+    return 0;
+  }
+
+  if (!isRestricted) {
+    return (Number(subtotalValue || 0) * couponDetails.value) / 100;
+  }
+
+  const applicableSubtotal = (items || [])
+    .filter((item) => {
+      if (
+        item.variantId === INSURANCE_VARIANT_ID ||
+        (item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      )
+        return false;
+      const rawId = item.shopifyId || item.productId || item.id;
+      const gid = (rawId && rawId.toString().includes("gid://"))
+        ? rawId
+        : `gid://shopify/Product/${rawId}`;
+      return applicableItemIds.includes(gid);
+    })
+    .reduce(
+      (acc, item) => acc + Number(item.price || 0) * Number(item.quantity || 1),
+      0
+    );
+
+  return (applicableSubtotal * couponDetails.value) / 100;
+};

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ShoppingBag, ArrowRight, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { pushViewCart } from "@/lib/gtm";
+import { calculateCouponDiscount } from "@/lib/coupons";
 import { useAuth } from "@/hooks/useAuth";
 
 import { apiFetch } from "@/lib/api";
@@ -50,15 +51,7 @@ export default function CartPage() {
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-    let couponDiscountAmount = 0;
-    if (appliedCoupon) {
-      if (couponDetails.valueType === "FIXED_AMOUNT") {
-        couponDiscountAmount = couponDetails.value;
-      } else if (couponDetails.valueType === "PERCENTAGE") {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
     return subtotalValue + insuranceValue - couponDiscountAmount;
   }, [items, totalAmount, appliedCoupon]);

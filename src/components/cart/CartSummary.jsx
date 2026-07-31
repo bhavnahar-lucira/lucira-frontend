@@ -17,7 +17,7 @@ import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
-import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes } from "@/lib/coupons";
+import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -32,6 +32,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const [isApplying, setIsApplying] = useState(false);
   // Which listed coupon is mid-apply, so only that card shows a spinner.
   const [applyingCode, setApplyingCode] = useState(null);
+  const [eternaEligible, setEternaEligible] = useState(false);
   
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
@@ -150,6 +151,43 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     }
   }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled]);
 
+  const ETERNA_COUPON = "EMBRACE3%";
+
+  useEffect(() => {
+    const realItems = (items || []).filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      item.variantId !== SILVER_PENDANT_VARIANT_ID
+    );
+
+    if (realItems.length === 0) {
+      setEternaEligible(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiFetch("/api/cart/coupon/validate", {
+          method: "POST",
+          body: JSON.stringify({
+            items,
+            couponCode: ETERNA_COUPON,
+            customerEmail: user?.email
+          }),
+          suppressErrorLog: true
+        });
+        if (!cancelled) {
+          setEternaEligible(Boolean(data?.applicableItemIds?.length));
+        }
+      } catch (err) {
+        if (!cancelled) setEternaEligible(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [items, user?.email]);
+
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
     : { code: appliedCoupon || "", summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
@@ -179,9 +217,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               suppressErrorLog: true
             });
             if (cancelled) return;
-            // EMBRACE3% only applies to Eterna products; if none remain eligible,
-            // drop the coupon instead of letting it discount the whole cart.
-            if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
+            // A product-restricted coupon with nothing eligible left in the cart
+            // must be dropped, not allowed to discount the whole cart.
+            if (data.restricted && !data.applicableItemIds?.length) {
               dispatch(removeCoupon());
               return;
             }
@@ -190,6 +228,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               summary: data.summary,
               value: data.value,
               valueType: data.valueType,
+              restricted: data.restricted,
               applicableItemIds: data.applicableItemIds
             }));
           } catch (err) {
@@ -238,33 +277,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   const subtotal = otherItemsQuantity > 0 ? (totalAmount - insuranceAmount) : 0;
 
-  let couponDiscountAmount = 0;
-  if (appliedCoupon) {
-    if (couponDetails.valueType === "FIXED_AMOUNT") {
-      couponDiscountAmount = couponDetails.value;
-    } else if (couponDetails.valueType === "PERCENTAGE") {
-      if (couponDetails.applicableItemIds && couponDetails.applicableItemIds.length > 0) {
-        const applicableSubtotal = items.filter(item => {
-           if (item.variantId === INSURANCE_VARIANT_ID || (item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)) return false;
-           const rawId = item.shopifyId || item.productId || item.id;
-           const gid = (rawId && rawId.toString().includes("gid://")) ? rawId : `gid://shopify/Product/${rawId}`;
-           return couponDetails.applicableItemIds.includes(gid);
-        }).reduce((acc, item) => {
-          return acc + (Number(item.price || 0) * Number(item.quantity || 1));
-        }, 0);
-        couponDiscountAmount = (applicableSubtotal * couponDetails.value) / 100;
-      } else if (String(couponDetails.code || "").toUpperCase() === "EMBRACE3%") {
-        // EMBRACE3% is restricted to Eterna products. With no eligible items in
-        // the cart the backend returns no applicableItemIds, so it must NOT fall
-        // back to discounting the whole cart.
-        couponDiscountAmount = 0;
-      } else {
-        couponDiscountAmount = (subtotal * couponDetails.value) / 100;
-      }
-    }
-  }
+  const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotal);
 
-  const discount = couponDiscountAmount; 
+  const discount = couponDiscountAmount;
   const shipping = 0; 
   const grandTotal = subtotal + insuranceAmount - discount + shipping;
 
@@ -285,10 +300,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }),
         suppressErrorLog: true
       });
-      // EMBRACE3% only applies to Eterna products. Block it when no eligible
-      // item is present instead of discounting the whole cart.
-      if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
-        toast.error('This coupon is valid only on Eterna Collection products.');
+      // A product-restricted coupon with nothing eligible in the cart must be
+      // blocked, not allowed to discount the whole cart.
+      if (data.restricted && !data.applicableItemIds?.length) {
+        toast.error('This coupon is not applicable to the items in your cart.');
         return;
       }
       if (nectorPoints) {
@@ -303,9 +318,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         summary: data.summary,
         value: data.value,
         valueType: data.valueType,
+        restricted: data.restricted,
         applicableItemIds: data.applicableItemIds
       }));
-      toast.success(data.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon applied!' : `Coupon "${data.code}" applied!`);
+      toast.success(`Coupon "${data.code}" applied!`);
       setIsCouponDrawerOpen(false);
       setCouponCode("");
     } catch (err) {
@@ -323,8 +339,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     });
   };
 
-  // Shared by the "Proceed To Checkout" CTA and the Eterna offer banner, which is a
-  // shortcut to the same action ("Proceed to payment to unlock"), so the two can't drift.
+  // Shared by the "Proceed To Checkout" CTA, requiring login before proceeding.
   const handleProceedToCheckout = () => {
     // If user not logged in, fire promoClick and open login modal
     if (!user) {
@@ -348,11 +363,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     onPlaceOrder();
   };
 
-  // The Eterna offer banner is only relevant when the cart contains at least one
-  // product tagged "embrace" (the Eterna Collection / EMBRACE3% eligible items).
-  const hasEmbraceItem = items.some(item =>
-    (item.tags || []).some(tag => String(tag).toLowerCase() === "embrace")
-  );
+
 
   // Tiers run off diamondTotal, not subtotal: these coupons do not apply to
   // plain gold, so only the diamond-bearing lines count toward the band. An
@@ -394,7 +405,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             color: "#000000",
             fontWeight: "600"
         }}>
-          {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
+          {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
         </p>
         <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]" style={{
             marginTop: "5px",
@@ -416,17 +427,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   return (
     <div className="space-y-4">
-      {/* Mobile Eterna Offer Banner - ON TOP so it's visible first */}
-      {hasEmbraceItem && (
-        <button
-          type="button"
-          onClick={handleProceedToCheckout}
-          aria-label="Proceed to checkout to unlock the Eterna Collection bank discount"
-          className="lg:hidden block w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] cursor-pointer transition-opacity active:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5A413F]"
-        >
-          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-        </button>
-      )}
+
 
       {/* Desktop Pricing Breakdown (LG) */}
       <div className="hidden lg:block bg-white rounded-2xl p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
@@ -443,7 +444,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {appliedCoupon && (
           <div className="flex justify-between items-center font-figtree text-base text-[#189351]">
             <div className="flex items-center gap-2">
-              <span className="font-semibold uppercase tracking-wide">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
+              <span className="font-semibold uppercase tracking-wide">{`Coupon (${couponDetails.code})`}</span>
               <button
                 onClick={handleRemoveCoupon}
                 className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
@@ -497,7 +498,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             {appliedCoupon && (
               <div className="flex justify-between font-figtree text-base items-center text-[#189351]">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold uppercase tracking-wide">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
+                  <span className="font-semibold uppercase tracking-wide">{`Coupon (${couponDetails.code})`}</span>
                   <button
                     onClick={handleRemoveCoupon}
                     className="text-[10px] font-bold text-red-500 hover:underline uppercase"
@@ -553,16 +554,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
-        {hasEmbraceItem && (
-          <button
-            type="button"
-            onClick={handleProceedToCheckout}
-            aria-label="Proceed to checkout to unlock the Eterna Collection bank discount"
-            className="block w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] cursor-pointer transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5A413F]"
-          >
-            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-          </button>
-        )}
+
         <Button
           onClick={handleProceedToCheckout}
           className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer"
@@ -660,31 +652,52 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             )}
 
             {/* The same coupon ladder the PDP shows, in the same card design */}
-            {[...COUPONS]
-              .sort((a, b) => {
-                const aApp = applicableCouponCodes.includes(a.code);
-                const bApp = applicableCouponCodes.includes(b.code);
-                if (aApp && !bApp) return -1;
-                if (!aApp && bApp) return 1;
-                if (aApp && bApp) {
-                   return COUPONS.findIndex(c => c.code === b.code) - COUPONS.findIndex(c => c.code === a.code);
-                }
-                return COUPONS.findIndex(c => c.code === a.code) - COUPONS.findIndex(c => c.code === b.code);
-              })
-              .map((coupon) => (
-                <div key={coupon.code} className="w-full">
-                  <CouponCard
-                    coupon={coupon}
-                    className="w-full"
-                    mode="apply"
-                    onApply={handleApplyCoupon}
-                    onRemove={handleRemoveCoupon}
-                    applyingCode={applyingCode}
-                    appliedCode={appliedCoupon ? couponDetails.code : null}
-                    isApplicable={applicableCouponCodes.includes(coupon.code)}
-                  />
-                </div>
-              ))}
+            {(() => {
+              const baseCoupons = [...COUPONS];
+              if (eternaEligible) {
+                baseCoupons.unshift({
+                  code: "EMBRACE3%",
+                  title: "Additional 3% off*",
+                  condition: "On Eterna Collection Products"
+                });
+              }
+              const allApplicable = [...applicableCouponCodes];
+              if (eternaEligible) allApplicable.push("EMBRACE3%");
+
+              const referenceOrder = [...baseCoupons];
+
+              return baseCoupons
+                .sort((a, b) => {
+                  // Always pin EMBRACE3% to the very top
+                  if (a.code === "EMBRACE3%") return -1;
+                  if (b.code === "EMBRACE3%") return 1;
+
+                  const aApp = allApplicable.includes(a.code);
+                  const bApp = allApplicable.includes(b.code);
+
+                  if (aApp && !bApp) return -1;
+                  if (!aApp && bApp) return 1;
+
+                  if (aApp && bApp) {
+                     return referenceOrder.findIndex(c => c.code === b.code) - referenceOrder.findIndex(c => c.code === a.code);
+                  }
+                  return referenceOrder.findIndex(c => c.code === a.code) - referenceOrder.findIndex(c => c.code === b.code);
+                })
+                .map((coupon) => (
+                  <div key={coupon.code} className="w-full">
+                    <CouponCard
+                      coupon={coupon}
+                      className="w-full"
+                      mode="apply"
+                      onApply={handleApplyCoupon}
+                      onRemove={handleRemoveCoupon}
+                      applyingCode={applyingCode}
+                      appliedCode={appliedCoupon ? couponDetails.code : null}
+                      isApplicable={allApplicable.includes(coupon.code)}
+                    />
+                  </div>
+                ));
+            })()}
           </>
         )}
 
