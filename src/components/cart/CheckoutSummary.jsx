@@ -308,7 +308,7 @@ export default function CheckoutSummary({
                   <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
                     <Truck size={14} className="text-black" />
                     <span className="text-[10px] font-medium text-black tracking-tight">
-                      {item.estDelivery || getEstimatedDispatchDate(item.inStock, item.leadTime)}
+                      {getEstimatedDispatchDate(item.inStock, item.leadTime)}
                     </span>
                   </div>
 

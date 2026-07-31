@@ -92,7 +92,12 @@ const mapShopifyCart = (cart, backendCart = null) => {
       const shopifyPrice = Number(node.merchandise.price.amount);
       const finalUnitPrice = isFreeGift ? 0 : (backendPrice > 0 ? backendPrice : shopifyPrice);
       
-      const inStock = backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock);
+      // Shopify availability mirrors the PDP formula (see products/[handle]/page.js)
+      const shopifyInStock = node.merchandise.availableForSale === true && node.merchandise.currentlyNotInStock !== true;
+      const backendInStock = backendItem?.inStock;
+      const inStock = (backendInStock === undefined || backendInStock === null)
+        ? shopifyInStock
+        : (backendInStock === true || backendInStock === "true");
       const isInsurance = variantId === "gid://shopify/ProductVariant/47709366026458";
       const computedQuantity = (inStock && !isFreeGift && !isInsurance) ? 1 : node.quantity;
 

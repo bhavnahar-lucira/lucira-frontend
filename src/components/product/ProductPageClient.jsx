@@ -1336,6 +1336,7 @@ export default function ProductPageClient({
         hasSimilar: Boolean(product.handle),
         reviews: product.reviews || null,
         comparePrice: activeVariant?.compare_price || product.compare_price || "",
+        leadTime: parseInt(product.productMetafields?.lead_time) || 12,
         estDelivery: calculateDispatchDate(),
       };
 
