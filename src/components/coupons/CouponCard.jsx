@@ -34,9 +34,9 @@ export default function CouponCard({
   const isDimmed = isOutOfTier || isBlockedByOther;
 
   return (
-    <div className={`flex ${isMini ? 'h-24 md:h-28' : 'h-30 sm:h-30 min-[1500px]:h-30'} rounded-lg overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
+    <div className={`flex ${isMini ? 'h-24 md:h-28' : 'h-30 sm:h-30 min-[1500px]:h-30'} rounded-sm overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
-      <div className={`${isMini ? 'w-[32px] md:w-[38px]' : 'w-[40px]'} bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l`}>
+      <div className={`${isMini ? 'w-[32px] md:w-[38px]' : 'w-[40px]'} bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l-sm`}>
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
         <div className={`absolute ${isMini ? '-left-[5px] w-2.5 h-2.5 md:-left-[6px] md:w-3.5 md:h-3.5' : '-left-[7px] w-3.5 h-3.5'} bg-[#FFF8F6] rounded-full z-20 top-1/2 -translate-y-1/2`} />
 
@@ -51,7 +51,7 @@ export default function CouponCard({
       <div className="border-l border-dashed border-[#FBE3DC] h-full z-10" />
 
       {/* Right Content Area (With border on top, right, bottom) */}
-      <div className={`flex-1 ${isMini ? 'p-2 md:p-3' : 'p-3'} flex flex-col justify-between min-w-0 bg-white rounded-r border-y border-r border-[#FBE3DC] relative ${isDimmed ? 'opacity-55' : ''}`}>
+      <div className={`flex-1 ${isMini ? 'p-2 md:p-3' : 'p-3'} flex flex-col justify-between min-w-0 bg-white rounded-r-sm border-y border-r border-[#FBE3DC] relative ${isDimmed ? 'opacity-55' : ''}`}>
         {/* Top Info & Vertical Capsule Logo */}
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
@@ -95,7 +95,7 @@ export default function CouponCard({
                   ? "Remove the applied coupon to use this one"
                   : undefined
             }
-            className={`w-full ${isMini ? 'h-7 md:h-8 text-[0.75rem] md:text-[0.85rem] px-[8px] md:px-[12px]' : 'h-8 text-[0.875rem] px-[12px]'} flex items-center justify-center gap-1.5 rounded border transition-all font-semibold uppercase tracking-normal font-figtree leading-[1.4] disabled:cursor-not-allowed ${
+            className={`w-full ${isMini ? 'h-7 md:h-8 text-[0.75rem] md:text-[0.85rem] px-[8px] md:px-[12px]' : 'h-8 text-[0.875rem] px-[12px]'} flex items-center justify-center gap-1.5 rounded-sm border transition-all font-semibold uppercase tracking-normal font-figtree leading-[1.4] disabled:cursor-not-allowed ${
               isApplied
                 ? "bg-emerald-50/50 border-emerald-200 text-emerald-600 cursor-pointer hover:bg-emerald-50"
                 : "bg-white border-[#EBEBEB] text-[#1A1A1A] hover:bg-[#FFF8F6] hover:border-[#FBE3DC] cursor-pointer"
@@ -128,7 +128,7 @@ export default function CouponCard({
               }
               onCopy?.(coupon.code);
             }}
-            className={`w-full ${isMini ? 'h-7 md:h-8 text-[0.75rem] md:text-[0.85rem] px-[8px] md:px-[12px]' : 'h-8 text-[0.875rem] px-[12px]'} flex items-center justify-center gap-1.5 rounded border transition-all cursor-pointer font-semibold uppercase tracking-normal font-figtree leading-[1.4] ${
+            className={`w-full ${isMini ? 'h-7 md:h-8 text-[0.75rem] md:text-[0.85rem] px-[8px] md:px-[12px]' : 'h-8 text-[0.875rem] px-[12px]'} flex items-center justify-center gap-1.5 rounded-sm border transition-all cursor-pointer font-semibold uppercase tracking-normal font-figtree leading-[1.4] ${
               isCopied
                 ? "bg-emerald-50/50 border-emerald-200 text-emerald-600"
                 : "bg-white border-[#EBEBEB] text-[#1A1A1A] hover:bg-[#FFF8F6] hover:border-[#FBE3DC]"

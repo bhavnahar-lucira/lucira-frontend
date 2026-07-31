@@ -96,6 +96,8 @@ export const CART_QUERY = `
                 id
                 title
                 sku
+                availableForSale
+                currentlyNotInStock
                 price { amount currencyCode }
                 compareAtPrice { amount currencyCode }
                 image { url altText }

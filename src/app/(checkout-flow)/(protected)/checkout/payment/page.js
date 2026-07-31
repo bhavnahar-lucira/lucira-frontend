@@ -41,6 +41,7 @@ import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -300,15 +301,7 @@ export default function PaymentPage() {
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-    let couponDiscountAmount = 0;
-    if (appliedCoupon) {
-      if (couponDetails.valueType === "FIXED_AMOUNT") {
-        couponDiscountAmount = couponDetails.value;
-      } else if (couponDetails.valueType === "PERCENTAGE") {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -334,16 +327,8 @@ export default function PaymentPage() {
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
 
-  // Remove points and coupons on page reload, and points when leaving
+  // Remove points when leaving the payment page to prevent stale points
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const navEntries = window.performance.getEntriesByType("navigation");
-      if (navEntries.length > 0 && navEntries[0].type === "reload") {
-        dispatch(removePoints());
-        dispatch(removeCoupon());
-      }
-    }
-
     return () => {
       dispatch(removePoints());
     };
@@ -701,14 +686,7 @@ export default function PaymentPage() {
       const subtotalValue = (totalAmount || 0) - insuranceValue;
 
       const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-      let couponDiscountAmount = 0;
-      if (appliedCoupon) {
-        if (couponDetails.valueType === "FIXED_AMOUNT") {
-          couponDiscountAmount = couponDetails.value;
-        } else if (couponDetails.valueType === "PERCENTAGE") {
-          couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-        }
-      }
+      const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
       const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
       const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -812,6 +790,7 @@ export default function PaymentPage() {
 
       const order = await createRazorpayOrder({
         userId: user?.id || "",
+        context: process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront',
         sessionId: getCartSessionId(),
         items: checkoutItems,
         customer: {
@@ -821,7 +800,11 @@ export default function PaymentPage() {
         },
         shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
         billingAddress: selectedBillingAddress,
-        appliedCoupon: appliedCoupon,
+        appliedCoupon: appliedCoupon ? {
+          ...couponDetails,
+          value: couponDiscountAmount,
+          valueType: "FIXED_AMOUNT"
+        } : null,
         nectorPoints: nectorPoints,
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
@@ -849,14 +832,7 @@ export default function PaymentPage() {
             const subtotalValue = (totalAmount || 0) - insuranceValue;
 
             const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-            let couponDiscountAmount = 0;
-            if (appliedCoupon) {
-              if (couponDetails.valueType === "FIXED_AMOUNT") {
-                couponDiscountAmount = couponDetails.value;
-              } else if (couponDetails.valueType === "PERCENTAGE") {
-                couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-              }
-            }
+            const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
             const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
             const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -932,7 +908,11 @@ export default function PaymentPage() {
               },
               shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
               billingAddress: selectedBillingAddress,
-              appliedCoupon: appliedCoupon,
+              appliedCoupon: appliedCoupon ? {
+                ...couponDetails,
+                value: couponDiscountAmount,
+                valueType: "FIXED_AMOUNT"
+              } : null,
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
               cartItems: checkoutItems, // Pass items explicitly as fallback for backend
@@ -1016,14 +996,7 @@ export default function PaymentPage() {
         const subtotalValue = (totalAmount || 0) - insuranceValue;
 
         const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-        let couponDiscountAmount = 0;
-        if (appliedCoupon) {
-          if (couponDetails.valueType === "FIXED_AMOUNT") {
-            couponDiscountAmount = couponDetails.value;
-          } else if (couponDetails.valueType === "PERCENTAGE") {
-            couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-          }
-        }
+        const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
         const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount;
 
@@ -1460,7 +1433,7 @@ export default function PaymentPage() {
                     type="button"
                     onClick={handlePayNow}
                     disabled={paymentLoading || !totalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-                    className="px-14 h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-all text-lg uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
+                    className="px-14 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {paymentLoading
                       ? "Processing..."
@@ -1489,7 +1462,7 @@ export default function PaymentPage() {
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -1503,7 +1476,7 @@ export default function PaymentPage() {
           <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-            className="grow bg-primary hover:bg-accent text-white font-bold h-12 uppercase tracking-widest rounded-lg text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="grow flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-[45px] px-4 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             {paymentLoading ? "Processing..." : "Pay Now"}
           </Button>

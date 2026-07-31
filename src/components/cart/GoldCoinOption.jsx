@@ -93,7 +93,7 @@ export default function GoldCoinOption() {
   if (eligibleQuantity <= 0 && !isApplied) return null;
 
   return (
-    <div className="bg-gradient-to-br from-[#fffdf7] to-[#fdf5e4] border border-yellow-200 rounded-lg p-4 flex items-center justify-between gap-4 transition-all hover:bg-[#fdf5e4]">
+    <div className="bg-gradient-to-br from-[#fffdf7] to-[#fdf5e4] border border-yellow-200 rounded-sm p-4 flex items-center justify-between gap-4 transition-all hover:bg-[#fdf5e4]">
       <div className="flex items-center gap-3">
         <div className="flex items-center justify-center w-11 h-11 rounded-full bg-gradient-to-br from-[#f9e8b8] to-[#e8c97a] shadow-[0_2px_10px_rgba(184,146,74,0.25),inset_0_1px_2px_rgba(255,255,255,0.6)] shrink-0">
           <Coins size={18} className="text-[#7a5020]" />
@@ -112,7 +112,7 @@ export default function GoldCoinOption() {
           <button
             onClick={handleRemove}
             disabled={isProcessing || loading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] cursor-pointer font-bold uppercase tracking-wider text-red-600 hover:bg-red-50 transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[10px] cursor-pointer font-bold uppercase tracking-wider text-red-600 hover:bg-red-50 transition-all disabled:opacity-50"
           >
             {isProcessing ? (
               <Loader2 size={12} className="animate-spin" />
@@ -125,7 +125,7 @@ export default function GoldCoinOption() {
           <button
             onClick={handleApply}
             disabled={isProcessing || loading}
-            className="flex items-center gap-1.5 px-4 py-2 cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-[0_3px_12px_rgba(184,146,74,0.35)] transition-all hover:-translate-y-[1px] hover:shadow-[0_5px_18px_rgba(184,146,74,0.45)] active:translate-y-0 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-2 cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-[0_3px_12px_rgba(184,146,74,0.35)] transition-all hover:-translate-y-[1px] hover:shadow-[0_5px_18px_rgba(184,146,74,0.45)] active:translate-y-0 disabled:opacity-50"
           >
             {isProcessing ? (
               <Loader2 size={12} className="animate-spin" />

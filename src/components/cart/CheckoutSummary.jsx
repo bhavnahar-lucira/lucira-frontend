@@ -14,6 +14,7 @@ import CartContact from "./CartContact";
 import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
+import { calculateCouponDiscount } from "@/lib/coupons";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
@@ -38,9 +39,7 @@ export default function CheckoutSummary({
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
-  const [isApplyingEterna, setIsApplyingEterna] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(10547);
-  const [eternaEligible, setEternaEligible] = useState(false);
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
@@ -130,32 +129,7 @@ export default function CheckoutSummary({
     }, 0);
 
   const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
-
-  let couponDiscountAmount = 0;
-  if (appliedCoupon) {
-    if (couponDetails.valueType === "FIXED_AMOUNT") {
-      couponDiscountAmount = couponDetails.value;
-    } else if (couponDetails.valueType === "PERCENTAGE") {
-      if (couponDetails.applicableItemIds && couponDetails.applicableItemIds.length > 0) {
-        const applicableSubtotal = (items || []).filter(item => {
-           if (item.variantId === INSURANCE_VARIANT_ID || (item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)) return false;
-           const rawId = item.shopifyId || item.productId || item.id;
-           const gid = (rawId && rawId.toString().includes("gid://")) ? rawId : `gid://shopify/Product/${rawId}`;
-           return couponDetails.applicableItemIds.includes(gid);
-        }).reduce((acc, item) => {
-          return acc + (Number(item.price || 0) * Number(item.quantity || 1));
-        }, 0);
-        couponDiscountAmount = (applicableSubtotal * couponDetails.value) / 100;
-      } else if (String(couponDetails.code || "").toUpperCase() === "EMBRACE3%") {
-        // EMBRACE3% is restricted to Eterna products. With no eligible items in
-        // the cart the backend returns no applicableItemIds, so it must NOT fall
-        // back to discounting the whole cart.
-        couponDiscountAmount = 0;
-      } else {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
-  }
+  const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
   const discountValue = couponDiscountAmount;
   const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
@@ -253,186 +227,7 @@ export default function CheckoutSummary({
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
   const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
 
-  const ETERNA_COUPON = "EMBRACE3%";
 
-  // Check whether any cart item is actually eligible for the Eterna (EMBRACE3%)
-  // coupon. Eligibility is decided server-side (Shopify collection/tag matching),
-  // so we validate against the current cart and only surface the banner when at
-  // least one product qualifies. Skip the call when there are no real products.
-  useEffect(() => {
-    const realItems = (items || []).filter(item =>
-      item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      item.variantId !== SILVER_PENDANT_VARIANT_ID
-    );
-
-    if (realItems.length === 0) {
-      setEternaEligible(false);
-      return;
-    }
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await apiFetch("/api/cart/coupon/validate", {
-          method: "POST",
-          body: JSON.stringify({
-            items,
-            couponCode: ETERNA_COUPON,
-            customerEmail: user?.email
-          }),
-          suppressErrorLog: true
-        });
-        if (!cancelled) {
-          setEternaEligible(Boolean(data?.applicableItemIds?.length));
-        }
-      } catch (err) {
-        // Backend returns 400 when no cart item is eligible — treat as not eligible.
-        if (!cancelled) setEternaEligible(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [items, user?.email]);
-
-  const handleApplyEternaCoupon = async () => {
-    setIsApplyingEterna(true);
-
-    // Build the promoClick payload once so it can be fired for either outcome —
-    // coupon applied OR not applicable. productIds/productUrls describe the items
-    // the shopper attempted to apply the Eterna offer to.
-    const appliedProducts = (items || [])
-      .filter(item =>
-        item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-        item.variantId !== SILVER_PENDANT_VARIANT_ID
-      );
-
-    const productIds = appliedProducts
-      .map(item => {
-        const rawId = item.shopifyId || item.productId || item.id;
-        const match = String(rawId).match(/\d+$/);
-        return match ? match[0] : rawId;
-      })
-      .join(",");
-
-    const productUrls = appliedProducts
-      .map(item => {
-        const origin = typeof window !== "undefined" ? window.location.origin : "";
-        const handle = item.handle || "";
-        const vIdMatch = String(item.variantId || "").match(/\d+$/);
-        const vId = vIdMatch ? vIdMatch[0] : "";
-        return `${origin}/products/${handle}${vId ? `?variant=${vId}` : ''}`;
-      })
-      .join(",");
-
-    const firePromoClick = (creativeName) => {
-      try {
-        if (typeof window !== "undefined") {
-          window.dataLayer = window.dataLayer || [];
-          window.dataLayer.push({
-            event: "promoClick",
-            promoClick: {
-              creative_name: creativeName,
-              location_id: "checkout summary",
-              promo_id: productIds,
-              promo_name: productUrls
-            }
-          });
-        }
-      } catch (error) {
-        console.error("Error pushing to dataLayer:", error);
-      }
-    };
-
-    try {
-      const data = await apiFetch("/api/cart/coupon/validate", {
-        method: "POST",
-        body: JSON.stringify({
-          items,
-          couponCode: ETERNA_COUPON,
-          customerEmail: user?.email
-        }),
-        suppressErrorLog: true
-      });
-      // EMBRACE3% only applies to Eterna products. If the backend found none
-      // eligible, don't apply it (otherwise it would discount the whole cart).
-      if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
-        // Not applicable — still fire promoClick so the click is tracked.
-        firePromoClick("Eterna Coupon Not Applicable");
-        toast.error('This coupon is valid only on Eterna Collection products.');
-        return;
-      }
-      // Coupon applied successfully.
-      firePromoClick("Eterna Coupon Applied");
-      
-      if (nectorPoints) {
-        dispatch(removePoints());
-        toast.info("Loyalty points removed as a coupon is applied.", {
-          icon: <Check className="w-4 h-4" />
-        });
-      }
-
-      dispatch(applyCoupon({
-        code: data.code,
-        summary: data.summary,
-        value: data.value,
-        valueType: data.valueType,
-        applicableItemIds: data.applicableItemIds
-      }));
-      toast.success(data.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon applied!' : `Coupon "${data.code}" applied!`);
-    } catch (err) {
-      // The backend returns HTTP 400 ("...not applicable to the items in your cart.")
-      // when no Eterna items are eligible, which lands here — fire promoClick too so
-      // the not-applicable click is still tracked in the dataLayer.
-      firePromoClick("Eterna Coupon Not Applicable");
-      toast.error(err.message);
-    } finally {
-      setIsApplyingEterna(false);
-    }
-  };
-
-  const isEternaApplied = appliedCoupon && (appliedCoupon === ETERNA_COUPON || (couponDetails && couponDetails.code && couponDetails.code.toLowerCase() === ETERNA_COUPON.toLowerCase()));
-
-  const eternaBannerContent = (
-    <div className="w-full bg-[#FAFAFA] border border-[#e8dccf] rounded-lg overflow-hidden flex flex-col shadow-sm mt-4 lg:mb-4">
-      <div 
-        className="p-3 flex items-center justify-between"
-        style={{ background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)" }}
-      >
-        <div className="flex flex-col">
-          <span className="font-figtree font-medium text-[13px] lg:text-[15px] leading-[1.3] text-[#3D2B28] truncate">
-            Eterna Collection
-          </span>
-          <span 
-            className="font-figtree font-medium text-[11px] lg:text-[12px] leading-[1.3] text-[#6B5B54] truncate" 
-            style={{ marginTop: "3px" }}
-          >
-            Additional 3% Discount
-          </span>
-        </div>
-        {isEternaApplied ? (
-          <div className="flex items-center gap-3">
-            <span className="text-[12px] font-bold text-[#189351] uppercase tracking-wide">Applied</span>
-            <button 
-              onClick={removeCoupon}
-              className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-wide"
-            >
-              Remove
-            </button>
-          </div>
-        ) : (
-          <button 
-            onClick={handleApplyEternaCoupon}
-            disabled={isApplyingEterna}
-            className="flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] hover:bg-[#4A3533] transition-colors h-9 lg:h-10 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[11px] lg:text-[13px] text-white cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isApplyingEterna ? <Loader2 className="animate-spin h-3 w-3" /> : "Apply Now"}
-          </button>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -513,7 +308,7 @@ export default function CheckoutSummary({
                   <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
                     <Truck size={14} className="text-black" />
                     <span className="text-[10px] font-medium text-black tracking-tight">
-                      {item.estDelivery || getEstimatedDispatchDate(item.inStock, item.leadTime)}
+                      {getEstimatedDispatchDate(item.inStock, item.leadTime)}
                     </span>
                   </div>
 
@@ -524,8 +319,6 @@ export default function CheckoutSummary({
           </div>
         </div>
       )}
-
-      {showBreakdown && displayItems.length > 0 && (isEternaApplied || eternaEligible) && eternaBannerContent}
 
       {showBreakdown && (
         <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
@@ -542,15 +335,13 @@ export default function CheckoutSummary({
           {appliedCoupon && (
             <div className="flex justify-between text-sm text-[#189351]">
               <div className="flex items-center gap-2">
-                <span className="font-bold uppercase tracking-wider">{isEternaApplied ? "Coupon Applied" : `Coupon (${typeof appliedCoupon === 'object' ? appliedCoupon.code : appliedCoupon})`}</span>
-                {!isCheckoutPage && (
-                  <button 
-                    onClick={removeCoupon}
-                    className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
-                  >
-                    (Remove)
-                  </button>
-                )}
+                <span className="font-bold uppercase tracking-wider">{`Coupon (${typeof appliedCoupon === 'object' ? appliedCoupon.code : appliedCoupon})`}</span>
+                <button
+                  onClick={removeCoupon}
+                  className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
+                >
+                  (Remove)
+                </button>
               </div>
               <span className="font-bold">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
