@@ -294,20 +294,53 @@ export default function PaymentPage() {
   const { user, accessToken } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
+  const diamondTotalForOffer = useMemo(() => {
+    return (items || []).reduce((acc, item) => {
+      const type = (item.type || item.productType || item.product_type || "").toLowerCase();
+      const title = (item.title || "").toLowerCase();
+      const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
+      
+      const isDiamond = type.includes("diamond") || title.includes("diamond") || 
+                        type.includes("solitaire") || title.includes("solitaire") ||
+                        type.includes("gemstone") || title.includes("gemstone") ||
+                        hasDiamondCharges;
+
+      const isGoldCoin = item.variantId === "gid://shopify/ProductVariant/47753346973914" || item.variantId === "gid://shopify/ProductVariant/47661824082138";
+      const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
+      const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
+      const isBYJ = Boolean(
+        item.properties?.['_byj_group_id'] || 
+        item.properties?.['_byj_preview'] || 
+        item.properties?.['_byj_parent'] || 
+        item.properties?.[' _byj_parent'] || 
+        item.tags?.includes('BYJ') || 
+        String(item.handle || "").toLowerCase().includes('byj') || 
+        String(item.title || "").toLowerCase().includes('byj')
+      );
+
+      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance && !isBYJ) {
+        return acc + (Number(item.price || 0) * Number(item.quantity || 1));
+      }
+      return acc;
+    }, 0);
+  }, [items]);
+
+  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
+
   useEffect(() => {
-    if (appliedCoupon && isSilverPendantClaimed) {
+    if (!isEligibleForPendant && isSilverPendantClaimed) {
       setIsSilverPendantClaimed(false);
       if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-    } else if (!appliedCoupon && (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
+    } else if (isEligibleForPendant && (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
       setIsSilverPendantClaimed(true);
     }
-  }, [items, appliedCoupon, isSilverPendantClaimed]);
+  }, [items, appliedCoupon, isSilverPendantClaimed, isEligibleForPendant]);
 
   const checkoutItems = useMemo(() => {
     // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
     const baseItems = (items || []).filter(item => item.variantId !== SILVER_PENDANT_VARIANT_ID);
 
-    if (!isSilverPendantClaimed || !!appliedCoupon) return baseItems;
+    if (!isEligibleForPendant || !isSilverPendantClaimed) return baseItems;
     
     return [
       ...baseItems,
@@ -323,7 +356,7 @@ export default function PaymentPage() {
         image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
       }
     ];
-  }, [items, isSilverPendantClaimed, appliedCoupon, pendantPrice]);
+  }, [items, isSilverPendantClaimed, isEligibleForPendant, pendantPrice]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);

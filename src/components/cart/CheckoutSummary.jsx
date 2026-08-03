@@ -227,7 +227,15 @@ export default function CheckoutSummary({
     });
   };
 
-  const isPendantActive = isSilverPendantClaimed || (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID) || (typeof window !== "undefined" && localStorage.getItem("isSilverPendantClaimed") === "true");
+  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
+
+  useEffect(() => {
+    if (!isEligibleForPendant && typeof window !== "undefined" && localStorage.getItem("isSilverPendantClaimed") === "true") {
+      localStorage.removeItem("isSilverPendantClaimed");
+    }
+  }, [isEligibleForPendant]);
+
+  const isPendantActive = isEligibleForPendant && (isSilverPendantClaimed || (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID) || (typeof window !== "undefined" && localStorage.getItem("isSilverPendantClaimed") === "true"));
 
   const displayItems = (items || []).filter(
     (item) =>
