@@ -24,6 +24,7 @@ import {
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
 import SocialProofBand from "@/components/common/SocialProofBand";
 import { formatMetal, realSize, sizeLabelFor } from "@/lib/metal";
+import { apiFetch } from "@/lib/api";
 
 // Builds the WhatsApp "schedule video call" link, including the product name for context.
 function buildVideoCallUrl(productName, sku) {
@@ -180,7 +181,21 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
   const isSilverPendant = item.variantId === "gid://shopify/ProductVariant/48052809498842" || item.variantId === "48052809498842" || String(item.title).toLowerCase().includes("silver pendant");
-  const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || 10547) : (Number(item.comparePrice) || 0);
+  const [fetchedPendantPrice, setFetchedPendantPrice] = useState(0);
+
+  useEffect(() => {
+    if (isSilverPendant && (!Number(item.comparePrice) && !Number(item.originalPrice))) {
+      apiFetch(`/api/products/pricing?variantId=48052809498842`, { suppressErrorLog: true })
+        .then(data => {
+          if (data?.price || data?.compare_price) {
+            setFetchedPendantPrice(Number(data.price || data.compare_price));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isSilverPendant, item.comparePrice, item.originalPrice]);
+
+  const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || fetchedPendantPrice || 0) : (Number(item.comparePrice) || 0);
   const lineCompareAmount = effectiveComparePrice * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 

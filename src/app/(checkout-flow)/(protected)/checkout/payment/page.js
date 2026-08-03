@@ -263,6 +263,16 @@ export default function PaymentPage() {
     }
     return false;
   });
+  const [pendantPrice, setPendantPrice] = useState(0);
+
+  useEffect(() => {
+    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
+      .then(data => {
+        const p = Number(data?.price || data?.compare_price || 0);
+        if (p > 0) setPendantPrice(p);
+      })
+      .catch(err => console.error("Error fetching pendant price in payment:", err));
+  }, []);
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
@@ -306,14 +316,14 @@ export default function PaymentPage() {
         quantity: 1,
         price: 0,
         finalPrice: 0,
-        originalPrice: 10547,
-        comparePrice: 10547,
+        originalPrice: pendantPrice || 0,
+        comparePrice: pendantPrice || 0,
         title: "Free Silver Pendant",
         isFreeGift: true,
         image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
       }
     ];
-  }, [items, isSilverPendantClaimed]);
+  }, [items, isSilverPendantClaimed, appliedCoupon, pendantPrice]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);

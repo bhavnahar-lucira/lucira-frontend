@@ -138,12 +138,13 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const isSilverPendantEligible = diamondTotal >= 30000;
   const isSilverPendantApplied = !!silverPendantItem;
   const [isSilverPendantLoading, setIsSilverPendantLoading] = useState(false);
-  const [pendantPrice, setPendantPrice] = useState(10547);
+  const [pendantPrice, setPendantPrice] = useState(0);
 
   useEffect(() => {
     apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
       .then(data => {
-        if (data?.price) setPendantPrice(Number(data.price));
+        const p = Number(data?.price || data?.compare_price || 0);
+        if (p > 0) setPendantPrice(p);
       })
       .catch(err => console.error("Error fetching silver pendant price:", err));
   }, []);
@@ -626,7 +627,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
             <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400 line-through font-normal">₹ {(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
+                <span className="text-sm text-gray-400 line-through font-normal">
+                  ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+              )}
               <span className="font-semibold text-[#189351]">₹ 0</span>
             </div>
           </div>
@@ -691,7 +696,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               <div className="flex justify-between items-center font-figtree text-sm text-[#6B5B54]">
                 <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 line-through font-normal">₹ {(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                  {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
+                    <span className="text-xs text-gray-400 line-through font-normal">
+                      ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </span>
+                  )}
                   <span className="font-semibold text-[#189351]">₹ 0</span>
                 </div>
               </div>

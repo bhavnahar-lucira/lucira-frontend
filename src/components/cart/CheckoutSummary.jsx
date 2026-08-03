@@ -40,7 +40,7 @@ export default function CheckoutSummary({
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
-  const [pendantPrice, setPendantPrice] = useState(10547);
+  const [pendantPrice, setPendantPrice] = useState(0);
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
@@ -54,14 +54,13 @@ export default function CheckoutSummary({
 
   // Fetch Pendant Price
   useEffect(() => {
-    if (isPaymentPage) {
-      apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`)
-        .then(data => {
-          if (data?.price) setPendantPrice(data.price);
-        })
-        .catch(err => console.error("Error fetching pendant price:", err));
-    }
-  }, [isPaymentPage]);
+    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
+      .then(data => {
+        const p = Number(data?.price || data?.compare_price || 0);
+        if (p > 0) setPendantPrice(p);
+      })
+      .catch(err => console.error("Error fetching pendant price:", err));
+  }, []);
 
   // Dispatch Calculation
   const overallDispatchMessage = useMemo(() => {
@@ -273,7 +272,7 @@ export default function CheckoutSummary({
               const displayPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
               const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
               const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || String(item.title).toLowerCase().includes("silver pendant");
-              const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || pendantPrice || 10547) : Number(item.comparePrice || 0);
+              const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || pendantPrice || 0) : Number(item.comparePrice || 0);
 
               return (
                 <div key={index} className="space-y-3">
@@ -384,9 +383,11 @@ export default function CheckoutSummary({
             <div className="flex justify-between text-sm text-[#189351]">
               <span className="font-medium">Free Silver Pendant</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-zinc-400 line-through font-figtree">
-                  ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </span>
+                {pendantPrice > 0 && (
+                  <span className="text-[11px] text-zinc-400 line-through font-figtree">
+                    ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </span>
+                )}
                 <span className="font-bold uppercase tracking-wide">FREE</span>
               </div>
             </div>
@@ -437,9 +438,11 @@ export default function CheckoutSummary({
             
             <div className="flex items-center justify-between gap-3 pt-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-400 line-through font-figtree">
-                  ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </span>
+                {pendantPrice > 0 && (
+                  <span className="text-xs text-zinc-400 line-through font-figtree">
+                    ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </span>
+                )}
                 <span className="text-sm font-bold text-[#189351] font-figtree">FREE</span>
               </div>
               
