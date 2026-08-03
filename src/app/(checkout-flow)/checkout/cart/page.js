@@ -188,7 +188,7 @@ const filteredItems = items.filter(
 
   if (items.length === 0 || displayQuantity === 0) {
     return (
-      <div className="min-h-[75vh] flex items-center justify-center px-5 py-14 bg-[radial-gradient(ellipse_70%_55%_at_50%_0%,#FAF5F3_0%,#FFFFFF_70%)]">
+      <div className="min-h-[75vh] flex items-center justify-center px-5 py-6 lg:px-0 lg:pt-[60px] lg:pb-[80px] bg-[radial-gradient(ellipse_70%_55%_at_50%_0%,#FAF5F3_0%,#FFFFFF_70%)]">
         <div className="w-full max-w-full text-center">
           {/* Illustration */}
           <div className="relative mx-auto mb-7 flex size-48 items-center justify-center">
@@ -217,8 +217,8 @@ const filteredItems = items.filter(
           <div className="mt-7 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
             <Link prefetch={false} href="/collections/jewelry" className="sm:w-auto">
               <Button 
-                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold h-12 px-8 uppercase tracking-widest rounded-sm flex items-center justify-center gap-2 shadow-sm shadow-primary/20"
-                style={{ padding: "12px 24px", letterSpacing: "0.7px" }}
+                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold h-12 px-8 uppercase tracking-widest rounded-sm flex items-center justify-center gap-2 shadow-sm shadow-primary/20 cursor-pointer"
+                style={{ padding: "12px 24px", letterSpacing: "0.7px", cursor: "pointer" }}
               >
                 Shop Now
                 <ArrowRight size={18} />
@@ -227,8 +227,8 @@ const filteredItems = items.filter(
             <Link prefetch={false} href="/collections/bestsellers" className="sm:w-auto">
               <Button
                 variant="outline"
-                className="w-full border-primary/25 text-primary hover:bg-primary/5 hover:text-primary font-semibold h-12 px-8 uppercase tracking-widest rounded-sm bg-white"
-                style={{ padding: "12px 24px", letterSpacing: "0.7px", border: "1px solid #5a413f" }}
+                className="w-full border-primary/25 text-primary hover:bg-primary/5 hover:text-primary font-semibold h-12 px-8 uppercase tracking-widest rounded-sm bg-white cursor-pointer"
+                style={{ padding: "12px 24px", letterSpacing: "0.7px", border: "1px solid #5a413f", cursor: "pointer" }}
               >
                 Best Sellers
               </Button>
@@ -294,7 +294,7 @@ const filteredItems = items.filter(
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             <button
               onClick={scrollToSummary}
-              className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
+              className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap cursor-pointer"
             >
               View Order Summary
             </button>
