@@ -33,6 +33,7 @@ export default function CheckoutHeader() {
                 width={120} 
                 height={50} 
                 priority
+                className="h-[35px] w-auto"
               />
             </Link>
           </div>

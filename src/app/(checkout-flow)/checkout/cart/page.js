@@ -6,7 +6,7 @@ import Link from "next/link";
 import CartItem from "@/components/cart/CartItem";
 import CartSummary from "@/components/cart/CartSummary";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, MapPin, RotateCcw, BadgeCheck, ShieldCheck, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { pushViewCart } from "@/lib/gtm";
 import { calculateCouponDiscount } from "@/lib/coupons";
@@ -22,6 +22,55 @@ import { removeFromCart, removeMultipleFromCart } from "@/redux/features/cart/ca
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
+
+// Empty-cart art: a line-drawn jewelry pouch holding a brilliant-cut solitaire.
+// Monochrome (inherits `currentColor`) so it sits on the brand brown, with the
+// sparkles pulled toward the lighter accent.
+const SPARKLE_PATH = "M6 0C6 3.3 3.3 6 0 6c3.3 0 6 2.7 6 6 0-3.3 2.7-6 6-6-3.3 0-6-2.7-6-6Z";
+
+function EmptyCartArt({ className = "" }) {
+  return (
+    <svg viewBox="0 0 120 120" fill="none" className={className} aria-hidden="true">
+      {/* bag handle */}
+      <path
+        d="M46 46v-8c0-7.7 6.3-14 14-14s14 6.3 14 14v8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      {/* bag body */}
+      <path
+        d="M33 45h54l5 53a6 6 0 0 1-6 6.5H34a6 6 0 0 1-6-6.5l5-53Z"
+        fill="currentColor"
+        fillOpacity="0.03"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      {/* solitaire */}
+      <path
+        d="M48 66h24l4 7-16 17-16-17 4-7Z"
+        fill="currentColor"
+        fillOpacity="0.07"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <g stroke="currentColor" strokeWidth="1.1" strokeOpacity="0.45" strokeLinecap="round">
+        <path d="M44 73h32" />
+        <path d="M48 66l5 7M72 66l-5 7" />
+        <path d="M53 73l7 17M67 73l-7 17" />
+      </g>
+      {/* sparkles */}
+      <g className="fill-accent">
+        <path d={SPARKLE_PATH} transform="translate(94 14) scale(1.25)" opacity="0.55" />
+        <path d={SPARKLE_PATH} transform="translate(13 42) scale(0.85)" opacity="0.4" />
+        <path d={SPARKLE_PATH} transform="translate(99 78) scale(0.7)" opacity="0.35" />
+      </g>
+    </svg>
+  );
+}
+
 
 export default function CartPage() {
   const router = useRouter();
@@ -139,20 +188,54 @@ const filteredItems = items.filter(
 
   if (items.length === 0 || displayQuantity === 0) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 space-y-6 bg-white">
-        <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100 shadow-inner mb-2">
-          <ShoppingBag size={40} className="text-zinc-300" strokeWidth={1.5} />
+      <div className="min-h-[75vh] flex items-center justify-center px-5 py-14 bg-[radial-gradient(ellipse_70%_55%_at_50%_0%,#FAF5F3_0%,#FFFFFF_70%)]">
+        <div className="w-full max-w-full text-center">
+          {/* Illustration */}
+          <div className="relative mx-auto mb-7 flex size-48 items-center justify-center">
+            <span className="absolute inset-0 rounded-full bg-primary/[0.04]" />
+            <span className="absolute inset-[14px] rounded-full border border-primary/10" />
+            <span className="absolute inset-[30px] rounded-full border border-dashed border-accent/25" />
+            <EmptyCartArt className="relative w-[116px] text-primary" />
+          </div>
+
+          <h1 className="font-abhaya text-[28px] lg:text-[32px] leading-tight font-bold text-primary">
+            Your Cart is Empty
+          </h1>
+
+          {/* Ornament */}
+          <div className="flex items-center justify-center gap-2 my-3.5" aria-hidden="true">
+            <span className="h-px w-10 bg-gradient-to-r from-transparent to-accent/40" />
+            <span className="size-1.5 rotate-45 bg-accent/50" />
+            <span className="h-px w-10 bg-gradient-to-l from-transparent to-accent/40" />
+          </div>
+
+          <p className="text-base leading-relaxed text-zinc-500 max-w-full mx-auto" style={{ maxWidth: "390px" }}>
+            Nothing added yet. Explore our certified diamond &amp; gold jewelry and find a piece worth keeping.
+          </p>
+
+          {/* Actions */}
+          <div className="mt-7 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3">
+            <Link prefetch={false} href="/collections/jewelry" className="sm:w-auto">
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold h-12 px-8 uppercase tracking-widest rounded-sm flex items-center justify-center gap-2 shadow-sm shadow-primary/20"
+                style={{ padding: "12px 24px", letterSpacing: "0.7px" }}
+              >
+                Shop Now
+                <ArrowRight size={18} />
+              </Button>
+            </Link>
+            <Link prefetch={false} href="/collections/bestsellers" className="sm:w-auto">
+              <Button
+                variant="outline"
+                className="w-full border-primary/25 text-primary hover:bg-primary/5 hover:text-primary font-semibold h-12 px-8 uppercase tracking-widest rounded-sm bg-white"
+                style={{ padding: "12px 24px", letterSpacing: "0.7px", border: "1px solid #5a413f" }}
+              >
+                Best Sellers
+              </Button>
+            </Link>
+          </div>
+
         </div>
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-zinc-800 font-abhaya">Your cart is empty</h1>
-          <p className="text-zinc-500 max-w-xs mx-auto">Looks like you haven&apos;t added anything to your cart yet.</p>
-        </div>
-        <Link prefetch={false} href="/collections/jewelry">
-          <Button className="bg-primary hover:bg-primary/90 text-white font-bold h-12 px-8 uppercase tracking-widest rounded-sm flex items-center gap-2">
-            Shop Now
-            <ArrowRight size={18} />
-          </Button>
-        </Link>
       </div>
     );
   }
