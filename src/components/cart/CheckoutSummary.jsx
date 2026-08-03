@@ -82,12 +82,21 @@ export default function CheckoutSummary({
                         type.includes("gemstone") || title.includes("gemstone") ||
                         hasDiamondCharges;
 
-      // Exclude Gold Coins, Silver Pendants (paid), Insurance
+      // Exclude Gold Coins, Silver Pendants (paid), Insurance, BYJ
       const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
       const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
+      const isBYJ = Boolean(
+        item.properties?.['_byj_group_id'] || 
+        item.properties?.['_byj_preview'] || 
+        item.properties?.['_byj_parent'] || 
+        item.properties?.[' _byj_parent'] || 
+        item.tags?.includes('BYJ') || 
+        String(item.handle || "").toLowerCase().includes('byj') || 
+        String(item.title || "").toLowerCase().includes('byj')
+      );
 
-      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance) {
+      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance && !isBYJ) {
         return acc + (Number(item.price || 0) * Number(item.quantity || 1));
       }
       return acc;
@@ -218,14 +227,27 @@ export default function CheckoutSummary({
     });
   };
 
+  const isPendantActive = isSilverPendantClaimed || (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID) || (typeof window !== "undefined" && localStorage.getItem("isSilverPendantClaimed") === "true");
+
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift) &&
       !item.properties?.['_byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
+
+  if (isPendantActive && !displayItems.some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
+    displayItems.push({
+      variantId: SILVER_PENDANT_VARIANT_ID,
+      quantity: 1,
+      price: 0,
+      comparePrice: pendantPrice,
+      title: "Free Silver Pendant",
+      isFreeGift: true,
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+    });
+  }
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
   const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
@@ -249,6 +271,8 @@ export default function CheckoutSummary({
               const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
               const displayPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
               const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
+              const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || String(item.title).toLowerCase().includes("silver pendant");
+              const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || pendantPrice || 10547) : Number(item.comparePrice || 0);
 
               return (
                 <div key={index} className="space-y-3">
@@ -273,8 +297,8 @@ export default function CheckoutSummary({
                       </div>
                       <div className="flex items-center gap-2 pt-1">
                         <span className="text-sm font-bold text-zinc-900">₹{(displayPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                        {item.comparePrice > item.price && (
-                          <span className="text-xs text-zinc-400 line-through">₹{(item.comparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        {effectiveComparePrice > item.price && (
+                          <span className="text-xs text-zinc-400 line-through">₹{(effectiveComparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         )}
                       </div>
                     </div>
@@ -355,7 +379,7 @@ export default function CheckoutSummary({
               <span className="font-bold">₹ 0</span>
             </div>
           )}
-          {isSilverPendantClaimed && (
+          {isPendantActive && (
             <div className="flex justify-between text-sm text-[#189351]">
               <span className="font-medium">Free Silver Pendant</span>
               <div className="flex items-center gap-2">
@@ -418,7 +442,7 @@ export default function CheckoutSummary({
                 <span className="text-sm font-bold text-[#189351] font-figtree">FREE</span>
               </div>
               
-              {isSilverPendantClaimed ? (
+              {isPendantActive ? (
                 <button 
                   onClick={() => {
                     onToggleSilverPendant();

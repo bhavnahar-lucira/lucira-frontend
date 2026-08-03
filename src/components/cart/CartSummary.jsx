@@ -86,11 +86,21 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   })();
 
   const diamondTotal = items
-    .filter(item => 
-      item.variantId !== INSURANCE_VARIANT_ID && 
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      item.variantId !== SILVER_PENDANT_VARIANT_ID
-    )
+    .filter(item => {
+      const isBYJ = Boolean(
+        item.properties?.['_byj_group_id'] || 
+        item.properties?.['_byj_preview'] || 
+        item.properties?.['_byj_parent'] || 
+        item.properties?.[' _byj_parent'] || 
+        item.tags?.includes('BYJ') || 
+        String(item.handle || "").toLowerCase().includes('byj') || 
+        String(item.title || "").toLowerCase().includes('byj')
+      );
+      return item.variantId !== INSURANCE_VARIANT_ID && 
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        item.variantId !== SILVER_PENDANT_VARIANT_ID &&
+        !isBYJ;
+    })
     .reduce((acc, item) => {
         const itemQty = Number(item.quantity || item.qty || 1);
         let charges = Number(item.diamondCharges || 0);
@@ -490,7 +500,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]"
                 style={{ color: "rgb(0, 0, 0)", fontWeight: 500, fontSize: "0.9rem", lineHeight: 1.3 }}
               >
-                You've unlocked a FREE diamond pendant worth ₹10,000.
+                You've unlocked a FREE Diamond Pendant worth ₹10,000.
               </p>
             </div>
             {isSilverPendantApplied ? (
@@ -519,7 +529,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 ) : (
                   <>
                     <Gift className="w-3.5 h-3.5 hidden lg:block" />
-                    APPLY
+                    CLAIM
                   </>
                 )}
               </button>

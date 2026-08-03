@@ -179,7 +179,9 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   // For BYJ items, the unit price displayed should be the total of style + all charms
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
-  const lineCompareAmount = (item.comparePrice || 0) * (item.quantity || 1);
+  const isSilverPendant = item.variantId === "gid://shopify/ProductVariant/48052809498842" || item.variantId === "48052809498842" || String(item.title).toLowerCase().includes("silver pendant");
+  const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || 10547) : (Number(item.comparePrice) || 0);
+  const lineCompareAmount = effectiveComparePrice * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
   const statusLabel = (isInStock && !isBYJ) ? "In Stock" : "Made to Order";
