@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, BadgePercent, Check } from "lucide-react";
+import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
@@ -162,15 +162,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       }
     }
   }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled]);
-
-  const ETERNA_COUPON = "EMBRACE3%";
-
-  const hasEternaTag = (tags) => Array.isArray(tags) && tags.some(t => typeof t === 'string' && (t.trim().toLowerCase() === 'embrace' || t.trim().toLowerCase() === 'eterna'));
-
-  const eternaEligible = (items || []).some(item => 
-    hasEternaTag(item.tags) || 
-    (item.properties && (item.properties['Collection'] === 'Eterna' || item.properties['collection'] === 'Eterna'))
-  );
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
@@ -374,7 +365,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       type="button"
       onClick={() => setIsCouponDrawerOpen(true)}
       className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
-      style={eternaEligible ? { margin: 0, borderRadius: "8px 8px 0 0" } : { borderRadius: "8px" }}
+      style={{ borderRadius: "8px" }}
     >
       <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
         <Tag size={18} className="text-[#5A413F]" />
@@ -410,62 +401,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     </button>
   );
 
-  const isEternaApplied = appliedCoupon && couponDetails?.code === "EMBRACE3%";
-  const eternaTrigger = eternaEligible ? (
-    <div 
-      className="flex w-full items-center gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors"
-      style={{
-        borderRadius: "0px 0px 8px 8px",
-        borderTop: "0px",
-        background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
-        padding: "12px 13px"
-      }}
-    >
-      <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]" style={{ color: "#000", fontWeight: 500, marginBottom: "2px" }}>
-          Eterna Collection
-        </p>
-        <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]" style={{ color: "#000" }}>
-          {isEternaApplied ? "3% off applied to your cart." : "Get an additional 3% off."}
-        </p>
-      </div>
-      <button
-        type="button"
-        disabled={isApplying}
-        onClick={() => isEternaApplied ? handleRemoveCoupon() : handleApplyCoupon("EMBRACE3%")}
-        className={`flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] h-9 lg:h-10 uppercase tracking-wide transition ${
-          isEternaApplied 
-            ? "bg-transparent text-[#5A413F] hover:text-[#3D2B28]" 
-            : "px-4 lg:px-6 font-figtree font-medium text-[11px] lg:text-[13px] bg-[#5A413F] text-white hover:bg-[#4A312F]"
-        }`}
-        style={isEternaApplied ? {
-          padding: "0 8px",
-          fontSize: "12px",
-          fontWeight: 600,
-          textDecoration: "none",
-          cursor: "pointer"
-        } : undefined}
-      >
-        {isEternaApplied ? (
-          "REMOVE"
-        ) : isApplying ? (
-          <Loader2 size={16} className="animate-spin" />
-        ) : (
-          <>
-            <BadgePercent size={14} className="hidden lg:block" />
-            APPLY
-          </>
-        )}
-      </button>
-    </div>
-  ) : null;
-
   return (
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
       <div className="flex flex-col">
         {couponTrigger}
-        {eternaTrigger}
       </div>
 
       {/* Desktop Pricing Breakdown (LG) */}
@@ -683,24 +623,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             {/* The same coupon ladder the PDP shows, in the same card design */}
             {(() => {
               const baseCoupons = [...COUPONS];
-              if (eternaEligible) {
-                baseCoupons.unshift({
-                  code: "EMBRACE3%",
-                  title: "Additional 3% off*",
-                  condition: "On Eterna Collection Products"
-                });
-              }
               const allApplicable = [...applicableCouponCodes];
-              if (eternaEligible) allApplicable.push("EMBRACE3%");
 
               const referenceOrder = [...baseCoupons];
 
               return baseCoupons
                 .sort((a, b) => {
-                  // Always pin EMBRACE3% to the very top
-                  if (a.code === "EMBRACE3%") return -1;
-                  if (b.code === "EMBRACE3%") return 1;
-
                   const aApp = allApplicable.includes(a.code);
                   const bApp = allApplicable.includes(b.code);
 

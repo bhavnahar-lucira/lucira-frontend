@@ -117,13 +117,6 @@ export const calculateCouponDiscount = (appliedCoupon, items, subtotalValue) => 
   // whole cart.
   const isRestricted = couponDetails.restricted ?? applicableItemIds.length > 0;
 
-  if (String(couponDetails.code || "").toUpperCase() === "EMBRACE3%" && applicableItemIds.length === 0) {
-    // EMBRACE3% is restricted to Eterna products. With no eligible items in
-    // the cart the backend returns no applicableItemIds, so it must NOT fall
-    // back to discounting the whole cart.
-    return 0;
-  }
-
   if (!isRestricted) {
     return (Number(subtotalValue || 0) * couponDetails.value) / 100;
   }
