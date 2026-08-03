@@ -15,6 +15,7 @@ import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 import { calculateCouponDiscount } from "@/lib/coupons";
+import { pushPromoClick } from "@/lib/gtm";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
@@ -445,6 +446,19 @@ export default function CheckoutSummary({
               {isPendantActive ? (
                 <button 
                   onClick={() => {
+                    const firstItem = items && items.length > 0 ? items[0] : null;
+                    const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+                    try {
+                      pushPromoClick({
+                        creative_name: "remove free silver pendant - checkout",
+                        promo_id: SILVER_PENDANT_VARIANT_ID,
+                        item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+                        promo_position: "Checkout Summary",
+                      });
+                    } catch (e) {
+                      console.error("promoClick push failed", e);
+                    }
+                    if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
                     onToggleSilverPendant();
                     toast.info("Free Silver Pendant removed from your order.");
                   }}
@@ -455,6 +469,23 @@ export default function CheckoutSummary({
               ) : (
                 <button 
                   onClick={() => {
+                    const firstItem = items && items.length > 0 ? items[0] : null;
+                    const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+                    try {
+                      pushPromoClick({
+                        creative_name: "claim free silver pendant - checkout",
+                        promo_id: SILVER_PENDANT_VARIANT_ID,
+                        item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+                        promo_position: "Checkout Summary",
+                      });
+                    } catch (e) {
+                      console.error("promoClick push failed", e);
+                    }
+                    if (appliedCoupon) {
+                      removeCoupon();
+                      toast.info("Coupon removed as Free Pendant offer cannot be combined with coupons.");
+                    }
+                    if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
                     onToggleSilverPendant();
                     toast.success("Free Silver Pendant added to your order!", {
                       icon: <Check className="w-4 h-4" />

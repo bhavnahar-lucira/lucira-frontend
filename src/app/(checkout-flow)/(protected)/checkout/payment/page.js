@@ -285,16 +285,19 @@ export default function PaymentPage() {
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
   useEffect(() => {
-    if ((items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
+    if (appliedCoupon && isSilverPendantClaimed) {
+      setIsSilverPendantClaimed(false);
+      if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
+    } else if (!appliedCoupon && (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
       setIsSilverPendantClaimed(true);
     }
-  }, [items]);
+  }, [items, appliedCoupon, isSilverPendantClaimed]);
 
   const checkoutItems = useMemo(() => {
     // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
     const baseItems = (items || []).filter(item => item.variantId !== SILVER_PENDANT_VARIANT_ID);
 
-    if (!isSilverPendantClaimed) return baseItems;
+    if (!isSilverPendantClaimed || !!appliedCoupon) return baseItems;
     
     return [
       ...baseItems,
