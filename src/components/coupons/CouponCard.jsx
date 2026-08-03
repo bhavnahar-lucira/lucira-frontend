@@ -2,6 +2,7 @@
 
 import React from "react";
 import { CheckCircle, Copy, Loader2, Tag } from "lucide-react";
+import { useSelector } from "react-redux";
 
 /**
  * Ticket-style coupon card shared by the PDP unlock strip and the cart's
@@ -23,6 +24,7 @@ export default function CouponCard({
   appliedCode = null,
   isApplicable = true,
 }) {
+  const user = useSelector((state) => state.user?.user);
   const isCopied = copiedCode === coupon.code;
   const isApplied = mode === "apply" && appliedCode?.toUpperCase() === coupon.code.toUpperCase();
   const isApplying = mode === "apply" && applyingCode === coupon.code;
@@ -79,10 +81,15 @@ export default function CouponCard({
         {mode === "apply" ? (
           <button
             onClick={() => {
-              if (typeof window !== "undefined" && window.dataLayer) {
+              if (typeof window !== "undefined" && window.dataLayer && !isApplied) {
                 window.dataLayer.push({
                   event: "promoClick",
-                  couponCode: coupon.code,
+                  promoClick: {
+                    creative_name: `coupon applied - ${coupon.code}`,
+                    location_id: "cart page",
+                    promo_id: coupon.code,
+                    promo_name: (user?.mobile || user?.phone) ? String(user.mobile || user.phone).replace(/\D/g, "").slice(-10) : "",
+                  },
                 });
               }
               isApplied ? onRemove?.(coupon.code) : onApply?.(coupon.code);

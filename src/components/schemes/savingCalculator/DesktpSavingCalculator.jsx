@@ -319,7 +319,7 @@ const DesktpSavingCalculator = () => {
                     creative_name: "scheme page Continue cta",
                     location_id: "schemes page",
                     promo_id: String(amount),
-                    promo_name: user?.mobile || "",
+                    promo_name: get10DigitMobile(user?.mobile || user?.phone) || "",
                   });
                 } catch (error) {
                   console.error("Error pushing to dataLayer:", error);
