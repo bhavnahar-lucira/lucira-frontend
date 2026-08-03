@@ -23,6 +23,7 @@ export default function CouponCard({
   applyingCode = null,
   appliedCode = null,
   isApplicable = true,
+  disabled = false,
 }) {
   const user = useSelector((state) => state.user?.user);
   const isCopied = copiedCode === coupon.code;
@@ -33,7 +34,7 @@ export default function CouponCard({
   // Only one coupon can be live on a cart, so once any code is applied every
   // other card is locked — the applied one has to be removed first.
   const isBlockedByOther = mode === "apply" && !!appliedCode && !isApplied;
-  const isDimmed = isOutOfTier || isBlockedByOther;
+  const isDimmed = isOutOfTier || isBlockedByOther || (mode === "apply" && disabled);
 
   return (
     <div className={`flex ${isMini ? 'h-24 md:h-28' : 'h-30 sm:h-30 min-[1500px]:h-30'} rounded-sm overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
@@ -94,9 +95,11 @@ export default function CouponCard({
               }
               isApplied ? onRemove?.(coupon.code) : onApply?.(coupon.code);
             }}
-            disabled={isOutOfTier || isBlockedByOther || !!applyingCode}
+            disabled={isOutOfTier || isBlockedByOther || !!applyingCode || disabled}
             title={
-              isOutOfTier
+              disabled
+                ? "Not available while Free Silver Pendant is claimed"
+                : isOutOfTier
                 ? `Not applicable — ${coupon.condition}`
                 : isBlockedByOther
                   ? "Remove the applied coupon to use this one"
@@ -115,6 +118,8 @@ export default function CouponCard({
               </>
             ) : isApplying ? (
               <Loader2 className={`${isMini ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin text-[#5C3E35]`} />
+            ) : disabled ? (
+              <span className="normal-case">Not Available</span>
             ) : isOutOfTier ? (
               <span className="normal-case">Not Applicable</span>
             ) : (

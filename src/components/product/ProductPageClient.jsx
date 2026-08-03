@@ -2171,7 +2171,7 @@ export default function ProductPageClient({
             </div>
 
             {/* Unlock Free Coupons Box */}
-            {!(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold")) && (
+            {!(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold" || tag.toLowerCase() === "byj")) && !String(product?.handle || "").toLowerCase().includes("byj") && (
               <div className="mb-6">
                 <UnlockCoupon
                   user={user}
