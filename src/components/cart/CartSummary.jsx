@@ -526,8 +526,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               borderRadius: "0px 0px 8px 8px",
               borderTop: "0px",
               background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
-              paddingTop: 0,
-              paddingBottom: 0,
+              paddingTop: 8,
+              paddingBottom: 8,
               paddingLeft: 0
             }}
           >
@@ -550,7 +550,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 Silver Pendant
               </p>
               <p
-                className="font-figtree font-normal text-[12px] sm:text-xs lg:text-[0.9rem] leading-[1.35] text-[#000000]"
+                className="font-figtree font-normal text-[0.9rem] lg:text-[0.9rem] leading-[1.35] text-[#000000]"
                 style={{ color: "rgb(0, 0, 0)", fontWeight: 500 }}
               >
                 You've unlocked a FREE Diamond Pendant worth ₹10,000.
@@ -575,7 +575,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 type="button"
                 onClick={handleToggleSilverPendant}
                 disabled={isSilverPendantLoading || loading}
-                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
+                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
               >
                 {isSilverPendantLoading ? (
                   <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />

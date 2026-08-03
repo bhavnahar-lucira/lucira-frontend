@@ -380,12 +380,6 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     const tags = Array.isArray(product.tags) ? product.tags : [];
     const lowerTags = tags.map(t => String(t).toLowerCase());
 
-    // Any product tagged "embrace" shows two badges ("Extra 3% OFF" and "Eterna",
-    // styled like Best Seller) — all other badges are suppressed for these products.
-    if (lowerTags.some(t => t.includes("embrace"))) {
-      return ["Extra 3% OFF", "Eterna"];
-    }
-
     const labels = [];
     if (product.label) labels.push(product.label);
     const bestsellerMeta = String(product.productMetafields?.bestsellers || "").toLowerCase();
