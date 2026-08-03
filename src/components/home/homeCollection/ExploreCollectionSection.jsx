@@ -10,13 +10,6 @@ const COLLECTION_HANDLE_MAP = {
   "Cotton Candy": "cotton-candy",
   Hexa: "hexa",
   "9KT Collection": "9kt-collection",
-  Eterna: "eterna",
-  "Evil Eye": "evil-eye",
-  Pearl: "pearl",
-  Nakshatra: "nakshatra",
-  Peacock: "peacock",
-  "Hexa Moving Diamond": "hexa-moving-diamond",
-  Petalique: "petalique",
 };
 
 export default function ExploreCollectionSection({ initialData }) {
