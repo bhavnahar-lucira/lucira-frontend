@@ -26,6 +26,16 @@ import SocialProofBand from "@/components/common/SocialProofBand";
 import { formatMetal, realSize, sizeLabelFor } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 
+const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
+
+// The payment page rebuilds the free pendant from this flag rather than from the cart line,
+// so removing the line here has to clear it too or the gift reappears at checkout.
+function clearSilverPendantClaim() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("isSilverPendantClaimed");
+  }
+}
+
 // Builds the WhatsApp "schedule video call" link, including the product name for context.
 function buildVideoCallUrl(productName, sku) {
   let message = "Hi, I'm on the cart page and want to schedule a video call";
@@ -180,7 +190,9 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   // For BYJ items, the unit price displayed should be the total of style + all charms
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
-  const isSilverPendant = item.variantId === "gid://shopify/ProductVariant/48052809498842" || item.variantId === "48052809498842" || String(item.title).toLowerCase().includes("silver pendant");
+  const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48052809498842" || String(item.title).toLowerCase().includes("silver pendant");
+  // Narrower than the display check above — only the gift variant should touch the claim flag.
+  const isFreeSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48052809498842";
   const [fetchedPendantPrice, setFetchedPendantPrice] = useState(0);
 
   useEffect(() => {
@@ -265,6 +277,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
         }
       }
 
+      if (isFreeSilverPendant) clearSilverPendantClaim();
+
       await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Removed from cart", {
         icon: <Check className="w-4 h-4" />
@@ -337,6 +351,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
       const commonTrackingData = getStandardWishlistPayload(mockProduct, mockVariant, currentOrigin, item.image);
       pushAddToWishlist(commonTrackingData);
+
+      if (isFreeSilverPendant) clearSilverPendantClaim();
 
       await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Moved to wishlist", {
