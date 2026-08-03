@@ -47,13 +47,12 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     const labels = [];
     if (product.label) labels.push(product.label);
 
-    // Priority order: Fast Shipping > Best Seller > New Arrival > Trending > Only Pendant
+    // Priority order: Fast Shipping > Best Seller > New Arrival > Trending
     if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Faster Delivery");
     if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller"))) labels.push("Best Seller");
     if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
-    if (lowerTags.some(t => t.includes("only pendant"))) labels.push("Only Pendant");
-    
+
     return [...new Set(labels)].slice(0, 2);
   }, [product.label, product.tags]);
 
