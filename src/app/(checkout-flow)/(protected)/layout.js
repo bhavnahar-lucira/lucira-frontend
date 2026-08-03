@@ -30,9 +30,9 @@ export default function CheckoutProtectedLayout({ children }) {
       .unwrap()
       .then((data) => {
         if (data?.pricesChanged) {
-          toast.info("Some cart prices were updated for checkout.", {
+          toast.info("Your cart total has been updated to today's live gold rates.", {
             position: "top-right",
-            autoClose: 3000,
+            autoClose: 4000,
             closeOnClick: true,
             theme: "light",
           });

@@ -9,6 +9,9 @@ import {
   clearCart,
   removePoints,
   removeCoupon,
+  applyCoupon,
+  applyPoints,
+  repriceCartForCheckout,
 } from "@/redux/features/cart/cartSlice";
 import {
   Dialog,
@@ -254,7 +257,12 @@ export default function PaymentPage() {
   const [billingAddressSnapshot, setBillingAddressSnapshot] = useState(null);
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
+  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("isSilverPendantClaimed") === "true";
+    }
+    return false;
+  });
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
@@ -276,6 +284,12 @@ export default function PaymentPage() {
   const { user, accessToken } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
+  useEffect(() => {
+    if ((items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
+      setIsSilverPendantClaimed(true);
+    }
+  }, [items]);
+
   const checkoutItems = useMemo(() => {
     // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
     const baseItems = (items || []).filter(item => item.variantId !== SILVER_PENDANT_VARIANT_ID);
@@ -289,9 +303,11 @@ export default function PaymentPage() {
         quantity: 1,
         price: 0,
         finalPrice: 0,
+        originalPrice: 10547,
+        comparePrice: 10547,
         title: "Free Silver Pendant",
         isFreeGift: true,
-        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/free-pendant.jpg?v=1781522812"
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
       }
     ];
   }, [items, isSilverPendantClaimed]);
@@ -810,6 +826,50 @@ export default function PaymentPage() {
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
         gclid: getCookie("gclid") || "",
       }, accessToken);
+
+      // Razorpay collects the draft-order total, which the server rebuilds from
+      // the live metal rates and re-validated discounts. If that lands anywhere
+      // other than the total on screen, stop: re-sync to the server's numbers and
+      // let the customer see them before paying. Reconciling the discount here is
+      // what keeps this from looping — otherwise a coupon the server rejected
+      // would fail the same check on every retry.
+      const serverPricing = order?.pricing;
+      const serverGrandTotal = Number(serverPricing?.grandTotal ?? order?.paymentMethod?.grandTotal);
+
+      if (Number.isFinite(serverGrandTotal) && Math.round(serverGrandTotal) !== Math.round(grandTotalValue)) {
+        console.warn(
+          `[payment] Total mismatch — shown ₹${grandTotalValue}, server ₹${serverGrandTotal}. Re-syncing.`
+        );
+
+        if (serverPricing) {
+          const serverCoupon = Number(serverPricing.couponDiscount || 0);
+          const serverPoints = Number(serverPricing.pointsDiscount || 0);
+
+          if (appliedCoupon && serverCoupon !== couponDiscountAmount) {
+            if (serverCoupon > 0) {
+              // Pin to the amount the server honoured, as a flat value.
+              dispatch(applyCoupon({ ...couponDetails, value: serverCoupon, valueType: "FIXED_AMOUNT", restricted: false, applicableItemIds: [] }));
+            } else {
+              dispatch(removeCoupon());
+              toast.info(`Coupon ${couponDetails?.code || ""} is no longer valid for this order.`);
+            }
+          }
+
+          if (nectorPoints && serverPoints !== pointsDiscountAmount) {
+            if (serverPoints > 0) dispatch(applyPoints({ ...nectorPoints, fiat_value: serverPoints }));
+            else {
+              dispatch(removePoints());
+              toast.info("Your loyalty points could not be applied to this order.");
+            }
+          }
+        }
+
+        await dispatch(repriceCartForCheckout({ userId: user?.id }));
+
+        toast.info("Your total has been updated to today's live rates. Please review it and pay again.");
+        scrollToSummary();
+        return;
+      }
 
       const razorpay = new window.Razorpay({
         key: order.key,

@@ -46,7 +46,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   }, []);
   // Which listed coupon is mid-apply, so only that card shows a spinner.
   
-  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, nectorPoints } = useCart();
+  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, addToCart, loading, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: true, threshold: 20000 });
@@ -124,6 +124,51 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
 
   const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
+  const silverPendantItem = items.find(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+  const isSilverPendantEligible = diamondTotal >= 30000;
+  const isSilverPendantApplied = !!silverPendantItem;
+  const [isSilverPendantLoading, setIsSilverPendantLoading] = useState(false);
+  const [pendantPrice, setPendantPrice] = useState(10547);
+
+  useEffect(() => {
+    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
+      .then(data => {
+        if (data?.price) setPendantPrice(Number(data.price));
+      })
+      .catch(err => console.error("Error fetching silver pendant price:", err));
+  }, []);
+
+  const handleToggleSilverPendant = async () => {
+    setIsSilverPendantLoading(true);
+    try {
+      if (isSilverPendantApplied) {
+        await removeFromCart(silverPendantItem?.lineId || SILVER_PENDANT_VARIANT_ID);
+        toast.info("Free Silver Pendant removed from your order.");
+      } else {
+        const product = {
+          productId: "gid://shopify/Product/9342370414810",
+          variantId: SILVER_PENDANT_VARIANT_ID,
+          title: "Free Silver Pendant",
+          image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617",
+          price: 0,
+          originalPrice: pendantPrice,
+          comparePrice: pendantPrice,
+          quantity: 1,
+          variantTitle: "Free Gift",
+          inStock: true,
+          isFreeGift: true
+        };
+        await addToCart(product);
+        toast.success("Free Silver Pendant added to your order!", {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
+    } catch (e) {
+      console.error("Error updating Free Silver Pendant:", e);
+    } finally {
+      setIsSilverPendantLoading(false);
+    }
+  };
 
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
@@ -161,7 +206,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         });
       }
     }
-  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled]);
+
+    // Sync Silver Pendant
+    if (silverPendantItem && !isSilverPendantEligible) {
+      removeFromCart(silverPendantItem.lineId || SILVER_PENDANT_VARIANT_ID);
+    }
+  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled, silverPendantItem, isSilverPendantEligible]);
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
@@ -226,7 +276,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const originalSubtotal = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -240,7 +291,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const totalSavings = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -365,20 +417,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       type="button"
       onClick={() => setIsCouponDrawerOpen(true)}
       className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
-      style={{ borderRadius: "8px" }}
+      style={{ margin: "0px", borderRadius: isSilverPendantEligible ? "8px 8px 0px 0px" : "8px" }}
     >
       <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
         <Tag size={18} className="text-[#5A413F]" />
       </span>
       <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]" style={{
+        <p className="font-figtree font-medium text-[0.9rem] lg:text-[1rem] leading-[1.3] text-[#3D2B28]" style={{
             fontFamily: "Figtree",
-            fontSize: "1rem",
             lineHeight: "100%",
             letterSpacing: "0%",
             marginBottom: "4px",
             marginTop: "2px",
-            color: "#000000",
+            color: "rgb(0, 0, 0)",
             fontWeight: "600"
         }}>
           {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
@@ -404,8 +455,77 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   return (
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
-      <div className="flex flex-col">
+      <div className="flex flex-col mb-6">
         {couponTrigger}
+        {isSilverPendantEligible && (
+          <div
+            className="flex w-full items-center gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors"
+            style={{
+              borderRadius: "0px 0px 8px 8px",
+              borderTop: "0px",
+              background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
+              padding: "0 12px 0px 0px",
+              gap: 0
+            }}
+          >
+            <div
+              className="w-11 h-11 rounded-sm border border-[#EADFD8] overflow-hidden shrink-0 bg-white flex items-center justify-center"
+              style={{ border: 0, width: "60px", height: "60px" }}
+            >
+              <img
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+                alt="Silver Pendant"
+                className="w-full h-full object-cover"
+                style={{ border: 0 }}
+              />
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p
+                className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]"
+                style={{ color: "rgb(0, 0, 0)", fontWeight: 500, display: "none", marginBottom: "2px" }}
+              >
+                Silver Pendant
+              </p>
+              <p
+                className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]"
+                style={{ color: "rgb(0, 0, 0)", fontWeight: 500, fontSize: "0.9rem", lineHeight: 1.3 }}
+              >
+                You've unlocked a FREE diamond pendant worth ₹10,000.
+              </p>
+            </div>
+            {isSilverPendantApplied ? (
+              <button
+                type="button"
+                onClick={handleToggleSilverPendant}
+                disabled={isSilverPendantLoading || loading}
+                className="flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] h-9 lg:h-10 uppercase tracking-wide transition px-4 lg:px-6 font-figtree font-medium text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50"
+                style={{
+                  border: "1px solid #e7000b",
+                  background: "transparent",
+                  color: "#e7000b"
+                }}
+              >
+                {isSilverPendantLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "REMOVE"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleToggleSilverPendant}
+                disabled={isSilverPendantLoading || loading}
+                className="flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] h-9 lg:h-10 uppercase tracking-wide transition px-4 lg:px-6 font-figtree font-medium text-[11px] lg:text-[13px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
+              >
+                {isSilverPendantLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Gift className="w-3.5 h-3.5 hidden lg:block" />
+                    APPLY
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Desktop Pricing Breakdown (LG) */}
@@ -438,6 +558,15 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
             <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
             <span className="font-semibold text-[#189351]">₹ 0</span>
+          </div>
+        )}
+        {silverPendantItem && (
+          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
+            <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400 line-through font-normal">₹ {(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span className="font-semibold text-[#189351]">₹ 0</span>
+            </div>
           </div>
         )}
         {insuranceItem && (
@@ -493,6 +622,16 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
                 <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
                 <span className="font-semibold text-[#189351]">₹ 0</span>
+              </div>
+            )}
+
+            {silverPendantItem && (
+              <div className="flex justify-between items-center font-figtree text-sm text-[#6B5B54]">
+                <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400 line-through font-normal">₹ {(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                  <span className="font-semibold text-[#189351]">₹ 0</span>
+                </div>
               </div>
             )}
 
