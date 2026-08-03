@@ -86,7 +86,7 @@ export default function MyOrdersPage() {
                   currency: order.totalPrice?.currencyCode || order.currency || 'INR',
                 }).format(parseFloat(order.totalPrice?.amount || order.total_price || order.totalPrice || 0)),
                 product: displayProduct || "Jewelry Item",
-                image: displayImage || "/images/product/1.jpg",
+                image: displayImage || null,
                 customerEmail: order.customerEmail || order.customer?.email || ""
               };
             });
@@ -123,7 +123,7 @@ export default function MyOrdersPage() {
 
               // BYJ Preview Priority
               const props = mainItem?.customAttributes?.reduce((acc, a) => ({ ...acc, [a.key]: a.value }), {}) || {};
-              const displayImage = props['_byj_preview'] || mainItem?.variant?.image?.url || "/images/product/1.jpg";
+              const displayImage = props['_byj_preview'] || mainItem?.variant?.image?.url || null;
 
               return {
                 id: node.id,
@@ -296,15 +296,17 @@ export default function MyOrdersPage() {
                 {/* Top Section: Image + Info Row on Mobile */}
                 <div className="flex flex-row gap-4 md:gap-10 flex-1 items-start md:items-center">
                   {/* Product image - Left aligned on mobile */}
-                  <div className="size-24 md:size-36 bg-[#FBFBFB] rounded-2xl md:rounded-[2.25rem] overflow-hidden shrink-0 border border-zinc-50 relative flex items-center justify-center p-2 md:p-4">
-                    <Image
-                      src={order.image}
-                      alt={order.product}
-                      width={140}
-                      height={140}
-                      className="object-contain w-full h-full group-hover:scale-110 transition-transform duration-700 ease-out"
-                    />
-                  </div>
+                  {order.image && (
+                    <div className="size-24 md:size-36 bg-[#FBFBFB] rounded-2xl md:rounded-[2.25rem] overflow-hidden shrink-0 border border-zinc-50 relative flex items-center justify-center p-2 md:p-4">
+                      <Image
+                        src={order.image}
+                        alt={order.product}
+                        width={140}
+                        height={140}
+                        className="object-contain w-full h-full group-hover:scale-110 transition-transform duration-700 ease-out"
+                      />
+                    </div>
+                  )}
 
                   {/* Order info - Right of image on mobile */}
                   <div className="flex-1 space-y-2 md:space-y-4 text-left">

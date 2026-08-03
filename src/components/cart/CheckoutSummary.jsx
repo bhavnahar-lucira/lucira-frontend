@@ -15,6 +15,7 @@ import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 import { calculateCouponDiscount } from "@/lib/coupons";
+import { pushPromoClick } from "@/lib/gtm";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
@@ -39,7 +40,7 @@ export default function CheckoutSummary({
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
-  const [pendantPrice, setPendantPrice] = useState(10547);
+  const [pendantPrice, setPendantPrice] = useState(0);
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
@@ -53,14 +54,13 @@ export default function CheckoutSummary({
 
   // Fetch Pendant Price
   useEffect(() => {
-    if (isPaymentPage) {
-      apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`)
-        .then(data => {
-          if (data?.price) setPendantPrice(data.price);
-        })
-        .catch(err => console.error("Error fetching pendant price:", err));
-    }
-  }, [isPaymentPage]);
+    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
+      .then(data => {
+        const p = Number(data?.price || data?.compare_price || 0);
+        if (p > 0) setPendantPrice(p);
+      })
+      .catch(err => console.error("Error fetching pendant price:", err));
+  }, []);
 
   // Dispatch Calculation
   const overallDispatchMessage = useMemo(() => {
@@ -82,12 +82,21 @@ export default function CheckoutSummary({
                         type.includes("gemstone") || title.includes("gemstone") ||
                         hasDiamondCharges;
 
-      // Exclude Gold Coins, Silver Pendants (paid), Insurance
+      // Exclude Gold Coins, Silver Pendants (paid), Insurance, BYJ
       const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
       const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
+      const isBYJ = Boolean(
+        item.properties?.['_byj_group_id'] || 
+        item.properties?.['_byj_preview'] || 
+        item.properties?.['_byj_parent'] || 
+        item.properties?.[' _byj_parent'] || 
+        item.tags?.includes('BYJ') || 
+        String(item.handle || "").toLowerCase().includes('byj') || 
+        String(item.title || "").toLowerCase().includes('byj')
+      );
 
-      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance) {
+      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance && !isBYJ) {
         return acc + (Number(item.price || 0) * Number(item.quantity || 1));
       }
       return acc;
@@ -106,7 +115,8 @@ export default function CheckoutSummary({
   const originalSubtotalValue = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -119,7 +129,8 @@ export default function CheckoutSummary({
   const totalSavings = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -216,6 +227,8 @@ export default function CheckoutSummary({
     });
   };
 
+  const isPendantActive = isSilverPendantClaimed || (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID) || (typeof window !== "undefined" && localStorage.getItem("isSilverPendantClaimed") === "true");
+
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
@@ -223,6 +236,18 @@ export default function CheckoutSummary({
       !item.properties?.['_byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
+
+  if (isPendantActive && !displayItems.some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
+    displayItems.push({
+      variantId: SILVER_PENDANT_VARIANT_ID,
+      quantity: 1,
+      price: 0,
+      comparePrice: pendantPrice,
+      title: "Free Silver Pendant",
+      isFreeGift: true,
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+    });
+  }
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
   const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
@@ -246,6 +271,8 @@ export default function CheckoutSummary({
               const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
               const displayPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
               const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
+              const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || String(item.title).toLowerCase().includes("silver pendant");
+              const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || pendantPrice || 0) : Number(item.comparePrice || 0);
 
               return (
                 <div key={index} className="space-y-3">
@@ -270,8 +297,8 @@ export default function CheckoutSummary({
                       </div>
                       <div className="flex items-center gap-2 pt-1">
                         <span className="text-sm font-bold text-zinc-900">₹{(displayPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                        {item.comparePrice > item.price && (
-                          <span className="text-xs text-zinc-400 line-through">₹{(item.comparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        {effectiveComparePrice > item.price && (
+                          <span className="text-xs text-zinc-400 line-through">₹{(effectiveComparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                         )}
                       </div>
                     </div>
@@ -352,13 +379,15 @@ export default function CheckoutSummary({
               <span className="font-bold">₹ 0</span>
             </div>
           )}
-          {isSilverPendantClaimed && (
+          {isPendantActive && (
             <div className="flex justify-between text-sm text-[#189351]">
               <span className="font-medium">Free Silver Pendant</span>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-zinc-400 line-through font-figtree">
-                  ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </span>
+                {pendantPrice > 0 && (
+                  <span className="text-[11px] text-zinc-400 line-through font-figtree">
+                    ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </span>
+                )}
                 <span className="font-bold uppercase tracking-wide">FREE</span>
               </div>
             </div>
@@ -391,7 +420,7 @@ export default function CheckoutSummary({
           {/* Left Side: Image - Matching Order Summary Style */}
           <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
             <Image 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/free-pendant.jpg?v=1781522812" 
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617" 
               width={80} 
               height={80}
               alt="Free Silver Pendant" 
@@ -409,15 +438,30 @@ export default function CheckoutSummary({
             
             <div className="flex items-center justify-between gap-3 pt-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-zinc-400 line-through font-figtree">
-                  ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </span>
+                {pendantPrice > 0 && (
+                  <span className="text-xs text-zinc-400 line-through font-figtree">
+                    ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </span>
+                )}
                 <span className="text-sm font-bold text-[#189351] font-figtree">FREE</span>
               </div>
               
-              {isSilverPendantClaimed ? (
+              {isPendantActive ? (
                 <button 
                   onClick={() => {
+                    const firstItem = items && items.length > 0 ? items[0] : null;
+                    const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+                    try {
+                      pushPromoClick({
+                        creative_name: "remove free silver pendant - checkout",
+                        promo_id: SILVER_PENDANT_VARIANT_ID,
+                        item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+                        promo_position: "Checkout Summary",
+                      });
+                    } catch (e) {
+                      console.error("promoClick push failed", e);
+                    }
+                    if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
                     onToggleSilverPendant();
                     toast.info("Free Silver Pendant removed from your order.");
                   }}
@@ -428,6 +472,23 @@ export default function CheckoutSummary({
               ) : (
                 <button 
                   onClick={() => {
+                    const firstItem = items && items.length > 0 ? items[0] : null;
+                    const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+                    try {
+                      pushPromoClick({
+                        creative_name: "claim free silver pendant - checkout",
+                        promo_id: SILVER_PENDANT_VARIANT_ID,
+                        item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+                        promo_position: "Checkout Summary",
+                      });
+                    } catch (e) {
+                      console.error("promoClick push failed", e);
+                    }
+                    if (appliedCoupon) {
+                      removeCoupon();
+                      toast.info("Coupon removed as Free Pendant offer cannot be combined with coupons.");
+                    }
+                    if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
                     onToggleSilverPendant();
                     toast.success("Free Silver Pendant added to your order!", {
                       icon: <Check className="w-4 h-4" />

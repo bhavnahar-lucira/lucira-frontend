@@ -89,6 +89,15 @@ export function RegisterForm({ initialMobile = "" }) {
   }, [initialMobile]);
 
   useEffect(() => {
+    if (step === "verify-otp") {
+      const timerId = setTimeout(() => {
+        otpRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timerId);
+    }
+  }, [step]);
+
+  useEffect(() => {
     let timer;
     if (step === "success" && countdown > 0) {
       timer = setInterval(() => {
@@ -368,6 +377,7 @@ export function RegisterForm({ initialMobile = "" }) {
                   <label className="text-sm font-medium text-gray-900">Enter OTP <span className="text-red-500">*</span></label>
                   <input
                     ref={otpRef}
+                    autoFocus
                     placeholder="Enter 4-digit OTP"
                     value={otp}
                     onChange={(e) => {

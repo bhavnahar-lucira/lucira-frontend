@@ -354,14 +354,16 @@ export default function OrderDetailsPage() {
                  
                  const isBYJ = properties['_byj_preview'];
                  const byjCharms = properties['_byj_charms_json'] ? JSON.parse(properties['_byj_charms_json']) : [];
-                 const displayImage = isBYJ ? properties['_byj_preview'] : (item.image || item.variant?.image?.url || "/images/product/1.jpg");
+                 const displayImage = isBYJ ? properties['_byj_preview'] : (item.image || item.variant?.image?.url || null);
 
                  return (
                   <div key={index} className="p-8 flex flex-col gap-6">
                     <div className="flex gap-6 items-center">
-                      <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
-                        <Image src={displayImage} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
-                      </div>
+                      {displayImage && (
+                        <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
+                          <Image src={displayImage} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
+                        </div>
+                      )}
                       <div className="flex-1">
                         <h4 className="font-bold text-zinc-900">{item.title}</h4>
                         <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>

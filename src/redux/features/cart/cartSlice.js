@@ -826,9 +826,13 @@ export const repriceCartForCheckout = createAsyncThunk(
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
 
-    // Call backend recalculation endpoint
+    // Call backend recalculation endpoint. It re-prices the stored cart against
+    // the live metal rates and reports whether anything moved — the fetchCart
+    // below will find the prices already settled, so this is the only place the
+    // change is observable.
+    let pricesChanged = false;
     try {
-      await apiFetch("/api/cart/checkout", {
+      const repriced = await apiFetch("/api/cart/checkout", {
         method: "POST",
         body: JSON.stringify({
           userId: finalUserId,
@@ -836,12 +840,13 @@ export const repriceCartForCheckout = createAsyncThunk(
           context
         })
       });
+      pricesChanged = Boolean(repriced?.pricesChanged);
     } catch (e) {
       console.error("repriceCartForCheckout backend error:", e);
     }
 
     const result = await dispatch(fetchCart({ userId: finalUserId, context })).unwrap();
-    return result;
+    return { ...result, pricesChanged };
   }
 );
 

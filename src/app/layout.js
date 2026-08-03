@@ -34,7 +34,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   const isProd = process.env.NODE_ENV === "production";
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdn.shopify.com" />
@@ -57,7 +57,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className="font-figtree antialiased">
+      <body className="font-figtree antialiased" suppressHydrationWarning>
         {isProd && (
           <noscript>
             <iframe

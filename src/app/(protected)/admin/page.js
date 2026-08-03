@@ -75,7 +75,7 @@ export default function CustomerDashboard() {
                   style: 'currency', currency: node.totalPrice.currencyCode || 'INR',
                 }).format(node.totalPrice.amount) : "0.00",
                 product: mainItem?.title || "Jewelry Item",
-                image: mainItem?.variant?.image?.url || "/images/product/1.jpg"
+                image: mainItem?.variant?.image?.url || null
               };
             }).filter(Boolean) || [];
           }
@@ -197,15 +197,17 @@ export default function CustomerDashboard() {
                   key={order.id}
                   className="bg-white rounded-3xl border border-zinc-100 p-5 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row gap-6 items-center"
                 >
-                  <div className="size-20 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
-                    <Image
-                      src={order.image}
-                      alt={order.product}
-                      width={80}
-                      height={80}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
+                  {order.image && (
+                    <div className="size-20 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
+                      <Image
+                        src={order.image}
+                        alt={order.product}
+                        width={80}
+                        height={80}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1 space-y-1 text-center md:text-left">
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-2 mb-1">
                       <span className="text-xs font-bold text-primary uppercase tracking-widest px-2 py-0.5 bg-primary/5 rounded-full">

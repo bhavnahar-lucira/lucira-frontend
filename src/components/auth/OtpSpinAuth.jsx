@@ -150,8 +150,12 @@ export function OtpSpinAuth({
 
   // Focus management for different steps
   useEffect(() => {
-    // Disabled auto-focus as it causes keyboard to pop up on mobile unexpectedly
-    // and causes confusion when clicking non-interactive elements due to focus trap.
+    if (step === "otp") {
+      const timerId = setTimeout(() => {
+        otpRefs[0]?.current?.focus();
+      }, 100);
+      return () => clearTimeout(timerId);
+    }
   }, [step]);
 
 
@@ -727,6 +731,7 @@ export function OtpSpinAuth({
                 <input
                   key={i}
                   ref={otpRefs[i]}
+                  autoFocus={i === 0}
                   type="tel"
                   inputMode="numeric"
                   autoComplete="off"

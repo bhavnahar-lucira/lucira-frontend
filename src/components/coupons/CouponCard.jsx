@@ -2,6 +2,7 @@
 
 import React from "react";
 import { CheckCircle, Copy, Loader2, Tag } from "lucide-react";
+import { useSelector } from "react-redux";
 
 /**
  * Ticket-style coupon card shared by the PDP unlock strip and the cart's
@@ -22,7 +23,9 @@ export default function CouponCard({
   applyingCode = null,
   appliedCode = null,
   isApplicable = true,
+  disabled = false,
 }) {
+  const user = useSelector((state) => state.user?.user);
   const isCopied = copiedCode === coupon.code;
   const isApplied = mode === "apply" && appliedCode?.toUpperCase() === coupon.code.toUpperCase();
   const isApplying = mode === "apply" && applyingCode === coupon.code;
@@ -31,7 +34,7 @@ export default function CouponCard({
   // Only one coupon can be live on a cart, so once any code is applied every
   // other card is locked — the applied one has to be removed first.
   const isBlockedByOther = mode === "apply" && !!appliedCode && !isApplied;
-  const isDimmed = isOutOfTier || isBlockedByOther;
+  const isDimmed = isOutOfTier || isBlockedByOther || (mode === "apply" && disabled);
 
   return (
     <div className={`flex ${isMini ? 'h-24 md:h-28' : 'h-30 sm:h-30 min-[1500px]:h-30'} rounded-sm overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
@@ -79,17 +82,24 @@ export default function CouponCard({
         {mode === "apply" ? (
           <button
             onClick={() => {
-              if (typeof window !== "undefined" && window.dataLayer) {
+              if (typeof window !== "undefined" && window.dataLayer && !isApplied) {
                 window.dataLayer.push({
                   event: "promoClick",
-                  couponCode: coupon.code,
+                  promoClick: {
+                    creative_name: `coupon applied - ${coupon.code}`,
+                    location_id: "cart page",
+                    promo_id: coupon.code,
+                    promo_name: (user?.mobile || user?.phone) ? String(user.mobile || user.phone).replace(/\D/g, "").slice(-10) : "",
+                  },
                 });
               }
               isApplied ? onRemove?.(coupon.code) : onApply?.(coupon.code);
             }}
-            disabled={isOutOfTier || isBlockedByOther || !!applyingCode}
+            disabled={isOutOfTier || isBlockedByOther || !!applyingCode || disabled}
             title={
-              isOutOfTier
+              disabled
+                ? "Not available while Free Silver Pendant is claimed"
+                : isOutOfTier
                 ? `Not applicable — ${coupon.condition}`
                 : isBlockedByOther
                   ? "Remove the applied coupon to use this one"
@@ -108,6 +118,8 @@ export default function CouponCard({
               </>
             ) : isApplying ? (
               <Loader2 className={`${isMini ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin text-[#5C3E35]`} />
+            ) : disabled ? (
+              <span className="normal-case">Not Available</span>
             ) : isOutOfTier ? (
               <span className="normal-case">Not Applicable</span>
             ) : (
