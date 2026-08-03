@@ -390,7 +390,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     if (product.label) labels.push(product.label);
     const bestsellerMeta = String(product.productMetafields?.bestsellers || "").toLowerCase();
 
-    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Fast Shipping");
+    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Faster Delivery");
     if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
     if (lowerTags.some(t => t.includes("new arrival") || t === "new")) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");

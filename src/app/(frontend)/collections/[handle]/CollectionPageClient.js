@@ -569,7 +569,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     else params.delete("filter.v.price.gte");
     if (maxVal && maxVal !== "0") params.set("filter.v.price.lte", maxVal);
     else params.delete("filter.v.price.lte");
-    
+
+    // Fire promoClick datalayer when the price slider is committed, mirroring toggleFilter
+    pushPromoClick({
+      creative_name: "Plp Filters",
+      location_id: pathname,
+      promo_id: "filter.v.price",
+      promo_name: `Price: ₹${new Intl.NumberFormat("en-IN").format(Number(minVal) || 0)} - ₹${new Intl.NumberFormat("en-IN").format(Number(maxVal) || 0)}`,
+    });
+
     params.delete("cursor");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
     scrollToTop();
