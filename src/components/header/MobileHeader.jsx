@@ -23,6 +23,15 @@ import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { apiFetch, fetchSearchResults, fetchCollectionProducts } from "@/lib/api";
 
+// Scroll depths that drive the PDP mobile search bar. It starts collapsed to a
+// bare icon beside the wishlist and expands into the full bar past EXPAND_Y,
+// collapsing again below COLLAPSE_Y. The two values are deliberately apart so
+// scrolling right around the boundary can't flicker the bar open and shut.
+const SEARCH_EXPAND_Y = 64;
+const SEARCH_COLLAPSE_Y = 40;
+const SEARCH_EASE = "transition-[width,background-color] duration-[450ms] ease-[cubic-bezier(0.33,1,0.68,1)]";
+const SEARCH_FADE = "transition-opacity duration-300";
+
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
@@ -365,6 +374,27 @@ export default function MobileHeader({ menuData }) {
   const [bestsellers, setBestsellers] = useState([]);
   const [isLoadingBestsellers, setIsLoadingBestsellers] = useState(false);
   const searchInputRef = useRef(null);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  // Expand the PDP search bar on scroll, collapse it again near the top. The
+  // header row itself stays pinned on PDP (Header.jsx uses top: -40px, which
+  // only scrolls the TopBar away), so the transition stays on screen.
+  useEffect(() => {
+    if (!isProductPage) {
+      setIsSearchExpanded(false);
+      return;
+    }
+    const sync = () => {
+      const y = window.scrollY;
+      setIsSearchExpanded((expanded) => (expanded ? y > SEARCH_COLLAPSE_Y : y > SEARCH_EXPAND_Y));
+    };
+    // Sync once up front as well: a restored scroll offset (back button) fires
+    // no scroll event, so the bar would otherwise render collapsed halfway
+    // down the page.
+    sync();
+    window.addEventListener("scroll", sync, { passive: true });
+    return () => window.removeEventListener("scroll", sync);
+  }, [isProductPage, pathname]);
 
   const MEGA_MENU = useMemo(() => {
     // Bestsellers is dropped from the mobile grid; New Arrivals / Bracelets /
@@ -1506,11 +1536,34 @@ export default function MobileHeader({ menuData }) {
 
           <Link href="/" prefetch={false} className="flex items-center shrink-0">
             {isProductPage ? (
-              <img
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
-                alt="Lucira Logo"
-                className="w-[24px] h-[36px] object-contain"
-              />
+              // Full wordmark while the search is collapsed; cross-fades down to
+              // the logo-mark as the bar expands into the space it was using.
+              // Both marks are absolutely placed so only the wrapper's width
+              // animates and the row height never changes.
+              <span
+                className={cn("relative block h-9 overflow-hidden", SEARCH_EASE)}
+                style={{ width: isSearchExpanded ? 24 : 80 }}
+              >
+                <img
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
+                  alt="Lucira Jewelry"
+                  className={cn(
+                    "absolute left-0 top-1/2 -translate-y-1/2 w-20 max-w-none object-contain",
+                    SEARCH_FADE,
+                    isSearchExpanded ? "opacity-0" : "opacity-100"
+                  )}
+                />
+                <img
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
+                  alt=""
+                  aria-hidden="true"
+                  className={cn(
+                    "absolute left-0 top-1/2 -translate-y-1/2 w-[24px] h-[36px] max-w-none object-contain",
+                    SEARCH_FADE,
+                    isSearchExpanded ? "opacity-100" : "opacity-0"
+                  )}
+                />
+              </span>
             ) : (
               <Image
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
@@ -1524,24 +1577,45 @@ export default function MobileHeader({ menuData }) {
         </div>
 
         {isProductPage && (
-          <div
-            onClick={() => {
-              pushPromoClick({
-                creative_name: "Search Bar clicked",
-                location_id: "pdp",
-                promo_id: searchQuery || "",
-                promo_name: window.location.pathname
-              });
-              setShowSearch(true);
-            }}
-            className="grow bg-[#f5f5f5] h-10 px-3 rounded-md flex items-center cursor-pointer overflow-hidden gap-2.5"
-          >
-            <div className="text-gray-500 shrink-0 flex items-center justify-center">
-              <SearchIcon />
+          // The bar always lives in this flexible middle slot and is right-aligned
+          // inside it, so at its collapsed 40px it sits flush beside the wishlist
+          // icon and grows leftwards from there. One element morphing, not two
+          // cross-fading. Height is pinned at h-10 in both states so the header
+          // never changes height and the PDP content below never jumps.
+          <div className="grow min-w-0 flex">
+            <div
+              role="button"
+              aria-label="Search"
+              aria-expanded={isSearchExpanded}
+              onClick={() => {
+                pushPromoClick({
+                  creative_name: "Search Bar clicked",
+                  location_id: "pdp",
+                  promo_id: searchQuery || "",
+                  promo_name: window.location.pathname
+                });
+                setShowSearch(true);
+              }}
+              className={cn(
+                "ml-auto h-10 px-2.5 rounded-md flex items-center cursor-pointer overflow-hidden gap-2.5",
+                SEARCH_EASE,
+                isSearchExpanded ? "bg-[#f5f5f5]" : "bg-transparent"
+              )}
+              style={{ width: isSearchExpanded ? "100%" : 40 }}
+            >
+              <div className="text-gray-500 shrink-0 flex items-center justify-center">
+                <SearchIcon />
+              </div>
+              <span
+                className={cn(
+                  "text-[14px] text-gray-500 font-medium whitespace-nowrap",
+                  SEARCH_FADE,
+                  isSearchExpanded ? "opacity-100 delay-100" : "opacity-0"
+                )}
+              >
+                Search here
+              </span>
             </div>
-            <span className="text-[14px] text-gray-500 font-medium whitespace-nowrap">
-              Search here
-            </span>
           </div>
         )}
 
