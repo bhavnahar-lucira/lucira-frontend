@@ -296,7 +296,7 @@ export const fetchSearchResults = async (query) => {
     // Products/collections come from the backend; blog articles and pages are not
     // indexed there, so they are fetched from Shopify in parallel.
     const [data, content] = await Promise.all([
-      apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=6`),
+      apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&limit=6&lite=true`),
       searchContent(query, 4),
     ]);
     const formatPrice = (num) => {
@@ -335,6 +335,15 @@ export const fetchSearchResults = async (query) => {
     return { results: [] };
   }
 };
+
+
+/* ================= SEARCH ENHANCEMENTS ================= */
+
+export const fetchAnalyticsSearch = () =>
+  apiFetch("/api/products/analytics-search");
+
+export const fetchHomeComponent = (componentName) =>
+  apiFetch(`/api/products/home-component/${encodeURIComponent(componentName)}`);
 
 
 /* ================= COLLECTION PRODUCTS ================= */

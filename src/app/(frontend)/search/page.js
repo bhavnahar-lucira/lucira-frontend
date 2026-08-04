@@ -25,6 +25,7 @@ import { apiFetch } from "@/lib/api";
 import { searchContent } from "@/lib/contentSearch";
 
 const SORT_OPTIONS = [
+  { value: "relevance", label: "Relevance" },
   { value: "best_selling", label: "Best selling" },
   { value: "discount_desc", label: "Discount: High to Low" },
   { value: "created_at_desc", label: "Date: New to Old" },
@@ -102,6 +103,7 @@ export default function SearchPage() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const allSeenFilters = useRef({});
   // Blog articles + pages — the product backend does not index them, so they come
   // straight from Shopify.
   const [contentResults, setContentResults] = useState([]);
@@ -158,7 +160,11 @@ export default function SearchPage() {
           if (mergedOptionsMap.has(label)) {
             mergedOptionsMap.get(label).count += opt.count;
           } else {
-            mergedOptionsMap.set(label, { ...opt, label });
+            mergedOptionsMap.set(label, { ...opt, label, value: opt.value ?? label });
+          }
+          if (opt.input) {
+            if (!allSeenFilters.current[groupKey]) allSeenFilters.current[groupKey] = {};
+            allSeenFilters.current[groupKey][label] = opt.input;
           }
         });
         mergedData[groupKey] = Array.from(mergedOptionsMap.values());
@@ -189,45 +195,46 @@ export default function SearchPage() {
      picking a filter never changed the results. This converts the URL state into
      that payload, same as the collection page. */
   const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
-    const filters = [];
+    const filters = {};
     currentSearchParams.forEach((value, key) => {
       if (key.startsWith("filter.")) {
         if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
-          const existingPrice = filters.find(f => f.price);
-          if (existingPrice) {
-            if (key === "filter.v.price.gte") existingPrice.price.min = parseFloat(value);
-            else existingPrice.price.max = parseFloat(value);
-          } else {
-            filters.push({
-              price: {
-                min: key === "filter.v.price.gte" ? parseFloat(value) : 0,
-                max: key === "filter.v.price.lte" ? parseFloat(value) : 5000000
-              }
-            });
-          }
-        } else {
-          filters.push({ [key.replace("filter.", "")]: value });
+          if (!filters["Price"]) filters["Price"] = [{ min: 0, max: 5000000 }];
+          if (key === "filter.v.price.gte") filters["Price"][0].min = parseFloat(value);
+          else filters["Price"][0].max = parseFloat(value);
+        } else if (key === "filter.p.product_type") {
+          if (!filters["Product Type"]) filters["Product Type"] = [];
+          filters["Product Type"].push({ label: value });
         }
       } else if (!["sort", "cursor", "limit", "q", "page"].includes(key)) {
-        let found = false;
-        Object.entries(currentAvailableFilters || {}).forEach(([groupName, group]) => {
-          if (Array.isArray(group)) {
-            const groupMatchesKey = groupName.toLowerCase() === key.toLowerCase();
-            group.forEach(opt => {
-              if (
-                (opt.urlKey === key || opt.label === key || groupMatchesKey) &&
-                (opt.value === value || opt.label === value)
-              ) {
-                try {
-                  filters.push(typeof opt.input === 'string' ? JSON.parse(opt.input) : opt.input);
-                  found = true;
-                } catch (e) { }
-              }
-            });
+        let actualGroupKey = null;
+        Object.keys(currentAvailableFilters || {}).forEach((groupName) => {
+          if (groupName.toLowerCase() === key.toLowerCase()) {
+            actualGroupKey = groupName;
           }
         });
-        if (!found && key.toLowerCase() === "producttype") {
-          filters.push({ productType: value });
+        
+        if (actualGroupKey) {
+          if (!filters[actualGroupKey]) filters[actualGroupKey] = [];
+          
+          let optInput = null;
+          if (allSeenFilters.current[actualGroupKey] && allSeenFilters.current[actualGroupKey][value]) {
+            optInput = allSeenFilters.current[actualGroupKey][value];
+          } else if (currentAvailableFilters && currentAvailableFilters[actualGroupKey]) {
+            const foundOpt = currentAvailableFilters[actualGroupKey].find(o => (o.value === value || o.label === value));
+            if (foundOpt && foundOpt.input) {
+              optInput = foundOpt.input;
+            }
+          }
+
+          if (optInput) {
+            filters[actualGroupKey].push({ label: value, input: optInput });
+          } else {
+            filters[actualGroupKey].push({ label: value });
+          }
+        } else if (key.toLowerCase() === "producttype") {
+          if (!filters["Product Type"]) filters["Product Type"] = [];
+          filters["Product Type"].push({ label: value });
         }
       }
     });
@@ -250,11 +257,17 @@ export default function SearchPage() {
       setProductsLoading(true);
       setFiltersLoading(true);
       try {
-        const sort = searchParams.get("sort") || "best_selling";
+        const sort = searchParams.get("sort") || "relevance";
 
-        // 1. Facets first — their `input` payloads are what the products call needs.
+        // 1. Build the filter payload using the current state
+        const activeFiltersForAPI = getActiveFiltersForShopify(searchParams, availableFilters);
+        const filterParams = Object.keys(activeFiltersForAPI).length > 0
+          ? `&filters=${encodeURIComponent(JSON.stringify(activeFiltersForAPI))}`
+          : "";
+
+        // 2. Facets first — their `input` payloads are what the products call needs.
         const filtersData = await apiFetch(
-          `/api/products/filters?q=${encodeURIComponent(query)}&${filterParamsString}`
+          `/api/products/filters?q=${encodeURIComponent(query)}${filterParams}`
         );
         const sortedData = processFilters(filtersData);
         if (cancelled) return;
@@ -262,17 +275,23 @@ export default function SearchPage() {
         setActiveMobileGroup(prev => prev || Object.keys(sortedData)[0] || null);
         setFiltersLoading(false);
 
-        // 2. Products, with the selected facets translated for the API.
-        const activeFilters = getActiveFiltersForShopify(searchParams, sortedData);
-        const filterParams = activeFilters.length > 0
-          ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}`
+        // 3. Rebuild active filters with the fresh sortedData (in case it was a hard refresh and we needed the input payloads)
+        const finalActiveFilters = getActiveFiltersForShopify(searchParams, sortedData);
+        const finalFilterParams = Object.keys(finalActiveFilters).length > 0
+          ? `&filters=${encodeURIComponent(JSON.stringify(finalActiveFilters))}`
           : "";
+
+        // 4. Products, with the selected facets translated for the API.
         const prodData = await apiFetch(
-          `/api/products/search?q=${encodeURIComponent(query)}${filterParams}&sort=${sort}&limit=${limit}`
+          `/api/products/search?q=${encodeURIComponent(query)}${finalFilterParams}&sort=${sort}&limit=${limit}`
         );
         if (cancelled) return;
         setProducts((prodData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
-        setPagination(prodData.pagination || { hasNextPage: false, endCursor: null });
+        setPagination({
+          hasNextPage: prodData.pagination ? prodData.pagination.page < prodData.pagination.totalPages : false,
+          page: prodData.pagination ? prodData.pagination.page : 1,
+          totalPages: prodData.pagination ? prodData.pagination.totalPages : 1
+        });
         setTotalCount(prodData.pagination?.total || 0);
       } catch (err) {
         console.error("Failed to fetch search data:", err);
@@ -300,11 +319,12 @@ export default function SearchPage() {
     try {
       const sort = searchParams.get("sort") || "best_selling";
       const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
-      const filterParams = activeFilters.length > 0
+      const filterParams = Object.keys(activeFilters).length > 0
         ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}`
         : "";
+      const nextPage = (pagination.page || 1) + 1;
       const data = await apiFetch(
-        `/api/products/search?q=${encodeURIComponent(query)}${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`
+        `/api/products/search?q=${encodeURIComponent(query)}${filterParams}&sort=${sort}&limit=${limit}&page=${nextPage}`
       );
       setProducts(prev => {
         const existingIds = new Set(prev.map(p => p.id));
@@ -313,7 +333,11 @@ export default function SearchPage() {
         );
         return [...prev, ...fresh];
       });
-      setPagination(data.pagination || { hasNextPage: false, endCursor: null });
+      setPagination({
+        hasNextPage: data.pagination ? data.pagination.page < data.pagination.totalPages : false,
+        page: data.pagination ? data.pagination.page : nextPage,
+        totalPages: data.pagination ? data.pagination.totalPages : 1
+      });
     } catch (err) {
       console.error("Failed to fetch next search page:", err);
     } finally {
@@ -428,7 +452,7 @@ export default function SearchPage() {
 
   const handleSort = (value) => {
     const p = new URLSearchParams(searchParams.toString());
-    if (value === "best_selling") p.delete("sort");
+    if (value === "relevance") p.delete("sort");
     else p.set("sort", value);
     p.delete("cursor");
     router.push(`${pathname}?${p.toString()}`, { scroll: false });
@@ -442,7 +466,7 @@ export default function SearchPage() {
     });
   };
 
-  const activeSort = searchParams.get("sort") || "best_selling";
+  const activeSort = searchParams.get("sort") || "relevance";
   const hasFilters = Object.keys(availableFilters).length > 0;
 
   const ContentCard = ({ item }) => (
