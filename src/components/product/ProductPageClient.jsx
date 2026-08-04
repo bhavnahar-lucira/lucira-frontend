@@ -95,6 +95,8 @@ import {
 import StyledByLucira from "../home/StyledByLucira";
 import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
+import ShareIntentSheet from "@/components/product/ShareIntentSheet";
+import { useShareIntent } from "@/hooks/useShareIntent";
 import { loadNectorReviews } from "@/lib/nector";
 import UnlockCoupon from "@/components/product/UnlockCoupon";
 
@@ -1841,6 +1843,78 @@ export default function ProductPageClient({
   // const mounted = useMounted();
   const isMobileView = useMediaQuery("(max-width: 1023px)");
   // if (!mounted) return null;
+
+  /* ------------------------------------------------------------------ *
+   * Share-intent sheet (mobile PDP only)
+   *
+   * A screenshot cannot be detected on mobile web - no browser fires any
+   * event for it. So we watch the two gestures that carry the same "I want
+   * to save or send this" intent and are observable: copying a product
+   * detail, and long-pressing a gallery image. See hooks/useShareIntent.js.
+   * ------------------------------------------------------------------ */
+  // The hook resolves the shareable URL at event time and hands it back on the
+  // intent payload, so it always reflects the current ?variant= query.
+  const [shareIntent, setShareIntent] = useState(null);
+
+  const shareIntentImage = getValidSrc(
+    activeVariant?.image ||
+      getColorSpecificImage(product, activeColor) ||
+      product.featuredImage ||
+      product.media?.[0]?.url
+  );
+
+  const shareIntentSku = activeVariant?.sku || product?.variants?.[0]?.sku || "";
+  const shareIntentPrice = formatPrice(currentPrice);
+  const shareIntentComparePrice = currentComparePrice > currentPrice ? formatPrice(currentComparePrice) : null;
+
+  // Plain functions, not useCallback: the hook keeps the handler in a ref, so
+  // referential stability buys nothing and the React Compiler memoizes anyway.
+  const shareIntentPromoPayload = (channel) => ({
+    promo_id: "pdp share intent sheet",
+    promo_name: product?.title || "",
+    location_id: "pdp",
+    product_id: getNumericId(product?.id),
+    variant_id: getNumericId(activeVariant?.shopifyId || activeVariant?.id),
+    sku: shareIntentSku,
+    price: formatGtmPrice(currentPrice),
+    ...(channel ? { share_channel: channel } : {}),
+  });
+
+  const handleShareIntent = (detected) => {
+    setShareIntent(detected);
+
+    // promoClick on sheet open, as specified. `promo_position` and
+    // `share_intent_signal` carry WHICH detail the shopper grabbed - that is
+    // the actual intent signal (SKU = asking a store, price = comparing).
+    pushPromoClick({
+      creative_name: "Share Intent Sheet",
+      ...shareIntentPromoPayload(),
+      promo_position: detected.trigger,
+      share_intent_trigger: detected.trigger,
+      share_intent_signal: detected.signal,
+      copied_text: detected.copiedText || "",
+    });
+  };
+
+  const handleShareIntentChannel = (channel) => {
+    pushPromoClick({
+      creative_name: `Share Intent Sheet - ${channel}`,
+      ...shareIntentPromoPayload(channel),
+      promo_position: shareIntent?.trigger || "",
+      share_intent_signal: shareIntent?.signal || "",
+    });
+  };
+
+  useShareIntent({
+    // Mobile only, and never while the sheet is already up.
+    enabled: isMobileView && !shareIntent,
+    matchers: {
+      title: product?.title,
+      sku: shareIntentSku,
+      prices: [shareIntentPrice, currentPrice, shareIntentComparePrice, currentComparePrice],
+    },
+    onIntent: handleShareIntent,
+  });
 
   const renderEngravingContent = () => (
     <div className="flex-1 overflow-y-auto">
@@ -3757,6 +3831,21 @@ export default function ProductPageClient({
         isOpen={!!activeInfoSheet}
         onOpenChange={(open) => !open && setActiveInfoSheet(null)}
       />
+
+      {isMobileView && (
+        <ShareIntentSheet
+          isOpen={!!shareIntent}
+          onClose={() => setShareIntent(null)}
+          intent={shareIntent}
+          product={product}
+          sku={shareIntentSku}
+          price={shareIntentPrice}
+          comparePrice={shareIntentComparePrice}
+          image={shareIntentImage}
+          shareUrl={shareIntent?.url || ""}
+          onShare={handleShareIntentChannel}
+        />
+      )}
     </div>
   );
 }

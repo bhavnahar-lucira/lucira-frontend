@@ -1334,3 +1334,13 @@ img.marquee-img {
 .swiper-pagination-clickable .swiper-pagination-bullet {
   margin: 2px !important;
 }
+
+/* Share-intent sheet: a long-press on a mobile gallery image opens our share
+   sheet (see hooks/useShareIntent.js), so the native iOS "Save Image / Copy"
+   callout is suppressed to avoid two menus fighting over one gesture. The
+   attribute is set by the hook, so this only applies while the feature is
+   armed. Lives in CSS because Chromium refuses to set -webkit-touch-callout
+   through the DOM, while iOS Safari honours it here. */
+[data-pdp-gallery-mobile][data-share-intent-armed] img {
+  -webkit-touch-callout: none;
+}
