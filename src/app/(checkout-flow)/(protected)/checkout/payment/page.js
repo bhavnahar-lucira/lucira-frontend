@@ -257,12 +257,9 @@ export default function PaymentPage() {
   const [billingAddressSnapshot, setBillingAddressSnapshot] = useState(null);
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("isSilverPendantClaimed") === "true";
-    }
-    return false;
-  });
+  // Seeded from the cart, not localStorage: the PDP offer popup sets the claim flag
+  // without adding the gift, which made the pendant appear here when it was never added.
+  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(0);
 
   useEffect(() => {
@@ -328,13 +325,10 @@ export default function PaymentPage() {
   const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
 
   useEffect(() => {
-    if (!isEligibleForPendant && isSilverPendantClaimed) {
-      setIsSilverPendantClaimed(false);
-      if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-    } else if (isEligibleForPendant && (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
-      setIsSilverPendantClaimed(true);
-    }
-  }, [items, appliedCoupon, isSilverPendantClaimed, isEligibleForPendant]);
+    const claimed = isEligibleForPendant && (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+    setIsSilverPendantClaimed(claimed);
+    if (!claimed && typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
+  }, [items, appliedCoupon, isEligibleForPendant]);
 
   const checkoutItems = useMemo(() => {
     // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
