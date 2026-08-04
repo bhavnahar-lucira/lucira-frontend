@@ -1030,6 +1030,17 @@ export default function ShippingPage() {
         !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
     );
 
+    // Build-your-jewelry lines carry their own rendered preview, everything else
+    // uses the Shopify variant image. Relative paths are made absolute so GTM
+    // always receives a full URL.
+    const getImageUrl = (item) => {
+      const raw = item.properties?.['_byj_preview'] || item.image || "";
+      if (!raw) return "";
+      if (/^(https?:|data:)/i.test(raw)) return raw;
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      return raw.startsWith("/") ? `${origin}${raw}` : `${origin}/${raw}`;
+    };
+
     const shippingData = {
       value: grandTotalValue,
       currency: "INR",
@@ -1054,6 +1065,7 @@ export default function ShippingPage() {
           price: Number(item.price || 0),
           quantity: item.quantity,
           category: category,
+          image_url: getImageUrl(item),
           index: idx
         };
       }),
