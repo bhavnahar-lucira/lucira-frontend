@@ -1206,8 +1206,8 @@ export default function ShippingPage() {
       <div className="max-w-7xl w-full mx-auto relative z-10">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           <div className="grow lg:basis-[60%] lg:shrink-0 lg:py-10 px-4 lg:pr-12 space-y-10 bg-white">
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-zinc-900 font-abhaya">Delivery method</h2>
+            <div className="space-y-4 mb-5 md:mb-0">
+              <h2 className="text-2xl font-bold text-zinc-900 font-abhaya mt-5 md:mt-0">Delivery method</h2>
               <div className="flex p-1 bg-zinc-100 rounded-lg w-full max-w-md">
                 <button
                   onClick={() => setDeliveryMethod("ship")}
