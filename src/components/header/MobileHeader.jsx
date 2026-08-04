@@ -509,6 +509,19 @@ export default function MobileHeader({ menuData }) {
     return () => clearInterval(interval);
   }, []);
 
+  // The header persists across client-side navigations, so the typed term would
+  // otherwise follow the shopper onto the next page. /search is the exception —
+  // there the term is what the page is showing.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (pathname !== "/search") {
+      setSearchQuery("");
+      setSearchResults([]);
+      setShowSearch(false);
+    }
+  }
+
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   useEffect(() => {
     const performSearch = async () => {

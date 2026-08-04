@@ -11,6 +11,7 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
+import { getOrderImage } from "@/lib/utils";
 
 export default function MyOrdersPage() {
   const { accessToken } = useSelector((state) => state.user);
@@ -86,7 +87,7 @@ export default function MyOrdersPage() {
                   currency: order.totalPrice?.currencyCode || order.currency || 'INR',
                 }).format(parseFloat(order.totalPrice?.amount || order.total_price || order.totalPrice || 0)),
                 product: displayProduct || "Jewelry Item",
-                image: displayImage || null,
+                image: getOrderImage(displayImage),
                 customerEmail: order.customerEmail || order.customer?.email || ""
               };
             });
@@ -123,7 +124,7 @@ export default function MyOrdersPage() {
 
               // BYJ Preview Priority
               const props = mainItem?.customAttributes?.reduce((acc, a) => ({ ...acc, [a.key]: a.value }), {}) || {};
-              const displayImage = props['_byj_preview'] || mainItem?.variant?.image?.url || null;
+              const displayImage = getOrderImage(props['_byj_preview'] || mainItem?.variant?.image?.url);
 
               return {
                 id: node.id,

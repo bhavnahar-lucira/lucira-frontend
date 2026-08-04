@@ -15,6 +15,7 @@ import { selectUser } from "@/redux/features/user/userSlice";
 import { useEffect, useState } from "react";
 import { fetchCustomerDashboardStats, fetchCustomerOrders } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
+import { getOrderImage } from "@/lib/utils";
 
 export default function CustomerDashboard() {
   const { user, accessToken } = useSelector((state) => state.user);
@@ -47,7 +48,12 @@ export default function CustomerDashboard() {
           // Use authenticated helper
           const ordersData = await fetchCustomerOrders(accessToken);
           if (ordersData && ordersData.orders) {
-            storefrontOrders = ordersData.orders.slice(0, 5);
+            // Backend orders pass through as-is apart from the thumbnail, which can
+            // come back as a generic placeholder — drop it so no image renders.
+            storefrontOrders = ordersData.orders.slice(0, 5).map((order) => ({
+              ...order,
+              image: getOrderImage(order?.image),
+            }));
           } else {
             throw new Error("Empty backend orders");
           }
@@ -75,7 +81,7 @@ export default function CustomerDashboard() {
                   style: 'currency', currency: node.totalPrice.currencyCode || 'INR',
                 }).format(node.totalPrice.amount) : "0.00",
                 product: mainItem?.title || "Jewelry Item",
-                image: mainItem?.variant?.image?.url || null
+                image: getOrderImage(mainItem?.variant?.image?.url)
               };
             }).filter(Boolean) || [];
           }
