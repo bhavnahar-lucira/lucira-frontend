@@ -37,7 +37,11 @@ const INTENT_COPY = {
   sku: {
     eyebrow: "That's the design code",
     headline: "Send the full design",
-    sub: "We've added the link to your copy, so they can open the exact piece.",
+    // Deliberately makes no claim about the clipboard: the text-copy path
+    // enriches it, the Copy SKU button leaves it alone. The disclosure line at
+    // the foot of the sheet is what reports enrichment, and only when it
+    // actually happened.
+    sub: "The code alone won't open anything. Send the link and they see the exact piece.",
   },
   price: {
     eyebrow: "Comparing notes?",

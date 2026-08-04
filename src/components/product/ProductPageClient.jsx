@@ -3157,13 +3157,44 @@ export default function ProductPageClient({
                     className="flex items-center gap-1.5 cursor-pointer group"
                     title="Click to copy SKU"
                     onClick={() => {
-                      navigator.clipboard.writeText(activeVariant.sku);
+                      // Caught so a blocked clipboard (unfocused document, or a
+                      // webview without permission) cannot surface as an
+                      // unhandled promise rejection.
+                      // Caught so a blocked clipboard (unfocused document, or a
+                      // webview without permission) cannot surface as an
+                      // unhandled promise rejection.
+                      navigator.clipboard?.writeText(activeVariant.sku).catch(() => {});
+
+                      // Same share-intent sheet as a text copy. An explicit SKU
+                      // copy is the strongest send-intent signal on the page, and
+                      // a programmatic writeText fires no `copy` event, so the
+                      // detection hook cannot see this one - it is triggered here.
+                      // Mobile only, and never when the sheet is already up.
+                      const opensShareSheet = isMobileView && !shareIntent;
+
+                      // The sheet is bottom-anchored and so is this toast, so a
+                      // bottom-center toast would land straight on top of the
+                      // sheet's WhatsApp CTA. Move it out of the way instead of
+                      // dropping it - the shopper still needs to know the copy
+                      // succeeded.
                       toast.success("SKU Copied!", {
-                        position: "bottom-center",
+                        position: opensShareSheet ? "top-center" : "bottom-center",
                         autoClose: 1500,
                         hideProgressBar: true,
                         theme: "light"
                       });
+
+                      if (opensShareSheet) {
+                        handleShareIntent({
+                          trigger: "copy_sku_button",
+                          signal: "sku",
+                          copiedText: activeVariant.sku,
+                          // The button's contract (and its toast) is "SKU copied",
+                          // so the clipboard is left exactly as promised.
+                          linkAppended: false,
+                          url: window.location.href,
+                        });
+                      }
                     }}
                   >
                     <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest group-hover:text-gray-600 transition-colors">

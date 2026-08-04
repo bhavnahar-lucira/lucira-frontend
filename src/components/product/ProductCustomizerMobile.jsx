@@ -73,9 +73,16 @@ export function ProductCustomizerMobile({
     return (aMetalIdx === -1 ? 99 : aMetalIdx) - (bMetalIdx === -1 ? 99 : bMetalIdx);
   });
 
+  // There is something to pick only when more than one metal combination or
+  // more than one real size exists. Gates the header, the CTA and the box's
+  // click area alike.
+  const canCustomize =
+    combinations.length > 1 ||
+    (availableSizes.length > 1 && availableSizes[0] !== null && availableSizes[0] !== undefined);
+
   return (
     <div className="space-y-4 mt-4 lg:hidden">
-      {(combinations.length > 1 || (availableSizes.length > 1 && availableSizes[0] !== null && availableSizes[0] !== undefined)) && (
+      {canCustomize && (
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">
             SIZE & CUSTOMIZATION
@@ -88,7 +95,19 @@ export function ProductCustomizerMobile({
         </div>
       )}
 
-      <div className="border border-gray-200 rounded p-3 bg-white">
+      {/* Clarity shows users tapping the metal/size summary above the CTA and
+          expecting the drawer, so the entire box is the hit area rather than
+          just the button - padding included. Two things make this safe:
+          the handler sits on the box rather than on the CUSTOMIZE button, so a
+          keyboard Enter on that button still bubbles up here (one handler, no
+          double fire); and <Sheet> is rendered outside this box, because React
+          propagates events from a portal up the component tree - a drawer click
+          inside this subtree would re-fire setIsOpen(true) and make the close
+          button unable to ever close it. */}
+      <div
+        className={`border border-gray-200 rounded p-3 bg-white${canCustomize ? " cursor-pointer" : ""}`}
+        onClick={canCustomize ? () => setIsOpen(true) : undefined}
+      >
         <div className="flex items-center justify-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <div
@@ -109,14 +128,12 @@ export function ProductCustomizerMobile({
           )}
         </div>
 
-        {(combinations.length > 1 || (availableSizes.length > 1 && availableSizes[0] !== null && availableSizes[0] !== undefined)) && (
-          <button 
-            onClick={() => setIsOpen(true)}
-            className="w-full py-3 bg-tertiary rounded text-white font-bold text-sm uppercase tracking-widest"
-          >
+        {canCustomize && (
+          <button className="w-full py-3 bg-tertiary rounded text-white font-bold text-sm uppercase tracking-widest">
             CUSTOMIZE
           </button>
         )}
+      </div>
 
         <Sheet 
           isOpen={isOpen} 
@@ -232,9 +249,8 @@ export function ProductCustomizerMobile({
               </div>
             </Sheet.Content>
           </Sheet.Container>
-          <Sheet.Backdrop onClick={() => setIsOpen(false)} />
-        </Sheet>
-      </div>
+        <Sheet.Backdrop onClick={() => setIsOpen(false)} />
+      </Sheet>
     </div>
   );
 }
