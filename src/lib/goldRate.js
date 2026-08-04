@@ -130,6 +130,33 @@ const GOLD_CITY_META_QUERY = `
   }
 `;
 
+// Content block slugs are authored per city with a city prefix
+// (mumbai-todays-rate, delhi-todays-rate, …) while the generic suffix is
+// identical everywhere. Anchor ids are built from that suffix so a jump link
+// like #todays-rate resolves on every city page and the SEO signal for a
+// section is the same URL fragment across the whole set.
+export function toGenericAnchorId(slug, citySlug) {
+  let s = String(slug || "").trim().toLowerCase();
+  if (!s) return "";
+  const prefix = String(citySlug || "").trim().toLowerCase();
+  if (prefix && s.startsWith(prefix + "-")) s = s.slice(prefix.length + 1);
+  return s;
+}
+
+// "mumbai-gold-rate-today" → "mumbai"; used to strip the prefix above.
+export function citySlugFromPageHandle(handle) {
+  return String(handle || "")
+    .trim()
+    .toLowerCase()
+    .replace(/-(gold|silver|platinum)-rate-today$/, "");
+}
+
+// The authored "On This Page" block is superseded by the OnThisPage component,
+// which derives its links from the sections actually rendered. Skip it so the
+// page doesn't carry two jump-link lists (the authored one's hardcoded,
+// city-prefixed hrefs never matched any id and were dead links).
+const SKIPPED_BLOCK_IDS = new Set(["on-this-page"]);
+
 /**
  * Fetch normalized Gold Rate City metaobject content for a page handle.
  * Returns null when the page has no linked metaobject (→ caller uses template fallback).
@@ -152,15 +179,21 @@ export async function getGoldRateCityMeta(handle, cacheOption = "no-store") {
 
   const val = (node) => (node && node.value != null ? node.value : null);
 
+  const citySlug = citySlugFromPageHandle(handle);
+
   const blocks = (ref.content_blocks?.references?.nodes || [])
-    .map((n) => ({
-      slug: val(n.slug) || "",
-      heading: val(n.heading) || "",
-      html: richTextToHtml(val(n.content)),
-      sort: parseInt(val(n.sort_order) || "0", 10),
-      active: val(n.active) !== "false",
-    }))
-    .filter((b) => b.active && (b.heading || b.html))
+    .map((n) => {
+      const slug = val(n.slug) || "";
+      return {
+        slug,
+        anchorId: toGenericAnchorId(slug, citySlug),
+        heading: val(n.heading) || "",
+        html: richTextToHtml(val(n.content)),
+        sort: parseInt(val(n.sort_order) || "0", 10),
+        active: val(n.active) !== "false",
+      };
+    })
+    .filter((b) => b.active && (b.heading || b.html) && !SKIPPED_BLOCK_IDS.has(b.anchorId))
     .sort((a, b) => a.sort - b.sort);
 
   const faqs = (ref.faq?.references?.nodes || [])

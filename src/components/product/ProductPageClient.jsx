@@ -67,6 +67,7 @@ import {
 } from "@/components/ui/dialog"
 import { SizeGuideSheet } from "@/components/product/SizeGuideSheet";
 import { ProductCustomizerMobile } from "@/components/product/ProductCustomizerMobile";
+import PdpSubHeader from "@/components/product/PdpSubHeader";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@/redux/features/cart/cartSlice";
 import { selectUser, setPincode, selectPincode, openAuthModal } from "@/redux/features/user/userSlice";
@@ -316,6 +317,11 @@ export default function ProductPageClient({
   const mainAtcRef = useRef(null);
   const productDetailsRef = useRef(null);
   const reviewsRef = useRef(null);
+
+  // Anchors for the mobile PDP subheader nav (Customize / Delivery / Details / Reviews)
+  const customizeRef = useRef(null);
+  const deliveryRef = useRef(null);
+  const detailsSectionRef = useRef(null);
 
   const hasFiredProductView = useRef(false);
   const previousVariantId = useRef(null);
@@ -1336,6 +1342,7 @@ export default function ProductPageClient({
         hasSimilar: Boolean(product.handle),
         reviews: product.reviews || null,
         comparePrice: activeVariant?.compare_price || product.compare_price || "",
+        leadTime: parseInt(product.productMetafields?.lead_time) || 12,
         estDelivery: calculateDispatchDate(),
       };
 
@@ -1941,6 +1948,16 @@ export default function ProductPageClient({
         isWishlisted={isWishlisted}
         wishlistLoading={wishlistLoading}
       />
+      {isMounted && isMobile && (
+        <PdpSubHeader
+          sectionRefs={{
+            customize: customizeRef,
+            delivery: deliveryRef,
+            details: detailsSectionRef,
+            reviews: reviewsRef,
+          }}
+        />
+      )}
       <div className="w-[91%] lg:w-full lg:max-w-480 mx-auto lg:px-17">
         {/* Breadcrumb */}
         <Breadcrumb className="py-5">
@@ -2170,7 +2187,7 @@ export default function ProductPageClient({
             </div>
 
             {/* Unlock Free Coupons Box */}
-            {!(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold")) && (
+            {!(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold" || tag.toLowerCase() === "byj")) && !String(product?.handle || "").toLowerCase().includes("byj") && (
               <div className="mb-6">
                 <UnlockCoupon
                   user={user}
@@ -2184,6 +2201,7 @@ export default function ProductPageClient({
 
             <div className="space-y-6 mt-4">
               {/* Mobile Customizer */}
+              <div ref={customizeRef} className="lg:hidden">
               <ProductCustomizerMobile
                 activeColor={activeColor}
                 activeKarat={activeKarat}
@@ -2202,6 +2220,7 @@ export default function ProductPageClient({
                 currentPrice={formatPrice(currentPrice)}
                 currentComparePrice={formatPrice(currentComparePrice)}
               />
+              </div>
 
               {/* Desktop Selection Blocks */}
               <div className="hidden lg:block space-y-6">
@@ -2799,7 +2818,7 @@ export default function ProductPageClient({
               <Separator />
             </div>
 
-            <div className="space-y-4 mt-4">
+            <div ref={deliveryRef} className="space-y-4 mt-4">
               {/* Pincode & Delivery */}
               <div className="space-y-3 pt-2">
                 <div className="relative">
@@ -3056,7 +3075,7 @@ export default function ProductPageClient({
             )}
 
             {/* Product Details Section */}
-            <div className="space-y-4 mt-6">
+            <div ref={detailsSectionRef} className="space-y-4 mt-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-base font-bold tracking-tight uppercase">Product Details</h2>
                 {activeVariant?.sku && (

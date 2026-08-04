@@ -11,6 +11,8 @@ import {
 } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 
+const DEFAULT_CONTEXT = process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront';
+
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 // Helper to get or create Shopify Cart ID
@@ -90,7 +92,12 @@ const mapShopifyCart = (cart, backendCart = null) => {
       const shopifyPrice = Number(node.merchandise.price.amount);
       const finalUnitPrice = isFreeGift ? 0 : (backendPrice > 0 ? backendPrice : shopifyPrice);
       
-      const inStock = backendItem?.inStock !== undefined ? backendItem.inStock : (node.merchandise.availableForSale && !node.merchandise.currentlyNotInStock);
+      // Shopify availability mirrors the PDP formula (see products/[handle]/page.js)
+      const shopifyInStock = node.merchandise.availableForSale === true && node.merchandise.currentlyNotInStock !== true;
+      const backendInStock = backendItem?.inStock;
+      const inStock = (backendInStock === undefined || backendInStock === null)
+        ? shopifyInStock
+        : (backendInStock === true || backendInStock === "true");
       const isInsurance = variantId === "gid://shopify/ProductVariant/47709366026458";
       const computedQuantity = (inStock && !isFreeGift && !isInsurance) ? 1 : node.quantity;
 
@@ -206,7 +213,7 @@ export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
   async (params = {}, { getState }) => {
     const userId = params?.userId || getState().user?.user?.id || null;
-    const context = params?.context || "storefront";
+    const context = params?.context || DEFAULT_CONTEXT;
     let cartId = getCartId();
     
     // If there's an ongoing sync, wait for it instead of starting a new one
@@ -361,7 +368,7 @@ export const updateCartAttributes = createAsyncThunk(
 export const addToCart = createAsyncThunk(
   "cart/addToCart",
   async (args, { rejectWithValue, getState, dispatch }) => {
-    const { userId, product, products, context = "storefront" } = args || {};
+    const { userId, product, products, context = DEFAULT_CONTEXT } = args || {};
     const state = getState();
     const finalUserId = userId || state.user?.user?.id || null;
     const sessionId = getSessionId();
@@ -548,7 +555,7 @@ export const addToCart = createAsyncThunk(
 
 export const removeFromCart = createAsyncThunk(
   "cart/removeFromCart",
-  async ({ userId, lineId, context = "storefront" }, { getState }) => {
+  async ({ userId, lineId, context = DEFAULT_CONTEXT }, { getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
@@ -615,7 +622,7 @@ export const removeFromCart = createAsyncThunk(
 
 export const removeMultipleFromCart = createAsyncThunk(
   "cart/removeMultipleFromCart",
-  async ({ userId, lineIds, variantIds, context = "storefront" }, { getState }) => {
+  async ({ userId, lineIds, variantIds, context = DEFAULT_CONTEXT }, { getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
@@ -667,7 +674,7 @@ export const removeMultipleFromCart = createAsyncThunk(
 
 export const updateCartItem = createAsyncThunk(
   "cart/updateCartItem",
-  async ({ userId, lineId, currentVariantId, nextVariantId, quantity, size, price, finalPrice, variantTitle, inStock, sku, goldWeight, diamondTotalPcs, diamondCarat, leadTime, estDelivery, context = "storefront" }, { getState }) => {
+  async ({ userId, lineId, currentVariantId, nextVariantId, quantity, size, price, finalPrice, variantTitle, inStock, sku, goldWeight, diamondTotalPcs, diamondCarat, leadTime, estDelivery, context = DEFAULT_CONTEXT }, { getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
@@ -749,7 +756,7 @@ export const updateCartItem = createAsyncThunk(
 
 export const mergeCart = createAsyncThunk(
   "cart/mergeCart",
-  async ({ userId, context = "storefront" } = {}, { dispatch, getState }) => {
+  async ({ userId, context = DEFAULT_CONTEXT } = {}, { dispatch, getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
@@ -815,13 +822,17 @@ export const mergeCart = createAsyncThunk(
 
 export const repriceCartForCheckout = createAsyncThunk(
   "cart/repriceCartForCheckout",
-  async ({ userId, context = "storefront" } = {}, { dispatch, getState }) => {
+  async ({ userId, context = DEFAULT_CONTEXT } = {}, { dispatch, getState }) => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
 
-    // Call backend recalculation endpoint
+    // Call backend recalculation endpoint. It re-prices the stored cart against
+    // the live metal rates and reports whether anything moved — the fetchCart
+    // below will find the prices already settled, so this is the only place the
+    // change is observable.
+    let pricesChanged = false;
     try {
-      await apiFetch("/api/cart/checkout", {
+      const repriced = await apiFetch("/api/cart/checkout", {
         method: "POST",
         body: JSON.stringify({
           userId: finalUserId,
@@ -829,12 +840,13 @@ export const repriceCartForCheckout = createAsyncThunk(
           context
         })
       });
+      pricesChanged = Boolean(repriced?.pricesChanged);
     } catch (e) {
       console.error("repriceCartForCheckout backend error:", e);
     }
 
     const result = await dispatch(fetchCart({ userId: finalUserId, context })).unwrap();
-    return result;
+    return { ...result, pricesChanged };
   }
 );
 

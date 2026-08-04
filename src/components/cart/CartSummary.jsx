@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, BadgePercent, Check } from "lucide-react";
+import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,7 +17,7 @@ import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
-import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes } from "@/lib/coupons";
+import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -30,10 +30,23 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const [isCouponDrawerOpen, setIsCouponDrawerOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [isApplying, setIsApplying] = useState(false);
-  // Which listed coupon is mid-apply, so only that card shows a spinner.
   const [applyingCode, setApplyingCode] = useState(null);
+  const [dynamicCoupons, setDynamicCoupons] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/cart/coupons/active", { suppressErrorLog: true })
+      .then(res => {
+        if (!cancelled && res?.coupons) {
+          setDynamicCoupons(res.coupons);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  // Which listed coupon is mid-apply, so only that card shows a spinner.
   
-  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, nectorPoints } = useCart();
+  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, addToCart, loading, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: true, threshold: 20000 });
@@ -73,11 +86,21 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   })();
 
   const diamondTotal = items
-    .filter(item => 
-      item.variantId !== INSURANCE_VARIANT_ID && 
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      item.variantId !== SILVER_PENDANT_VARIANT_ID
-    )
+    .filter(item => {
+      const isBYJ = Boolean(
+        item.properties?.['_byj_group_id'] || 
+        item.properties?.['_byj_preview'] || 
+        item.properties?.['_byj_parent'] || 
+        item.properties?.[' _byj_parent'] || 
+        item.tags?.includes('BYJ') || 
+        String(item.handle || "").toLowerCase().includes('byj') || 
+        String(item.title || "").toLowerCase().includes('byj')
+      );
+      return item.variantId !== INSURANCE_VARIANT_ID && 
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        item.variantId !== SILVER_PENDANT_VARIANT_ID &&
+        !isBYJ;
+    })
     .reduce((acc, item) => {
         const itemQty = Number(item.quantity || item.qty || 1);
         let charges = Number(item.diamondCharges || 0);
@@ -111,6 +134,79 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
 
   const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
+  const silverPendantItem = items.find(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+  const isSilverPendantEligible = diamondTotal >= 30000;
+  const isSilverPendantApplied = !!silverPendantItem;
+  const [isSilverPendantLoading, setIsSilverPendantLoading] = useState(false);
+  const [pendantPrice, setPendantPrice] = useState(0);
+
+  useEffect(() => {
+    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
+      .then(data => {
+        const p = Number(data?.price || data?.compare_price || 0);
+        if (p > 0) setPendantPrice(p);
+      })
+      .catch(err => console.error("Error fetching silver pendant price:", err));
+  }, []);
+
+  useEffect(() => {
+    if (appliedCoupon && isSilverPendantApplied && !isSilverPendantLoading) {
+      removeFromCart(silverPendantItem?.lineId || SILVER_PENDANT_VARIANT_ID);
+      if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
+      toast.info("Free Silver Pendant removed as it cannot be combined with a coupon.");
+    }
+  }, [appliedCoupon, isSilverPendantApplied, isSilverPendantLoading, removeFromCart, silverPendantItem, toast]);
+
+  const handleToggleSilverPendant = async () => {
+    setIsSilverPendantLoading(true);
+    try {
+      const firstItem = items && items.length > 0 ? items[0] : null;
+      const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+      try {
+        pushPromoClick({
+          creative_name: isSilverPendantApplied ? "remove free silver pendant - cart" : "claim free silver pendant - cart",
+          promo_id: SILVER_PENDANT_VARIANT_ID,
+          item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+          promo_position: "Cart Page",
+        });
+      } catch (e) {
+        console.error("promoClick push failed", e);
+      }
+
+      if (isSilverPendantApplied) {
+        if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
+        await removeFromCart(silverPendantItem?.lineId || SILVER_PENDANT_VARIANT_ID);
+        toast.info("Free Silver Pendant removed from your order.");
+      } else {
+        if (appliedCoupon) {
+          dispatch(removeCoupon());
+          toast.info("Coupon removed as Free Pendant offer cannot be combined with coupons.");
+        }
+        if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
+        const product = {
+          productId: "gid://shopify/Product/9342370414810",
+          variantId: SILVER_PENDANT_VARIANT_ID,
+          title: "Free Silver Pendant",
+          image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617",
+          price: 0,
+          originalPrice: pendantPrice,
+          comparePrice: pendantPrice,
+          quantity: 1,
+          variantTitle: "Free Gift",
+          inStock: true,
+          isFreeGift: true
+        };
+        await addToCart(product);
+        toast.success("Free Silver Pendant added to your order!", {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
+    } catch (e) {
+      console.error("Error updating Free Silver Pendant:", e);
+    } finally {
+      setIsSilverPendantLoading(false);
+    }
+  };
 
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
@@ -148,7 +244,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         });
       }
     }
-  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled]);
+
+    // Sync Silver Pendant
+    if (silverPendantItem && !isSilverPendantEligible) {
+      removeFromCart(silverPendantItem.lineId || SILVER_PENDANT_VARIANT_ID);
+    }
+  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled, silverPendantItem, isSilverPendantEligible]);
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
@@ -179,9 +280,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               suppressErrorLog: true
             });
             if (cancelled) return;
-            // EMBRACE3% only applies to Eterna products; if none remain eligible,
-            // drop the coupon instead of letting it discount the whole cart.
-            if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
+            // A product-restricted coupon with nothing eligible left in the cart
+            // must be dropped, not allowed to discount the whole cart.
+            if (data.restricted && !data.applicableItemIds?.length) {
               dispatch(removeCoupon());
               return;
             }
@@ -190,6 +291,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               summary: data.summary,
               value: data.value,
               valueType: data.valueType,
+              restricted: data.restricted,
               applicableItemIds: data.applicableItemIds
             }));
           } catch (err) {
@@ -212,7 +314,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const originalSubtotal = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -226,7 +329,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const totalSavings = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -238,33 +342,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   const subtotal = otherItemsQuantity > 0 ? (totalAmount - insuranceAmount) : 0;
 
-  let couponDiscountAmount = 0;
-  if (appliedCoupon) {
-    if (couponDetails.valueType === "FIXED_AMOUNT") {
-      couponDiscountAmount = couponDetails.value;
-    } else if (couponDetails.valueType === "PERCENTAGE") {
-      if (couponDetails.applicableItemIds && couponDetails.applicableItemIds.length > 0) {
-        const applicableSubtotal = items.filter(item => {
-           if (item.variantId === INSURANCE_VARIANT_ID || (item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)) return false;
-           const rawId = item.shopifyId || item.productId || item.id;
-           const gid = (rawId && rawId.toString().includes("gid://")) ? rawId : `gid://shopify/Product/${rawId}`;
-           return couponDetails.applicableItemIds.includes(gid);
-        }).reduce((acc, item) => {
-          return acc + (Number(item.price || 0) * Number(item.quantity || 1));
-        }, 0);
-        couponDiscountAmount = (applicableSubtotal * couponDetails.value) / 100;
-      } else if (String(couponDetails.code || "").toUpperCase() === "EMBRACE3%") {
-        // EMBRACE3% is restricted to Eterna products. With no eligible items in
-        // the cart the backend returns no applicableItemIds, so it must NOT fall
-        // back to discounting the whole cart.
-        couponDiscountAmount = 0;
-      } else {
-        couponDiscountAmount = (subtotal * couponDetails.value) / 100;
-      }
-    }
-  }
+  const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotal);
 
-  const discount = couponDiscountAmount; 
+  const discount = couponDiscountAmount;
   const shipping = 0; 
   const grandTotal = subtotal + insuranceAmount - discount + shipping;
 
@@ -273,6 +353,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const handleApplyCoupon = async (codeOverride) => {
     const code = (codeOverride ?? couponCode).trim();
     if (!code) return;
+    if (isSilverPendantApplied) {
+      toast.error("Coupons cannot be applied while Free Silver Pendant is claimed. Please remove the pendant first.");
+      return;
+    }
     setIsApplying(true);
     if (codeOverride) setApplyingCode(code);
     try {
@@ -285,10 +369,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }),
         suppressErrorLog: true
       });
-      // EMBRACE3% only applies to Eterna products. Block it when no eligible
-      // item is present instead of discounting the whole cart.
-      if (data.code?.toUpperCase() === 'EMBRACE3%' && (!data.applicableItemIds || data.applicableItemIds.length === 0)) {
-        toast.error('This coupon is valid only on Eterna Collection products.');
+      // A product-restricted coupon with nothing eligible in the cart must be
+      // blocked, not allowed to discount the whole cart.
+      if (data.restricted && !data.applicableItemIds?.length) {
+        toast.error('This coupon is not applicable to the items in your cart.');
         return;
       }
       if (nectorPoints) {
@@ -298,14 +382,21 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         });
       }
 
+      if (isSilverPendantApplied) {
+        await removeFromCart(silverPendantItem?.lineId || SILVER_PENDANT_VARIANT_ID);
+        if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
+        toast.info("Free Silver Pendant removed as it cannot be combined with a coupon.");
+      }
+
       dispatch(applyCoupon({
         code: data.code,
         summary: data.summary,
         value: data.value,
         valueType: data.valueType,
+        restricted: data.restricted,
         applicableItemIds: data.applicableItemIds
       }));
-      toast.success(data.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon applied!' : `Coupon "${data.code}" applied!`);
+      toast.success(`Coupon "${data.code}" applied!`);
       setIsCouponDrawerOpen(false);
       setCouponCode("");
     } catch (err) {
@@ -323,8 +414,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     });
   };
 
-  // Shared by the "Proceed To Checkout" CTA and the Eterna offer banner, which is a
-  // shortcut to the same action ("Proceed to payment to unlock"), so the two can't drift.
+  // Shared by the "Proceed To Checkout" CTA, requiring login before proceeding.
   const handleProceedToCheckout = () => {
     // If user not logged in, fire promoClick and open login modal
     if (!user) {
@@ -348,11 +438,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     onPlaceOrder();
   };
 
-  // The Eterna offer banner is only relevant when the cart contains at least one
-  // product tagged "embrace" (the Eterna Collection / EMBRACE3% eligible items).
-  const hasEmbraceItem = items.some(item =>
-    (item.tags || []).some(tag => String(tag).toLowerCase() === "embrace")
-  );
+
 
   // Tiers run off diamondTotal, not subtotal: these coupons do not apply to
   // plain gold, so only the diamond-bearing lines count toward the band. An
@@ -377,24 +463,38 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const couponTrigger = (
     <button
       type="button"
-      onClick={() => setIsCouponDrawerOpen(true)}
-      className="flex items-center gap-4 w-full rounded-lg border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
+      onClick={() => {
+        const firstItem = items && items.length > 0 ? items[0] : null;
+        const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+        try {
+          pushPromoClick({
+            creative_name: "apply coupon banner - cart",
+            promo_id: appliedCoupon ? (couponDetails?.code || "") : "view_coupons",
+            item_id: variantId || "",
+            promo_position: "Cart Page",
+          });
+        } catch (e) {
+          console.error("promoClick push failed", e);
+        }
+        setIsCouponDrawerOpen(true);
+      }}
+      className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
+      style={{ margin: "0px", borderRadius: isSilverPendantEligible ? "8px 8px 0px 0px" : "8px" }}
     >
-      <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full bg-[#FEF9F6] border border-[#EADFD8]">
+      <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
         <Tag size={18} className="text-[#5A413F]" />
       </span>
       <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]" style={{
+        <p className="font-figtree font-medium text-[0.9rem] lg:text-[1rem] leading-[1.3] text-[#3D2B28]" style={{
             fontFamily: "Figtree",
-            fontSize: "1rem",
             lineHeight: "100%",
             letterSpacing: "0%",
             marginBottom: "4px",
             marginTop: "2px",
-            color: "#000000",
+            color: "rgb(0, 0, 0)",
             fontWeight: "600"
         }}>
-          {appliedCoupon ? (couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Applied: ${couponDetails.code}`) : "Apply Coupon"}
+          {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
         </p>
         <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]" style={{
             marginTop: "5px",
@@ -405,10 +505,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             letterSpacing: "0%",
             color: "#000000"
         }}>
-          Unlock exclusive savings on your order.
+          View all available coupons.
         </p>
       </div>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5A413F] text-white shadow-sm">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[50%] bg-[#5A413F] text-white shadow-sm">
         <ChevronRight size={16} />
       </span>
     </button>
@@ -416,20 +516,83 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   return (
     <div className="space-y-4">
-      {/* Mobile Eterna Offer Banner - ON TOP so it's visible first */}
-      {hasEmbraceItem && (
-        <button
-          type="button"
-          onClick={handleProceedToCheckout}
-          aria-label="Proceed to checkout to unlock the Eterna Collection bank discount"
-          className="lg:hidden block w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] cursor-pointer transition-opacity active:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5A413F]"
-        >
-          <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-        </button>
-      )}
+      {/* Coupon Trigger placed above summary for all views */}
+      <div className="flex flex-col mb-6">
+        {couponTrigger}
+        {isSilverPendantEligible && (
+          <div
+            className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors pr-2.5 sm:pr-3.5"
+            style={{
+              borderRadius: "0px 0px 8px 8px",
+              borderTop: "0px",
+              background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
+              paddingTop: 8,
+              paddingBottom: 8,
+              paddingLeft: 0
+            }}
+          >
+            <div
+              className="w-[48px] h-[48px] sm:w-[60px] sm:h-[60px] overflow-hidden shrink-0 bg-white flex items-center justify-center"
+              style={{ border: 0 }}
+            >
+              <img
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+                alt="Silver Pendant"
+                className="w-full h-full object-cover"
+                style={{ border: 0 }}
+              />
+            </div>
+            <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
+              <p
+                className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]"
+                style={{ color: "rgb(0, 0, 0)", fontWeight: 500, display: "none", marginBottom: "2px" }}
+              >
+                Silver Pendant
+              </p>
+              <p
+                className="font-figtree font-normal text-[0.9rem] lg:text-[0.9rem] leading-[1.35] text-[#000000]"
+                style={{ color: "rgb(0, 0, 0)", fontWeight: 500 }}
+              >
+                You've unlocked a FREE Diamond Pendant worth ₹10,000.
+              </p>
+            </div>
+            {isSilverPendantApplied ? (
+              <button
+                type="button"
+                onClick={handleToggleSilverPendant}
+                disabled={isSilverPendantLoading || loading}
+                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-2.5 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50"
+                style={{
+                  border: "1px solid #e7000b",
+                  background: "transparent",
+                  color: "#e7000b"
+                }}
+              >
+                {isSilverPendantLoading ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : "REMOVE"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleToggleSilverPendant}
+                disabled={isSilverPendantLoading || loading}
+                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
+              >
+                {isSilverPendantLoading ? (
+                  <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Gift className="w-3.5 h-3.5 hidden lg:block" />
+                    CLAIM
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Desktop Pricing Breakdown (LG) */}
-      <div className="hidden lg:block bg-white rounded-2xl p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+      <div className="hidden lg:block bg-white rounded-sm p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
         <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
           <span>Subtotal</span>
           <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -443,7 +606,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {appliedCoupon && (
           <div className="flex justify-between items-center font-figtree text-base text-[#189351]">
             <div className="flex items-center gap-2">
-              <span className="font-semibold uppercase tracking-wide">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
+              <span className="font-semibold uppercase tracking-wide">{`Coupon (${couponDetails.code})`}</span>
               <button
                 onClick={handleRemoveCoupon}
                 className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
@@ -460,6 +623,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             <span className="font-semibold text-[#189351]">₹ 0</span>
           </div>
         )}
+        {silverPendantItem && (
+          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
+            <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
+            <div className="flex items-center gap-2">
+              {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
+                <span className="text-sm text-gray-400 line-through font-normal">
+                  ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+              )}
+              <span className="font-semibold text-[#189351]">₹ 0</span>
+            </div>
+          </div>
+        )}
         {insuranceItem && (
           <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
             <span>Insurance</span>
@@ -473,110 +649,105 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
         <div className="border-t border-[#EADFD8] mt-4 pt-4 flex justify-between items-center">
           <span className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
-          <span className="font-figtree text-2xl font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <span className="font-figtree text-xl font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
       </div>
 
       {/* Mobile Order Summary (LG Hidden) */}
-      <div ref={breakdownRef} className="lg:hidden scroll-mt-20 space-y-4">
-        <h3 className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
-        <div className="bg-white rounded-2xl p-6 space-y-4 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
-          <div className="space-y-3">
-            <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+      <div ref={breakdownRef} className="lg:hidden scroll-mt-20 space-y-3">
+        <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
+        <div className="bg-white rounded-sm p-4 space-y-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+          <div className="space-y-2.5">
+            <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
               <span>Subtotal</span>
-              <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN')}</span>
+              <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
 
             {totalSavings > 0 && (
-              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
                 <span>Savings</span>
-                <span className="font-semibold text-[#189351]">- ₹ {totalSavings.toLocaleString('en-IN')}</span>
+                <span className="font-semibold text-[#189351] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
             {appliedCoupon && (
-              <div className="flex justify-between font-figtree text-base items-center text-[#189351]">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold uppercase tracking-wide">{couponDetails.code?.toUpperCase() === 'EMBRACE3%' ? 'Coupon Applied' : `Coupon (${couponDetails.code})`}</span>
+              <div className="flex justify-between font-figtree text-sm items-center text-[#189351]">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-semibold uppercase tracking-wide">{`Coupon (${couponDetails.code})`}</span>
                   <button
                     onClick={handleRemoveCoupon}
-                    className="text-[10px] font-bold text-red-500 hover:underline uppercase"
+                    className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
                   >
                     (Remove)
                   </button>
                 </div>
-                <span className="font-semibold">- ₹ {couponDiscountAmount.toLocaleString('en-IN')}</span>
+                <span className="font-semibold whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
             {goldCoinItem && (
-              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
                 <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
                 <span className="font-semibold text-[#189351]">₹ 0</span>
               </div>
             )}
 
-            {insuranceItem && (
-              <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
-                <span>Insurance</span>
-                <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN')}</span>
+            {silverPendantItem && (
+              <div className="flex justify-between items-center font-figtree text-sm text-[#6B5B54]">
+                <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
+                <div className="flex items-center gap-2">
+                  {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
+                    <span className="text-xs text-gray-400 line-through font-normal">
+                      ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </span>
+                  )}
+                  <span className="font-semibold text-[#189351]">₹ 0</span>
+                </div>
               </div>
             )}
 
-            <div className="flex justify-between font-figtree text-base text-[#6B5B54]">
+            {insuranceItem && (
+              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
+                <span>Insurance</span>
+                <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
               <span>Shipping (Standard)</span>
               <span className="font-semibold text-[#189351]">Free</span>
             </div>
           </div>
 
-          <div className="border-t border-[#EADFD8] pt-4 flex justify-between items-center">
-            <span className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
-            <span className="font-figtree text-xl font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <div className="border-t border-[#EADFD8] pt-3 flex justify-between items-center">
+            <span className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
+            <span className="font-figtree text-lg font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         </div>
       </div>
 
-      {/* Mobile Offers Group (Coupon, Gold Coin, Insurance) - ALL BELOW SUMMARY */}
+      {/* Mobile Offers Group (Gold Coin, Insurance) - ALL BELOW SUMMARY */}
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
-          <h3 className="text-[14px] font-bold text-[#443360] uppercase tracking-wider ml-1">Lucira Offers</h3>
+          <h3 className="text-[14px] font-bold text-[#3D2B28] uppercase tracking-wider ml-1">Lucira Offers</h3>
           
-
-
           <GoldCoinOption />
           
-          {couponTrigger}
-
           <InsuranceOption />
         </div>
       </div>
 
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
-        {hasEmbraceItem && (
-          <button
-            type="button"
-            onClick={handleProceedToCheckout}
-            aria-label="Proceed to checkout to unlock the Eterna Collection bank discount"
-            className="block w-full relative rounded-lg overflow-hidden shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] cursor-pointer transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5A413F]"
-          >
-            <Image unoptimized src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna-Band.jpg" alt="Cart Offer Banner" width={600} height={200} className="w-full object-cover" />
-          </button>
-        )}
+
         <Button
           onClick={handleProceedToCheckout}
-          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer"
+          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-sm bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer"
         >
           Proceed To Checkout
         </Button>
         
         <GoldCoinOption />
-
-        <div className="space-y-3">
-
-
-          {couponTrigger}
-        </div>
 
         <InsuranceOption />
       </div>
@@ -598,23 +769,23 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon) handleApplyCoupon();
+              if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon && !isSilverPendantApplied) handleApplyCoupon();
             }}
-            disabled={!!appliedCoupon}
-            placeholder="Enter Coupon Code"
-            className="h-12 flex-1 rounded-[8px] border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
+            disabled={!!appliedCoupon || isSilverPendantApplied}
+            placeholder={isSilverPendantApplied ? "Disabled due to Free Silver Pendant" : "Enter Coupon Code"}
+            className="h-12 flex-1 rounded-sm border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
           />
           <Button
             onClick={() => handleApplyCoupon()}
-            disabled={isApplying || !couponCode.trim() || !!appliedCoupon}
-            className="h-12 shrink-0 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] px-5 font-figtree uppercase font-semibold tracking-[0.1em] text-xs text-white transition-colors disabled:opacity-50"
+            disabled={isApplying || !couponCode.trim() || !!appliedCoupon || isSilverPendantApplied}
+            className="h-12 shrink-0 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] px-5 font-figtree uppercase font-semibold tracking-[0.1em] text-xs text-white transition-colors disabled:opacity-50"
           >
             {isApplying && !applyingCode ? <Loader2 className="animate-spin" /> : "Apply"}
           </Button>
         </div>
 
         {appliedCoupon && (
-          <div className="flex items-center justify-between gap-3 rounded-[8px] border border-emerald-200 bg-emerald-50/50 px-3.5 py-2.5">
+          <div className="flex items-center justify-between gap-3 rounded-sm border border-emerald-200 bg-emerald-50/50 px-3.5 py-2.5">
             <p className="font-figtree text-xs font-medium leading-[1.4] text-emerald-700">
               Only one coupon can be used at a time.
             </p>
@@ -627,9 +798,26 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           </div>
         )}
 
+        {isSilverPendantApplied && !appliedCoupon && (
+          <div className="flex items-center justify-between gap-3 rounded-sm border border-amber-200 bg-amber-50/70 px-3.5 py-2.5">
+            <p className="font-figtree text-xs font-medium leading-[1.4] text-[#3D2B28]">
+              Coupons cannot be applied while the Free Silver Pendant is claimed.
+            </p>
+            <button
+              onClick={() => {
+                setIsCouponDrawerOpen(false);
+                handleToggleSilverPendant();
+              }}
+              className="shrink-0 font-figtree text-[11px] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
+            >
+              Remove Pendant
+            </button>
+          </div>
+        )}
+
         {!user ? (
-          <div className="rounded-[8px] border border-[#EADFD8] bg-[#FFF8F6] px-5 py-6 flex flex-col items-center justify-center text-center mt-2">
-            <div className="w-12 h-12 rounded-full bg-[#5A413F]/10 flex items-center justify-center mb-3">
+          <div className="rounded-sm border border-[#EADFD8] bg-[#FFF8F6] px-5 py-6 flex flex-col items-center justify-center text-center mt-2">
+            <div className="w-12 h-12 rounded-sm bg-[#5A413F]/10 flex items-center justify-center mb-3">
               <Gift className="w-6 h-6 text-[#5A413F]" />
             </div>
             <h4 className="font-figtree font-semibold text-[#3D2B28] text-sm md:text-base mb-1.5 uppercase tracking-wide">
@@ -640,10 +828,22 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             </p>
             <Button
               onClick={() => {
+                const firstItem = items && items.length > 0 ? items[0] : null;
+                const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+                try {
+                  pushPromoClick({
+                    creative_name: "saving zone coupon drawer login",
+                    promo_id: firstItem?.sku || variantId || "",
+                    item_id: variantId || "",
+                    promo_position: "Cart Page",
+                  });
+                } catch (e) {
+                  console.error("promoClick push failed", e);
+                }
                 setIsCouponDrawerOpen(false);
                 openLogin();
               }}
-              className="h-11 px-6 rounded-[8px] bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-semibold tracking-wide text-xs text-white transition-colors cursor-pointer"
+              className="h-11 px-6 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-semibold tracking-wide text-xs text-white transition-colors cursor-pointer"
             >
               Login / Register
             </Button>
@@ -652,7 +852,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           <>
             {/* Every card is disabled — say why rather than leaving a dead list */}
             {!appliedCoupon && applicableCouponCodes.length === 0 && items.length > 0 && (
-              <div className="rounded-[8px] border border-[#EADFD8] bg-white px-3.5 py-2.5">
+              <div className="rounded-sm border border-[#EADFD8] bg-white px-3.5 py-2.5">
                 <p className="font-figtree text-xs font-medium leading-[1.4] text-[#6B5B54]">
                   These coupons apply to diamond products only. Add a diamond product to unlock them.
                 </p>
@@ -660,31 +860,41 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             )}
 
             {/* The same coupon ladder the PDP shows, in the same card design */}
-            {[...COUPONS]
-              .sort((a, b) => {
-                const aApp = applicableCouponCodes.includes(a.code);
-                const bApp = applicableCouponCodes.includes(b.code);
-                if (aApp && !bApp) return -1;
-                if (!aApp && bApp) return 1;
-                if (aApp && bApp) {
-                   return COUPONS.findIndex(c => c.code === b.code) - COUPONS.findIndex(c => c.code === a.code);
-                }
-                return COUPONS.findIndex(c => c.code === a.code) - COUPONS.findIndex(c => c.code === b.code);
-              })
-              .map((coupon) => (
-                <div key={coupon.code} className="w-full">
-                  <CouponCard
-                    coupon={coupon}
-                    className="w-full"
-                    mode="apply"
-                    onApply={handleApplyCoupon}
-                    onRemove={handleRemoveCoupon}
-                    applyingCode={applyingCode}
-                    appliedCode={appliedCoupon ? couponDetails.code : null}
-                    isApplicable={applicableCouponCodes.includes(coupon.code)}
-                  />
-                </div>
-              ))}
+            {(() => {
+              const baseCoupons = [...COUPONS];
+              const allApplicable = [...applicableCouponCodes];
+
+              const referenceOrder = [...baseCoupons];
+
+              return baseCoupons
+                .sort((a, b) => {
+                  const aApp = allApplicable.includes(a.code);
+                  const bApp = allApplicable.includes(b.code);
+
+                  if (aApp && !bApp) return -1;
+                  if (!aApp && bApp) return 1;
+
+                  if (aApp && bApp) {
+                     return referenceOrder.findIndex(c => c.code === b.code) - referenceOrder.findIndex(c => c.code === a.code);
+                  }
+                  return referenceOrder.findIndex(c => c.code === a.code) - referenceOrder.findIndex(c => c.code === b.code);
+                })
+                .map((coupon) => (
+                  <div key={coupon.code} className="w-full">
+                    <CouponCard
+                      coupon={coupon}
+                      className="w-full"
+                      mode="apply"
+                      onApply={handleApplyCoupon}
+                      onRemove={handleRemoveCoupon}
+                      applyingCode={applyingCode}
+                      appliedCode={appliedCoupon ? couponDetails.code : null}
+                      isApplicable={allApplicable.includes(coupon.code)}
+                      disabled={isSilverPendantApplied}
+                    />
+                  </div>
+                ));
+            })()}
           </>
         )}
 

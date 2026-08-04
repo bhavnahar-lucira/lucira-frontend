@@ -47,6 +47,7 @@ import { selectUser, updateUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { pushAddShippingInfo, pushBeginCheckout } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -496,15 +497,7 @@ export default function ShippingPage() {
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-    let couponDiscountAmount = 0;
-    if (appliedCoupon) {
-      if (couponDetails.valueType === "FIXED_AMOUNT") {
-        couponDiscountAmount = couponDetails.value;
-      } else if (couponDetails.valueType === "PERCENTAGE") {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, cartItems, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -1024,14 +1017,7 @@ export default function ShippingPage() {
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
     const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-    let couponDiscountAmount = 0;
-    if (appliedCoupon) {
-      if (couponDetails.valueType === "FIXED_AMOUNT") {
-        couponDiscountAmount = couponDetails.value;
-      } else if (couponDetails.valueType === "PERCENTAGE") {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, cartItems, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -1380,7 +1366,7 @@ export default function ShippingPage() {
                       handleContinueToPayment();
                       router.push("/checkout/payment");
                     }} 
-                    className="w-full md:w-70 h-13.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all text-[15px] uppercase tracking-wider"
+                    className="w-full md:w-70 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
                   >
                     CONTINUE TO PAYMENT
                   </Button>
@@ -1441,7 +1427,7 @@ export default function ShippingPage() {
                       handleContinueToPayment();
                       router.push("/checkout/payment");
                     }}
-                    className="w-full md:w-70 h-13.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all text-[15px] uppercase tracking-wider"
+                    className="w-full md:w-70 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
                   >
                     CONTINUE TO PAYMENT
                   </Button>
@@ -1462,7 +1448,7 @@ export default function ShippingPage() {
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-60">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -1476,7 +1462,7 @@ export default function ShippingPage() {
           <Link prefetch={false} href="/checkout/payment" className={`grow ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
              <Button 
               disabled={isContinueDisabled}
-              className="w-full bg-primary hover:bg-accent text-white font-bold h-12 uppercase tracking-widest rounded-lg text-sm"
+              className="w-full flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-[45px] px-4 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer hover:bg-[#4A312F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continue to payment
             </Button>

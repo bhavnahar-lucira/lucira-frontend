@@ -325,6 +325,7 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
             <label className="text-sm font-medium text-gray-900">Enter OTP <span className="text-red-500">*</span></label>
             <Input
               ref={otpRef}
+              autoFocus
               placeholder="Enter 4-digit OTP"
               value={otp}
               onChange={(e) => {

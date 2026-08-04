@@ -10,7 +10,9 @@ import InvestmentSection from "./InvestmentSection";
 import PriceTable from "./PriceTable";
 import InformationContent from "./InformationContent";
 import GoldMetaContent from "./GoldMetaContent";
+import OnThisPage from "./OnThisPage";
 import { GOLD_RATE_TEMPLATE } from "@/data/goldRateTemplate";
+import { buildGoldRateSections } from "@/lib/goldRateSections";
 import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
@@ -157,6 +159,23 @@ export default function GoldRatePage({ page }) {
         }
     } catch { heroDateStr = ""; }
 
+    // Jump links for the "On this page" widget. The has* flags mirror
+    // GoldMetaContent's own render conditions so the list never links to a
+    // section that got conditionally skipped.
+    const tocSections = useMemo(() => {
+        if (!goldMeta) return [];
+        const hist = Array.isArray(goldMeta.history) ? goldMeta.history : [];
+        const cur = hist.find((e) => e.cur === "true") || hist[0] || null;
+        const yEntry = hist.find((e) => e !== cur) || null;
+        const y24 = Math.round((yEntry && yEntry.r24) || yesterdayRateNum || 0);
+        return buildGoldRateSections(goldMeta, {
+            city: cityNameDisplay,
+            hasTodayVsYesterday: y24 > 0,
+            hasWeekly: hist.length > 0,
+            hasMonthly: hist.length > 0,
+        });
+    }, [goldMeta, cityNameDisplay, yesterdayRateNum]);
+
     return (
         <div className="gold-rate-page bg-white min-h-screen font-figtree overflow-x-hidden">
             {/* First fold: content-first, SEO/AEO optimised. Breadcrumb, H1,
@@ -235,6 +254,10 @@ export default function GoldRatePage({ page }) {
             {/* Calculator Section — prefer server-fetched history rate over the
                 client-fetched widget rate so the calculator is correct on first paint */}
             <GoldCalculator cityName={cityNameDisplay} baseRate={heroR24 || todayRateNum} />
+
+            {/* Jump links, directly under the calculator. Ids are city-independent,
+                so #todays-rate is the same fragment on every city page. */}
+            <OnThisPage sections={tocSections} />
 
             {/* Loop through all sections from template JSON in exact order */}
             <div className="sections-wrapper">

@@ -380,17 +380,11 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     const tags = Array.isArray(product.tags) ? product.tags : [];
     const lowerTags = tags.map(t => String(t).toLowerCase());
 
-    // Any product tagged "embrace" shows two badges ("Extra 3% OFF" and "Eterna",
-    // styled like Best Seller) — all other badges are suppressed for these products.
-    if (lowerTags.some(t => t.includes("embrace"))) {
-      return ["Extra 3% OFF", "Eterna"];
-    }
-
     const labels = [];
     if (product.label) labels.push(product.label);
     const bestsellerMeta = String(product.productMetafields?.bestsellers || "").toLowerCase();
 
-    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Fast Shipping");
+    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Faster Delivery");
     if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
     if (lowerTags.some(t => t.includes("new arrival") || t === "new")) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");

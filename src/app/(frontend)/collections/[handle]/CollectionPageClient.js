@@ -77,13 +77,13 @@ const CUSTOM_COLLECTION_BANNERS = {
 // TODO(banner): replace creative B's `src` with the second (right) banner image URL.
 const INPAGE_BANNERS = [
   {
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_2_57cae96a-131f-4a7d-a5cf-10433e6f937d.png",
     alt: "Promo",
     href: "/collections/bestsellers",
   },
   {
     // Placeholder — falls back to creative A until the second image is provided.
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_17abf418-603b-4714-860d-d08e90b6aca9.jpg",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_2_57cae96a-131f-4a7d-a5cf-10433e6f937d.png",
     alt: "Promo",
     href: "/collections/bestsellers",
   },
@@ -569,7 +569,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     else params.delete("filter.v.price.gte");
     if (maxVal && maxVal !== "0") params.set("filter.v.price.lte", maxVal);
     else params.delete("filter.v.price.lte");
-    
+
+    // Fire promoClick datalayer when the price slider is committed, mirroring toggleFilter
+    pushPromoClick({
+      creative_name: "Plp Filters",
+      location_id: pathname,
+      promo_id: "filter.v.price",
+      promo_name: `Price: ₹${new Intl.NumberFormat("en-IN").format(Number(minVal) || 0)} - ₹${new Intl.NumberFormat("en-IN").format(Number(maxVal) || 0)}`,
+    });
+
     params.delete("cursor");
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
     scrollToTop();
@@ -1099,7 +1107,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_1_e098831b-f04d-4b6c-ba2c-d1209cdec211.jpg?v=1783671698" alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
+            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073" alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
           </div>
         </div>
       ) : (
@@ -1116,7 +1124,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
             <div className="flex-1 w-full h-auto">
               <Image 
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_1_e098831b-f04d-4b6c-ba2c-d1209cdec211.jpg?v=1783671698" 
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073" 
                 alt={displayTitle} 
                 width={640} 
                 height={223} 

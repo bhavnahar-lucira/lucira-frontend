@@ -9,6 +9,9 @@ import {
   clearCart,
   removePoints,
   removeCoupon,
+  applyCoupon,
+  applyPoints,
+  repriceCartForCheckout,
 } from "@/redux/features/cart/cartSlice";
 import {
   Dialog,
@@ -41,6 +44,7 @@ import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
@@ -253,7 +257,22 @@ export default function PaymentPage() {
   const [billingAddressSnapshot, setBillingAddressSnapshot] = useState(null);
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
+  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("isSilverPendantClaimed") === "true";
+    }
+    return false;
+  });
+  const [pendantPrice, setPendantPrice] = useState(0);
+
+  useEffect(() => {
+    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
+      .then(data => {
+        const p = Number(data?.price || data?.compare_price || 0);
+        if (p > 0) setPendantPrice(p);
+      })
+      .catch(err => console.error("Error fetching pendant price in payment:", err));
+  }, []);
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
@@ -275,11 +294,53 @@ export default function PaymentPage() {
   const { user, accessToken } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
+  const diamondTotalForOffer = useMemo(() => {
+    return (items || []).reduce((acc, item) => {
+      const type = (item.type || item.productType || item.product_type || "").toLowerCase();
+      const title = (item.title || "").toLowerCase();
+      const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
+      
+      const isDiamond = type.includes("diamond") || title.includes("diamond") || 
+                        type.includes("solitaire") || title.includes("solitaire") ||
+                        type.includes("gemstone") || title.includes("gemstone") ||
+                        hasDiamondCharges;
+
+      const isGoldCoin = item.variantId === "gid://shopify/ProductVariant/47753346973914" || item.variantId === "gid://shopify/ProductVariant/47661824082138";
+      const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
+      const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
+      const isBYJ = Boolean(
+        item.properties?.['_byj_group_id'] || 
+        item.properties?.['_byj_preview'] || 
+        item.properties?.['_byj_parent'] || 
+        item.properties?.[' _byj_parent'] || 
+        item.tags?.includes('BYJ') || 
+        String(item.handle || "").toLowerCase().includes('byj') || 
+        String(item.title || "").toLowerCase().includes('byj')
+      );
+
+      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance && !isBYJ) {
+        return acc + (Number(item.price || 0) * Number(item.quantity || 1));
+      }
+      return acc;
+    }, 0);
+  }, [items]);
+
+  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
+
+  useEffect(() => {
+    if (!isEligibleForPendant && isSilverPendantClaimed) {
+      setIsSilverPendantClaimed(false);
+      if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
+    } else if (isEligibleForPendant && (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
+      setIsSilverPendantClaimed(true);
+    }
+  }, [items, appliedCoupon, isSilverPendantClaimed, isEligibleForPendant]);
+
   const checkoutItems = useMemo(() => {
     // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
     const baseItems = (items || []).filter(item => item.variantId !== SILVER_PENDANT_VARIANT_ID);
 
-    if (!isSilverPendantClaimed) return baseItems;
+    if (!isEligibleForPendant || !isSilverPendantClaimed) return baseItems;
     
     return [
       ...baseItems,
@@ -288,27 +349,21 @@ export default function PaymentPage() {
         quantity: 1,
         price: 0,
         finalPrice: 0,
+        originalPrice: pendantPrice || 0,
+        comparePrice: pendantPrice || 0,
         title: "Free Silver Pendant",
         isFreeGift: true,
-        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/free-pendant.jpg?v=1781522812"
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
       }
     ];
-  }, [items, isSilverPendantClaimed]);
+  }, [items, isSilverPendantClaimed, isEligibleForPendant, pendantPrice]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-    let couponDiscountAmount = 0;
-    if (appliedCoupon) {
-      if (couponDetails.valueType === "FIXED_AMOUNT") {
-        couponDiscountAmount = couponDetails.value;
-      } else if (couponDetails.valueType === "PERCENTAGE") {
-        couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-      }
-    }
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -334,16 +389,8 @@ export default function PaymentPage() {
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
 
-  // Remove points and coupons on page reload, and points when leaving
+  // Remove points when leaving the payment page to prevent stale points
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const navEntries = window.performance.getEntriesByType("navigation");
-      if (navEntries.length > 0 && navEntries[0].type === "reload") {
-        dispatch(removePoints());
-        dispatch(removeCoupon());
-      }
-    }
-
     return () => {
       dispatch(removePoints());
     };
@@ -701,14 +748,7 @@ export default function PaymentPage() {
       const subtotalValue = (totalAmount || 0) - insuranceValue;
 
       const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-      let couponDiscountAmount = 0;
-      if (appliedCoupon) {
-        if (couponDetails.valueType === "FIXED_AMOUNT") {
-          couponDiscountAmount = couponDetails.value;
-        } else if (couponDetails.valueType === "PERCENTAGE") {
-          couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-        }
-      }
+      const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
       const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
       const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -812,6 +852,7 @@ export default function PaymentPage() {
 
       const order = await createRazorpayOrder({
         userId: user?.id || "",
+        context: process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront',
         sessionId: getCartSessionId(),
         items: checkoutItems,
         customer: {
@@ -821,12 +862,60 @@ export default function PaymentPage() {
         },
         shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
         billingAddress: selectedBillingAddress,
-        appliedCoupon: appliedCoupon,
+        appliedCoupon: appliedCoupon ? {
+          ...couponDetails,
+          value: couponDiscountAmount,
+          valueType: "FIXED_AMOUNT"
+        } : null,
         nectorPoints: nectorPoints,
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
         gclid: getCookie("gclid") || "",
       }, accessToken);
+
+      // Razorpay collects the draft-order total, which the server rebuilds from
+      // the live metal rates and re-validated discounts. If that lands anywhere
+      // other than the total on screen, stop: re-sync to the server's numbers and
+      // let the customer see them before paying. Reconciling the discount here is
+      // what keeps this from looping — otherwise a coupon the server rejected
+      // would fail the same check on every retry.
+      const serverPricing = order?.pricing;
+      const serverGrandTotal = Number(serverPricing?.grandTotal ?? order?.paymentMethod?.grandTotal);
+
+      if (Number.isFinite(serverGrandTotal) && Math.round(serverGrandTotal) !== Math.round(grandTotalValue)) {
+        console.warn(
+          `[payment] Total mismatch — shown ₹${grandTotalValue}, server ₹${serverGrandTotal}. Re-syncing.`
+        );
+
+        if (serverPricing) {
+          const serverCoupon = Number(serverPricing.couponDiscount || 0);
+          const serverPoints = Number(serverPricing.pointsDiscount || 0);
+
+          if (appliedCoupon && serverCoupon !== couponDiscountAmount) {
+            if (serverCoupon > 0) {
+              // Pin to the amount the server honoured, as a flat value.
+              dispatch(applyCoupon({ ...couponDetails, value: serverCoupon, valueType: "FIXED_AMOUNT", restricted: false, applicableItemIds: [] }));
+            } else {
+              dispatch(removeCoupon());
+              toast.info(`Coupon ${couponDetails?.code || ""} is no longer valid for this order.`);
+            }
+          }
+
+          if (nectorPoints && serverPoints !== pointsDiscountAmount) {
+            if (serverPoints > 0) dispatch(applyPoints({ ...nectorPoints, fiat_value: serverPoints }));
+            else {
+              dispatch(removePoints());
+              toast.info("Your loyalty points could not be applied to this order.");
+            }
+          }
+        }
+
+        await dispatch(repriceCartForCheckout({ userId: user?.id }));
+
+        toast.info("Your total has been updated to today's live rates. Please review it and pay again.");
+        scrollToSummary();
+        return;
+      }
 
       const razorpay = new window.Razorpay({
         key: order.key,
@@ -849,14 +938,7 @@ export default function PaymentPage() {
             const subtotalValue = (totalAmount || 0) - insuranceValue;
 
             const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-            let couponDiscountAmount = 0;
-            if (appliedCoupon) {
-              if (couponDetails.valueType === "FIXED_AMOUNT") {
-                couponDiscountAmount = couponDetails.value;
-              } else if (couponDetails.valueType === "PERCENTAGE") {
-                couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-              }
-            }
+            const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
             const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
             const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -932,7 +1014,11 @@ export default function PaymentPage() {
               },
               shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
               billingAddress: selectedBillingAddress,
-              appliedCoupon: appliedCoupon,
+              appliedCoupon: appliedCoupon ? {
+                ...couponDetails,
+                value: couponDiscountAmount,
+                valueType: "FIXED_AMOUNT"
+              } : null,
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
               cartItems: checkoutItems, // Pass items explicitly as fallback for backend
@@ -1016,14 +1102,7 @@ export default function PaymentPage() {
         const subtotalValue = (totalAmount || 0) - insuranceValue;
 
         const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-        let couponDiscountAmount = 0;
-        if (appliedCoupon) {
-          if (couponDetails.valueType === "FIXED_AMOUNT") {
-            couponDiscountAmount = couponDetails.value;
-          } else if (couponDetails.valueType === "PERCENTAGE") {
-            couponDiscountAmount = (subtotalValue * couponDetails.value) / 100;
-          }
-        }
+        const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
         const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount;
 
@@ -1460,7 +1539,7 @@ export default function PaymentPage() {
                     type="button"
                     onClick={handlePayNow}
                     disabled={paymentLoading || !totalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-                    className="px-14 h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-all text-lg uppercase tracking-widest disabled:cursor-not-allowed disabled:opacity-60"
+                    className="px-14 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {paymentLoading
                       ? "Processing..."
@@ -1489,7 +1568,7 @@ export default function PaymentPage() {
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -1503,7 +1582,7 @@ export default function PaymentPage() {
           <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-            className="grow bg-primary hover:bg-accent text-white font-bold h-12 uppercase tracking-widest rounded-lg text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="grow flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-[45px] px-4 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             {paymentLoading ? "Processing..." : "Pay Now"}
           </Button>

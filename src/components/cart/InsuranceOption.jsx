@@ -72,9 +72,9 @@ export default function InsuranceOption() {
   if (otherItemsQuantity === 0 && !isAdded) return null;
 
   return (
-    <div className="bg-white border border-[#EADFD8] rounded-2xl p-4 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] space-y-3">
+    <div className="bg-white border border-[#EADFD8] rounded-sm p-4 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] space-y-3">
       {/* Image banner */}
-      <div className="relative w-full aspect-[2.2/1] lg:aspect-[3.4/1] rounded-xl overflow-hidden bg-[#FEF9F6]">
+      <div className="relative w-full aspect-[2.2/1] lg:aspect-[3.4/1] rounded-sm overflow-hidden bg-[#FEF9F6]">
         <Image
           loader={shopifyLoader}
           src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/New_Insurance_Image_Mob.png?v=1785230431"
@@ -118,11 +118,11 @@ export default function InsuranceOption() {
               <button
                 onClick={handleRemove}
                 disabled={isProcessing || loading}
-                className="h-11 px-5 border border-[#5A413F]/40 text-[#5A413F] font-figtree font-medium uppercase tracking-wide text-xs lg:text-sm rounded-[6px] transition-colors hover:bg-[#5A413F]/5 disabled:opacity-50 cursor-pointer"
+                className="h-11 px-5 border border-[#5A413F]/40 text-[#5A413F] font-figtree font-medium uppercase tracking-wide text-xs lg:text-sm rounded-sm transition-colors hover:bg-[#5A413F]/5 disabled:opacity-50 cursor-pointer"
               >
                 {isProcessing ? <Loader2 size={14} className="animate-spin mx-auto" /> : "Remove"}
               </button>
-              <div className="h-11 px-6 bg-[#4F7A5E] text-white font-figtree font-medium uppercase tracking-wide text-xs lg:text-sm rounded-[6px] flex items-center justify-center gap-1.5 cursor-default">
+              <div className="h-11 px-6 bg-[#4F7A5E] text-white font-figtree font-medium uppercase tracking-wide text-xs lg:text-sm rounded-sm flex items-center justify-center gap-1.5 cursor-default">
                 Added <Check size={12} />
               </div>
             </>
@@ -130,7 +130,7 @@ export default function InsuranceOption() {
             <button
               onClick={handleAdd}
               disabled={isProcessing || loading}
-              className="flex shrink-0 items-center justify-center gap-1.5 rounded-[6px] bg-[#5A413F] hover:bg-[#4A3533] transition-colors h-11 px-10 lg:px-14 font-figtree font-medium uppercase tracking-wide text-xs lg:text-sm text-white disabled:opacity-50 cursor-pointer"
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] transition-colors h-11 px-10 lg:px-14 font-figtree font-medium uppercase tracking-wide text-xs lg:text-sm text-white disabled:opacity-50 cursor-pointer"
             >
               {isProcessing ? (
                 <Loader2 size={16} className="animate-spin mx-auto" />
