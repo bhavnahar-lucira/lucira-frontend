@@ -20,6 +20,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { apiFetch } from "@/lib/api";
+import { getOrderImage } from "@/lib/utils";
 import { shopifyStorefrontFetch, toShopifyGid } from "@/lib/shopify-client";
 
 // Specific query to get order details with handles via Customer
@@ -120,20 +121,6 @@ export default function OrderDetailsPage() {
               }
             } catch (sfErr) {
               console.warn("[OrderDetails] Storefront fallback failed:", sfErr);
-            }
-          }
-        }
-
-        // 3. Final Fallback: If handle still missing, try a search for each item (limit this to avoid spam)
-        if (orderData?.lineItems) {
-          for (let item of orderData.lineItems) {
-            if (!item.handle && !item.title.toLowerCase().includes("insurance")) {
-               try {
-                 const searchData = await apiFetch(`/api/products/search?q=${encodeURIComponent(item.title)}&limit=1`);
-                 if (searchData.products?.[0]?.handle) {
-                   item.handle = searchData.products[0].handle;
-                 }
-               } catch (e) {}
             }
           }
         }
@@ -354,7 +341,7 @@ export default function OrderDetailsPage() {
                  
                  const isBYJ = properties['_byj_preview'];
                  const byjCharms = properties['_byj_charms_json'] ? JSON.parse(properties['_byj_charms_json']) : [];
-                 const displayImage = isBYJ ? properties['_byj_preview'] : (item.image || item.variant?.image?.url || null);
+                 const displayImage = isBYJ ? properties['_byj_preview'] : getOrderImage(item.image || item.variant?.image?.url);
 
                  return (
                   <div key={index} className="p-8 flex flex-col gap-6">
@@ -371,7 +358,7 @@ export default function OrderDetailsPage() {
                           {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
                         </p>
                       </div>
-                      {!isInsurance && (
+                      {!isInsurance && handle && (
                         <div className="hidden sm:block">
                           <Link prefetch={false} href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
                             View Product

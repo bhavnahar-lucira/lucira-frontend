@@ -91,6 +91,22 @@ export function getValidSrc(src, fallback = "/images/product/1.jpg") {
   return fallback;
 }
 
+// Generic stand-ins that some sources hand back in place of a real product shot.
+const PLACEHOLDER_IMAGE_PATHS = ["/images/product/1.jpg"];
+
+// Order/return thumbnails must show the actual item or nothing — a generic
+// placeholder reads as "this is what you bought", which is worse than no image.
+// Returns null when there's nothing real to show, so callers can skip the block.
+export function getOrderImage(src) {
+  let url = "";
+  if (typeof src === "string") url = src.trim();
+  else if (src && typeof src === "object" && src.url) url = String(src.url).trim();
+
+  if (!url) return null;
+  if (PLACEHOLDER_IMAGE_PATHS.some((path) => url === path || url.endsWith(path))) return null;
+  return url;
+}
+
 export function getEstimatedDispatchDate(isInStock, leadTime = 12) {
   const today = new Date();
   const months = [

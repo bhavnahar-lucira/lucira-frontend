@@ -204,6 +204,20 @@ export default function MainHeader() {
     return () => window.removeEventListener("profile-updated", handleProfileUpdate);
   }, [dispatch, user?.id, user?.avatar]);
 
+  // The header persists across client-side navigations, so the typed term would
+  // otherwise follow the shopper onto the next page. /search is the exception —
+  // there the term is what the page is showing.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (pathname !== "/search") {
+      setSearchQuery("");
+      setSearchResults([]);
+      setIsSearchOpen(false);
+      setIsFocused(false);
+    }
+  }
+
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   useEffect(() => {

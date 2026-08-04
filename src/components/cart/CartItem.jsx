@@ -451,7 +451,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               className="h-auto w-full object-contain mix-blend-multiply"
               style={{ color: 'transparent' }}
             />
-            <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10 shadow-sm" />
+            {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10 shadow-sm" />}
           </Link>
 
           <div className="grow space-y-4">
@@ -673,8 +673,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
           )}
         </div>
 
-        {/* View Live strip (in-stock only) */}
-        {isInStock && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
+        {/* View Live strip (in-stock only, not on the free silver pendant) */}
+        {isInStock && !isFreeSilverPendant && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
       </div>
 
       {/* MOBILE DESIGN (< 1024px) */}
@@ -702,7 +702,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white/90 border border-zinc-100 px-1.5 py-0.5 text-[8px] font-bold uppercase ${statusClass}`}>
                 {statusLabel}
               </span>
-              <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10 shadow-sm" />
+              {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10 shadow-sm" />}
             </div>
 
             {/* Info Content */}
@@ -886,8 +886,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
           </div>
         </div>
 
-        {/* View Live strip (in-stock only) */}
-        {isInStock && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
+        {/* View Live strip (in-stock only, not on the free silver pendant) */}
+        {isInStock && !isFreeSilverPendant && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
       </div>
 
       {/* Remove / Move to Wishlist Modal */}

@@ -229,13 +229,19 @@ export default function CheckoutSummary({
 
   const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
 
+  const hasPendantLine = (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+
+  // The cart line is the source of truth. The localStorage flag can be set from the PDP
+  // offer popup without anything being added to the cart, so clear it once checkout sees
+  // that the gift isn't actually there (or the order no longer qualifies).
   useEffect(() => {
-    if (!isEligibleForPendant && typeof window !== "undefined" && localStorage.getItem("isSilverPendantClaimed") === "true") {
+    if (typeof window === "undefined") return;
+    if ((!isEligibleForPendant || !hasPendantLine) && localStorage.getItem("isSilverPendantClaimed") === "true") {
       localStorage.removeItem("isSilverPendantClaimed");
     }
-  }, [isEligibleForPendant]);
+  }, [isEligibleForPendant, hasPendantLine]);
 
-  const isPendantActive = isEligibleForPendant && (isSilverPendantClaimed || (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID) || (typeof window !== "undefined" && localStorage.getItem("isSilverPendantClaimed") === "true"));
+  const isPendantActive = isEligibleForPendant && hasPendantLine;
 
   const displayItems = (items || []).filter(
     (item) =>
