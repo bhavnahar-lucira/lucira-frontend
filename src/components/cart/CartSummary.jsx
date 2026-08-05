@@ -432,7 +432,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         // swallow errors from analytics
         console.error('promo push failed', e);
       }
-      openLogin();
+      openLogin("/checkout/shipping");
       return;
     }
     onPlaceOrder();

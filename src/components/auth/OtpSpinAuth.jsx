@@ -165,10 +165,13 @@ export function OtpSpinAuth({
     const localPath = typeof window !== "undefined" ? localStorage.getItem("auth_redirect_path") : null;
     const refPath = redirectTargetRef.current;
     
-    // Prioritize intended checkout path over everything else
-    // If hideRegisterLink is true, we ARE in the checkout flow
+    // Prioritize intended checkout path over everything else. `hideRegisterLink` is a
+    // pathname-based UI cosmetic (hide the register link while on /checkout/cart) and
+    // must NOT drive navigation — otherwise any login on that page (Saving Zone coupon
+    // unlock, move-to-wishlist, etc.) gets swept into the checkout flow along with the
+    // actual "Proceed to Checkout" button. Only an explicitly-set redirect path counts.
     let target = "/";
-    if (hideRegisterLink || refPath === "/checkout/shipping" || reduxPath === "/checkout/shipping" || localPath === "/checkout/shipping") {
+    if (refPath === "/checkout/shipping" || reduxPath === "/checkout/shipping" || localPath === "/checkout/shipping") {
       target = "/checkout/shipping";
     } else {
       target = refPath || reduxPath || localPath || pathname || "/";
