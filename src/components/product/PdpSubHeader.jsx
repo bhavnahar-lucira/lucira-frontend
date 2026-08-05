@@ -42,9 +42,16 @@ export default function PdpSubHeader({ sectionRefs }) {
 
     // The site header is sticky with top:-40px on PDP, so its rect bottom is
     // exactly where the subheader must sit once the TopBar has scrolled away.
+    //
+    // floor, not round: that bottom edge lands on a fraction (64.8px at the
+    // default mobile font size), and rounding up parks this bar 0.2px below the
+    // header, leaving a sub-pixel seam that shows the scrolling page through it
+    // as a faint light line. Flooring instead overlaps the header by that
+    // fraction, which is invisible - the header is z-100 over this bar's z-90,
+    // has no bottom border, and both are the same white.
     const header = document.querySelector("header");
     if (header) {
-      setTopOffset(Math.max(0, Math.round(header.getBoundingClientRect().bottom)));
+      setTopOffset(Math.max(0, Math.floor(header.getBoundingClientRect().bottom)));
     }
 
     // Scroll-spy: the active tab is the last section whose top has crossed

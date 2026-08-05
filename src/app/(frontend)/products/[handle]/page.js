@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import ProductPageClient from "@/components/product/ProductPageClient";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { shopifyStorefrontFetch, getAllProductHandles } from "@/lib/shopify";
+import "./product-page.css";
 
 export const revalidate = 86400; // 24 hours
 

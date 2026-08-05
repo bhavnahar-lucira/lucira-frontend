@@ -452,7 +452,9 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       </div>
 
       {/* Mobile Gallery */}
-      <div className="lg:hidden flex flex-col gap-3">
+      {/* data-pdp-gallery-mobile scopes the share-intent long-press listener to
+          this gallery only (see hooks/useShareIntent.js). */}
+      <div data-pdp-gallery-mobile className="lg:hidden flex flex-col gap-3">
         <div className="relative aspect-square rounded-xl overflow-hidden bg-[#F7F7F7]">
           <Swiper
             spaceBetween={0}
