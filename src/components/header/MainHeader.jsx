@@ -222,7 +222,7 @@ export default function MainHeader() {
 
   useEffect(() => {
     const performSearch = async () => {
-      if (debouncedSearchQuery.length > 1) {
+      if (debouncedSearchQuery.trim().length >= 3) {
         setIsSearching(true);
         try {
           const data = await fetchSearchResults(debouncedSearchQuery);
