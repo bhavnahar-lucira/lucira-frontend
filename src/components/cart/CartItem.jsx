@@ -23,7 +23,7 @@ import {
 
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
 import SocialProofBand from "@/components/common/SocialProofBand";
-import { formatMetal, realSize, sizeLabelFor } from "@/lib/metal";
+import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
@@ -422,7 +422,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   const sizeLabel = sizeLabelFor(item.title);
   // Pendants/studs have no size option — their variant option is the metal itself
   // ("9KT Yellow Gold"), which belongs in the Metal row, not a Size row.
-  const displaySize = realSize(item.size);
+  const displaySize = formatSizeLabel(realSize(item.size));
 
   const variantIdForUrl = item.variantId ? String(item.variantId).split('/').pop() : "";
   const productLink = item.handle ? `/products/${item.handle}${variantIdForUrl ? `?variant=${variantIdForUrl}` : ""}` : "#";
@@ -571,12 +571,12 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                           disabled={updating}
                         >
                           <SelectTrigger className="h-6 w-auto border-none bg-transparent p-0 font-medium text-zinc-800 shadow-none focus:ring-0 gap-2">
-                            <SelectValue placeholder={item.size} />
+                            <SelectValue placeholder={formatSizeLabel(item.size)} />
                           </SelectTrigger>
                           <SelectContent>
                             {sizeOptions.map((variant) => (
                               <SelectItem key={variant.variantId || variant.size} value={String(variant.size)}>
-                                {variant.size}
+                                {formatSizeLabel(variant.size)}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -750,12 +750,12 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         disabled={updating}
                       >
                         <SelectTrigger className="h-auto border-none bg-transparent p-0 text-[13px] font-bold text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
-                          <SelectValue placeholder={item.size} />
+                          <SelectValue placeholder={formatSizeLabel(item.size)} />
                         </SelectTrigger>
                         <SelectContent>
                           {sizeOptions.map((variant) => (
                             <SelectItem key={variant.variantId || variant.size} value={String(variant.size)}>
-                              {variant.size}
+                              {formatSizeLabel(variant.size)}
                             </SelectItem>
                           ))}
                         </SelectContent>

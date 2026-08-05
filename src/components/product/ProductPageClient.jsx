@@ -47,6 +47,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
 import { getEstimatedDispatchDate } from "@/lib/utils";
+import { formatSizeLabel } from "@/lib/metal";
 import {
   Drawer,
   DrawerClose,
@@ -1296,7 +1297,7 @@ export default function ProductPageClient({
           sku: variant.sku || "",
           image: getValidSrc(variant.image || getColorSpecificImage(product, variant.color) || product.featuredImage),
         }))
-        .sort((a, b) => Number(a.size) - Number(b.size));
+        .sort((a, b) => parseFloat(a.size) - parseFloat(b.size));
 
       const productData = {
         id: product.id,
@@ -1819,10 +1820,14 @@ export default function ProductPageClient({
   );
   // Defensive fallback: if the combo match yields nothing (e.g. a product whose
   // variants lack metafields/color), keep the previous all-variants behaviour.
+  // parseFloat, not Number: raw size values carry a unit suffix (e.g. "6.5 inch"
+  // for bracelets), which Number() rejects outright as NaN — a comparator that
+  // always returns NaN never reorders anything, silently falling back to
+  // whatever order Shopify happens to return the variants in.
   const availableSizes = (comboSizes.length > 0
     ? comboSizes
     : Array.from(new Set(product.variants?.map(v => v.size) || []))
-  ).sort((a, b) => Number(a) - Number(b));
+  ).sort((a, b) => parseFloat(a) - parseFloat(b));
 
   // Get current display price from active variant or product, prioritized by dynamic breakup API if available
   const currentPrice = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
@@ -2313,7 +2318,7 @@ export default function ProductPageClient({
                   {availableSizes.length > 0 && availableSizes[0] !== null && availableSizes[0] !== undefined && (
                     <>
                       <div className="flex justify-between items-center text-sm">
-                        <span className="font-semibold text-base">Select {(product.type || "").replace(/s$/, "")} Size: <span className="font-medium ml-1">{selectedSize} IND</span></span>
+                        <span className="font-semibold text-base">Select {(product.type || "").replace(/s$/, "")} Size: <span className="font-medium ml-1">{formatSizeLabel(selectedSize)} IND</span></span>
                         {String(product.type || "").toLowerCase().includes("ring") && (
                           <SizeGuideSheet product={product}>
                             <button
@@ -2374,7 +2379,7 @@ export default function ProductPageClient({
                                 : "border-gray-200 hover:border-primary font-normal"
                                 }`}
                             >
-                              {sizeStr}
+                              {formatSizeLabel(sizeStr)}
                               {inStock && <span className="absolute top-1 left-1 w-1.5 h-1.5 bg-[#2DB36F] rounded-full"></span>}
                             </button>
                           );
