@@ -345,18 +345,23 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         mergedData[groupKey] = options;
       } else if (Array.isArray(options)) {
         const mergedOptionsMap = new Map();
-        options.forEach(opt => {
+        options.forEach((opt) => {
           let label = (opt.label || "").trim();
           if (groupKey === "Metal Purity") {
             if (label === "14K") label = "14KT";
             else if (label === "18K") label = "18KT";
             else if (label === "9K") label = "9KT";
           }
+          if (groupKey === "Metal Color") {
+            if (label === "R" || label.toLowerCase() === "rose") label = "Rose Gold";
+            if (label === "Y" || label.toLowerCase() === "yellow") label = "Yellow Gold";
+            if (label === "W" || label.toLowerCase() === "white") label = "White Gold";
+          }
           if (mergedOptionsMap.has(label)) {
             const existing = mergedOptionsMap.get(label);
-            existing.count += opt.count;
+            existing.count += opt.count || 0;
           } else {
-            mergedOptionsMap.set(label, { ...opt, label });
+            mergedOptionsMap.set(label, { ...opt, label, value: opt.value !== undefined ? opt.value : label });
           }
         });
         mergedData[groupKey] = Array.from(mergedOptionsMap.values());
@@ -417,7 +422,19 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         }
       }
     });
-    return sortedData;
+
+    // Ensure Price is exactly at the 4th index (index 3)
+    const finalSortedData = {};
+    const keys = Object.keys(sortedData).filter(k => k !== "Price");
+    keys.splice(3, 0, "Price");
+    
+    keys.forEach(k => {
+      if (sortedData[k]) {
+        finalSortedData[k] = sortedData[k];
+      }
+    });
+    
+    return finalSortedData;
   }, []);
 
   // Data State
@@ -495,23 +512,33 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const isFirstRender = useRef(true);
 
-  // Price Filter State
   const [trueMinPrice, setTrueMinPrice] = useState(null);
+  const [trueMaxPrice, setTrueMaxPrice] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
-    async function fetchTrueMin() {
+    async function fetchTrueBounds() {
       try {
-        const data = await apiFetch(`/api/collection?handle=${handle}&sort=price_low_high&limit=1`);
-        if (isMounted && data.products && data.products.length > 0) {
-          const minP = Number(data.products[0].price) || 0;
-          if (minP > 0) setTrueMinPrice(minP);
+        const [minData, maxData] = await Promise.all([
+          apiFetch(`/api/collection?handle=${handle}&sort=price_low_high&limit=1`),
+          apiFetch(`/api/collection?handle=${handle}&sort=price_high_low&limit=1`)
+        ]);
+        
+        if (isMounted) {
+          if (minData?.products && minData.products.length > 0) {
+            const minP = Number(minData.products[0].price) || 0;
+            if (minP > 0) setTrueMinPrice(minP);
+          }
+          if (maxData?.products && maxData.products.length > 0) {
+            const maxP = Number(maxData.products[0].price) || 0;
+            if (maxP > 0) setTrueMaxPrice(maxP);
+          }
         }
       } catch (e) {
-        console.error("Failed to fetch true min price:", e);
+        console.error("Failed to fetch true price bounds:", e);
       }
     }
-    fetchTrueMin();
+    fetchTrueBounds();
     return () => { isMounted = false; };
   }, [handle]);
 
@@ -519,20 +546,31 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   useEffect(() => {
     if (availableFilters?.Price) {
+      // Handle both Array (Shopify API format) and Object (Expo API format)
+      const priceData = Array.isArray(availableFilters.Price) ? availableFilters.Price[0] : availableFilters.Price;
+      
       setAbsolutePrice(prev => {
         let newMin = prev.min;
-        if (availableFilters.Price.min !== undefined && availableFilters.Price.min > 0) {
-          newMin = prev.min === null ? availableFilters.Price.min : Math.min(prev.min, availableFilters.Price.min);
+        if (priceData?.min !== undefined && priceData.min > 0) {
+          newMin = prev.min === null ? priceData.min : Math.min(prev.min, priceData.min);
         } else if (prev.min === null || prev.min === 0) {
           newMin = trueMinPrice !== null ? trueMinPrice : prev.min;
         }
+
+        let newMax = prev.max;
+        if (priceData?.max !== undefined && priceData.max > 0) {
+          newMax = prev.max === null ? priceData.max : Math.max(prev.max, priceData.max);
+        } else if (prev.max === null || prev.max === 500000) {
+          newMax = trueMaxPrice !== null ? trueMaxPrice : (prev.max || 500000);
+        }
+        
         return {
           min: newMin,
-          max: prev.max === null ? (availableFilters.Price.max || 500000) : Math.max(prev.max, availableFilters.Price.max || 500000)
+          max: newMax
         };
       });
     }
-  }, [availableFilters, trueMinPrice]);
+  }, [availableFilters, trueMinPrice, trueMaxPrice]);
 
   const [localPriceRange, setLocalPriceRange] = useState({
     min: searchParams.get("filter.v.price.gte") || "",
@@ -617,50 +655,44 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   };
 
   const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
-    const filters = [];
+    const filters = {};
     currentSearchParams.forEach((value, key) => {
       if (key.startsWith("filter.")) {
-        try {
-          if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
-            let existingPrice = filters.find(f => f.price);
-            if (existingPrice) {
-              if (key === "filter.v.price.gte") existingPrice.price.min = parseFloat(value);
-              else existingPrice.price.max = parseFloat(value);
-            } else {
-              filters.push({
-                price: {
-                  min: key === "filter.v.price.gte" ? parseFloat(value) : 0,
-                  max: key === "filter.v.price.lte" ? parseFloat(value) : 5000000
-                }
-              });
-            }
-          } else {
-            filters.push({ [key.replace("filter.", "")]: value });
-          }
-        } catch (e) { }
+        if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
+          if (!filters["Price"]) filters["Price"] = [{ min: 0, max: 5000000 }];
+          if (key === "filter.v.price.gte") filters["Price"][0].min = parseFloat(value);
+          else filters["Price"][0].max = parseFloat(value);
+        } else if (key === "filter.p.product_type") {
+          if (!filters["Product Type"]) filters["Product Type"] = [];
+          filters["Product Type"].push({ label: value });
+        }
       } else if (!["sort", "cursor", "limit", "q", "page"].includes(key)) {
-        // Find matching option in currentAvailableFilters
-        let found = false;
-        Object.entries(currentAvailableFilters || {}).forEach(([groupName, group]) => {
-          if (Array.isArray(group)) {
-            // Check if groupName matches the key (case-insensitive)
-            const groupMatchesKey = groupName.toLowerCase() === key.toLowerCase();
-            
-            group.forEach(opt => {
-              if (
-                (opt.urlKey === key || opt.label === key || groupMatchesKey) && 
-                (opt.value === value || opt.label === value)
-              ) {
-                filters.push(typeof opt.input === 'string' ? JSON.parse(opt.input) : opt.input);
-                found = true;
-              }
-            });
+        let actualGroupKey = null;
+        Object.keys(currentAvailableFilters || {}).forEach((groupName) => {
+          if (groupName.toLowerCase() === key.toLowerCase()) {
+            actualGroupKey = groupName;
           }
         });
         
-        // Fallback for productType which is common
-        if (!found && key.toLowerCase() === "producttype") {
-            filters.push({ productType: value });
+        if (actualGroupKey) {
+          if (!filters[actualGroupKey]) filters[actualGroupKey] = [];
+          
+          let optInput = null;
+          if (currentAvailableFilters && currentAvailableFilters[actualGroupKey]) {
+            const foundOpt = currentAvailableFilters[actualGroupKey].find(o => (o.value === value || o.label === value));
+            if (foundOpt && foundOpt.input) {
+              optInput = foundOpt.input;
+            }
+          }
+
+          if (optInput) {
+            filters[actualGroupKey].push({ label: value, input: optInput });
+          } else {
+            filters[actualGroupKey].push({ label: value });
+          }
+        } else if (key.toLowerCase() === "producttype") {
+          if (!filters["Product Type"]) filters["Product Type"] = [];
+          filters["Product Type"].push({ label: value });
         }
       }
     });
@@ -669,6 +701,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   // Initial Fetch & Filter Changes
   useEffect(() => {
+    let cancelled = false;
     async function fetchData() {
       // Check if we can skip the fetch completely because it's the first render AND we have SSG data
       if (isFirstRender.current && initialData) {
@@ -692,6 +725,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const filtersData = await apiFetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
 
         const sortedData = processFilters(filtersData);
+        if (cancelled) return;
 
         setAvailableFilters(sortedData);
         if (Object.keys(sortedData).length > 0 && !activeMobileGroup) {
@@ -701,21 +735,21 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
         // 2. Now fetch products using the mappings we just got
         const activeFilters = getActiveFiltersForShopify(searchParams, sortedData);
-        const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+        const filterParams = Object.keys(activeFilters).length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
         
-        const apiUrl = `/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}`;
-        console.log("Fetching products from API:", apiUrl);
+        const apiUrl = `/api/products/search?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}`;
 
         const collData = await apiFetch(apiUrl);
-        setCollection({
-          title: collData.collection?.title || handle.replace(/-/g, " "),
-          description: collData.collection?.description || "",
-          descriptionHtml: collData.collection?.descriptionHtml || "",
-          metafields: collData.collection?.metafields || {}
-        });
+        if (cancelled) return;
+
         setProducts((collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
-        setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
-        setTotalCount(collData.totalProducts || 0);
+        setPagination({
+          hasNextPage: collData.pagination ? collData.pagination.page < collData.pagination.totalPages : false,
+          page: collData.pagination ? collData.pagination.page : 1,
+          totalPages: collData.pagination ? collData.pagination.totalPages : 1,
+          endCursor: null
+        });
+        setTotalCount(collData.pagination?.total || 0);
 
         try {
           const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
@@ -724,31 +758,58 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
       } finally {
-        setProductsLoading(false);
+        if (!cancelled) setProductsLoading(false);
       }
     }
     fetchData();
+    return () => { cancelled = true; };
   }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
-    if (isFetchingNextPage || !pagination.hasNextPage) return;
+    if (!pagination.hasNextPage || isFetchingNextPage) return;
     setIsFetchingNextPage(true);
     try {
       const sort = searchParams.get("sort") || "manual";
       const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
-      const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
-      const data = await apiFetch(`/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`);
-      setProducts(prev => {
-        const nextProducts = data.products || [];
+      const filterParams = Object.keys(activeFilters).length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+      
+      let apiUrl;
+      if (filterParams || pagination.page > 1 || !pagination.endCursor) {
+        const nextPage = pagination.page ? pagination.page + 1 : 2;
+        apiUrl = `/api/products/search?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}&page=${nextPage}`;
+      } else {
+        apiUrl = `/api/collection?handle=${handle}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`;
+      }
+      
+      const collData = await apiFetch(apiUrl);
+
+      setProducts((prev) => {
+        const nextProducts = collData.products || [];
         const existingIds = new Set(prev.map(p => p.id));
         const filteredNew = nextProducts.filter(p => !existingIds.has(p.id) && !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
         return [...prev, ...filteredNew];
       });
-      setPagination(data.pageInfo || { hasNextPage: false, endCursor: null });
-      if (data.totalProducts) setTotalCount(data.totalProducts);
+      
+      if (apiUrl.includes('/api/products/search')) {
+        setPagination({
+          hasNextPage: collData.pagination ? collData.pagination.page < collData.pagination.totalPages : false,
+          page: collData.pagination ? collData.pagination.page : 1,
+          totalPages: collData.pagination ? collData.pagination.totalPages : 1,
+          endCursor: null
+        });
+      } else {
+        setPagination({
+          hasNextPage: collData.pageInfo?.hasNextPage || false,
+          endCursor: collData.pageInfo?.endCursor || null,
+          page: 2
+        });
+      }
+      
+      if (collData.totalProducts) setTotalCount(collData.totalProducts);
+      else if (collData.pagination?.total) setTotalCount(collData.pagination.total);
     } catch (err) {
-      console.error("Failed to fetch next page:", err);
+      console.error("Failed to load more products:", err);
     } finally {
       setIsFetchingNextPage(false);
     }

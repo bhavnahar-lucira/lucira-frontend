@@ -117,6 +117,38 @@ export default function SearchPage() {
     min: searchParams.get("filter.v.price.gte") || "",
     max: searchParams.get("filter.v.price.lte") || ""
   });
+
+  const [trueMinPrice, setTrueMinPrice] = useState(null);
+  const [trueMaxPrice, setTrueMaxPrice] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchTrueBounds() {
+      if (!query) return;
+      try {
+        const [minData, maxData] = await Promise.all([
+          apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&sort=price_low_high&limit=1`),
+          apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&sort=price_high_low&limit=1`)
+        ]);
+
+        if (isMounted) {
+          if (minData?.products && minData.products.length > 0) {
+            const minP = Number(minData.products[0].price) || 0;
+            if (minP > 0) setTrueMinPrice(minP);
+          }
+          if (maxData?.products && maxData.products.length > 0) {
+            const maxP = Number(maxData.products[0].price) || 0;
+            if (maxP > 0) setTrueMaxPrice(maxP);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch true price bounds for search:", e);
+      }
+    }
+    fetchTrueBounds();
+    return () => { isMounted = false; };
+  }, [query]);
+
   const [absolutePrice, setAbsolutePrice] = useState({ min: null, max: null });
 
   useEffect(() => {
@@ -130,12 +162,30 @@ export default function SearchPage() {
   // facet counts narrow with each applied filter.
   useEffect(() => {
     if (availableFilters?.Price) {
-      setAbsolutePrice(prev => ({
-        min: prev.min === null ? (availableFilters.Price.min || 0) : Math.min(prev.min, availableFilters.Price.min || 0),
-        max: prev.max === null ? (availableFilters.Price.max || 500000) : Math.max(prev.max, availableFilters.Price.max || 500000)
-      }));
+      const priceData = Array.isArray(availableFilters.Price) ? availableFilters.Price[0] : availableFilters.Price;
+      
+      setAbsolutePrice(prev => {
+        let newMin = prev.min;
+        if (priceData?.min !== undefined && priceData.min > 0) {
+          newMin = prev.min === null ? priceData.min : Math.min(prev.min, priceData.min);
+        } else if (prev.min === null || prev.min === 0) {
+          newMin = trueMinPrice !== null ? trueMinPrice : prev.min;
+        }
+
+        let newMax = prev.max;
+        if (priceData?.max !== undefined && priceData.max > 0) {
+          newMax = prev.max === null ? priceData.max : Math.max(prev.max, priceData.max);
+        } else if (prev.max === null || prev.max === 500000) {
+          newMax = trueMaxPrice !== null ? trueMaxPrice : (prev.max || 500000);
+        }
+        
+        return {
+          min: newMin,
+          max: newMax
+        };
+      });
     }
-  }, [availableFilters]);
+  }, [availableFilters, trueMinPrice, trueMaxPrice]);
 
   // Merge/normalise + sort facet options exactly like the collection page does.
   // NOTE: the Price facet is dropped here because /api/products/search returns
@@ -147,7 +197,11 @@ export default function SearchPage() {
     const mergedData = {};
     Object.entries(filtersData || {}).forEach(([groupKey, options]) => {
       if (groupKey === "Price") {
-        return;
+        if (Array.isArray(options) && options.length > 0) {
+          mergedData[groupKey] = options[0]; // {min, max}
+        } else {
+          mergedData[groupKey] = options;
+        }
       } else if (Array.isArray(options)) {
         const mergedOptionsMap = new Map();
         options.forEach(opt => {
@@ -187,7 +241,21 @@ export default function SearchPage() {
         });
       }
     });
-    return sortedData;
+
+    // Ensure Price is exactly at the 4th index (index 3)
+    const finalSortedData = {};
+    const keys = Object.keys(sortedData).filter(k => k !== "Price");
+    keys.splice(3, 0, "Price");
+    
+    keys.forEach(k => {
+      if (k === "Price") {
+        finalSortedData[k] = sortedData[k] || { min: 0, max: 0 };
+      } else if (sortedData[k]) {
+        finalSortedData[k] = sortedData[k];
+      }
+    });
+    
+    return finalSortedData;
   }, []);
 
   /* The search API only understands Shopify filter inputs passed as
@@ -251,11 +319,16 @@ export default function SearchPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!query) return;
+    if (!query) {
+      setProductsLoading(false);
+      setFiltersLoading(false);
+      return;
+    }
     let cancelled = false;
     async function fetchData() {
       setProductsLoading(true);
       setFiltersLoading(true);
+      
       try {
         const sort = searchParams.get("sort") || "relevance";
 
@@ -517,69 +590,67 @@ export default function SearchPage() {
 
       <div className={isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}>
         {/* ================= FILTERS SIDEBAR ================= */}
-        {hasFilters && (
-          <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
-            <div className="sticky top-19 self-start h-fit">
-              <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
-                {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
-                  <div className={`space-y-3 pr-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
-                    <div className="flex justify-between items-center border-b border-[#CECACA] pb-3"><h3 className="font-figtree font-bold text-black text-xl leading-none tracking-normal">Filters</h3><button onClick={clearAllFilters} className="font-figtree text-xs font-semibold uppercase tracking-wide text-[#696969] hover:text-black transition-colors">Clear All</button></div>
-                    {Object.entries(availableFilters).map(([groupKey, options]) => {
-                      const isExpanded = expandedFilters[groupKey] ?? false;
-                      if (groupKey === "Price") {
-                        return (
-                          <div key={groupKey} className="border-b mb-0 border-gray-200">
-                            <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
-                            {isExpanded && (
-                              <div className="space-y-5 my-4 pb-5 px-2">
-                                <Slider
-                                  min={absolutePrice.min || 0}
-                                  max={absolutePrice.max || 500000}
-                                  step={100}
-                                  value={[
-                                    localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
-                                    localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
-                                  ]}
-                                  onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
-                                  onValueCommit={applyPriceFilter}
-                                />
-                                <div className="text-sm font-semibold text-gray-900 text-center">
-                                  ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
+        <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
+          <div className="sticky top-19 self-start h-fit">
+            <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
+              {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
+                <div className={`space-y-3 pr-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className="flex justify-between items-center border-b border-[#CECACA] pb-3"><h3 className="font-figtree font-bold text-black text-xl leading-none tracking-normal">Filters</h3><button onClick={clearAllFilters} className="font-figtree text-xs font-semibold uppercase tracking-wide text-[#696969] hover:text-black transition-colors">Clear All</button></div>
+                  {Object.entries(availableFilters).map(([groupKey, options]) => {
+                    const isExpanded = expandedFilters[groupKey] ?? false;
+                    if (groupKey === "Price") {
                       return (
                         <div key={groupKey} className="border-b mb-0 border-gray-200">
                           <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
                           {isExpanded && (
-                            <div className="space-y-4 mt-2 mb-4 pb-5">
-                              {Array.isArray(options) && options.map((opt) => {
-                                const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
-                                return (
-                                  <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
-                                    <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
-                                      {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
-                                    </span>
-                                    <span className={`font-figtree text-base leading-[1.4] ${isChecked ? "text-black font-medium" : "text-[#696969] font-normal"}`}>
-                                      {opt.label} ({opt.count})
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                            <div className="space-y-5 my-4 pb-5 px-2">
+                              <Slider
+                                min={absolutePrice.min || 0}
+                                max={absolutePrice.max || 500000}
+                                step={100}
+                                value={[
+                                  localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
+                                  localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
+                                ]}
+                                onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
+                                onValueCommit={applyPriceFilter}
+                              />
+                              <div className="text-sm font-semibold text-gray-900 text-center">
+                                ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
+                              </div>
                             </div>
                           )}
                         </div>
                       );
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
+                    }
+                    return (
+                      <div key={groupKey} className="border-b mb-0 border-gray-200">
+                        <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                        {isExpanded && (
+                          <div className="space-y-4 mt-2 mb-4 pb-5">
+                            {Array.isArray(options) && options.map((opt) => {
+                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
+                              return (
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                  <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
+                                    {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
+                                  </span>
+                                  <span className={`font-figtree text-base leading-[1.4] ${isChecked ? "text-black font-medium" : "text-[#696969] font-normal"}`}>
+                                    {opt.label} ({opt.count})
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
           </div>
-        )}
+        </div>
 
         {/* ================= RESULTS SECTION ================= */}
         <div className="flex-1">
@@ -716,7 +787,7 @@ export default function SearchPage() {
       )}
 
       {/* Sticky Mobile Filter Bar & Sheets */}
-      {isMobile && hasFilters && (
+      {isMobile && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-60 z-[500] flex items-stretch rounded-full bg-[#5a413f] text-white shadow-[0_10px_30px_-8px_rgba(90,65,63,0.55)] ring-1 ring-white/10 overflow-hidden backdrop-blur-sm">
           <button onClick={() => setIsSortSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.8125rem] font-figtree font-semibold tracking-[0.08em] active:bg-white/10 transition-colors">
             <ArrowUpDown size={15} strokeWidth={2} className="opacity-90" /> Sort
