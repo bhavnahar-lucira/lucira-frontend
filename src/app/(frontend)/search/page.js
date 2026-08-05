@@ -113,6 +113,35 @@ export default function SearchPage() {
     window.scrollTo(0, 0);
   }, [query]);
 
+  // Auto-apply product type filter based on query intent (like Caratlane)
+  const [autoFilteredQuery, setAutoFilteredQuery] = useState("");
+  useEffect(() => {
+    if (!query || query === autoFilteredQuery) return;
+    
+    let detectedType = null;
+    const lowerQ = query.toLowerCase();
+    
+    if (/\bring(s)?\b/i.test(lowerQ)) detectedType = "Rings";
+    else if (/\bearring(s)?\b/i.test(lowerQ)) detectedType = "Earrings";
+    else if (/\bnecklace(s)?\b/i.test(lowerQ)) detectedType = "Necklaces";
+    else if (/\bbracelet(s)?\b/i.test(lowerQ)) detectedType = "Bracelets";
+    else if (/\bpendant(s)?\b/i.test(lowerQ)) detectedType = "Pendants";
+    else if (/\bbangle(s)?\b/i.test(lowerQ)) detectedType = "Bangles";
+    else if (/\bmangalsutra(s)?\b/i.test(lowerQ)) detectedType = "Mangalsutras";
+    else if (/\bnosering(s)?|nose pin(s)?|nose-pin(s)?\b/i.test(lowerQ)) detectedType = "Nose Pins";
+
+    if (detectedType) {
+       const currentTypes = searchParams.getAll("filter.p.product_type");
+       if (!currentTypes.includes(detectedType)) {
+          const newParams = new URLSearchParams(searchParams.toString());
+          newParams.append("filter.p.product_type", detectedType);
+          router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
+       }
+    }
+    
+    setAutoFilteredQuery(query);
+  }, [query, searchParams, pathname, router, autoFilteredQuery]);
+
   const [localPriceRange, setLocalPriceRange] = useState({
     min: searchParams.get("filter.v.price.gte") || "",
     max: searchParams.get("filter.v.price.lte") || ""
