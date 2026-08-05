@@ -3869,12 +3869,13 @@ export default function ProductPageClient({
           onClose={() => setShareIntent(null)}
           intent={shareIntent}
           product={product}
-          sku={shareIntentSku}
           price={shareIntentPrice}
           comparePrice={shareIntentComparePrice}
           image={shareIntentImage}
           shareUrl={shareIntent?.url || ""}
           onShare={handleShareIntentChannel}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={handleToggleWishlist}
         />
       )}
     </div>
