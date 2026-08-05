@@ -61,7 +61,7 @@ const items = [
   {
     question: "Where can I redeem the scheme amount?",
     answer:
-      "The amount can be redeemed only against purchases of Lucira Jewelry products, online or at select offline stores.",
+      "The redeemable amount is valid only for the purchase of Lucira Jewelry products through the website or at participating offline stores and cannot be used for the purchase of gold coins, gold bars, or plain gold jewelry.",
   },
   {
     question: "Are making charges and taxes applicable?",
@@ -137,9 +137,8 @@ export function SchemeFaq() {
 
           {/* ANSWER */}
           <div
-            className={`overflow-hidden transition-all duration-500 ease-in-out ${
-              openIndex === index ? "max-h-[500px] pb-6 opacity-100" : "max-h-0 opacity-0"
-            }`}
+            className={`overflow-hidden transition-all duration-500 ease-in-out ${openIndex === index ? "max-h-[500px] pb-6 opacity-100" : "max-h-0 opacity-0"
+              }`}
           >
             <p className="text-gray-600 text-[14px] md:text-[15px] leading-[24px] max-w-4xl">
               {item.answer}
