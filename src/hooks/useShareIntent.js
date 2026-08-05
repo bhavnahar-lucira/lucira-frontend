@@ -168,7 +168,8 @@ export function useShareIntent({
 
       // iOS ignores preventDefault for the long-press callout; only the CSS
       // property -webkit-touch-callout suppresses it, and Chromium refuses to
-      // set that via the DOM. So we mark the zone and let globals.css carry the
+      // set that via the DOM. So we mark the zone and let the PDP stylesheet
+      // (app/(frontend)/products/[handle]/product-page.css) carry the
       // declaration. Marked on first touch rather than on mount because the
       // gallery renders a skeleton until its media resolves, so the zone may
       // not exist yet when the effect runs.

@@ -1,0 +1,12 @@
+/* PDP-only styles. Imported by this route's page.js, so these bytes are not
+   shipped on every other route the way globals.css is. */
+
+/* Share-intent sheet: a long-press on a mobile gallery image opens our share
+   sheet (see hooks/useShareIntent.js), so the native iOS "Save Image / Copy"
+   callout is suppressed to avoid two menus fighting over one gesture. The
+   attribute is set by the hook, so this only applies while the feature is
+   armed. Lives in CSS because Chromium refuses to set -webkit-touch-callout
+   through the DOM, while iOS Safari honours it here. */
+[data-pdp-gallery-mobile][data-share-intent-armed] img {
+  -webkit-touch-callout: none;
+}
