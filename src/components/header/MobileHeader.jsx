@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Menu, Search, Heart, ShoppingBag, Home, X, ChevronRight, ChevronLeft, User as UserIcon, LogOut, MessageCircle, Package, Video, Store, ChevronDown } from "lucide-react";
+import { Menu, Search, TrendingUp, LayoutGrid, Heart, ShoppingBag, Home, X, ChevronRight, ChevronLeft, User as UserIcon, LogOut, MessageCircle, Package, Video, Store, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
@@ -21,7 +21,7 @@ import { Sheet as MobileSheet } from "react-modal-sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
-import { apiFetch, fetchSearchResults, fetchCollectionProducts } from "@/lib/api";
+import { apiFetch, fetchSearchResults, fetchCollectionProducts, fetchHomeComponent } from "@/lib/api";
 
 // Scroll depths that drive the PDP mobile search bar. It starts collapsed to a
 // bare icon beside the wishlist and expands into the full bar past EXPAND_Y,
@@ -351,12 +351,12 @@ const HighlightMatch = ({ text, query, reverse = false }) => {
 };
 
 const MOCK_CATEGORIES = [
-  { title: "Solitaire Rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_33902_jpg.jpg?v=1780118511", href: "/collections/solitaire-rings" },
-  { title: "Solitaire Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511", href: "/collections/solitaire-earrings" },
-  { title: "Solitaire Pendant", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511", href: "/collections/solitaire-pendants" },
-  { title: "Solitaire Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511", href: "/collections/solitaire-bracelets" },
-  { title: "Men's Solitaire", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_men_solitairea.jpg?v=1780382143", href: "/collections/solitaires-for-men" },
-  { title: "Solitaire Necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_necklace.jpg?v=1780382136", href: "/collections/solitaire-necklaces" },
+  { title: "Solitaire Rings", image: "/images/shapes/round.png", href: "/collections/solitaire-rings" },
+  { title: "Solitaire Earrings", image: "/images/styles/dangles.png", href: "/collections/solitaire-earrings" },
+  { title: "Solitaire Pendant", image: "/images/menu/earring.jpg", href: "/collections/solitaire-pendants" },
+  { title: "Solitaire Bracelets", image: "/images/menu/wedding-ring.jpg", href: "/collections/solitaire-bracelets" },
+  { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
+  { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
 import { transformMenuData } from "@/lib/menus";
 
@@ -371,10 +371,85 @@ export default function MobileHeader({ menuData }) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [bestsellers, setBestsellers] = useState([]);
-  const [isLoadingBestsellers, setIsLoadingBestsellers] = useState(false);
   const searchInputRef = useRef(null);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [trendingSearches, setTrendingSearches] = useState([]);
+  const [isLoadingTrending, setIsLoadingTrending] = useState(false);
+  const [bestsellers, setBestsellers] = useState([]);
+  const [isLoadingBestsellers, setIsLoadingBestsellers] = useState(false);
+
+  const TRENDING_CATEGORIES = [
+    { title: "Necklaces", href: "/collections/necklaces" },
+    { title: "Halo Engagement Rings", href: "/collections/halo-engagement-rings" },
+    { title: "Engagement Ring For Men", href: "/collections/engagement-ring-for-men" },
+    { title: "Bestsellers Bracelets", href: "/collections/bracelets" },
+    { title: "Rings", href: "/collections/rings" }
+  ];
+
+  // Fetch Bestsellers & Analytics for Search Sheet
+  useEffect(() => {
+    if (!showSearch) return;
+    
+    // 1. Load Recent Searches
+    try {
+      const stored = localStorage.getItem("@recent_searches");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setRecentSearches(parsed.slice(0, 5));
+      }
+    } catch (e) {
+      console.error("Failed to load recent searches", e);
+    }
+
+    const fetchData = async () => {
+      if (searchQuery.length > 0) return;
+
+      // Fetch Bestsellers
+      if (bestsellers.length === 0) {
+        setIsLoadingBestsellers(true);
+        try {
+          const data = await fetchCollectionProducts({ handle: "bestseller", limit: 4 });
+          const formatPrice = (num) => {
+            if (!num && num !== 0) return "";
+            return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
+          };
+          const mapped = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map((p) => ({
+            id: p.shopifyId || p.id,
+            title: p.title,
+            url: `/products/${p.handle}`,
+            image: p.image || p.variants?.[0]?.image || "",
+            price: formatPrice(p.price_breakup?.total || p.price),
+          }));
+          setBestsellers(mapped.slice(0, 4));
+        } catch (err) {
+          console.error("Error fetching bestsellers:", err);
+        } finally {
+          setIsLoadingBestsellers(false);
+        }
+      }
+
+      // Fetch Trending Searches
+      if (trendingSearches.length === 0) {
+        setIsLoadingTrending(true);
+        try {
+          const ga4Data = await fetchHomeComponent("ga4-search-queries").catch(() => null);
+          const actualGa4Data = ga4Data?.data ? ga4Data.data : ga4Data;
+          if (Array.isArray(actualGa4Data)) {
+            setTrendingSearches(actualGa4Data.slice(0, 10));
+          }
+        } catch (err) {
+          console.error("Error fetching trending search data:", err);
+        } finally {
+          setIsLoadingTrending(false);
+        }
+      }
+    };
+
+    fetchData();
+  }, [showSearch, searchQuery, bestsellers.length, trendingSearches.length]);
+
 
   // Expand the PDP search bar on scroll, collapse it again near the top. The
   // header row itself stays pinned on PDP (Header.jsx uses top: -40px, which
@@ -462,35 +537,6 @@ export default function MobileHeader({ menuData }) {
   const [activeMenuPath, setActiveMenuPath] = useState([]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [menuDirection, setMenuDirection] = useState(1);
-
-  // Fetch Bestsellers
-  useEffect(() => {
-    const getBestsellers = async () => {
-      if (showSearch && searchQuery.length === 0 && bestsellers.length === 0) {
-        setIsLoadingBestsellers(true);
-        try {
-          const data = await fetchCollectionProducts({ handle: "bestseller", limit: 3 });
-          const formatPrice = (num) => {
-            if (!num && num !== 0) return "";
-            return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
-          };
-          const mapped = (data.products || []).map(p => ({
-            id: p.shopifyId || p.id,
-            title: p.title,
-            url: `/products/${p.handle}`,
-            image: p.image || p.variants?.[0]?.image || "",
-            price: formatPrice(p.price_breakup?.total || p.price),
-          }));
-          setBestsellers(mapped.slice(0, 3));
-        } catch (err) {
-          console.error("Error fetching bestsellers:", err);
-        } finally {
-          setIsLoadingBestsellers(false);
-        }
-      }
-    };
-    getBestsellers();
-  }, [showSearch, searchQuery, bestsellers.length]);
 
   //GTM begain
   const handleCartClick = () => {
@@ -838,77 +884,112 @@ export default function MobileHeader({ menuData }) {
               )}
             </div>
           ) : (
-            <div className="space-y-8">
-              <div className="space-y-6">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Categories</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {MOCK_CATEGORIES.map((cat, i) => (
-                    <div
-                      key={i}
-                      onClick={() => handleResultClick(cat.href)}
-                      className="group flex flex-col items-center"
-                    >
-                      <div className="aspect-square w-full relative rounded-md overflow-hidden mb-2 bg-transparent border border-transparent hover:border-gray-100 transition-all">
-                        <Image
-                          src={cat.image}
-                          alt={cat.title}
-                          fill
-                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-400"
-                        />
+            <div className="space-y-8 px-1">
+              {recentSearches.length > 0 && (
+                <div>
+                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Recent Searches</h3>
+                  <div className="flex flex-col space-y-0">
+                    {recentSearches.map((term, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => handleResultClick(`/search?q=${encodeURIComponent(term)}`)}
+                        className="flex items-center py-3.5 border-b border-gray-100 last:border-0"
+                      >
+                        <Search size={16} className="text-primary mr-3 shrink-0" />
+                        <span className="text-[14px] text-gray-700 font-medium">{term}</span>
                       </div>
-                      <p className="text-[10px] font-bold text-gray-700 text-center uppercase tracking-tight leading-tight">
-                        {cat.title}
-                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(isLoadingTrending || trendingSearches.length > 0) && (
+                <div>
+                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Trending Search</h3>
+                  <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-2.5 pb-2">
+                    {isLoadingTrending ? (
+                      [1, 2, 3].map((i) => (
+                        <div key={i} className="h-9 w-24 bg-gray-100 rounded-full animate-pulse shrink-0" />
+                      ))
+                    ) : (
+                      trendingSearches.map((termObj, idx) => {
+                        const termText = typeof termObj === 'string' ? termObj : termObj?.term || "";
+                        if (!termText) return null;
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => handleResultClick(`/search?q=${encodeURIComponent(termText)}`)}
+                            className="px-4 py-2 bg-white border border-gray-200 rounded-full flex items-center shadow-sm active:bg-gray-50 transition-colors shrink-0"
+                          >
+                            <TrendingUp size={14} className="text-primary mr-2 shrink-0" />
+                            <span className="text-[13px] font-medium text-gray-800">{termText}</span>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Trending Collection</h3>
+                <div className="flex flex-col space-y-0">
+                  {TRENDING_CATEGORIES.map((cat, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => handleResultClick(cat.href)}
+                      className="flex items-center py-3.5 border-b border-gray-100 last:border-0 active:bg-gray-50 transition-colors"
+                    >
+                      <LayoutGrid size={16} className="text-primary mr-3 shrink-0" />
+                      <span className="text-[14px] text-gray-600 font-medium">{cat.title}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Bestsellers Section */}
-              <div className="space-y-6">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Bestseller Products</h3>
-                {isLoadingBestsellers ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className="flex gap-4 animate-pulse px-1">
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg" />
-                        <div className="flex-1 space-y-2 py-2">
-                          <div className="h-3 bg-gray-100 rounded w-3/4" />
-                          <div className="h-2.5 bg-gray-100 rounded w-1/4" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : bestsellers.length > 0 ? (
+              {(isLoadingBestsellers || bestsellers.length > 0) && (
+                <div>
+                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Best Sellers Product</h3>
                   <div className="grid grid-cols-1 gap-4">
-                    {bestsellers.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => handleResultClick(item.url)}
-                        className="flex items-center gap-3 p-2 rounded-md active:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors"
-                      >
-                        <div className="w-16 h-16 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                          <Image
-                            src={item.image || "/images/product/1.jpg"}
-                            alt={item.title}
-                            fill
-                            className="object-cover w-full h-full"
-                          />
+                    {isLoadingBestsellers ? (
+                      [1, 2, 3].map((i) => (
+                        <div key={i} className="flex gap-4 animate-pulse px-2 py-2">
+                          <div className="w-16 h-16 bg-gray-100 rounded-md" />
+                          <div className="flex-1 space-y-2 py-1">
+                            <div className="h-3 bg-gray-100 rounded w-3/4" />
+                            <div className="h-2.5 bg-gray-100 rounded w-1/4" />
+                          </div>
                         </div>
-                        <div className="grow min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">
-                            {item.title}
-                          </h4>
-                          <p className="text-xs text-gray-500 font-bold mt-1">{item.price}</p>
+                      ))
+                    ) : (
+                      bestsellers.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => handleResultClick(item.url)}
+                          className="flex items-center gap-3 p-2 rounded-md active:bg-gray-50 border border-transparent transition-colors"
+                        >
+                          <div className="w-16 h-16 relative rounded-md overflow-hidden shrink-0 bg-transparent">
+                            <Image
+                              src={item.image || "/images/product/1.jpg"}
+                              alt={item.title}
+                              fill
+                              unoptimized={String(item.image).includes("cdn.shopify.com") || String(item.image).includes("myshopify.com")}
+                              className="object-cover w-full h-full"
+                            />
+                          </div>
+                          <div className="grow min-w-0">
+                            <h4 className="text-sm font-medium text-gray-900 truncate">
+                              {item.title}
+                            </h4>
+                            <p className="text-xs text-gray-500 font-bold mt-1">{item.price}</p>
+                          </div>
+                          <ChevronRight size={16} className="text-gray-300" />
                         </div>
-                        <ChevronRight size={16} className="text-gray-300" />
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
-                ) : (
-                  <p className="text-xs text-gray-400 italic px-1">No bestsellers available</p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>

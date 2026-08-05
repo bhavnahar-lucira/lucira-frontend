@@ -5,7 +5,7 @@ import { Search, X, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchCollectionProducts } from "@/lib/api";
+import { fetchCollectionProducts, fetchAnalyticsSearch, fetchHomeComponent } from "@/lib/api";
 
 const HighlightMatch = ({ text, query, reverse = false }) => {
   if (!query) return <span className="text-[#1A1A1A]">{text}</span>;
@@ -49,7 +49,6 @@ export default function SearchPopup({
 
     window.dataLayer.push({
       event: "promoClick",
-
       promoClick: {
         promo_id: promo_id,
         promo_name: promo_name,
@@ -57,9 +56,7 @@ export default function SearchPopup({
       },
     });
   };
-  // Extract matched collections, products and editorial content (blogs / pages)
-  const productsOnly = searchResults.filter((item) => !item.isCollection && !item.isContent);
-  const contentResults = searchResults.filter((item) => item.isContent);
+  const productsOnly = searchResults.filter((item) => !item.isCollection);
 
   // Prioritize exact matches in collections
   const matchedCollections = searchResults
@@ -72,64 +69,32 @@ export default function SearchPopup({
       return 0;
     });
 
-  // Static Categories for initial state
-  const MOCK_CATEGORIES = [
-    {
-      title: "Solitaire Rings",
-      image:
-        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_33902_jpg.jpg?v=1780118511",
-      href: "/collections/solitaire-rings",
-    },
-    {
-      title: "Solitaire Earrings",
-      image:
-        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34170_jpg.jpg?v=1780118511",
-      href: "/collections/solitaire-earrings",
-    },
-    {
-      title: "Solitaire Pendant",
-      image:
-        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_product_34015_jpg.jpg?v=1780118511",
-      href: "/collections/solitaire-pendants",
-    },
-    {
-      title: "Solitaire Bracelets",
-      image:
-        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BR0058_jpg.jpg?v=1780118511",
-      href: "/collections/solitaire-bracelets",
-    },
-    {
-      title: "Men's Solitaire",
-      image:
-        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_men_solitairea.jpg?v=1780382143",
-      href: "/collections/solitaires-for-men",
-    },
-    {
-      title: "Solitaire Necklaces",
-      image:
-        "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/search_necklace.jpg?v=1780382136",
-      href: "/collections/solitaire-necklaces",
-    },
-  ];
+  // Dynamic states
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [trendingSearches, setTrendingSearches] = useState([]);
+  const [isLoadingTrending, setIsLoadingTrending] = useState(false);
 
-  // Fetch Bestsellers
+  // Fetch Bestsellers & Analytics
   useEffect(() => {
-    const getBestsellers = async () => {
-      if (searchQuery.length === 0 && bestsellers.length === 0) {
+    // 1. Load Recent Searches
+    try {
+      const stored = localStorage.getItem("@recent_searches");
+      if (stored) setRecentSearches(JSON.parse(stored));
+    } catch (e) {
+      console.error("Failed to load recent searches", e);
+    }
+
+    const fetchData = async () => {
+      if (searchQuery.length > 0) return; // Only fetch when empty
+
+      // Fetch Bestsellers
+      if (bestsellers.length === 0) {
         setIsLoadingBestsellers(true);
         try {
-          const data = await fetchCollectionProducts({
-            handle: "bestseller",
-            limit: 3,
-          });
+          const data = await fetchCollectionProducts({ handle: "bestseller", limit: 3 });
           const formatPrice = (num) => {
             if (!num && num !== 0) return "";
-            return (
-              "₹" +
-              new Intl.NumberFormat("en-IN", {
-                maximumFractionDigits: 0,
-              }).format(Math.round(Number(num)))
-            );
+            return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
           };
           const mapped = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map((p) => ({
             id: p.shopifyId || p.id,
@@ -145,9 +110,27 @@ export default function SearchPopup({
           setIsLoadingBestsellers(false);
         }
       }
+
+      // Fetch Trending Searches if not loaded
+      if (trendingSearches.length === 0) {
+        setIsLoadingTrending(true);
+        try {
+          const ga4Data = await fetchHomeComponent("ga4-search-queries").catch(() => null);
+
+          const actualGa4Data = ga4Data?.data ? ga4Data.data : ga4Data;
+          if (Array.isArray(actualGa4Data)) {
+            setTrendingSearches(actualGa4Data.slice(0, 10));
+          }
+        } catch (err) {
+          console.error("Error fetching trending search data:", err);
+        } finally {
+          setIsLoadingTrending(false);
+        }
+      }
     };
-    getBestsellers();
-  }, [searchQuery, bestsellers.length]);
+
+    fetchData();
+  }, [searchQuery, bestsellers.length, trendingSearches.length]);
 
   // Close on Escape
   useEffect(() => {
@@ -172,7 +155,7 @@ export default function SearchPopup({
             {/* Left Column: Products (Shows when typing) */}
             <div className="md:pr-10 lg:border-r border-gray-100 flex flex-col">
               <h3 className="text-sm md:text-base font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">
-                {searchQuery.length === 0 ? "Bestseller Products" : "Search Results"}
+                {searchQuery.length === 0 ? "Bestseller Products" : "Products"}
               </h3>
 
               {searchQuery.length === 0 ? (
@@ -262,26 +245,18 @@ export default function SearchPopup({
                       onClick={onClose}
                       className="group flex gap-3 md:gap-4 items-center"
                     >
-                      {item.url.includes('/pages/') || item.url.includes('/blogs/') ? (
-                        <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-zinc-100 flex items-center justify-center">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                            {item.url.includes('/pages/') ? 'Page' : 'Blog'}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                          <Image
-                            src={item.image || "/images/product/1.jpg"}
-                            alt={item.title}
-                            fill
-                            unoptimized={
-                              String(item.image).includes("cdn.shopify.com") ||
-                              String(item.image).includes("myshopify.com")
-                            }
-                            className="object-cover w-full h-full"
-                          />
-                        </div>
-                      )}
+                      <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">
+                        <Image
+                          src={item.image || "/images/product/1.jpg"}
+                          alt={item.title}
+                          fill
+                          unoptimized={
+                            String(item.image).includes("cdn.shopify.com") ||
+                            String(item.image).includes("myshopify.com")
+                          }
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs md:text-sm font-medium text-gray-800 truncate group-hover:text-primary transition-colors">
                           <HighlightMatch
@@ -297,6 +272,18 @@ export default function SearchPopup({
                       </div>
                     </Link>
                   ))}
+
+                  {productsOnly.length > 0 && (
+                    <div className="pt-4 mt-2 border-t border-gray-100 flex justify-center">
+                      <Link
+                        href={`/search?q=${encodeURIComponent(searchQuery)}`}
+                        onClick={onClose}
+                        className="px-6 py-2.5 bg-[#4A3B3B] text-white text-xs md:text-sm font-semibold rounded-full hover:bg-[#3D3131] transition-colors shadow-sm flex items-center gap-2 mt-4"
+                      >
+                        View All Results <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="py-8 md:py-10 text-center">
@@ -311,49 +298,63 @@ export default function SearchPopup({
             <div>
               {searchQuery.length === 0 ? (
                 <>
-                  <h3 className="text-xs md:text-sm font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">
-                    Categories
-                  </h3>
-                  <div className="grid grid-cols-3 gap-3 md:gap-5">
-                    {MOCK_CATEGORIES.map((cat, i) => (
-                      <Link
-                        key={i}
-                        href={cat.href}
-                        prefetch={false}
-                        onClick={() => {
-                          handlePromoClick({
-                            promo_id: cat.href,
-                            promo_name: cat.title,
-                            creative_name: "Search Popup - Categories",
-                          });
+                  {recentSearches.length > 0 && (
+                    <div className="mb-6 md:mb-8">
+                      <h3 className="text-xs md:text-sm font-semibold mb-3 text-[#1A1A1A] uppercase tracking-wider">
+                        Recent Searches
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {recentSearches.map((term, idx) => (
+                          <Link
+                            key={idx}
+                            href={`/search?q=${encodeURIComponent(term)}`}
+                            onClick={onClose}
+                            className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-xs font-medium text-gray-700 hover:bg-gray-100 hover:text-primary transition-colors"
+                          >
+                            <Search className="inline-block w-3 h-3 mr-1.5 opacity-50" />
+                            {term}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                          onClose();
-                        }}
-                        className="group"
-                      >
-                        <div className="aspect-4/3 relative rounded-md overflow-hidden mb-1.5 md:mb-2.5 bg-transparent">
-                          <Image
-                            src={cat.image}
-                            alt={cat.title}
-                            fill
-                            unoptimized={
-                              String(cat.image).includes("cdn.shopify.com") ||
-                              String(cat.image).includes("myshopify.com")
-                            }
-                            className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
-                          />
-                        </div>
-                        <p className="text-xs font-medium text-gray-700 text-center group-hover:text-primary transition-colors leading-tight">
-                          {cat.title}
-                        </p>
-                      </Link>
-                    ))}
-                  </div>
+                  {(isLoadingTrending || trendingSearches.length > 0) && (
+                    <div className="mb-6 md:mb-8">
+                      <h3 className="text-xs md:text-sm font-semibold mb-3 text-[#1A1A1A] uppercase tracking-wider flex items-center gap-2">
+                        Trending Searches <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {isLoadingTrending ? (
+                          <>
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                              <div key={i} className="h-7 bg-gray-100 rounded-full animate-pulse" style={{ width: Math.random() * 40 + 60 + 'px' }} />
+                            ))}
+                          </>
+                        ) : (
+                          trendingSearches.map((termObj, idx) => {
+                            const termText = typeof termObj === 'string' ? termObj : termObj?.term || "";
+                            if (!termText) return null;
+                            return (
+                            <Link
+                              key={idx}
+                              href={`/search?q=${encodeURIComponent(termText)}`}
+                              onClick={onClose}
+                              className="px-3 py-1.5 bg-red-50/50 border border-red-100 rounded-full text-xs font-medium text-red-700 hover:bg-red-50 transition-colors"
+                            >
+                              <ArrowRight className="inline-block w-3 h-3 mr-1.5 opacity-50" />
+                              {termText}
+                            </Link>
+                          )})
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
                   <h3 className="text-xs md:text-sm font-semibold mb-4 md:mb-6 text-[#1A1A1A] uppercase tracking-wider">
-                    Collection
+                    Collections
                   </h3>
                   <div className="space-y-3 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar scrollbar-thin scrollbar-thumb-zinc-200">
                     {matchedCollections.length > 0 ? (
@@ -365,7 +366,7 @@ export default function SearchPopup({
                           onClick={onClose}
                           className="group block p-3 bg-zinc-50 rounded-lg border border-zinc-100 hover:border-primary/20 hover:bg-white transition-all duration-300"
                         >
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 flex items-center justify-between">
                             <h4 className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">
                               <HighlightMatch
                                 text={col.title}
@@ -373,9 +374,7 @@ export default function SearchPopup({
                                 reverse={true}
                               />
                             </h4>
-                            <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mt-1">
-                              Collection
-                            </p>
+                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors" />
                           </div>
                         </Link>
                       ))
@@ -388,45 +387,7 @@ export default function SearchPopup({
                     )}
                   </div>
 
-                  {contentResults.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="text-xs md:text-sm font-semibold mb-3 text-[#1A1A1A] uppercase tracking-wider">
-                        Blogs & Pages
-                      </h3>
-                      <div className="space-y-2">
-                        {contentResults.slice(0, 5).map((item) => (
-                          <Link
-                            key={item.id}
-                            href={item.url}
-                            prefetch={false}
-                            onClick={onClose}
-                            className="group block p-3 bg-zinc-50 rounded-lg border border-zinc-100 hover:border-primary/20 hover:bg-white transition-all duration-300"
-                          >
-                            <h4 className="text-sm font-medium text-gray-900 group-hover:text-primary transition-colors">
-                              <HighlightMatch text={item.title} query={searchQuery} />
-                            </h4>
-                            <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-widest mt-1">
-                              {item.contentType}
-                            </p>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </>
-              )}
-
-              {searchQuery.length > 0 && (
-                <div className="mt-8 pt-6 border-t border-gray-50">
-                  <Link
-                    href={`/search?q=${encodeURIComponent(searchQuery)}`}
-                    prefetch={false}
-                    onClick={onClose}
-                    className="text-primary font-bold text-xs md:text-sm underline underline-offset-4 decoration-primary/30 hover:decoration-primary transition-all uppercase tracking-widest"
-                  >
-                    View All Results for "{searchQuery}"
-                  </Link>
-                </div>
               )}
             </div>
           </div>

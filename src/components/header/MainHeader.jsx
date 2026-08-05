@@ -259,6 +259,18 @@ export default function MainHeader() {
       promo_id: cleaned,
       promo_name: cleaned,
     });
+
+    // Save to Recent Searches
+    try {
+      const stored = localStorage.getItem("@recent_searches");
+      let searches = stored ? JSON.parse(stored) : [];
+      searches = searches.filter(s => s.toLowerCase() !== cleaned.toLowerCase());
+      searches.unshift(cleaned);
+      if (searches.length > 10) searches = searches.slice(0, 10);
+      localStorage.setItem("@recent_searches", JSON.stringify(searches));
+    } catch (e) {
+      console.log("Failed to save recent search", e);
+    }
   };
 
   useEffect(() => {

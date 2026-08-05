@@ -25,6 +25,7 @@ import { apiFetch } from "@/lib/api";
 import { searchContent } from "@/lib/contentSearch";
 
 const SORT_OPTIONS = [
+  { value: "relevance", label: "Relevance" },
   { value: "best_selling", label: "Best selling" },
   { value: "discount_desc", label: "Discount: High to Low" },
   { value: "created_at_desc", label: "Date: New to Old" },
@@ -102,6 +103,7 @@ export default function SearchPage() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const allSeenFilters = useRef({});
   // Blog articles + pages — the product backend does not index them, so they come
   // straight from Shopify.
   const [contentResults, setContentResults] = useState([]);
@@ -111,10 +113,71 @@ export default function SearchPage() {
     window.scrollTo(0, 0);
   }, [query]);
 
+  // Auto-apply product type filter based on query intent (like Caratlane)
+  const [autoFilteredQuery, setAutoFilteredQuery] = useState("");
+  useEffect(() => {
+    if (!query || query === autoFilteredQuery) return;
+    
+    let detectedType = null;
+    const lowerQ = query.toLowerCase();
+    
+    if (/\bring(s)?\b/i.test(lowerQ)) detectedType = "Rings";
+    else if (/\bearring(s)?\b/i.test(lowerQ)) detectedType = "Earrings";
+    else if (/\bnecklace(s)?\b/i.test(lowerQ)) detectedType = "Necklaces";
+    else if (/\bbracelet(s)?\b/i.test(lowerQ)) detectedType = "Bracelets";
+    else if (/\bpendant(s)?\b/i.test(lowerQ)) detectedType = "Pendants";
+    else if (/\bbangle(s)?\b/i.test(lowerQ)) detectedType = "Bangles";
+    else if (/\bmangalsutra(s)?\b/i.test(lowerQ)) detectedType = "Mangalsutras";
+    else if (/\bnosering(s)?|nose pin(s)?|nose-pin(s)?\b/i.test(lowerQ)) detectedType = "Nose Pins";
+
+    if (detectedType) {
+       const currentTypes = searchParams.getAll("filter.p.product_type");
+       if (!currentTypes.includes(detectedType)) {
+          const newParams = new URLSearchParams(searchParams.toString());
+          newParams.append("filter.p.product_type", detectedType);
+          router.replace(`${pathname}?${newParams.toString()}`, { scroll: false });
+       }
+    }
+    
+    setAutoFilteredQuery(query);
+  }, [query, searchParams, pathname, router, autoFilteredQuery]);
+
   const [localPriceRange, setLocalPriceRange] = useState({
     min: searchParams.get("filter.v.price.gte") || "",
     max: searchParams.get("filter.v.price.lte") || ""
   });
+
+  const [trueMinPrice, setTrueMinPrice] = useState(null);
+  const [trueMaxPrice, setTrueMaxPrice] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchTrueBounds() {
+      if (!query) return;
+      try {
+        const [minData, maxData] = await Promise.all([
+          apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&sort=price_low_high&limit=1`),
+          apiFetch(`/api/products/search?q=${encodeURIComponent(query)}&sort=price_high_low&limit=1`)
+        ]);
+
+        if (isMounted) {
+          if (minData?.products && minData.products.length > 0) {
+            const minP = Number(minData.products[0].price) || 0;
+            if (minP > 0) setTrueMinPrice(minP);
+          }
+          if (maxData?.products && maxData.products.length > 0) {
+            const maxP = Number(maxData.products[0].price) || 0;
+            if (maxP > 0) setTrueMaxPrice(maxP);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch true price bounds for search:", e);
+      }
+    }
+    fetchTrueBounds();
+    return () => { isMounted = false; };
+  }, [query]);
+
   const [absolutePrice, setAbsolutePrice] = useState({ min: null, max: null });
 
   useEffect(() => {
@@ -128,12 +191,30 @@ export default function SearchPage() {
   // facet counts narrow with each applied filter.
   useEffect(() => {
     if (availableFilters?.Price) {
-      setAbsolutePrice(prev => ({
-        min: prev.min === null ? (availableFilters.Price.min || 0) : Math.min(prev.min, availableFilters.Price.min || 0),
-        max: prev.max === null ? (availableFilters.Price.max || 500000) : Math.max(prev.max, availableFilters.Price.max || 500000)
-      }));
+      const priceData = Array.isArray(availableFilters.Price) ? availableFilters.Price[0] : availableFilters.Price;
+      
+      setAbsolutePrice(prev => {
+        let newMin = prev.min;
+        if (priceData?.min !== undefined && priceData.min > 0) {
+          newMin = prev.min === null ? priceData.min : Math.min(prev.min, priceData.min);
+        } else if (prev.min === null || prev.min === 0) {
+          newMin = trueMinPrice !== null ? trueMinPrice : prev.min;
+        }
+
+        let newMax = prev.max;
+        if (priceData?.max !== undefined && priceData.max > 0) {
+          newMax = prev.max === null ? priceData.max : Math.max(prev.max, priceData.max);
+        } else if (prev.max === null || prev.max === 500000) {
+          newMax = trueMaxPrice !== null ? trueMaxPrice : (prev.max || 500000);
+        }
+        
+        return {
+          min: newMin,
+          max: newMax
+        };
+      });
     }
-  }, [availableFilters]);
+  }, [availableFilters, trueMinPrice, trueMaxPrice]);
 
   // Merge/normalise + sort facet options exactly like the collection page does.
   // NOTE: the Price facet is dropped here because /api/products/search returns
@@ -145,7 +226,11 @@ export default function SearchPage() {
     const mergedData = {};
     Object.entries(filtersData || {}).forEach(([groupKey, options]) => {
       if (groupKey === "Price") {
-        return;
+        if (Array.isArray(options) && options.length > 0) {
+          mergedData[groupKey] = options[0]; // {min, max}
+        } else {
+          mergedData[groupKey] = options;
+        }
       } else if (Array.isArray(options)) {
         const mergedOptionsMap = new Map();
         options.forEach(opt => {
@@ -158,7 +243,11 @@ export default function SearchPage() {
           if (mergedOptionsMap.has(label)) {
             mergedOptionsMap.get(label).count += opt.count;
           } else {
-            mergedOptionsMap.set(label, { ...opt, label });
+            mergedOptionsMap.set(label, { ...opt, label, value: opt.value ?? label });
+          }
+          if (opt.input) {
+            if (!allSeenFilters.current[groupKey]) allSeenFilters.current[groupKey] = {};
+            allSeenFilters.current[groupKey][label] = opt.input;
           }
         });
         mergedData[groupKey] = Array.from(mergedOptionsMap.values());
@@ -181,7 +270,21 @@ export default function SearchPage() {
         });
       }
     });
-    return sortedData;
+
+    // Ensure Price is exactly at the 4th index (index 3)
+    const finalSortedData = {};
+    const keys = Object.keys(sortedData).filter(k => k !== "Price");
+    keys.splice(3, 0, "Price");
+    
+    keys.forEach(k => {
+      if (k === "Price") {
+        finalSortedData[k] = sortedData[k] || { min: 0, max: 0 };
+      } else if (sortedData[k]) {
+        finalSortedData[k] = sortedData[k];
+      }
+    });
+    
+    return finalSortedData;
   }, []);
 
   /* The search API only understands Shopify filter inputs passed as
@@ -189,45 +292,46 @@ export default function SearchPage() {
      picking a filter never changed the results. This converts the URL state into
      that payload, same as the collection page. */
   const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
-    const filters = [];
+    const filters = {};
     currentSearchParams.forEach((value, key) => {
       if (key.startsWith("filter.")) {
         if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
-          const existingPrice = filters.find(f => f.price);
-          if (existingPrice) {
-            if (key === "filter.v.price.gte") existingPrice.price.min = parseFloat(value);
-            else existingPrice.price.max = parseFloat(value);
-          } else {
-            filters.push({
-              price: {
-                min: key === "filter.v.price.gte" ? parseFloat(value) : 0,
-                max: key === "filter.v.price.lte" ? parseFloat(value) : 5000000
-              }
-            });
-          }
-        } else {
-          filters.push({ [key.replace("filter.", "")]: value });
+          if (!filters["Price"]) filters["Price"] = [{ min: 0, max: 5000000 }];
+          if (key === "filter.v.price.gte") filters["Price"][0].min = parseFloat(value);
+          else filters["Price"][0].max = parseFloat(value);
+        } else if (key === "filter.p.product_type") {
+          if (!filters["Product Type"]) filters["Product Type"] = [];
+          filters["Product Type"].push({ label: value });
         }
       } else if (!["sort", "cursor", "limit", "q", "page"].includes(key)) {
-        let found = false;
-        Object.entries(currentAvailableFilters || {}).forEach(([groupName, group]) => {
-          if (Array.isArray(group)) {
-            const groupMatchesKey = groupName.toLowerCase() === key.toLowerCase();
-            group.forEach(opt => {
-              if (
-                (opt.urlKey === key || opt.label === key || groupMatchesKey) &&
-                (opt.value === value || opt.label === value)
-              ) {
-                try {
-                  filters.push(typeof opt.input === 'string' ? JSON.parse(opt.input) : opt.input);
-                  found = true;
-                } catch (e) { }
-              }
-            });
+        let actualGroupKey = null;
+        Object.keys(currentAvailableFilters || {}).forEach((groupName) => {
+          if (groupName.toLowerCase() === key.toLowerCase()) {
+            actualGroupKey = groupName;
           }
         });
-        if (!found && key.toLowerCase() === "producttype") {
-          filters.push({ productType: value });
+        
+        if (actualGroupKey) {
+          if (!filters[actualGroupKey]) filters[actualGroupKey] = [];
+          
+          let optInput = null;
+          if (allSeenFilters.current[actualGroupKey] && allSeenFilters.current[actualGroupKey][value]) {
+            optInput = allSeenFilters.current[actualGroupKey][value];
+          } else if (currentAvailableFilters && currentAvailableFilters[actualGroupKey]) {
+            const foundOpt = currentAvailableFilters[actualGroupKey].find(o => (o.value === value || o.label === value));
+            if (foundOpt && foundOpt.input) {
+              optInput = foundOpt.input;
+            }
+          }
+
+          if (optInput) {
+            filters[actualGroupKey].push({ label: value, input: optInput });
+          } else {
+            filters[actualGroupKey].push({ label: value });
+          }
+        } else if (key.toLowerCase() === "producttype") {
+          if (!filters["Product Type"]) filters["Product Type"] = [];
+          filters["Product Type"].push({ label: value });
         }
       }
     });
@@ -244,17 +348,28 @@ export default function SearchPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!query) return;
+    if (!query) {
+      setProductsLoading(false);
+      setFiltersLoading(false);
+      return;
+    }
     let cancelled = false;
     async function fetchData() {
       setProductsLoading(true);
       setFiltersLoading(true);
+      
       try {
-        const sort = searchParams.get("sort") || "best_selling";
+        const sort = searchParams.get("sort") || "relevance";
 
-        // 1. Facets first — their `input` payloads are what the products call needs.
+        // 1. Build the filter payload using the current state
+        const activeFiltersForAPI = getActiveFiltersForShopify(searchParams, availableFilters);
+        const filterParams = Object.keys(activeFiltersForAPI).length > 0
+          ? `&filters=${encodeURIComponent(JSON.stringify(activeFiltersForAPI))}`
+          : "";
+
+        // 2. Facets first — their `input` payloads are what the products call needs.
         const filtersData = await apiFetch(
-          `/api/products/filters?q=${encodeURIComponent(query)}&${filterParamsString}`
+          `/api/products/filters?q=${encodeURIComponent(query)}${filterParams}`
         );
         const sortedData = processFilters(filtersData);
         if (cancelled) return;
@@ -262,17 +377,23 @@ export default function SearchPage() {
         setActiveMobileGroup(prev => prev || Object.keys(sortedData)[0] || null);
         setFiltersLoading(false);
 
-        // 2. Products, with the selected facets translated for the API.
-        const activeFilters = getActiveFiltersForShopify(searchParams, sortedData);
-        const filterParams = activeFilters.length > 0
-          ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}`
+        // 3. Rebuild active filters with the fresh sortedData (in case it was a hard refresh and we needed the input payloads)
+        const finalActiveFilters = getActiveFiltersForShopify(searchParams, sortedData);
+        const finalFilterParams = Object.keys(finalActiveFilters).length > 0
+          ? `&filters=${encodeURIComponent(JSON.stringify(finalActiveFilters))}`
           : "";
+
+        // 4. Products, with the selected facets translated for the API.
         const prodData = await apiFetch(
-          `/api/products/search?q=${encodeURIComponent(query)}${filterParams}&sort=${sort}&limit=${limit}`
+          `/api/products/search?q=${encodeURIComponent(query)}${finalFilterParams}&sort=${sort}&limit=${limit}`
         );
         if (cancelled) return;
         setProducts((prodData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
-        setPagination(prodData.pagination || { hasNextPage: false, endCursor: null });
+        setPagination({
+          hasNextPage: prodData.pagination ? prodData.pagination.page < prodData.pagination.totalPages : false,
+          page: prodData.pagination ? prodData.pagination.page : 1,
+          totalPages: prodData.pagination ? prodData.pagination.totalPages : 1
+        });
         setTotalCount(prodData.pagination?.total || 0);
       } catch (err) {
         console.error("Failed to fetch search data:", err);
@@ -300,11 +421,12 @@ export default function SearchPage() {
     try {
       const sort = searchParams.get("sort") || "best_selling";
       const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
-      const filterParams = activeFilters.length > 0
+      const filterParams = Object.keys(activeFilters).length > 0
         ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}`
         : "";
+      const nextPage = (pagination.page || 1) + 1;
       const data = await apiFetch(
-        `/api/products/search?q=${encodeURIComponent(query)}${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`
+        `/api/products/search?q=${encodeURIComponent(query)}${filterParams}&sort=${sort}&limit=${limit}&page=${nextPage}`
       );
       setProducts(prev => {
         const existingIds = new Set(prev.map(p => p.id));
@@ -313,7 +435,11 @@ export default function SearchPage() {
         );
         return [...prev, ...fresh];
       });
-      setPagination(data.pagination || { hasNextPage: false, endCursor: null });
+      setPagination({
+        hasNextPage: data.pagination ? data.pagination.page < data.pagination.totalPages : false,
+        page: data.pagination ? data.pagination.page : nextPage,
+        totalPages: data.pagination ? data.pagination.totalPages : 1
+      });
     } catch (err) {
       console.error("Failed to fetch next search page:", err);
     } finally {
@@ -428,7 +554,7 @@ export default function SearchPage() {
 
   const handleSort = (value) => {
     const p = new URLSearchParams(searchParams.toString());
-    if (value === "best_selling") p.delete("sort");
+    if (value === "relevance") p.delete("sort");
     else p.set("sort", value);
     p.delete("cursor");
     router.push(`${pathname}?${p.toString()}`, { scroll: false });
@@ -442,7 +568,7 @@ export default function SearchPage() {
     });
   };
 
-  const activeSort = searchParams.get("sort") || "best_selling";
+  const activeSort = searchParams.get("sort") || "relevance";
   const hasFilters = Object.keys(availableFilters).length > 0;
 
   const ContentCard = ({ item }) => (
@@ -493,69 +619,67 @@ export default function SearchPage() {
 
       <div className={isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}>
         {/* ================= FILTERS SIDEBAR ================= */}
-        {hasFilters && (
-          <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
-            <div className="sticky top-19 self-start h-fit">
-              <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
-                {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
-                  <div className={`space-y-3 pr-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
-                    <div className="flex justify-between items-center border-b border-[#CECACA] pb-3"><h3 className="font-figtree font-bold text-black text-xl leading-none tracking-normal">Filters</h3><button onClick={clearAllFilters} className="font-figtree text-xs font-semibold uppercase tracking-wide text-[#696969] hover:text-black transition-colors">Clear All</button></div>
-                    {Object.entries(availableFilters).map(([groupKey, options]) => {
-                      const isExpanded = expandedFilters[groupKey] ?? false;
-                      if (groupKey === "Price") {
-                        return (
-                          <div key={groupKey} className="border-b mb-0 border-gray-200">
-                            <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
-                            {isExpanded && (
-                              <div className="space-y-5 my-4 pb-5 px-2">
-                                <Slider
-                                  min={absolutePrice.min || 0}
-                                  max={absolutePrice.max || 500000}
-                                  step={100}
-                                  value={[
-                                    localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
-                                    localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
-                                  ]}
-                                  onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
-                                  onValueCommit={applyPriceFilter}
-                                />
-                                <div className="text-sm font-semibold text-gray-900 text-center">
-                                  ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
+        <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
+          <div className="sticky top-19 self-start h-fit">
+            <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
+              {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
+                <div className={`space-y-3 pr-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div className="flex justify-between items-center border-b border-[#CECACA] pb-3"><h3 className="font-figtree font-bold text-black text-xl leading-none tracking-normal">Filters</h3><button onClick={clearAllFilters} className="font-figtree text-xs font-semibold uppercase tracking-wide text-[#696969] hover:text-black transition-colors">Clear All</button></div>
+                  {Object.entries(availableFilters).map(([groupKey, options]) => {
+                    const isExpanded = expandedFilters[groupKey] ?? false;
+                    if (groupKey === "Price") {
                       return (
                         <div key={groupKey} className="border-b mb-0 border-gray-200">
                           <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
                           {isExpanded && (
-                            <div className="space-y-4 mt-2 mb-4 pb-5">
-                              {Array.isArray(options) && options.map((opt) => {
-                                const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
-                                return (
-                                  <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
-                                    <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
-                                      {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
-                                    </span>
-                                    <span className={`font-figtree text-base leading-[1.4] ${isChecked ? "text-black font-medium" : "text-[#696969] font-normal"}`}>
-                                      {opt.label} ({opt.count})
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                            <div className="space-y-5 my-4 pb-5 px-2">
+                              <Slider
+                                min={absolutePrice.min || 0}
+                                max={absolutePrice.max || 500000}
+                                step={100}
+                                value={[
+                                  localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
+                                  localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
+                                ]}
+                                onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
+                                onValueCommit={applyPriceFilter}
+                              />
+                              <div className="text-sm font-semibold text-gray-900 text-center">
+                                ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
+                              </div>
                             </div>
                           )}
                         </div>
                       );
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
+                    }
+                    return (
+                      <div key={groupKey} className="border-b mb-0 border-gray-200">
+                        <button onClick={() => toggleFilterExpand(groupKey)} className="w-full flex items-center justify-between py-5 hover:opacity-70 transition-opacity"><h4 className="font-figtree font-semibold text-base leading-none tracking-normal capitalize">{groupKey}</h4><FilterChevron className={`transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} /></button>
+                        {isExpanded && (
+                          <div className="space-y-4 mt-2 mb-4 pb-5">
+                            {Array.isArray(options) && options.map((opt) => {
+                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
+                              return (
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                  <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
+                                    {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
+                                  </span>
+                                  <span className={`font-figtree text-base leading-[1.4] ${isChecked ? "text-black font-medium" : "text-[#696969] font-normal"}`}>
+                                    {opt.label} ({opt.count})
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
           </div>
-        )}
+        </div>
 
         {/* ================= RESULTS SECTION ================= */}
         <div className="flex-1">
@@ -692,7 +816,7 @@ export default function SearchPage() {
       )}
 
       {/* Sticky Mobile Filter Bar & Sheets */}
-      {isMobile && hasFilters && (
+      {isMobile && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-60 z-[500] flex items-stretch rounded-full bg-[#5a413f] text-white shadow-[0_10px_30px_-8px_rgba(90,65,63,0.55)] ring-1 ring-white/10 overflow-hidden backdrop-blur-sm">
           <button onClick={() => setIsSortSheetOpen(true)} className="flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.8125rem] font-figtree font-semibold tracking-[0.08em] active:bg-white/10 transition-colors">
             <ArrowUpDown size={15} strokeWidth={2} className="opacity-90" /> Sort
