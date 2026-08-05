@@ -29,6 +29,7 @@ import { fetchWishlist, removeWishlistItem } from "@/redux/features/wishlist/wis
 import { addToCart, openCart } from "@/redux/features/cart/cartSlice";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
+import { formatSizeLabel } from "@/lib/metal";
 
 export default function WishlistPage() {
   const dispatch = useDispatch();
@@ -331,7 +332,7 @@ export default function WishlistPage() {
                     <div className="flex flex-wrap gap-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
                       {item.karat && <span>{item.karat}</span>}
                       {item.color && <span>{item.color}</span>}
-                      {item.size && <span>Size: {item.size}</span>}
+                      {item.size && <span>Size: {formatSizeLabel(item.size)}</span>}
                     </div>
                   )}
 

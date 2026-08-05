@@ -71,6 +71,11 @@ const CUSTOM_COLLECTION_BANNERS = {
   }
 };
 
+// Plain Gold sub-collections (see "Plain Gold" menu group in menu-data.json) use a
+// dedicated hero image in place of the generic collection banner's default image.
+const PLAIN_GOLD_HANDLES = ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"];
+const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg.jpg?v=1785825033";
+
 // In-page promo banners injected into the product grid. They alternate in order
 // (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
 // then every 10 products after that.
@@ -1168,7 +1173,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative">
-            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073" alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
+            <Image src={PLAIN_GOLD_HANDLES.includes(handle) ? PLAIN_GOLD_BANNER_IMAGE : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073"} alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
           </div>
         </div>
       ) : (
@@ -1184,12 +1189,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </div>
             </div>
             <div className="flex-1 w-full h-auto">
-              <Image 
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073" 
-                alt={displayTitle} 
-                width={640} 
-                height={223} 
-                className="w-full h-auto object-contain" 
+              <Image
+                src={PLAIN_GOLD_HANDLES.includes(handle) ? PLAIN_GOLD_BANNER_IMAGE : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073"}
+                alt={displayTitle}
+                width={640}
+                height={223}
+                className="w-full h-auto object-contain"
               />
             </div>
           </div>

@@ -16,6 +16,9 @@ const nextConfig = {
   /* config options here */
   reactCompiler: true,
   compress: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
   images: {
     unoptimized: false,
     formats: ['image/webp', 'image/avif'],

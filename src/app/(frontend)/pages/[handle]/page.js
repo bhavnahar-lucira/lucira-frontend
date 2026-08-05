@@ -62,16 +62,17 @@ function resolveCityState(handle, rateType) {
   const citySlug = handle.replace(rateType, '');
   const cityCapitalized = citySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-  let resolvedState = 'Maharashtra';
   for (const [stateKey, cities] of Object.entries(STATE_CITY_MAP)) {
     const match = cities.find(c => c.toLowerCase().replace(/\s+/g, '-') === citySlug);
     if (match) {
-      resolvedState = stateKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      break;
+      const resolvedState = stateKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { cityCapitalized, resolvedState, matched: true };
     }
   }
 
-  return { cityCapitalized, resolvedState };
+  // citySlug isn't a real city we know about — caller decides whether to 404
+  // instead of fabricating a page for it (e.g. "/pages/hyde-gold-rate-today").
+  return { cityCapitalized, resolvedState: null, matched: false };
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -163,20 +164,26 @@ export default async function Page({ params }) {
     else if (isSilverRatePage) rateType = '-silver-rate-today';
     else if (isPlatinumRatePage) rateType = '-platinum-rate-today';
 
-    const { cityCapitalized, resolvedState } = resolveCityState(handle, rateType);
+    const { cityCapitalized, resolvedState, matched } = resolveCityState(handle, rateType);
 
     if (!page) {
-      // Page doesn't exist in Shopify yet — create a minimal stub so the rate
-      // page component still renders with correct city/state
+      // No real Shopify page for this handle. Only fabricate a stub for cities
+      // we actually recognize (STATE_CITY_MAP) — otherwise any random slug like
+      // "hyde-gold-rate-today" or "mum-gold-rate-today" would silently render a
+      // fake city page instead of 404ing.
+      if (!matched) return notFound();
+
       page = {
         title: handle.replace(/-/g, ' ').toUpperCase(),
         body: "",
       };
     }
 
-    // Always stamp city/state from the URL — Shopify page has no city metafield
+    // Always stamp city/state from the URL — Shopify page has no city metafield.
+    // If the page is real but the city isn't in our map (unmatched), fall back
+    // to Maharashtra rather than leaving state blank.
     page.city = { value: cityCapitalized };
-    page.state = { value: resolvedState };
+    page.state = { value: resolvedState || 'Maharashtra' };
   }
 
   if (!page) return notFound();

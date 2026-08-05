@@ -38,6 +38,21 @@ export function realSize(size) {
   return isMetalOptionValue(size) ? "" : String(size ?? "").trim();
 }
 
+// Aana sizing (stiff/cuff bracelets, SKU prefix SBR) is stored zero-padded to two digits —
+// "2.02".."2.10" — so it string-sorts correctly in Shopify's admin, and often carries an
+// informational mm parenthetical: "2.04 (57.20 mm)". Neither belongs on the storefront:
+// strip the mm suffix and un-pad the sub-unit for display ("2.04" -> "2.4", "2.10" -> "2.10",
+// left as-is since there's no leading zero to drop). Numeric sorting (parseFloat) must still
+// use the RAW zero-padded value, not this formatted one — "2.1" would otherwise sort before
+// "2.2" instead of after "2.9".
+export function formatSizeLabel(size) {
+  const s = String(size ?? "").trim();
+  if (!s) return s;
+  const withoutMm = s.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  const aana = withoutMm.match(/^(\d+)\.(\d{2})$/);
+  return aana ? `${aana[1]}.${parseInt(aana[2], 10)}` : withoutMm;
+}
+
 // "Earrings" contains "ring", so a bare includes("ring") mislabels studs as rings.
 // Match "ring" only at a word start.
 export function sizeLabelFor(title) {
