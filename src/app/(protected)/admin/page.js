@@ -224,10 +224,10 @@ export default function CustomerDashboard() {
                   <button
                     type="button"
                     onClick={() => setShowRewardInfo((v) => !v)}
-                    className="flex items-center justify-center size-5 rounded-full bg-white/20 text-white ring-1 ring-white/30 hover:bg-white/30 transition-colors cursor-pointer"
+                    className="flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
                     aria-label="Coupon terms"
                   >
-                    <Info className="size-3" strokeWidth={2.5} />
+                    <Info className="size-3.5" strokeWidth={2.5} />
                   </button>
                   <div
                     className={`absolute z-30 top-full left-0 mt-2 w-64 rounded-lg bg-white text-zinc-700 text-[11px] font-medium leading-relaxed p-3 shadow-xl transition-opacity ${
