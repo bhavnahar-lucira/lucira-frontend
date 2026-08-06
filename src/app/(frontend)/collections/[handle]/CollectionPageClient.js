@@ -724,37 +724,30 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       setFiltersLoading(true);
 
       try {
-        const sort = searchParams.get("sort") || "manual";
-        
-        // 1. Fetch filters first to ensure we have mappings for products fetch
-        const filtersData = await apiFetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
+        const params = new URLSearchParams(searchParams);
+        params.set('handle', handle);
+        params.set('limit', limit);
+        if (!params.has('sort')) params.set('sort', 'manual');
+        const apiUrl = `/api/collection?${params.toString()}`;
 
-        const sortedData = processFilters(filtersData);
+        const collData = await apiFetch(apiUrl);
         if (cancelled) return;
 
+        const sortedData = processFilters(collData.filters || {});
         setAvailableFilters(sortedData);
         if (Object.keys(sortedData).length > 0 && !activeMobileGroup) {
           setActiveMobileGroup(Object.keys(sortedData)[0]);
         }
         setFiltersLoading(false);
 
-        // 2. Now fetch products using the mappings we just got
-        const activeFilters = getActiveFiltersForShopify(searchParams, sortedData);
-        const filterParams = Object.keys(activeFilters).length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
-        
-        const apiUrl = `/api/products/search?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}`;
-
-        const collData = await apiFetch(apiUrl);
-        if (cancelled) return;
 
         setProducts((collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
         setPagination({
-          hasNextPage: collData.pagination ? collData.pagination.page < collData.pagination.totalPages : false,
-          page: collData.pagination ? collData.pagination.page : 1,
-          totalPages: collData.pagination ? collData.pagination.totalPages : 1,
-          endCursor: null
+          hasNextPage: collData.pageInfo?.hasNextPage || false,
+          endCursor: collData.pageInfo?.endCursor || null,
+          page: 1
         });
-        setTotalCount(collData.pagination?.total || 0);
+        setTotalCount(collData.totalProducts || 0);
 
         try {
           const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
@@ -775,17 +768,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     if (!pagination.hasNextPage || isFetchingNextPage) return;
     setIsFetchingNextPage(true);
     try {
-      const sort = searchParams.get("sort") || "manual";
-      const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
-      const filterParams = Object.keys(activeFilters).length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
-      
-      let apiUrl;
-      if (filterParams || pagination.page > 1 || !pagination.endCursor) {
-        const nextPage = pagination.page ? pagination.page + 1 : 2;
-        apiUrl = `/api/products/search?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}&page=${nextPage}`;
-      } else {
-        apiUrl = `/api/collection?handle=${handle}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`;
-      }
+      const params = new URLSearchParams(searchParams);
+      params.set('handle', handle);
+      params.set('limit', limit);
+      if (!params.has('sort')) params.set('sort', 'manual');
+      if (pagination.endCursor) params.set('cursor', pagination.endCursor);
+      const apiUrl = `/api/collection?${params.toString()}`;
       
       const collData = await apiFetch(apiUrl);
 
@@ -796,20 +784,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         return [...prev, ...filteredNew];
       });
       
-      if (apiUrl.includes('/api/products/search')) {
-        setPagination({
-          hasNextPage: collData.pagination ? collData.pagination.page < collData.pagination.totalPages : false,
-          page: collData.pagination ? collData.pagination.page : 1,
-          totalPages: collData.pagination ? collData.pagination.totalPages : 1,
-          endCursor: null
-        });
-      } else {
-        setPagination({
-          hasNextPage: collData.pageInfo?.hasNextPage || false,
-          endCursor: collData.pageInfo?.endCursor || null,
-          page: 2
-        });
-      }
+      setPagination({
+        hasNextPage: collData.pageInfo?.hasNextPage || false,
+        endCursor: collData.pageInfo?.endCursor || null,
+        page: (pagination.page || 1) + 1
+      });
       
       if (collData.totalProducts) setTotalCount(collData.totalProducts);
       else if (collData.pagination?.total) setTotalCount(collData.pagination.total);

@@ -367,27 +367,18 @@ export default function SearchPage() {
           ? `&filters=${encodeURIComponent(JSON.stringify(activeFiltersForAPI))}`
           : "";
 
-        // 2. Facets first — their `input` payloads are what the products call needs.
-        const filtersData = await apiFetch(
-          `/api/products/filters?q=${encodeURIComponent(query)}${filterParams}`
+        // 3. Products, with the selected facets translated for the API.
+        const prodData = await apiFetch(
+          `/api/products/search?q=${encodeURIComponent(query)}${filterParams}&sort=${sort}&limit=${limit}`
         );
-        const sortedData = processFilters(filtersData);
         if (cancelled) return;
+
+        // Process filters from the search response instead of making a separate API call
+        const sortedData = processFilters(prodData.filters || {});
         setAvailableFilters(sortedData);
         setActiveMobileGroup(prev => prev || Object.keys(sortedData)[0] || null);
         setFiltersLoading(false);
 
-        // 3. Rebuild active filters with the fresh sortedData (in case it was a hard refresh and we needed the input payloads)
-        const finalActiveFilters = getActiveFiltersForShopify(searchParams, sortedData);
-        const finalFilterParams = Object.keys(finalActiveFilters).length > 0
-          ? `&filters=${encodeURIComponent(JSON.stringify(finalActiveFilters))}`
-          : "";
-
-        // 4. Products, with the selected facets translated for the API.
-        const prodData = await apiFetch(
-          `/api/products/search?q=${encodeURIComponent(query)}${finalFilterParams}&sort=${sort}&limit=${limit}`
-        );
-        if (cancelled) return;
         setProducts((prodData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
         setPagination({
           hasNextPage: prodData.pagination ? prodData.pagination.page < prodData.pagination.totalPages : false,
@@ -405,14 +396,13 @@ export default function SearchPage() {
     return () => { cancelled = true; };
   }, [query, filterParamsString, searchParams, processFilters, getActiveFiltersForShopify]);
 
-  // Blogs & pages — depend only on the term, not on the product filters.
+  // Blogs & pages — removed the graphql.json call to reduce extra API requests on search.
   useEffect(() => {
     if (!query) { setContentResults([]); return; }
-    let cancelled = false;
-    searchContent(query, 6).then((items) => {
-      if (!cancelled) setContentResults(items);
-    });
-    return () => { cancelled = true; };
+    // searchContent(query, 6).then((items) => {
+    //   if (!cancelled) setContentResults(items);
+    // });
+    setContentResults([]);
   }, [query]);
 
   const fetchNextPage = useCallback(async () => {
@@ -595,6 +585,7 @@ export default function SearchPage() {
         <ProductCard
           product={selectedColor ? { ...prod, selectedColor } : prod}
           index={idx + 1}
+          isSearchPage={true}
         />
       </div>
     ));
