@@ -174,7 +174,7 @@ export default function OldGoldCalculator({ config }) {
               </div>
 
               <a
-                href="https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C%20I%20want%20to%20get%20more%20information%20about%20Old%20Gold%20Exchange !%20&type=phone_number&app_absent=0"
+                href="https://api.whatsapp.com/send/?phone=917208814662&text=Hi%2C%20I%20want%20to%20get%20more%20information%20about%20Old%20Gold%20Exchange!&type=phone_number&app_absent=0"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => {
