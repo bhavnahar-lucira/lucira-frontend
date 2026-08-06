@@ -381,6 +381,13 @@ export const fetchCollectionFilters = async (handle) => {
   return apiFetch(`/api/collection/filters?handle=${handle}`);
 };
 
+/* ================= PRODUCT MEDIA ================= */
+
+export const fetchProductMedia = async (handle) => {
+  if (!handle) throw new Error("Handle required");
+  return apiFetch(`/api/products/media?handle=${handle}`);
+};
+
 /* ================= VARIANT PRICING ================= */
 
 export const fetchVariantPricing = async (variantId, productId = "") => {
