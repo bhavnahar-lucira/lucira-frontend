@@ -350,6 +350,18 @@ export const fetchSearchResults = async (query) => {
   }
 };
 
+export const trackProductSearchClick = async (productId) => {
+  if (!productId) return;
+  try {
+    await apiFetch("/api/products/search/track", {
+      method: "POST",
+      body: JSON.stringify({ productId }),
+    });
+  } catch (err) {
+    console.error("Failed to track click", err);
+  }
+};
+
 
 /* ================= SEARCH ENHANCEMENTS ================= */
 
@@ -379,6 +391,13 @@ export const fetchCollectionProducts = async (params) => {
 export const fetchCollectionFilters = async (handle) => {
   if (!handle) return { filters: {} };
   return apiFetch(`/api/collection/filters?handle=${handle}`);
+};
+
+/* ================= PRODUCT MEDIA ================= */
+
+export const fetchProductMedia = async (handle) => {
+  if (!handle) throw new Error("Handle required");
+  return apiFetch(`/api/products/media?handle=${handle}`);
 };
 
 /* ================= VARIANT PRICING ================= */

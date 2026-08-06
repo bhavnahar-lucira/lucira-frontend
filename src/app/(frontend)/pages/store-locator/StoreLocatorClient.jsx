@@ -334,6 +334,34 @@ export default function StoreLocatorPage() {
   return (
     <div className="font-figtree text-[#333]">
       {/* ═══════════════════════════════════════════
+          BANNER
+      ═══════════════════════════════════════════ */}
+      <div className="w-full bg-white">
+        <div className="hidden lg:block w-full">
+          <LazyImage
+            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Store-Locator-Desktop_jpg.jpg?v=1786016630"
+            alt="Find a Lucira Store Near You"
+            width={1920}
+            height={823}
+            priority
+            sizes="100vw"
+            className="w-full h-auto object-cover object-center"
+          />
+        </div>
+        <div className="block lg:hidden w-full">
+          <LazyImage
+            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Store-Locator-Mobile_jpg.jpg?v=1786016631"
+            alt="Find a Lucira Store Near You"
+            width={1080}
+            height={1350}
+            priority
+            sizes="100vw"
+            className="w-full h-auto object-cover object-center"
+          />
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════
           STORE LOCATOR SECTION
       ═══════════════════════════════════════════ */}
       <section id="locator-section" className="w-full py-12 md:py-15 bg-white overflow-hidden">

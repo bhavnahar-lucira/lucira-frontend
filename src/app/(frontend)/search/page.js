@@ -21,8 +21,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { apiFetch } from "@/lib/api";
-import { searchContent } from "@/lib/contentSearch";
+import { apiFetch, trackProductSearchClick } from "@/lib/api";
 
 const SORT_OPTIONS = [
   { value: "relevance", label: "Relevance" },
@@ -104,10 +103,6 @@ export default function SearchPage() {
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const allSeenFilters = useRef({});
-  // Blog articles + pages — the product backend does not index them, so they come
-  // straight from Shopify.
-  const [contentResults, setContentResults] = useState([]);
-
   // Scroll to top on mount or query change
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -405,16 +400,6 @@ export default function SearchPage() {
     return () => { cancelled = true; };
   }, [query, filterParamsString, searchParams, processFilters, getActiveFiltersForShopify]);
 
-  // Blogs & pages — depend only on the term, not on the product filters.
-  useEffect(() => {
-    if (!query) { setContentResults([]); return; }
-    let cancelled = false;
-    searchContent(query, 6).then((items) => {
-      if (!cancelled) setContentResults(items);
-    });
-    return () => { cancelled = true; };
-  }, [query]);
-
   const fetchNextPage = useCallback(async () => {
     if (isFetchingNextPage || !pagination.hasNextPage) return;
     setIsFetchingNextPage(true);
@@ -570,31 +555,21 @@ export default function SearchPage() {
 
   const activeSort = searchParams.get("sort") || "relevance";
   const hasFilters = Object.keys(availableFilters).length > 0;
-
-  const ContentCard = ({ item }) => (
-    <Link
-      href={item.url}
-      prefetch={false}
-      className="group flex h-full flex-col p-4 bg-zinc-50 border border-zinc-100 rounded-lg hover:border-primary/20 hover:bg-white transition-all duration-300"
-    >
-      <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">
-        {item.type === "article" ? "Blog" : "Page"}
-      </span>
-      <h3 className="mt-1 text-sm lg:text-base font-figtree font-medium text-gray-900 group-hover:text-primary transition-colors line-clamp-3">
-        {item.title}
-      </h3>
-      {item.excerpt && (
-        <p className="mt-1.5 text-xs text-gray-500 line-clamp-3">{item.excerpt}</p>
-      )}
-    </Link>
-  );
-
   const renderGridItems = () =>
     products.map((prod, idx) => (
-      <div key={`${prod.id || idx}-${idx}`}>
+      <div 
+        key={`${prod.id || idx}-${idx}`}
+        onClick={() => {
+          if (prod.shopifyId || prod.id) {
+            trackProductSearchClick(prod.shopifyId || prod.id);
+          }
+        }}
+      >
         <ProductCard
           product={selectedColor ? { ...prod, selectedColor } : prod}
           index={idx + 1}
+          disableLivePricing={true}
+          disableReviews={true}
         />
       </div>
     ));
@@ -754,7 +729,7 @@ export default function SearchPage() {
                     />
                   </div>
                   <h2 className="mt-5 mb-2 text-[20px] md:text-[40px]">
-                    {contentResults.length > 0 ? "NO PRODUCTS FOUND" : "NO RESULTS FOUND"}
+                    NO RESULTS FOUND
                   </h2>
                   <p className="text-[#666] mb-7.5 text-[14px] md:text-[20px]">
                     Results for &quot;{query}&quot;
@@ -784,20 +759,6 @@ export default function SearchPage() {
                 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)
                 : renderGridItems()}
               {isFetchingNextPage && <><ProductCardSkeleton /><ProductCardSkeleton /></>}
-            </div>
-          )}
-          {/* Blogs & pages — their own section below all the products, behind a separator */}
-          {contentResults.length > 0 && (
-            <div className={`mt-10 pt-8 border-t border-[#E7DFDA] ${isMobile ? "px-4" : ""}`}>
-              <h2 className="font-abhaya text-xl lg:text-2xl font-extrabold text-[#2B1F1E] mb-1">Blogs &amp; Pages</h2>
-              <p className="font-figtree text-xs lg:text-sm text-[#696969] mb-5">
-                Reads and information matching &quot;{query}&quot;
-              </p>
-              <div className={`grid gap-4 ${isMobile ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-3"}`}>
-                {contentResults.map((item) => (
-                  <ContentCard key={`content-${item.id}`} item={item} />
-                ))}
-              </div>
             </div>
           )}
 

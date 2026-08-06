@@ -88,7 +88,9 @@ export default function GemstoneSection({ initialProducts, initialCategories }) 
       try {
         let apiUrl = `/api/collection?handle=gemstone-jewelry&limit=15`;
         if (activeTab !== "All") {
-          const filters = [{ productType: activeTab }];
+          let mappedType = activeTab;
+          if (mappedType === "Charms & Pendants") mappedType = "Pendants";
+          const filters = [{ productType: mappedType }];
           apiUrl += `&filters=${encodeURIComponent(JSON.stringify(filters))}`;
         }
         

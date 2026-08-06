@@ -74,7 +74,7 @@ const CUSTOM_COLLECTION_BANNERS = {
 // Plain Gold sub-collections (see "Plain Gold" menu group in menu-data.json) use a
 // dedicated hero image in place of the generic collection banner's default image.
 const PLAIN_GOLD_HANDLES = ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"];
-const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg.jpg?v=1785825033";
+const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_25_jpg.jpg?v=1786021278";
 
 // In-page promo banners injected into the product grid. They alternate in order
 // (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
@@ -432,13 +432,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     const finalSortedData = {};
     const keys = Object.keys(sortedData).filter(k => k !== "Price");
     keys.splice(3, 0, "Price");
-    
+
     keys.forEach(k => {
       if (sortedData[k]) {
         finalSortedData[k] = sortedData[k];
       }
     });
-    
+
     return finalSortedData;
   }, []);
 
@@ -459,7 +459,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         metafields: initialData.collData.collection.metafields || {}
       };
     }
-    return { title: "", description: "", descriptionHtml:"" };
+    return { title: "", description: "", descriptionHtml: "" };
   });
   const [dbCollection, setDbCollection] = useState(null);
   const [isProfileComplete, setIsProfileComplete] = useState(() => {
@@ -473,7 +473,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           const p = JSON.parse(raw);
           return !!p.profileComplete;
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     return false;
   });
@@ -489,7 +489,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         } else {
           setIsProfileComplete(false);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   }, [user?.id]);
 
@@ -528,7 +528,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           apiFetch(`/api/collection?handle=${handle}&sort=price_low_high&limit=1`),
           apiFetch(`/api/collection?handle=${handle}&sort=price_high_low&limit=1`)
         ]);
-        
+
         if (isMounted) {
           if (minData?.products && minData.products.length > 0) {
             const minP = Number(minData.products[0].price) || 0;
@@ -553,7 +553,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     if (availableFilters?.Price) {
       // Handle both Array (Shopify API format) and Object (Expo API format)
       const priceData = Array.isArray(availableFilters.Price) ? availableFilters.Price[0] : availableFilters.Price;
-      
+
       setAbsolutePrice(prev => {
         let newMin = prev.min;
         if (priceData?.min !== undefined && priceData.min > 0) {
@@ -568,7 +568,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         } else if (prev.max === null || prev.max === 500000) {
           newMax = trueMaxPrice !== null ? trueMaxPrice : (prev.max || 500000);
         }
-        
+
         return {
           min: newMin,
           max: newMax
@@ -660,44 +660,50 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   };
 
   const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
-    const filters = {};
+    const filters = [];
     currentSearchParams.forEach((value, key) => {
       if (key.startsWith("filter.")) {
-        if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
-          if (!filters["Price"]) filters["Price"] = [{ min: 0, max: 5000000 }];
-          if (key === "filter.v.price.gte") filters["Price"][0].min = parseFloat(value);
-          else filters["Price"][0].max = parseFloat(value);
-        } else if (key === "filter.p.product_type") {
-          if (!filters["Product Type"]) filters["Product Type"] = [];
-          filters["Product Type"].push({ label: value });
-        }
+        try {
+          if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
+            let existingPrice = filters.find(f => f.price);
+            if (existingPrice) {
+              if (key === "filter.v.price.gte") existingPrice.price.min = parseFloat(value);
+              else existingPrice.price.max = parseFloat(value);
+            } else {
+              filters.push({
+                price: {
+                  min: key === "filter.v.price.gte" ? parseFloat(value) : 0,
+                  max: key === "filter.v.price.lte" ? parseFloat(value) : 5000000
+                }
+              });
+            }
+          } else {
+            filters.push({ [key.replace("filter.", "")]: value });
+          }
+        } catch (e) { }
       } else if (!["sort", "cursor", "limit", "q", "page"].includes(key)) {
-        let actualGroupKey = null;
-        Object.keys(currentAvailableFilters || {}).forEach((groupName) => {
-          if (groupName.toLowerCase() === key.toLowerCase()) {
-            actualGroupKey = groupName;
+        // Find matching option in currentAvailableFilters
+        let found = false;
+        Object.entries(currentAvailableFilters || {}).forEach(([groupName, group]) => {
+          if (Array.isArray(group)) {
+            // Check if groupName matches the key (case-insensitive)
+            const groupMatchesKey = groupName.toLowerCase() === key.toLowerCase();
+
+            group.forEach(opt => {
+              if (
+                (opt.urlKey === key || opt.label === key || groupMatchesKey) &&
+                (opt.value === value || opt.label === value)
+              ) {
+                filters.push(typeof opt.input === 'string' ? JSON.parse(opt.input) : opt.input);
+                found = true;
+              }
+            });
           }
         });
-        
-        if (actualGroupKey) {
-          if (!filters[actualGroupKey]) filters[actualGroupKey] = [];
-          
-          let optInput = null;
-          if (currentAvailableFilters && currentAvailableFilters[actualGroupKey]) {
-            const foundOpt = currentAvailableFilters[actualGroupKey].find(o => (o.value === value || o.label === value));
-            if (foundOpt && foundOpt.input) {
-              optInput = foundOpt.input;
-            }
-          }
 
-          if (optInput) {
-            filters[actualGroupKey].push({ label: value, input: optInput });
-          } else {
-            filters[actualGroupKey].push({ label: value });
-          }
-        } else if (key.toLowerCase() === "producttype") {
-          if (!filters["Product Type"]) filters["Product Type"] = [];
-          filters["Product Type"].push({ label: value });
+        // Fallback for productType which is common
+        if (!found && key.toLowerCase() === "producttype") {
+          filters.push({ productType: value });
         }
       }
     });
@@ -711,7 +717,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       // Check if we can skip the fetch completely because it's the first render AND we have SSG data
       if (isFirstRender.current && initialData) {
         isFirstRender.current = false;
-        
+
         // Ensure we are on the default path (no params or only sort=manual)
         const paramsString = searchParams.toString();
         if (paramsString === "" || paramsString === "sort=manual") {
@@ -725,41 +731,39 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       try {
         const sort = searchParams.get("sort") || "manual";
-        
-        // 1. Fetch filters first to ensure we have mappings for products fetch
-        const filtersData = await apiFetch(`/api/products/filters?handle=${handle}&${searchParams.toString()}`);
 
-        const sortedData = processFilters(filtersData);
+        // 1. Fetch base mappings directly from Shopify GraphQL via /api/collection
+        // This avoids the EXPO proxy at /api/products/filters which returns incompatible Location GIDs
+        const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`);
+        const baseSortedData = processFilters(baseData.filters || {});
         if (cancelled) return;
 
-        setAvailableFilters(sortedData);
-        if (Object.keys(sortedData).length > 0 && !activeMobileGroup) {
-          setActiveMobileGroup(Object.keys(sortedData)[0]);
-        }
-        setFiltersLoading(false);
+        // 2. Map the URL parameters to native Shopify input payloads using the base mappings
+        const activeFilters = getActiveFiltersForShopify(searchParams, baseSortedData);
+        const filterParams = activeFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
 
-        // 2. Now fetch products using the mappings we just got
-        const activeFilters = getActiveFiltersForShopify(searchParams, sortedData);
-        const filterParams = Object.keys(activeFilters).length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
-        
-        const apiUrl = `/api/products/search?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}`;
+        // 3. Fetch products and narrowed filters from Shopify
+        const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}`;
 
         const collData = await apiFetch(apiUrl);
         if (cancelled) return;
 
+        // Update UI with narrowed filters
+        const narrowedSortedData = processFilters(collData.filters || {});
+        setAvailableFilters(narrowedSortedData);
+        if (Object.keys(narrowedSortedData).length > 0 && !activeMobileGroup) {
+          setActiveMobileGroup(Object.keys(narrowedSortedData)[0]);
+        }
+        setFiltersLoading(false);
+
         setProducts((collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
-        setPagination({
-          hasNextPage: collData.pagination ? collData.pagination.page < collData.pagination.totalPages : false,
-          page: collData.pagination ? collData.pagination.page : 1,
-          totalPages: collData.pagination ? collData.pagination.totalPages : 1,
-          endCursor: null
-        });
-        setTotalCount(collData.pagination?.total || 0);
+        setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
+        setTotalCount(collData.totalProducts || 0);
 
         try {
           const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
           if (dbData.success) setDbCollection(dbData.collection);
-        } catch(e) {}
+        } catch (e) { }
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
       } finally {
@@ -777,16 +781,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     try {
       const sort = searchParams.get("sort") || "manual";
       const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
-      const filterParams = Object.keys(activeFilters).length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
-      
-      let apiUrl;
-      if (filterParams || pagination.page > 1 || !pagination.endCursor) {
-        const nextPage = pagination.page ? pagination.page + 1 : 2;
-        apiUrl = `/api/products/search?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}&page=${nextPage}`;
-      } else {
-        apiUrl = `/api/collection?handle=${handle}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor}`;
-      }
-      
+      const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+
+      const apiUrl = `/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor || ""}`;
+
       const collData = await apiFetch(apiUrl);
 
       setProducts((prev) => {
@@ -795,22 +793,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const filteredNew = nextProducts.filter(p => !existingIds.has(p.id) && !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
         return [...prev, ...filteredNew];
       });
-      
-      if (apiUrl.includes('/api/products/search')) {
-        setPagination({
-          hasNextPage: collData.pagination ? collData.pagination.page < collData.pagination.totalPages : false,
-          page: collData.pagination ? collData.pagination.page : 1,
-          totalPages: collData.pagination ? collData.pagination.totalPages : 1,
-          endCursor: null
-        });
-      } else {
-        setPagination({
-          hasNextPage: collData.pageInfo?.hasNextPage || false,
-          endCursor: collData.pageInfo?.endCursor || null,
-          page: 2
-        });
-      }
-      
+
+      setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
+
       if (collData.totalProducts) setTotalCount(collData.totalProducts);
       else if (collData.pagination?.total) setTotalCount(collData.pagination.total);
     } catch (err) {
@@ -828,9 +813,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           fetchNextPage();
         }
       },
-      { 
+      {
         rootMargin: "0px 0px 800px 0px", // Increased margin for earlier pre-fetching
-        threshold: 0 
+        threshold: 0
       }
     );
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
@@ -995,8 +980,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       const categoryBaselineAt = recentlyViewedAdded
         ? recentlyViewedAt
         : rewardBannerAdded
-        ? rewardBannerAt
-        : 6;
+          ? rewardBannerAt
+          : 6;
       if (
         isMobile &&
         categoryGroups.length > categoryGroupsPlaced &&
@@ -1017,13 +1002,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       // Trigger pagination when 10 products are scrolled
       // For a batch of 25, this is the 11th product (index 10, or length - 15)
       const isTrigger = pagination.hasNextPage && idx === products.length - 15;
-      
+
       items.push(
         <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
-          <ProductCard 
-            product={selectedColor ? { ...prod, selectedColor } : prod} 
-            collectionHandle={handle} 
-            index={idx + 1} 
+          <ProductCard
+            product={selectedColor ? { ...prod, selectedColor } : prod}
+            collectionHandle={handle}
+            index={idx + 1}
             disableLivePricing={false}
           />
         </div>
@@ -1056,7 +1041,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const countDisplay = useMemo(() => {
     const loaded = products.length;
     let total = loaded;
-    
+
     if (totalCount > 0) {
       total = totalCount;
     } else {
@@ -1084,7 +1069,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   // Desktop count shown as a simple total, matching the design ("232 items")
   const itemCountDisplay = useMemo(() => {
     if (totalCount > 0) return `${totalCount} ${totalCount === 1 ? "item" : "items"}`;
-    
+
     let maxSelectedCount = 0;
     Array.from(searchParams.entries()).forEach(([key, value]) => {
       const values = value.split(',');
@@ -1097,7 +1082,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         });
       });
     });
-    
+
     if (maxSelectedCount > 0) return `${maxSelectedCount} ${maxSelectedCount === 1 ? "item" : "items"}`;
     if (pagination.hasNextPage) return `${products.length}+ items`;
     return `${products.length} ${products.length === 1 ? "item" : "items"}`;
@@ -1335,7 +1320,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         try {
           const rawQ = collection?.metafields?.["custom.faqquestion"];
           const rawA = collection?.metafields?.["custom.faqanswers"];
-          
+
           if (Array.isArray(rawQ)) {
             questions = rawQ;
           } else if (rawQ?.startsWith("[")) {
@@ -1343,7 +1328,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           } else {
             questions = (rawQ || "").split("•").filter(Boolean);
           }
-          
+
           if (Array.isArray(rawA)) {
             answers = rawA;
           } else if (rawA?.startsWith("[")) {
@@ -1465,10 +1450,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </div>
 
               {/* SEO Section */}
-                {collection?.descriptionHtml && (
-  <div className="mt-8 border-t border-gray-100 pt-10">
-    <div
-      className="
+              {collection?.descriptionHtml && (
+                <div className="mt-8 border-t border-gray-100 pt-10">
+                  <div
+                    className="
         max-w-4xl
 
         [&_h1]:text-2xl
@@ -1664,10 +1649,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         [&_pre]:text-xs
         [&_pre]:text-gray-700
       "
-      dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
-    />
-  </div>
-)}
+                    dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         );
