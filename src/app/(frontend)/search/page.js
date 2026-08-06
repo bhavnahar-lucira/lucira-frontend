@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, trackProductSearchClick } from "@/lib/api";
 
 const SORT_OPTIONS = [
   { value: "relevance", label: "Relevance" },
@@ -557,7 +557,14 @@ export default function SearchPage() {
   const hasFilters = Object.keys(availableFilters).length > 0;
   const renderGridItems = () =>
     products.map((prod, idx) => (
-      <div key={`${prod.id || idx}-${idx}`}>
+      <div 
+        key={`${prod.id || idx}-${idx}`}
+        onClick={() => {
+          if (prod.shopifyId || prod.id) {
+            trackProductSearchClick(prod.shopifyId || prod.id);
+          }
+        }}
+      >
         <ProductCard
           product={selectedColor ? { ...prod, selectedColor } : prod}
           index={idx + 1}

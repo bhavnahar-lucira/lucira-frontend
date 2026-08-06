@@ -5,7 +5,28 @@ import { Search, X, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { fetchCollectionProducts, fetchAnalyticsSearch, fetchHomeComponent } from "@/lib/api";
+import { fetchCollectionProducts, fetchAnalyticsSearch, fetchHomeComponent, trackProductSearchClick } from "@/lib/api";
+
+const CACHE_TIME = 60 * 60 * 1000; // 1 hour
+
+const getCachedData = (key) => {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item) return null;
+    const parsed = JSON.parse(item);
+    if (Date.now() - parsed.timestamp < CACHE_TIME) {
+      return parsed.data;
+    }
+    localStorage.removeItem(key);
+  } catch (e) {}
+  return null;
+};
+
+const setCachedData = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), data }));
+  } catch (e) {}
+};
 
 const HighlightMatch = ({ text, query, reverse = false }) => {
   if (!query) return <span className="text-[#1A1A1A]">{text}</span>;
@@ -91,19 +112,26 @@ export default function SearchPopup({
       if (bestsellers.length === 0) {
         setIsLoadingBestsellers(true);
         try {
-          const data = await fetchCollectionProducts({ handle: "bestseller", limit: 3 });
-          const formatPrice = (num) => {
-            if (!num && num !== 0) return "";
-            return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
-          };
-          const mapped = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map((p) => ({
-            id: p.shopifyId || p.id,
-            title: p.title,
-            url: `/products/${p.handle}`,
-            image: p.image || p.variants?.[0]?.image || "",
-            price: formatPrice(p.price_breakup?.total || p.price),
-          }));
-          setBestsellers(mapped.slice(0, 3));
+          const cached = getCachedData("@bestsellers_cache");
+          if (cached) {
+            setBestsellers(cached);
+          } else {
+            const data = await fetchCollectionProducts({ handle: "bestseller", limit: 3 });
+            const formatPrice = (num) => {
+              if (!num && num !== 0) return "";
+              return "₹" + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(Math.round(Number(num)));
+            };
+            const mapped = (data.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')).map((p) => ({
+              id: p.shopifyId || p.id,
+              title: p.title,
+              url: `/products/${p.handle}`,
+              image: p.image || p.variants?.[0]?.image || "",
+              price: formatPrice(p.price_breakup?.total || p.price),
+            }));
+            const sliced = mapped.slice(0, 3);
+            setBestsellers(sliced);
+            setCachedData("@bestsellers_cache", sliced);
+          }
         } catch (err) {
           console.error("Error fetching bestsellers:", err);
         } finally {
@@ -115,11 +143,18 @@ export default function SearchPopup({
       if (trendingSearches.length === 0) {
         setIsLoadingTrending(true);
         try {
-          const ga4Data = await fetchHomeComponent("ga4-search-queries").catch(() => null);
+          const cached = getCachedData("@trending_searches_cache");
+          if (cached) {
+            setTrendingSearches(cached);
+          } else {
+            const ga4Data = await fetchHomeComponent("ga4-search-queries").catch(() => null);
 
-          const actualGa4Data = ga4Data?.data ? ga4Data.data : ga4Data;
-          if (Array.isArray(actualGa4Data)) {
-            setTrendingSearches(actualGa4Data.slice(0, 10));
+            const actualGa4Data = ga4Data?.data ? ga4Data.data : ga4Data;
+            if (Array.isArray(actualGa4Data)) {
+              const trending = actualGa4Data.slice(0, 10);
+              setTrendingSearches(trending);
+              setCachedData("@trending_searches_cache", trending);
+            }
           }
         } catch (err) {
           console.error("Error fetching trending search data:", err);
@@ -179,6 +214,7 @@ export default function SearchPopup({
                         href={item.url}
                         prefetch={false}
                         onClick={() => {
+                          trackProductSearchClick(item.id);
                           handlePromoClick({
                             promo_id: item.id,
                             promo_name: item.title,
@@ -242,7 +278,10 @@ export default function SearchPopup({
                       key={item.id}
                       href={item.url}
                       prefetch={false}
-                      onClick={onClose}
+                      onClick={() => {
+                        trackProductSearchClick(item.id);
+                        onClose();
+                      }}
                       className="group flex gap-3 md:gap-4 items-center"
                     >
                       <div className="w-12 h-12 md:w-14 md:h-14 relative rounded-md overflow-hidden shrink-0 bg-transparent">

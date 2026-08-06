@@ -350,6 +350,18 @@ export const fetchSearchResults = async (query) => {
   }
 };
 
+export const trackProductSearchClick = async (productId) => {
+  if (!productId) return;
+  try {
+    await apiFetch("/api/products/search/track", {
+      method: "POST",
+      body: JSON.stringify({ productId }),
+    });
+  } catch (err) {
+    console.error("Failed to track click", err);
+  }
+};
+
 
 /* ================= SEARCH ENHANCEMENTS ================= */
 
