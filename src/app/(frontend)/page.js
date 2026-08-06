@@ -23,7 +23,7 @@ const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocator
 const CustomerReview = dynamic(() => import("@/components/home/CustomerReview"), { suspense: true });
 const WeAreLucira = dynamic(() => import("@/components/home/WeAreLucira"), { suspense: true });
 const NoteFromFounder = dynamic(() => import("@/components/home/NoteFromFounder"), { suspense: true });
-const InstagramFeed = dynamic(() => import("@/components/home/InstagramFeed"), { suspense: true });
+// Instagram feed removed as per request
 const JoinLuciraCommunity = dynamic(() => import("@/components/product/JoinLuciraCommunity").then(mod => ({ default: mod.JoinLuciraCommunity })), { suspense: true });
 const HomeFAQSection = dynamic(() => import("@/components/home/HomeFAQSection"), { suspense: true });
 
@@ -150,9 +150,6 @@ export default async function Home() {
 
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <NoteFromFounder />
-      </Suspense>
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <InstagramFeed />
       </Suspense>
 
       <Suspense fallback={<div className="h-40 bg-gray-50 animate-pulse"></div>}>
