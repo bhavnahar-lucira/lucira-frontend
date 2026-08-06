@@ -724,11 +724,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       setFiltersLoading(true);
 
       try {
-        const sort = searchParams.get("sort") || "manual";
-        
-        const urlParams = searchParams.toString();
-        const paramStr = urlParams ? `&${urlParams}` : "";
-        const apiUrl = `/api/collection?handle=${handle}&sort=${sort}&limit=${limit}${paramStr}`;
+        const params = new URLSearchParams(searchParams);
+        params.set('handle', handle);
+        params.set('limit', limit);
+        if (!params.has('sort')) params.set('sort', 'manual');
+        const apiUrl = `/api/collection?${params.toString()}`;
 
         const collData = await apiFetch(apiUrl);
         if (cancelled) return;
@@ -768,11 +768,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     if (!pagination.hasNextPage || isFetchingNextPage) return;
     setIsFetchingNextPage(true);
     try {
-      const sort = searchParams.get("sort") || "manual";
-      const urlParams = searchParams.toString();
-      const paramStr = urlParams ? `&${urlParams}` : "";
-      
-      const apiUrl = `/api/collection?handle=${handle}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor || ""}${paramStr}`;
+      const params = new URLSearchParams(searchParams);
+      params.set('handle', handle);
+      params.set('limit', limit);
+      if (!params.has('sort')) params.set('sort', 'manual');
+      if (pagination.endCursor) params.set('cursor', pagination.endCursor);
+      const apiUrl = `/api/collection?${params.toString()}`;
       
       const collData = await apiFetch(apiUrl);
 
