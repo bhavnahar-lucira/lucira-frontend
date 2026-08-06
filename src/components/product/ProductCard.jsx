@@ -182,7 +182,7 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false, disableLastViewed = false, promoClickMeta = null }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, priority = false, disableLastViewed = false, promoClickMeta = null, isSearchPage = false }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
@@ -231,6 +231,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [fetchedVideoMedia, setFetchedVideoMedia] = useState(null);
   const [reviewStats, setReviewStats] = useState(product.reviews || product.reviewStats || { count: 0, average: 0 });
   const [livePrice, setLivePrice] = useState(null);
   const [liveComparePrice, setLiveComparePrice] = useState(null);
@@ -293,7 +295,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   useEffect(() => {
     const productReviewId = product.shopifyId || product.id;
-    if (!productReviewId || (reviewStats?.count || 0) > 0) return;
+    if (isSearchPage || !productReviewId || (reviewStats?.count || 0) > 0) return;
 
     let ignore = false;
     const cacheKey = String(productReviewId);
@@ -722,11 +724,30 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
             {/* Video - Bottom Left */}
             {videoMedia && (
-              <button onClick={(e) => { e.preventDefault(); setShowVideoPopup(true); }} className="absolute bottom-4 left-2 lg:left-4 z-10 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300 cursor-pointer">
-                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                  <path d="M11.084 18.1814V9.81869C11.0842 9.71406 11.1125 9.6114 11.166 9.52147C11.2194 9.43155 11.2961 9.35766 11.388 9.30756C11.4798 9.25745 11.5835 9.23298 11.688 9.2367C11.7926 9.24042 11.8943 9.27219 11.9823 9.32869L18.4877 13.5089C18.57 13.5616 18.6378 13.6343 18.6847 13.7201C18.7317 13.8059 18.7563 13.9022 18.7563 14C18.7563 14.0979 18.7317 14.1941 18.6847 14.2799C18.6378 14.3658 18.57 14.4384 18.4877 14.4912L11.9823 18.6725C11.8943 18.729 11.7926 18.7608 11.688 18.7645C11.5835 18.7682 11.4798 18.7438 11.388 18.6937C11.2961 18.6436 11.2194 18.5697 11.166 18.4797C11.1125 18.3898 11.0842 18.2872 11.084 18.1825V18.1814Z" fill="currentColor" />
-                  <path d="M1.16602 14.0001C1.16602 6.91258 6.91185 1.16675 13.9993 1.16675C21.0868 1.16675 26.8327 6.91258 26.8327 14.0001C26.8327 21.0876 21.0868 26.8334 13.9993 26.8334C6.91185 26.8334 1.16602 21.0876 1.16602 14.0001ZM13.9993 2.91675C11.0599 2.91675 8.24078 4.08445 6.16225 6.16298C4.08372 8.24151 2.91602 11.0606 2.91602 14.0001C2.91602 16.9396 4.08372 19.7587 6.16225 21.8372C8.24078 23.9157 11.0599 25.0834 13.9993 25.0834C16.9388 25.0834 19.7579 23.9157 21.8364 21.8372C23.915 19.7587 25.0827 16.9396 25.0827 14.0001C25.0827 11.0606 23.915 8.24151 21.8364 6.16298C19.7579 4.08445 16.9388 2.91675 13.9993 2.91675Z" fill="currentColor" />
-                </svg>
+              <button onClick={async (e) => { 
+                e.preventDefault(); 
+                if (isSearchPage && !fetchedVideoMedia && videoMedia?.isPlaceholder && !videoLoading) {
+                  setVideoLoading(true);
+                  try {
+                    const EXPO_API = process.env.NEXT_PUBLIC_EXPO_API_URL || "https://server.lucirajewelry.com";
+                    const res = await fetch(`${EXPO_API}/api/product/media?handle=${product.handle}`);
+                    const data = await res.json();
+                    const media = data?.media?.find(m => m.mediaContentType === "VIDEO" || m.media_type === "VIDEO" || m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO" || m.mediaContentType === "EXTERNAL_VIDEO");
+                    if (media) setFetchedVideoMedia(media);
+                  } catch(err) {
+                    console.error("Failed to fetch product video:", err);
+                  } finally {
+                    setVideoLoading(false);
+                  }
+                }
+                setShowVideoPopup(true); 
+              }} className="absolute bottom-4 left-2 lg:left-4 z-10 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300 cursor-pointer">
+                {videoLoading ? <Loader2 className="animate-spin text-zinc-500 w-4 h-4 lg:w-5 lg:h-5" /> : (
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                    <path d="M11.084 18.1814V9.81869C11.0842 9.71406 11.1125 9.6114 11.166 9.52147C11.2194 9.43155 11.2961 9.35766 11.388 9.30756C11.4798 9.25745 11.5835 9.23298 11.688 9.2367C11.7926 9.24042 11.8943 9.27219 11.9823 9.32869L18.4877 13.5089C18.57 13.5616 18.6378 13.6343 18.6847 13.7201C18.7317 13.8059 18.7563 13.9022 18.7563 14C18.7563 14.0979 18.7317 14.1941 18.6847 14.2799C18.6378 14.3658 18.57 14.4384 18.4877 14.4912L11.9823 18.6725C11.8943 18.729 11.7926 18.7608 11.688 18.7645C11.5835 18.7682 11.4798 18.7438 11.388 18.6937C11.2961 18.6436 11.2194 18.5697 11.166 18.4797C11.1125 18.3898 11.0842 18.2872 11.084 18.1825V18.1814Z" fill="currentColor" />
+                    <path d="M1.16602 14.0001C1.16602 6.91258 6.91185 1.16675 13.9993 1.16675C21.0868 1.16675 26.8327 6.91258 26.8327 14.0001C26.8327 21.0876 21.0868 26.8334 13.9993 26.8334C6.91185 26.8334 1.16602 21.0876 1.16602 14.0001ZM13.9993 2.91675C11.0599 2.91675 8.24078 4.08445 6.16225 6.16298C4.08372 8.24151 2.91602 11.0606 2.91602 14.0001C2.91602 16.9396 4.08372 19.7587 6.16225 21.8372C8.24078 23.9157 11.0599 25.0834 13.9993 25.0834C16.9388 25.0834 19.7579 23.9157 21.8364 21.8372C23.915 19.7587 25.0827 16.9396 25.0827 14.0001C25.0827 11.0606 23.915 8.24151 21.8364 6.16298C19.7579 4.08445 16.9388 2.91675 13.9993 2.91675Z" fill="currentColor" />
+                  </svg>
+                )}
               </button>
             )}
 
@@ -891,15 +912,22 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
           <DialogDescription className="sr-only">Video preview of the product</DialogDescription>
           <button onClick={() => setShowVideoPopup(false)} className="absolute top-4 right-4 z-[210] p-2 bg-black/50 hover:bg-black text-white rounded-full transition-all shadow-lg border border-white/10 cursor-pointer"><X size={24} /></button>
           
-          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain bg-transparent rounded-3xl" poster={formatCdnUrl(videoMedia?.preview)}>
-            {videoMedia?.sources?.length > 0 ? (
+          {(() => {
+            const activeVideoMedia = fetchedVideoMedia || videoMedia;
+            return (
               <>
-                {videoMedia.sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
-                {videoMedia.sources.filter(s => s.format !== 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
+                <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain bg-transparent rounded-3xl" poster={formatCdnUrl(activeVideoMedia?.preview)}>
+                  {activeVideoMedia?.sources?.length > 0 ? (
+                    <>
+                      {activeVideoMedia.sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
+                      {activeVideoMedia.sources.filter(s => s.format !== 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
+                    </>
+                  ) : <source src={formatCdnUrl(activeVideoMedia?.url)} type={activeVideoMedia?.mimeType || "video/mp4"} />}
+                  Your browser does not support the video tag.
+                </video>
               </>
-            ) : <source src={formatCdnUrl(videoMedia?.url)} type={videoMedia?.mimeType || "video/mp4"} />}
-            Your browser does not support the video tag.
-          </video>
+            );
+          })()}
 
           <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 flex justify-center z-[210]">
             <Link
