@@ -30,7 +30,6 @@ export default function BestsellerSection({ initialData }) {
             "Earrings": "Earrings",
             "Bracelets": "Bracelets",
             "Necklaces": "Necklaces",
-            "Pendants": "Charms & Pendants"
           };
           const productType = typeMap[activeTab] || activeTab;
           const filters = [{ productType: productType }];
@@ -59,7 +58,6 @@ export default function BestsellerSection({ initialData }) {
         "Earrings",
         "Bracelets",
         "Necklaces",
-        "Pendants",
       ]}
       page="home"
       colCat="Shop All Bestsellers"
