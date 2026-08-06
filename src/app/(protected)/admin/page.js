@@ -1,21 +1,27 @@
 "use client";
 
-import { 
-  ShoppingBag, 
-  Heart, 
-  Star, 
-  Clock, 
+import {
+  ShoppingBag,
+  Heart,
+  Star,
+  Clock,
   ArrowRight,
   ChevronRight,
+  Gift,
+  Copy,
+  CheckCircle2,
+  Info,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
 import { useEffect, useState } from "react";
-import { fetchCustomerDashboardStats, fetchCustomerOrders } from "@/lib/api";
+import { toast } from "react-toastify";
+import { fetchCustomerDashboardStats, fetchCustomerOrders, fetchRewardCoupon } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
 import { getOrderImage } from "@/lib/utils";
+import { COUPONS, COUPON_DISCLAIMER } from "@/lib/coupons";
 
 export default function CustomerDashboard() {
   const { user, accessToken } = useSelector((state) => state.user);
@@ -28,6 +34,44 @@ export default function CustomerDashboard() {
     wishlistCount: 0
   });
   const [loading, setLoading] = useState(true);
+  const [rewardCoupon, setRewardCoupon] = useState(null);
+  const [copiedCode, setCopiedCode] = useState(null);
+  const [showRewardInfo, setShowRewardInfo] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id && !user?.email && !user?.mobile) return;
+
+    async function fetchReward() {
+      try {
+        const data = await fetchRewardCoupon({
+          customerId: user?.id,
+          email: user?.email,
+          mobile: user?.mobile,
+        });
+        if (data?.hasCoupon && data?.code) {
+          const coupon = COUPONS.find((c) => c.code === data.code);
+          if (coupon) setRewardCoupon(coupon);
+        }
+      } catch (err) {
+        console.warn("[CustomerDashboard] Reward coupon fetch failed:", err);
+      }
+    }
+    fetchReward();
+  }, [user?.id, user?.email, user?.mobile]);
+
+  const handleCopyRewardCode = (code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast.success(`Coupon code ${code} copied!`);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  useEffect(() => {
+    if (!showRewardInfo) return;
+    const closeOnOutsideClick = () => setShowRewardInfo(false);
+    document.addEventListener("click", closeOnOutsideClick);
+    return () => document.removeEventListener("click", closeOnOutsideClick);
+  }, [showRewardInfo]);
 
   useEffect(() => {
     async function fetchData() {
@@ -153,6 +197,65 @@ export default function CustomerDashboard() {
           </p>
         </div>
       </div>
+
+      {/* Welcome Reward Coupon */}
+      {rewardCoupon && (
+        <div className="relative rounded-2xl shadow-lg shadow-primary/20">
+          {/* Gradient + dot texture live in their own clipped layer so the tooltip
+              below (a sibling, not clipped) isn't cut off by overflow-hidden. */}
+          <div className="absolute inset-0 rounded-2xl overflow-hidden bg-gradient-to-br from-[#4A3230] via-primary to-[#7C5A45]">
+            <div
+              className="absolute inset-0 opacity-[0.08] pointer-events-none"
+              style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "14px 14px" }}
+            />
+          </div>
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4">
+            <div className="hidden sm:flex shrink-0 size-10 rounded-full bg-white/15 items-center justify-center ring-1 ring-white/20">
+              <Gift className="size-5 text-white" strokeWidth={2} />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Gift className="size-4 text-white sm:hidden" strokeWidth={2} />
+                <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Your Welcome Reward</h3>
+                <span className="text-[11px] font-semibold text-white/80">{rewardCoupon.title}</span>
+
+                <div className="relative group/info" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setShowRewardInfo((v) => !v)}
+                    className="flex items-center justify-center size-5 rounded-full bg-white/20 text-white ring-1 ring-white/30 hover:bg-white/30 transition-colors cursor-pointer"
+                    aria-label="Coupon terms"
+                  >
+                    <Info className="size-3" strokeWidth={2.5} />
+                  </button>
+                  <div
+                    className={`absolute z-30 top-full left-0 mt-2 w-64 rounded-lg bg-white text-zinc-700 text-[11px] font-medium leading-relaxed p-3 shadow-xl transition-opacity ${
+                      showRewardInfo ? "opacity-100" : "opacity-0 pointer-events-none"
+                    } group-hover/info:opacity-100 group-hover/info:pointer-events-auto`}
+                  >
+                    {rewardCoupon.condition}. {COUPON_DISCLAIMER}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleCopyRewardCode(rewardCoupon.code)}
+              className="shrink-0 flex items-center justify-between sm:justify-start gap-3 h-10 pl-4 pr-2 rounded-xl bg-white/95 hover:bg-white transition-colors font-bold text-[13px] tracking-[0.15em] text-primary cursor-pointer"
+            >
+              {rewardCoupon.code}
+              <span className="flex items-center justify-center size-6 rounded-lg bg-primary/10">
+                {copiedCode === rewardCoupon.code ? (
+                  <CheckCircle2 className="size-3.5 text-emerald-600" />
+                ) : (
+                  <Copy className="size-3.5 text-primary" />
+                )}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-3">

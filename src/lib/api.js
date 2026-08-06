@@ -155,6 +155,20 @@ export const saveSpinPrize = async ({ customerId, email, mobile, prize }) => {
   return data;
 };
 
+// Reads back the wheel reward stored on the customer's Shopify record so
+// /admin can surface it. Same reasoning as saveSpinPrize — hits the Next.js
+// route directly since the read needs the Admin token.
+export const fetchRewardCoupon = async ({ customerId, email, mobile }) => {
+  const res = await fetch("/api/customer/reward-coupon", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ customerId, email, mobile }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  return data;
+};
+
 export const fetchCustomerProfile = (accessToken) =>
   apiFetch("/api/customer/profile", {
     headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
