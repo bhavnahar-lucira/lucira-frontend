@@ -7,6 +7,15 @@ import { IndianRupee, Gem, Search, Palette } from "lucide-react";
 export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
   if (!priceBreakup) return null;
 
+  const comparison = priceBreakup.comparison;
+
+  // The pricing API transposes the two Lucira grades: `clarity.lucira` carries the colour
+  // grade (E-F) and `color.lucira` carries the clarity grade (VVS/VS). Only the Lucira side
+  // is affected — `clarity.mined` (SI) and `color.mined` (IJ) are keyed correctly — so just
+  // those two values are put back on the right rows. Drop this once the API is fixed.
+  const clarity = { lucira: comparison?.color?.lucira, mined: comparison?.clarity?.mined };
+  const color = { lucira: comparison?.clarity?.lucira, mined: comparison?.color?.mined };
+
   return (
     <div className="mt-6">
       <div className="bg-[#F8F8F8] rounded p-5 border border-gray-100">
@@ -15,15 +24,15 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
           className="w-full"
           onValueChange={(value) => onTabChange?.(value)}
         >
-          <TabsList className={`grid ${priceBreakup.comparison ? 'grid-cols-2' : 'grid-cols-1'} bg-white p-1 rounded mb-6 w-full h-auto!`}>
+          <TabsList className={`grid ${comparison ? 'grid-cols-2' : 'grid-cols-1'} bg-white p-1 rounded mb-6 w-full h-auto!`}>
             <TabsTrigger 
               value="price" 
               className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-primary data-[state=active]:text-white rounded transition-all cursor-pointer"
             >
               Price Breakup
             </TabsTrigger>
-            {priceBreakup.comparison && (
-              <TabsTrigger 
+            {comparison && (
+              <TabsTrigger
                 value="comparison" 
                 className="flex items-center justify-center py-2.5 px-4 text-sm font-medium text-gray-500 data-[state=active]:bg-primary data-[state=active]:text-white rounded transition-all cursor-pointer"
               >
@@ -55,7 +64,7 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
             </motion.div>
           </TabsContent>
 
-          {priceBreakup.comparison && (
+          {comparison && (
             <TabsContent value="comparison" className="mt-0 outline-none">
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
@@ -76,20 +85,20 @@ export default function PriceSavingsDetails({ priceBreakup, onTabChange }) {
                   {/* Column 2: Lucira Grown */}
                   <div className="flex flex-col space-y-4">
                     <div className="text-[13px] font-medium text-gray-600 leading-tight border-b border-gray-200 pb-3">Lucira Grown<br/>Diamond</div>
-                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.price?.lucira}</div>
-                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.carat}</div>
-                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.clarity?.lucira}</div>
-                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.color?.lucira}</div>
-                    <div className="text-[13px] font-bold text-[#1E7D4E] pt-4 mt-2 border-t border-gray-200">{priceBreakup.comparison?.savings}</div>
+                    <div className="text-[13px] text-gray-900">{comparison?.price?.lucira}</div>
+                    <div className="text-[13px] text-gray-900">{comparison?.carat}</div>
+                    <div className="text-[13px] text-gray-900">{clarity.lucira}</div>
+                    <div className="text-[13px] text-gray-900">{color.lucira}</div>
+                    <div className="text-[13px] font-bold text-[#1E7D4E] pt-4 mt-2 border-t border-gray-200">{comparison?.savings}</div>
                   </div>
 
                   {/* Column 3: Mined Diamond */}
                   <div className="flex flex-col space-y-4">
                     <div className="text-[13px] font-medium text-gray-600 leading-tight border-b border-gray-200 pb-3">Mined<br/>Diamond</div>
-                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.price?.mined}</div>
-                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.carat}</div>
-                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.clarity?.mined}</div>
-                    <div className="text-[13px] text-gray-900">{priceBreakup.comparison?.color?.mined}</div>
+                    <div className="text-[13px] text-gray-900">{comparison?.price?.mined}</div>
+                    <div className="text-[13px] text-gray-900">{comparison?.carat}</div>
+                    <div className="text-[13px] text-gray-900">{clarity.mined}</div>
+                    <div className="text-[13px] text-gray-900">{color.mined}</div>
                     <div className="text-[13px] font-bold text-red-500 pt-4 mt-2 border-t border-gray-200">₹ 0</div>
                   </div>
 
