@@ -1006,13 +1006,15 @@ export default function MobileHeader({ menuData }) {
         last_name: user?.last_name || "",
         email: user?.email || ""
       });
+      const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
       await apiFetch("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({
           email: user?.email,
           mobile: user?.mobile,
           firstName: user?.first_name,
-          lastName: user?.last_name
+          lastName: user?.last_name,
+          sourcePage
         })
       });
     } catch (err) {
