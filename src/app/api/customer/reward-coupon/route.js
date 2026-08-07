@@ -18,9 +18,15 @@ const LABEL_TO_COUPON_CODE = {
   "₹1,500 OFF": "GRAND1500",
 };
 
+// The welcome reward is only meant to nudge a *fresh* signup toward their first
+// purchase — after this many days on the account it stops showing, even if the
+// coupon code itself is still technically valid in Shopify's discount rules.
+const REWARD_VALID_DAYS = 7;
+
 const CUSTOMER_METAFIELD_QUERY = `
   query CustomerRewardCoupon($id: ID!) {
     customer(id: $id) {
+      createdAt
       metafield(namespace: "${METAFIELD_NAMESPACE}", key: "${METAFIELD_KEY}") {
         value
       }
@@ -46,6 +52,12 @@ export async function POST(request) {
 
     if (!code) {
       return NextResponse.json({ ok: true, hasCoupon: false });
+    }
+
+    const createdAt = data?.customer?.createdAt ? new Date(data.customer.createdAt) : null;
+    const ageInDays = createdAt ? (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24) : 0;
+    if (ageInDays > REWARD_VALID_DAYS) {
+      return NextResponse.json({ ok: true, hasCoupon: false, expired: true });
     }
 
     return NextResponse.json({ ok: true, hasCoupon: true, code, label });
