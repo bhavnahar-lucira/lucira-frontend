@@ -46,6 +46,17 @@ const COUPON_MAP = {
 
 const NITRO_ORG_ID = process.env.NEXT_PUBLIC_NITRO_ORG_ID;
 
+// Single "Full Name" field is split into firstName/lastName so the rest of the
+// signup flow (registerCustomer, Ornaverse, GTM) is untouched. When a middle/
+// father's name is present it stays with the first name — only the last word
+// becomes the last name, e.g. "Rohan Kumar Sharma" -> "Rohan Kumar" / "Sharma".
+function splitFullName(value) {
+  const parts = String(value ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { firstName: parts[0] || "", lastName: "" };
+  const lastName = parts.pop();
+  return { firstName: parts.join(" "), lastName };
+}
+
 // User Profile Enrichment: tell Nitro this user consented (first-party) and
 // hand over the PII from a fresh pop-up submission so Nitro can stitch it to
 // its event stream and act as a one-click login next time. Best-effort only.
@@ -116,6 +127,7 @@ export function OtpSpinAuth({
   }, [initialMobile]);
 
   const [otp, setOtp] = useState(["", "", "", ""]);
+  const [fullName, setFullName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -447,7 +459,7 @@ export function OtpSpinAuth({
   };
 
   const handleSpinAndRegister = async () => {
-    if (!firstName || !lastName || !email || !mobile) return toast.error("Please fill all fields");
+    if (!firstName || !email || !mobile) return toast.error("Please fill all fields");
 
     // Only check customer if mobile is not verified
     if (!isMobileVerified) {
@@ -770,26 +782,21 @@ export function OtpSpinAuth({
             <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 cursor-pointer" onClick={() => firstNameRef.current?.focus()}>Register to Win a Reward</p>
             <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto cursor-pointer" onClick={() => firstNameRef.current?.focus()}>Try Your Luck! Win a Diamond Pendant</p>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3.5 mb-2">
-                <div className="flex flex-col">
-                  <label className="text-sm md:text-base flex mb-1.5 font-normal text-[#666]">First Name <span className="text-red-500 ml-1">*</span></label>
-                  <input
-                    ref={firstNameRef}
-                    type="text"
-                    className="w-full h-10 px-4 text-sm md:text-base border border-[#e2e2e2] rounded-sm outline-none bg-white"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-sm md:text-base flex mb-1.5 font-normal text-[#666]">Last Name <span className="text-red-500 ml-1">*</span></label>
-                  <input
-                    type="text"
-                    className="w-full h-10 px-4 text-sm md:text-base border border-[#e2e2e2] rounded-sm outline-none bg-white"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                  />
-                </div>
+              <div className="flex flex-col mb-2">
+                <label className="text-sm md:text-base flex mb-1.5 font-normal text-[#666]">Full Name <span className="text-red-500 ml-1">*</span></label>
+                <input
+                  ref={firstNameRef}
+                  type="text"
+                  className="w-full h-10 px-4 text-sm md:text-base border border-[#e2e2e2] rounded-sm outline-none bg-white"
+                  value={fullName}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFullName(value);
+                    const { firstName: fn, lastName: ln } = splitFullName(value);
+                    setFirstName(fn);
+                    setLastName(ln);
+                  }}
+                />
               </div>
               <div className="flex flex-col mb-2">
                 <label className="text-sm md:text-base flex mb-1.5 font-normal text-[#666]">Email Address <span className="text-red-500 ml-1">*</span></label>
@@ -883,6 +890,7 @@ export function OtpSpinAuth({
                 {couponCopied && (
                   <p className="text-xs font-medium text-green-600 -mt-1 mb-1">Code copied to clipboard</p>
                 )}
+                <p className="text-xs font-medium text-[#5B5B5B] text-center mt-1">Coupon Valid for Next 7 Days</p>
               </>
             )}
             <p className="text-[10px] text-zinc-500 font-medium text-center mt-3 mb-0">*T&C Applicable</p>
