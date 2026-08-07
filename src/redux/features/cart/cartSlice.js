@@ -524,6 +524,7 @@ export const addToCart = createAsyncThunk(
           userId: finalUserId,
           sessionId,
           context,
+          nitroId: typeof window !== 'undefined' && window.nitro?.NITRO_ID ? window.nitro.NITRO_ID : null,
           products: productsToAdd.map(p => ({
             ...p,
             variantId: toShopifyGid(p.shopifyVariantId || p.variantId || p.id, "ProductVariant"),

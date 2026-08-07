@@ -192,7 +192,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
           id: userId,
           mobile: mobile,
           email: `${mobile}@gmail.com`,
-          name: "User Customer"
+          name: "Unlock Coupon User"
         });
       } else {
         pushLogin({
@@ -224,12 +224,12 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
           id: userId,
           mobile: mobile,
           email: customer?.email || `${mobile}@gmail.com`,
-          first_name: customer?.first_name || "User",
-          last_name: customer?.last_name || "Customer",
+          first_name: customer?.first_name || "Unlock Coupon",
+          last_name: customer?.last_name || "User",
           party_id: null,
           name: customer?.first_name && customer?.last_name 
             ? `${customer.first_name} ${customer.last_name}` 
-            : "User Customer",
+            : "Unlock Coupon User",
         },
         accessToken: data.accessToken,
       })
@@ -276,12 +276,13 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         const regData = await registerCustomer({
-          firstName: "User",
-          lastName: "Customer",
+          firstName: "Unlock Coupon",
+          lastName: "User",
           email: `${mobile}@gmail.com`,
           mobile: mobile,
           sessionId,
           tags: "pdp-offers-lead",
+          sourcePage: "Cart Drawer",
         });
 
         if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
