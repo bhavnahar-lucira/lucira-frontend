@@ -160,12 +160,6 @@ const filteredItems = items.filter(
   return (
     <div className="bg-white min-h-screen overflow-x-hidden">
       {/* Mobile Header (LG Hidden) */}
-      <div className="lg:hidden pt-6 px-4 bg-white">
-        <div className="flex items-baseline gap-2">
-          <h1 className="text-xl font-bold text-zinc-800 font-abhaya">My Shopping Cart</h1>
-          <span className="text-sm text-zinc-500 font-medium">({displayQuantity} Item{displayQuantity !== 1 ? 's' : ''})</span>
-        </div>
-      </div>
 
       <div className="max-w-7xl w-full mx-auto relative z-10 px-4">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
