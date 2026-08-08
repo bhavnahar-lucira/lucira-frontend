@@ -109,7 +109,7 @@ export default function CheckoutHeader() {
               ? "font-figtree font-semibold text-xl leading-none tracking-[0.3px] align-middle text-black capitalize" 
               : "text-[15px] font-bold text-[#443360] tracking-tight uppercase"
           }>
-            {currentStep.name}
+            {currentStep.name === "Cart" ? "My Cart" : currentStep.name}
           </h1>
         </div>
 
