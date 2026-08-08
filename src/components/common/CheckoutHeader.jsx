@@ -81,10 +81,10 @@ export default function CheckoutHeader() {
           </div>
 
           {/* Right: Security & Login */}
-          <div className="flex-1 flex items-center justify-end gap-4">            
-            <div className="flex items-center gap-2 text-zinc-500">
-              <Lock size={16} className="text-zinc-400" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">
+          <div className="flex-1 flex items-center justify-end gap-4">
+            <div className="flex items-center gap-2 rounded-full border border-[#189351] bg-[#18935112] text-[#189351] px-3.5 py-[7px]">
+              <Lock size={12} strokeWidth={2.25} className="text-[#189351]" />
+              <span className="text-[10px] font-[800] uppercase tracking-[0.18em] text-[#189351] whitespace-nowrap">
                 100% Secure
               </span>
             </div>

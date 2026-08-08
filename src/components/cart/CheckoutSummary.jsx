@@ -273,7 +273,7 @@ export default function CheckoutSummary({
       {showItems && (
         <div className="space-y-4">
           <h2 className="text-lg font-bold text-[#443360] font-abhaya">Order Summary</h2>
-          <div className="bg-white border border-zinc-100 rounded-lg p-4 space-y-4 shadow-sm">
+          <div className="bg-white border border-zinc-100 rounded-lg p-4 space-y-4">
             {displayItems.map((item, index) => {
               const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
               const isBYJ = item.properties?.['_byj_preview'];
@@ -362,7 +362,7 @@ export default function CheckoutSummary({
       )}
 
       {showBreakdown && (
-        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3 border-zinc-50 shadow-sm bg-white rounded-lg p-6">
+        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3 border-zinc-50 bg-white rounded-lg p-6">
           <div className="flex justify-between text-sm text-zinc-600">
             <span>Subtotal</span>
             <span className="font-medium text-zinc-900">₹{originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -430,7 +430,7 @@ export default function CheckoutSummary({
       )}
 
       {showSilverPendantOffer && isPaymentPage && diamondTotalForOffer >= 30000 && (
-        <div className="bg-[#FDF2F5] rounded-2xl border border-[#F1D1D9] shadow-[0_4px_20px_-4px_rgba(241,209,217,0.5)] p-4 flex gap-4 transition-all hover:shadow-[0_8px_30px_-4px_rgba(241,209,217,0.6)]">
+        <div className="bg-[#FDF2F5] rounded-2xl border border-[#F1D1D9] p-4 flex gap-4 transition-all">
           {/* Left Side: Image - Matching Order Summary Style */}
           <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
             <Image 
@@ -508,7 +508,7 @@ export default function CheckoutSummary({
                       icon: <Check className="w-4 h-4" />
                     });
                   }}
-                  className="group relative px-8 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-[0.15em] shadow-lg shadow-slate-200 transition-all active:scale-[0.98] overflow-hidden cursor-pointer"
+                  className="group relative px-8 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all active:scale-[0.98] overflow-hidden cursor-pointer"
                 >
                   <span className="relative z-10">CLAIM</span>
                   
@@ -557,7 +557,7 @@ export default function CheckoutSummary({
             }
             if (nectorPoints) {
               return (
-                <div className="flex items-center justify-between bg-white/80 p-3 rounded-lg border border-[#B4936B]/20 shadow-sm">
+                <div className="flex items-center justify-between bg-white/80 p-3 rounded-lg border border-[#B4936B]/20">
                   <div className="space-y-0.5">
                     <span className="text-sm font-bold text-[#189351]">Applied: -₹{nectorPoints.fiat_value.toLocaleString('en-IN')}</span>
                     <p className="text-[11px] text-zinc-500 font-medium">Redeemed {nectorPoints.coin_value} coins</p>
@@ -575,7 +575,7 @@ export default function CheckoutSummary({
               return (
                 <div className="space-y-3">
                   <p className="text-[11px] text-zinc-500 leading-tight italic">Apply {pointsData.promotions[0].title} for {pointsData.promotions[0].coin_value} coins?</p>
-                  <button onClick={handleApplyPoints} className="w-full bg-[#B4936B] hover:bg-[#A3825A] text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors shadow-sm">Apply Points</button>
+                  <button onClick={handleApplyPoints} className="w-full bg-[#B4936B] hover:bg-[#A3825A] text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Apply Points</button>
                 </div>
               );
             }

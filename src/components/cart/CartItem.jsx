@@ -21,10 +21,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
+import { Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, Truck } from "lucide-react";
 import SocialProofBand from "@/components/common/SocialProofBand";
 import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
+import { getEstimatedDispatchDate } from "@/lib/utils";
 
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 
@@ -34,64 +35,6 @@ function clearSilverPendantClaim() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("isSilverPendantClaimed");
   }
-}
-
-// Builds the WhatsApp "schedule video call" link, including the product name for context.
-function buildVideoCallUrl(productName, sku) {
-  let message = "Hi, I'm on the cart page and want to schedule a video call";
-  if (productName) {
-    message += ` for : ${productName}`;
-  }
-  return `https://api.whatsapp.com/send/?phone=919004435760&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
-}
-
-// FOMO strip shown below in-stock cart items — lets the shopper book a live video call.
-function ViewLiveStrip({ productName, sku }) {
-  const handleViewLiveClick = () => {
-    try {
-      pushPromoClick({
-        creative_name: "view_live_cta_checkout",
-        location_id: "checkout page",
-        promo_id: productName || sku || "",
-        promo_name: "View Live",
-      });
-    } catch (e) {
-      console.error("promoClick push failed", e);
-    }
-  };
-
-  return (
-    <a
-      href={buildVideoCallUrl(productName, sku)}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={handleViewLiveClick}
-      className="flex items-center gap-2.5 lg:gap-3 border-t border-black/5 px-3.5 py-2.5 lg:px-4 lg:py-3 transition-opacity hover:opacity-95"
-      style={{ background: "linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)" }}
-    >
-      <span className="relative h-9 w-9 lg:h-10 lg:w-10 shrink-0 overflow-hidden rounded-full bg-white shadow-sm">
-        <Image
-          src="/images/explore/VirtualTryOn.jpg"
-          alt="Lucira consultant"
-          fill
-          sizes="40px"
-          className="object-cover"
-        />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="font-figtree font-medium text-[13px] lg:text-[15px] leading-[1.3] text-[#3D2B28] truncate">
-          Shop with Complete Confidence
-        </p>
-        <p className="font-figtree font-normal text-[11px] lg:text-[13px] leading-[1.3] text-[#6B5B54] truncate">
-          See every detail before you buy.
-        </p>
-      </div>
-      <span className="flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-9 lg:h-10 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[11px] lg:text-[13px] text-white">
-        <Video size={16} />
-        View Live
-      </span>
-    </a>
-  );
 }
 
 // Rotation, icons, colours and labels live in the shared band
@@ -112,6 +55,15 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const truncateWords = (str, limit = 6) => {
+    if (!str) return '';
+    const words = str.split(' ');
+    if (words.length > limit) return words.slice(0, limit).join(' ') + '...';
+    return str;
+  };
+
+  const displayTitle = truncateWords(item?.title || "", 6);
 
   if (!item) return null;
 
@@ -212,7 +164,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   const hasDiscount = lineCompareAmount > lineAmount;
 
   const statusLabel = (isInStock && !isBYJ) ? "In Stock" : "Made to Order";
-  const statusClass = (isInStock && !isBYJ) ? "text-green-500" : "text-primary";
+  const statusClass = (isInStock && !isBYJ) ? "text-[#189351]" : "text-[#AF7C3E]";
+  // Same shared calculator the PDP and shipping-page summary use, so the date here never drifts from either.
+  const dispatchMessage = getEstimatedDispatchDate(isInStock && !isBYJ, item.leadTime);
+  const dispatchBgClass = (isInStock && !isBYJ) ? "bg-[#189351]/10" : "bg-[#AF7C3E]/10";
 
   const displayImage = isBYJ ? item.properties['_byj_preview'] : (currentVariant?.image || item.image);
   const isShopifyImage = !isBYJ && displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"));
@@ -430,17 +385,25 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   return (
     <>
       {/* DESKTOP DESIGN */}
-      <div className="hidden lg:block mb-6 overflow-hidden rounded-card border border-zinc-100 bg-white shadow-sm">
-        <div className="relative flex flex-col gap-6 p-4 md:flex-row md:p-6">
+      <div className="hidden lg:block mb-6 overflow-visible rounded-card border border-zinc-100 bg-white">
+        <div className="relative flex flex-col gap-6 p-4 md:flex-row md:p-6 overflow-visible">
           {updating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
               <Loader2 className="animate-spin text-primary" size={24} />
             </div>
           )}
 
+          <button
+            onClick={() => setShowRemoveModal(true)}
+            disabled={removing}
+            className="absolute -top-[10px] -right-[10px] z-20 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 disabled:opacity-50 shadow-sm"
+          >
+            <X size={14} />
+          </button>
+
           <Link prefetch={false}
             href={productLink}
-            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-card border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
+            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-card bg-[#FAFAFA] md:w-48 block transition-opacity"
           >
             <Image
               loader={isShopifyImage ? shopifyLoader : undefined}
@@ -451,22 +414,22 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               className="h-auto w-full object-contain mix-blend-multiply"
               style={{ color: 'transparent' }}
             />
-            {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10 shadow-sm" />}
+            {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10" />}
           </Link>
 
           <div className="grow space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <Link prefetch={false} href={productLink}>
-                  <h3 className="font-abhaya text-lg font-bold text-black hover:text-primary transition-colors">
-                    {item.title}
+            <div className="flex justify-between items-start gap-4 pr-8">
+              <div className="space-y-1 min-w-0">
+                <Link prefetch={false} href={productLink} className="block" title={item.title}>
+                  <h3 className="font-figtree font-medium text-[14px] lg:text-[1rem] leading-none tracking-[0px] text-black truncate flex-1 mb-[10px] transition-colors hover:text-primary">
+                    {displayTitle}
                   </h3>
                 </Link>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                <p className="font-figtree font-medium text-[12px] uppercase tracking-[0px] leading-none text-zinc-400">
                   SKU: {currentVariant?.sku || item.sku || "N/A"}
                 </p>
                 {item.engraving && (
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                  <p className="font-figtree font-medium text-[12px] uppercase tracking-[0px] leading-none text-primary mt-1">
                     Engraving: &quot;{item.engraving}&quot;
                   </p>
                 )}
@@ -480,12 +443,12 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   </button>
                 )}
               </div>
-              <div className="flex flex-col items-end whitespace-nowrap">
-                <div className="text-xl font-bold text-zinc-900">
+              <div className="flex flex-col items-end whitespace-nowrap shrink-0">
+                <div className="font-figtree font-semibold text-[1.2rem] leading-none tracking-[0px] mb-[6px] text-zinc-900">
                   ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </div>
                 {hasDiscount && (
-                  <div className="text-sm text-zinc-400 line-through">
+                  <div className="font-figtree font-normal text-[12px] leading-none tracking-[0px] text-[#909090] line-through">
                     ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </div>
                 )}
@@ -552,16 +515,16 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               {/* Row 1: Size & Quantity */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
                 {displaySize ? (
-                  <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     {sizeLabel}
                   </div>
                 ) : (
-                  <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     Quantity
                   </div>
                 )}
 
-                <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2 font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
                   {displaySize && (
                     <div className="flex items-center min-w-[60px]">
                       {canEditSize ? (
@@ -582,7 +545,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="font-medium">{displaySize}</span>
+                        <span className="font-medium font-figtree text-[12px] leading-none tracking-[0px] text-[#000]">{displaySize}</span>
                       )}
                     </div>
                   )}
@@ -590,7 +553,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   {displaySize && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
 
                   <div className="flex items-center gap-2">
-                    {displaySize && <span className="text-zinc-500 font-normal">Quantity</span>}
+                    <span className="text-zinc-500 font-normal font-figtree text-[12px] leading-none tracking-[0px]">Quantity</span>
                     {canEditQuantity ? (
                       <Select
                         value={String(item.quantity)}
@@ -609,7 +572,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="font-medium">{item.quantity}</span>
+                        <span className="font-medium font-figtree text-[12px] leading-none tracking-[0px] text-[#000]">{item.quantity}</span>
                     )}
                   </div>
                 </div>
@@ -617,10 +580,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 2: Metal (+ net weight, when the variant carries one) */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
-                <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                   {item.goldWeight ? "Metal / Net Wt" : "Metal"}
                 </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
                   {formatMetal(item.karat, item.color)}
                   {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
                 </div>
@@ -629,10 +592,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               {/* Row 3: Stone (If diamondTotalPcs > 0) */}
               {/* {item.diamondTotalPcs > 0 && (
                 <div className="flex border-b border-zinc-100 min-h-[44px]">
-                  <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     Stone
                   </div>
-                  <div className="flex-1 bg-white px-4 py-2 flex items-center">
+                  <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
                     {item.diamondTotalPcs} Diamond{item.diamondCarat ? `, ${item.diamondCarat} Carat` : ''}{item.diamondQuality ? `, ${item.diamondQuality}` : ''}
                   </div>
                 </div>
@@ -640,10 +603,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 4: Status */}
               <div className="flex min-h-[44px]">
-                <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                   Status
                 </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
                   <span className={`font-medium uppercase ${statusClass}`}>{statusLabel}</span>
                 </div>
               </div>
@@ -652,43 +615,26 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
           </div>
         </div>
 
-        <div className="flex divide-x divide-zinc-100 border-t border-zinc-100 bg-white">
-          <button
-            onClick={() => setShowRemoveModal(true)}
-            disabled={removing}
-            className="flex flex-1 items-center justify-center gap-2 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-all hover:bg-zinc-50 hover:text-red-500 disabled:opacity-50"
-          >
-            {removing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-            Remove
-          </button>
-          {!isBYJ && (
-            <button
-              onClick={handleMoveToWishlist}
-              disabled={movingToWishlist}
-              className="flex flex-1 items-center justify-center gap-2 py-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500 transition-all hover:bg-zinc-50 hover:text-primary disabled:opacity-50"
-            >
-              {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} />}
-              Move to Wishlist
-            </button>
-          )}
+        <div className={`flex items-center gap-2 px-4 py-3 md:px-6 ${dispatchBgClass}`}>
+          <Truck size={14} className={`shrink-0 ${statusClass}`} />
+          <span className={`font-figtree text-[12px] font-medium tracking-tight ${statusClass}`}>
+            {dispatchMessage}
+          </span>
         </div>
-
-        {/* View Live strip (in-stock only, not on the free silver pendant) */}
-        {isInStock && !isFreeSilverPendant && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
       </div>
 
       {/* MOBILE DESIGN (< 1024px) */}
-      <div className="lg:hidden mb-4 overflow-hidden rounded-card border border-zinc-100 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.05)]">
-        <div className="relative p-4">
+      <div className="lg:hidden mb-4 pb-4 border-b border-[#E7E7E7] overflow-hidden rounded-card bg-white">
+        <div className="relative">
           {updating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
               <Loader2 className="animate-spin text-primary" size={24} />
             </div>
           )}
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             {/* Image Container */}
-            <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-card border border-zinc-100 bg-[#F9F9F9]">
+            <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-card bg-[#FAFAFA] border-0">
               <Link prefetch={false} href={productLink} className="block h-full w-full p-2">
                 <Image
                   loader={isShopifyImage ? shopifyLoader : undefined}
@@ -699,30 +645,38 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   className="h-full w-full object-contain mix-blend-multiply"
                 />
               </Link>
-              <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white/90 border border-zinc-100 px-1.5 py-0.5 text-[8px] font-bold uppercase ${statusClass}`}>
+              <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white border border-zinc-100 px-1.5 py-0.5 font-figtree font-bold text-[8px] leading-none tracking-[0px] uppercase ${statusClass}`}>
                 {statusLabel}
               </span>
-              {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10 shadow-sm" />}
+              {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10" />}
             </div>
 
             {/* Info Content */}
-            <div className="flex-1 space-y-1 min-w-0 pt-1">
-              <h3 className="text-base font-medium text-black truncate leading-snug font-abhaya">
-                {item.title}
-              </h3>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[15px] font-bold text-zinc-900">
+            <div className="flex-1 space-y-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-[8px]">
+                <h3 className="font-figtree font-medium text-[14px] lg:text-[1rem] leading-none tracking-[0px] text-black truncate flex-1">
+                  {displayTitle}
+                </h3>
+                <button 
+                  onClick={() => setShowRemoveModal(true)}
+                  className="shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+                <span className="font-figtree font-semibold text-[14px] leading-none tracking-[0px] text-zinc-900">
                   ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </span>
                 {hasDiscount && (
                   <>
-                    <span className="text-[12px] text-zinc-400 line-through">
+                    <span className="font-figtree font-normal text-[14px] leading-none tracking-[0px] text-zinc-400 line-through">
                       ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                     </span>
                   </>
                 )}
               </div>
-              <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-tight">
+              <p className="font-figtree font-medium text-[10px] leading-none tracking-[0px] text-[#909090] uppercase my-3">
                 SKU: {currentVariant?.sku || item.sku || "N/A"}
               </p>
               {item.engraving && (
@@ -730,8 +684,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   Engraving: &quot;{item.engraving}&quot;
                 </p>
               )}
-              <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-tight">
-                Metal: <span className="text-zinc-900">
+              <p className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-black capitalize mb-1.5">
+                Metal: <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-black">
                   {formatMetal(item.karat, item.color)}
                 </span>
               </p>
@@ -740,8 +694,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               <div className="flex items-center gap-3 pt-1 flex-wrap">
                 {displaySize && (
                   <div className="flex items-center gap-0.5">
-                    <span className="text-[13px] text-zinc-800 font-medium">
-                      {sizeLabel.replace(" Size", "")}:
+                    <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800">
+                      Size:
                     </span>
                     {canEditSize ? (
                       <Select
@@ -749,7 +703,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         onValueChange={(val) => handleUpdate("size", val)}
                         disabled={updating}
                       >
-                        <SelectTrigger className="h-auto border-none bg-transparent p-0 text-[13px] font-bold text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
+                        <SelectTrigger className="h-auto border-none bg-transparent p-0 font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
                           <SelectValue placeholder={formatSizeLabel(item.size)} />
                         </SelectTrigger>
                         <SelectContent>
@@ -761,20 +715,20 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="text-[13px] font-bold text-zinc-800">{displaySize}</span>
+                      <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800">{displaySize}</span>
                     )}
                   </div>
                 )}
 
                 <div className="flex items-center gap-0.5">
-                  <span className="text-[13px] text-zinc-800 font-medium">Quantity:</span>
+                  <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800">Quantity:</span>
                   {canEditQuantity ? (
                     <Select
                       value={String(item.quantity)}
                       onValueChange={(val) => handleUpdate("quantity", val)}
                       disabled={updating}
                     >
-                      <SelectTrigger className="h-auto border-none bg-transparent p-0 text-[13px] font-bold text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
+                      <SelectTrigger className="h-auto border-none bg-transparent p-0 font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
                         <SelectValue placeholder={item.quantity} />
                       </SelectTrigger>
                       <SelectContent>
@@ -786,7 +740,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="text-[13px] font-bold text-zinc-800">{item.quantity}</span>
+                    <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800">{item.quantity}</span>
                   )}
                 </div>
               </div>
@@ -801,6 +755,13 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 </button>
               )}
             </div>
+          </div>
+
+          <div className={`mt-3 flex items-center gap-2 rounded-[4px] px-3 py-2 ${dispatchBgClass}`}>
+            <Truck size={13} className={`shrink-0 ${statusClass}`} />
+            <span className={`font-figtree text-[12px] font-medium tracking-tight ${statusClass}`}>
+              {dispatchMessage}
+            </span>
           </div>
 
           {isBYJ && showBreakdown && (
@@ -857,119 +818,104 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               </div>
             </div>
           )}
-
-          {/* Mobile Actions */}
-          <div className="mt-4 pt-4 border-t border-zinc-50 flex items-center">
-            <button
-              onClick={() => setShowRemoveModal(true)}
-              disabled={removing}
-              className="flex flex-1 items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest text-zinc-500 transition-all active:scale-95 disabled:opacity-50"
-            >
-              {removing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-              Remove
-            </button>
-
-            {!isBYJ && (
-              <>
-                <div className="w-px h-4 bg-zinc-100" />
-
-                <button
-                  onClick={handleMoveToWishlist}
-                  disabled={movingToWishlist}
-                  className="flex flex-1 items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest text-zinc-500 transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {movingToWishlist ? <Loader2 size={14} className="animate-spin" /> : <Heart size={14} className={isWishlisted ? "fill-primary text-primary" : ""} />}
-                  Move to Wishlist
-                </button>
-              </>
-            )}
-          </div>
         </div>
 
-        {/* View Live strip (in-stock only, not on the free silver pendant) */}
-        {isInStock && !isFreeSilverPendant && <ViewLiveStrip productName={item.title} sku={currentVariant?.sku || item.sku} />}
       </div>
 
       {/* Remove / Move to Wishlist Modal */}
       {showRemoveModal && mounted && createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[12px] shadow-2xl w-[95%] sm:w-[90%] max-w-[380px] md:max-w-[440px] overflow-hidden flex flex-col p-5 sm:p-6 md:p-7 relative animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[99999] flex items-end justify-center bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 lg:items-center">
+          <div className="bg-white rounded-[10px] w-full lg:w-[420px] overflow-hidden flex flex-col relative animate-in slide-in-from-bottom-full lg:slide-in-from-bottom-0 lg:zoom-in-95 duration-300 font-figtree">
             {/* Close Button */}
             <button
               onClick={() => setShowRemoveModal(false)}
-              className="absolute top-3 sm:top-4 right-3 sm:right-4 text-zinc-400 hover:text-zinc-800 transition-colors p-1"
+              className="absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-[#969696] bg-[#f7f7f7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
             >
-              <X size={20} strokeWidth={1.5} />
+              <X size={18} strokeWidth={2.25} />
             </button>
 
-            {/* Product Image + Text Content */}
-            <div className="flex items-center gap-4 sm:gap-5 mb-5 sm:mb-6 md:mb-7 pr-5">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-[10px] border border-zinc-100 p-1.5 sm:p-2 bg-gradient-to-br from-zinc-50 to-white shadow-sm flex items-center justify-center shrink-0">
-                <Image
-                  loader={isShopifyImage ? shopifyLoader : undefined}
-                  src={displayImage || "/images/product/1.jpg"}
-                  alt={item.title}
-                  width={120}
-                  height={120}
-                  className="w-full h-full object-contain mix-blend-multiply"
-                />
+            {/* Content Container */}
+            <div className="flex flex-col items-center py-[28px] px-[12px] rounded-[6px]">
+              {/* Text Content */}
+              <h3 className="font-abhaya text-[22px] font-bold text-primary text-center tracking-tight leading-tight mb-6">
+                {isBYJ ? "Remove this design?" : "Save this piece for later?"}
+              </h3>
+
+              {/* Product Row */}
+              <div className="flex items-center gap-4 w-full mb-8">
+                <div className="relative w-[72px] h-[72px] shrink-0 rounded-[10px] overflow-hidden border border-zinc-100 bg-[#F9F9F9]">
+                  <Image
+                    loader={isShopifyImage ? shopifyLoader : undefined}
+                    src={displayImage || "/images/product/1.jpg"}
+                    alt={item.title}
+                    width={72}
+                    height={72}
+                    className="w-full h-full object-contain p-1.5 mix-blend-multiply"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <h4 className="truncate font-figtree text-[14px] font-semibold text-zinc-900 leading-snug">
+                    {item.title}
+                  </h4>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="font-figtree text-[15px] font-bold text-black">
+                      ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                    </span>
+                    {hasDiscount && (
+                      <span className="font-figtree text-[12px] text-zinc-400 line-through">
+                        ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div className="min-w-0 text-left">
-                <h3 className="text-lg sm:text-xl md:text-2xl font-abhaya font-bold text-zinc-900 mb-1 sm:mb-1.5 tracking-tight leading-tight">
-                  {isBYJ ? "Remove Design from Cart" : "Move Design from Cart"}
-                </h3>
-                <p className="text-zinc-500 text-[13px] sm:text-[14px] md:text-[15px] font-figtree leading-snug">
-                  {isBYJ ? "Are you sure you want to remove this design from the cart?" : "Are you sure you want to move this design from the cart?"}
-                </p>
+              {/* Actions */}
+              <div className="grid grid-cols-2 gap-3 w-full">
+                {isBYJ ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        handleRemove();
+                        setShowRemoveModal(false);
+                      }}
+                      disabled={removing}
+                      className="w-full h-12 bg-primary text-white font-bold text-[11px] lg:text-[12px] uppercase tracking-wider rounded-[6px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-tight px-2 disabled:opacity-50"
+                    >
+                      {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
+                    </button>
+                    <button
+                      onClick={() => setShowRemoveModal(false)}
+                      className="w-full h-12 text-zinc-500 font-bold text-[11px] lg:text-[12px] uppercase tracking-wider hover:bg-zinc-50 rounded-[6px] transition-colors flex items-center justify-center text-center leading-tight px-2 border border-transparent hover:border-zinc-200"
+                    >
+                      Keep it
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        handleMoveToWishlist();
+                        setShowRemoveModal(false);
+                      }}
+                      disabled={removing || movingToWishlist}
+                      className="w-full h-12 bg-primary text-white font-bold text-[11px] sm:text-[12px] uppercase tracking-wider rounded-[6px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-tight px-2 disabled:opacity-50"
+                    >
+                      {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "To Wishlist"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleRemove();
+                        setShowRemoveModal(false);
+                      }}
+                      disabled={removing || movingToWishlist}
+                      className="w-full h-12 text-zinc-500 font-bold text-[11px] sm:text-[12px] uppercase tracking-wider hover:bg-red-50 hover:text-red-500 rounded-[6px] transition-colors flex items-center justify-center text-center leading-tight px-2 border border-zinc-200 hover:border-red-200 disabled:opacity-50"
+                    >
+                      {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
+                    </button>
+                  </>
+                )}
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex w-full gap-2 sm:gap-3 md:gap-4 font-figtree">
-              {isBYJ ? (
-                <>
-                  <button
-                    onClick={() => setShowRemoveModal(false)}
-                    className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 border border-[#5A413F] text-[#5A413F] font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-[6px] hover:bg-[#5A413F]/5 transition-all flex items-center justify-center"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleRemove();
-                      setShowRemoveModal(false);
-                    }}
-                    disabled={removing}
-                    className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 bg-gradient-to-r from-[#8C5A4C] to-[#5A413F] text-white font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-[6px] hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center justify-center disabled:opacity-50"
-                  >
-                    {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => {
-                      handleRemove();
-                      setShowRemoveModal(false);
-                    }}
-                    disabled={removing || movingToWishlist}
-                    className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 border border-[#5A413F] text-[#5A413F] font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-[6px] hover:bg-[#5A413F]/5 transition-all flex items-center justify-center disabled:opacity-50"
-                  >
-                    {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleMoveToWishlist();
-                      setShowRemoveModal(false);
-                    }}
-                    disabled={removing || movingToWishlist}
-                    className="flex-1 py-3 sm:py-3.5 px-3 sm:px-4 bg-gradient-to-r from-[#8C5A4C] to-[#5A413F] text-white font-bold text-[11px] sm:text-[12px] md:text-xs uppercase tracking-widest rounded-[6px] hover:opacity-90 transition-all shadow-lg active:scale-95 flex items-center justify-center disabled:opacity-50"
-                  >
-                    {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "Move to Wishlist"}
-                  </button>
-                </>
-              )}
             </div>
           </div>
         </div>,

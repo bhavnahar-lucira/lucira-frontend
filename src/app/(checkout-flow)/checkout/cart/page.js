@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Link from "next/link";
+import Image from "next/image";
 import CartItem from "@/components/cart/CartItem";
+import CartViewLiveBanner from "@/components/cart/CartViewLiveBanner";
 import CartSummary from "@/components/cart/CartSummary";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, ArrowRight, MapPin } from "lucide-react";
@@ -140,7 +142,7 @@ const filteredItems = items.filter(
   if (items.length === 0 || displayQuantity === 0) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 space-y-6 bg-white">
-        <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100 shadow-inner mb-2">
+        <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100 mb-2">
           <ShoppingBag size={40} className="text-zinc-300" strokeWidth={1.5} />
         </div>
         <div className="text-center space-y-2">
@@ -158,18 +160,48 @@ const filteredItems = items.filter(
   }
 
   return (
-    <div className="bg-white min-h-screen overflow-x-hidden">
+    <div className="bg-white min-h-screen overflow-x-clip">
       {/* Mobile Header (LG Hidden) */}
 
       <div className="max-w-7xl w-full mx-auto relative z-10 px-4">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           
           {/* Left Column: Cart Items (60%) */}
-          <div className="grow lg:basis-[60%] lg:shrink-0 pt-6 pb-3 lg:py-10 lg:pr-12 bg-white">
+          <div className="grow lg:basis-[60%] lg:shrink-0 pt-[6px] pb-3 lg:py-10 lg:pr-12 bg-white">
+            {/* Trust Badges (Mobile) */}
+            <div className="lg:hidden flex items-center justify-center gap-10 pt-0 pb-[6px] border-b border-zinc-100 mb-4">
+              <div className="flex items-center gap-3">
+                <Image
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/igi-certified.png?v=1786168166"
+                  alt="IGI Certified"
+                  width={64}
+                  height={64}
+                  className="w-10 h-10 shrink-0 object-contain"
+                />
+                <span className="font-figtree text-[14px] font-bold text-black leading-tight">IGI Certified</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bsi-hallmarked.png?v=1786168167"
+                  alt="BSI Hallmarked"
+                  width={64}
+                  height={64}
+                  className="w-10 h-10 shrink-0 object-contain"
+                />
+                <span className="font-figtree text-[14px] font-bold text-black leading-tight">BSI Hallmarked</span>
+              </div>
+            </div>
+
             <div className="lg:sticky lg:top-10">
-              <div className="hidden lg:flex items-baseline gap-2 mb-5">
-                <h1 className="text-xl font-bold text-zinc-800 font-abhaya">My Shopping Cart</h1>
-                <span className="text-sm text-zinc-500 font-medium">({displayQuantity} Item{displayQuantity !== 1 ? 's' : ''})</span>
+              <div className="hidden lg:flex items-center justify-start gap-[12px] mb-6 pb-4 border-b border-[#ebebeb]">
+                <h1 className="text-[18px] font-bold text-zinc-900 font-figtree tracking-tight">My Shopping Cart</h1>
+                <span className="shrink-0 rounded-full border-0 bg-[#fdf1ec] px-[16px] py-[4px] text-[11px] font-bold uppercase tracking-wider text-[#5a413f] whitespace-nowrap">
+                  {displayQuantity} Item{displayQuantity !== 1 ? 's' : ''}
+                </span>
+              </div>
+              
+              <div className="hidden lg:block">
+                <CartViewLiveBanner items={filteredItems} />
               </div>
 
               <div className="space-y-4">
@@ -182,11 +214,15 @@ const filteredItems = items.filter(
                   />
                 ))}
               </div>
+
+              <div className="lg:hidden mt-4">
+                <CartViewLiveBanner items={filteredItems} />
+              </div>
             </div>
           </div>
 
           {/* Right Column: Order Summary (40%) */}
-          <div className="w-full lg:basis-[40%] lg:shrink-0 lg:self-start relative" ref={summaryRef}>
+          <div className="w-full lg:basis-[40%] lg:shrink-0 relative" ref={summaryRef}>
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen bg-[#FAFAFA] border-l border-zinc-100 z-0" />
             
             <div className="relative z-10 pt-0 pb-8 lg:py-10 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
@@ -199,7 +235,7 @@ const filteredItems = items.filter(
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#EADFD8] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#EADFD8] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60]">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col shrink-0">
             <span className="text-lg font-bold text-zinc-900 leading-none">₹ {finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>

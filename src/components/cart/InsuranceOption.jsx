@@ -72,7 +72,7 @@ export default function InsuranceOption() {
   if (otherItemsQuantity === 0 && !isAdded) return null;
 
   return (
-    <div className="bg-white border border-[#EADFD8] rounded-sm p-4 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] space-y-3">
+    <div className="bg-white border border-[#EADFD8] rounded-sm p-4 space-y-3">
       {/* Image banner */}
       <div className="relative w-full aspect-[2.2/1] lg:aspect-[3.4/1] rounded-sm overflow-hidden bg-[#FEF9F6]">
         <Image

@@ -478,7 +478,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }
         setIsCouponDrawerOpen(true);
       }}
-      className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white p-3.5 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors hover:border-[#5A413F]/30 cursor-pointer"
+      className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white p-3.5 transition-colors hover:border-[#5A413F]/30 cursor-pointer"
       style={{ margin: "0px", borderRadius: isSilverPendantEligible ? "8px 8px 0px 0px" : "8px" }}
     >
       <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
@@ -508,7 +508,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           View all available coupons.
         </p>
       </div>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[50%] bg-[#5A413F] text-white shadow-sm">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[50%] bg-[#5A413F] text-white">
         <ChevronRight size={16} />
       </span>
     </button>
@@ -521,7 +521,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {couponTrigger}
         {isSilverPendantEligible && (
           <div
-            className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors pr-2.5 sm:pr-3.5"
+            className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] transition-colors pr-2.5 sm:pr-3.5"
             style={{
               borderRadius: "0px 0px 8px 8px",
               borderTop: "0px",
@@ -592,7 +592,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       </div>
 
       {/* Desktop Pricing Breakdown (LG) */}
-      <div className="hidden lg:block bg-white rounded-sm p-6 space-y-3.5 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+      <div className="hidden lg:block bg-white rounded-sm p-6 space-y-3.5 border border-[#EADFD8]">
         <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
           <span>Subtotal</span>
           <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -656,7 +656,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       {/* Mobile Order Summary (LG Hidden) */}
       <div ref={breakdownRef} className="lg:hidden scroll-mt-20 space-y-3">
         <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
-        <div className="bg-white rounded-sm p-4 space-y-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)]">
+        <div className="bg-white rounded-sm p-4 space-y-3 border border-[#EADFD8]">
           <div className="space-y-2.5">
             <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
               <span>Subtotal</span>

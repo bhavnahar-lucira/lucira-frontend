@@ -8,7 +8,7 @@ export default function CartContact({ productName }) {
     const whatsappHref = `https://wa.me/919004435760?text=${encodeURIComponent(whatsappMessage)}`;
 
     return (
-      <div className="bg-white border border-[#EADFD8] rounded-sm p-4 lg:p-6 shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] text-center space-y-3 lg:space-y-4">
+      <div className="bg-white border border-[#EADFD8] rounded-sm p-4 lg:p-6 text-center space-y-3 lg:space-y-4">
         <h4 className="font-figtree font-semibold text-xs lg:text-sm leading-[1.3] text-[#3D2B28] uppercase tracking-[0.7px]">
           Contact Us For Assistance
         </h4>
