@@ -104,12 +104,20 @@ export default function CheckoutHeader() {
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2 text-center">
-          <h1 className="text-[15px] font-bold text-[#443360] tracking-tight uppercase">
+          <h1 className={
+            currentStep.name === "Cart" 
+              ? "font-figtree font-semibold text-xl leading-none tracking-[0.3px] align-middle text-black capitalize" 
+              : "text-[15px] font-bold text-[#443360] tracking-tight uppercase"
+          }>
             {currentStep.name}
           </h1>
         </div>
 
-        <div className="text-[12px] font-bold text-zinc-400 tracking-wider">
+        <div className={
+          currentStep.name === "Cart"
+            ? "font-figtree font-medium text-sm leading-none tracking-[0px] align-middle text-zinc-400"
+            : "text-[12px] font-bold text-zinc-400 tracking-wider"
+        }>
           {currentStepIndex + 1}/{steps.length}
         </div>
       </header>
