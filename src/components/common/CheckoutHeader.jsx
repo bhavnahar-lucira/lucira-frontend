@@ -38,7 +38,7 @@ export default function CheckoutHeader() {
           </div>
 
           {/* Center: Progress Bar */}
-          <div className="flex flex-col items-center justify-center flex-2">
+          <div className="flex flex-col items-center justify-center flex-[2]">
             <div className="flex items-center w-full max-w-md">
               {steps.map((step, index) => {
                 const isActive = index === currentStepIndex;
