@@ -235,20 +235,22 @@ const filteredItems = items.filter(
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#EADFD8] px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-col shrink-0">
-            <span className="text-lg font-bold text-zinc-900 leading-none">₹ {finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <div className="flex flex-col gap-[14px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[22px] font-semibold text-black leading-none font-figtree tracking-tight">
+              ₹{finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </span>
             <button
               onClick={scrollToSummary}
-              className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
+              className="text-[14px] font-medium text-black cursor-pointer font-figtree"
             >
               View Order Summary
             </button>
           </div>
           <Button
             onClick={handlePlaceOrder}
-            className="flex-1 min-w-0 flex items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-[45px] px-3 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer"
+            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] h-[50px] font-figtree font-medium uppercase tracking-wider text-[15px] text-white cursor-pointer"
           >
             Proceed To Checkout
           </Button>

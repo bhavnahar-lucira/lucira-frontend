@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import Image from "next/image";
 import { useSelector, useDispatch } from "react-redux";
 import { pushPromoClick } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +19,7 @@ import CouponCard from "@/components/coupons/CouponCard";
 import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 import TrustBadges from "@/components/common/TrustBadges";
+import Image from "next/image";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
@@ -767,6 +767,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         </div>
       </div>
 
+
+
       {/* Desktop Only Actions & Options */}
       <div className="hidden lg:block space-y-4">
 
@@ -784,29 +786,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
       {/* Contact Section */}
       <CartContact productName={firstProductName} />
-
-      {/* Trust Badges & Payment Icons */}
-      <div className="pt-4 lg:pt-6 space-y-6 lg:space-y-8">
-        <TrustBadges className="px-1" />
-        
-        <div className="flex items-center gap-5 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300 flex-wrap justify-center pb-6 lg:pb-0">
-          {[
-            { name: "VISA", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" },
-            { name: "MASTERCARD", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" },
-            { name: "RUPAY", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icons_rupay.svg" },
-            { name: "UPI", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" },
-          ].map((icon) => (
-            <Image 
-              key={icon.name} 
-              src={icon.src} 
-              alt={icon.name} 
-              height={22}
-              width={44}
-              className="h-[22px] w-auto object-contain"
-            />
-          ))}
-        </div>
-      </div>
 
       {/* Saving Zone — one drawer for both breakpoints, rendered once at the
           root so the mobile/desktop trigger groups share a single instance. */}
