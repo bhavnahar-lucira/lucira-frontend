@@ -359,13 +359,15 @@ export default function MainHeader() {
         email: user?.email || ""
       });
       //gtm
+      const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
       await apiFetch("/api/auth/logout", {
         method: "POST",
         body: JSON.stringify({
           email: user?.email,
           mobile: user?.mobile,
           firstName: user?.first_name,
-          lastName: user?.last_name
+          lastName: user?.last_name,
+          sourcePage
         })
       });
     } catch (err) {

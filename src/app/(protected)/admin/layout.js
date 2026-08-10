@@ -139,7 +139,17 @@ export default function CustomerDashboardLayout({ children }) {
 
   const handleSignOut = async () => {
     try {
-      await apiFetch("/api/auth/logout", { method: "POST" });
+      const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/admin';
+      await apiFetch("/api/auth/logout", { 
+        method: "POST",
+        body: JSON.stringify({
+          email: user?.email,
+          mobile: user?.mobile,
+          firstName: user?.first_name || user?.firstName,
+          lastName: user?.last_name || user?.lastName,
+          sourcePage
+        })
+      });
       dispatch(logout());
       router.push("/login");
     } catch (err) {
