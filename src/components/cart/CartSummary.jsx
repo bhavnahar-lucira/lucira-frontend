@@ -19,6 +19,7 @@ import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
 import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
+import TrustBadges from "@/components/common/TrustBadges";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
@@ -761,10 +762,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       {/* Mobile Offers Group (Gold Coin, Insurance) - ALL BELOW SUMMARY */}
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
-          <h3 className="text-[14px] font-bold text-[#3D2B28] uppercase tracking-wider ml-1">Lucira Offers</h3>
-          
           <GoldCoinOption />
-          
           <InsuranceOption />
         </div>
       </div>
@@ -784,8 +782,31 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         <InsuranceOption />
       </div>
 
-      {/* Desktop Only Contact Section */}
+      {/* Contact Section */}
       <CartContact productName={firstProductName} />
+
+      {/* Trust Badges & Payment Icons */}
+      <div className="pt-4 lg:pt-6 space-y-6 lg:space-y-8">
+        <TrustBadges className="px-1" />
+        
+        <div className="flex items-center gap-5 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300 flex-wrap justify-center pb-6 lg:pb-0">
+          {[
+            { name: "VISA", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" },
+            { name: "MASTERCARD", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" },
+            { name: "RUPAY", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icons_rupay.svg" },
+            { name: "UPI", src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" },
+          ].map((icon) => (
+            <Image 
+              key={icon.name} 
+              src={icon.src} 
+              alt={icon.name} 
+              height={22}
+              width={44}
+              className="h-[22px] w-auto object-contain"
+            />
+          ))}
+        </div>
+      </div>
 
       {/* Saving Zone — one drawer for both breakpoints, rendered once at the
           root so the mobile/desktop trigger groups share a single instance. */}
