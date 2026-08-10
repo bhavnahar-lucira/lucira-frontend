@@ -1547,7 +1547,7 @@ export default function PaymentPage() {
           {/* Desktop Summary Sidebar (40%) */}
           {isDesktop && (
             <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
-              <div className="hidden lg:block absolute inset-y-0 left-0 w-screen bg-[#FAFAFA] border-l border-zinc-100 z-0" />
+              <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
               <div className="relative z-10 py-10 px-4 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full">
                 <div className="lg:sticky lg:top-0">
                   <CheckoutSummary 

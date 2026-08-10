@@ -102,14 +102,14 @@ export default function InsuranceOption() {
       </div>
 
       {/* Description */}
-      <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.4] text-[#6B5B54]">
+      <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.4] text-[#000000]">
         Protect your jewelry from accidental damage, loss, or theft with a one-time protection plan.
       </p>
 
       {/* Price + CTA */}
       <div className="flex items-center justify-between gap-3 pt-1">
         <div className="flex items-baseline gap-2">
-          <span className="font-figtree text-xs lg:text-sm text-[#6B5B54] line-through">₹999</span>
+          <span className="font-figtree text-xs lg:text-sm text-[#000000] line-through">₹999</span>
           <span className="font-figtree text-base lg:text-lg font-semibold text-[#3D2B28]">₹{INSURANCE_PRICE}</span>
         </div>
         <div className="flex flex-row gap-2 shrink-0">

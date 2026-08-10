@@ -407,7 +407,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
           <button
             onClick={() => setShowRemoveModal(true)}
             disabled={removing}
-            className="absolute -top-[10px] -right-[10px] z-20 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 disabled:opacity-50 shadow-sm"
+            className="absolute -top-[10px] -right-[10px] lg:top-2 lg:right-2 lg:left-auto z-20 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 disabled:opacity-50 shadow-sm lg:shadow-none"
           >
             <X size={14} />
           </button>
@@ -526,11 +526,11 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               {/* Row 1: Size & Quantity */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
                 {displaySize ? (
-                  <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     {sizeLabel}
                   </div>
                 ) : (
-                  <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     Quantity
                   </div>
                 )}
@@ -591,7 +591,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 2: Metal (+ net weight, when the variant carries one) */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
-                <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                   {item.goldWeight ? "Metal / Net Wt" : "Metal"}
                 </div>
                 <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
@@ -603,7 +603,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               {/* Row 3: Stone (If diamondTotalPcs > 0) */}
               {/* {item.diamondTotalPcs > 0 && (
                 <div className="flex border-b border-zinc-100 min-h-[44px]">
-                  <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     Stone
                   </div>
                   <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
@@ -614,7 +614,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 4: Status */}
               <div className="flex min-h-[44px]">
-                <div className="w-[120px] bg-[#FAFAFA] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                   Status
                 </div>
                 <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
@@ -627,8 +627,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
         </div>
 
         <div className={`flex items-center gap-2 px-4 py-3 md:px-6 ${dispatchBgClass}`}>
-          <Truck size={14} className={`shrink-0 ${statusClass}`} />
-          <span className={`font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] ${statusClass}`}>
+          <Truck size={16} className={`shrink-0 ${statusClass}`} />
+          <span className={`font-figtree font-medium text-[14px] leading-none tracking-[0px] ${statusClass}`}>
             {dispatchMessage}
           </span>
         </div>

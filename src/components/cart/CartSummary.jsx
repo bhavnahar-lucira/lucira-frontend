@@ -345,8 +345,13 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotal);
 
   const discount = couponDiscountAmount;
-  const shipping = 0; 
+  const shipping = 0;
   const grandTotal = subtotal + insuranceAmount - discount + shipping;
+
+  // Shipping is always free; this is the standard rate we display as struck-through
+  // to make that saving visible, and it feeds into the "you will save" banner below.
+  const SHIPPING_ORIGINAL_VALUE = 500;
+  const totalSavingsBanner = totalSavings + couponDiscountAmount + SHIPPING_ORIGINAL_VALUE;
 
   // codeOverride is passed when a listed coupon card is tapped; otherwise the
   // code typed into the drawer's input is used.
@@ -478,41 +483,24 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }
         setIsCouponDrawerOpen(true);
       }}
-      className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white transition-colors hover:border-[#5A413F]/30 cursor-pointer"
-      style={{ margin: "0px", borderRadius: isSilverPendantEligible ? "4px 4px 0px 0px" : "4px", padding: "10px", borderColor: "#eaeaea" }}
+      className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white transition-colors hover:border-[#5A413F]/30 cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
+      style={{ margin: "0px", borderRadius: isSilverPendantEligible ? "4px 4px 0px 0px" : "4px", borderColor: "#eaeaea" }}
     >
-      <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#5A413F]">
+      <span className="flex h-9 w-9 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
+        <svg viewBox="0 0 24 24" fill="none" className="text-[#5A413F] w-[18px] h-[18px] lg:w-[24px] lg:h-[24px]">
           <path d="M15.0952 8.57815L8.59518 15.0781M8.59518 8.57815H8.60601M15.0952 15.0781H15.106M3.01601 8.16648C2.85789 7.45422 2.88217 6.71356 3.0866 6.01318C3.29103 5.31281 3.66899 4.67538 4.18544 4.16001C4.70188 3.64465 5.3401 3.26802 6.0409 3.06506C6.74171 2.8621 7.48242 2.83937 8.19435 2.99898C8.5862 2.38614 9.12602 1.8818 9.76404 1.53246C10.4021 1.18311 11.1178 1 11.8452 1C12.5726 1 13.2883 1.18311 13.9263 1.53246C14.5643 1.8818 15.1042 2.38614 15.496 2.99898C16.209 2.83867 16.951 2.8613 17.6529 3.06476C18.3549 3.26821 18.9939 3.64589 19.5107 4.16265C20.0274 4.67941 20.4051 5.31848 20.6086 6.0204C20.812 6.72232 20.8347 7.4643 20.6743 8.17732C21.2872 8.56917 21.7915 9.10899 22.1409 9.74701C22.4902 10.385 22.6733 11.1007 22.6733 11.8281C22.6733 12.5556 22.4902 13.2713 22.1409 13.9093C21.7915 14.5473 21.2872 15.0871 20.6743 15.479C20.834 16.1909 20.8112 16.9316 20.6083 17.6324C20.4053 18.3332 20.0287 18.9714 19.5133 19.4879C18.9979 20.0043 18.3605 20.3823 17.6601 20.5867C16.9598 20.7912 16.2191 20.8154 15.5068 20.6573C15.1155 21.2725 14.5753 21.779 13.9361 22.1299C13.297 22.4808 12.5797 22.6648 11.8506 22.6648C11.1215 22.6648 10.4042 22.4808 9.76504 22.1299C9.12593 21.779 8.58569 21.2725 8.19435 20.6573C7.48242 20.8169 6.74171 20.7942 6.0409 20.5912C5.3401 20.3883 4.70188 20.0117 4.18544 19.4963C3.66899 18.9809 3.29103 18.3435 3.0866 17.6431C2.88217 16.9427 2.85789 16.2021 3.01601 15.4898C2.39847 15.099 1.88979 14.5583 1.53732 13.9181C1.18484 13.2779 1 12.559 1 11.8281C1 11.0973 1.18484 10.3784 1.53732 9.73817C1.88979 9.09796 2.39847 8.5573 3.01601 8.16648Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </span>
       <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-[0.9rem] lg:text-[1rem] leading-[1.3] text-[#3D2B28]" style={{
-            fontFamily: "Figtree",
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            marginBottom: "4px",
-            marginTop: "2px",
-            color: "rgb(0, 0, 0)",
-            fontWeight: "600",
-            fontSize: "14px"
-        }}>
+        <p className="font-figtree font-medium text-[14px] lg:text-[1rem] leading-none lg:leading-[1.3] text-black lg:text-[#3D2B28] mt-0 mb-1">
           {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
         </p>
-        <p className="font-figtree font-normal text-xs lg:text-sm leading-[1.3] text-[#6B5B54]" style={{
-            marginTop: "5px",
-            fontFamily: "Figtree",
-            fontWeight: "400",
-            fontSize: "12px",
-            lineHeight: "140%",
-            letterSpacing: "0%",
-            color: "#000000"
-        }}>
+        <p className="font-figtree font-normal text-[12px] lg:text-[0.9rem] leading-[1.4] lg:leading-[1.3] text-black mt-[5px]">
           View all available coupons.
         </p>
       </div>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[50%]" style={{ background: "transparent" }}>
-        <ChevronRight className="text-[#5A413F]" style={{ width: "24px", height: "24px" }} />
+      <span className="flex h-8 w-8 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-[50%]" style={{ background: "transparent" }}>
+        <ChevronRight className="text-[#5A413F] w-[24px] h-[24px] lg:w-[28px] lg:h-[28px]" />
       </span>
     </button>
   );
@@ -520,11 +508,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   return (
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
-      <div className="flex flex-col mb-6">
-        <h3 className="font-figtree text-[14px] font-medium text-black uppercase tracking-wider mb-3" style={{
+      <div className="flex flex-col mb-[20px]">
+        <h3 className="font-figtree text-[14px] lg:hidden font-medium text-black uppercase tracking-wider mb-3" style={{
             fontFamily: "Figtree",
             fontWeight: 500,
-            fontSize: "14px",
             lineHeight: "100%",
             letterSpacing: "0%",
             textTransform: "uppercase"
@@ -532,13 +519,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {couponTrigger}
         {isSilverPendantEligible && (
           <div
-            className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] transition-colors pr-2.5 sm:pr-3.5"
+            className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] transition-colors pr-2.5 sm:pr-3.5 py-2 lg:py-1"
             style={{
               borderRadius: "0px 0px 4px 4px",
               borderTop: "0px",
               background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
-              paddingTop: 8,
-              paddingBottom: 8,
               paddingLeft: 0,
               gap: 4
             }}
@@ -556,14 +541,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             </div>
             <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
               <p
-                className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]"
-                style={{ color: "rgb(0, 0, 0)", fontWeight: 500, display: "none", marginBottom: "2px" }}
-              >
-                Silver Pendant
-              </p>
-              <p
-                className="font-figtree font-normal text-[0.9rem] lg:text-[0.9rem] leading-[1.35] text-[#000000]"
-                style={{ color: "rgb(0, 0, 0)", fontWeight: 500, fontSize: "0.7rem" }}
+                className="font-figtree font-normal text-[0.75rem] lg:text-[0.95rem] leading-[1.35] text-[#000000]"
+                style={{ color: "rgb(0, 0, 0)", fontWeight: 500 }}
               >
                 You've unlocked a FREE Diamond Pendant worth ₹10,000.
               </p>
@@ -573,11 +552,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 type="button"
                 onClick={handleToggleSilverPendant}
                 disabled={isSilverPendantLoading || loading}
-                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-4 font-figtree font-medium bg-transparent hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50"
+                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-11 uppercase tracking-wide transition px-4 lg:px-5 font-figtree font-medium bg-transparent hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50 text-[0.75rem] lg:text-[13px] ml-0 lg:ml-2"
                 style={{
                   border: "1px solid #e7000b",
-                  color: "#e7000b",
-                  fontSize: "0.75rem"
+                  color: "#e7000b"
                 }}
               >
                 {isSilverPendantLoading ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : "REMOVE"}
@@ -587,16 +565,13 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 type="button"
                 onClick={handleToggleSilverPendant}
                 disabled={isSilverPendantLoading || loading}
-                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-4 font-figtree font-medium bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
-                style={{
-                  fontSize: "0.75rem"
-                }}
+                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-11 uppercase tracking-wide transition px-4 lg:px-5 font-figtree font-medium bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50 text-[0.75rem] lg:text-[13px] ml-0 lg:ml-2"
               >
                 {isSilverPendantLoading ? (
                   <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
                 ) : (
                   <>
-                    <Gift className="w-3.5 h-3.5 hidden lg:block" />
+                    <Gift className="w-3.5 h-3.5 lg:w-4 lg:h-4 hidden lg:block" />
                     CLAIM
                   </>
                 )}
@@ -607,21 +582,24 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       </div>
 
       {/* Desktop Pricing Breakdown (LG) */}
-      <div className="hidden lg:block bg-white rounded-sm p-6 space-y-3.5 border border-[#EADFD8]">
-        <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
+      <div className="hidden lg:block bg-transparent rounded-sm p-0 space-y-3.5 border-0">
+        <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
           <span>Subtotal</span>
           <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
         {totalSavings > 0 && (
-          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
+          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
             <span>Savings</span>
-            <span className="font-semibold text-[#189351] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         )}
-        {appliedCoupon && (
-          <div className="flex justify-between items-center font-figtree text-base text-[#189351]">
+        <div className="flex justify-between items-center font-figtree text-base">
+          <span className={appliedCoupon ? "text-[#189351] font-semibold uppercase tracking-wide" : "text-[#000000]"}>
+            {appliedCoupon ? "Coupon Applied" : "Coupon Discount"}
+          </span>
+          {appliedCoupon ? (
             <div className="flex items-center gap-2">
-              <span className="font-semibold uppercase tracking-wide">{`Coupon (${couponDetails.code})`}</span>
+              <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               <button
                 onClick={handleRemoveCoupon}
                 className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
@@ -629,17 +607,24 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 (Remove)
               </button>
             </div>
-            <span className="font-semibold whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-          </div>
-        )}
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsCouponDrawerOpen(true)}
+              className="font-semibold text-[#5A413F] hover:underline"
+            >
+              Apply Coupon
+            </button>
+          )}
+        </div>
         {goldCoinItem && (
-          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
+          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
             <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-            <span className="font-semibold text-[#189351]">₹ 0</span>
+            <span className="font-semibold text-[#00A63E]">₹ 0</span>
           </div>
         )}
         {silverPendantItem && (
-          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
+          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
             <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
             <div className="flex items-center gap-2">
               {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
@@ -647,48 +632,62 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                   ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </span>
               )}
-              <span className="font-semibold text-[#189351]">₹ 0</span>
+              <span className="font-semibold text-[#00A63E]">₹ 0</span>
             </div>
           </div>
         )}
         {insuranceItem && (
-          <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
+          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
             <span>Insurance</span>
             <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
         )}
-        <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
+        <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
           <span>Shipping (Standard)</span>
-          <span className="font-semibold text-[#189351]">Free</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[#00A63E]">Free</span>
+            <span className="text-sm text-gray-400 line-through font-normal">₹ {SHIPPING_ORIGINAL_VALUE}</span>
+          </div>
         </div>
 
         <div className="border-t border-[#EADFD8] mt-4 pt-4 flex justify-between items-center">
           <span className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
           <span className="font-figtree text-xl font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
+
+        {totalSavingsBanner > 0 && (
+          <div className="mt-4 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
+            <span className="font-figtree text-[14px] font-medium text-[#00A63E] block">
+              You will save <span className="font-semibold no-underline">₹{totalSavingsBanner.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Mobile Order Summary (LG Hidden) */}
       <div ref={breakdownRef} className="lg:hidden scroll-mt-20 space-y-3">
-        <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-1">Order Summary</h3>
-        <div className="bg-white rounded-sm p-4 space-y-3 border border-[#EADFD8]">
-          <div className="space-y-2.5">
-            <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
+        <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-0 mb-[14px]">Order Summary</h3>
+        <div className="bg-white rounded-sm space-y-3 border-0 p-0">
+          <div className="mb-3">
+            <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
               <span>Subtotal</span>
               <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
 
             {totalSavings > 0 && (
-              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
+              <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
                 <span>Savings</span>
-                <span className="font-semibold text-[#189351] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
-            {appliedCoupon && (
-              <div className="flex justify-between font-figtree text-sm items-center text-[#189351]">
+            <div className="flex justify-between font-figtree text-[12px] items-center mb-2 leading-[1.4]">
+              <span className={appliedCoupon ? "font-semibold uppercase tracking-wide text-[#189351]" : "text-black"}>
+                {appliedCoupon ? "Coupon Applied" : "Coupon Discount"}
+              </span>
+              {appliedCoupon ? (
                 <div className="flex items-center gap-1.5">
-                  <span className="font-semibold uppercase tracking-wide">{`Coupon (${couponDetails.code})`}</span>
+                  <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                   <button
                     onClick={handleRemoveCoupon}
                     className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
@@ -696,48 +695,66 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                     (Remove)
                   </button>
                 </div>
-                <span className="font-semibold whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-              </div>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsCouponDrawerOpen(true)}
+                  className="font-semibold text-[#5A413F] hover:underline"
+                >
+                  Apply Coupon
+                </button>
+              )}
+            </div>
 
             {goldCoinItem && (
-              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
+              <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
                 <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-                <span className="font-semibold text-[#189351]">₹ 0</span>
+                <span className="font-semibold text-[#00A63E]">₹ 0</span>
               </div>
             )}
 
             {silverPendantItem && (
-              <div className="flex justify-between items-center font-figtree text-sm text-[#6B5B54]">
+              <div className="flex justify-between items-center font-figtree text-[12px] text-black mb-2 leading-[1.4]">
                 <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
                 <div className="flex items-center gap-2">
                   {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
-                    <span className="text-xs text-gray-400 line-through font-normal">
+                    <span className="text-[10px] text-gray-400 line-through font-normal">
                       ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                     </span>
                   )}
-                  <span className="font-semibold text-[#189351]">₹ 0</span>
+                  <span className="font-semibold text-[#00A63E]">₹ 0</span>
                 </div>
               </div>
             )}
 
             {insuranceItem && (
-              <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
+              <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
                 <span>Insurance</span>
                 <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
-            <div className="flex justify-between font-figtree text-sm text-[#6B5B54]">
+            <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
               <span>Shipping (Standard)</span>
-              <span className="font-semibold text-[#189351]">Free</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-[#00A63E]">Free</span>
+                <span className="text-[11px] text-gray-400 line-through font-normal">₹ {SHIPPING_ORIGINAL_VALUE}</span>
+              </div>
             </div>
           </div>
 
-          <div className="border-t border-[#EADFD8] pt-3 flex justify-between items-center">
-            <span className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
-            <span className="font-figtree text-lg font-bold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          <div className="border-t-[1.5px] border-[#E7E7E7] pt-3 flex justify-between items-center">
+            <span className="font-figtree text-[16px] font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
+            <span className="font-figtree text-[16px] font-semibold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
+
+          {totalSavingsBanner > 0 && (
+            <div className="mt-3 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
+              <span className="font-figtree text-[14px] font-medium text-[#00A63E] block">
+                You will save <span className="font-semibold no-underline">₹{totalSavingsBanner.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -838,7 +855,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             <h4 className="font-figtree font-semibold text-[#3D2B28] text-sm md:text-base mb-1.5 uppercase tracking-wide">
               Login to Unlock Coupons
             </h4>
-            <p className="font-figtree text-xs md:text-sm text-[#6B5B54] mb-4">
+            <p className="font-figtree text-xs md:text-sm text-[#000000] mb-4">
               Login or register to access members-only discounts and rewards.
             </p>
             <Button
@@ -868,7 +885,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             {/* Every card is disabled — say why rather than leaving a dead list */}
             {!appliedCoupon && applicableCouponCodes.length === 0 && items.length > 0 && (
               <div className="rounded-sm border border-[#EADFD8] bg-white px-3.5 py-2.5">
-                <p className="font-figtree text-xs font-medium leading-[1.4] text-[#6B5B54]">
+                <p className="font-figtree text-xs font-medium leading-[1.4] text-[#000000]">
                   These coupons apply to diamond products only. Add a diamond product to unlock them.
                 </p>
               </div>
