@@ -112,11 +112,13 @@ export const sendOtpApi = (mobile) =>
 
 /* ================= VERIFY OTP ================= */
 
-export const verifyOtpApi = (mobile, otp, sessionId = null) =>
-  apiFetch("/api/auth/verify-otp", {
+export const verifyOtpApi = (mobile, otp, sessionId = null) => {
+  const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
+  return apiFetch("/api/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile, otp, sessionId }),
+    body: JSON.stringify({ mobile, otp, sessionId, sourcePage }),
   });
+};
 
 /* ================= REGISTER ================= */
 
@@ -129,14 +131,17 @@ export const checkCustomerApi = (payload) =>
     }),
   });
 
-export const registerCustomer = (payload) =>
-  apiFetch("/api/auth/register", {
+export const registerCustomer = (payload) => {
+  const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
+  return apiFetch("/api/auth/register", {
     method: "POST",
     body: JSON.stringify({ 
       ...payload, 
-      mobile: normalizeMobile(payload.mobile) 
+      mobile: normalizeMobile(payload.mobile),
+      sourcePage
     }),
   });
+};
 
 /* ================= SPIN THE WHEEL PRIZE ================= */
 
