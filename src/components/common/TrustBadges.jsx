@@ -52,23 +52,23 @@ export default function TrustBadges({ className = "" }) {
   ];
 
   return (
-    <div className={`grid w-full grid-cols-2 lg:grid-cols-4 bg-[#FAFAFA] lg:bg-white border-b lg:border-b-0 border-[#EBEBEB] ${className}`}>
+    <div className={`grid w-full grid-cols-2 lg:grid-cols-4 bg-[#FAFAFA] lg:bg-transparent border-b lg:border-b-0 border-[#EBEBEB] lg:max-w-[820px] ${className}`}>
       {trustBadges.map((badge, index) => {
         const borderClasses = 
-          index === 0 ? "border-r border-b lg:border-b-0 lg:border-r" :
-          index === 1 ? "border-b lg:border-b-0 lg:border-r" :
-          index === 2 ? "border-r lg:border-r" :
-          "lg:border-r";
+          index === 0 ? "border-r border-b" :
+          index === 1 ? "border-b" :
+          index === 2 ? "border-r" :
+          "";
 
         return (
           <div 
             key={index} 
-            className={`flex flex-col items-center justify-center gap-[10px] py-5 text-center border-[#EBEBEB] ${borderClasses}`}
+            className={`flex flex-col items-center justify-center gap-4 py-5 text-center border-[#EBEBEB] lg:!border-0 ${borderClasses}`}
           >
           <div className="flex items-center justify-center text-[#5A413F]">
             {badge.icon}
           </div>
-          <span className="text-[10px] lg:text-[11px] font-figtree font-normal text-black uppercase tracking-normal leading-none">
+          <span className="text-[10px] lg:text-[11px] font-figtree font-semibold text-black uppercase tracking-normal leading-none">
             {badge.text}
           </span>
         </div>

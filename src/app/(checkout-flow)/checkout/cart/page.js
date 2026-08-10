@@ -238,7 +238,7 @@ const filteredItems = items.filter(
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         <div className="flex flex-col gap-[14px]">
           <div className="flex items-center justify-between">
-            <span className="text-[22px] font-semibold text-black leading-none font-figtree tracking-tight">
+            <span className="text-[18px] font-semibold text-black leading-none font-figtree tracking-normal">
               ₹{finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
             </span>
             <button
