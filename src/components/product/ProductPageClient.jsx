@@ -1581,6 +1581,50 @@ export default function ProductPageClient({
       });
   }, [activeVariant, product.shopifyId, product.id]);
 
+  // Additional item (e.g. attached chain/material) sourced straight from the variant's
+  // DI-GoldPrice.variant_config metafield rather than the pricing API, since that engine
+  // doesn't know about this component.
+  const additionalItemInfo = useMemo(() => {
+    try {
+      const config = JSON.parse(activeVariant?.metafields?.variant_config || "{}");
+      const charges = Number(config.additional_item_charges || 0);
+      if (!config.additional_item_type || !charges) return null;
+      return {
+        type: config.additional_item_type,
+        weight: config.additional_item_weight,
+        charges,
+      };
+    } catch (e) {
+      return null;
+    }
+  }, [activeVariant]);
+
+  // Splice the additional item into the price breakup rows (right after Making Charges)
+  // and fold its charge into the displayed grand total, since the pricing API's total
+  // doesn't account for it.
+  const augmentedPriceBreakup = useMemo(() => {
+    const pb = priceBreakup?.price_breakup;
+    if (!pb || !additionalItemInfo) return pb;
+
+    const priceRows = [...(pb.price || [])];
+    const mcIndex = priceRows.findIndex((item) => item.label?.toLowerCase().includes("making charges"));
+    const newRow = { label: additionalItemInfo.type, value: `₹${formatPrice(additionalItemInfo.charges)}` };
+
+    if (mcIndex >= 0) {
+      priceRows.splice(mcIndex + 1, 0, newRow);
+    } else {
+      priceRows.push(newRow);
+    }
+
+    const currentTotalNumeric = parseFloat(String(pb.grand_total || "0").replace(/[^\d.]/g, "")) || 0;
+
+    return {
+      ...pb,
+      price: priceRows,
+      grand_total: `₹${formatPrice(currentTotalNumeric + additionalItemInfo.charges)}`,
+    };
+  }, [priceBreakup, additionalItemInfo]);
+
   // Toast notification on price update
   useEffect(() => {
     if (activeVariant && shouldToastVariantChangeRef.current) {
@@ -3396,7 +3440,7 @@ export default function ProductPageClient({
 
               <div ref={productDetailsRef} className="mt-8">
                 <PriceSavingsDetails
-                  priceBreakup={priceBreakup?.price_breakup}
+                  priceBreakup={augmentedPriceBreakup}
                   onTabChange={(tab) => {
                     if (tab === 'price') {
                       const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
