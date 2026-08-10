@@ -3438,6 +3438,38 @@ export default function ProductPageClient({
                     </div>
                   </div>
                 )}
+
+                {/* Other Material Card (beads, evil eye, steel, etc.) */}
+                {activeVariant?.metafields?.otherMaterials && activeVariant.metafields.otherMaterials.length > 0 && (
+                  <div className="bg-[#F9F9F9] rounded p-5 space-y-5 col-span-2">
+                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9.61794 18.625L11.4269 9.62529M11.4269 9.62529L18.4666 12.4908M11.4269 9.62529L6.44997 0.897371M8.96454 0.810074C8.14227 0.535717 7.24861 0.567263 6.44773 0.898916C5.64685 1.23057 4.99254 1.84006 4.60499 2.61542L1.00502 9.81518C0.612643 10.6 0.520397 11.5011 0.745622 12.3491C0.970847 13.1971 1.49804 13.9336 2.22811 14.4203L7.62806 18.0202C8.21945 18.4145 8.91434 18.6249 9.62514 18.6249C10.3359 18.6249 11.0308 18.4145 11.6222 18.0202L17.0222 14.4203C17.6791 13.9823 18.1737 13.3405 18.43 12.5938C18.6863 11.847 18.69 11.0367 18.4405 10.2877L16.6406 4.88784C16.4638 4.35761 16.1661 3.87581 15.7709 3.4806C15.3756 3.0854 14.8938 2.78764 14.3636 2.61092L8.96454 0.810074Z" stroke="#785754" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Other Material <Info size={14} className="text-gray-400 cursor-pointer ml-auto" />
+                    </div>
+
+                    <div className="flex gap-10 md:gap-16 overflow-x-auto pb-2 scrollbar-hide">
+                      {/* Labels Column */}
+                      <div className="space-y-3 shrink-0">
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Material :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Color :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
+                        <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Weight :</div>
+                      </div>
+
+                      {/* Values Columns */}
+                      {activeVariant.metafields.otherMaterials.map((m, i) => (
+                        <div key={`other-mat-col-${i}`} className="space-y-3 shrink-0">
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{m.material || "-"}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{m.color || "-"}</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{m.pieces || "1"}pcs</div>
+                          <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{m.weight || "0"}g</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
