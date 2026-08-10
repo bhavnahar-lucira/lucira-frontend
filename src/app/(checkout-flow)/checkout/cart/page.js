@@ -167,7 +167,7 @@ const filteredItems = items.filter(
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           
           {/* Left Column: Cart Items (60%) */}
-          <div className="grow lg:basis-[60%] lg:shrink-0 pt-[6px] pb-3 lg:py-10 lg:pr-12 bg-white">
+          <div className="grow lg:basis-[60%] lg:shrink-0 pt-[6px] pb-0 lg:py-10 lg:pr-12 bg-white">
             {/* Trust Badges (Mobile) */}
             <div className="lg:hidden flex items-center justify-center gap-10 pt-0 pb-[6px] border-b border-zinc-100 mb-4">
               <div className="flex items-center gap-3">
@@ -178,7 +178,7 @@ const filteredItems = items.filter(
                   height={64}
                   className="w-10 h-10 shrink-0 object-contain"
                 />
-                <span className="font-figtree text-[14px] font-bold text-black leading-tight">IGI Certified</span>
+                <span className="font-figtree text-[14px] font-semibold text-black leading-tight">IGI Certified</span>
               </div>
               <div className="flex items-center gap-3">
                 <Image
@@ -188,7 +188,7 @@ const filteredItems = items.filter(
                   height={64}
                   className="w-10 h-10 shrink-0 object-contain"
                 />
-                <span className="font-figtree text-[14px] font-bold text-black leading-tight">BSI Hallmarked</span>
+                <span className="font-figtree text-[14px] font-semibold text-black leading-tight">BSI Hallmarked</span>
               </div>
             </div>
 
@@ -225,7 +225,7 @@ const filteredItems = items.filter(
           <div className="w-full lg:basis-[40%] lg:shrink-0 relative" ref={summaryRef}>
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen bg-[#FAFAFA] border-l border-zinc-100 z-0" />
             
-            <div className="relative z-10 pt-0 pb-8 lg:py-10 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
+            <div className="relative z-10 pt-0 pb-8 lg:py-10 lg:pl-12 lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
               <div className="lg:sticky lg:top-6">
                 <CartSummary onPlaceOrder={handlePlaceOrder} breakdownRef={summaryBreakdownRef} />
               </div>

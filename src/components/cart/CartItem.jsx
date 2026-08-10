@@ -382,6 +382,17 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   const variantIdForUrl = item.variantId ? String(item.variantId).split('/').pop() : "";
   const productLink = item.handle ? `/products/${item.handle}${variantIdForUrl ? `?variant=${variantIdForUrl}` : ""}` : "#";
 
+  // Subtitle for the remove/move-to-wishlist modal — mirrors the category fallback used for GTM events.
+  const modalCategory = useMemo(() => {
+    const lowerTitle = (item.title || "").toLowerCase();
+    return item.type || (
+      (lowerTitle.includes("earring") || lowerTitle.includes("bali")) ? "Earrings" :
+        lowerTitle.includes("ring") ? "Rings" :
+          lowerTitle.includes("pendant") ? "Pendants" :
+            lowerTitle.includes("bracelet") ? "Bracelets" : formatMetal(item.karat, item.color)
+    );
+  }, [item.title, item.type, item.karat, item.color]);
+
   return (
     <>
       {/* DESKTOP DESIGN */}
@@ -617,7 +628,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
         <div className={`flex items-center gap-2 px-4 py-3 md:px-6 ${dispatchBgClass}`}>
           <Truck size={14} className={`shrink-0 ${statusClass}`} />
-          <span className={`font-figtree text-[12px] font-medium tracking-tight ${statusClass}`}>
+          <span className={`font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] ${statusClass}`}>
             {dispatchMessage}
           </span>
         </div>
@@ -759,7 +770,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
           <div className={`mt-3 flex items-center gap-2 rounded-[4px] px-3 py-2 ${dispatchBgClass}`}>
             <Truck size={13} className={`shrink-0 ${statusClass}`} />
-            <span className={`font-figtree text-[12px] font-medium tracking-tight ${statusClass}`}>
+            <span className={`font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] ${statusClass}`}>
               {dispatchMessage}
             </span>
           </div>
@@ -825,97 +836,92 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
       {/* Remove / Move to Wishlist Modal */}
       {showRemoveModal && mounted && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-end justify-center bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 lg:items-center">
-          <div className="bg-white rounded-[10px] w-full lg:w-[420px] overflow-hidden flex flex-col relative animate-in slide-in-from-bottom-full lg:slide-in-from-bottom-0 lg:zoom-in-95 duration-300 font-figtree">
-            {/* Close Button */}
-            <button
-              onClick={() => setShowRemoveModal(false)}
-              className="absolute top-4 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full text-[#969696] bg-[#f7f7f7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
-            >
-              <X size={18} strokeWidth={2.25} />
-            </button>
-
-            {/* Content Container */}
-            <div className="flex flex-col items-center py-[28px] px-[12px] rounded-[6px]">
-              {/* Text Content */}
-              <h3 className="font-abhaya text-[22px] font-bold text-primary text-center tracking-tight leading-tight mb-6">
-                {isBYJ ? "Remove this design?" : "Save this piece for later?"}
+          <div className="bg-white rounded-t-[16px] lg:rounded-[10px] w-full lg:w-[420px] overflow-hidden flex flex-col relative animate-in slide-in-from-bottom-full lg:slide-in-from-bottom-0 lg:zoom-in-95 duration-300 font-figtree">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-4">
+              <h3 className="font-abhaya text-[20px] font-bold text-primary tracking-tight leading-tight">
+                {isBYJ ? "Remove from Bag" : "Move from Bag"}
               </h3>
+              <button
+                onClick={() => setShowRemoveModal(false)}
+                className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full text-[#969696] bg-[#f7f7f7] transition-colors hover:bg-zinc-200 hover:text-zinc-700"
+              >
+                <X size={18} strokeWidth={2.25} />
+              </button>
+            </div>
 
-              {/* Product Row */}
-              <div className="flex items-center gap-4 w-full mb-8">
-                <div className="relative w-[72px] h-[72px] shrink-0 rounded-[10px] overflow-hidden border border-zinc-100 bg-[#F9F9F9]">
-                  <Image
-                    loader={isShopifyImage ? shopifyLoader : undefined}
-                    src={displayImage || "/images/product/1.jpg"}
-                    alt={item.title}
-                    width={72}
-                    height={72}
-                    className="w-full h-full object-contain p-1.5 mix-blend-multiply"
-                  />
-                </div>
-                <div className="min-w-0 flex-1 text-left">
-                  <h4 className="truncate font-figtree text-[14px] font-semibold text-zinc-900 leading-snug">
-                    {item.title}
-                  </h4>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className="font-figtree text-[15px] font-bold text-black">
-                      ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                    </span>
-                    {hasDiscount && (
-                      <span className="font-figtree text-[12px] text-zinc-400 line-through">
-                        ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                      </span>
-                    )}
-                  </div>
-                </div>
+            {/* Product Row */}
+            <div className="flex items-center gap-4 px-5 pb-5">
+              <div className="relative w-16 h-16 shrink-0 rounded-[10px] overflow-hidden border border-zinc-100 bg-[#F9F9F9]">
+                <Image
+                  loader={isShopifyImage ? shopifyLoader : undefined}
+                  src={displayImage || "/images/product/1.jpg"}
+                  alt={item.title}
+                  width={64}
+                  height={64}
+                  className="w-full h-full object-contain p-1.5 mix-blend-multiply"
+                />
               </div>
+              <div className="min-w-0 flex-1 text-left">
+                <h4 className="truncate font-figtree text-[14px] font-semibold text-zinc-900 leading-snug">
+                  {item.title}
+                </h4>
+                <p className="truncate font-figtree text-[12px] text-zinc-500 mt-1">
+                  {modalCategory}
+                </p>
+              </div>
+            </div>
 
-              {/* Actions */}
-              <div className="grid grid-cols-2 gap-3 w-full">
-                {isBYJ ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        handleRemove();
-                        setShowRemoveModal(false);
-                      }}
-                      disabled={removing}
-                      className="w-full h-12 bg-primary text-white font-bold text-[11px] lg:text-[12px] uppercase tracking-wider rounded-[6px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-tight px-2 disabled:opacity-50"
-                    >
-                      {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
-                    </button>
-                    <button
-                      onClick={() => setShowRemoveModal(false)}
-                      className="w-full h-12 text-zinc-500 font-bold text-[11px] lg:text-[12px] uppercase tracking-wider hover:bg-zinc-50 rounded-[6px] transition-colors flex items-center justify-center text-center leading-tight px-2 border border-transparent hover:border-zinc-200"
-                    >
-                      Keep it
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        handleMoveToWishlist();
-                        setShowRemoveModal(false);
-                      }}
-                      disabled={removing || movingToWishlist}
-                      className="w-full h-12 bg-primary text-white font-bold text-[11px] sm:text-[12px] uppercase tracking-wider rounded-[6px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-tight px-2 disabled:opacity-50"
-                    >
-                      {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "To Wishlist"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleRemove();
-                        setShowRemoveModal(false);
-                      }}
-                      disabled={removing || movingToWishlist}
-                      className="w-full h-12 text-zinc-500 font-bold text-[11px] sm:text-[12px] uppercase tracking-wider hover:bg-red-50 hover:text-red-500 rounded-[6px] transition-colors flex items-center justify-center text-center leading-tight px-2 border border-zinc-200 hover:border-red-200 disabled:opacity-50"
-                    >
-                      {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
-                    </button>
-                  </>
-                )}
-              </div>
+            {/* Confirmation Text */}
+            <p className="px-5 pb-6 font-figtree text-[13px] text-zinc-600 text-left">
+              Are you sure you want to remove this item from bag?
+            </p>
+
+            {/* Actions */}
+            <div className="grid grid-cols-2 gap-3 px-5 pb-5">
+              {isBYJ ? (
+                <>
+                  <button
+                    onClick={() => setShowRemoveModal(false)}
+                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[12px] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                  >
+                    Keep it
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleRemove();
+                      setShowRemoveModal(false);
+                    }}
+                    disabled={removing}
+                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[12px] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                  >
+                    {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      handleRemove();
+                      setShowRemoveModal(false);
+                    }}
+                    disabled={removing || movingToWishlist}
+                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[12px] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                  >
+                    {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleMoveToWishlist();
+                      setShowRemoveModal(false);
+                    }}
+                    disabled={removing || movingToWishlist}
+                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[12px] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                  >
+                    {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "Move to Wishlist"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>,

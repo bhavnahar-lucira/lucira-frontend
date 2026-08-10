@@ -117,7 +117,7 @@ export default function CartViewLiveBanner({ items }) {
               See every detail before you buy.
             </p>
           </div>
-          <span className="flex shrink-0 items-center justify-center gap-1.5 rounded-[6px] bg-[#5A413F] h-9 px-3 lg:px-5 font-figtree font-medium uppercase tracking-wider text-[11px] lg:text-[12px] text-white transition-transform active:scale-95">
+          <span className="flex shrink-0 items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-9 px-4 lg:px-5 font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] align-middle uppercase text-white transition-transform active:scale-95">
             <Video size={14} />
             View Live
           </span>
