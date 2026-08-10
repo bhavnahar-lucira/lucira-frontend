@@ -359,8 +359,8 @@ export default function SchemePaymentPage() {
     <div className="relative overflow-hidden bg-[linear-gradient(180deg,#fffdfc_0%,#f7f1ee_52%,#ffffff_100%)]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top_left,rgba(103,73,67,0.12),transparent_44%),radial-gradient(circle_at_top_right,rgba(154,123,113,0.10),transparent_38%)]" />
 
-      <div className="relative container mx-auto max-w-7xl px-4 pt-6 pb-28 md:py-10">
-        <div className="mb-8 md:mb-20">
+      <div className="relative container mx-auto max-w-7xl px-4 pt-4 pb-28 md:pt-7 md:pb-10">
+        <div className="mb-5 md:mb-8">
           <div className="flex flex-wrap items-center gap-3 text-xs text-[#6f5a55]">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#d9cbc5] bg-white/90 px-3 py-1.5 shadow-sm">
               <ShieldCheck size={14} />
@@ -372,19 +372,24 @@ export default function SchemePaymentPage() {
             </span>
           </div>
 
-          <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-[#201815] md:text-4xl">
                 Complete your scheme payment
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#6f625f] md:text-base md:leading-7">
-                Choose a payment method and confirm your monthly premium. Your selected amount is locked in for this subscription and will be used for Razorpay checkout.
+              {/* Trimmed on mobile: the full sentence pushed the pay card out of
+                  the first fold on a 375px screen. */}
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f625f] md:mt-3 md:text-base md:leading-7">
+                Choose a payment method and confirm your monthly premium.
+                <span className="hidden md:inline">
+                  {" "}Your selected amount is locked in for this subscription and will be used for Razorpay checkout.
+                </span>
               </p>
             </div>
 
             <div className="hidden rounded-2xl border border-[#e7dad4] bg-white/90 px-4 py-3 shadow-[0_12px_35px_rgba(98,72,65,0.08)] md:block">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6c524d] text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
                   <Sparkles size={18} />
                 </div>
                 <div>
@@ -410,7 +415,7 @@ export default function SchemePaymentPage() {
                 <Button
                   onClick={handleInitiatePayment}
                   disabled={loading}
-                  className="h-11 shrink-0 rounded-2xl bg-[#6c524d] px-4 text-sm font-semibold tracking-wide text-white shadow-[0_12px_24px_rgba(108,82,77,0.25)] transition-all hover:bg-[#5f4945] active:scale-[0.99] cursor-pointer"
+                  className="h-11 shrink-0 rounded-2xl bg-primary px-4 text-sm font-semibold tracking-wide text-white shadow-[0_12px_24px_rgba(90,65,63,0.25)] transition-all hover:bg-primary/90 active:scale-[0.99] cursor-pointer"
                 >
                   {loading ? "..." : "Pay now"}
                 </Button>
@@ -431,7 +436,7 @@ export default function SchemePaymentPage() {
                   onClick={() => setMethod(m.id)}
                   className={`group cursor-pointer overflow-hidden border transition-all duration-200 ${
                     method === m.id
-                      ? "border-[#6c524d] bg-white shadow-[0_18px_40px_rgba(108,82,77,0.12)]"
+                      ? "border-primary bg-white shadow-[0_18px_40px_rgba(90,65,63,0.12)]"
                       : "border-[#eadfd9] bg-white shadow-[0_8px_24px_rgba(72,48,42,0.04)] hover:-translate-y-0.5 hover:border-[#cbb7b0] hover:shadow-[0_14px_30px_rgba(72,48,42,0.08)]"
                   }`}
                 >
@@ -439,7 +444,7 @@ export default function SchemePaymentPage() {
                     <div className="flex items-center gap-4">
                       <div
                         className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl transition-colors ${
-                          method === m.id ? "bg-[#6c524d] text-white" : "bg-[#f6f0ed] text-[#6c524d]"
+                          method === m.id ? "bg-primary text-white" : "bg-[#f6f0ed] text-primary"
                         }`}
                       >
                         <span aria-hidden="true">{m.icon}</span>
@@ -457,7 +462,7 @@ export default function SchemePaymentPage() {
                     <RadioGroupItem
                       value={m.id}
                       id={m.id}
-                      className="border-[#cdbcb5] text-[#6c524d] data-[state=checked]:border-[#6c524d] data-[state=checked]:text-[#6c524d]"
+                      className="border-[#cdbcb5] text-primary data-[state=checked]:border-primary data-[state=checked]:text-primary"
                     />
                   </CardContent>
                 </Card>
@@ -467,7 +472,7 @@ export default function SchemePaymentPage() {
             <div className="hidden gap-4 md:grid md:grid-cols-2">
               <div className="rounded-3xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_28px_rgba(72,48,42,0.05)]">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f6f0ed] text-[#6c524d]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f6f0ed] text-primary">
                     <WalletCards size={18} />
                   </div>
                   <div>
@@ -480,7 +485,7 @@ export default function SchemePaymentPage() {
 
               <div className="rounded-3xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_28px_rgba(72,48,42,0.05)]">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f6f0ed] text-[#6c524d]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f6f0ed] text-primary">
                     <ShieldCheck size={18} />
                   </div>
                   <div>
@@ -495,24 +500,24 @@ export default function SchemePaymentPage() {
             </div>
           </div>
 
-          <div className="h-fit lg:sticky lg:top-6">
-            <h2 className="mb-4 hidden text-lg font-semibold tracking-tight text-[#211815] md:block md:text-xl">Premium summary</h2>
+          <div className="h-fit lg:sticky lg:top-4">
+            <h2 className="mb-3 hidden text-lg font-semibold tracking-tight text-[#211815] md:block md:text-xl">Premium summary</h2>
             <Card className="overflow-hidden border-[#eadfd9] bg-[linear-gradient(180deg,#ffffff_0%,#faf6f4_100%)] shadow-[0_20px_55px_rgba(72,48,42,0.08)]">
               <CardContent className="p-0">
-                <div className="border-b border-[#eee2dc] px-5 py-5 md:px-7 md:py-7">
+                <div className="border-b border-[#eee2dc] px-5 py-5 md:px-6 md:py-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-sm text-[#8c7a75]">Monthly premium</p>
                       <p className="mt-2 text-2xl font-semibold tracking-tight text-[#201815] md:text-3xl">₹{formatINR(monthlyAmount)}</p>
                     </div>
-                    <div className="rounded-2xl bg-[#f3e8e4] px-3 py-2 text-xs font-medium text-[#6c524d]">
+                    <div className="rounded-2xl bg-[#f3e8e4] px-3 py-2 text-xs font-medium text-primary">
                       Locked amount
                     </div>
                   </div>
                 </div>
 
-                <div className="px-5 py-5 md:px-7 md:py-7">
-                  <div className="space-y-4 rounded-3xl border border-[#eadfd9] bg-white p-5 shadow-[0_10px_22px_rgba(72,48,42,0.04)]">
+                <div className="px-5 py-5 md:px-6 md:py-5">
+                  <div className="space-y-3 rounded-3xl border border-[#eadfd9] bg-white p-4 shadow-[0_10px_22px_rgba(72,48,42,0.04)]">
                     <div className="flex items-center justify-between text-sm md:text-base">
                       <span className="text-[#6f625f]">Due now</span>
                       <span className="font-semibold text-[#201815]">₹{formatINR(monthlyAmount)}</span>
@@ -532,13 +537,13 @@ export default function SchemePaymentPage() {
                   <Button
                     onClick={handleInitiatePayment}
                     disabled={loading}
-                    className="mt-6 hidden h-14 w-full rounded-2xl bg-[#6c524d] text-sm font-semibold tracking-wide text-white shadow-[0_14px_32px_rgba(108,82,77,0.28)] transition-all hover:bg-[#5f4945] active:scale-[0.99] cursor-pointer md:flex"
+                    className="mt-4 hidden h-14 w-full rounded-2xl bg-primary text-sm font-semibold tracking-wide text-white shadow-[0_14px_32px_rgba(90,65,63,0.28)] transition-all hover:bg-primary/90 active:scale-[0.99] cursor-pointer md:flex"
                   >
                     {loading ? "Processing..." : "PAY SECURELY"}
                   </Button>
 
-                  <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[#eadfd9] bg-[#fffdfc] px-4 py-3">
-                    <ShieldCheck className="mt-0.5 shrink-0 text-[#6c524d]" size={18} />
+                  <div className="mt-3 flex items-start gap-3 rounded-2xl border border-[#eadfd9] bg-[#fffdfc] px-4 py-3">
+                    <ShieldCheck className="mt-0.5 shrink-0 text-primary" size={18} />
                     <p className="text-xs leading-6 text-[#7b6d68]">
                       Secure Razorpay checkout. Your monthly scheme amount stays fixed for this subscription and will be charged automatically each month.
                     </p>
@@ -559,7 +564,7 @@ export default function SchemePaymentPage() {
           <Button
             onClick={handleInitiatePayment}
             disabled={loading}
-            className="h-12 shrink-0 rounded-2xl bg-[#6c524d] px-5 text-sm font-semibold tracking-wide text-white shadow-[0_14px_32px_rgba(108,82,77,0.28)] transition-all hover:bg-[#5f4945] active:scale-[0.99] cursor-pointer"
+            className="h-12 shrink-0 rounded-2xl bg-primary px-5 text-sm font-semibold tracking-wide text-white shadow-[0_14px_32px_rgba(90,65,63,0.28)] transition-all hover:bg-primary/90 active:scale-[0.99] cursor-pointer"
           >
             {loading ? "Processing..." : "PAY"}
           </Button>

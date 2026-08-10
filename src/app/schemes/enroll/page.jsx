@@ -258,19 +258,6 @@ export default function Enroll() {
 
   /* ===================== CREATE ENROLLMENT ===================== */
   const handleContinue = async () => {
-    // ✅ Form validation
-    if (!form.nominee_name.trim()) {
-      toast.error("Please enter nominee name");
-      nomineeNameRef.current?.focus();
-      return;
-    }
-
-    if (!form.nominee_age || String(form.nominee_age).trim() === "") {
-      toast.error("Please enter nominee age");
-      nomineeAgeRef.current?.focus();
-      return;
-    }
-
     try {
       setLoading(true);
       toast.loading("Updating your details...");
@@ -337,17 +324,17 @@ export default function Enroll() {
   return (
     <div className="w-full bg-[#fafafa] min-h-screen">
       {/* Progress Stepper */}
-      <div className="w-full bg-white border-b py-4 px-6 sticky top-0 z-20">
+      <div className="w-full bg-white border-b py-2.5 md:py-3.5 px-6 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-center gap-4 md:gap-8">
           {STEPS.map((step, idx) => (
             <div key={step.id} className="flex items-center gap-2 md:gap-4">
               <div className={`flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-full text-xs md:text-sm font-semibold transition-colors duration-300 ${
-                step.completed ? "bg-green-600 text-white" : 
-                step.active ? "bg-black text-white" : "bg-gray-200 text-gray-500"
+                step.completed ? "bg-success text-white" :
+                step.active ? "bg-primary text-white" : "bg-gray-200 text-gray-500"
               }`}>
                 {step.completed ? <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" /> : step.id}
               </div>
-              <span className={`text-[10px] md:text-sm font-medium whitespace-nowrap ${step.active ? "text-black" : "text-gray-400"}`}>
+              <span className={`text-[10px] md:text-sm font-medium whitespace-nowrap ${step.active ? "text-primary" : "text-gray-400"}`}>
                 {step.label}
               </span>
               {idx < STEPS.length - 1 && (
@@ -358,17 +345,17 @@ export default function Enroll() {
         </div>
       </div>
 
-      <section className="w-full max-w-7xl mx-auto px-4 md:px-6 mt-8 mb-40 md:mt-12 md:mb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_auto_1fr] gap-8 md:gap-16 items-start">
-          
+      <section className="w-full max-w-7xl mx-auto px-4 md:px-6 mt-4 mb-40 md:mt-6 lg:mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_auto_1fr] gap-6 md:gap-12 items-start">
+
           {/* Left Section */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="w-full space-y-8"
+            className="w-full space-y-6"
           >
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900">
                 Complete Enrollment
               </h1>
@@ -385,13 +372,13 @@ export default function Enroll() {
                 </div>
                 <CardTitle className="text-lg font-semibold">Address Details</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-6">
+              <CardContent className="p-5 md:p-6 space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="address">Permanent Address</Label>
                   <Input 
                     id="address"
                     placeholder="Enter Full Address" 
-                    className="h-12 border-gray-200 focus:ring-black focus:border-black transition-all"
+                    className="h-12 border-gray-200 focus:ring-primary focus:border-primary transition-all"
                     value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })} 
                   />
@@ -403,7 +390,7 @@ export default function Enroll() {
                     <Input 
                       id="pincode"
                       placeholder="6-digit Pincode" 
-                      className="h-12 border-gray-200 focus:ring-black focus:border-black transition-all"
+                      className="h-12 border-gray-200 focus:ring-primary focus:border-primary transition-all"
                       value={form.pincode}
                       onChange={(e) => setForm({ ...form, pincode: e.target.value })}
                     />
@@ -413,7 +400,7 @@ export default function Enroll() {
                     <Input 
                       id="city"
                       placeholder="Enter City" 
-                      className="h-12 border-gray-200 focus:ring-black focus:border-black transition-all"
+                      className="h-12 border-gray-200 focus:ring-primary focus:border-primary transition-all"
                       value={form.city}
                       onChange={(e) => setForm({ ...form, city: e.target.value })}
                     />
@@ -426,7 +413,7 @@ export default function Enroll() {
                     <Input 
                       id="state"
                       placeholder="Enter State" 
-                      className="h-12 border-gray-200 focus:ring-black focus:border-black transition-all"
+                      className="h-12 border-gray-200 focus:ring-primary focus:border-primary transition-all"
                       value={form.state}
                       onChange={(e) => setForm({ ...form, state: e.target.value })}
                     />
@@ -447,13 +434,13 @@ export default function Enroll() {
                 </div>
                 <CardTitle className="text-lg font-semibold">Nominee Details</CardTitle>
               </CardHeader>
-              <CardContent className="p-6 space-y-6">
+              <CardContent className="p-5 md:p-6 space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="nominee_name">Nominee Full Name <span className="text-red-500">*</span></Label>
+                  <Label htmlFor="nominee_name">Nominee Full Name</Label>
                   <Input 
                     id="nominee_name"
                     placeholder="Enter Nominee Full Name" 
-                    className="h-12 border-gray-200 focus:ring-black focus:border-black transition-all"
+                    className="h-12 border-gray-200 focus:ring-primary focus:border-primary transition-all"
                     ref={nomineeNameRef}
                     value={form.nominee_name}
                     onChange={(e) => setForm({ ...form, nominee_name: e.target.value })}
@@ -462,12 +449,12 @@ export default function Enroll() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="nominee_age">Nominee Age <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="nominee_age">Nominee Age</Label>
                     <Input 
                       id="nominee_age"
                       type="number"
                       placeholder="Age" 
-                      className="h-12 border-gray-200 focus:ring-black focus:border-black transition-all"
+                      className="h-12 border-gray-200 focus:ring-primary focus:border-primary transition-all"
                       ref={nomineeAgeRef}
                       value={form.nominee_age}
                       onChange={(e) => setForm({ ...form, nominee_age: e.target.value })}
@@ -480,7 +467,7 @@ export default function Enroll() {
                         value={form.nominee_relation}
                         onValueChange={(v) => setForm({ ...form, nominee_relation: v })}
                       >
-                        <SelectTrigger id="nominee_relation" className="h-12 border-gray-200 focus:ring-black focus:border-black" ref={nomineeRelationRef}>
+                        <SelectTrigger id="nominee_relation" className="h-12 border-gray-200 focus:ring-primary focus:border-primary" ref={nomineeRelationRef}>
                           <SelectValue placeholder="Select Relation" />
                         </SelectTrigger>
                         <SelectContent>
@@ -497,21 +484,6 @@ export default function Enroll() {
               </CardContent>
             </Card>
 
-            {/* Desktop Continue Button */}
-            <div className="hidden md:block pt-4">
-              <Button
-                disabled={loading}
-                className="w-full md:w-auto md:min-w-[200px] bg-black hover:bg-gray-800 text-white rounded-lg px-10 h-14 text-base font-bold tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                onClick={handleContinue}
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>PROCESSING...</span>
-                  </div>
-                ) : "CONTINUE TO PAYMENT"}
-              </Button>
-            </div>
           </motion.div>
 
           {/* Divider */}
@@ -523,46 +495,68 @@ export default function Enroll() {
             <div className="w-px bg-gray-200 h-full"></div>
           </div>
 
-          {/* Right Section - Premium Summary */}
+          {/* Right Section - Premium Summary.
+              Sticks just under the progress stepper so the summary and its CTA
+              stay on screen for the whole form. */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-full lg:sticky lg:top-32"
+            className="w-full lg:sticky lg:top-20"
           >
-            <EnrollSummary 
+            <EnrollSummary
               nominee_name={form.nominee_name}
               nominee_age={form.nominee_age}
               nominee_relation={form.nominee_relation}
               amount={amount}
               onAmountChange={setAmount}
+              cta={
+                /* Desktop CTA. Lives in the sticky column, right under the
+                   totals, so it lands in the first fold instead of below both
+                   form cards. Mobile keeps the fixed bottom bar below. */
+                <div className="hidden lg:block">
+                  <Button
+                    disabled={loading}
+                    className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-14 text-base font-bold tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                    onClick={handleContinue}
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>PROCESSING...</span>
+                      </div>
+                    ) : "CONTINUE TO PAYMENT"}
+                  </Button>
+                </div>
+              }
             />
           </motion.div>
 
-          {/* Mobile Continue Button (Fixed Bottom) */}
-          <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-5 z-30 md:hidden">
+          {/* Mobile + tablet Continue Button (Fixed Bottom). Runs up to lg,
+              where the summary column becomes sticky and carries the CTA. */}
+          <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-4 z-30 lg:hidden">
             <div className="max-w-7xl mx-auto flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <div className="flex flex-col">
                   <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
                     Monthly Premium
                   </span>
-                  <span className="text-xl font-bold text-black">
+                  <span className="text-xl font-bold text-primary">
                     ₹{formatINR(displayAmount)}
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] uppercase tracking-wider text-green-600 font-bold">
+                  <span className="text-[10px] uppercase tracking-wider text-success font-bold">
                     Bonus Applied
                   </span>
-                  <div className="flex items-center gap-1 text-sm font-semibold text-green-600">
+                  <div className="flex items-center gap-1 text-sm font-semibold text-success">
                     +1 Month Free
                   </div>
                 </div>
               </div>
               <Button
                 disabled={loading}
-                className="w-full bg-black text-white rounded-xl h-14 text-base font-bold tracking-wide shadow-lg active:scale-[0.98] transition-all disabled:opacity-60"
+                className="w-full bg-primary hover:bg-primary/90 text-white rounded-xl h-14 text-base font-bold tracking-wide shadow-lg active:scale-[0.98] transition-all disabled:opacity-60"
                 onClick={handleContinue}
               >
                 {loading ? "PLEASE WAIT..." : "CONTINUE"}

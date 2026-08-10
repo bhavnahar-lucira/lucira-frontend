@@ -239,22 +239,26 @@ export default function ShareIntentSheet({
             }}
             className="fixed bottom-0 left-0 right-0 z-[1001] bg-white rounded-t-[22px] shadow-[0_-8px_40px_rgba(90,65,63,0.18)] font-figtree lg:hidden"
           >
-            {/* Grabber */}
-            <div className="flex justify-center pt-2.5 pb-1">
+            {/* Header row: the grabber and the close control share it, so the
+                close button gets its own band instead of floating over the
+                product card that starts immediately below. Fixed height keeps
+                the 28px tap target fully inside the row. */}
+            <div className="relative flex h-9 items-start justify-center pt-2.5">
               <span className="h-1 w-9 rounded-full bg-[#DFD8D6]" />
+
+              {/* Kept even though the mockup omits it: the grabber is the only
+                  other affordance and it is not reachable by a screen reader.
+                  right-2.5 lines the icon up with the 16px content gutter. */}
+              <button
+                onClick={handleClose}
+                aria-label="Close"
+                className="absolute right-2.5 top-1 flex h-7 w-7 items-center justify-center rounded-full text-[#B5ABA8] active:bg-[#F7F3F2]"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {/* Kept even though the mockup omits it: the grabber is the only
-                other affordance and it is not reachable by a screen reader. */}
-            <button
-              onClick={handleClose}
-              aria-label="Close"
-              className="absolute right-3 top-3 p-1.5 rounded-full text-[#B5ABA8] active:bg-[#F7F3F2]"
-            >
-              <X size={18} />
-            </button>
-
-            <div className="px-4 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-1.5">
+            <div className="px-4 pb-[max(1.1rem,env(safe-area-inset-bottom))] pt-1">
               {/* What they're about to send */}
               <div className="flex items-center gap-3 rounded-[10px] border border-[#EFE7E5] bg-[#FDFBFA] p-2.5">
                 {image ? (
