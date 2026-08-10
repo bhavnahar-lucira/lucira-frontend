@@ -225,7 +225,7 @@ const filteredItems = items.filter(
           <div className="w-full lg:basis-[40%] lg:shrink-0 relative" ref={summaryRef}>
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
             
-            <div className="relative z-10 pt-0 pb-8 lg:py-10 lg:pl-12 lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
+            <div className="relative z-10 pt-0 pb-0 lg:py-10 lg:pl-12 lg:bg-transparent min-h-full rounded-3xl lg:rounded-none">
               <div className="lg:sticky lg:top-6">
                 <CartSummary onPlaceOrder={handlePlaceOrder} breakdownRef={summaryBreakdownRef} />
               </div>

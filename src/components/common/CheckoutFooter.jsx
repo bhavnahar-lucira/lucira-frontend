@@ -14,7 +14,14 @@ export default function CheckoutFooter() {
       <div className="container-main !px-0 lg:!px-12 flex flex-col lg:flex-row items-center justify-between gap-5 lg:gap-8">
         
         {/* Left: Trust Badges */}
-        <TrustBadges className="lg:flex-1" />
+        <div className="w-full lg:flex-1 flex flex-col">
+          <div className="lg:hidden px-4 pt-6 pb-4 bg-white w-full border-b border-[#EBEBEB]">
+            <h3 className="text-[14px] font-medium text-black uppercase tracking-normal leading-none font-figtree">
+              Why Choose Lucira
+            </h3>
+          </div>
+          <TrustBadges />
+        </div>
 
         {/* Right: Payment Icons */}
         <div className="flex items-center gap-5 transition-all duration-300 flex-wrap justify-center pt-2 lg:pt-0 pb-[35px] lg:pb-0">
