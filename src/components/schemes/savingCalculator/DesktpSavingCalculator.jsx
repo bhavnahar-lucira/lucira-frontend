@@ -1,10 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Gift, Info, Loader2 } from "lucide-react";
+import { useState } from "react";
+import GiftTierSlider from "./GiftTierSlider";
+import { Info, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,44 +14,6 @@ import { fetchOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
 
 const PRESETS = [3000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
-
-const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top", onClick }) => {
-  const isActive = currentAmount >= value;
-  const left = ((value - min) / (max - min)) * 100;
-  
-  return (
-    <div 
-      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10 pointer-events-none"
-      style={{ left: `${left}%` }}
-    >
-      <div className={`absolute px-2 py-1 rounded-lg text-[9px] font-bold whitespace-nowrap transition-all duration-300 transform shadow-sm border ${
-        labelPosition === "top" ? "bottom-full mb-1" : "top-full mt-1"
-      } ${
-        isActive 
-          ? "bg-[#D1EAD0] text-[#008000] border-[#B8DAB6] scale-105" 
-          : "bg-white text-gray-500 border-gray-200 scale-100"
-      }`}>
-        {label}
-        <div className={`absolute left-1/2 -translate-x-1/2 w-1.5 h-1.5 rotate-45 border transition-colors duration-300 ${
-          labelPosition === "top" 
-            ? "-bottom-1 border-r border-b" 
-            : "-top-1 border-l border-t"
-        } ${
-          isActive ? "bg-[#D1EAD0] border-[#B8DAB6]" : "bg-white border-gray-200"
-        }`} />
-      </div>
-      <div 
-        onClick={onClick}
-        className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm border-2 cursor-pointer pointer-events-auto ${
-        isActive
-          ? "bg-[#009245] border-[#009245] text-white scale-110"
-          : "bg-white border-[#009245] text-[#009245] scale-100"
-      }`}>
-        <Gift size={16} strokeWidth={isActive ? 2 : 1.5} />
-      </div>
-    </div>
-  );
-};
 
 const RedemptionTooltip = ({ month, amount, discountPercent, giftValue }) => {
   const daysArrayMap = {
@@ -141,7 +101,7 @@ const RedemptionTooltip = ({ month, amount, discountPercent, giftValue }) => {
               (after {month}th month)
             </p>
           </div>
-          <p className="text-[#E67E22] font-bold text-base">
+          <p className="text-accent font-bold text-base">
             ₹{new Intl.NumberFormat("en-IN").format(totalValue)}
           </p>
         </div>
@@ -169,10 +129,8 @@ const DesktpSavingCalculator = () => {
 
   const initialAmount = getInitialAmount();
 
-  const inputRef = useRef(null);
   const [amountError, setAmountError] = useState("");
   const [amount, setAmount] = useState(initialAmount);
-  const [inputValue, setInputValue] = useState(String(initialAmount));
   const [isAgreed, setIsAgreed] = useState(true);
   const [localLoading, setLocalLoading] = useState(false);
 
@@ -212,21 +170,12 @@ const DesktpSavingCalculator = () => {
     return amt * (month - 1) + interest + gv;
   };
 
-  const normalizeValue = (val) => {
-    const num = Math.max(2000, Math.min(19000, Number(val)));
+  const formatINR = (value) => new Intl.NumberFormat("en-IN").format(value);
 
-    if (num % 500 !== 0) {
-      inputRef.current?.focus();
-      setAmountError("Amount must be in multiples of ₹500");
-      return;
-    }
-
-    setAmount(num);
-    setInputValue(String(num));
+  const selectAmount = (value) => {
+    setAmount(value);
     setAmountError("");
   };
-
-  const formatINR = (value) => new Intl.NumberFormat("en-IN").format(value);
 
   const activeIntervals = getActiveIntervals();
 
@@ -234,69 +183,55 @@ const DesktpSavingCalculator = () => {
     <section className="w-full max-w-7xl mx-auto px-6 mt-6 min-[1024px]:mt-20">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-10 md:gap-20 items-start">
         <div className="lg:sticky lg:top-28">
-          <h3 className="text-xl font-medium mb-8 tracking-wider text-center">
+          <h3 className="text-2xl font-abhaya font-bold mb-6 text-center text-gray-900">
             Adjust your monthly premium
           </h3>
-          <div className="flex gap-4 mb-8 justify-center items-center">
-            <div className="bg-gray-100 rounded-2xl px-8 py-4">
-              <p className="text-3xl font-semibold text-gray-900">
+          <div className="flex gap-4 mb-10 justify-center items-center">
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl px-10 py-4 text-center">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-gray-400 font-semibold mb-1">
+                Monthly premium
+              </p>
+              <p className="text-4xl font-semibold text-primary">
                 ₹{formatINR(amount)}
               </p>
             </div>
           </div>
 
-          <div className="relative mt-24 mb-12 h-6 flex items-center w-full">
-            {activeIntervals.map((inv, idx) => (
-              <GiftMilestone 
-                key={idx}
-                label={inv.label} 
-                value={inv.min} 
-                currentAmount={amount} 
-                min={2000} 
-                max={19000} 
-                labelPosition={idx % 2 === 0 ? "top" : "bottom"}
-                onClick={() => {
-                  setAmount(inv.min);
-                  setInputValue(String(inv.min));
-                  setAmountError("");
-                }}
-              />
-            ))}
-            <Slider
-              min={2000}
-              max={19000}
-              step={500}
-              value={[amount]}
-              onValueChange={([val]) => {
-                setAmount(val);
-                setInputValue(String(val));
-                setAmountError("");
-              }}
-              className=""
-            />
+          <GiftTierSlider
+            min={2000}
+            max={19000}
+            step={500}
+            amount={amount}
+            onChange={selectAmount}
+            intervals={activeIntervals}
+          />
+
+          <div className="flex items-center gap-4 my-8 text-gray-400">
+            <span className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs uppercase tracking-widest">Or</span>
+            <span className="h-px flex-1 bg-gray-200" />
           </div>
 
-          <div className="text-center my-6 text-gray-500">Or</div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
             {PRESETS.map((val) => (
-              <div
-                key={val}
-                onClick={() => {
-                  setAmount(val);
-                  setInputValue(String(val));
-                  setAmountError("");
-                }}
-                className={`h-12 cursor-pointer border-0 relative rounded-md flex justify-center items-center ${
-                  amount === val ? "text-white border bg-primary" : "bg-gray-100"
-                }`}
-              >
-                ₹{val.toLocaleString()}
+              <div key={val} className="relative">
                 {val === 10000 && (
-                  <span className="text-xs opacity-80 absolute left-1/2 top-0 transform -translate-x-1/2 pt-12 h-18 border border-primary w-full rounded-md text-primary flex justify-center items-center">
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm">
                     Popular
                   </span>
                 )}
+                <button
+                  type="button"
+                  onClick={() => selectAmount(val)}
+                  aria-pressed={amount === val}
+                  className={`h-12 w-full cursor-pointer rounded-card border text-base transition-all duration-200 ${
+                    amount === val
+                      ? "border-primary bg-primary text-white shadow-sm"
+                      : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  ₹{formatINR(val)}
+                </button>
               </div>
             ))}
           </div>
@@ -370,7 +305,7 @@ const DesktpSavingCalculator = () => {
             <Checkbox
               checked={isAgreed}
               onCheckedChange={(val) => setIsAgreed(!!val)}
-              className="border-black"
+              className="border-primary"
             />
             <span>
               I agree to{" "}
@@ -394,7 +329,7 @@ const DesktpSavingCalculator = () => {
         <div className="hidden lg:block w-px bg-gray-300 self-stretch"></div>
 
         <div className="flex flex-col">
-          <h3 className="text-xl font-medium mb-8 tracking-wider text-center">
+          <h3 className="text-2xl font-abhaya font-bold mb-6 text-center text-gray-900">
             Estimated Premium Summary
           </h3>
           <div className="bg-[#f9f6f4] rounded-2xl p-8 shadow-sm">
@@ -450,7 +385,7 @@ const DesktpSavingCalculator = () => {
 
               <div className="flex justify-between items-start">
                 <div className="flex gap-4">
-                  <div className="w-4 h-4 bg-[#008000] mt-1.5 shrink-0" />
+                  <div className="w-4 h-4 bg-success mt-1.5 shrink-0" />
                   <div>
                     <p className="text-base font-medium text-gray-900 leading-none">
                       Total Benefit Value
@@ -460,7 +395,7 @@ const DesktpSavingCalculator = () => {
                     </p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-[#008000]">
+                <p className="text-2xl font-bold text-success">
                   ₹{formatINR(totalReturns)}
                 </p>
               </div>
@@ -495,7 +430,7 @@ const DesktpSavingCalculator = () => {
                     <span className="text-black font-bold text-[13px]">
                       {item.month}th Month
                     </span>
-                    <span className="text-[#E67E22] font-bold text-base mt-1">
+                    <span className="text-accent font-bold text-base mt-1">
                       ₹
                       {new Intl.NumberFormat("en-IN").format(
                         getTotalValue(item.month, amount, item.discount)

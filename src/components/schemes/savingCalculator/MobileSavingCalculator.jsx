@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Slider } from "@/components/ui/slider";
-import { Info, ChevronRight, Gift, Loader2 } from "lucide-react";
+import GiftTierSlider from "./GiftTierSlider";
+import { Info, ChevronRight, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -24,42 +24,6 @@ import { fetchOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
 
 const PRESETS = [3000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
-
-const GiftMilestone = ({ label, value, currentAmount, min, max, labelPosition = "top", onClick }) => {
-  const isActive = currentAmount >= value;
-  const left = ((value - min) / (max - min)) * 100;
-  
-  return (
-    <div 
-      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center group transition-all duration-300 z-10 pointer-events-none"
-      style={{ left: `${left}%` }}
-    >
-      <div className={`absolute px-2 py-0.5 rounded-full text-[6px] font-bold whitespace-nowrap transition-all duration-300 shadow-sm border ${
-        labelPosition === "top" ? "bottom-full mb-2.5" : "top-full mt-2.5"
-      } ${
-        isActive 
-          ? "bg-[#D1EAD0] text-black border-[#B8DAB6] scale-105" 
-          : "bg-white text-black border-gray-200 scale-95"
-      }`}>
-        {label}
-      </div>
-
-      <div 
-        onClick={onClick}
-        className={`relative flex items-center justify-center transition-all duration-300 rounded-full shadow-md border-2 cursor-pointer pointer-events-auto ${
-        isActive
-          ? "w-6 h-6 bg-[#009245] border-white text-white z-20 scale-110"
-          : "w-5.5 h-5.5 bg-white border-gray-100 text-gray-300 z-10 scale-100"
-      }`}>
-        <Gift size={isActive ? 12 : 10} strokeWidth={isActive ? 2.5 : 1.5} />
-      </div>
-
-      <div className={`w-0.5 h-2 bg-gray-200 absolute ${
-        labelPosition === "top" ? "bottom-full mb-0.5" : "top-full mt-0.5"
-      }`} />
-    </div>
-  );
-};
 
 export default function MobileSavingCalculator() {
   const [isAgreed, setIsAgreed] = useState(true);
@@ -105,6 +69,11 @@ export default function MobileSavingCalculator() {
 
   const formatINR = (value) => new Intl.NumberFormat("en-IN").format(value);
 
+  const selectAmount = (value) => {
+    setAmount(value);
+    setAmountError("");
+  };
+
   const activeIntervals = getActiveIntervals();
 
   const redemptionData = [
@@ -120,67 +89,51 @@ export default function MobileSavingCalculator() {
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 space-y-7">
         {/* HEADER */}
         <div className="text-center space-y-3">
-          <p className="text-[10px] tracking-[0.2em] text-gray-400 uppercase font-medium">
+          <p className="text-[10px] tracking-[0.2em] text-gray-400 uppercase font-semibold">
             Adjust your monthly premium
           </p>
 
           <div className="bg-gray-50 rounded-2xl py-4 border border-gray-100">
-            <p className="text-4xl font-bold text-gray-900">₹{formatINR(amount)}</p>
-          </div>
-        </div>
-{/* SLIDER */}
-<div className="space-y-6 px-1 pt-6 pb-2">
-  <div className="relative mb-10 h-12 flex items-center w-full">
-    {activeIntervals.map((inv, idx) => (
-      <GiftMilestone 
-        key={idx}
-        label={inv.label} 
-        value={inv.min} 
-        currentAmount={amount} 
-        min={2000} 
-        max={19000} 
-        labelPosition={idx % 2 === 0 ? "top" : "bottom"}
-        onClick={() => {
-          setAmount(inv.min);
-          setAmountError("");
-        }}
-      />
-    ))}
-    <Slider
-      min={2000}
-      max={19000}
-      step={500}
-      value={[amount]}
-      onValueChange={([val]) => {
-        setAmount(val);
-        setAmountError("");
-      }}
-      className="relative z-0"
-    />
-  </div>
-          <div className="flex justify-between text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-2">
-            <span>Min ₹2,000</span>
-            <span>Max ₹19,000</span>
+            <p className="text-4xl font-bold text-primary">₹{formatINR(amount)}</p>
           </div>
         </div>
 
+        {/* SLIDER */}
+        <div className="px-1 pt-2">
+          <GiftTierSlider
+            min={2000}
+            max={19000}
+            step={500}
+            amount={amount}
+            onChange={selectAmount}
+            intervals={activeIntervals}
+            compact
+          />
+        </div>
+
         {/* PRESETS */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-2 pt-2">
           {PRESETS.map((val) => (
-            <button
-              key={val}
-              onClick={() => {
-                setAmount(val);
-              }}
-              className={`h-11 rounded-xl text-xs font-semibold transition-all
-                ${
-                  amount === val
-                    ? "text-white bg-black shadow-md"
-                    : "bg-gray-50 text-gray-600 border border-gray-100"
-                }`}
-            >
-              ₹{formatINR(val)}
-            </button>
+            <div key={val} className="relative">
+              {val === 10000 && (
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 rounded-full bg-accent px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-white shadow-sm">
+                  Popular
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => selectAmount(val)}
+                aria-pressed={amount === val}
+                className={`h-11 w-full rounded-xl border text-xs font-semibold transition-all
+                  ${
+                    amount === val
+                      ? "border-primary bg-primary text-white shadow-md"
+                      : "border-gray-100 bg-gray-50 text-gray-600"
+                  }`}
+              >
+                ₹{formatINR(val)}
+              </button>
+            </div>
           ))}
         </div>
       </div>
@@ -243,7 +196,7 @@ export default function MobileSavingCalculator() {
 
           <div className="flex justify-between items-start">
             <div className="flex gap-3">
-              <div className="w-3.5 h-3.5 bg-[#008000] mt-0.5 rounded-sm shrink-0" />
+              <div className="w-3.5 h-3.5 bg-success mt-0.5 rounded-sm shrink-0" />
               <div>
                 <p className="text-xs font-bold text-gray-800 leading-none">
                   Total Benefit Value
@@ -253,7 +206,7 @@ export default function MobileSavingCalculator() {
                 </p>
               </div>
             </div>
-            <p className="text-lg font-bold text-[#008000]">₹{formatINR(totalReturns)}</p>
+            <p className="text-lg font-bold text-success">₹{formatINR(totalReturns)}</p>
           </div>
         </div>
       </div>
@@ -342,7 +295,7 @@ export default function MobileSavingCalculator() {
                       <span className="text-xs font-bold text-gray-900">
                         Jewellery Value
                       </span>
-                      <span className="text-lg font-bold text-[#E67E22]">
+                      <span className="text-lg font-bold text-accent">
                         ₹{formatINR(totalValue)}
                       </span>
                     </div>
@@ -353,7 +306,7 @@ export default function MobileSavingCalculator() {
           </div>
           <DrawerFooter className="pt-2 border-t">
             <DrawerClose asChild>
-              <button className="w-full bg-black text-white h-12 rounded-xl font-bold text-sm">
+              <button className="w-full bg-primary text-white h-12 rounded-xl font-bold text-sm">
                 Got it
               </button>
             </DrawerClose>
@@ -409,7 +362,7 @@ export default function MobileSavingCalculator() {
               <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
                 Total Returns
               </span>
-              <span className="text-xl font-bold text-green-600 block">
+              <span className="text-xl font-bold text-success block">
                 ₹{formatINR(totalReturns)}
               </span>
             </div>
@@ -466,7 +419,7 @@ export default function MobileSavingCalculator() {
             className={`w-full rounded-xl h-14 text-base font-bold tracking-wide shadow-lg active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center ${
               amountError || !isAgreed || localLoading
                 ? "bg-gray-300 text-gray-500"
-                : "bg-black text-white"
+                : "bg-primary text-white"
             }`}
           >
             {localLoading ? (

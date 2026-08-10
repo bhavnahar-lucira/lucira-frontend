@@ -1577,7 +1577,12 @@ export default function ProductPageClient({
         setPriceBreakup({ ...data, variantId: snapshotId });
       })
       .catch((err) => {
-        console.error("Pricing fetch failed", err);
+        if (err.message?.includes("not found")) {
+          // Standard static-priced items don't have dynamic configs, set to null
+          setPriceBreakup(null);
+        } else {
+          console.error("Pricing fetch failed", err);
+        }
       });
   }, [activeVariant, product.shopifyId, product.id]);
 
