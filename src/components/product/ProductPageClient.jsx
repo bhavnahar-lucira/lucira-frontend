@@ -1875,16 +1875,20 @@ export default function ProductPageClient({
     : Array.from(new Set(product.variants?.map(v => v.size) || []))
   ).sort((a, b) => parseFloat(a) - parseFloat(b));
 
-  // Get current display price from active variant or product, prioritized by dynamic breakup API if available
+  // Get current display price from active variant or product, prioritized by dynamic breakup API if available.
+  // The pricing API's totals don't know about the additional-item metafield (see
+  // additionalItemInfo/augmentedPriceBreakup above), so that charge is folded in here too -
+  // otherwise the headline price falls out of sync with the price breakup's Total. The
+  // activeVariant/product fallback is Shopify's own committed price and is left untouched.
   const currentPrice = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
-    ? priceBreakup.price
+    ? priceBreakup.price + (additionalItemInfo?.charges || 0)
     : (activeVariant ? activeVariant.price : product.price);
 
   // Static compare-at price from the variant/product (same source the AtcBar & ProductCard use).
   const staticComparePrice = Number(activeVariant ? activeVariant.compare_price : product.compare_price) || 0;
   // Dynamic pre-discount total from the pricing breakup, only when it matches the active variant.
   const dynamicOriginalTotal = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
-    ? Number(priceBreakup.raw_breakup?.original_total) || 0
+    ? (Number(priceBreakup.raw_breakup?.original_total) || 0) + (additionalItemInfo?.charges || 0)
     : 0;
   // Use whichever is higher so the cut price shows consistently for gold products where the
   // breakup's original_total is present but not greater than the (dynamic) selling price.
