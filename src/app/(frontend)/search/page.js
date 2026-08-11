@@ -123,8 +123,8 @@ export default function SearchPage() {
     else if (/\bbracelet(s)?\b/i.test(lowerQ)) detectedType = "Bracelets";
     else if (/\bpendant(s)?\b/i.test(lowerQ)) detectedType = "Pendants";
     else if (/\bbangle(s)?\b/i.test(lowerQ)) detectedType = "Bangles";
-    else if (/\bmangalsutra(s)?\b/i.test(lowerQ)) detectedType = "Mangalsutras";
-    else if (/\bnosering(s)?|nose pin(s)?|nose-pin(s)?\b/i.test(lowerQ)) detectedType = "Nose Pins";
+    else if (/\bmangal\s*sutra(s)?\b/i.test(lowerQ)) detectedType = "Mangalsutra";
+    else if (/\bnosering(s)?|nose pin(s)?|nose-pin(s)?\b/i.test(lowerQ)) detectedType = "Nosepins";
 
     if (detectedType) {
        const currentTypes = searchParams.getAll("filter.p.product_type");
