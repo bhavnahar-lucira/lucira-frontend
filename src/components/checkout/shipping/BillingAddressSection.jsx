@@ -104,8 +104,8 @@ export function BillingAddressSection({
       {isPickup ? (
         <h2 className="text-xl font-bold text-zinc-900">Billing Address</h2>
       ) : (
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-sm font-medium text-zinc-900">Billing Address same as Shipping Address</span>
+        <div className="flex items-center justify-between gap-4 mt-6">
+          <span className="text-[15px] font-figtree font-medium text-black">Billing Address same as Shipping Address</span>
           <ToggleSwitch
             checked={billingAddressMode === "same"}
             onCheckedChange={(checked) => setBillingMode(checked ? "same" : "different")}

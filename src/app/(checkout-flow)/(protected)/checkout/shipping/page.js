@@ -534,7 +534,7 @@ export default function ShippingPage() {
                           <button type="button" onClick={() => setShippingView("card")} className="text-zinc-500 hover:text-zinc-900">
                             <ChevronLeft className="size-5" />
                           </button>
-                          <h2 className="text-xl font-bold text-zinc-900">{dialogMode === "edit" ? "Edit Address" : "Shipping Address"}</h2>
+                          <h3 className="font-figtree text-[15px] font-medium text-black">{dialogMode === "edit" ? "Edit Address" : "Shipping Address"}</h3>
                         </div>
                         <AddressForm
                           form={addressForm}
@@ -556,7 +556,7 @@ export default function ShippingPage() {
                           <button type="button" onClick={() => setShippingView("card")} className="text-zinc-500 hover:text-zinc-900">
                             <ChevronLeft className="size-5" />
                           </button>
-                          <h2 className="text-xl font-bold text-zinc-900">All Addresses</h2>
+                          <h3 className="font-figtree text-[15px] font-medium text-black">All Addresses</h3>
                         </div>
                         <AddressListInline
                           addresses={addresses}
@@ -571,7 +571,8 @@ export default function ShippingPage() {
                         />
                       </div>
                     ) : (
-                      <>
+                      <div className="space-y-4">
+                        <h3 className="font-figtree text-[15px] font-medium text-black">Shipping Address</h3>
                         <AddressSummaryCard
                           address={selectedAddress}
                           onEdit={() => openEditDialog(selectedAddress)}
@@ -584,11 +585,11 @@ export default function ShippingPage() {
                             <p className="text-sm font-bold uppercase tracking-tight">We are not delivering product on this address</p>
                           </div>
                         )}
-                      </>
+                      </div>
                     )
                   ) : (
                     <div className="space-y-6">
-                      <h2 className="text-xl font-bold text-zinc-900">Shipping Address</h2>
+                      <h3 className="font-figtree text-[15px] font-medium text-black">Shipping Address</h3>
                       <AddressForm
                         form={addressForm}
                         onChange={updateForm}

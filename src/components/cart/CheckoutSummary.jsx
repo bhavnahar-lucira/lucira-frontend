@@ -362,78 +362,81 @@ export default function CheckoutSummary({
       )}
 
       {showBreakdown && (
-        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3 border-zinc-50 bg-white rounded-lg p-6">
-          <div className="flex justify-between text-sm text-zinc-900">
+        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3 bg-white rounded-sm p-6">
+          <div className="flex justify-between items-center font-figtree text-base text-[#000000] mb-2 leading-[1.4]">
             <span>Subtotal</span>
-            <span className="font-semibold text-zinc-900">₹{originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
           {totalSavings > 0 && (
-            <div className="flex justify-between text-sm text-zinc-900">
-              <span>Saving</span>
-              <span className="font-semibold text-[#189351]">- ₹{totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <div className="flex justify-between items-center font-figtree text-base text-[#000000] mb-2 leading-[1.4]">
+              <span>Savings</span>
+              <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
           {appliedCoupon && (
-            <div className="flex justify-between text-sm text-zinc-900">
-              <div className="flex items-center gap-2">
-                <span>Coupon Applied</span>
+            <div className="flex justify-between items-center font-figtree text-base text-[#000000] mb-2 leading-[1.4]">
+              <span className="font-semibold uppercase tracking-wide text-[#189351]">
+                Coupon Applied
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                 <button
                   onClick={removeCoupon}
-                  className="text-[10px] text-red-500 hover:underline uppercase tracking-tighter"
+                  className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
                 >
                   (Remove)
                 </button>
               </div>
-              <span className="font-semibold text-[#189351]">- ₹{couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
           {goldCoinItem && (
-            <div className="flex justify-between text-sm text-green-600">
-              <span>Free Gold Coin ({goldCoinItem.quantity})</span>
-              <span className="font-bold">₹ 0</span>
+            <div className="flex justify-between items-center font-figtree text-base text-[#000000] mb-2 leading-[1.4]">
+              <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
+              <span className="font-semibold text-[#00A63E]">₹ 0</span>
             </div>
           )}
           {isPendantActive && (
-            <div className="flex justify-between text-sm text-[#189351]">
-              <span className="font-medium">Free Silver Pendant</span>
+            <div className="flex justify-between items-center font-figtree text-base text-[#000000] mb-2 leading-[1.4]">
+              <span>Free Silver Pendant</span>
               <div className="flex items-center gap-2">
                 {pendantPrice > 0 && (
-                  <span className="text-[11px] text-zinc-400 line-through font-figtree">
-                    ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  <span className="text-sm text-gray-400 line-through font-normal">
+                    ₹ {pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                   </span>
                 )}
-                <span className="font-bold uppercase tracking-wide">FREE</span>
+                <span className="font-semibold text-[#00A63E]">₹ 0</span>
               </div>
             </div>
           )}
           {insuranceValue > 0 && (
-            <div className="flex justify-between text-sm text-zinc-600">
+            <div className="flex justify-between items-center font-figtree text-base text-[#000000] mb-2 leading-[1.4]">
               <span>Insurance</span>
-              <span className="font-bold">₹{insuranceValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span className="font-semibold text-[#3D2B28]">₹ {insuranceValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
           {nectorPoints && (
-            <div className="flex justify-between text-sm text-[#189351]">
-              <span className="font-bold uppercase tracking-wider">Redeemed {nectorPoints.coin_value} coins</span>
-              <span className="font-bold">- ₹ {nectorPoints.fiat_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <div className="flex justify-between items-center font-figtree text-base text-[#000000] mb-2 leading-[1.4]">
+              <span className="font-semibold uppercase tracking-wider text-[#189351]">Redeemed {nectorPoints.coin_value} coins</span>
+              <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {nectorPoints.fiat_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
-          <div className="flex justify-between text-sm text-zinc-900">
-            <span>Shipping</span>
+          <div className="flex justify-between items-center font-figtree text-base text-[#000000] mb-2 leading-[1.4]">
+            <span>Shipping (Standard)</span>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-[#189351]">Free</span>
-              <span className="text-zinc-400 line-through">₹500</span>
+              <span className="font-semibold text-[#00A63E]">Free</span>
+              <span className="text-sm text-gray-400 line-through font-normal">₹ 500</span>
             </div>
           </div>
-          <div className="border-t border-zinc-200 my-4 pt-4 flex justify-between items-center">
-            <span className="text-base font-bold text-zinc-900 uppercase">GRAND TOTAL</span>
-            <span className="text-lg font-bold text-zinc-900">₹{grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+          
+          <div className="border-t-[1.5px] border-[#E7E7E7] mt-4 pt-4 flex justify-between items-center">
+            <span className="font-figtree text-[16px] font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
+            <span className="font-figtree text-xl font-bold text-[#3D2B28]">₹ {grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
 
           {(totalSavings > 0 || couponDiscountAmount > 0) && (
-            <div className="mt-4 bg-[#EEF8F1] rounded-md p-3 text-center">
-              <span className="text-sm font-medium text-[#189351]">
-                You will save ₹{(totalSavings + couponDiscountAmount).toLocaleString('en-IN', { maximumFractionDigits: 0 })} on this order
+            <div className="mt-4 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
+              <span className="font-figtree text-[14px] font-medium text-[#00A63E] block">
+                You will save <span className="font-semibold no-underline">₹{(totalSavings + couponDiscountAmount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
               </span>
             </div>
           )}
