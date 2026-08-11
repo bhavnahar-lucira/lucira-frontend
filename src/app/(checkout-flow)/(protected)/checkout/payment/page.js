@@ -43,12 +43,8 @@ import { selectUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
-
 import { getStoredUtms, sendCheckoutCrmEvent } from "@/lib/checkout-crm";
-
 import { trackPaymentStep } from "@/lib/searchAnalytics";
-import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
-
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
