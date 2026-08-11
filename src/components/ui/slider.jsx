@@ -38,14 +38,14 @@ const Slider = React.forwardRef(
     const maxPercent = ((maxVal - min) / (max - min)) * 100;
 
     return (
-      <div ref={ref} className={cn("relative w-full h-5 flex items-center group", className)} {...props}>
+      <div ref={ref} className={cn("relative isolate w-full h-5 flex items-center group", className)} {...props}>
         {/* Track Background */}
-        <div className="absolute w-full h-1 bg-gray-300 rounded-full" />
-        
+        <div className="absolute w-full h-1 bg-gray-300 rounded-full pointer-events-none" />
+
         {/* Active Track (Theme Color) */}
-        <div 
-          className="absolute h-1 bg-primary rounded-full" 
-          style={{ 
+        <div
+          className="absolute h-1 bg-primary rounded-full pointer-events-none"
+          style={{
             left: isDual ? `${minPercent}%` : '0%', 
             right: isDual ? `${100 - maxPercent}%` : `${100 - minPercent}%` 
           }}
@@ -62,14 +62,22 @@ const Slider = React.forwardRef(
           onPointerUp={handleCommit}
           onKeyUp={handleCommit}
           className={cn(
-            "absolute w-full h-1 appearance-none bg-transparent pointer-events-none",
-            "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 sm:[&::-webkit-slider-thumb]:w-4 sm:[&::-webkit-slider-thumb]:h-4",
+            "absolute w-full h-1 appearance-none bg-transparent",
+            // A single slider owns the whole track, so let taps anywhere on it
+            // jump the handle. Dual sliders stack two inputs, so the top one
+            // must stay transparent or it swallows the other thumb's hits.
+            isDual ? "pointer-events-none" : "pointer-events-auto cursor-pointer",
+            "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 sm:[&::-webkit-slider-thumb]:w-5 sm:[&::-webkit-slider-thumb]:h-5",
             "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary",
-            "[&::-webkit-slider-thumb]:appearance-none",
-            "[&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 sm:[&::-moz-range-thumb]:w-4 sm:[&::-moz-range-thumb]:h-4",
+            "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-grab",
+            "[&::-webkit-slider-thumb]:shadow-[0_0_0_3px_#fff,0_1px_5px_rgba(0,0,0,0.25)]",
+            "[&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 sm:[&::-moz-range-thumb]:w-5 sm:[&::-moz-range-thumb]:h-5",
             "[&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary",
-            "[&::-moz-range-thumb]:appearance-none",
-            isDual && minVal > max - (max - min) * 0.1 ? "z-20" : "z-10" // Push to top if it's near the right edge
+            "[&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-grab",
+            "[&::-moz-range-thumb]:shadow-[0_0_0_3px_#fff,0_1px_5px_rgba(0,0,0,0.25)]",
+            // The handle must outrank anything a consumer paints over the track
+            // (tier ticks, gift markers), otherwise it disappears underneath them.
+            isDual && minVal > max - (max - min) * 0.1 ? "z-30" : "z-20" // Push to top if it's near the right edge
           )}
         />
 
@@ -86,13 +94,15 @@ const Slider = React.forwardRef(
             onKeyUp={handleCommit}
             className={cn(
               "absolute w-full h-1 appearance-none bg-transparent pointer-events-none",
-              "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 sm:[&::-webkit-slider-thumb]:w-4 sm:[&::-webkit-slider-thumb]:h-4",
+              "[&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 sm:[&::-webkit-slider-thumb]:w-5 sm:[&::-webkit-slider-thumb]:h-5",
               "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary",
-              "[&::-webkit-slider-thumb]:appearance-none",
-              "[&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 sm:[&::-moz-range-thumb]:w-4 sm:[&::-moz-range-thumb]:h-4",
+              "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-grab",
+              "[&::-webkit-slider-thumb]:shadow-[0_0_0_3px_#fff,0_1px_5px_rgba(0,0,0,0.25)]",
+              "[&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 sm:[&::-moz-range-thumb]:w-5 sm:[&::-moz-range-thumb]:h-5",
               "[&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary",
-              "[&::-moz-range-thumb]:appearance-none",
-              "z-10"
+              "[&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-grab",
+              "[&::-moz-range-thumb]:shadow-[0_0_0_3px_#fff,0_1px_5px_rgba(0,0,0,0.25)]",
+              "z-20"
             )}
           />
         )}

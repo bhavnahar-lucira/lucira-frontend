@@ -24,7 +24,11 @@ export default function EnrollSummary({
   nominee_relation,
   amount: controlledAmount,
   onAmountChange,
-}) {   
+  // Rendered directly under the totals card. The enroll page passes its
+  // desktop CTA here so the button sits inside the sticky column, high enough
+  // to stay in the first fold, instead of at the foot of the form.
+  cta = null,
+}) {
   
   /* ===================== REDUX ===================== */
   const customer = useSelector((s) => s.user?.user);
@@ -125,8 +129,8 @@ export default function EnrollSummary({
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-1">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-0.5">
         <h3 className="text-xl font-bold tracking-tight text-gray-900">
           Premium Summary
         </h3>
@@ -137,8 +141,8 @@ export default function EnrollSummary({
 
       {/* ===================== SUMMARY CARD ===================== */}
       <Card className="border-none bg-gradient-to-br from-[#FDFCFB] to-[#E2D1C3]/20 shadow-sm overflow-hidden">
-        <CardContent className="p-6 md:p-8 space-y-6">
-          <ul className="space-y-4">
+        <CardContent className="p-5 md:p-6 space-y-5">
+          <ul className="space-y-3.5">
             <motion.li 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -214,7 +218,7 @@ export default function EnrollSummary({
             )}
           </ul>
 
-          <div className="pt-6 mt-6 border-t border-dashed border-gray-300">
+          <div className="pt-5 mt-5 border-t border-dashed border-gray-300">
             <div className="flex justify-between items-end bg-white/50 p-4 rounded-xl border border-white">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
@@ -235,6 +239,8 @@ export default function EnrollSummary({
           </div>
         </CardContent>
       </Card>
+
+      {cta}
 
       {/* ===================== ADJUSTMENT AREA ===================== */}
       <Card className="border-none shadow-sm bg-white overflow-hidden">
@@ -257,14 +263,14 @@ export default function EnrollSummary({
                   value={inputValue || displayAmount}
                   onChange={(e) => setInputValue(e.target.value)}
                   onBlur={() => normalizeValue(inputValue || displayAmount)}
-                  className="text-lg font-bold h-12 pl-8 border-gray-200 focus:ring-black focus:border-black appearance-none
+                  className="text-lg font-bold h-12 pl-8 border-gray-200 focus:ring-primary focus:border-primary appearance-none
                     [&::-webkit-inner-spin-button]:appearance-none
                     [&::-webkit-outer-spin-button]:appearance-none transition-all"
                 />
               </div>
               <Button
                 size="lg"
-                className="h-12 bg-black hover:bg-gray-800 transition-all cursor-pointer px-6"
+                className="h-12 bg-primary hover:bg-primary/90 transition-all cursor-pointer px-6"
                 onClick={() => normalizeValue(inputValue || displayAmount)}
               >
                 UPDATE
@@ -285,7 +291,6 @@ export default function EnrollSummary({
                   onAmountChange?.(val);
                   await saveDraft(val);  
                 }}
-                className="**:data-[slot=slider-thumb]:size-6 **:data-[slot=slider-thumb]:border-4 **:data-[slot=slider-thumb]:border-white **:data-[slot=slider-thumb]:bg-black **:data-[slot=slider-thumb]:shadow-lg **:data-[slot=slider-thumb]:cursor-grab active:**:data-[slot=slider-thumb]:cursor-grabbing"
               />
               <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
                 <span>₹{formatINR(MIN_AMOUNT)}</span>
