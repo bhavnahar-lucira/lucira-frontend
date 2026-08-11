@@ -23,15 +23,15 @@ export default function CheckoutHeader() {
       {/* DESKTOP HEADER (LG) */}
       <header className="hidden lg:block border-b bg-white sticky top-0 z-50">
         <div className="container-main h-20 flex items-center justify-between">
-          
+
           {/* Left: Logo */}
           <div className="flex-1">
             <Link prefetch={false} href="/">
-              <Image 
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg" 
-                alt="Lucira" 
-                width={120} 
-                height={50} 
+              <Image
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
+                alt="Lucira"
+                width={120}
+                height={50}
                 priority
               />
             </Link>
@@ -47,9 +47,8 @@ export default function CheckoutHeader() {
                 return (
                   <div key={step.name} className="flex-1 flex flex-col items-center">
                     {/* Step Label */}
-                    <span className={`text-[11px] font-bold uppercase tracking-widest mb-2 font-figtree transition-colors duration-300 ${
-                      isActive ? "text-primary" : "text-zinc-400"
-                    }`}>
+                    <span className={`text-[11px] font-bold uppercase tracking-widest mb-2 font-figtree transition-colors duration-300 ${isActive ? "text-primary" : "text-zinc-400"
+                      }`}>
                       {step.name}
                     </span>
 
@@ -58,17 +57,16 @@ export default function CheckoutHeader() {
                       {/* Connector Line */}
                       {index < steps.length - 1 && (
                         <div className="absolute left-[50%] w-full h-px bg-zinc-200">
-                           <div 
-                            className="h-full bg-green-600 transition-all duration-500 ease-in-out" 
+                          <div
+                            className="h-full bg-green-600 transition-all duration-500 ease-in-out"
                             style={{ width: isCompleted ? '100%' : '0%' }}
                           />
                         </div>
                       )}
 
                       {/* Step Circle */}
-                      <div className={`w-4.5 h-4.5 rounded-full border-2 z-10 bg-white transition-colors duration-300 flex items-center justify-center ${
-                        isActive || isCompleted ? "border-green-600" : "border-zinc-300"
-                      }`}>
+                      <div className={`w-4.5 h-4.5 rounded-full border-2 z-10 bg-white transition-colors duration-300 flex items-center justify-center ${isActive || isCompleted ? "border-green-600" : "border-zinc-300"
+                        }`}>
                         {(isActive || isCompleted) && (
                           <div className="w-2 h-2 bg-green-600 rounded-full" />
                         )}
@@ -95,7 +93,7 @@ export default function CheckoutHeader() {
       {/* MOBILE HEADER (SM/MD) */}
       <header className="lg:hidden h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 sticky top-0 z-100">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => router.back()}
             className="p-2 -ml-2 text-zinc-800"
           >
@@ -104,20 +102,12 @@ export default function CheckoutHeader() {
         </div>
 
         <div className="absolute left-1/2 -translate-x-1/2 text-center">
-          <h1 className={
-            currentStep.name === "Cart" 
-              ? "font-figtree font-semibold text-xl leading-none tracking-[0.3px] align-middle text-black capitalize" 
-              : "text-[15px] font-bold text-[#443360] tracking-tight uppercase"
-          }>
+          <h1 className={"font-figtree font-semibold text-xl leading-none tracking-[0.3px] align-middle text-black capitalize"}>
             {currentStep.name === "Cart" ? "My Cart" : currentStep.name}
           </h1>
         </div>
 
-        <div className={
-          currentStep.name === "Cart"
-            ? "font-figtree font-medium text-sm leading-none tracking-[0px] align-middle text-zinc-400"
-            : "text-[12px] font-bold text-zinc-400 tracking-wider"
-        }>
+        <div className={"font-figtree font-medium text-sm leading-none tracking-[0px] align-middle text-zinc-400"}>
           {currentStepIndex + 1}/{steps.length}
         </div>
       </header>

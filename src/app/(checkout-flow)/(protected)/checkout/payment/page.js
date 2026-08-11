@@ -13,133 +13,30 @@ import {
   applyPoints,
   repriceCartForCheckout,
 } from "@/redux/features/cart/cartSlice";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ChevronLeft, Trash2, Plus, Loader2, X, Check } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
   apiFetch,
   completeRazorpayPayment,
   createRazorpayOrder,
-  deleteCustomerAddress,
-  fetchCheckoutAddressSelection,
-  fetchCustomerAddresses,
-  saveCheckoutAddressSelection,
-  selectDefaultCustomerAddress,
-  createCustomerAddress,
 } from "@/lib/api";
 import { getCookie } from "@/lib/utils";
-import { selectUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
 import { calculateCouponDiscount } from "@/lib/coupons";
-import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
+import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
-
-const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
-
-const emptyAddressForm = {
-  firstName: "",
-  lastName: "",
-  company: "",
-  address1: "",
-  address2: "",
-  city: "",
-  province: "",
-  zip: "",
-  country: "India",
-  phone: "",
-  gstin: "",
-};
-
-function normalizeAddressForm(address = {}, customer = {}) {
-  return {
-    ...emptyAddressForm,
-    firstName: address.firstName || customer.firstName || "",
-    lastName: address.lastName || customer.lastName || "",
-    company: address.company || "",
-    address1: address.address1 || "",
-    address2: address.address2 || "",
-    city: address.city || "",
-    province: address.province || "",
-    zip: address.zip || "",
-    country: address.country || "India",
-    phone: address.phone || "",
-    gstin: address.gstin || "",
-  };
-}
-
-function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, children, isMobile = false }) {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input placeholder="First name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="Last name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="Company (optional)" value={form.company} onChange={(e) => onChange("company", e.target.value)} className="h-12 border-zinc-200" />
-        {form.country.trim().toLowerCase() === "india" ? (
-          <Input
-            placeholder="GSTIN (optional, 15 characters)"
-            value={form.gstin}
-            onChange={(e) => onChange("gstin", e.target.value.toUpperCase())}
-            maxLength={15}
-            className="h-12 border-zinc-200"
-          />
-        ) : (
-          <div className="hidden md:block" />
-        )}
-        <div className="md:col-span-2">
-          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
-        </div>
-        <div className="md:col-span-2">
-          <Input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className="h-12 border-zinc-200" />
-        </div>
-        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="PIN code" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
-        <div className="md:col-span-2">
-          <Input
-            placeholder="Phone (10 digits) *"
-            value={form.phone}
-            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
-            className="h-12 border-zinc-200"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox id={`make-default-${isMobile ? 'mobile' : 'desktop'}`} checked={makeDefault} onCheckedChange={(checked) => onDefaultChange(Boolean(checked))} />
-        <label htmlFor={`make-default-${isMobile ? 'mobile' : 'desktop'}`} className="text-sm font-medium text-zinc-700 cursor-pointer">
-          Use this as my default shipping address
-        </label>
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <Button type="button" onClick={onSubmit} disabled={saving} className={`grow md:grow-0 md:w-auto h-14 md:h-12 bg-primary hover:bg-primary/90 text-white font-bold ${isMobile ? 'rounded-full uppercase tracking-widest' : ''}`}>
-          {saving ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
-        </Button>
-        {children}
-      </div>
-    </div>
-  );
-}
 
 function formatAddressPreview(address) {
   if (!address) return "";
@@ -152,55 +49,6 @@ function formatAddressPreview(address) {
   ]
     .filter(Boolean)
     .join(", ");
-}
-
-function formatAddressLines(address) {
-  if (!address) return [];
-
-  return [
-    address.address1,
-    address.address2,
-    [address.city, address.province, address.zip].filter(Boolean).join(", "),
-    address.country,
-  ].filter(Boolean);
-}
-
-function readStoredBillingSelection() {
-  if (typeof window === "undefined") {
-    return { billingAddressMode: "same", billingAddressId: "" };
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(BILLING_SELECTION_STORAGE_KEY);
-    const parsedValue = rawValue ? JSON.parse(rawValue) : null;
-    if (parsedValue?.billingAddressMode === "different" && parsedValue?.billingAddressId) {
-      return {
-        billingAddressMode: "different",
-        billingAddressId: parsedValue.billingAddressId,
-      };
-    }
-  } catch (error) {
-    console.error("Billing selection restore error:", error);
-  }
-
-  return { billingAddressMode: "same", billingAddressId: "" };
-}
-
-function persistBillingSelection(selection) {
-  if (typeof window === "undefined") return;
-
-  if (selection?.billingAddressMode === "different" && selection?.billingAddressId) {
-    window.localStorage.setItem(
-      BILLING_SELECTION_STORAGE_KEY,
-      JSON.stringify({
-        billingAddressMode: "different",
-        billingAddressId: selection.billingAddressId,
-      })
-    );
-    return;
-  }
-
-  window.localStorage.removeItem(BILLING_SELECTION_STORAGE_KEY);
 }
 
 function getCartSessionId() {
@@ -247,14 +95,6 @@ export default function PaymentPage() {
   const router = useRouter();
   const dispatch = useDispatch();
 
-  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
-  const [billingDialogOpen, setBillingDialogOpen] = useState(false);
-  const [addresses, setAddresses] = useState([]);
-  const [customer, setCustomer] = useState(null);
-  const [selectedAddressId, setSelectedAddressId] = useState("");
-  const [billingAddressMode, setBillingAddressMode] = useState("same");
-  const [selectedBillingAddressId, setSelectedBillingAddressId] = useState("");
-  const [billingAddressSnapshot, setBillingAddressSnapshot] = useState(null);
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
   // Seeded from the cart, not localStorage: the PDP offer popup sets the claim flag
@@ -283,21 +123,25 @@ export default function PaymentPage() {
     }
   };
 
-  const [addAddressDialogOpen, setAddAddressDialogOpen] = useState(false);
-  const [addressForm, setAddressForm] = useState(emptyAddressForm);
-  const [addressSaving, setAddressSaving] = useState(false);
-  const [makeDefault, setMakeDefault] = useState(false);
-
   const { user, accessToken } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
+
+  const { addresses, customer, selectedAddressId, selectedAddress, loadingAddresses } = useCustomerAddresses({ accessToken, user });
+  const { selectedBillingAddress } = useBillingAddress({
+    accessToken,
+    addresses,
+    loadingAddresses,
+    selectedAddressId,
+    selectedAddress,
+  });
 
   const diamondTotalForOffer = useMemo(() => {
     return (items || []).reduce((acc, item) => {
       const type = (item.type || item.productType || item.product_type || "").toLowerCase();
       const title = (item.title || "").toLowerCase();
       const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
-      
-      const isDiamond = type.includes("diamond") || title.includes("diamond") || 
+
+      const isDiamond = type.includes("diamond") || title.includes("diamond") ||
                         type.includes("solitaire") || title.includes("solitaire") ||
                         type.includes("gemstone") || title.includes("gemstone") ||
                         hasDiamondCharges;
@@ -306,12 +150,12 @@ export default function PaymentPage() {
       const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
-        item.properties?.['_byj_group_id'] || 
-        item.properties?.['_byj_preview'] || 
-        item.properties?.['_byj_parent'] || 
-        item.properties?.[' _byj_parent'] || 
-        item.tags?.includes('BYJ') || 
-        String(item.handle || "").toLowerCase().includes('byj') || 
+        item.properties?.['_byj_group_id'] ||
+        item.properties?.['_byj_preview'] ||
+        item.properties?.['_byj_parent'] ||
+        item.properties?.[' _byj_parent'] ||
+        item.tags?.includes('BYJ') ||
+        String(item.handle || "").toLowerCase().includes('byj') ||
         String(item.title || "").toLowerCase().includes('byj')
       );
 
@@ -335,7 +179,7 @@ export default function PaymentPage() {
     const baseItems = (items || []).filter(item => item.variantId !== SILVER_PENDANT_VARIANT_ID);
 
     if (!isEligibleForPendant || !isSilverPendantClaimed) return baseItems;
-    
+
     return [
       ...baseItems,
       {
@@ -362,23 +206,6 @@ export default function PaymentPage() {
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
   }, [items, totalAmount, appliedCoupon, nectorPoints]);
-
-  const selectedAddress = useMemo(
-    () => addresses.find((address) => address.id === selectedAddressId) || null,
-    [addresses, selectedAddressId]
-  );
-
-  const billingModeRef = useRef("same");
-  const billingAddressIdRef = useRef("");
-
-  const selectedBillingAddress = useMemo(() => {
-    if (billingAddressMode === "same") return selectedAddress;
-    return (
-      addresses.find((address) => address.id === selectedBillingAddressId) ||
-      billingAddressSnapshot ||
-      null
-    );
-  }, [addresses, billingAddressMode, selectedAddress, selectedBillingAddressId, billingAddressSnapshot]);
 
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
@@ -468,54 +295,6 @@ export default function PaymentPage() {
   }, [partialCodDetails.isEligible, selectedPaymentGateway]);
 
   useEffect(() => {
-    if (customer) {
-      setAddressForm(normalizeAddressForm({}, customer));
-    }
-  }, [customer]);
-
-  const updateAddressForm = (field, value) => {
-    setAddressForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleCreateNewAddress = async () => {
-    if (!addressForm.firstName.trim() || !addressForm.address1.trim() || !addressForm.city.trim() || !addressForm.zip.trim()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    setAddressSaving(true);
-    try {
-      const payload = await createCustomerAddress({
-        address: addressForm,
-        makeDefault,
-      }, accessToken);
-
-      applyAddressPayload(payload);
-
-      const newAddress = payload.addresses.find(a =>
-        a.address1 === addressForm.address1 && a.zip === addressForm.zip
-      ) || payload.addresses[payload.addresses.length - 1];
-
-      if (newAddress) {
-        handleSelectBillingAddress(newAddress.id);
-      }
-
-      setAddAddressDialogOpen(false);
-      setAddressForm(normalizeAddressForm({}, customer));
-      toast.success("Address added successfully");
-    } catch (error) {
-      toast.error(error.message || "Unable to add address");
-    } finally {
-      setAddressSaving(false);
-    }
-  };
-
-  const openAddNewAddress = () => {
-    setBillingDialogOpen(false);
-    setAddAddressDialogOpen(true);
-  };
-
-  useEffect(() => {
     if (nectorPoints) {
       const hasDiamondJewellery = items.some(item => {
         const type = (item.type || item.productType || item.product_type || "").toLowerCase();
@@ -545,144 +324,6 @@ export default function PaymentPage() {
       }
     }
   }, []);
-
-  useEffect(() => {
-    billingModeRef.current = billingAddressMode;
-  }, [billingAddressMode]);
-
-  useEffect(() => {
-    billingAddressIdRef.current = selectedBillingAddressId;
-  }, [selectedBillingAddressId]);
-
-  const applyAddressPayload = useCallback(
-    (payload, selection = null) => {
-      setAddresses(payload.addresses || []);
-      setCustomer(payload.customer || null);
-
-      const nextSelectedId = payload.defaultAddressId || payload.addresses?.[0]?.id || "";
-      const requestedBillingMode = selection?.billingAddressMode || billingModeRef.current;
-      const requestedBillingAddressId = selection?.billingAddressId || billingAddressIdRef.current;
-      const hasRequestedBillingAddress =
-        requestedBillingMode === "different" &&
-        (payload.addresses || []).some((address) => address.id === requestedBillingAddressId);
-      const resolvedBillingMode = hasRequestedBillingAddress ? "different" : "same";
-      const resolvedBillingAddressId = hasRequestedBillingAddress
-        ? requestedBillingAddressId
-        : nextSelectedId;
-      const currentAddress = (payload.addresses || []).find((address) => address.id === nextSelectedId) || null;
-      const currentBillingAddress = (payload.addresses || []).find((address) => address.id === resolvedBillingAddressId) || null;
-
-      billingModeRef.current = resolvedBillingMode;
-      billingAddressIdRef.current = resolvedBillingAddressId;
-      setSelectedAddressId(nextSelectedId);
-      setBillingAddressMode(resolvedBillingMode);
-      setSelectedBillingAddressId(resolvedBillingAddressId);
-      setBillingAddressSnapshot(currentBillingAddress || null);
-    },
-    []
-  );
-
-  const loadAddresses = useCallback(async () => {
-    try {
-      const storedSelection = readStoredBillingSelection();
-      const [payload, selection] = await Promise.all([
-        fetchCustomerAddresses(accessToken),
-        fetchCheckoutAddressSelection(accessToken),
-      ]);
-      const effectiveSelection =
-        selection?.billingAddressMode === "different" && selection?.billingAddressId
-          ? selection
-          : storedSelection;
-      applyAddressPayload(payload, effectiveSelection);
-    } catch (error) {
-      toast.error(error.message || "Unable to load addresses");
-    }
-  }, [applyAddressPayload, accessToken]);
-
-  useEffect(() => {
-    Promise.resolve().then(loadAddresses);
-  }, [loadAddresses]);
-
-  const handleSelectAddress = async (addressId) => {
-    try {
-      applyAddressPayload(await selectDefaultCustomerAddress(addressId, accessToken));
-      setAddressDialogOpen(false);
-      if (billingAddressMode === "same") {
-        setSelectedBillingAddressId(addressId);
-      }
-    } catch (error) {
-      toast.error(error.message || "Unable to select address");
-    }
-  };
-
-  const handleDeleteAddress = async (addressId) => {
-    try {
-      const payload = await deleteCustomerAddress(addressId, accessToken);
-      applyAddressPayload(payload);
-      if (selectedBillingAddressId === addressId) {
-        setSelectedBillingAddressId(payload.defaultAddressId || payload.addresses?.[0]?.id || "");
-        setBillingAddressMode("same");
-        setBillingAddressSnapshot(payload.addresses?.[0] || null);
-        billingModeRef.current = "same";
-        billingAddressIdRef.current = payload.defaultAddressId || payload.addresses?.[0]?.id || "";
-        persistBillingSelection({ billingAddressMode: "same" });
-        await saveCheckoutAddressSelection({ billingAddressMode: "same" }, accessToken);
-      }
-      toast.error("Address removed", {
-        icon: <Check className="w-4 h-4" />
-      });
-    } catch (error) {
-      toast.error(error.message || "Unable to remove address");
-    }
-  };
-
-  const handleSelectBillingAddress = async (addressId) => {
-    const nextBillingAddress = addresses.find((address) => address.id === addressId) || null;
-    billingModeRef.current = "different";
-    billingAddressIdRef.current = addressId;
-    setBillingAddressMode("different");
-    setSelectedBillingAddressId(addressId);
-    setBillingAddressSnapshot(nextBillingAddress);
-    setBillingDialogOpen(false);
-    persistBillingSelection({
-      billingAddressMode: "different",
-      billingAddressId: addressId,
-    });
-
-    try {
-      await saveCheckoutAddressSelection({
-        billingAddressMode: "different",
-        billingAddressId: addressId,
-      }, accessToken);
-    } catch (error) {
-      toast.error(error.message || "Unable to save billing address");
-    }
-  };
-
-  const handleBillingModeChange = async (value) => {
-    setBillingAddressMode(value);
-
-    if (value === "same") {
-      billingModeRef.current = "same";
-      billingAddressIdRef.current = selectedAddressId;
-      setSelectedBillingAddressId(selectedAddressId);
-      setBillingAddressSnapshot(selectedAddress);
-      persistBillingSelection({ billingAddressMode: "same" });
-      try {
-        await saveCheckoutAddressSelection({ billingAddressMode: "same" }, accessToken);
-      } catch (error) {
-        toast.error(error.message || "Unable to save billing preference");
-      }
-      return;
-    }
-
-    if (!selectedBillingAddressId) {
-      billingAddressIdRef.current = selectedAddressId;
-      setSelectedBillingAddressId(selectedAddressId);
-      setBillingAddressSnapshot(selectedAddress);
-    }
-    setBillingDialogOpen(true);
-  };
 
   const handlePayNow = async () => {
     if (selectedPaymentGateway === "partial_cod" && !partialCodDetails.isEligible) {
@@ -1145,73 +786,7 @@ export default function PaymentPage() {
     }
   };
 
-  const AddressListContent = ({ type }) => (
-    <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1 custom-scrollbar">
-      {addresses.map((address) => {
-        const isSelected = type === "shipping" ? selectedAddressId === address.id : selectedBillingAddress?.id === address.id;
-        return (
-          <div
-            key={`${type}-${address.id}`}
-            onClick={() => type === "shipping" ? handleSelectAddress(address.id) : handleSelectBillingAddress(address.id)}
-            role="button"
-            tabIndex={0}
-            className={`rounded-xl border p-4 text-left transition-all ${isSelected ? "border-accent bg-accent/10" : "border-zinc-200 bg-white"
-              }`}
-          >
-            <div className="flex items-start gap-3">
-              <input
-                type="radio"
-                name={`${type}-addresses`}
-                checked={isSelected}
-                onChange={() => { }}
-                className="mt-1 size-4 accent-black"
-              />
-              <div className="flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-zinc-900">
-                      {[address.firstName, address.lastName].filter(Boolean).join(" ") || "Saved address"}
-                    </h3>
-                    {address.isDefault && (
-                      <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                        Default
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      await handleDeleteAddress(address.id);
-                    }}
-                    className="rounded-full bg-white shadow border border-zinc-200 p-2 text-zinc-600 transition hover:border-red-200 hover:text-red-600"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-                <div className="mt-2 space-y-1 text-sm text-zinc-600">
-                  {formatAddressLines(address).map((line) => (
-                    <p key={`line-${address.id}-${line}`}>{line}</p>
-                  ))}
-                  {address.gstin && <p className="font-medium text-zinc-800">GSTIN: {address.gstin}</p>}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-      {type === "billing" && (
-        <Button
-          variant="outline"
-          onClick={openAddNewAddress}
-          className="w-full h-12 border-dashed border-2 border-zinc-200 text-zinc-500 hover:text-primary hover:border-primary transition-all flex items-center justify-center gap-2 font-bold"
-        >
-          <Plus size={18} />
-          Add new address
-        </Button>
-      )}
-    </div>
-  );
+  const shipToChangeHref = `/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`;
 
   return (
     <div className="bg-white min-h-screen overflow-x-hidden">
@@ -1225,10 +800,10 @@ export default function PaymentPage() {
             {!isDesktop && (
               <div className="space-y-10 px-4">
                 {/* 1. Lucira Coins Balance */}
-                <CheckoutSummary 
-                  showItems={false} 
-                  showBreakdown={false} 
-                  showContact={false} 
+                <CheckoutSummary
+                  showItems={false}
+                  showBreakdown={false}
+                  showContact={false}
                   isSilverPendantClaimed={isSilverPendantClaimed}
                   onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                 />
@@ -1320,24 +895,22 @@ export default function PaymentPage() {
                         <p>No shipping address selected</p>
                       )}
                     </div>
-                    <Link prefetch={false} href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
+                    <Link prefetch={false} href={shipToChangeHref} className="text-black font-semibold text-right underline">Change</Link>
                   </div>
-                  {!isPickup && (
-                    <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                      <span className="text-zinc-500 whitespace-nowrap">Bill to</span>
-                      <div className="text-zinc-900 font-medium">
-                        {selectedBillingAddress ? (
-                          <div className="space-y-1">
-                            <p className="line-clamp-2">{formatAddressPreview(selectedBillingAddress)}</p>
-                            {selectedBillingAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedBillingAddress.gstin}</p>}
-                          </div>
-                        ) : (
-                          <p>No billing address selected</p>
-                        )}
-                      </div>
-                      <button type="button" onClick={() => setBillingDialogOpen(true)} className="text-black font-semibold text-right underline">Change</button>
+                  <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
+                    <span className="text-zinc-500 whitespace-nowrap">Bill to</span>
+                    <div className="text-zinc-900 font-medium">
+                      {selectedBillingAddress ? (
+                        <div className="space-y-1">
+                          <p className="line-clamp-2">{formatAddressPreview(selectedBillingAddress)}</p>
+                          {selectedBillingAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedBillingAddress.gstin}</p>}
+                        </div>
+                      ) : (
+                        <p>No billing address selected</p>
+                      )}
                     </div>
-                  )}
+                    <Link prefetch={false} href={shipToChangeHref} className="text-black font-semibold text-right underline">Change</Link>
+                  </div>
                   <div className="p-4 grid grid-cols-[100px_1fr] items-center gap-4 text-sm">
                     <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Method" : "Shipping"}</span>
                     <span className="text-zinc-900 font-medium">
@@ -1346,43 +919,7 @@ export default function PaymentPage() {
                   </div>
                 </div>
 
-                {/* 5. Billing address selection */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-bold text-zinc-900 font-abhaya">Billing address</h2>
-                    <p className="text-sm font-figtree text-zinc-500">Select the address that matches your card.</p>
-                  </div>
-                  {isPickup ? (
-                    <div className="border border-zinc-100 rounded-xl overflow-hidden bg-white">
-                      <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          {selectedBillingAddress ? (
-                            <>
-                              <h4 className="font-bold text-zinc-900">{[selectedBillingAddress.firstName, selectedBillingAddress.lastName].filter(Boolean).join(" ")}</h4>
-                              <p className="text-sm text-zinc-500">{formatAddressPreview(selectedBillingAddress)}</p>
-                            </>
-                          ) : (
-                            <p className="text-sm text-zinc-500 italic">No billing address selected</p>
-                          )}
-                        </div>
-                        <Button variant="outline" onClick={() => setBillingDialogOpen(true)} className="border-zinc-200 text-zinc-800 font-bold">Select billing address</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <RadioGroup value={billingAddressMode} onValueChange={handleBillingModeChange} className="grid gap-0 border border-zinc-100 rounded-lg overflow-hidden bg-white">
-                      <div className={`p-5 flex items-center gap-3 border-b border-zinc-100 ${billingAddressMode === "same" ? "bg-accent/15" : ""}`}>
-                        <RadioGroupItem value="same" id="m-same" className="text-black border-zinc-300" />
-                        <Label htmlFor="m-same" className="font-medium text-zinc-900 cursor-pointer">Same as shipping address</Label>
-                      </div>
-                      <div className={`p-5 flex items-center gap-3 transition-all hover:bg-zinc-50/50 cursor-pointer ${billingAddressMode === "different" ? "bg-accent/15" : ""}`}>
-                        <RadioGroupItem value="different" id="m-different" className="text-black border-zinc-300" />
-                        <Label htmlFor="m-different" className="font-medium text-zinc-900 cursor-pointer">Use a different billing address</Label>
-                      </div>
-                    </RadioGroup>
-                  )}
-                </div>
-
-                {/* 6. CONTACT US FOR ASSISTANCE */}
+                {/* 5. CONTACT US FOR ASSISTANCE */}
                 <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} showSilverPendantOffer={false} />
               </div>
             )}
@@ -1412,65 +949,28 @@ export default function PaymentPage() {
                         <p>No shipping address selected</p>
                       )}
                     </div>
-                    <Link prefetch={false} href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
+                    <Link prefetch={false} href={shipToChangeHref} className="text-black font-semibold text-right underline">Change</Link>
                   </div>
-                  {!isPickup && (
-                    <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                      <span className="text-zinc-500 whitespace-nowrap">Bill to</span>
-                      <div className="text-zinc-900 font-medium">
-                        {selectedBillingAddress ? (
-                          <div className="space-y-1">
-                            <p className="line-clamp-2">{formatAddressPreview(selectedBillingAddress)}</p>
-                            {selectedBillingAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedBillingAddress.gstin}</p>}
-                          </div>
-                        ) : (
-                          <p>No billing address selected</p>
-                        )}
-                      </div>
-                      <button type="button" onClick={() => setBillingDialogOpen(true)} className="text-black font-semibold text-right underline">Change</button>
+                  <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
+                    <span className="text-zinc-500 whitespace-nowrap">Bill to</span>
+                    <div className="text-zinc-900 font-medium">
+                      {selectedBillingAddress ? (
+                        <div className="space-y-1">
+                          <p className="line-clamp-2">{formatAddressPreview(selectedBillingAddress)}</p>
+                          {selectedBillingAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedBillingAddress.gstin}</p>}
+                        </div>
+                      ) : (
+                        <p>No billing address selected</p>
+                      )}
                     </div>
-                  )}
+                    <Link prefetch={false} href={shipToChangeHref} className="text-black font-semibold text-right underline">Change</Link>
+                  </div>
                   <div className="p-4 grid grid-cols-[140px_1fr] items-center gap-4 text-sm">
                     <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Method" : "Shipping method"}</span>
                     <span className="text-zinc-900 font-medium">
                       {isPickup ? "Pickup" : "Shipping Rate"} · <span className="font-bold">{isPickup || isIndiaShipping ? "FREE" : "Calculated at next step"}</span>
                     </span>
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-bold text-zinc-900 font-abhaya">Billing address</h2>
-                    <p className="text-sm font-figtree text-zinc-500">Select the address that matches your card or payment method.</p>
-                  </div>
-                  {isPickup ? (
-                    <div className="border border-zinc-100 rounded-xl overflow-hidden bg-white">
-                      <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          {selectedBillingAddress ? (
-                            <>
-                              <h4 className="font-bold text-zinc-900">{[selectedBillingAddress.firstName, selectedBillingAddress.lastName].filter(Boolean).join(" ")}</h4>
-                              <p className="text-sm text-zinc-500">{formatAddressPreview(selectedBillingAddress)}</p>
-                            </>
-                          ) : (
-                            <p className="text-sm text-zinc-500 italic">No billing address selected</p>
-                          )}
-                        </div>
-                        <Button variant="outline" onClick={() => setBillingDialogOpen(true)} className="border-zinc-200 text-zinc-800 font-bold">Select billing address</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <RadioGroup value={billingAddressMode} onValueChange={handleBillingModeChange} className="grid gap-0 border border-zinc-100 rounded-lg overflow-hidden bg-white">
-                      <div className={`p-5 flex items-center gap-3 border-b border-zinc-100 ${billingAddressMode === "same" ? "bg-accent/15" : ""}`}>
-                        <RadioGroupItem value="same" id="same" className="text-black border-zinc-300" />
-                        <Label htmlFor="same" className="font-medium text-zinc-900 cursor-pointer">Same as shipping address</Label>
-                      </div>
-                      <div className={`p-5 flex items-center gap-3 transition-all hover:bg-zinc-50/50 cursor-pointer ${billingAddressMode === "different" ? "bg-accent/15" : ""}`}>
-                        <RadioGroupItem value="different" id="different" className="text-black border-zinc-300" />
-                        <Label htmlFor="different" className="font-medium text-zinc-900 cursor-pointer">Use a different billing address</Label>
-                      </div>
-                    </RadioGroup>
-                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -1550,7 +1050,7 @@ export default function PaymentPage() {
               <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
               <div className="relative z-10 py-10 px-4 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full">
                 <div className="lg:sticky lg:top-0">
-                  <CheckoutSummary 
+                  <CheckoutSummary
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                   />
@@ -1582,77 +1082,6 @@ export default function PaymentPage() {
           </Button>
         </div>
       </div>
-
-      {/* POPUPS */}
-      {isDesktop ? (
-        <>
-          <Dialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>All addresses</DialogTitle>
-                <DialogDescription>Select an address to use for shipping.</DialogDescription>
-              </DialogHeader>
-              <AddressListContent type="shipping" />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={billingDialogOpen} onOpenChange={setBillingDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Billing address</DialogTitle>
-                <DialogDescription>Select the billing address to use for this payment.</DialogDescription>
-              </DialogHeader>
-              <AddressListContent type="billing" />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={addAddressDialogOpen} onOpenChange={setAddAddressDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add new address</DialogTitle>
-                <DialogDescription>Email and phone stay tied to your account.</DialogDescription>
-              </DialogHeader>
-              <AddressFields
-                form={addressForm}
-                onChange={updateAddressForm}
-                makeDefault={makeDefault}
-                onDefaultChange={setMakeDefault}
-                submitLabel="Save address"
-                onSubmit={handleCreateNewAddress}
-                saving={addressSaving}
-              >
-                <Button variant="link" onClick={() => { setAddAddressDialogOpen(false); setBillingDialogOpen(true); }} className="font-bold underline px-0">Choose existing</Button>
-              </AddressFields>
-            </DialogContent>
-          </Dialog>
-        </>
-      ) : (
-        <>
-          <MobileBottomSheet isOpen={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} title="All addresses">
-            <AddressListContent type="shipping" />
-          </MobileBottomSheet>
-
-          <MobileBottomSheet isOpen={billingDialogOpen} onClose={() => setBillingDialogOpen(false)} title="Billing address">
-            <AddressListContent type="billing" />
-          </MobileBottomSheet>
-
-          <MobileBottomSheet isOpen={addAddressDialogOpen} onClose={() => setAddAddressDialogOpen(false)} title="Add new address">
-            <AddressFields
-              form={addressForm}
-              onChange={updateAddressForm}
-              makeDefault={makeDefault}
-              onDefaultChange={setMakeDefault}
-              submitLabel="SAVE ADDRESS"
-              onSubmit={handleCreateNewAddress}
-              saving={addressSaving}
-              isMobile={true}
-            >
-              <Button variant="link" onClick={() => { setAddAddressDialogOpen(false); setBillingDialogOpen(true); }} className="font-bold underline px-0">Choose existing</Button>
-            </AddressFields>
-          </MobileBottomSheet>
-        </>
-      )}
     </div>
   );
 }
-
