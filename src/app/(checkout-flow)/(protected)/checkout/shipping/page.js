@@ -426,7 +426,7 @@ export default function ShippingPage() {
 
   useEffect(() => {
     const currentCustomer = customer || user;
-    if (cartItems && cartItems.length > 0 && currentCustomer?.email && !hasFiredBeginCheckout.current) {
+    if (cartItems && cartItems.length > 0 && !hasFiredBeginCheckout.current) {
       const getNumericId = (gid) => {
         if (!gid) return 0;
         if (typeof gid === 'number') return gid;

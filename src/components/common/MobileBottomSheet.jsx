@@ -29,8 +29,8 @@ export function MobileBottomSheet({
     >
       <Sheet.Container className="!rounded-t-[32px]">
         {!hideDragHandle && <Sheet.Header />}
-        <Sheet.Content className="!h-auto max-h-screen">
-          <div className="px-6 pb-8 flex flex-col max-h-[85vh] bg-white rounded-t-[32px]">
+        <Sheet.Content className="!h-auto max-h-[100dvh]">
+          <div className="px-6 pb-8 flex flex-col max-h-[85dvh] bg-white rounded-t-[32px]">
             {!hideHeader && (
               <div className="flex items-center justify-between pb-6 border-b border-gray-100">
                 <h2 className="text-lg font-bold text-[#443360] uppercase tracking-wider">{title}</h2>

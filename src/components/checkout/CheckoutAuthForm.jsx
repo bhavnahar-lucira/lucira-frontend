@@ -277,7 +277,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
             />
           </div>
 
-          <p className="text-[10px] md:text-[11px] text-zinc-500 font-light md:font-medium text-center leading-none max-md:font-figtree">
+          <p className="text-[10px] md:text-[11px] font-light md:font-medium max-md:font-figtree text-left leading-[1.6] mb-[12px] text-black max-[380px]:max-w-[285px]">
             By proceeding you accept Lucira&apos;s <span className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Terms & Conditions</span> & <span className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Privacy Policy</span>
           </p>
 
@@ -301,7 +301,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
           </div>
           <p className="text-[13px] text-zinc-500 font-medium leading-none">Enter OTP sent to given Number</p>
 
-          <div className="flex justify-between gap-3 mt-4 mb-2 px-1">
+          <div className="flex justify-between gap-3 mt-4 mb-2 px-1 w-full">
             {otp.map((digit, i) => (
               <input
                 key={i}
@@ -310,7 +310,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
                 inputMode="numeric"
                 autoComplete="off"
                 maxLength="1"
-                className="flex-1 aspect-[1.2] max-h-[60px] text-center text-[22px] border border-zinc-200 rounded-[4px] focus:border-black outline-none font-semibold bg-white text-zinc-800"
+                className="min-w-0 flex-1 aspect-[1.4] max-h-[60px] text-center text-[22px] border border-zinc-200 rounded-[4px] focus:border-black outline-none font-semibold bg-white text-zinc-800"
                 value={digit}
                 onChange={(e) => handleOtpChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
