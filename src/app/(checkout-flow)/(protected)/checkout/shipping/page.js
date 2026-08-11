@@ -49,6 +49,7 @@ import { pushAddShippingInfo, pushBeginCheckout } from "@/lib/gtm";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
+import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -285,7 +286,7 @@ export default function ShippingPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const { user, accessToken } = useSelector((state) => state.user);
+  const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
   const { items: cartItems, totalAmount, appliedCoupon, nectorPoints } = useCart();
   const searchParams = useSearchParams();
   const [deliveryMethod, setDeliveryMethod] = useState(searchParams.get("method") || "ship");
@@ -750,6 +751,10 @@ export default function ShippingPage() {
   const loadAddresses = useCallback(async () => {
     try {
       setLoadingAddresses(true);
+      if (!accessToken || accessToken.startsWith('simulated_')) {
+        applyAddressPayload({ addresses: [], customer: null });
+        return;
+      }
       applyAddressPayload(await fetchCustomerAddresses(accessToken));
     } catch (error) {
       toast.error(error.message || "Unable to load saved addresses");
@@ -1196,6 +1201,7 @@ export default function ShippingPage() {
     ? (!selectedAddress || !isDeliverable || checkingPincode) 
     : !selectedStoreId;
 
+
   if (isLoading) {
     return (
       <div className="bg-white min-h-screen">
@@ -1560,6 +1566,23 @@ export default function ShippingPage() {
             <AddressListContent />
           </MobileBottomSheet>
         </>
+      )}
+
+      {/* AUTHENTICATION OVERLAY */}
+      {!isAuthenticated && (
+        isDesktop ? (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#00000099]">
+            <div className="bg-white rounded-lg shadow-2xl max-w-[420px] w-full overflow-hidden">
+              <CheckoutAuthForm onSuccess={() => {}} />
+            </div>
+          </div>
+        ) : (
+          <div className="fixed inset-0 z-[110] bg-[#00000099]">
+            <MobileBottomSheet isOpen={true} onClose={() => {}} title="Checkout Securely" hideHeader={true} detent="content-height" hideDragHandle={true} disableDrag={true}>
+               <CheckoutAuthForm onSuccess={() => {}} />
+            </MobileBottomSheet>
+          </div>
+        )
       )}
     </div>
   );

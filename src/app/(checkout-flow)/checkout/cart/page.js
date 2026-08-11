@@ -94,12 +94,10 @@ const filteredItems = items.filter(
   }, [proofKey]);
 
   const handlePlaceOrder = () => {
-    if (isAuthenticated) {
-      router.push("/checkout/shipping");
-    } else {
+    if (!isAuthenticated) {
       localStorage.setItem("auth_redirect_path", "/checkout/shipping");
-      openLogin("/checkout/shipping");
     }
+    router.push("/checkout/shipping");
   };
 
   // Effect to cleanup orphaned BYJ charms

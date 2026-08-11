@@ -420,27 +420,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     });
   };
 
-  // Shared by the "Proceed To Checkout" CTA, requiring login before proceeding.
+  // Shared by the "Proceed To Checkout" CTA.
   const handleProceedToCheckout = () => {
-    // If user not logged in, fire promoClick and open login modal
-    if (!user) {
-      const firstItem = items && items.length > 0 ? items[0] : null;
-      const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
-      const promoData = {
-        creative_name: "cart page login popup",
-        promo_id: firstItem?.sku || variantId || "",
-        item_id: variantId || "",
-        promo_position: "Cart Page",
-      };
-      try {
-        pushPromoClick(promoData);
-      } catch (e) {
-        // swallow errors from analytics
-        console.error('promo push failed', e);
-      }
-      openLogin("/checkout/shipping");
-      return;
-    }
     onPlaceOrder();
   };
 
