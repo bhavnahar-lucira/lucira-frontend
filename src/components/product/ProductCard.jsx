@@ -39,6 +39,7 @@ import { pushProductClick, pushPromoClick, pushAddToWishlist, pushRemoveFromWish
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
 import { apiFetch, fetchVariantPricing, fetchProductMedia } from "@/lib/api";
+import { trackProductClick as trackSearchProductClick } from "@/lib/searchAnalytics";
 
 const clientReviewStatsCache = new Map();
 const clientPriceCache = new Map();
@@ -492,6 +493,9 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     };
     if (index !== undefined && index !== null && index !== "") clickData.indexPosition = String(index);
     pushProductClick(clickData);
+    
+    // Track search analytics
+    trackSearchProductClick(String(getNumericId(product.shopifyId || product.id)), index || 0);
 
     if (promoClickMeta) {
       pushPromoClick({
