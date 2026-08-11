@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
 import { useSelector, useDispatch } from "react-redux";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, getNumericId } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
 import InsuranceOption from "./InsuranceOption";
 import GoldCoinOption, { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
 import { useCart } from "@/hooks/useCart";
 import { applyCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
+import { trackCheckout as trackSearchCheckout } from "@/lib/searchAnalytics";
 import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
@@ -435,6 +436,15 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       openLogin("/checkout/shipping");
       return;
     }
+    
+    // Track checkout for search analytics (passing items in cart to see if any match the search context)
+    const simplifiedItems = items.map(item => ({
+      productId: String(getNumericId(item.productId)),
+      variantId: String(getNumericId(item.variantId)),
+      quantity: item.quantity
+    }));
+    trackSearchCheckout(simplifiedItems);
+    
     onPlaceOrder();
   };
 

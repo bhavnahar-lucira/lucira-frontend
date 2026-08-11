@@ -43,6 +43,7 @@ import { selectUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
+import { trackPaymentStep } from "@/lib/searchAnalytics";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
@@ -249,6 +250,8 @@ export default function PaymentPage() {
 
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [billingDialogOpen, setBillingDialogOpen] = useState(false);
+  const hasFiredPaymentStep = useRef(false);
+  
   const [addresses, setAddresses] = useState([]);
   const [customer, setCustomer] = useState(null);
   const [selectedAddressId, setSelectedAddressId] = useState("");
@@ -290,6 +293,13 @@ export default function PaymentPage() {
 
   const { user, accessToken } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
+
+  useEffect(() => {
+    if (items && items.length > 0 && !hasFiredPaymentStep.current) {
+      trackPaymentStep(items);
+      hasFiredPaymentStep.current = true;
+    }
+  }, [items]);
 
   const diamondTotalForOffer = useMemo(() => {
     return (items || []).reduce((acc, item) => {
