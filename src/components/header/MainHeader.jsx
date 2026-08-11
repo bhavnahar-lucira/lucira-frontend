@@ -19,6 +19,7 @@ import {
 } from "@/redux/features/wishlist/wishlistSlice";
 import { useDebounce } from "@/hooks/useDebounce";
 import { apiFetch, fetchSearchResults } from "@/lib/api";
+import PincodePicker from "./PincodePicker";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
@@ -37,13 +38,6 @@ const SearchIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="black" strokeWidth="1.17914" strokeLinecap="round" strokeLinejoin="round"></path>
     <path d="M17.499 17.5L13.874 13.875" stroke="black" strokeWidth="1.17914" strokeLinecap="round" strokeLinejoin="round"></path>
-  </svg>
-);
-
-const StoreIcon = () => (
-  <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M11.8744 16.625V12.6667C11.8744 12.4567 11.791 12.2553 11.6426 12.1069C11.4941 11.9584 11.2927 11.875 11.0828 11.875H7.9161C7.70614 11.875 7.50477 11.9584 7.35631 12.1069C7.20784 12.2553 7.12443 12.4567 7.12443 12.6667V16.625M14.0705 8.16209C13.9055 8.00411 13.6858 7.91592 13.4574 7.91592C13.2289 7.91592 13.0093 8.00411 12.8442 8.16209C12.4761 8.51321 11.9869 8.7091 11.4782 8.7091C10.9695 8.7091 10.4803 8.51321 10.1122 8.16209C9.94719 8.00434 9.72771 7.9163 9.49943 7.9163C9.27116 7.9163 9.05168 8.00434 8.88668 8.16209C8.51852 8.51344 8.02917 8.70948 7.52027 8.70948C7.01136 8.70948 6.52201 8.51344 6.15385 8.16209C5.98882 8.00411 5.76917 7.91592 5.5407 7.91592C5.31224 7.91592 5.09259 8.00411 4.92756 8.16209C4.57198 8.50141 4.10286 8.69628 3.61151 8.70878C3.12017 8.72127 2.64175 8.55049 2.26938 8.22968C1.89702 7.90887 1.65734 7.46099 1.597 6.9732C1.53667 6.48542 1.66 5.99263 1.94298 5.59076L4.2301 2.27843C4.37522 2.06429 4.57059 1.88897 4.79913 1.7678C5.02767 1.64663 5.28242 1.5833 5.5411 1.58334H13.4578C13.7157 1.58324 13.9697 1.64616 14.1978 1.7666C14.4259 1.88705 14.6211 2.0614 14.7664 2.27447L17.0583 5.59314C17.3413 5.99532 17.4645 6.48848 17.4038 6.97652C17.3431 7.46456 17.1028 7.91252 16.7299 8.2331C16.3569 8.55368 15.8779 8.72392 15.3863 8.71065C14.8947 8.69737 14.4256 8.50154 14.0705 8.1613" stroke="black" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M3.16602 8.66876V15.0417C3.16602 15.4616 3.33283 15.8643 3.62976 16.1613C3.9267 16.4582 4.32942 16.625 4.74935 16.625H14.2493C14.6693 16.625 15.072 16.4582 15.3689 16.1613C15.6659 15.8643 15.8327 15.4616 15.8327 15.0417V8.66876" stroke="black" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"></path>
   </svg>
 );
 
@@ -519,20 +513,9 @@ export default function MainHeader() {
             />
           </Link>
 
-          <Link
-            href="/pages/store-locator"
-            prefetch={false}
-            className="hidden lg:flex items-center justify-center gap-1.5 cursor-pointer transition-colors hover:text-primary text-sm leading-[130%] tracking-normal font-normal text-black"
-            onClick={() => {
-              pushPromoClick({
-                creative_name: "Find a store cta header",
-                location_id: getFindStoreLocationId(),
-              });
-            }}
-          >
-            <StoreIcon />
-            <span>Find a Store</span>
-          </Link>
+          {/* Pincode + nearest store. Replaces the old "Find a Store" link and
+              absorbs its job — the store-locator link now lives in the panel. */}
+          <PincodePicker locationId={getFindStoreLocationId()} />
 
           {user ? (
             <div className="relative group flex items-center" id="nitro-login">
