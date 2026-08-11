@@ -38,32 +38,38 @@ export function AddressForm({
   const stateOptions =
     form.province && !INDIAN_STATES.includes(form.province) ? [form.province, ...INDIAN_STATES] : INDIAN_STATES;
 
-  return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3">
-        <Input placeholder="First Name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200 bg-white" />
-        <Input placeholder="Last Name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200 bg-white" />
+  const inputClasses = "h-[48px] rounded-[4px] border border-zinc-200 bg-[#FAFAFA] shadow-none font-figtree text-[15px] placeholder:text-zinc-400 text-zinc-900";
 
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
         {showCompanyToggle && (
-          <div className="col-span-2 flex items-center justify-between gap-4 mt-1 mb-2">
-            <label htmlFor={`company-purchase-${formIdSuffix}`} className="text-[13px] font-medium text-zinc-500 cursor-pointer">
+          <div className="col-span-2 flex items-center justify-between gap-4 mb-1">
+            <label htmlFor={`company-purchase-${formIdSuffix}`} className="text-[14px] font-medium font-figtree text-zinc-400 cursor-pointer">
               Purchasing for / under Company
             </label>
             <ToggleSwitch id={`company-purchase-${formIdSuffix}`} checked={isCompanyPurchase} onCheckedChange={handleCompanyToggle} />
           </div>
         )}
 
+        <Input placeholder="First Name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className={inputClasses} />
+        <Input placeholder="Last Name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className={inputClasses} />
+
         {isCompanyPurchase && (
           <>
-            <Input placeholder="Company Name" value={form.company} onChange={(e) => onChange("company", e.target.value)} className="h-12 border-zinc-200 bg-white" />
+            <div className="col-span-2">
+              <Input placeholder="Company Name" value={form.company} onChange={(e) => onChange("company", e.target.value)} className={inputClasses} />
+            </div>
             {form.country.trim().toLowerCase() === "india" ? (
-              <Input
-                placeholder="GSTIN (optional)"
-                value={form.gstin}
-                onChange={(e) => onChange("gstin", e.target.value.toUpperCase())}
-                maxLength={15}
-                className="h-12 border-zinc-200 bg-white"
-              />
+              <div className="col-span-2">
+                <Input
+                  placeholder="GSTIN"
+                  value={form.gstin}
+                  onChange={(e) => onChange("gstin", e.target.value.toUpperCase())}
+                  maxLength={15}
+                  className={inputClasses}
+                />
+              </div>
             ) : (
               <div className="hidden" />
             )}
@@ -71,10 +77,10 @@ export function AddressForm({
         )}
 
         <div className="col-span-2">
-          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200 bg-white" />
+          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className={inputClasses} />
         </div>
         <div className="col-span-2">
-          <Input placeholder="Landmark (Optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className="h-12 border-zinc-200 bg-white" />
+          <Input placeholder="Landmark (Optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className={inputClasses} />
         </div>
 
         <Input
@@ -85,37 +91,37 @@ export function AddressForm({
             const value = e.target.value.replace(/\D/g, "");
             onChange("zip", value);
           }}
-          className="h-12 border-zinc-200 bg-white"
+          className={inputClasses}
         />
-        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200 bg-white" />
+        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className={inputClasses} />
 
         <div className="relative w-full">
           <select
             value={form.province}
             onChange={(e) => onChange("province", e.target.value)}
-            className="h-12 w-full appearance-none rounded-md border border-zinc-200 bg-white px-3 pr-9 text-sm outline-none"
+            className={`w-full appearance-none px-3 pr-9 outline-none border ${inputClasses}`}
           >
-            <option value="" disabled>
+            <option value="" disabled className="text-zinc-500">
               State
             </option>
             {stateOptions.map((state) => (
-              <option key={state} value={state}>
+              <option key={state} value={state} className="text-zinc-900">
                 {state}
               </option>
             ))}
           </select>
-          <ChevronDownIcon className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 opacity-50" aria-hidden="true" />
+          <ChevronDownIcon className="text-zinc-500 pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2" aria-hidden="true" />
         </div>
-        <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} readOnly className="h-12 border-zinc-200 bg-white" />
+        <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} readOnly className={inputClasses} />
 
-        <div className="col-span-2 flex items-center h-12 rounded-md border border-zinc-200 bg-white px-3 has-[input:disabled]:opacity-50">
-          <span className="text-sm text-zinc-900 mr-2">+91</span>
+        <div className={`col-span-2 flex items-center px-3 has-[input:disabled]:opacity-50 border ${inputClasses}`}>
+          <span className="text-[15px] font-figtree text-zinc-900 mr-2">+91</span>
           <input
             placeholder="Phone (optional)"
             value={form.phone}
             onChange={(e) => onChange("phone", e.target.value)}
             disabled={disablePhone}
-            className="h-full grow bg-transparent outline-none text-sm text-zinc-900 placeholder:text-muted-foreground disabled:cursor-not-allowed"
+            className="h-full grow bg-transparent outline-none text-[15px] font-figtree text-zinc-900 placeholder:text-zinc-400 disabled:cursor-not-allowed"
           />
         </div>
         {!hideEmail && (
@@ -124,28 +130,28 @@ export function AddressForm({
               placeholder="Mail Id"
               value={form.email}
               onChange={(e) => onChange("email", e.target.value)}
-              className="h-12 border-zinc-200 bg-white"
+              className={inputClasses}
             />
           </div>
         )}
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Checkbox id={`make-default-${formIdSuffix}`} checked={makeDefault} onCheckedChange={(checked) => onDefaultChange(Boolean(checked))} />
-        <label htmlFor={`make-default-${formIdSuffix}`} className="text-sm font-medium text-zinc-700 cursor-pointer">
+      <div className="flex items-start space-x-3 pt-2">
+        <Checkbox id={`make-default-${formIdSuffix}`} checked={makeDefault} onCheckedChange={(checked) => onDefaultChange(Boolean(checked))} className="mt-0.5 border-zinc-300 data-[state=checked]:bg-[#5A413F] data-[state=checked]:border-[#5A413F]" />
+        <label htmlFor={`make-default-${formIdSuffix}`} className="text-[14px] font-figtree font-medium text-zinc-500 cursor-pointer">
           Use this as my Default Shopping Address
         </label>
       </div>
 
       {children ? (
-        <div className="flex items-center justify-between gap-4">
-          <Button type="button" onClick={onSubmit} disabled={saving} className={`grow md:grow-0 h-14 md:h-12 bg-[#5A413F] hover:bg-[#4a3533] text-white font-medium text-base tracking-wide ${isMobile ? 'rounded-full uppercase tracking-widest' : 'rounded-md'}`}>
+        <div className="flex items-center justify-between gap-4 pt-2">
+          <Button type="button" onClick={onSubmit} disabled={saving} className="grow md:grow-0 h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[15px] rounded-[4px] transition-colors">
             {saving ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
           </Button>
           {children}
         </div>
       ) : (
-        <Button type="button" onClick={onSubmit} disabled={saving} className={`w-full md:w-full h-14 md:h-12 bg-[#5A413F] hover:bg-[#4a3533] text-white font-medium text-base tracking-wide ${isMobile ? 'rounded-full uppercase tracking-widest' : 'rounded-md'}`}>
+        <Button type="button" onClick={onSubmit} disabled={saving} className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[15px] rounded-[4px] transition-colors mt-2">
           {saving ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
         </Button>
       )}

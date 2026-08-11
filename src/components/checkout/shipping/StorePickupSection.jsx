@@ -2,7 +2,6 @@
 
 import { ChevronRight, LocateFixed, Navigation, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StoreSelectorDialog } from "./StoreSelectorDialog";
 import { getDirectionsUrl, formatPickupReadyDate } from "@/hooks/checkout/useStorePickup";
 
 /**
@@ -29,24 +28,74 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
 
   return (
     <div className="space-y-6">
-      {hasResolvedStore && selectedStore ? (
+      {showStoreDialog ? (
+        <div className="space-y-5 bg-transparent pt-2">
+          <h2 className="font-figtree text-[18px] font-bold text-black">Pickup locations</h2>
+          
+          <button onClick={findNearestByGeolocation} className="flex items-center gap-2 text-[15px] font-medium font-figtree text-zinc-800 hover:underline">
+            <Navigation size={18} className="text-zinc-600" />
+            Use my location
+          </button>
+          
+          <div className="space-y-4">
+            <p className="text-[15px] text-zinc-500 font-figtree">There are {sortedStores.length} locations with your item</p>
+
+            <div className="max-h-[50vh] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+              {sortedStores.map((store) => {
+                const isSelected = tempSelectedStoreId === store.id;
+                return (
+                  <div
+                    key={store.id}
+                    onClick={() => setTempSelectedStoreId(store.id)}
+                    className={`relative flex items-start gap-4 p-5 rounded-[6px] border transition-all cursor-pointer ${
+                      isSelected ? "border-black shadow-none" : "border-zinc-200 hover:border-zinc-300"
+                    }`}
+                  >
+                    <div className={`mt-[2px] size-5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${isSelected ? "border-black bg-transparent" : "border-zinc-300"}`}>
+                      {isSelected && <div className="size-2.5 rounded-full bg-black" />}
+                    </div>
+                    <div className="grow space-y-2">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-black font-figtree text-[16px] leading-tight">{store.code || store.name}</h3>
+                        <span className="font-bold text-black font-figtree text-[14px]">FREE</span>
+                      </div>
+                      <p className="text-[15px] text-zinc-500 leading-relaxed pr-6 font-figtree">
+                        {store.address}, {store.city} {store.state}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="flex items-center gap-4 pt-4">
+              <Button variant="outline" type="button" onClick={() => setShowStoreDialog(false)} className="flex-1 h-[46px] border border-zinc-200 text-black font-figtree text-[15px] font-medium rounded-[4px]">
+                Cancel
+              </Button>
+              <Button type="button" onClick={saveStoreSelection} className="flex-1 h-[46px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree text-[15px] font-medium rounded-[4px] transition-colors border border-transparent">
+                Save Location
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : hasResolvedStore && selectedStore ? (
         <div className="space-y-4">
           {/* Pincode Display Box */}
-          <div className="flex items-center h-[52px] rounded-[4px] border border-zinc-200 bg-[#FCF9F8] px-4 gap-3">
+          <div className="flex items-center h-14 rounded-sm border border-zinc-200 bg-[#FAFAFA] px-4 gap-3">
             <LocateFixed size={18} className="text-black shrink-0" />
-            <span className="text-[15px] font-figtree font-medium text-[#5A413F]">
+            <span className="text-[16px] font-figtree font-medium text-[#5A413F]">
               {pincodeQuery || "400064"}
             </span>
           </div>
 
           {/* Selected Store Card */}
-          <div className="border border-zinc-200 rounded-[4px] overflow-hidden bg-white shadow-sm">
-            <div className="p-4 sm:p-5 space-y-2.5">
-              <h3 className="font-figtree text-[16px] font-semibold text-black mb-1">{selectedStore.code}</h3>
-              <p className="text-[14px] leading-snug text-zinc-900 font-medium font-figtree pr-4 md:pr-10">
+          <div className="border border-zinc-200 rounded-sm overflow-hidden bg-white">
+            <div className="p-4 sm:p-5 space-y-3">
+              <h3 className="font-figtree text-[17px] font-bold text-black">{selectedStore.code}</h3>
+              <p className="text-[15px] leading-relaxed text-black font-medium font-figtree pr-4 md:pr-10">
                 {selectedStore.address}, {selectedStore.city} {selectedStore.state}
               </p>
-              <div className="flex items-center gap-1.5 text-[14px] text-[#22A05B] font-figtree font-medium pt-1">
+              <div className="flex items-center gap-2 text-[15px] text-[#22A05B] font-figtree font-medium pt-1">
                 <span className="size-1.5 rounded-full bg-[#22A05B]" />
                 Pickup Available by {formatPickupReadyDate()}
               </div>
@@ -54,28 +103,28 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
 
             {/* Bottom Actions: Phone Input & Directions */}
             <div className="grid grid-cols-2 border-t border-zinc-200">
-              <div className="flex items-center justify-center gap-2 h-12 border-r border-zinc-200">
-                <Phone size={16} className="text-black shrink-0" />
+              <div className="flex items-center justify-center gap-2 h-14 border-r border-zinc-200 px-2">
+                <Phone size={18} className="text-black shrink-0" />
                 <input
                   placeholder="Phone number"
                   value={pickupPhone}
                   onChange={(e) => setPickupPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  className="w-[125px] bg-transparent outline-none text-[14px] font-figtree font-medium text-black placeholder:text-zinc-400"
+                  className="w-[125px] bg-transparent outline-none text-[15px] font-figtree font-medium text-black placeholder:text-zinc-400"
                 />
               </div>
               <a
                 href={getDirectionsUrl(selectedStore)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 h-12 text-[14px] font-figtree font-medium text-black hover:bg-zinc-50 transition-colors"
+                className="flex items-center justify-center gap-2 h-14 text-[15px] font-figtree font-medium text-black hover:bg-zinc-50 transition-colors"
               >
-                <Navigation size={16} className="text-black shrink-0" />
+                <Navigation size={18} className="text-black shrink-0" />
                 Get Direction
               </a>
             </div>
           </div>
           
-          <Button type="button" onClick={openStoreDialog} className="w-full h-12 bg-[#5A413F] hover:bg-[#4A312F] text-white text-[15px] font-figtree font-medium rounded-md transition-colors">
+          <Button type="button" onClick={() => setShowStoreDialog(true)} className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[15px] rounded-[4px] transition-colors">
             Change Pickup
           </Button>
         </div>
@@ -120,16 +169,6 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
         </div>
       )}
 
-      <StoreSelectorDialog
-        isDesktop={isDesktop}
-        open={showStoreDialog}
-        onOpenChange={setShowStoreDialog}
-        stores={sortedStores}
-        selectedStoreId={tempSelectedStoreId}
-        onSelect={setTempSelectedStoreId}
-        onUseMyLocation={findNearestByGeolocation}
-        onSave={saveStoreSelection}
-      />
     </div>
   );
 }

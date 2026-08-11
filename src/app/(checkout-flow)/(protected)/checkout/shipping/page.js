@@ -41,6 +41,8 @@ import { usePincodeLookup } from "@/hooks/checkout/usePincodeLookup";
 import { usePincodeDeliverability } from "@/hooks/checkout/usePincodeDeliverability";
 import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 import { useStorePickup } from "@/hooks/checkout/useStorePickup";
+import { getEstimatedDispatchDate } from "@/lib/utils";
+import Image from "next/image";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
@@ -477,48 +479,48 @@ export default function ShippingPage() {
           <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white !p-0">
             <h2 className="font-figtree text-[11px] md:text-[14px] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
             <div className="flex w-full md:max-w-[380px] gap-3 relative z-10 px-6 -mb-[1px]">
-                <button
-                  onClick={() => setDeliveryMethod("ship")}
-                  className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-medium transition-all ${deliveryMethod === "ship" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-xl"
-                    }`}
-                >
-                  <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8.5 9.83333V1.83333C8.5 1.47971 8.35952 1.14057 8.10948 0.890524C7.85943 0.640476 7.52029 0.5 7.16667 0.5H1.83333C1.47971 0.5 1.14057 0.640476 0.890524 0.890524C0.640476 1.14057 0.5 1.47971 0.5 1.83333V9.16667C0.5 9.34348 0.570238 9.51305 0.695262 9.63807C0.820286 9.7631 0.989856 9.83333 1.16667 9.83333H2.5M2.5 9.83333C2.5 10.5697 3.09695 11.1667 3.83333 11.1667C4.56971 11.1667 5.16667 10.5697 5.16667 9.83333M2.5 9.83333C2.5 9.09695 3.09695 8.5 3.83333 8.5C4.56971 8.5 5.16667 9.09695 5.16667 9.83333M9.16667 9.83333H5.16667M9.16667 9.83333C9.16667 10.5697 9.76362 11.1667 10.5 11.1667C11.2364 11.1667 11.8333 10.5697 11.8333 9.83333M9.16667 9.83333C9.16667 9.09695 9.76362 8.5 10.5 8.5C11.2364 8.5 11.8333 9.09695 11.8333 9.83333M11.8333 9.83333H13.1667C13.3435 9.83333 13.513 9.7631 13.6381 9.63807C13.7631 9.51305 13.8333 9.34348 13.8333 9.16667V6.73333C13.8331 6.58204 13.7813 6.43534 13.6867 6.31733L11.3667 3.41733C11.3043 3.33925 11.2252 3.27619 11.1352 3.2328C11.0452 3.18941 10.9466 3.16681 10.8467 3.16667H8.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Delivery
-                  {deliveryMethod === "ship" && (
-                    <>
-                      <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5]">
-                        <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
-                      </div>
-                      <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5]">
-                        <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
-                      </div>
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => setDeliveryMethod("pickup")}
-                  className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-medium transition-all ${deliveryMethod === "pickup" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-xl"
-                    }`}
-                >
-                  <svg width="12" height="15" viewBox="0 0 12 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6.234 13.6993C7.474 12.6287 11.1667 9.162 11.1667 5.83333C11.1667 4.41885 10.6048 3.06229 9.60457 2.0621C8.60438 1.0619 7.24782 0.5 5.83333 0.5C4.41885 0.5 3.06229 1.0619 2.0621 2.0621C1.0619 3.06229 0.5 4.41885 0.5 5.83333C0.5 9.162 4.19267 12.6287 5.43267 13.6993C5.54818 13.7862 5.6888 13.8332 5.83333 13.8332C5.97787 13.8332 6.11848 13.7862 6.234 13.6993Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M5.83333 7.83333C6.9379 7.83333 7.83333 6.9379 7.83333 5.83333C7.83333 4.72876 6.9379 3.83333 5.83333 3.83333C4.72876 3.83333 3.83333 4.72876 3.83333 5.83333C3.83333 6.9379 4.72876 7.83333 5.83333 7.83333Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Pickup
-                  {deliveryMethod === "pickup" && (
-                    <>
-                      <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5]">
-                        <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
-                      </div>
-                      <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5]">
-                        <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
-                      </div>
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={() => setDeliveryMethod("ship")}
+                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-medium transition-all ${deliveryMethod === "ship" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-xl"
+                  }`}
+              >
+                <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8.5 9.83333V1.83333C8.5 1.47971 8.35952 1.14057 8.10948 0.890524C7.85943 0.640476 7.52029 0.5 7.16667 0.5H1.83333C1.47971 0.5 1.14057 0.640476 0.890524 0.890524C0.640476 1.14057 0.5 1.47971 0.5 1.83333V9.16667C0.5 9.34348 0.570238 9.51305 0.695262 9.63807C0.820286 9.7631 0.989856 9.83333 1.16667 9.83333H2.5M2.5 9.83333C2.5 10.5697 3.09695 11.1667 3.83333 11.1667C4.56971 11.1667 5.16667 10.5697 5.16667 9.83333M2.5 9.83333C2.5 9.09695 3.09695 8.5 3.83333 8.5C4.56971 8.5 5.16667 9.09695 5.16667 9.83333M9.16667 9.83333H5.16667M9.16667 9.83333C9.16667 10.5697 9.76362 11.1667 10.5 11.1667C11.2364 11.1667 11.8333 10.5697 11.8333 9.83333M9.16667 9.83333C9.16667 9.09695 9.76362 8.5 10.5 8.5C11.2364 8.5 11.8333 9.09695 11.8333 9.83333M11.8333 9.83333H13.1667C13.3435 9.83333 13.513 9.7631 13.6381 9.63807C13.7631 9.51305 13.8333 9.34348 13.8333 9.16667V6.73333C13.8331 6.58204 13.7813 6.43534 13.6867 6.31733L11.3667 3.41733C11.3043 3.33925 11.2252 3.27619 11.1352 3.2328C11.0452 3.18941 10.9466 3.16681 10.8467 3.16667H8.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Delivery
+                {deliveryMethod === "ship" && (
+                  <>
+                    <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5]">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
+                    </div>
+                    <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5]">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
+                    </div>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setDeliveryMethod("pickup")}
+                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-medium transition-all ${deliveryMethod === "pickup" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-xl"
+                  }`}
+              >
+                <svg width="12" height="15" viewBox="0 0 12 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6.234 13.6993C7.474 12.6287 11.1667 9.162 11.1667 5.83333C11.1667 4.41885 10.6048 3.06229 9.60457 2.0621C8.60438 1.0619 7.24782 0.5 5.83333 0.5C4.41885 0.5 3.06229 1.0619 2.0621 2.0621C1.0619 3.06229 0.5 4.41885 0.5 5.83333C0.5 9.162 4.19267 12.6287 5.43267 13.6993C5.54818 13.7862 5.6888 13.8332 5.83333 13.8332C5.97787 13.8332 6.11848 13.7862 6.234 13.6993Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5.83333 7.83333C6.9379 7.83333 7.83333 6.9379 7.83333 5.83333C7.83333 4.72876 6.9379 3.83333 5.83333 3.83333C4.72876 3.83333 3.83333 4.72876 3.83333 5.83333C3.83333 6.9379 4.72876 7.83333 5.83333 7.83333Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Pickup
+                {deliveryMethod === "pickup" && (
+                  <>
+                    <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5]">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
+                    </div>
+                    <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5]">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
+                    </div>
+                  </>
+                )}
+              </button>
+            </div>
             <div className="bg-[#F5F5F5] px-4 py-6 md:p-6 rounded-none relative z-0 flex-grow">
               {deliveryMethod === "ship" ? (
                 <div key="ship" className="space-y-6">
@@ -588,7 +590,7 @@ export default function ShippingPage() {
                       </div>
                     )
                   ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                       <h3 className="font-figtree text-[15px] font-medium text-black">Shipping Address</h3>
                       <AddressForm
                         form={addressForm}
@@ -616,6 +618,33 @@ export default function ShippingPage() {
                     setBillingMode={setBillingMode}
                     selectBillingAddress={selectBillingAddress}
                   />
+
+                  {hasSavedAddresses && (
+                    <div className="pt-6 border-t border-zinc-100 mt-6 lg:hidden">
+                      <h3 className="text-[13px] font-figtree font-bold text-black uppercase tracking-wide mb-4">DELIVERY ESTIMATES</h3>
+                      <div className="space-y-4">
+                        {cartItems.filter(i => i.variantId !== INSURANCE_VARIANT_ID && i.variantId !== GOLDCOIN_VARIANT_ID && !i.properties?.['_byj_parent'] && !(i.properties?.['_byj_group_id'] && !i.properties?.['_byj_preview'])).map((item, idx) => {
+                          const isBYJ = item.properties?.['_byj_preview'];
+                          const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
+                          return (
+                            <div key={idx} className="flex gap-4 items-center">
+                              <div className="w-20 h-20 bg-[#FAFAFA] rounded-md shrink-0 p-1 flex items-center justify-center">
+                                {displayImage && (
+                                  <Image src={displayImage} alt={item.title || "Product"} width={80} height={80} className="w-full h-full object-contain mix-blend-multiply" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-[13px] font-figtree text-black mb-1">Estimated Dispatch by</p>
+                                <p className="text-[14px] font-figtree font-bold text-black">
+                                  {getEstimatedDispatchDate(item.inStock, item.leadTime).replace(/Estimated dispatch by /i, "")}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div key="pickup" className="space-y-6">
@@ -652,9 +681,9 @@ export default function ShippingPage() {
 
           <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
-            <div className="relative z-10 py-10 px-4 lg:pl-12 mb-10 lg:bg-transparent min-h-full bg-[#FAFAFA]" ref={summaryRef}>
+            <div className="relative z-10 py-6 px-4 lg:py-10 lg:pl-12 mb-0 lg:bg-transparent min-h-full bg-white" ref={summaryRef}>
               <div className="lg:sticky lg:top-0 space-y-6">
-                <CheckoutSummary showItems={false}>
+                <CheckoutSummary showItems={false} showContact={false}>
                   {/* Desktop Button - Moved here to match cart page */}
                   <div className="hidden lg:block">
                     <Button
@@ -680,23 +709,25 @@ export default function ShippingPage() {
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-lg font-bold text-zinc-900 leading-none">₹ {finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <div className="flex flex-col gap-[14px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[18px] font-semibold text-black leading-none font-figtree tracking-normal">
+              ₹{finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </span>
             <button
               onClick={scrollToSummary}
-              className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
+              className="text-[14px] font-medium text-black cursor-pointer font-figtree"
             >
-              View Summary
+              View Order Summary
             </button>
           </div>
-          <Link prefetch={false} href="/checkout/payment" className={`grow ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
+          <Link prefetch={false} href="/checkout/payment" className={`w-full block ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
             <Button
               disabled={isContinueDisabled}
-              className="w-full flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-[45px] px-4 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer hover:bg-[#4A312F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] h-[50px] font-figtree font-medium uppercase tracking-wider text-[15px] text-white cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
-              Continue to payment
+              CONTINUE TO PAYMENT
             </Button>
           </Link>
         </div>

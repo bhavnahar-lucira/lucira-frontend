@@ -1041,10 +1041,6 @@ export default function PaymentPage() {
               <div className="relative z-10 py-10 px-4 lg:pl-12 lg:bg-transparent bg-[#FAFAFA] min-h-full" ref={summaryRef}>
                 <div className="lg:sticky lg:top-0 space-y-6">
                   <CheckoutSummary
-                    showItems={true}
-                    showBreakdown={true}
-                    showPoints={true}
-                    showSilverPendantOffer={true}
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                   >
@@ -1070,13 +1066,15 @@ export default function PaymentPage() {
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-lg font-bold text-zinc-900 leading-none">₹ {selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        <div className="flex flex-col gap-[14px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[18px] font-semibold text-black leading-none font-figtree tracking-normal">
+              ₹{selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </span>
             <button
               onClick={scrollToSummary}
-              className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
+              className="text-[14px] font-medium text-black cursor-pointer font-figtree"
             >
               View Order Summary
             </button>
@@ -1084,9 +1082,9 @@ export default function PaymentPage() {
           <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-            className="grow flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-[45px] px-4 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] h-[50px] font-figtree font-medium uppercase tracking-wider text-[15px] text-white cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {paymentLoading ? "Processing..." : "Pay Now"}
+            {paymentLoading ? "PROCESSING..." : "PAY NOW"}
           </Button>
         </div>
       </div>

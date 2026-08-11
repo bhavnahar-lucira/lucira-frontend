@@ -40,32 +40,30 @@ export function AddressSummaryCard({
               </button>
             )}
           </div>
-          <div className="text-[14px] leading-snug text-zinc-900 font-medium font-figtree pr-4 md:pr-10">
+          <div className="text-[14px] leading-snug text-zinc-600 font-medium font-figtree pr-4 md:pr-10">
             {detailLines.join(", ")}
             {address.gstin && <p className="mt-1 font-medium text-black">GSTIN: {address.gstin}</p>}
           </div>
+          {address.phone && (
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <p className="text-[14px] font-medium text-zinc-900 font-figtree">
+                +{address.phone.replace(/^\+/, "")}
+              </p>
+              {address.isDefault && (
+                <span className="rounded-[4px] bg-[#F5E9DA] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#5A413F]">
+                  DEFAULT
+                </span>
+              )}
+            </div>
+          )}
         </div>
-
-        {/* Bottom Part: Phone, Default Badge */}
-        {address.phone && (
-          <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 border-t border-zinc-200 bg-white rounded-b-[4px]">
-            <p className="text-[15px] font-medium text-black font-figtree">
-              +{address.phone.replace(/^\+/, "")}
-            </p>
-            {address.isDefault && (
-              <span className="rounded-[4px] bg-[#5A413F] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white">
-                DEFAULT
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {onChangeClick && (
         <Button
           type="button"
           onClick={onChangeClick}
-          className="w-full h-12 bg-[#5A413F] hover:bg-[#4A312F] text-white text-[15px] font-figtree font-medium rounded-md transition-colors"
+          className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[15px] rounded-[4px] transition-colors"
         >
           {changeLabel}
         </Button>

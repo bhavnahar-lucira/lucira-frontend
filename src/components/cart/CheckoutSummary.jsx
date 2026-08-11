@@ -28,7 +28,7 @@ export default function CheckoutSummary({
   showContact = true,
   className = "",
   isSilverPendantClaimed = false,
-  onToggleSilverPendant = () => {},
+  onToggleSilverPendant = () => { },
   showSilverPendantOffer = false,
   breakdownRef = null,
   children
@@ -37,7 +37,7 @@ export default function CheckoutSummary({
   const dispatch = useDispatch();
   const { items, totalAmount, appliedCoupon, removeCoupon, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
-  
+
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
@@ -77,23 +77,23 @@ export default function CheckoutSummary({
       const type = (item.type || item.productType || item.product_type || "").toLowerCase();
       const title = (item.title || "").toLowerCase();
       const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
-      
-      const isDiamond = type.includes("diamond") || title.includes("diamond") || 
-                        type.includes("solitaire") || title.includes("solitaire") ||
-                        type.includes("gemstone") || title.includes("gemstone") ||
-                        hasDiamondCharges;
+
+      const isDiamond = type.includes("diamond") || title.includes("diamond") ||
+        type.includes("solitaire") || title.includes("solitaire") ||
+        type.includes("gemstone") || title.includes("gemstone") ||
+        hasDiamondCharges;
 
       // Exclude Gold Coins, Silver Pendants (paid), Insurance, BYJ
       const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
       const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
-        item.properties?.['_byj_group_id'] || 
-        item.properties?.['_byj_preview'] || 
-        item.properties?.['_byj_parent'] || 
-        item.properties?.[' _byj_parent'] || 
-        item.tags?.includes('BYJ') || 
-        String(item.handle || "").toLowerCase().includes('byj') || 
+        item.properties?.['_byj_group_id'] ||
+        item.properties?.['_byj_preview'] ||
+        item.properties?.['_byj_parent'] ||
+        item.properties?.[' _byj_parent'] ||
+        item.tags?.includes('BYJ') ||
+        String(item.handle || "").toLowerCase().includes('byj') ||
         String(item.title || "").toLowerCase().includes('byj')
       );
 
@@ -157,7 +157,7 @@ export default function CheckoutSummary({
     if (!user?.id) return;
     try {
       setLoadingPoints(true);
-      
+
       const getNectorCustomerId = (gid) => {
         if (!gid) return "";
         const match = String(gid).match(/\d+$/);
@@ -174,7 +174,7 @@ export default function CheckoutSummary({
           amount: Math.max(totalAmount || 0, 1)
         })
       });
-      
+
       const points = data?.data || data;
       const meta = data?.meta || {};
       const statusCode = meta.code || data?.status || 200;
@@ -346,7 +346,7 @@ export default function CheckoutSummary({
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
                     <Truck size={14} className="text-black" />
                     <span className="text-[10px] font-medium text-black tracking-tight">
@@ -363,20 +363,22 @@ export default function CheckoutSummary({
       )}
 
       {showBreakdown && (
-        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3.5 bg-white rounded-sm p-6">
-          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
+        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3.5 bg-transparent lg:bg-white lg:rounded-sm lg:p-6 mb-0">
+          <h2 className="text-[15px] font-figtree font-medium text-black uppercase tracking-wide mb-4 lg:hidden">ORDER SUMMARY</h2>
+
+          <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
             <span>Subtotal</span>
             <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
           {totalSavings > 0 && (
-            <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-              <span>Savings</span>
+            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+              <span>Saving</span>
               <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
           {appliedCoupon ? (
-            <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-              <span className="font-semibold uppercase tracking-wide text-[#189351]">
+            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+              <span className="text-[#000000]">
                 Coupon Applied
               </span>
               <div className="flex items-center gap-1.5">
@@ -390,7 +392,7 @@ export default function CheckoutSummary({
               </div>
             </div>
           ) : (
-            <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
               <span>Coupon Discount</span>
               <Link href="/checkout/cart" className="font-semibold text-[#5A413F] hover:underline">
                 Apply Coupon
@@ -398,13 +400,13 @@ export default function CheckoutSummary({
             </div>
           )}
           {goldCoinItem && (
-            <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
               <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
               <span className="font-semibold text-[#00A63E]">₹ 0</span>
             </div>
           )}
           {isPendantActive && (
-            <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
               <span>Free Silver Pendant</span>
               <div className="flex items-center gap-2">
                 {pendantPrice > 0 && (
@@ -417,28 +419,28 @@ export default function CheckoutSummary({
             </div>
           )}
           {insuranceValue > 0 && (
-            <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
               <span>Insurance</span>
               <span className="font-semibold text-[#3D2B28]">₹ {insuranceValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
           {nectorPoints && (
-            <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
               <span className="font-semibold uppercase tracking-wider text-[#189351]">Redeemed {nectorPoints.coin_value} coins</span>
               <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {nectorPoints.fiat_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
-          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-            <span>Shipping (Standard)</span>
+          <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+            <span>Shipping</span>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-[#00A63E]">Free</span>
               <span className="text-sm text-gray-400 line-through font-normal">₹ 500</span>
             </div>
           </div>
-          
-          <div className="border-t border-[#EADFD8] mt-4 pt-4 flex justify-between items-center">
-            <span className="font-figtree text-base font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
-            <span className="font-figtree text-xl font-bold text-[#3D2B28]">₹ {grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+
+          <div className="border-t border-zinc-200 mt-4 pt-4 flex justify-between items-center">
+            <span className="font-figtree text-[15px] lg:text-base font-bold text-black uppercase">Grand Total</span>
+            <span className="font-figtree text-[16px] lg:text-xl font-bold text-black">₹ {grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
 
           {(totalSavings > 0 || couponDiscountAmount > 0) && (
@@ -455,12 +457,12 @@ export default function CheckoutSummary({
         <div className="bg-[#FDF2F5] rounded-2xl border border-[#F1D1D9] p-4 flex gap-4 transition-all">
           {/* Left Side: Image - Matching Order Summary Style */}
           <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
-            <Image 
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617" 
-              width={80} 
+            <Image
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+              width={80}
               height={80}
-              alt="Free Silver Pendant" 
-              className="w-full h-full object-contain mix-blend-multiply" 
+              alt="Free Silver Pendant"
+              className="w-full h-full object-contain mix-blend-multiply"
               unoptimized
             />
           </div>
@@ -471,7 +473,7 @@ export default function CheckoutSummary({
               <h3 className="text-[13px] font-bold text-[#443360] uppercase tracking-tight">Free Silver Pendant</h3>
               <p className="text-[11px] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your free silver pendant now.</p>
             </div>
-            
+
             <div className="flex items-center justify-between gap-3 pt-2">
               <div className="flex items-center gap-2">
                 {pendantPrice > 0 && (
@@ -481,9 +483,9 @@ export default function CheckoutSummary({
                 )}
                 <span className="text-sm font-bold text-[#189351] font-figtree">FREE</span>
               </div>
-              
+
               {isPendantActive ? (
-                <button 
+                <button
                   onClick={() => {
                     const firstItem = items && items.length > 0 ? items[0] : null;
                     const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
@@ -506,7 +508,7 @@ export default function CheckoutSummary({
                   REMOVE
                 </button>
               ) : (
-                <button 
+                <button
                   onClick={() => {
                     const firstItem = items && items.length > 0 ? items[0] : null;
                     const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
@@ -533,7 +535,7 @@ export default function CheckoutSummary({
                   className="group relative px-8 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all active:scale-[0.98] overflow-hidden cursor-pointer"
                 >
                   <span className="relative z-10">CLAIM</span>
-                  
+
                   {/* Shine Effect */}
                   <div className="absolute inset-0 z-0">
                     <div className="absolute top-0 -left-[100%] h-full w-[50%] bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-25deg] animate-button-shine" />
@@ -584,8 +586,8 @@ export default function CheckoutSummary({
                     <span className="text-sm font-bold text-[#189351]">Applied: -₹{nectorPoints.fiat_value.toLocaleString('en-IN')}</span>
                     <p className="text-[11px] text-zinc-500 font-medium">Redeemed {nectorPoints.coin_value} coins</p>
                   </div>
-                  <button 
-                    onClick={handleRemovePoints} 
+                  <button
+                    onClick={handleRemovePoints}
                     className="text-[11px] font-bold text-red-600 hover:text-red-700 uppercase tracking-wider transition-colors"
                   >
                     REMOVE
