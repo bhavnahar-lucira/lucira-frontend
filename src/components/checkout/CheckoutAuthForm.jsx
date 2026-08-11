@@ -254,37 +254,37 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
   };
 
   return (
-    <div className="w-full flex flex-col bg-white h-auto">
+    <div className="w-full flex flex-col pt-0 md:pt-8 md:p-8 bg-white h-auto">
 
       {step === "login" && (
         <div className="flex flex-col space-y-4">
           <div>
-            <h2 className="text-[20px] md:text-[22px] font-bold text-zinc-900 leading-none">Checkout Securely</h2>
-            <p className="text-[13px] text-zinc-500 mt-2 font-medium">Login / Signup to proceed checkout</p>
+            <h2 className="text-[16px] md:text-[22px] font-semibold md:font-bold text-zinc-900 leading-[140%] md:leading-none max-md:font-figtree">Checkout Securely</h2>
+            <p className="text-[12px] md:text-[13px] text-zinc-500 mt-1 md:mt-2 font-normal md:font-medium leading-[140%] md:leading-normal max-md:font-figtree">Login / Signup to proceed checkout</p>
           </div>
 
           <div className="flex items-center border border-zinc-200 rounded-[4px] h-[50px] px-4">
-            <span className="text-[15px] font-medium mr-3 pr-3 border-r border-zinc-200 text-zinc-700">+91</span>
+            <span className="text-[15px] font-medium mr-3 pr-3 border-r border-zinc-400 md:border-zinc-200 text-zinc-700">+91</span>
             <input
               ref={mobileRef}
               type="tel"
               placeholder="Enter Mobile Number"
               maxLength="10"
-              className="w-full h-full text-[15px] font-medium border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400"
+              className="w-full h-full text-[14px] md:text-[15px] font-medium border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400 max-md:font-figtree max-md:leading-[140%] max-md:text-[#909090] md:text-zinc-900"
               value={mobile}
               onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
             />
           </div>
 
-          <p className="text-[11px] text-zinc-500 font-medium">
-            By proceeding you accept Lucira&apos;s <span className="font-bold underline cursor-pointer text-zinc-700">Terms & Conditions</span> & <span className="font-bold underline cursor-pointer text-zinc-700">Privacy Policy</span>
+          <p className="text-[10px] md:text-[11px] text-zinc-500 font-light md:font-medium text-center leading-none max-md:font-figtree">
+            By proceeding you accept Lucira&apos;s <span className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Terms & Conditions</span> & <span className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Privacy Policy</span>
           </p>
 
           <Button
             onClick={handleSendOtp}
             disabled={loading}
-            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-bold tracking-wide mt-2"
+            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-2 leading-none max-md:font-figtree"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "CONTINUE"}
           </Button>
