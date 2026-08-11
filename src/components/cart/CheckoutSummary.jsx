@@ -363,7 +363,7 @@ export default function CheckoutSummary({
       )}
 
       {showBreakdown && (
-        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3.5 bg-transparent lg:bg-white lg:rounded-sm lg:p-6 mb-0">
+        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3.5 bg-transparent lg:py-6 mb-0">
           <h2 className="text-[15px] font-figtree font-medium text-black uppercase tracking-wide mb-4 lg:hidden">ORDER SUMMARY</h2>
 
           <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">

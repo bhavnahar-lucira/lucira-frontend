@@ -476,12 +476,12 @@ export default function ShippingPage() {
     <div className="bg-white min-h-screen overflow-x-hidden">
       <div className="max-w-7xl w-full mx-auto relative z-10">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
-          <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white !p-0">
-            <h2 className="font-figtree text-[11px] md:text-[14px] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
-            <div className="flex w-full md:max-w-[380px] gap-3 relative z-10 px-6 -mb-[1px]">
+          <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white p-0 lg:pr-12 lg:py-10">
+            <h2 className="font-figtree text-[11px] md:text-[14px] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 lg:px-0 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
+            <div className="flex w-full md:max-w-[380px] gap-3 relative z-10 px-6 lg:px-0 -mb-[1px]">
               <button
                 onClick={() => setDeliveryMethod("ship")}
-                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-medium transition-all ${deliveryMethod === "ship" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-xl"
+                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-medium transition-all ${deliveryMethod === "ship" ? "bg-[#F5F5F5] lg:bg-transparent lg:border-b-2 lg:border-[#5A413F] text-zinc-900 lg:text-[#5A413F] rounded-t-[10px] rounded-b-none lg:rounded-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 lg:hover:bg-transparent lg:border-b-2 lg:border-transparent rounded-xl lg:rounded-none"
                   }`}
               >
                 <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -489,19 +489,19 @@ export default function ShippingPage() {
                 </svg>
                 Delivery
                 {deliveryMethod === "ship" && (
-                  <>
+                  <div className="lg:hidden">
                     <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5]">
                       <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
                     </div>
                     <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5]">
                       <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
                     </div>
-                  </>
+                  </div>
                 )}
               </button>
               <button
                 onClick={() => setDeliveryMethod("pickup")}
-                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-medium transition-all ${deliveryMethod === "pickup" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-xl"
+                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[14px] font-medium transition-all ${deliveryMethod === "pickup" ? "bg-[#F5F5F5] lg:bg-transparent lg:border-b-2 lg:border-[#5A413F] text-zinc-900 lg:text-[#5A413F] rounded-t-[10px] rounded-b-none lg:rounded-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 lg:hover:bg-transparent lg:border-b-2 lg:border-transparent rounded-xl lg:rounded-none"
                   }`}
               >
                 <svg width="12" height="15" viewBox="0 0 12 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -510,18 +510,18 @@ export default function ShippingPage() {
                 </svg>
                 Pickup
                 {deliveryMethod === "pickup" && (
-                  <>
+                  <div className="lg:hidden">
                     <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5]">
                       <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
                     </div>
                     <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5]">
                       <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
                     </div>
-                  </>
+                  </div>
                 )}
               </button>
             </div>
-            <div className="bg-[#F5F5F5] px-4 py-6 md:p-6 rounded-none relative z-0 flex-grow">
+            <div className="bg-[#F5F5F5] lg:bg-transparent px-4 py-6 md:p-6 lg:p-0 rounded-none relative z-0 flex-grow lg:mt-6">
               {deliveryMethod === "ship" ? (
                 <div key="ship" className="space-y-6">
                   {loadingAddresses ? (
@@ -620,7 +620,7 @@ export default function ShippingPage() {
                   />
 
                   {hasSavedAddresses && (
-                    <div className="pt-6 border-t border-zinc-100 mt-6 lg:hidden">
+                    <div className="pt-6 border-t border-zinc-100 mt-6">
                       <h3 className="text-[13px] font-figtree font-bold text-black uppercase tracking-wide mb-4">DELIVERY ESTIMATES</h3>
                       <div className="space-y-4">
                         {cartItems.filter(i => i.variantId !== INSURANCE_VARIANT_ID && i.variantId !== GOLDCOIN_VARIANT_ID && !i.properties?.['_byj_parent'] && !(i.properties?.['_byj_group_id'] && !i.properties?.['_byj_preview'])).map((item, idx) => {
@@ -681,7 +681,7 @@ export default function ShippingPage() {
 
           <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
-            <div className="relative z-10 py-6 px-4 lg:py-10 lg:pl-12 mb-0 lg:bg-transparent min-h-full bg-white" ref={summaryRef}>
+            <div className="relative z-10 py-6 px-4 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white" ref={summaryRef}>
               <div className="lg:sticky lg:top-0 space-y-6">
                 <CheckoutSummary showItems={false} showContact={false}>
                   {/* Desktop Button - Moved here to match cart page */}
