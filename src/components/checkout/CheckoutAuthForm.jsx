@@ -340,18 +340,27 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
 
       {step === "register" && (
         <div className="flex flex-col space-y-4">
-          <div className="flex items-center gap-2 text-[#00A63E]">
-            <CheckCircle2 className="w-[20px] h-[20px]" />
-            <h2 className="text-[18px] md:text-[20px] font-bold leading-none">Verified Successfully</h2>
+          <div className="flex items-center gap-2 text-[#00A63E] mb-[6px] md:mb-0">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+              <g clipPath="url(#clip0_3214_261)">
+                <path d="M18.1678 8.33357C18.5484 10.2013 18.2772 12.1431 17.3994 13.8351C16.5216 15.527 15.0902 16.8669 13.3441 17.6313C11.5979 18.3957 9.64252 18.5384 7.80391 18.0355C5.9653 17.5327 4.35465 16.4147 3.24056 14.8681C2.12646 13.3214 1.57626 11.4396 1.68171 9.53639C1.78717 7.63318 2.54189 5.82364 3.82004 4.40954C5.09818 2.99545 6.82248 2.06226 8.70538 1.76561C10.5883 1.46897 12.516 1.82679 14.167 2.7794M7.50033 9.1669L10.0003 11.6669L18.3337 3.33357" stroke="#00A63E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </g>
+              <defs>
+                <clipPath id="clip0_3214_261">
+                  <rect width="20" height="20" fill="white"/>
+                </clipPath>
+              </defs>
+            </svg>
+            <h2 className="text-[16px] md:text-[20px] font-semibold md:font-bold leading-[140%] md:leading-none text-black max-md:font-figtree">Verified Successfully</h2>
           </div>
-          <p className="text-[13px] text-zinc-800 font-medium">Welcome to Lucira Jewelry</p>
+          <p className="text-[12px] md:text-[13px] text-zinc-800 font-normal md:font-medium leading-[140%] md:leading-normal mb-2 md:mb-0 max-md:font-figtree">Welcome to Lucira Jewelry</p>
 
-          <div className="space-y-3 mt-2">
+          <div className="space-y-3 mt-2 mb-1 md:mb-0">
             <input
               ref={firstNameRef}
               type="text"
               placeholder="Enter Your Full Name"
-              className="w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal"
+              className="w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal max-md:font-figtree max-md:leading-[140%]"
               value={fullName}
               onChange={(e) => {
                 const value = e.target.value;
@@ -365,7 +374,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
             <input
               type="email"
               placeholder="Enter Your Mail Id"
-              className="w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal"
+              className="w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal max-md:font-figtree max-md:leading-[140%]"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleRegister()}
@@ -375,7 +384,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
           <Button
             onClick={handleRegister}
             disabled={loading}
-            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-bold tracking-wide mt-4"
+            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-4 leading-none max-md:font-figtree"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "VERIFY"}
           </Button>
