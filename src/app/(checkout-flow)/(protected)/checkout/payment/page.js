@@ -1029,16 +1029,6 @@ export default function PaymentPage() {
                     <ChevronLeft size={16} />
                     Return to shipping
                   </Link>
-                  <Button
-                    type="button"
-                    onClick={handlePayNow}
-                    disabled={paymentLoading || !totalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-                    className="px-14 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {paymentLoading
-                      ? "Processing..."
-                      : `Pay now ₹${selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-                  </Button>
                 </div>
               </div>
             )}
@@ -1048,12 +1038,30 @@ export default function PaymentPage() {
           {isDesktop && (
             <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
               <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
-              <div className="relative z-10 py-10 px-4 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full">
-                <div className="lg:sticky lg:top-0">
+              <div className="relative z-10 py-10 px-4 lg:pl-12 lg:bg-transparent bg-[#FAFAFA] min-h-full" ref={summaryRef}>
+                <div className="lg:sticky lg:top-0 space-y-6">
                   <CheckoutSummary
+                    showItems={true}
+                    showBreakdown={true}
+                    showPoints={true}
+                    showSilverPendantOffer={true}
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
-                  />
+                  >
+                    {/* Desktop Button - Moved here to match cart page */}
+                    <div className="hidden lg:block">
+                      <Button
+                        type="button"
+                        onClick={handlePayNow}
+                        disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
+                        className="w-full flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 font-figtree font-medium uppercase tracking-wide text-[16px] text-white cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {paymentLoading
+                          ? "Processing..."
+                          : `Pay now ₹${selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                      </Button>
+                    </div>
+                  </CheckoutSummary>
                 </div>
               </div>
             </div>

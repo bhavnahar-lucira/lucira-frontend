@@ -646,20 +646,6 @@ export default function ShippingPage() {
                   <ChevronLeft className="size-4" />
                   Return to cart
                 </Link>
-                <Button
-                  disabled={isContinueDisabled}
-                  onClick={() => {
-                    if (isContinueDisabled) {
-                      toast.error(`Please select a valid ${deliveryMethod === "ship" ? "shipping address" : "pickup location"}`);
-                      return;
-                    }
-                    handleContinueToPayment();
-                    router.push("/checkout/payment");
-                  }}
-                  className="w-full md:w-70 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
-                >
-                  CONTINUE TO PAYMENT
-                </Button>
               </div>
             </div>
           </div>
@@ -667,8 +653,26 @@ export default function ShippingPage() {
           <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
             <div className="relative z-10 py-10 px-4 lg:pl-12 mb-10 lg:bg-transparent min-h-full bg-[#FAFAFA]" ref={summaryRef}>
-              <div className="lg:sticky lg:top-0">
-                <CheckoutSummary showItems={false} />
+              <div className="lg:sticky lg:top-0 space-y-6">
+                <CheckoutSummary showItems={false}>
+                  {/* Desktop Button - Moved here to match cart page */}
+                  <div className="hidden lg:block">
+                    <Button
+                      disabled={isContinueDisabled}
+                      onClick={() => {
+                        if (isContinueDisabled) {
+                          toast.error(`Please select a valid ${deliveryMethod === "ship" ? "shipping address" : "pickup location"}`);
+                          return;
+                        }
+                        handleContinueToPayment();
+                        router.push("/checkout/payment");
+                      }}
+                      className="w-full flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[16px] text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
+                    >
+                      CONTINUE TO PAYMENT
+                    </Button>
+                  </div>
+                </CheckoutSummary>
               </div>
             </div>
           </div>
