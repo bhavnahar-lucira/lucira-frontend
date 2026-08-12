@@ -521,21 +521,21 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               </div>
             )}
 
-            <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[0.8125rem] font-medium text-zinc-800">
+            <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[0.95rem] font-medium text-zinc-800">
 
               {/* Row 1: Size & Quantity */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
                 {displaySize ? (
-                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[160px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     {sizeLabel}
                   </div>
                 ) : (
-                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[160px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     Quantity
                   </div>
                 )}
 
-                <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2 font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-[#000]">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2 font-figtree font-medium text-[0.95rem] leading-none tracking-[0px] text-[#000]">
                   {displaySize && (
                     <div className="flex items-center min-w-[60px]">
                       {canEditSize ? (
@@ -556,7 +556,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] text-[#000]">{displaySize}</span>
+                        <span className="font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] text-[#000]">{displaySize}</span>
                       )}
                     </div>
                   )}
@@ -564,7 +564,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   {displaySize && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
 
                   <div className="flex items-center gap-2">
-                    <span className="text-zinc-500 font-normal font-figtree text-[0.75rem] leading-none tracking-[0px]">Quantity</span>
+                    <span className="text-zinc-500 font-normal font-figtree text-[0.95rem] leading-none tracking-[0px]">Quantity</span>
                     {canEditQuantity ? (
                       <Select
                         value={String(item.quantity)}
@@ -583,7 +583,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         </SelectContent>
                       </Select>
                     ) : (
-                        <span className="font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] text-[#000]">{item.quantity}</span>
+                        <span className="font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] text-[#000]">{item.quantity}</span>
                     )}
                   </div>
                 </div>
@@ -591,10 +591,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 2: Metal (+ net weight, when the variant carries one) */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
-                <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                <div className="w-[160px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                   {item.goldWeight ? "Metal / Net Wt" : "Metal"}
                 </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-[#000]">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.95rem] leading-none tracking-[0px] text-[#000]">
                   {formatMetal(item.karat, item.color)}
                   {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
                 </div>
@@ -614,10 +614,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 4: Status */}
               <div className="flex min-h-[44px]">
-                <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                <div className="w-[160px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                   Status
                 </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-[#000]">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.95rem] leading-none tracking-[0px] text-[#000]">
                   <span className={`font-medium uppercase ${statusClass}`}>{statusLabel}</span>
                 </div>
               </div>
@@ -628,7 +628,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
         <div className={`flex items-center gap-2 px-4 py-3 md:px-6 ${dispatchBgClass}`}>
           <Truck size={16} className={`shrink-0 ${statusClass}`} />
-          <span className={`font-figtree font-medium text-[0.875rem] leading-none tracking-[0px] ${statusClass}`}>
+          <span className={`font-figtree font-medium text-[1rem] leading-none tracking-[0px] ${statusClass}`}>
             {dispatchMessage}
           </span>
         </div>

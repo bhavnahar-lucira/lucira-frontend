@@ -38,7 +38,7 @@ export function AddressForm({
   const stateOptions =
     form.province && !INDIAN_STATES.includes(form.province) ? [form.province, ...INDIAN_STATES] : INDIAN_STATES;
 
-  const inputClasses = "h-[48px] rounded-[4px] border border-zinc-200 bg-[#FAFAFA] shadow-none font-figtree text-[0.9375rem] placeholder:text-zinc-400 text-zinc-900";
+  const inputClasses = "h-[48px] rounded-[4px] border border-zinc-200 bg-[#FAFAFA] shadow-none font-figtree text-[0.9375rem] lg:text-[1.05rem] placeholder:text-zinc-400 text-zinc-900";
 
   return (
     <div className="space-y-4">
@@ -121,7 +121,7 @@ export function AddressForm({
             value={form.phone}
             onChange={(e) => onChange("phone", e.target.value)}
             disabled={disablePhone}
-            className="h-full grow bg-transparent outline-none text-[0.9375rem] font-figtree text-zinc-900 placeholder:text-zinc-400 disabled:cursor-not-allowed"
+            className="h-full grow bg-transparent outline-none text-[0.9375rem] lg:text-[1.05rem] font-figtree text-zinc-900 placeholder:text-zinc-400 disabled:cursor-not-allowed"
           />
         </div>
         {!hideEmail && (

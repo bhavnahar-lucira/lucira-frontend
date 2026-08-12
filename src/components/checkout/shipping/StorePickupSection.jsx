@@ -29,53 +29,50 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
   return (
     <div className="space-y-6">
       {showStoreDialog ? (
-        <div className="space-y-5 bg-transparent pt-2">
-          <h2 className="font-figtree text-[1.125rem] font-bold text-black">Pickup locations</h2>
+        <div className="relative bg-transparent pt-1 pb-[60px] min-h-[400px]">
+          <h2 className="font-figtree text-[1rem] font-medium text-black mb-4">Stores Available Near You</h2>
           
-          <button onClick={findNearestByGeolocation} className="flex items-center gap-2 text-[0.9375rem] font-medium font-figtree text-zinc-800 hover:underline">
-            <Navigation size={18} className="text-zinc-600" />
-            Use my location
-          </button>
-          
-          <div className="space-y-4">
-            <p className="text-[0.9375rem] text-zinc-500 font-figtree">There are {sortedStores.length} locations with your item</p>
-
-            <div className="max-h-[50vh] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-              {sortedStores.map((store) => {
-                const isSelected = tempSelectedStoreId === store.id;
-                return (
-                  <div
-                    key={store.id}
-                    onClick={() => setTempSelectedStoreId(store.id)}
-                    className={`relative flex items-start gap-4 p-5 rounded-[6px] border transition-all cursor-pointer ${
-                      isSelected ? "border-black shadow-none" : "border-zinc-200 hover:border-zinc-300"
-                    }`}
-                  >
-                    <div className={`mt-[2px] size-5 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${isSelected ? "border-black bg-transparent" : "border-zinc-300"}`}>
-                      {isSelected && <div className="size-2.5 rounded-full bg-black" />}
-                    </div>
-                    <div className="grow space-y-2">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-black font-figtree text-[1rem] leading-tight">{store.code || store.name}</h3>
-                        <span className="font-bold text-black font-figtree text-[0.875rem]">FREE</span>
+          <div className="max-h-[55vh] overflow-y-auto space-y-3 pb-6 custom-scrollbar pr-1">
+            {sortedStores.map((store, index) => {
+              const isSelected = tempSelectedStoreId === store.id;
+              return (
+                <div
+                  key={store.id}
+                  onClick={() => setTempSelectedStoreId(store.id)}
+                  className={`relative rounded-[6px] border transition-all cursor-pointer overflow-hidden ${
+                    isSelected ? "border-[#EADFD8] bg-[#FCF9F8]" : "border-zinc-200 bg-white hover:border-zinc-300"
+                  }`}
+                >
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-figtree text-[1rem] font-medium text-black">{store.code || store.name}</h3>
+                      <div className={`mt-0.5 size-[18px] rounded-full border-[2px] flex items-center justify-center shrink-0 ${isSelected ? "border-[#5A413F]" : "border-zinc-400"}`}>
+                        {isSelected && <div className="size-[8px] rounded-full bg-[#5A413F]" />}
                       </div>
-                      <p className="text-[0.9375rem] text-zinc-500 leading-relaxed pr-6 font-figtree">
-                        {store.address}, {store.city} {store.state}
-                      </p>
                     </div>
+                    <p className="font-figtree text-[0.8125rem] text-zinc-800 leading-relaxed pr-6">
+                      {store.address}, {store.city}, {store.state} {store.pincode ? `- ${store.pincode}` : ""}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-            
-            <div className="flex items-center gap-4 pt-4">
-              <Button variant="outline" type="button" onClick={() => setShowStoreDialog(false)} className="flex-1 h-[46px] border border-zinc-200 text-black font-figtree text-[0.9375rem] font-medium rounded-[4px]">
-                Cancel
-              </Button>
-              <Button type="button" onClick={saveStoreSelection} className="flex-1 h-[46px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree text-[0.9375rem] font-medium rounded-[4px] transition-colors border border-transparent">
-                Save Location
-              </Button>
-            </div>
+                  <div className={`border-t p-3 px-4 flex justify-between items-center ${isSelected ? "border-[#EADFD8]" : "border-zinc-200"}`}>
+                    <span className="font-figtree text-[0.875rem] font-medium text-black">
+                      {store.distance !== undefined ? `${store.distance} Km Away` : (index === 0 ? "2 Km Away" : "16 Km Away")}
+                    </span>
+                    {index === 0 && (
+                      <span className="font-figtree text-[0.625rem] font-bold text-[#22A05B] bg-[#EAF7EE] px-2 py-1 rounded-[4px] tracking-widest uppercase">
+                        Nearest
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-0">
+            <Button type="button" onClick={saveStoreSelection} className="w-full h-[50px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree text-[1rem] font-medium tracking-wide uppercase rounded-[4px] transition-colors shadow-sm">
+              Confirm
+            </Button>
           </div>
         </div>
       ) : hasResolvedStore && selectedStore ? (
@@ -92,7 +89,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           <div className="border border-zinc-200 rounded-sm overflow-hidden bg-white">
             <div className="p-4 sm:p-5 space-y-3">
               <h3 className="font-figtree text-[1.0625rem] font-bold text-black">{selectedStore.code}</h3>
-              <p className="text-[0.9375rem] leading-relaxed text-black font-medium font-figtree pr-4 md:pr-10">
+              <p className="text-[0.875rem] leading-relaxed text-black font-medium font-figtree pr-4 md:pr-10">
                 {selectedStore.address}, {selectedStore.city} {selectedStore.state}
               </p>
               <div className="flex items-center gap-2 text-[0.9375rem] text-[#22A05B] font-figtree font-medium pt-1">
@@ -138,7 +135,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
               value={pincodeQuery}
               maxLength={6}
               onChange={(e) => setPincodeQuery(e.target.value.replace(/\D/g, ""))}
-              className="h-full w-full min-w-0 bg-transparent outline-none text-[0.9375rem] font-figtree font-medium text-black placeholder:text-zinc-400"
+              className="h-full w-full min-w-0 bg-transparent outline-none text-[0.9375rem] lg:text-[1.05rem] font-figtree font-medium text-black placeholder:text-zinc-400"
             />
           </div>
 

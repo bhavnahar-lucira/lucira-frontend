@@ -74,7 +74,7 @@ export default function InsuranceOption() {
       type="button"
       onClick={isAdded ? handleRemove : handleAdd}
       disabled={isProcessing || loading}
-      className="flex w-full items-center gap-4 rounded-[6px] border border-[#eaeaea] bg-white p-3 text-left transition-colors hover:border-[#5A413F]/30 disabled:opacity-50 cursor-pointer"
+      className="flex w-full items-center gap-4 rounded-[6px] bg-[#FAFAFA] border-0 p-3 text-left transition-colors hover:border-[#5A413F]/30 disabled:opacity-50 cursor-pointer"
     >
       <span className="flex w-auto h-auto p-0 border-0 shrink-0 items-center justify-center text-[#5A413F]">
         <svg width="16" height="20" viewBox="0 0 18 22" fill="none">
@@ -83,17 +83,17 @@ export default function InsuranceOption() {
       </span>
 
       <div className="min-w-0 flex-1">
-        <h3 className="font-figtree font-semibold text-[0.875rem] leading-none text-black">
+        <h3 className="font-figtree font-semibold text-[0.875rem] lg:text-[1rem] leading-none text-black">
           Lucira Insurance
         </h3>
-        <p className="font-figtree font-normal text-[0.625rem] leading-[1.4] text-black mt-[6px]">
+        <p className="font-figtree font-normal text-[0.875rem] leading-[1.4] text-black mt-[6px]">
           Protect your Jewelry with our One-Time Protection Plan
         </p>
       </div>
 
       <div className="flex items-baseline gap-1.5 shrink-0 whitespace-nowrap">
-        <span className="font-figtree text-[0.8125rem] text-zinc-400 line-through">₹999</span>
-        <span className="font-figtree text-[0.9375rem] lg:text-[1rem] font-semibold text-black">₹{INSURANCE_PRICE}</span>
+        <span className="font-figtree text-[0.8125rem] lg:text-[0.9375rem] text-zinc-400 line-through">₹999</span>
+        <span className="font-figtree text-[0.9375rem] lg:text-[1.125rem] font-semibold text-black">₹{INSURANCE_PRICE}</span>
       </div>
 
       <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border transition-colors ${isAdded ? "bg-[#5A413F] border-[#5A413F]" : "border-[#5A413F]/50"}`}>

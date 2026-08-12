@@ -19,6 +19,7 @@ import {
   Search,
   X,
   Check,
+  Plus,
 } from "lucide-react";
 import CheckoutSummary from "@/components/cart/CheckoutSummary";
 import { Button } from "@/components/ui/button";
@@ -477,11 +478,11 @@ export default function ShippingPage() {
       <div className="max-w-7xl w-full mx-auto relative z-10">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white p-0 lg:pr-12 lg:py-10">
-            <h2 className="font-figtree text-[0.6875rem] md:text-[0.875rem] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 lg:px-0 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
+            <h2 className="font-figtree text-[0.6875rem] md:text-[1rem] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 lg:px-0 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
             <div className="flex w-full md:max-w-[380px] gap-3 relative z-10 px-6 lg:px-0 -mb-[1px]">
               <button
                 onClick={() => setDeliveryMethod("ship")}
-                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.875rem] font-medium transition-all ${deliveryMethod === "ship" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-t-[10px] rounded-b-none"
+                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.875rem] lg:text-[1rem] font-medium transition-all ${deliveryMethod === "ship" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-t-[10px] rounded-b-none"
                   }`}
               >
                 <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -498,7 +499,7 @@ export default function ShippingPage() {
               </button>
               <button
                 onClick={() => setDeliveryMethod("pickup")}
-                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.875rem] font-medium transition-all ${deliveryMethod === "pickup" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-t-[10px] rounded-b-none"
+                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.875rem] lg:text-[1rem] font-medium transition-all ${deliveryMethod === "pickup" ? "bg-[#F5F5F5] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-t-[10px] rounded-b-none"
                   }`}
               >
                 <svg width="12" height="15" viewBox="0 0 12 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -620,7 +621,7 @@ export default function ShippingPage() {
                         )}
 
                         <div className="space-y-4 pt-2">
-                          <h4 className="font-figtree text-[0.875rem] font-semibold text-black">Saved Addresses</h4>
+                          <h4 className="font-figtree text-[0.875rem] lg:text-[1rem] font-semibold text-black">Saved Addresses</h4>
                           <AddressListInline
                             addresses={addresses}
                             selectedAddressId={selectedAddressId}
@@ -742,7 +743,7 @@ export default function ShippingPage() {
                             </div>
                             <div>
                               <p className="text-[0.8125rem] font-figtree text-black mb-1">Estimated Dispatch by</p>
-                              <p className="text-[0.875rem] font-figtree font-bold text-black">
+                              <p className="text-[0.875rem] lg:text-[1rem] font-figtree font-bold text-black">
                                 {getEstimatedDispatchDate(item.inStock, item.leadTime).replace(/Estimated dispatch by /i, "")}
                               </p>
                             </div>
@@ -765,7 +766,7 @@ export default function ShippingPage() {
                         handleContinueToPayment();
                         router.push("/checkout/payment");
                       }}
-                      className="w-full flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[1rem] text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
+                      className="w-full flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[1.15rem] text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
                     >
                       CONTINUE TO PAYMENT
                     </Button>

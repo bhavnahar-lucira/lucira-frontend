@@ -501,7 +501,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {couponTrigger}
         {isSilverPendantEligible && (
           <div
-            className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] transition-colors pr-2.5 sm:pr-3.5 py-2 lg:py-1"
+            className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] transition-colors pr-2.5 sm:pr-3.5 py-2 lg:py-0"
             style={{
               borderRadius: "0px 0px 4px 4px",
               borderTop: "0px",
@@ -639,7 +639,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
         {totalSavingsBanner > 0 && (
           <div className="mt-4 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
-            <span className="font-figtree text-[0.875rem] font-medium text-[#00A63E] block">
+            <span className="font-figtree text-[1.1rem] font-medium text-[#00A63E] block">
               You will save <span className="font-semibold no-underline">₹{totalSavingsBanner.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
             </span>
           </div>
@@ -732,7 +732,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
           {totalSavingsBanner > 0 && (
             <div className="mt-3 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
-              <span className="font-figtree text-[0.875rem] font-medium text-[#00A63E] block">
+              <span className="font-figtree text-[1.1rem] font-medium text-[#00A63E] block">
                 You will save <span className="font-semibold no-underline">₹{totalSavingsBanner.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
               </span>
             </div>
@@ -755,7 +755,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
         <Button
           onClick={handleProceedToCheckout}
-          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-sm bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer"
+          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-sm bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[1.15rem] text-white cursor-pointer"
         >
           Proceed To Checkout
         </Button>
