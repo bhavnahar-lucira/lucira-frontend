@@ -101,17 +101,17 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
               </div>
             </div>
 
-            {/* Bottom Actions: Phone Input & Directions */}
+            {/* Bottom Actions: Phone & Directions */}
             <div className="grid grid-cols-2 border-t border-zinc-200">
-              <div className="flex items-center justify-center gap-2 h-14 border-r border-zinc-200 px-2">
+              <a 
+                href={selectedStore.phone ? `tel:${selectedStore.phone}` : "#"} 
+                className="flex items-center justify-center gap-2 h-14 border-r border-zinc-200 px-2 hover:bg-zinc-50 transition-colors"
+              >
                 <Phone size={18} className="text-black shrink-0" />
-                <input
-                  placeholder="Phone number"
-                  value={pickupPhone}
-                  onChange={(e) => setPickupPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  className="w-[125px] bg-transparent outline-none text-[15px] font-figtree font-medium text-black placeholder:text-zinc-400"
-                />
-              </div>
+                <span className="text-[15px] font-figtree font-medium text-black">
+                  {selectedStore.phone || "No phone"}
+                </span>
+              </a>
               <a
                 href={getDirectionsUrl(selectedStore)}
                 target="_blank"

@@ -26,7 +26,7 @@ import {
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 
-const ALL_STORES = [
+export const ALL_STORES = [
   {
     city: "Malad",
     name: "Head Office",

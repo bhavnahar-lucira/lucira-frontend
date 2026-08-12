@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/lib/api";
+import { ALL_STORES } from "@/app/(frontend)/pages/store-locator/StoreLocatorClient";
 
 const PINCODE_COORDS = {
   "400071": { lat: 19.0522, lng: 72.8995 },
@@ -48,8 +49,6 @@ function ordinalSuffix(day) {
   }
 }
 
-// In-store pickup is ready a couple of business days out — there's no live
-// per-store readiness feed yet, so this is a friendly estimate, not a promise.
 export function formatPickupReadyDate(daysFromNow = 3) {
   const date = new Date();
   date.setDate(date.getDate() + daysFromNow);
@@ -58,11 +57,6 @@ export function formatPickupReadyDate(daysFromNow = 3) {
   return `${day}${ordinalSuffix(day)} ${month}`;
 }
 
-/**
- * Store pickup selection: nearby-store search by pincode/geolocation, plus
- * a "does the browser already have location access" signal that decides
- * whether to show the pincode-search state or the resolved-store state.
- */
 export function useStorePickup({ selectedShippingZip } = {}) {
   const [dbStores, setDbStores] = useState([]);
   const [selectedStoreId, setSelectedStoreId] = useState("");
@@ -71,10 +65,6 @@ export function useStorePickup({ selectedShippingZip } = {}) {
   const [pincodeQuery, setPincodeQuery] = useState("");
   const [searchCoords, setSearchCoords] = useState(null);
   const [locationPermission, setLocationPermission] = useState("unknown");
-  // Flips true once a store has been resolved by pincode/geolocation search
-  // or explicitly chosen+saved from the picker — independent of *how* it
-  // was resolved, so picking from "more locations" also lands on the
-  // resolved-store view instead of bouncing back to the search prompt.
   const [hasResolvedStore, setHasResolvedStore] = useState(false);
 
   useEffect(() => {
@@ -83,18 +73,32 @@ export function useStorePickup({ selectedShippingZip } = {}) {
         const data = await apiFetch("/api/stores");
         if (data.stores) {
           setDbStores(
-            data.stores.map((s) => ({
-              id: s.shopifyId,
-              name: s.name,
-              code: s.name,
-              address: s.address || "",
-              city: s.city || "",
-              state: s.provinceCode || s.province || "",
-              zip: s.zip || "",
-              lat: s.latitude || 0,
-              lng: s.longitude || 0,
-              readyTime: "Usually ready in 24 hours",
-            }))
+            data.stores.map((s) => {
+              // Dynamically cross-reference ALL_STORES from StoreLocatorClient
+              // to find matching phone numbers so there is a single source of truth.
+              const sName = s.name.toLowerCase();
+              const matchedLocatorStore = ALL_STORES.find(store => 
+                store.name.toLowerCase().includes(sName) || 
+                sName.includes(store.city.toLowerCase()) || 
+                (store.designLink && store.designLink.includes(sName))
+              );
+              
+              let phoneStr = s.phone || (matchedLocatorStore ? matchedLocatorStore.callLink.replace("tel:", "") : "");
+              
+              return {
+                id: s.shopifyId,
+                name: s.name,
+                code: s.name,
+                address: s.address || "",
+                city: s.city || "",
+                state: s.provinceCode || s.province || "",
+                zip: s.zip || "",
+                lat: s.latitude || 0,
+                lng: s.longitude || 0,
+                phone: phoneStr,
+                readyTime: "Usually ready in 24 hours",
+              };
+            })
           );
         }
       } catch (err) {
