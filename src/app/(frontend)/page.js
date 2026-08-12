@@ -6,6 +6,7 @@ export const revalidate = 86400; // 24 hours
 import HeroSliderImage from "@/components/home/HeroSliderImage";
 import ExploreRange from "@/components/home/ExploreRange";
 import FeatureBar from "@/components/home/FeatureBar";
+import AspirationalCollections from "@/components/home/AspirationalCollections";
 import DiamondCuts from "@/components/home/DiamondCuts"
 import ShopByCategory from "@/components/home/ShopByCategory";
 import JewelryBlogContainer from "@/components/home/JewelryBlogContainer";
@@ -100,6 +101,7 @@ export default async function Home() {
       <MobileCategorySlider />
       <HeroSliderImage initialData={bannersInitial} />
       <FeatureBar />
+      <AspirationalCollections />
       <ExploreRange />
 
       <BestsellerSection initialData={bestsellersInitial} />
