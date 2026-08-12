@@ -432,22 +432,22 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             <div className="flex justify-between items-start gap-4 pr-8">
               <div className="space-y-1 min-w-0">
                 <Link prefetch={false} href={productLink} className="block" title={item.title}>
-                  <h3 className="font-figtree font-medium text-[14px] lg:text-[1rem] leading-none tracking-[0px] text-black truncate flex-1 mb-[10px] transition-colors hover:text-primary">
+                  <h3 className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none tracking-[0px] text-black truncate flex-1 mb-[10px] transition-colors hover:text-primary">
                     {displayTitle}
                   </h3>
                 </Link>
-                <p className="font-figtree font-medium text-[12px] uppercase tracking-[0px] leading-none text-zinc-400">
+                <p className="font-figtree font-medium text-[0.75rem] uppercase tracking-[0px] leading-none text-zinc-400">
                   SKU: {currentVariant?.sku || item.sku || "N/A"}
                 </p>
                 {item.engraving && (
-                  <p className="font-figtree font-medium text-[12px] uppercase tracking-[0px] leading-none text-primary mt-1">
+                  <p className="font-figtree font-medium text-[0.75rem] uppercase tracking-[0px] leading-none text-primary mt-1">
                     Engraving: &quot;{item.engraving}&quot;
                   </p>
                 )}
                 {isBYJ && (
                   <button 
                     onClick={() => setShowBreakdown(!showBreakdown)}
-                    className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-1"
+                    className="flex items-center gap-1 text-[0.6875rem] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-1"
                   >
                     {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
                     <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
@@ -459,7 +459,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </div>
                 {hasDiscount && (
-                  <div className="font-figtree font-normal text-[12px] leading-none tracking-[0px] text-[#909090] line-through">
+                  <div className="font-figtree font-normal text-[0.75rem] leading-none tracking-[0px] text-[#909090] line-through">
                     ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </div>
                 )}
@@ -471,14 +471,14 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 <div className="space-y-6">
                   <div className="border-b border-[#e0d0ba] pb-2">
                     <div className="flex justify-between items-end mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
+                      <span className="text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
                     </div>
                     <div className="text-sm font-medium">{item.properties['Product Type']}</div>
                   </div>
 
                   <div className="border-b border-[#e0d0ba] pb-2">
                     <div className="flex justify-between items-end mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                      <span className="text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
                       <span className="text-sm font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                     </div>
                     <div className="text-sm font-medium text-zinc-800">{item.properties['Style']}</div>
@@ -486,14 +486,14 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
                   <div className="border-b border-[#e0d0ba] pb-2">
                     <div className="flex justify-between items-end mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
+                      <span className="text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
                     </div>
                     <div className="text-sm font-medium">{item.properties['Length']}</div>
                   </div>
 
                   <div className="pb-2">
                     <div className="flex justify-between items-end mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                      <span className="text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
                     </div>
                     <div className="space-y-3 mt-3">
                       {byjCharms.map((charm, idx) => (
@@ -504,7 +504,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                             </div>
                             <div className="flex flex-col gap-0.5">
                               <span className="text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
-                              {charm.sku && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
+                              {charm.sku && <span className="text-[0.5625rem] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
                             </div>
                           </div>
                           <span className="text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {((parseFloat(charm.price) * (charm.qty || 1)) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -521,21 +521,21 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               </div>
             )}
 
-            <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[13px] font-medium text-zinc-800">
+            <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[0.8125rem] font-medium text-zinc-800">
 
               {/* Row 1: Size & Quantity */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
                 {displaySize ? (
-                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     {sizeLabel}
                   </div>
                 ) : (
-                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     Quantity
                   </div>
                 )}
 
-                <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2 font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2 font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-[#000]">
                   {displaySize && (
                     <div className="flex items-center min-w-[60px]">
                       {canEditSize ? (
@@ -556,7 +556,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="font-medium font-figtree text-[12px] leading-none tracking-[0px] text-[#000]">{displaySize}</span>
+                        <span className="font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] text-[#000]">{displaySize}</span>
                       )}
                     </div>
                   )}
@@ -564,7 +564,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   {displaySize && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
 
                   <div className="flex items-center gap-2">
-                    <span className="text-zinc-500 font-normal font-figtree text-[12px] leading-none tracking-[0px]">Quantity</span>
+                    <span className="text-zinc-500 font-normal font-figtree text-[0.75rem] leading-none tracking-[0px]">Quantity</span>
                     {canEditQuantity ? (
                       <Select
                         value={String(item.quantity)}
@@ -583,7 +583,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         </SelectContent>
                       </Select>
                     ) : (
-                        <span className="font-medium font-figtree text-[12px] leading-none tracking-[0px] text-[#000]">{item.quantity}</span>
+                        <span className="font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] text-[#000]">{item.quantity}</span>
                     )}
                   </div>
                 </div>
@@ -591,10 +591,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 2: Metal (+ net weight, when the variant carries one) */}
               <div className="flex border-b border-zinc-100 min-h-[44px]">
-                <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                   {item.goldWeight ? "Metal / Net Wt" : "Metal"}
                 </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-[#000]">
                   {formatMetal(item.karat, item.color)}
                   {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
                 </div>
@@ -603,10 +603,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               {/* Row 3: Stone (If diamondTotalPcs > 0) */}
               {/* {item.diamondTotalPcs > 0 && (
                 <div className="flex border-b border-zinc-100 min-h-[44px]">
-                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                     Stone
                   </div>
-                  <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
+                  <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-[#000]">
                     {item.diamondTotalPcs} Diamond{item.diamondCarat ? `, ${item.diamondCarat} Carat` : ''}{item.diamondQuality ? `, ${item.diamondQuality}` : ''}
                   </div>
                 </div>
@@ -614,10 +614,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
               {/* Row 4: Status */}
               <div className="flex min-h-[44px]">
-                <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[12px] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
+                <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
                   Status
                 </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[12px] leading-none tracking-[0px] text-[#000]">
+                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-[#000]">
                   <span className={`font-medium uppercase ${statusClass}`}>{statusLabel}</span>
                 </div>
               </div>
@@ -628,7 +628,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
         <div className={`flex items-center gap-2 px-4 py-3 md:px-6 ${dispatchBgClass}`}>
           <Truck size={16} className={`shrink-0 ${statusClass}`} />
-          <span className={`font-figtree font-medium text-[14px] leading-none tracking-[0px] ${statusClass}`}>
+          <span className={`font-figtree font-medium text-[0.875rem] leading-none tracking-[0px] ${statusClass}`}>
             {dispatchMessage}
           </span>
         </div>
@@ -656,7 +656,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   className="h-full w-full object-contain mix-blend-multiply"
                 />
               </Link>
-              <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white border border-zinc-100 px-1.5 py-0.5 font-figtree font-bold text-[8px] leading-none tracking-[0px] uppercase ${statusClass}`}>
+              <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white border border-zinc-100 px-1.5 py-0.5 font-figtree font-bold text-[0.5rem] leading-none tracking-[0px] uppercase ${statusClass}`}>
                 {statusLabel}
               </span>
               {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10" />}
@@ -665,7 +665,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             {/* Info Content */}
             <div className="flex-1 space-y-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-[8px]">
-                <h3 className="font-figtree font-medium text-[14px] lg:text-[1rem] leading-none tracking-[0px] text-black truncate flex-1">
+                <h3 className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none tracking-[0px] text-black truncate flex-1">
                   {displayTitle}
                 </h3>
                 <button 
@@ -676,27 +676,27 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 </button>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
-                <span className="font-figtree font-semibold text-[14px] leading-none tracking-[0px] text-zinc-900">
+                <span className="font-figtree font-semibold text-[0.875rem] leading-none tracking-[0px] text-zinc-900">
                   ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </span>
                 {hasDiscount && (
                   <>
-                    <span className="font-figtree font-normal text-[14px] leading-none tracking-[0px] text-zinc-400 line-through">
+                    <span className="font-figtree font-normal text-[0.875rem] leading-none tracking-[0px] text-zinc-400 line-through">
                       ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                     </span>
                   </>
                 )}
               </div>
-              <p className="font-figtree font-medium text-[10px] leading-none tracking-[0px] text-[#909090] uppercase my-3">
+              <p className="font-figtree font-medium text-[0.625rem] leading-none tracking-[0px] text-[#909090] uppercase my-3">
                 SKU: {currentVariant?.sku || item.sku || "N/A"}
               </p>
               {item.engraving && (
-                <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                <p className="text-[0.625rem] font-bold uppercase tracking-wider text-primary">
                   Engraving: &quot;{item.engraving}&quot;
                 </p>
               )}
-              <p className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-black capitalize mb-1.5">
-                Metal: <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-black">
+              <p className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-black capitalize mb-1.5">
+                Metal: <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-black">
                   {formatMetal(item.karat, item.color)}
                 </span>
               </p>
@@ -705,7 +705,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               <div className="flex items-center gap-3 pt-1 flex-wrap">
                 {displaySize && (
                   <div className="flex items-center gap-0.5">
-                    <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800">
+                    <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800">
                       Size:
                     </span>
                     {canEditSize ? (
@@ -714,7 +714,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         onValueChange={(val) => handleUpdate("size", val)}
                         disabled={updating}
                       >
-                        <SelectTrigger className="h-auto border-none bg-transparent p-0 font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
+                        <SelectTrigger className="h-auto border-none bg-transparent p-0 font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
                           <SelectValue placeholder={formatSizeLabel(item.size)} />
                         </SelectTrigger>
                         <SelectContent>
@@ -726,20 +726,20 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800">{displaySize}</span>
+                      <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800">{displaySize}</span>
                     )}
                   </div>
                 )}
 
                 <div className="flex items-center gap-0.5">
-                  <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800">Quantity:</span>
+                  <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800">Quantity:</span>
                   {canEditQuantity ? (
                     <Select
                       value={String(item.quantity)}
                       onValueChange={(val) => handleUpdate("quantity", val)}
                       disabled={updating}
                     >
-                      <SelectTrigger className="h-auto border-none bg-transparent p-0 font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
+                      <SelectTrigger className="h-auto border-none bg-transparent p-0 font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
                         <SelectValue placeholder={item.quantity} />
                       </SelectTrigger>
                       <SelectContent>
@@ -751,7 +751,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-figtree font-medium text-[12px] leading-none tracking-[0px] text-zinc-800">{item.quantity}</span>
+                    <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800">{item.quantity}</span>
                   )}
                 </div>
               </div>
@@ -759,7 +759,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               {isBYJ && (
                 <button 
                   onClick={() => setShowBreakdown(!showBreakdown)}
-                  className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-2"
+                  className="flex items-center gap-1 text-[0.6875rem] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-2"
                 >
                   {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
                   <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
@@ -780,14 +780,14 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               <div className="space-y-5">
                 <div className="border-b border-[#e0d0ba] pb-2">
                   <div className="flex justify-between items-end mb-1">
-                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
+                    <span className="text-[0.5625rem] sm:text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
                   </div>
                   <div className="text-xs sm:text-sm font-medium">{item.properties['Product Type']}</div>
                 </div>
 
                 <div className="border-b border-[#e0d0ba] pb-2">
                   <div className="flex justify-between items-end mb-1">
-                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                    <span className="text-[0.5625rem] sm:text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
                     <span className="text-xs sm:text-sm font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                   </div>
                   <div className="text-xs sm:text-sm font-medium text-zinc-800">{item.properties['Style']}</div>
@@ -795,14 +795,14 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
                 <div className="border-b border-[#e0d0ba] pb-2">
                   <div className="flex justify-between items-end mb-1">
-                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
+                    <span className="text-[0.5625rem] sm:text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
                   </div>
                   <div className="text-xs sm:text-sm font-medium">{item.properties['Length']}</div>
                 </div>
 
                 <div className="pb-2">
                   <div className="flex justify-between items-end mb-1">
-                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                    <span className="text-[0.5625rem] sm:text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
                   </div>
                   <div className="space-y-3 mt-3">
                     {byjCharms.map((charm, idx) => (
@@ -813,7 +813,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                           </div>
                           <div className="flex flex-col gap-0.5">
                             <span className="text-xs sm:text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
-                            {charm.sku && <span className="text-[8px] sm:text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
+                            {charm.sku && <span className="text-[0.5rem] sm:text-[0.5625rem] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
                           </div>
                         </div>
                         <span className="text-xs sm:text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {((parseFloat(charm.price) * (charm.qty || 1)) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -839,7 +839,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
           <div className="bg-white rounded-t-[16px] lg:rounded-[10px] w-full lg:w-[420px] overflow-hidden flex flex-col relative animate-in slide-in-from-bottom-full lg:slide-in-from-bottom-0 lg:zoom-in-95 duration-300 font-figtree">
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-4">
-              <h3 className="font-abhaya text-[20px] font-bold text-primary tracking-tight leading-tight">
+              <h3 className="font-abhaya text-[1.25rem] font-bold text-primary tracking-tight leading-tight">
                 {isBYJ ? "Remove from Bag" : "Move from Bag"}
               </h3>
               <button
@@ -863,17 +863,17 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 />
               </div>
               <div className="min-w-0 flex-1 text-left">
-                <h4 className="truncate font-figtree text-[14px] font-semibold text-zinc-900 leading-snug">
+                <h4 className="truncate font-figtree text-[0.875rem] font-semibold text-zinc-900 leading-snug">
                   {item.title}
                 </h4>
-                <p className="truncate font-figtree text-[12px] text-zinc-500 mt-1">
+                <p className="truncate font-figtree text-[0.75rem] text-zinc-500 mt-1">
                   {modalCategory}
                 </p>
               </div>
             </div>
 
             {/* Confirmation Text */}
-            <p className="px-5 pb-6 font-figtree text-[13px] text-zinc-600 text-left">
+            <p className="px-5 pb-6 font-figtree text-[0.8125rem] text-zinc-600 text-left">
               Are you sure you want to remove this item from bag?
             </p>
 
@@ -883,7 +883,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 <>
                   <button
                     onClick={() => setShowRemoveModal(false)}
-                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[12px] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[0.75rem] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
                   >
                     Keep it
                   </button>
@@ -893,7 +893,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       setShowRemoveModal(false);
                     }}
                     disabled={removing}
-                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[12px] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[0.75rem] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
                   >
                     {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
                   </button>
@@ -906,7 +906,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       setShowRemoveModal(false);
                     }}
                     disabled={removing || movingToWishlist}
-                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[12px] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[0.75rem] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
                   >
                     {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
                   </button>
@@ -916,7 +916,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       setShowRemoveModal(false);
                     }}
                     disabled={removing || movingToWishlist}
-                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[12px] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[0.75rem] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
                   >
                     {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "Move to Wishlist"}
                   </button>

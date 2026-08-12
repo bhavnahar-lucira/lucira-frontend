@@ -273,7 +273,7 @@ export default function CheckoutSummary({
     <div className={`space-y-6 ${className}`}>
       {showItems && (
         <div className="space-y-4">
-          <h2 className="text-[13px] font-bold text-zinc-800 uppercase tracking-wide">ORDER SUMMARY</h2>
+          <h2 className="text-[0.8125rem] font-bold text-zinc-800 uppercase tracking-wide">ORDER SUMMARY</h2>
           <div className="bg-white rounded-lg p-4 space-y-4">
             {displayItems.map((item, index) => {
               const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
@@ -324,21 +324,21 @@ export default function CheckoutSummary({
                       <div className="space-y-4">
                         <div className="border-b border-[#e0d0ba] pb-1.5">
                           <div className="flex justify-between items-end mb-0.5">
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
-                            <span className="text-[11px] font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                            <span className="text-[0.5625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
+                            <span className="text-[0.6875rem] font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                           </div>
-                          <div className="text-[11px] font-medium text-zinc-800">{item.properties['Style']}</div>
+                          <div className="text-[0.6875rem] font-medium text-zinc-800">{item.properties['Style']}</div>
                         </div>
 
                         <div className="pb-1">
                           <div className="flex justify-between items-end mb-0.5">
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
+                            <span className="text-[0.5625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
                           </div>
                           <div className="space-y-2 mt-2">
                             {byjCharms.map((charm, idx) => (
                               <div key={idx} className="flex justify-between items-start gap-3">
-                                <span className="text-[11px] font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
-                                <span className="text-[11px] font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                                <span className="text-[0.6875rem] font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                                <span className="text-[0.6875rem] font-bold text-[#1c1810] whitespace-nowrap">₹ {parseFloat(charm.price * charm.qty / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                               </div>
                             ))}
                           </div>
@@ -349,7 +349,7 @@ export default function CheckoutSummary({
 
                   <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
                     <Truck size={14} className="text-black" />
-                    <span className="text-[10px] font-medium text-black tracking-tight">
+                    <span className="text-[0.625rem] font-medium text-black tracking-tight">
                       {getEstimatedDispatchDate(item.inStock, item.leadTime)}
                     </span>
                   </div>
@@ -364,20 +364,20 @@ export default function CheckoutSummary({
 
       {showBreakdown && (
         <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3.5 bg-transparent lg:py-6 mb-0">
-          <h2 className="text-[15px] font-figtree font-medium text-black uppercase tracking-wide mb-4 lg:hidden">ORDER SUMMARY</h2>
+          <h2 className="text-[0.9375rem] font-figtree font-medium text-black uppercase tracking-wide mb-4 lg:hidden">ORDER SUMMARY</h2>
 
-          <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+          <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
             <span>Subtotal</span>
             <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
           {totalSavings > 0 && (
-            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span>Saving</span>
               <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
           {appliedCoupon ? (
-            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span className="text-[#000000]">
                 Coupon Applied
               </span>
@@ -385,14 +385,14 @@ export default function CheckoutSummary({
                 <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                 <button
                   onClick={removeCoupon}
-                  className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
+                  className="text-[0.625rem] font-bold text-red-500 hover:underline uppercase tracking-tighter"
                 >
                   (Remove)
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span>Coupon Discount</span>
               <Link href="/checkout/cart" className="font-semibold text-[#5A413F] hover:underline">
                 Apply Coupon
@@ -400,13 +400,13 @@ export default function CheckoutSummary({
             </div>
           )}
           {goldCoinItem && (
-            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
               <span className="font-semibold text-[#00A63E]">₹ 0</span>
             </div>
           )}
           {isPendantActive && (
-            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span>Free Silver Pendant</span>
               <div className="flex items-center gap-2">
                 {pendantPrice > 0 && (
@@ -419,18 +419,18 @@ export default function CheckoutSummary({
             </div>
           )}
           {insuranceValue > 0 && (
-            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span>Insurance</span>
               <span className="font-semibold text-[#3D2B28]">₹ {insuranceValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
           {nectorPoints && (
-            <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span className="font-semibold uppercase tracking-wider text-[#189351]">Redeemed {nectorPoints.coin_value} coins</span>
               <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {nectorPoints.fiat_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
-          <div className="flex justify-between items-center font-figtree text-[14px] lg:text-base text-[#000000]">
+          <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
             <span>Shipping</span>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-[#00A63E]">Free</span>
@@ -439,13 +439,13 @@ export default function CheckoutSummary({
           </div>
 
           <div className="border-t border-zinc-200 mt-4 pt-4 flex justify-between items-center">
-            <span className="font-figtree text-[15px] lg:text-base font-bold text-black uppercase">Grand Total</span>
-            <span className="font-figtree text-[16px] lg:text-xl font-bold text-black">₹ {grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-figtree text-[0.9375rem] lg:text-base font-bold text-black uppercase">Grand Total</span>
+            <span className="font-figtree text-[1rem] lg:text-xl font-bold text-black">₹ {grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
 
           {(totalSavings > 0 || couponDiscountAmount > 0) && (
             <div className="mt-4 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
-              <span className="font-figtree text-[14px] font-medium text-[#00A63E] block">
+              <span className="font-figtree text-[0.875rem] font-medium text-[#00A63E] block">
                 You will save <span className="font-semibold no-underline">₹{(totalSavings + couponDiscountAmount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
               </span>
             </div>
@@ -470,8 +470,8 @@ export default function CheckoutSummary({
           {/* Right Side: Content & Action */}
           <div className="flex-1 flex flex-col justify-between py-0.5">
             <div className="space-y-1">
-              <h3 className="text-[13px] font-bold text-[#443360] uppercase tracking-tight">Free Silver Pendant</h3>
-              <p className="text-[11px] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your free silver pendant now.</p>
+              <h3 className="text-[0.8125rem] font-bold text-[#443360] uppercase tracking-tight">Free Silver Pendant</h3>
+              <p className="text-[0.6875rem] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your free silver pendant now.</p>
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-2">
@@ -503,7 +503,7 @@ export default function CheckoutSummary({
                     onToggleSilverPendant();
                     toast.info("Free Silver Pendant removed from your order.");
                   }}
-                  className="px-5 py-2 bg-zinc-100 hover:bg-red-50 hover:text-red-600 text-zinc-500 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                  className="px-5 py-2 bg-zinc-100 hover:bg-red-50 hover:text-red-600 text-zinc-500 rounded-full text-[0.625rem] font-bold uppercase tracking-wider transition-all cursor-pointer"
                 >
                   REMOVE
                 </button>
@@ -532,7 +532,7 @@ export default function CheckoutSummary({
                       icon: <Check className="w-4 h-4" />
                     });
                   }}
-                  className="group relative px-8 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all active:scale-[0.98] overflow-hidden cursor-pointer"
+                  className="group relative px-8 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-[0.625rem] font-bold uppercase tracking-[0.15em] transition-all active:scale-[0.98] overflow-hidden cursor-pointer"
                 >
                   <span className="relative z-10">CLAIM</span>
 
@@ -584,11 +584,11 @@ export default function CheckoutSummary({
                 <div className="flex items-center justify-between bg-white/80 p-3 rounded-lg border border-[#B4936B]/20">
                   <div className="space-y-0.5">
                     <span className="text-sm font-bold text-[#189351]">Applied: -₹{nectorPoints.fiat_value.toLocaleString('en-IN')}</span>
-                    <p className="text-[11px] text-zinc-500 font-medium">Redeemed {nectorPoints.coin_value} coins</p>
+                    <p className="text-[0.6875rem] text-zinc-500 font-medium">Redeemed {nectorPoints.coin_value} coins</p>
                   </div>
                   <button
                     onClick={handleRemovePoints}
-                    className="text-[11px] font-bold text-red-600 hover:text-red-700 uppercase tracking-wider transition-colors"
+                    className="text-[0.6875rem] font-bold text-red-600 hover:text-red-700 uppercase tracking-wider transition-colors"
                   >
                     REMOVE
                   </button>
@@ -598,19 +598,19 @@ export default function CheckoutSummary({
             if (hasDiamondJewellery && pointsData?.promotions?.[0]) {
               return (
                 <div className="space-y-3">
-                  <p className="text-[11px] text-zinc-500 leading-tight italic">Apply {pointsData.promotions[0].title} for {pointsData.promotions[0].coin_value} coins?</p>
+                  <p className="text-[0.6875rem] text-zinc-500 leading-tight italic">Apply {pointsData.promotions[0].title} for {pointsData.promotions[0].coin_value} coins?</p>
                   <button onClick={handleApplyPoints} className="w-full bg-[#B4936B] hover:bg-[#A3825A] text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Apply Points</button>
                 </div>
               );
             }
             if (!hasDiamondJewellery && pointsData) {
               return (
-                <p className="text-[10px] text-zinc-400 text-center italic leading-tight">Loyalty points can only be applied to Diamond Jewellery.</p>
+                <p className="text-[0.625rem] text-zinc-400 text-center italic leading-tight">Loyalty points can only be applied to Diamond Jewellery.</p>
               );
             }
             if (pointsData && (!pointsData.promotions || pointsData.promotions.length === 0)) {
               return (
-                <p className="text-[10px] text-zinc-400 text-center italic">Not enough coins to redeem for this order.</p>
+                <p className="text-[0.625rem] text-zinc-400 text-center italic">Not enough coins to redeem for this order.</p>
               );
             }
             return null;

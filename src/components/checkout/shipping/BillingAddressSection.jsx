@@ -105,7 +105,7 @@ export function BillingAddressSection({
         <h2 className="text-xl font-bold text-zinc-900">Billing Address</h2>
       ) : (
         <div className="flex items-center justify-between gap-4 mt-6">
-          <span className="text-[15px] font-figtree font-medium text-black">Billing Address same as Shipping Address</span>
+          <span className="text-[0.9375rem] font-figtree font-medium text-black">Billing Address same as Shipping Address</span>
           <ToggleSwitch
             checked={billingAddressMode === "same"}
             onCheckedChange={(checked) => setBillingMode(checked ? "same" : "different")}

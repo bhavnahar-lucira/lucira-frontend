@@ -112,7 +112,7 @@ export default function GoldCoinOption() {
           <button
             onClick={handleRemove}
             disabled={isProcessing || loading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[10px] cursor-pointer font-bold uppercase tracking-wider text-red-600 hover:bg-red-50 transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-[0.625rem] cursor-pointer font-bold uppercase tracking-wider text-red-600 hover:bg-red-50 transition-all disabled:opacity-50"
           >
             {isProcessing ? (
               <Loader2 size={12} className="animate-spin" />
@@ -125,7 +125,7 @@ export default function GoldCoinOption() {
           <button
             onClick={handleApply}
             disabled={isProcessing || loading}
-            className="flex items-center gap-1.5 px-4 py-2 cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-600 text-white text-[10px] font-bold uppercase tracking-widest rounded-sm transition-all hover:-translate-y-[1px] active:translate-y-0 disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-2 cursor-pointer bg-gradient-to-br from-yellow-300 to-yellow-600 text-white text-[0.625rem] font-bold uppercase tracking-widest rounded-sm transition-all hover:-translate-y-[1px] active:translate-y-0 disabled:opacity-50"
           >
             {isProcessing ? (
               <Loader2 size={12} className="animate-spin" />

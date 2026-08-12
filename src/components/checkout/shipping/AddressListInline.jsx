@@ -35,13 +35,13 @@ export function AddressListInline({
             <div className="flex justify-between items-start w-full">
               <div className="flex-1 w-full overflow-hidden pr-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-figtree text-[17px] font-semibold text-black truncate">
+                  <h3 className="font-figtree text-[1.0625rem] font-semibold text-black truncate">
                     {[address.firstName, address.lastName].filter(Boolean).join(" ")}
                     {address.phone ? ` | ${address.phone}` : ""}
                   </h3>
                 </div>
                 
-                <div className="space-y-1 text-[15px] leading-relaxed text-zinc-900 font-medium font-figtree">
+                <div className="space-y-1 text-[0.9375rem] leading-relaxed text-zinc-900 font-medium font-figtree">
                   {formatAddressLines(address).filter(line => line !== [address.firstName, address.lastName].filter(Boolean).join(" ")).map((line) => (
                     <p key={`${address.id}-${line}`}>{line}</p>
                   ))}
@@ -76,7 +76,7 @@ export function AddressListInline({
                   e.stopPropagation();
                   await onDelete(address.id);
                 }}
-                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-[4px] border border-zinc-200 bg-white text-[#5A413F] font-figtree font-medium text-[15px] hover:bg-zinc-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-[4px] border border-zinc-200 bg-white text-[#5A413F] font-figtree font-medium text-[0.9375rem] hover:bg-zinc-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Trash className="size-[18px]" strokeWidth={1.5} />
                 Delete
@@ -88,7 +88,7 @@ export function AddressListInline({
                     e.stopPropagation();
                     onEdit(address);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-[4px] border border-zinc-200 bg-white text-[#5A413F] font-figtree font-medium text-[15px] hover:bg-zinc-50 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 h-[46px] rounded-[4px] border border-zinc-200 bg-white text-[#5A413F] font-figtree font-medium text-[0.9375rem] hover:bg-zinc-50 transition-colors"
                 >
                   <Edit className="size-[18px]" strokeWidth={1.5} />
                   Edit

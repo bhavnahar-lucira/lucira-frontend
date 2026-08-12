@@ -110,14 +110,14 @@ export default function CartViewLiveBanner({ items }) {
             />
           </span>
           <div className="min-w-0 flex-1 text-left">
-            <p className="font-figtree font-medium text-[12px] lg:text-[1.05rem] leading-[1.3] text-black lg:text-[#3D2B28] mb-[1px] lg:mb-[2px] truncate">
+            <p className="font-figtree font-medium text-[0.75rem] lg:text-[1.05rem] leading-[1.3] text-black lg:text-[#3D2B28] mb-[1px] lg:mb-[2px] truncate">
               Shop with Complete Confidence
             </p>
-            <p className="font-figtree font-normal text-[12px] lg:text-[0.875rem] leading-[1.3] text-[#000000] truncate">
+            <p className="font-figtree font-normal text-[0.75rem] lg:text-[0.875rem] leading-[1.3] text-[#000000] truncate">
               See every detail before you buy.
             </p>
           </div>
-          <span className="flex shrink-0 items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-9 lg:h-11 px-4 lg:px-5 font-figtree font-medium text-[12px] lg:text-[0.875rem] leading-none tracking-[0px] align-middle uppercase text-white transition-transform active:scale-95">
+          <span className="flex shrink-0 items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-9 lg:h-11 px-4 lg:px-5 font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] align-middle uppercase text-white transition-transform active:scale-95">
             <Video size={14} className="lg:hidden" />
             <Video size={16} className="hidden lg:block" />
             View Live
@@ -178,7 +178,7 @@ export default function CartViewLiveBanner({ items }) {
                     />
                   </div>
                   <div className="flex-1 w-full min-w-0">
-                    <h3 className="truncate font-figtree text-[12px] font-semibold text-zinc-900 leading-tight">
+                    <h3 className="truncate font-figtree text-[0.75rem] font-semibold text-zinc-900 leading-tight">
                       {item.title}
                     </h3>
                     <p className="truncate font-figtree text-xs text-zinc-500 font-medium uppercase tracking-tight mt-1">
@@ -194,7 +194,7 @@ export default function CartViewLiveBanner({ items }) {
             <button
               onClick={() => handleContinue(selectedItems)}
               disabled={selectedItems.length === 0}
-              className="flex w-full items-center justify-center gap-2 rounded-[6px] bg-[#5A413F] px-4 h-12 font-figtree font-medium uppercase tracking-wider text-[13px] text-white transition-opacity disabled:opacity-40"
+              className="flex w-full items-center justify-center gap-2 rounded-[6px] bg-[#5A413F] px-4 h-12 font-figtree font-medium uppercase tracking-wider text-[0.8125rem] text-white transition-opacity disabled:opacity-40"
             >
               <Video size={15} className="shrink-0" />
               <span className="truncate">{continueLabel}</span>

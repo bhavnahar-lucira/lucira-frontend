@@ -474,10 +474,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         </svg>
       </span>
       <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-[14px] lg:text-[1rem] leading-none lg:leading-[1.3] text-black lg:text-[#3D2B28] mt-0 mb-1">
+        <p className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none lg:leading-[1.3] text-black lg:text-[#3D2B28] mt-0 mb-1">
           {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
         </p>
-        <p className="font-figtree font-normal text-[12px] lg:text-[0.9rem] leading-[1.4] lg:leading-[1.3] text-black mt-[5px]">
+        <p className="font-figtree font-normal text-[0.75rem] lg:text-[0.9rem] leading-[1.4] lg:leading-[1.3] text-black mt-[5px]">
           View all available coupons.
         </p>
       </div>
@@ -491,7 +491,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
       <div className="flex flex-col mb-[20px]">
-        <h3 className="font-figtree text-[14px] lg:hidden font-medium text-black uppercase tracking-wider mb-3" style={{
+        <h3 className="font-figtree text-[0.875rem] lg:hidden font-medium text-black uppercase tracking-wider mb-3" style={{
             fontFamily: "Figtree",
             fontWeight: 500,
             lineHeight: "100%",
@@ -534,7 +534,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 type="button"
                 onClick={handleToggleSilverPendant}
                 disabled={isSilverPendantLoading || loading}
-                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-11 uppercase tracking-wide transition px-4 lg:px-5 font-figtree font-medium bg-transparent hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50 text-[0.75rem] lg:text-[13px] ml-0 lg:ml-2"
+                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-11 uppercase tracking-wide transition px-4 lg:px-5 font-figtree font-medium bg-transparent hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50 text-[0.75rem] lg:text-[0.8125rem] ml-0 lg:ml-2"
                 style={{
                   border: "1px solid #e7000b",
                   color: "#e7000b"
@@ -547,7 +547,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 type="button"
                 onClick={handleToggleSilverPendant}
                 disabled={isSilverPendantLoading || loading}
-                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-11 uppercase tracking-wide transition px-4 lg:px-5 font-figtree font-medium bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50 text-[0.75rem] lg:text-[13px] ml-0 lg:ml-2"
+                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-11 uppercase tracking-wide transition px-4 lg:px-5 font-figtree font-medium bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50 text-[0.75rem] lg:text-[0.8125rem] ml-0 lg:ml-2"
               >
                 {isSilverPendantLoading ? (
                   <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
@@ -584,7 +584,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               <button
                 onClick={handleRemoveCoupon}
-                className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
+                className="text-[0.625rem] font-bold text-red-500 hover:underline uppercase tracking-tighter"
               >
                 (Remove)
               </button>
@@ -639,7 +639,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
         {totalSavingsBanner > 0 && (
           <div className="mt-4 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
-            <span className="font-figtree text-[14px] font-medium text-[#00A63E] block">
+            <span className="font-figtree text-[0.875rem] font-medium text-[#00A63E] block">
               You will save <span className="font-semibold no-underline">₹{totalSavingsBanner.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
             </span>
           </div>
@@ -651,19 +651,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-0 mb-[14px]">Order Summary</h3>
         <div className="bg-white rounded-sm space-y-3 border-0 p-0">
           <div className="mb-3">
-            <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
+            <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
               <span>Subtotal</span>
               <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
 
             {totalSavings > 0 && (
-              <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
+              <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
                 <span>Savings</span>
                 <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
-            <div className="flex justify-between font-figtree text-[12px] items-center mb-2 leading-[1.4]">
+            <div className="flex justify-between font-figtree text-[0.75rem] items-center mb-2 leading-[1.4]">
               <span className={appliedCoupon ? "font-semibold uppercase tracking-wide text-[#189351]" : "text-black"}>
                 {appliedCoupon ? "Coupon Applied" : "Coupon Discount"}
               </span>
@@ -672,7 +672,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                   <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                   <button
                     onClick={handleRemoveCoupon}
-                    className="text-[10px] font-bold text-red-500 hover:underline uppercase tracking-tighter"
+                    className="text-[0.625rem] font-bold text-red-500 hover:underline uppercase tracking-tighter"
                   >
                     (Remove)
                   </button>
@@ -689,18 +689,18 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             </div>
 
             {goldCoinItem && (
-              <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
+              <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
                 <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
                 <span className="font-semibold text-[#00A63E]">₹ 0</span>
               </div>
             )}
 
             {silverPendantItem && (
-              <div className="flex justify-between items-center font-figtree text-[12px] text-black mb-2 leading-[1.4]">
+              <div className="flex justify-between items-center font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
                 <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
                 <div className="flex items-center gap-2">
                   {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
-                    <span className="text-[10px] text-gray-400 line-through font-normal">
+                    <span className="text-[0.625rem] text-gray-400 line-through font-normal">
                       ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                     </span>
                   )}
@@ -710,29 +710,29 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             )}
 
             {insuranceItem && (
-              <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
+              <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
                 <span>Insurance</span>
                 <span className="font-semibold text-[#3D2B28]">₹ {insuranceAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )}
 
-            <div className="flex justify-between font-figtree text-[12px] text-black mb-2 leading-[1.4]">
+            <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
               <span>Shipping (Standard)</span>
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-[#00A63E]">Free</span>
-                <span className="text-[11px] text-gray-400 line-through font-normal">₹ {SHIPPING_ORIGINAL_VALUE}</span>
+                <span className="text-[0.6875rem] text-gray-400 line-through font-normal">₹ {SHIPPING_ORIGINAL_VALUE}</span>
               </div>
             </div>
           </div>
 
           <div className="border-t-[1.5px] border-[#E7E7E7] pt-3 flex justify-between items-center">
-            <span className="font-figtree text-[16px] font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
-            <span className="font-figtree text-[16px] font-semibold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-figtree text-[1rem] font-semibold text-[#3D2B28] uppercase tracking-[0.4px]">Grand Total</span>
+            <span className="font-figtree text-[1rem] font-semibold text-[#3D2B28]">₹ {grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
 
           {totalSavingsBanner > 0 && (
             <div className="mt-3 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
-              <span className="font-figtree text-[14px] font-medium text-[#00A63E] block">
+              <span className="font-figtree text-[0.875rem] font-medium text-[#00A63E] block">
                 You will save <span className="font-semibold no-underline">₹{totalSavingsBanner.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
               </span>
             </div>
@@ -804,7 +804,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             </p>
             <button
               onClick={handleRemoveCoupon}
-              className="shrink-0 font-figtree text-[11px] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
+              className="shrink-0 font-figtree text-[0.6875rem] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
             >
               Remove
             </button>
@@ -821,7 +821,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 setIsCouponDrawerOpen(false);
                 handleToggleSilverPendant();
               }}
-              className="shrink-0 font-figtree text-[11px] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
+              className="shrink-0 font-figtree text-[0.6875rem] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
             >
               Remove Pendant
             </button>
@@ -911,7 +911,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           </>
         )}
 
-        <p className="text-[11px] text-zinc-500 font-figtree font-medium text-center pt-2 leading-relaxed">
+        <p className="text-[0.6875rem] text-zinc-500 font-figtree font-medium text-center pt-2 leading-relaxed">
           {COUPON_DISCLAIMER}
         </p>
       </CouponDrawer>

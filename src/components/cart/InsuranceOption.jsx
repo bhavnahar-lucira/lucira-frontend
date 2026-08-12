@@ -83,17 +83,17 @@ export default function InsuranceOption() {
       </span>
 
       <div className="min-w-0 flex-1">
-        <h3 className="font-figtree font-semibold text-[14px] leading-none text-black">
+        <h3 className="font-figtree font-semibold text-[0.875rem] leading-none text-black">
           Lucira Insurance
         </h3>
-        <p className="font-figtree font-normal text-[10px] leading-[1.4] text-black mt-[6px]">
+        <p className="font-figtree font-normal text-[0.625rem] leading-[1.4] text-black mt-[6px]">
           Protect your Jewelry with our One-Time Protection Plan
         </p>
       </div>
 
       <div className="flex items-baseline gap-1.5 shrink-0 whitespace-nowrap">
-        <span className="font-figtree text-[13px] text-zinc-400 line-through">₹999</span>
-        <span className="font-figtree text-[15px] lg:text-[16px] font-semibold text-black">₹{INSURANCE_PRICE}</span>
+        <span className="font-figtree text-[0.8125rem] text-zinc-400 line-through">₹999</span>
+        <span className="font-figtree text-[0.9375rem] lg:text-[1rem] font-semibold text-black">₹{INSURANCE_PRICE}</span>
       </div>
 
       <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-[4px] border transition-colors ${isAdded ? "bg-[#5A413F] border-[#5A413F]" : "border-[#5A413F]/50"}`}>
