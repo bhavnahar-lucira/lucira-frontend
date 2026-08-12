@@ -59,7 +59,10 @@ const STATE_CITY_MAP = {
 };
 
 function resolveCityState(handle, rateType) {
-  const citySlug = handle.replace(rateType, '');
+  // Fold the case before matching: middleware redirects Caps-Lock URLs, but this
+  // also runs for direct/internal calls it never sees, and an unfolded "MYSORE"
+  // misses STATE_CITY_MAP silently (→ wrong state, city echoed back in caps).
+  const citySlug = handle.toLowerCase().replace(rateType, '');
   const cityCapitalized = citySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   for (const [stateKey, cities] of Object.entries(STATE_CITY_MAP)) {
@@ -76,6 +79,38 @@ function resolveCityState(handle, rateType) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── Gold rate title date stamp ──────────────────────────────────────────────
+// Gold rate pages carry the current day + date in the title tag as a freshness
+// signal. Asia/Kolkata is pinned deliberately: the production server clock runs
+// in UTC, so without it the title would show the previous day's date until
+// 05:30 IST every morning.
+const GOLD_TITLE_DATE_FORMAT = {
+  timeZone: "Asia/Kolkata",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+};
+
+// The base title comes from a Shopify metaobject the marketing team edits, so
+// skip the stamp when a date has already been written into it by hand rather
+// than ending up with two.
+const ALREADY_DATED = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i;
+
+function withRateDate(title) {
+  if (!title || ALREADY_DATED.test(title)) return title;
+
+  const stamp = new Intl.DateTimeFormat("en-IN", GOLD_TITLE_DATE_FORMAT).format(new Date());
+
+  // Insert ahead of the trailing brand segment so "| Lucira" stays last.
+  const lastPipe = title.lastIndexOf("|");
+  if (lastPipe > 0) {
+    return `${title.slice(0, lastPipe).trim()} (${stamp}) ${title.slice(lastPipe)}`;
+  }
+  return `${title} (${stamp})`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function generateStaticParams() {
   const pages = await getAllPages();
   return pages.map((page) => ({
@@ -84,7 +119,11 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }) {
-  const { handle } = await params;
+  const { handle: rawHandle } = await params;
+  // Shopify handles are always lowercase, and so is every link we emit — fold the
+  // param so a Caps-Lock URL resolves the same page instead of falling through
+  // the rate-page detection below and 404ing.
+  const handle = rawHandle.toLowerCase();
 
   const isSilverRatePage = handle.includes("silver-rate-today");
   const isPlatinumRatePage = handle.includes("platinum-rate-today");
@@ -109,6 +148,7 @@ export async function generateMetadata({ params }) {
     } catch {
       // fall back to page SEO fields
     }
+    title = withRateDate(title);
   }
 
   return {
@@ -132,7 +172,8 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function Page({ params }) {
-  const { handle } = await params;
+  const { handle: rawHandle } = await params;
+  const handle = rawHandle.toLowerCase();
 
   if (handle === "contact-us") {
     return <ContactSection />;
