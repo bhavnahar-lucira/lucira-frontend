@@ -155,14 +155,28 @@ export function useStorePickup({ selectedShippingZip } = {}) {
     [dbStores]
   );
 
-  const findNearestByPincode = useCallback(() => {
+  const findNearestByPincode = useCallback(async () => {
     const query = pincodeQuery.trim();
     if (!query) {
       toast.error("Enter a PIN code to find nearby stores");
       return;
     }
 
-    let coords = PINCODE_COORDS[query];
+    let coords;
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(query)}&country=india&format=json`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    } catch (e) {
+      console.error("OSM error:", e);
+    }
+
+    if (!coords) {
+      coords = PINCODE_COORDS[query];
+    }
 
     if (!coords && query.length >= 3) {
       const prefix = query.substring(0, 3);
@@ -174,7 +188,7 @@ export function useStorePickup({ selectedShippingZip } = {}) {
     }
 
     if (!coords) {
-      toast.info("No exact location found. Showing all stores. Try 400071, 400092 or 411005.");
+      toast.error("No exact location found. Try entering a valid pincode.");
       return;
     }
 
@@ -211,9 +225,9 @@ export function useStorePickup({ selectedShippingZip } = {}) {
     );
   }, [resolveNearestFrom]);
 
-  const findNearestStore = useCallback(() => {
+  const findNearestStore = useCallback(async () => {
     if (pincodeQuery.trim()) {
-      findNearestByPincode();
+      await findNearestByPincode();
       return;
     }
     findNearestByGeolocation();

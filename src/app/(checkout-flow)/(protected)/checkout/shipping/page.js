@@ -553,24 +553,95 @@ export default function ShippingPage() {
                         />
                       </div>
                     ) : shippingView === "list" ? (
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         <div className="flex items-center gap-3">
                           <button type="button" onClick={() => setShippingView("card")} className="text-zinc-500 hover:text-zinc-900">
                             <ChevronLeft className="size-5" />
                           </button>
-                          <h3 className="font-figtree text-[15px] font-medium text-black">All Addresses</h3>
+                          <h3 className="font-figtree text-[15px] font-bold text-black">Select Address</h3>
                         </div>
-                        <AddressListInline
-                          addresses={addresses}
-                          selectedAddressId={selectedAddressId}
-                          onSelect={async (id) => {
-                            await selectAddress(id);
-                            setShippingView("card");
-                          }}
-                          onDelete={deleteAddress}
-                          radioGroupName="all-shipping-addresses"
-                          onAddNew={openCreateDialog}
-                        />
+
+                        {dialogMode === "create" ? (
+                          <div className="rounded-md border-2 border-dashed border-zinc-200 p-5 space-y-5">
+                            <h4 className="text-center text-[15px] font-semibold font-figtree text-[#5A413F]">Adding New Address</h4>
+                            <div className="">
+                              <AddressForm
+                                form={addressForm}
+                                onChange={updateForm}
+                                makeDefault={makeDefault}
+                                onDefaultChange={setMakeDefault}
+                                isCompanyPurchase={isCompanyPurchase}
+                                onCompanyPurchaseChange={setIsCompanyPurchase}
+                                submitLabel="Save Address"
+                                onSubmit={async () => {
+                                  await handleCreateAddress(true);
+                                  setDialogMode(""); // Close inline form on success
+                                }}
+                                saving={dialogSaving}
+                                disablePhone={true}
+                                hideEmail={addresses.length > 0}
+                              />
+                            </div>
+                          </div>
+                        ) : dialogMode === "edit" ? (
+                          <div className="rounded-md border-2 border-dashed border-zinc-200 p-5 space-y-5">
+                            <h4 className="text-center text-[15px] font-semibold font-figtree text-[#5A413F]">Editing Address</h4>
+                            <div className="">
+                              <AddressForm
+                                form={addressForm}
+                                onChange={updateForm}
+                                makeDefault={makeDefault}
+                                onDefaultChange={setMakeDefault}
+                                isCompanyPurchase={isCompanyPurchase}
+                                onCompanyPurchaseChange={setIsCompanyPurchase}
+                                submitLabel="Save Changes"
+                                onSubmit={async () => {
+                                  await handleUpdateAddress();
+                                  setDialogMode(""); // Close inline form on success
+                                }}
+                                saving={dialogSaving}
+                                disablePhone={true}
+                                hideEmail={addresses.length > 0}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDialogMode("create");
+                              setEditingAddressId("");
+                              setAddressForm(normalizeAddressForm({}, customer || {}));
+                              setMakeDefault(!hasSavedAddresses);
+                              setIsCompanyPurchase(false);
+                            }}
+                            className="w-full h-[52px] rounded-md border-dashed border-2 border-zinc-200 text-zinc-500 bg-transparent hover:text-black hover:border-zinc-300 transition-colors flex items-center justify-center gap-2 font-figtree font-medium text-[15px]"
+                          >
+                            <Plus size={16} />
+                            Add New Address
+                          </button>
+                        )}
+
+                        <div className="space-y-4 pt-2">
+                          <h4 className="font-figtree text-[14px] font-semibold text-black">Saved Addresses</h4>
+                          <AddressListInline
+                            addresses={addresses}
+                            selectedAddressId={selectedAddressId}
+                            onSelect={async (id) => {
+                              await selectAddress(id);
+                              setShippingView("card");
+                            }}
+                            onDelete={deleteAddress}
+                            onEdit={(address) => {
+                              setDialogMode("edit");
+                              setEditingAddressId(address.id);
+                              setAddressForm(normalizeAddressForm(address, customer || {}));
+                              setMakeDefault(Boolean(address.isDefault));
+                              setIsCompanyPurchase(Boolean(address.company || address.gstin));
+                            }}
+                            radioGroupName="all-shipping-addresses"
+                          />
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-4">

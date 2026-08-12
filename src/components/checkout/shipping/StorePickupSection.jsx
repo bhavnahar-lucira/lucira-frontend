@@ -142,26 +142,6 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
             />
           </div>
 
-          {sortedStores[0] && (
-            <div className="border border-zinc-200 rounded-[4px] overflow-hidden bg-white">
-              <div className="p-4 sm:p-5 space-y-1">
-                <h3 className="font-figtree text-[16px] font-semibold text-black mb-2">{sortedStores[0].code}</h3>
-                <p className="text-[14px] leading-snug text-zinc-900 font-medium font-figtree pr-4">
-                  {sortedStores[0].address}, {sortedStores[0].city} {sortedStores[0].state}
-                </p>
-              </div>
-              {sortedStores.length > 1 && (
-                <button
-                  type="button"
-                  onClick={openStoreDialog}
-                  className="w-full flex items-center justify-between px-5 py-[14px] border-t border-zinc-200 hover:bg-zinc-50 transition-colors"
-                >
-                  <span className="font-figtree text-[14px] font-medium text-black">{sortedStores.length - 1} more Locations</span>
-                  <ChevronRight size={18} className="text-black" />
-                </button>
-              )}
-            </div>
-          )}
 
           <Button type="button" onClick={findNearestStore} className="w-full h-12 bg-[#5A413F] hover:bg-[#4A312F] text-white text-[15px] font-figtree font-medium rounded-md transition-colors">
             Find Nearest Store
