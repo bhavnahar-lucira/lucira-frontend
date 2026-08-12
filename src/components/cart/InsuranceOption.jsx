@@ -86,7 +86,7 @@ export default function InsuranceOption() {
         <h3 className="font-figtree font-semibold text-[0.875rem] lg:text-[1rem] leading-none text-black">
           Lucira Insurance
         </h3>
-        <p className="font-figtree font-normal text-[0.875rem] leading-[1.4] text-black mt-[6px]">
+        <p className="font-figtree font-normal text-[0.8rem] lg:text-[0.875rem] leading-[1.4] text-black mt-[6px]">
           Protect your Jewelry with our One-Time Protection Plan
         </p>
       </div>

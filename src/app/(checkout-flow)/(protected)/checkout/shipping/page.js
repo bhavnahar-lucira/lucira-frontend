@@ -745,11 +745,11 @@ export default function ShippingPage() {
 
           <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
-            <div className="relative z-10 py-6 px-4 lg:px-0 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white" ref={summaryRef}>
+            <div className="relative z-10 py-6 px-4 lg:px-0 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white scroll-mt-16" ref={summaryRef}>
               <div className="lg:sticky lg:top-4 space-y-6">
                 {deliveryMethod === "ship" && hasSavedAddresses && (
                   <div className="pt-6 border-t border-zinc-200 lg:border-none lg:pt-0">
-                    <h3 className="text-[0.8125rem] lg:text-[0.875rem] font-figtree font-bold text-black uppercase tracking-wide mb-4">DELIVERY ESTIMATES</h3>
+                    <h3 className="text-[14px] lg:text-[0.875rem] font-figtree font-medium lg:font-bold text-black uppercase tracking-normal lg:tracking-wide leading-none lg:leading-normal mb-4">DELIVERY ESTIMATES</h3>
                     <div className="space-y-4">
                       {cartItems.filter(i => i.variantId !== INSURANCE_VARIANT_ID && i.variantId !== GOLDCOIN_VARIANT_ID && !i.properties?.['_byj_parent'] && !(i.properties?.['_byj_group_id'] && !i.properties?.['_byj_preview'])).map((item, idx) => {
                         const isBYJ = item.properties?.['_byj_preview'];
@@ -763,7 +763,7 @@ export default function ShippingPage() {
                             </div>
                             <div>
                               <p className="text-[0.8125rem] lg:text-[0.875rem] font-figtree text-black mb-1">Estimated Dispatch by</p>
-                              <p className="text-[0.875rem] lg:text-[1rem] font-figtree font-bold text-black">
+                              <p className="text-[14px] lg:text-[1rem] font-figtree font-semibold leading-none lg:leading-normal tracking-normal text-black align-middle lg:align-baseline">
                                 {getEstimatedDispatchDate(item.inStock, item.leadTime).replace(/Estimated dispatch by /i, "")}
                               </p>
                             </div>

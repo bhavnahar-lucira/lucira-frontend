@@ -639,7 +639,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
         {totalSavingsBanner > 0 && (
           <div className="mt-4 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
-            <span className="font-figtree text-[1.1rem] font-medium text-[#00A63E] block">
+            <span className="font-figtree text-[0.9rem] lg:text-[1.1rem] font-medium text-[#00A63E] block">
               You will save <span className="font-semibold no-underline">₹{totalSavingsBanner.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
             </span>
           </div>
@@ -732,7 +732,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
           {totalSavingsBanner > 0 && (
             <div className="mt-3 rounded-[4px] bg-[#EAF7EE] p-2 text-center">
-              <span className="font-figtree text-[1.1rem] font-medium text-[#00A63E] block">
+              <span className="font-figtree text-[0.9rem] lg:text-[1.1rem] font-medium text-[#00A63E] block">
                 You will save <span className="font-semibold no-underline">₹{totalSavingsBanner.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span> on this order
               </span>
             </div>
