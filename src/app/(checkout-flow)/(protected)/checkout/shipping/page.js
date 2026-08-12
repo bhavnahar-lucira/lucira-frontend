@@ -476,7 +476,7 @@ export default function ShippingPage() {
 
   return (
     <div className="bg-white min-h-screen overflow-x-clip">
-      <div className="container-main relative z-10">
+      <div className="container-main relative z-10 max-lg:!px-0">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white p-0 lg:pr-12 lg:py-10">
             <h2 className="font-figtree text-[0.6875rem] md:text-[1rem] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 lg:px-0 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
@@ -492,6 +492,9 @@ export default function ShippingPage() {
                 Delivery
                 {deliveryMethod === "ship" && (
                   <>
+                    <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5] lg:hidden">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
+                    </div>
                     <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5] lg:text-[#F9F9F9]">
                       <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
                     </div>
@@ -742,8 +745,8 @@ export default function ShippingPage() {
 
           <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
-            <div className="relative z-10 py-6 px-4 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white" ref={summaryRef}>
-              <div className="lg:sticky lg:top-0 space-y-6">
+            <div className="relative z-10 py-6 px-4 lg:px-0 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white" ref={summaryRef}>
+              <div className="lg:sticky lg:top-4 space-y-6">
                 {deliveryMethod === "ship" && hasSavedAddresses && (
                   <div className="pt-6 border-t border-zinc-200 lg:border-none lg:pt-0">
                     <h3 className="text-[0.8125rem] lg:text-[0.875rem] font-figtree font-bold text-black uppercase tracking-wide mb-4">DELIVERY ESTIMATES</h3>
@@ -771,24 +774,24 @@ export default function ShippingPage() {
                   </div>
                 )}
                 <CheckoutSummary showItems={false} showContact={false}>
-                  {/* Desktop Button - Moved outside to stick to bottom */}
+                  {/* Desktop Button - Moved inside to match cart and payment pages */}
+                  <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
+                    <Button
+                      disabled={isContinueDisabled}
+                      onClick={() => {
+                        if (isContinueDisabled) {
+                          toast.error(`Please select a valid ${deliveryMethod === "ship" ? "shipping address" : "pickup location"}`);
+                          return;
+                        }
+                        handleContinueToPayment();
+                        router.push("/checkout/payment");
+                      }}
+                      className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
+                    >
+                      CONTINUE TO PAYMENT
+                    </Button>
+                  </div>
                 </CheckoutSummary>
-              </div>
-              <div className="hidden lg:block sticky bottom-0 bg-[#FAFAFA] z-20 pt-4 lg:pt-[20px] pb-4 mt-6 border-t border-zinc-200">
-                <Button
-                  disabled={isContinueDisabled}
-                  onClick={() => {
-                    if (isContinueDisabled) {
-                      toast.error(`Please select a valid ${deliveryMethod === "ship" ? "shipping address" : "pickup location"}`);
-                      return;
-                    }
-                    handleContinueToPayment();
-                    router.push("/checkout/payment");
-                  }}
-                  className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
-                >
-                  CONTINUE TO PAYMENT
-                </Button>
               </div>
             </div>
           </div>

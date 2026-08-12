@@ -290,13 +290,13 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
 
       {step === "otp" && (
         <div className="flex flex-col space-y-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[18px] md:text-[20px] font-bold text-zinc-900 leading-none">+91 {mobile}</h2>
+          <div className="flex items-center gap-2 lg:mb-2">
+            <h2 className="text-[18px] md:text-[20px] lg:text-[1.4rem] font-bold lg:font-semibold text-zinc-900 leading-none">+91 {mobile}</h2>
             <button onClick={() => setStep("login")} className="text-zinc-600 hover:text-black">
               <Edit2 className="w-[14px] h-[14px]" />
             </button>
           </div>
-          <p className="text-[13px] text-zinc-500 font-medium leading-none">Enter OTP sent to given Number</p>
+          <p className="text-[13px] lg:text-[1rem] lg:mt-0 text-zinc-500 font-medium leading-none">Enter OTP sent to given Number</p>
 
           <div className="flex justify-between gap-3 mt-4 mb-2 px-1 w-full">
             {otp.map((digit, i) => (
@@ -328,7 +328,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
           <Button
             onClick={() => handleVerifyOtp()}
             disabled={loading}
-            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-bold tracking-wide mt-2"
+            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-bold tracking-wide mt-2 lg:text-[1rem]"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "VERIFY"}
           </Button>
@@ -337,7 +337,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
 
       {step === "register" && (
         <div className="flex flex-col space-y-4">
-          <div className="flex items-center gap-2 text-[#00A63E] mb-[6px] md:mb-0">
+          <div className="flex items-center gap-2 text-[#00A63E] mb-[6px] md:mb-0 lg:mb-2">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
               <g clipPath="url(#clip0_3214_261)">
                 <path d="M18.1678 8.33357C18.5484 10.2013 18.2772 12.1431 17.3994 13.8351C16.5216 15.527 15.0902 16.8669 13.3441 17.6313C11.5979 18.3957 9.64252 18.5384 7.80391 18.0355C5.9653 17.5327 4.35465 16.4147 3.24056 14.8681C2.12646 13.3214 1.57626 11.4396 1.68171 9.53639C1.78717 7.63318 2.54189 5.82364 3.82004 4.40954C5.09818 2.99545 6.82248 2.06226 8.70538 1.76561C10.5883 1.46897 12.516 1.82679 14.167 2.7794M7.50033 9.1669L10.0003 11.6669L18.3337 3.33357" stroke="#00A63E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -348,9 +348,9 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
                 </clipPath>
               </defs>
             </svg>
-            <h2 className="text-[16px] md:text-[20px] font-semibold md:font-bold leading-[140%] md:leading-none text-black max-md:font-figtree">Verified Successfully</h2>
+            <h2 className="text-[16px] md:text-[20px] lg:text-[1.4rem] font-semibold md:font-bold lg:font-semibold leading-[140%] md:leading-none text-black max-md:font-figtree">Verified Successfully</h2>
           </div>
-          <p className="text-[12px] md:text-[13px] text-zinc-800 font-normal md:font-medium leading-[140%] md:leading-normal mb-2 md:mb-0 max-md:font-figtree">Welcome to Lucira Jewelry</p>
+          <p className="text-[12px] md:text-[13px] lg:text-[1rem] lg:mt-0 text-zinc-800 font-normal md:font-medium leading-[140%] md:leading-normal mb-2 md:mb-0 lg:mb-2 max-md:font-figtree">Welcome to Lucira Jewelry</p>
 
           <div className="space-y-3 mt-2 mb-1 md:mb-0">
             <input
@@ -381,7 +381,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
           <Button
             onClick={handleRegister}
             disabled={loading}
-            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-4 leading-none max-md:font-figtree"
+            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-4 leading-none max-md:font-figtree lg:text-[1rem]"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "VERIFY"}
           </Button>

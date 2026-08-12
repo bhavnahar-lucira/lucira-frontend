@@ -9,6 +9,17 @@ import { getDirectionsUrl, formatPickupReadyDate } from "@/hooks/checkout/useSto
  * browser doesn't have (or hasn't granted) location access yet, and a
  * resolved-store card with a phone field once a store has been chosen.
  */
+const storeNameMapping = {
+  "BO1": "Borivali",
+  "CS1": "Chembur",
+  "PS1": "Pune",
+  "NOS18": "Noida"
+};
+
+const getStoreDisplayName = (codeOrName) => {
+  return storeNameMapping[codeOrName] || codeOrName;
+};
+
 export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPhone }) {
   const {
     sortedStores,
@@ -45,12 +56,15 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
                 >
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-figtree text-[1rem] lg:text-[1.0625rem] font-medium text-black">{store.code || store.name}</h3>
-                      <div className={`mt-0.5 size-[18px] rounded-full border-[2px] flex items-center justify-center shrink-0 ${isSelected ? "border-[#5A413F]" : "border-zinc-400"}`}>
-                        {isSelected && <div className="size-[8px] rounded-full bg-[#5A413F]" />}
+                      <h3 className="font-figtree lg:text-[1.0625rem] text-black lg:font-semibold max-lg:text-[16px] max-lg:font-semibold max-lg:leading-none">{getStoreDisplayName(store.code || store.name)}</h3>
+                      <div className="mt-0.5 relative flex items-center justify-center shrink-0">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M10.0003 18.3337C14.6027 18.3337 18.3337 14.6027 18.3337 10.0003C18.3337 5.39795 14.6027 1.66699 10.0003 1.66699C5.39795 1.66699 1.66699 5.39795 1.66699 10.0003C1.66699 14.6027 5.39795 18.3337 10.0003 18.3337Z" stroke={isSelected ? "#5A413F" : "#A1A1AA"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          {isSelected && <circle cx="10" cy="10" r="5" fill="#5A413F"/>}
+                        </svg>
                       </div>
                     </div>
-                    <p className="font-figtree text-[0.8125rem] lg:text-[0.9375rem] text-zinc-800 leading-relaxed pr-6">
+                    <p className="font-figtree lg:text-[0.9375rem] text-zinc-800 lg:text-black lg:font-medium lg:max-w-[80%] leading-relaxed pr-6 max-lg:text-[0.875rem] max-lg:font-normal max-lg:mt-3">
                       {store.address}, {store.city}, {store.state} {store.pincode ? `- ${store.pincode}` : ""}
                     </p>
                   </div>
@@ -59,7 +73,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
                       {store.distance !== undefined ? `${Number(store.distance).toFixed(2)} Km Away` : (index === 0 ? "2 Km Away" : "16 Km Away")}
                     </span>
                     {index === 0 && (
-                      <span className="font-figtree text-[0.625rem] lg:text-[0.75rem] font-bold text-[#22A05B] bg-[#EAF7EE] px-2 py-1 rounded-[4px] tracking-widest uppercase">
+                      <span className="font-figtree text-[0.75rem] lg:text-[10px] font-bold text-[#22A05B] bg-[#EAF7EE] px-2 py-1 lg:px-3 lg:py-1.5 rounded-[4px] tracking-widest uppercase">
                         Nearest
                       </span>
                     )}
@@ -88,7 +102,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           {/* Selected Store Card */}
           <div className="border border-zinc-200 rounded-sm overflow-hidden bg-white">
             <div className="p-4 sm:p-5 space-y-3">
-              <h3 className="font-figtree text-[1.0625rem] lg:text-[1.125rem] font-bold text-black">{selectedStore.code}</h3>
+              <h3 className="font-figtree text-[1.0625rem] lg:text-[1.125rem] font-bold text-black">{getStoreDisplayName(selectedStore.code || selectedStore.name)}</h3>
               <p className="text-[0.875rem] lg:text-[0.9375rem] leading-relaxed text-black font-medium font-figtree pr-4 md:pr-10">
                 {selectedStore.address}, {selectedStore.city} {selectedStore.state}
               </p>

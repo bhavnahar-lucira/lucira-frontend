@@ -67,13 +67,10 @@ export function AddressListInline({
                   onChange={() => {}}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-                <div
-                  className={`flex items-center justify-center w-6 h-6 rounded-full border-[2px] transition-colors ${
-                    isSelected ? "border-[#5A413F]" : "border-[#5A413F]"
-                  }`}
-                >
-                  {isSelected && <div className="w-3 h-3 rounded-full bg-[#5A413F]" />}
-                </div>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10.0003 18.3337C14.6027 18.3337 18.3337 14.6027 18.3337 10.0003C18.3337 5.39795 14.6027 1.66699 10.0003 1.66699C5.39795 1.66699 1.66699 5.39795 1.66699 10.0003C1.66699 14.6027 5.39795 18.3337 10.0003 18.3337Z" stroke={isSelected ? "#5A413F" : "#A1A1AA"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  {isSelected && <circle cx="10" cy="10" r="5" fill="#5A413F"/>}
+                </svg>
               </div>
             </div>
 

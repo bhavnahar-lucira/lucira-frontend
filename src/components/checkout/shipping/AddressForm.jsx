@@ -38,7 +38,7 @@ export function AddressForm({
   const stateOptions =
     form.province && !INDIAN_STATES.includes(form.province) ? [form.province, ...INDIAN_STATES] : INDIAN_STATES;
 
-  const inputClasses = "h-[48px] rounded-[4px] border border-zinc-200 bg-[#FAFAFA] shadow-none font-figtree text-[0.9375rem] lg:text-[1.0625rem] placeholder:text-zinc-400 text-zinc-900";
+  const inputClasses = "h-[48px] rounded-[4px] border border-zinc-200 bg-[#FAFAFA] shadow-none font-figtree text-[0.9375rem] lg:text-[1.0625rem] placeholder:text-zinc-400 text-zinc-900 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-zinc-400 focus-within:ring-0 focus-within:ring-offset-0 focus-within:border-zinc-400";
 
   return (
     <div className="space-y-4">

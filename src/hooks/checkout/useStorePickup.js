@@ -71,7 +71,7 @@ export function useStorePickup({ selectedShippingZip } = {}) {
     const fetchStores = async () => {
       try {
         const data = await apiFetch("/api/stores");
-        if (data.stores) {
+        if (data && data.stores && data.stores.length > 0) {
           setDbStores(
             data.stores.map((s) => {
               // Dynamically cross-reference ALL_STORES from StoreLocatorClient
@@ -100,10 +100,32 @@ export function useStorePickup({ selectedShippingZip } = {}) {
               };
             })
           );
+          return;
         }
       } catch (err) {
-        console.error("Failed to fetch stores:", err);
+        console.error("Failed to fetch stores, falling back to local list:", err);
       }
+      
+      // Fallback if API fails or returns no stores
+      setDbStores(
+        ALL_STORES.map((s, index) => {
+          // Extract pincode from address if available (6 digit number at end)
+          const zipMatch = s.address?.match(/\b\d{6}\b/);
+          return {
+            id: `store-${index}`,
+            name: s.name,
+            code: s.name,
+            address: s.address || "",
+            city: s.city || "",
+            state: s.address?.includes("Maharashtra") ? "Maharashtra" : s.address?.includes("Delhi") ? "Delhi" : "",
+            zip: zipMatch ? zipMatch[0] : "",
+            lat: s.lat || 0,
+            lng: s.lng || 0,
+            phone: s.callLink ? s.callLink.replace("tel:", "") : "",
+            readyTime: "Usually ready in 24 hours",
+          };
+        })
+      );
     };
     fetchStores();
   }, []);
