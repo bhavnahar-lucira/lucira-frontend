@@ -1328,8 +1328,11 @@ export default function ProductPageClient({
         engravingFont: savedEngraving.font,
         giftText: giftText,
         shippingDate: (() => {
+          const isInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
+          const leadTime = parseInt(product?.productMetafields?.lead_time) || 12;
+          const totalDays = isInStock ? 2 : leadTime + 3;
           const date = new Date();
-          date.setDate(date.getDate() + 10);
+          date.setDate(date.getDate() + totalDays);
           const d = String(date.getDate()).padStart(2, "0");
           const m = String(date.getMonth() + 1).padStart(2, "0");
           const y = date.getFullYear();
