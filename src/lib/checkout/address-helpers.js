@@ -53,6 +53,13 @@ export const emptyAddressForm = {
 };
 
 export function normalizeAddressForm(address = {}, customer = {}) {
+  let phone = address.phone || customer.phone || customer.phoneNumber || customer.mobile || "";
+  if (phone.startsWith("+91")) {
+    phone = phone.replace("+91", "").trim();
+  } else if (phone.startsWith("91") && phone.length === 12) {
+    phone = phone.substring(2).trim();
+  }
+
   return {
     ...emptyAddressForm,
     firstName: address.firstName || customer.firstName || customer.first_name || "",
@@ -64,7 +71,7 @@ export function normalizeAddressForm(address = {}, customer = {}) {
     province: address.province || "",
     zip: address.zip || "",
     country: address.country || "India",
-    phone: address.phone || customer.phone || customer.mobile || "",
+    phone: phone,
     email: address.email || customer.email || "",
     gstin: address.gstin || "",
   };

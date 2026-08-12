@@ -11,7 +11,7 @@ export default function CheckoutFooter() {
 
   return (
     <footer className="mt-auto border-t-0 lg:border-t bg-zinc-50 !py-0 mb-[105px] lg:mb-0">
-      <div className="container-main !px-0 lg:!px-12 flex flex-col lg:flex-row items-center justify-between gap-5 lg:gap-8">
+      <div className="container-main !px-0 lg:!px-12 flex flex-col lg:flex-row items-center justify-between gap-5 lg:gap-0 lg:py-3">
         
         {/* Left: Trust Badges */}
         <div className="w-full lg:flex-1 flex flex-col">

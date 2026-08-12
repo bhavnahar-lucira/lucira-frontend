@@ -789,8 +789,8 @@ export default function PaymentPage() {
   const shipToChangeHref = `/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`;
 
   return (
-    <div className="bg-white min-h-screen overflow-x-hidden">
-      <div className="max-w-7xl w-full mx-auto relative z-10 px-4">
+    <div className="bg-white min-h-screen overflow-x-clip">
+      <div className="container-main relative z-10">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
 
           {/* Main Content Area (60%) */}

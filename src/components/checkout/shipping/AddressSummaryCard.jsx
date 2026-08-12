@@ -40,17 +40,17 @@ export function AddressSummaryCard({
               </button>
             )}
           </div>
-          <div className="text-[0.875rem] leading-snug text-zinc-600 font-medium font-figtree pr-4 md:pr-10">
+          <div className="text-[0.875rem] lg:text-[0.9375rem] leading-snug text-zinc-600 font-medium font-figtree pr-4 md:pr-10">
             {detailLines.join(", ")}
             {address.gstin && <p className="mt-1 font-medium text-black">GSTIN: {address.gstin}</p>}
           </div>
           {address.phone && (
             <div className="flex items-center justify-between gap-3 pt-2">
-              <p className="text-[0.875rem] font-medium text-zinc-900 font-figtree">
+              <p className="text-[0.875rem] lg:text-[0.9375rem] font-medium text-zinc-900 font-figtree">
                 +{address.phone.replace(/^\+/, "")}
               </p>
               {address.isDefault && (
-                <span className="rounded-[4px] bg-[#F5E9DA] px-2.5 py-1 text-[0.5625rem] font-bold uppercase tracking-wider text-[#5A413F]">
+                <span className="rounded-[4px] bg-[#F5E9DA] px-2.5 py-1 text-[0.5625rem] lg:text-[0.625rem] font-bold uppercase tracking-wider text-[#5A413F]">
                   DEFAULT
                 </span>
               )}
@@ -63,7 +63,7 @@ export function AddressSummaryCard({
         <Button
           type="button"
           onClick={onChangeClick}
-          className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] rounded-[4px] transition-colors"
+          className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-colors"
         >
           {changeLabel}
         </Button>

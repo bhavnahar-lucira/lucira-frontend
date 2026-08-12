@@ -13,13 +13,13 @@ import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 function StoreListContent({ stores, selectedStoreId, onSelect, onUseMyLocation }) {
   return (
     <div className="p-6 space-y-6">
-      <button onClick={onUseMyLocation} className="flex items-center gap-2 text-[0.9375rem] font-medium font-figtree text-zinc-800 hover:underline">
+      <button onClick={onUseMyLocation} className="flex items-center gap-2 text-[0.9375rem] lg:text-[1rem] font-medium font-figtree text-zinc-800 hover:underline">
         <Navigation size={18} className="text-zinc-600" />
         Use my location
       </button>
 
       <div className="space-y-4">
-        <p className="text-[0.9375rem] text-zinc-500 font-figtree">There are {stores.length} locations with your item</p>
+        <p className="text-[0.9375rem] lg:text-[1rem] text-zinc-500 font-figtree">There are {stores.length} locations with your item</p>
 
         <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
           {stores.map((store) => {
@@ -43,9 +43,9 @@ function StoreListContent({ stores, selectedStoreId, onSelect, onUseMyLocation }
                 <div className="grow space-y-2">
                   <div className="flex justify-between items-start">
                     <h3 className="font-bold text-black font-figtree text-[1rem]">{store.code || store.name}</h3>
-                    <span className="font-bold text-black font-figtree text-[0.9375rem]">FREE</span>
+                    <span className="font-bold text-black font-figtree text-[0.9375rem] lg:text-[1rem]">FREE</span>
                   </div>
-                  <p className="text-[0.9375rem] text-zinc-500 leading-relaxed pr-8 font-figtree">
+                  <p className="text-[0.9375rem] lg:text-[1rem] text-zinc-500 leading-relaxed pr-8 font-figtree">
                     {store.address}, {store.city} {store.state}
                   </p>
                 </div>

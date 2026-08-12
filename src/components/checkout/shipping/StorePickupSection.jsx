@@ -30,9 +30,9 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
     <div className="space-y-6">
       {showStoreDialog ? (
         <div className="relative bg-transparent pt-1 pb-[60px] min-h-[400px]">
-          <h2 className="font-figtree text-[1rem] font-medium text-black mb-4">Stores Available Near You</h2>
+          <h2 className="font-figtree text-[1rem] lg:text-[1.125rem] font-medium text-black mb-4">Stores Available Near You</h2>
           
-          <div className="max-h-[55vh] overflow-y-auto space-y-3 pb-6 custom-scrollbar pr-1">
+          <div className="space-y-3 pb-6">
             {sortedStores.map((store, index) => {
               const isSelected = tempSelectedStoreId === store.id;
               return (
@@ -45,21 +45,21 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
                 >
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-figtree text-[1rem] font-medium text-black">{store.code || store.name}</h3>
+                      <h3 className="font-figtree text-[1rem] lg:text-[1.0625rem] font-medium text-black">{store.code || store.name}</h3>
                       <div className={`mt-0.5 size-[18px] rounded-full border-[2px] flex items-center justify-center shrink-0 ${isSelected ? "border-[#5A413F]" : "border-zinc-400"}`}>
                         {isSelected && <div className="size-[8px] rounded-full bg-[#5A413F]" />}
                       </div>
                     </div>
-                    <p className="font-figtree text-[0.8125rem] text-zinc-800 leading-relaxed pr-6">
+                    <p className="font-figtree text-[0.8125rem] lg:text-[0.9375rem] text-zinc-800 leading-relaxed pr-6">
                       {store.address}, {store.city}, {store.state} {store.pincode ? `- ${store.pincode}` : ""}
                     </p>
                   </div>
                   <div className={`border-t p-3 px-4 flex justify-between items-center ${isSelected ? "border-[#EADFD8]" : "border-zinc-200"}`}>
-                    <span className="font-figtree text-[0.875rem] font-medium text-black">
-                      {store.distance !== undefined ? `${store.distance} Km Away` : (index === 0 ? "2 Km Away" : "16 Km Away")}
+                    <span className="font-figtree text-[0.875rem] lg:text-[0.9375rem] font-medium text-black">
+                      {store.distance !== undefined ? `${Number(store.distance).toFixed(2)} Km Away` : (index === 0 ? "2 Km Away" : "16 Km Away")}
                     </span>
                     {index === 0 && (
-                      <span className="font-figtree text-[0.625rem] font-bold text-[#22A05B] bg-[#EAF7EE] px-2 py-1 rounded-[4px] tracking-widest uppercase">
+                      <span className="font-figtree text-[0.625rem] lg:text-[0.75rem] font-bold text-[#22A05B] bg-[#EAF7EE] px-2 py-1 rounded-[4px] tracking-widest uppercase">
                         Nearest
                       </span>
                     )}
@@ -70,7 +70,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           </div>
           
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-0">
-            <Button type="button" onClick={saveStoreSelection} className="w-full h-[50px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree text-[1rem] font-medium tracking-wide uppercase rounded-[4px] transition-colors shadow-sm">
+            <Button type="button" onClick={saveStoreSelection} className="w-full h-[50px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree text-[1rem] lg:text-[1.0625rem] font-medium tracking-wide uppercase rounded-[4px] transition-colors shadow-sm">
               Confirm
             </Button>
           </div>
@@ -80,7 +80,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           {/* Pincode Display Box */}
           <div className="flex items-center h-14 rounded-sm border border-zinc-200 bg-[#FAFAFA] px-4 gap-3">
             <LocateFixed size={18} className="text-black shrink-0" />
-            <span className="text-[1rem] font-figtree font-medium text-[#5A413F]">
+            <span className="text-[1rem] lg:text-[1.0625rem] font-figtree font-medium text-[#5A413F]">
               {pincodeQuery || "400064"}
             </span>
           </div>
@@ -88,11 +88,11 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           {/* Selected Store Card */}
           <div className="border border-zinc-200 rounded-sm overflow-hidden bg-white">
             <div className="p-4 sm:p-5 space-y-3">
-              <h3 className="font-figtree text-[1.0625rem] font-bold text-black">{selectedStore.code}</h3>
-              <p className="text-[0.875rem] leading-relaxed text-black font-medium font-figtree pr-4 md:pr-10">
+              <h3 className="font-figtree text-[1.0625rem] lg:text-[1.125rem] font-bold text-black">{selectedStore.code}</h3>
+              <p className="text-[0.875rem] lg:text-[0.9375rem] leading-relaxed text-black font-medium font-figtree pr-4 md:pr-10">
                 {selectedStore.address}, {selectedStore.city} {selectedStore.state}
               </p>
-              <div className="flex items-center gap-2 text-[0.9375rem] text-[#22A05B] font-figtree font-medium pt-1">
+              <div className="flex items-center gap-2 text-[0.9375rem] lg:text-[1rem] text-[#22A05B] font-figtree font-medium pt-1">
                 <span className="size-1.5 rounded-full bg-[#22A05B]" />
                 Pickup Available by {formatPickupReadyDate()}
               </div>
@@ -102,10 +102,10 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
             <div className="grid grid-cols-2 border-t border-zinc-200">
               <a 
                 href={selectedStore.phone ? `tel:${selectedStore.phone}` : "#"} 
-                className="flex items-center justify-center gap-2 h-14 border-r border-zinc-200 px-2 hover:bg-zinc-50 transition-colors"
+                className="flex items-center justify-center gap-2 h-14 border-r border-zinc-200 px-2 hover:bg-zinc-50 transition-colors cursor-pointer"
               >
                 <Phone size={18} className="text-black shrink-0" />
-                <span className="text-[0.9375rem] font-figtree font-medium text-black">
+                <span className="text-[0.9375rem] lg:text-[1rem] font-figtree font-medium text-black">
                   {selectedStore.phone || "No phone"}
                 </span>
               </a>
@@ -113,7 +113,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
                 href={getDirectionsUrl(selectedStore)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 h-14 text-[0.9375rem] font-figtree font-medium text-black hover:bg-zinc-50 transition-colors"
+                className="flex items-center justify-center gap-2 h-14 text-[0.9375rem] lg:text-[1rem] font-figtree font-medium text-black hover:bg-zinc-50 transition-colors cursor-pointer"
               >
                 <Navigation size={18} className="text-black shrink-0" />
                 Get Direction
@@ -121,13 +121,13 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
             </div>
           </div>
           
-          <Button type="button" onClick={() => setShowStoreDialog(true)} className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] rounded-[4px] transition-colors">
+          <Button type="button" onClick={() => setShowStoreDialog(true)} className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-colors">
             Change Pickup
           </Button>
         </div>
       ) : (
         <div className="space-y-4">
-          <h2 className="font-figtree text-[0.9375rem] font-medium text-black">Find Store near you for Pickup</h2>
+          <h2 className="font-figtree text-[0.9375rem] lg:text-[1.0625rem] font-medium text-black">Find Store near you for Pickup</h2>
           <div className="flex items-center h-[52px] rounded-[4px] border border-zinc-200 bg-white px-3 gap-2">
             <LocateFixed size={18} className="text-black shrink-0" />
             <input
@@ -135,12 +135,12 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
               value={pincodeQuery}
               maxLength={6}
               onChange={(e) => setPincodeQuery(e.target.value.replace(/\D/g, ""))}
-              className="h-full w-full min-w-0 bg-transparent outline-none text-[0.9375rem] lg:text-[1.05rem] font-figtree font-medium text-black placeholder:text-zinc-400"
+              className="h-full w-full min-w-0 bg-transparent outline-none text-[0.9375rem] lg:text-[1.0625rem] font-figtree font-medium text-black placeholder:text-zinc-400"
             />
           </div>
 
 
-          <Button type="button" onClick={findNearestStore} className="w-full h-12 bg-[#5A413F] hover:bg-[#4A312F] text-white text-[0.9375rem] font-figtree font-medium rounded-md transition-colors">
+          <Button type="button" onClick={findNearestStore} className="w-full h-12 bg-[#5A413F] hover:bg-[#4A312F] text-white text-[0.9375rem] lg:text-[1rem] font-figtree font-medium rounded-md transition-colors">
             Find Nearest Store
           </Button>
         </div>
