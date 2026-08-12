@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CheckoutSummary from "@/components/cart/CheckoutSummary";
+import PriceProtectionTimer from "@/components/checkout/payment/PriceProtectionTimer";
+import PriceProtectionDrawer from "@/components/checkout/payment/PriceProtectionDrawer";
+import CoinsNudgeDrawer from "@/components/checkout/payment/CoinsNudgeDrawer";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -113,6 +116,18 @@ export default function PaymentPage() {
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
+
+  const [showPriceProtection, setShowPriceProtection] = useState(false);
+  const [showCoinsNudge, setShowCoinsNudge] = useState(false);
+  const [coinsProceedAction, setCoinsProceedAction] = useState(null);
+
+  const [priceProtectionSeconds, setPriceProtectionSeconds] = useState(600);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPriceProtectionSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const scrollToSummary = () => {
     // Land on the price breakdown rather than the top of the section, which sits above
@@ -794,133 +809,92 @@ export default function PaymentPage() {
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
 
           {/* Main Content Area (60%) */}
-          <div className="grow lg:basis-[60%] lg:shrink-0 py-10 px-0 lg:pr-12 space-y-10 bg-white">
+          <div className="grow lg:basis-[60%] lg:shrink-0 p-0 lg:py-10 lg:px-4 lg:pr-12 space-y-10 bg-white">
 
             {/* MOBILE ONLY ORDER */}
             {!isDesktop && (
-              <div className="space-y-10 px-4">
-                {/* 1. Lucira Coins Balance */}
-                <CheckoutSummary
-                  showItems={false}
-                  showBreakdown={false}
-                  showContact={false}
-                  isSilverPendantClaimed={isSilverPendantClaimed}
-                  onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
-                />
-
-                {/* 2. Payment options */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-abhaya font-bold text-zinc-900">Payment</h2>
-                    <p className="text-sm font-figtree text-zinc-500">All transactions are secure and encrypted.</p>
+              <div className="space-y-6 px-0 lg:px-4">
+                <div className="border-0 lg:border lg:border-[#EBE1D7] lg:rounded-[8px] overflow-hidden">
+                  <div className="flex items-center gap-4 py-4 px-4 bg-white">
+                    <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </div>
+                    <div className="flex-1 min-w-0 pt-1">
+                      <p className="font-figtree font-medium text-[15px] text-black truncate mb-0.5">
+                        Delivering to {customer?.name || user?.name || "Customer"}
+                      </p>
+                      <p className="font-figtree text-[13px] text-[#222222]/70 truncate">
+                        {isPickup ? checkoutSelection?.selectedStore?.address : formatAddressPreview(selectedAddress)}
+                      </p>
+                    </div>
+                    <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
+                      Change
+                    </Link>
                   </div>
-                  <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway} className="grid gap-0 border border-zinc-200 rounded-lg overflow-hidden bg-white">
-                    {paymentGateways.map((gateway, index) => (
-                      <div key={gateway.id} className={`flex flex-col ${index < paymentGateways.length - 1 ? "border-b border-zinc-100" : ""}`}>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedPaymentGateway(gateway.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setSelectedPaymentGateway(gateway.id);
-                            }
-                          }}
-                          className={`p-5 flex ${gateway.id === "partial_cod" ? "flex-row gap-3" : "flex-col md:flex-row gap-4 md:gap-0"} items-center justify-between transition-all cursor-pointer ${selectedPaymentGateway === gateway.id ? "bg-accent/15" : "bg-white"}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <RadioGroupItem value={gateway.id} id={`m-${gateway.id}`} className="text-[#005BD3] border-zinc-300" />
-                            <Label htmlFor={`m-${gateway.id}`} className="font-medium text-zinc-900 cursor-pointer">{gateway.name}</Label>
-                          </div>
-                          <div className={`flex items-center gap-3 ${gateway.id === "partial_cod" ? "shrink-0" : ""}`}>
-                            <span className="text-sm font-bold text-zinc-900">₹{Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                            {gateway.id === "razorpay" ? (
-                              <div className="flex items-center gap-2">
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" className="h-3 w-auto opacity-70" alt="UPI" width={36} height={12} unoptimized />
-                                </div>
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" className="h-2 w-auto opacity-70" alt="VISA" width={36} height={8} unoptimized />
-                                </div>
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" className="h-3 w-auto opacity-70" alt="MASTERCARD" width={36} height={12} unoptimized />
-                                </div>
-                                <span className="text-[10px] text-zinc-400 font-bold">+18</span>
-                              </div>
-                            ) : (
-                              <span className="text-xs font-medium text-zinc-500">
-                                COD ₹{partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </RadioGroup>
+
+                  <PriceProtectionTimer
+                    secondsLeft={priceProtectionSeconds}
+                    onInfoClick={() => setShowPriceProtection(true)}
+                    className="rounded-none lg:rounded-b-[8px] mb-0 lg:mb-2"
+                  />
                 </div>
 
-                {/* 3. Order Summary */}
-                <div ref={summaryRef} className="scroll-mt-16">
+                <div className="pt-2">
                   <CheckoutSummary
+                    showItems={false}
+                    showBreakdown={false}
+                    showContact={false}
+                    isSilverPendantClaimed={isSilverPendantClaimed}
+                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                    mobilePaymentCoinsTheme={true}
+                    onApplyCoinsWarning={(proceed) => {
+                      setCoinsProceedAction(() => proceed);
+                      setShowCoinsNudge(true);
+                    }}
+                  />
+                </div>
+
+                <div ref={summaryRef} className="scroll-mt-16 bg-white pt-2">
+                  <CheckoutSummary
+                    showItems={false}
                     showPoints={false}
                     showContact={false}
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                     showSilverPendantOffer={false}
                     breakdownRef={summaryBreakdownRef}
+                    compactBreakdown={true}
                   />
                 </div>
 
-                {/* 4. Contact, Ship to, Bill to section */}
-                <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
-                  <div className="p-4 grid grid-cols-[100px_1fr] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">Contact</span>
-                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || ""}</span>
-                  </div>
-                  <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Pickup" : "Ship to"}</span>
-                    <div className="text-zinc-900 font-medium">
-                      {isPickup ? (
-                        <div className="space-y-1">
-                          <p className="font-bold">{checkoutSelection?.selectedStore?.code || checkoutSelection?.selectedStore?.name}</p>
-                          <p className="line-clamp-2 text-zinc-600 font-normal">{checkoutSelection?.selectedStore?.address}</p>
+                {/* Payment options — only shown when more than one gateway is available */}
+                {paymentGateways.length > 1 && (
+                  <div className="space-y-4 pt-2">
+                    <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.875rem]">PAYMENT OPTIONS</h2>
+                    <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway} className="space-y-3">
+                      {paymentGateways.map((gateway) => (
+                        <div key={gateway.id} className="relative">
+                          <Label
+                            htmlFor={`m-opt-${gateway.id}`}
+                            className={`block p-4 rounded-[6px] border transition-colors cursor-pointer ${selectedPaymentGateway === gateway.id ? "border-[#5A413F] bg-[#FAF0E6]/40" : "border-[#EBE1D7]"}`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h4 className="font-figtree font-medium text-black text-[0.875rem]">
+                                  {gateway.id === "razorpay" ? `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                </h4>
+                                <p className="font-figtree text-[0.75rem] text-black/70 mt-1">
+                                  {gateway.id === "razorpay" ? "Complete your Purchase with Ease" : `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
+                                </p>
+                              </div>
+                              <RadioGroupItem value={gateway.id} id={`m-opt-${gateway.id}`} className="border-[#3D2B28] text-[#5A413F]" />
+                            </div>
+                          </Label>
                         </div>
-                      ) : selectedAddress ? (
-                        <div className="space-y-1">
-                          <p className="line-clamp-2">{formatAddressPreview(selectedAddress)}</p>
-                          {selectedAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedAddress.gstin}</p>}
-                        </div>
-                      ) : (
-                        <p>No shipping address selected</p>
-                      )}
-                    </div>
-                    <Link prefetch={false} href={shipToChangeHref} className="text-black font-semibold text-right underline">Change</Link>
+                      ))}
+                    </RadioGroup>
                   </div>
-                  <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">Bill to</span>
-                    <div className="text-zinc-900 font-medium">
-                      {selectedBillingAddress ? (
-                        <div className="space-y-1">
-                          <p className="line-clamp-2">{formatAddressPreview(selectedBillingAddress)}</p>
-                          {selectedBillingAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedBillingAddress.gstin}</p>}
-                        </div>
-                      ) : (
-                        <p>No billing address selected</p>
-                      )}
-                    </div>
-                    <Link prefetch={false} href={shipToChangeHref} className="text-black font-semibold text-right underline">Change</Link>
-                  </div>
-                  <div className="p-4 grid grid-cols-[100px_1fr] items-center gap-4 text-sm">
-                    <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Method" : "Shipping"}</span>
-                    <span className="text-zinc-900 font-medium">
-                      {isPickup ? "Pickup" : "Shipping Rate"} · <span className="font-bold">{isPickup || isIndiaShipping ? "FREE" : "Calculated at next step"}</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* 5. CONTACT US FOR ASSISTANCE */}
-                <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} showSilverPendantOffer={false} />
+                )}
               </div>
             )}
 
@@ -1066,28 +1040,43 @@ export default function PaymentPage() {
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        <div className="flex flex-col gap-[14px]">
-          <div className="flex items-center justify-between">
-            <span className="text-[18px] font-semibold text-black leading-none font-figtree tracking-normal">
-              ₹{selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#EBE1D7] px-4 pt-3.5 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center px-0.5">
+            <span className="text-[14px] font-medium text-black font-figtree flex items-center gap-2">
+              Pay Securely
+              <div className="flex items-center gap-2 ml-1">
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" className="h-[12px] w-auto" alt="UPI" width={36} height={12} unoptimized />
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" className="h-[10px] w-auto" alt="VISA" width={36} height={10} unoptimized />
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" className="h-[12px] w-auto" alt="MASTERCARD" width={36} height={12} unoptimized />
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icons_rupay.svg" className="h-[12px] w-auto" alt="RuPay" width={36} height={12} unoptimized />
+                <span className="text-[12px] text-zinc-500 font-medium">+12</span>
+              </div>
             </span>
-            <button
-              onClick={scrollToSummary}
-              className="text-[14px] font-medium text-black cursor-pointer font-figtree"
-            >
-              View Order Summary
-            </button>
           </div>
           <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] h-[50px] font-figtree font-medium uppercase tracking-wider text-[15px] text-white cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full flex items-center justify-center rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] h-[48px] font-figtree font-medium uppercase tracking-wide text-[16px] text-white cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {paymentLoading ? "PROCESSING..." : "PAY NOW"}
+            {paymentLoading ? "PROCESSING..." : `PAY ₹${selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
           </Button>
         </div>
       </div>
+
+      <PriceProtectionDrawer
+        open={showPriceProtection}
+        onOpenChange={setShowPriceProtection}
+        secondsLeft={priceProtectionSeconds}
+      />
+      <CoinsNudgeDrawer
+        open={showCoinsNudge}
+        onOpenChange={setShowCoinsNudge}
+        onProceed={() => {
+          if (coinsProceedAction) coinsProceedAction();
+          setCoinsProceedAction(null);
+        }}
+      />
     </div>
   );
 }
