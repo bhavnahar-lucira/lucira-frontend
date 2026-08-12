@@ -177,8 +177,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
 
     setLoading(true);
     try {
-      const sessionId = getSessionId();
-      const data = await verifyOtpApi(mobile, otpValue, sessionId);
+      const data = await verifyOtpApi(mobile, otpValue);
 
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         setStep("register");
@@ -228,13 +227,11 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
     if (!firstName || !email || !mobile) return toast.error("Please fill all fields");
     setLoading(true);
     try {
-      const sessionId = getSessionId();
       const regData = await registerCustomer({
         firstName,
         lastName,
         email,
         mobile,
-        sessionId,
       });
       if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
         await loginSuccess(regData, true);
