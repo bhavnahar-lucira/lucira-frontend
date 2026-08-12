@@ -27,7 +27,7 @@ export default function PriceProtectionDrawer({ open, onOpenChange, secondsLeft 
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="bg-white px-6 pb-8 pt-2 rounded-t-[20px]">
+      <DrawerContent className="bg-white px-6 pb-8 pt-2 rounded-t-[20px] [&>div:first-child]:hidden">
         <div className="flex flex-col items-center max-w-sm mx-auto w-full text-center">
           <div className="w-14 h-14 rounded-full bg-[#FBEFDD] flex items-center justify-center mb-4">
             <IndianRupee size={24} className="text-[#5A413F]" strokeWidth={2} />

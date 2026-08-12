@@ -5,7 +5,7 @@ import { Drawer, DrawerContent } from "@/components/ui/drawer";
 export default function CoinsNudgeDrawer({ open, onOpenChange, onProceed }) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="bg-white px-6 pb-8 pt-4 rounded-t-[20px]">
+      <DrawerContent className="bg-white px-6 pb-8 pt-4 rounded-t-[20px] [&>div:first-child]:hidden">
         <div className="flex flex-col max-w-sm mx-auto w-full">
           <h3 className="font-figtree font-bold text-[18px] text-black mb-1.5">
             Get the Max Discount with Coins

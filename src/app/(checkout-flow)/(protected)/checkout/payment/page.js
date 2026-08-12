@@ -805,7 +805,7 @@ export default function PaymentPage() {
 
   return (
     <div className="bg-white min-h-screen overflow-x-clip">
-      <div className="container-main relative z-10">
+      <div className="container-main relative z-10 !px-0 lg:!px-17">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
 
           {/* Main Content Area (60%) */}
@@ -839,7 +839,7 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 lg:px-0">
                   <CheckoutSummary
                     showItems={false}
                     showBreakdown={false}
@@ -854,7 +854,7 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                <div ref={summaryRef} className="scroll-mt-16 bg-white pt-2">
+                <div ref={summaryRef} className="scroll-mt-16 bg-white pt-2 px-4 lg:px-0">
                   <CheckoutSummary
                     showItems={false}
                     showPoints={false}
@@ -869,9 +869,9 @@ export default function PaymentPage() {
 
                 {/* Payment options — only shown when more than one gateway is available */}
                 {paymentGateways.length > 1 && (
-                  <div className="space-y-4 pt-2">
+                  <div className="space-y-4 pt-2 px-4 pb-[150px] lg:pb-4">
                     <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.875rem]">PAYMENT OPTIONS</h2>
-                    <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway} className="space-y-3">
+                    <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
                       {paymentGateways.map((gateway) => (
                         <div key={gateway.id} className="relative">
                           <Label

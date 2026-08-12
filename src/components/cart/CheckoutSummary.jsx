@@ -287,7 +287,7 @@ export default function CheckoutSummary({
 
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-6 px-4 ${className}`}>
       {showItems && (
         <div className="space-y-4">
           <h2 className="text-[0.8125rem] font-bold text-zinc-800 uppercase tracking-wide">ORDER SUMMARY</h2>
