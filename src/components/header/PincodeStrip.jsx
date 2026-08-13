@@ -90,11 +90,7 @@ export default function PincodeStrip({
         >
           <span className="h-5 w-px shrink-0 bg-[#EBE2E0]" aria-hidden="true" />
 
-          <MapPin
-            size={14}
-            strokeWidth={2}
-            className={`shrink-0 ${committedStore ? "text-[#006D4E]" : "text-[#B77767]"}`}
-          />
+          <MapPin size={14} strokeWidth={2} className="shrink-0 text-[#B77767]" />
 
           {committed ? (
             // Same information architecture as the desktop pill — quiet PIN
@@ -103,13 +99,9 @@ export default function PincodeStrip({
               <span className="font-figtree text-[8px] font-bold uppercase tracking-[0.08em] tabular-nums text-[#A08A85]">
                 PIN {committed}
               </span>
-              <span
-                className={`flex min-w-0 items-center gap-1 font-figtree text-[11px] font-bold ${
-                  committedStore ? "text-[#006D4E]" : "text-[#5A413F]"
-                }`}
-              >
+              <span className="flex min-w-0 items-center gap-1 font-figtree text-[11px] font-bold text-[#5A413F]">
                 {committedStore && (
-                  <span className="size-[4px] shrink-0 rounded-full bg-[#006D4E]" />
+                  <span className="size-[4px] shrink-0 rounded-full bg-[#0E8A5F]" />
                 )}
                 <span className="truncate">{readout}</span>
               </span>
@@ -119,15 +111,11 @@ export default function PincodeStrip({
             // job. An icon alone was rejected for the same reason as on the
             // strip: nobody taps a pin to find out what it does.
             <span className="whitespace-nowrap font-figtree text-[11.5px] font-bold text-[#B77767]">
-              Add pincode
+              Find your store
             </span>
           )}
 
-          <ChevronDown
-            size={12}
-            strokeWidth={2.4}
-            className={`shrink-0 ${committedStore ? "text-[#006D4E]" : "text-[#B77767]"}`}
-          />
+          <ChevronDown size={12} strokeWidth={2.4} className="shrink-0 text-[#B77767]" />
         </button>
 
         {drawer}
@@ -141,17 +129,9 @@ export default function PincodeStrip({
         type="button"
         onClick={onOpen}
         aria-haspopup="dialog"
-        className={`flex w-full items-center gap-2 border-b px-3 py-2 text-left transition-colors ${
-          committedStore
-            ? "border-[#D8ECE4] bg-[#F1FAF6]"
-            : "border-[#F6E7E2] bg-[#FFF7F4]"
-        } ${className}`}
+        className={`flex w-full items-center gap-2 border-b border-[#F6E7E2] bg-[#FFF7F4] px-3 py-2 text-left transition-colors ${className}`}
       >
-        <MapPin
-          size={15}
-          strokeWidth={2}
-          className={`shrink-0 ${committedStore ? "text-[#006D4E]" : "text-[#B77767]"}`}
-        />
+        <MapPin size={15} strokeWidth={2} className="shrink-0 text-[#B77767]" />
 
         <span className="min-w-0 flex-1 font-figtree text-[11px] leading-snug text-[#5A413F]">
           {committed ? (
@@ -160,8 +140,8 @@ export default function PincodeStrip({
                 PIN {committed}
               </span>
               {committedStore ? (
-                <b className="flex items-center gap-1.5 font-bold text-[#006D4E]">
-                  <span className="size-[5px] shrink-0 rounded-full bg-[#006D4E]" />
+                <b className="flex items-center gap-1.5 font-bold text-[#5A413F]">
+                  <span className="size-[5px] shrink-0 rounded-full bg-[#0E8A5F]" />
                   {committedStore.shortName} · {formatKm(committedStore.distance)} away
                 </b>
               ) : (
@@ -176,11 +156,7 @@ export default function PincodeStrip({
           )}
         </span>
 
-        <span
-          className={`shrink-0 font-figtree text-[9.5px] font-bold uppercase tracking-[0.07em] ${
-            committedStore ? "text-[#006D4E]" : "text-[#B77767]"
-          }`}
-        >
+        <span className="shrink-0 font-figtree text-[9.5px] font-bold uppercase tracking-[0.07em] text-[#B77767]">
           {committed ? "Change" : "Add"}
         </span>
       </button>

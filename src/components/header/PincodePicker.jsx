@@ -145,14 +145,14 @@ export default function PincodePicker({ locationId = "Header" }) {
   // which said the same thing twice; and naming the store first is more useful
   // to the shopper than repeating a phrase they just typed a pincode into.
   const hasPin = !!committed;
-  const label = hasPin ? `PIN ${committed}` : "Delivery & stores";
-  const value = !hasPin
-    ? "Add your pincode"
-    : committedStore
-      ? `${committedStore.shortName} · ${formatKm(committedStore.distance)}`
-      : committedInRange === false
-        ? "We deliver here"
-        : "Finding your store…";
+  // Two lines are only worth their height once there is something in the top one.
+  // Before a pincode exists there is no data to stack, so the empty state is a
+  // single line — see the note on the button below.
+  const value = committedStore
+    ? `${committedStore.shortName} · ${formatKm(committedStore.distance)}`
+    : committedInRange === false
+      ? "We deliver here"
+      : "Finding your store…";
 
   return (
     <div
@@ -166,37 +166,48 @@ export default function PincodePicker({ locationId = "Header" }) {
         onClick={toggle}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="flex cursor-pointer items-center gap-2 rounded-full border border-[#EBE2E0] bg-white py-1 pl-2 pr-2.5 text-left shadow-[0_1px_2px_rgba(90,65,63,0.05)] transition-all hover:border-[#B77767] hover:shadow-[0_2px_8px_-3px_rgba(183,119,103,0.4)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B77767]"
+        // Blush fill, not white. The header already speaks in warm tinted chips
+        // ("Build Your Jewelry" is #FEF5F1), so a white outlined box was the one
+        // element that read as foreign instead of prominent.
+        //
+        // Height is pinned rather than derived from content, because the empty
+        // state is one line and the resolved state is two. Letting padding decide
+        // would change the pill's height the moment a pincode is applied and jog
+        // the whole header row.
+        className={`flex h-[32px] cursor-pointer items-center gap-[7px] rounded-full border border-[#EFDCD5] bg-[#FFF7F4] pl-[10px] text-left transition-all hover:border-[#B77767] hover:bg-[#FFEFE9] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#B77767] ${
+          hasPin ? "pr-[8px]" : "pr-[14px]"
+        }`}
       >
-        {/* Green only when a store is genuinely reachable — the icon carries the
-            same signal as the store card, so the two never disagree. */}
-        <MapPin
-          size={15}
-          strokeWidth={2}
-          className={`shrink-0 ${committedStore ? "text-[#006D4E]" : "text-[#B77767]"}`}
-        />
+        <MapPin size={15} strokeWidth={2} className="shrink-0 text-[#B77767]" />
 
-        <span className="flex min-w-[92px] flex-col leading-[1.2]">
-          <span
-            className={`font-figtree text-[8.5px] font-bold uppercase tracking-[0.09em] tabular-nums ${
-              hasPin ? "text-[#A08A85]" : "text-[#9D8681]"
-            }`}
-          >
-            {label}
+        {hasPin ? (
+          <>
+            <span className="flex min-w-[92px] flex-col leading-[1.15]">
+              <span className="font-figtree text-[8.5px] font-bold uppercase tracking-[0.09em] tabular-nums text-[#A08A85]">
+                PIN {committed}
+              </span>
+              {/* Green survives only as the dot. Green TEXT made availability
+                  compete with the brand for attention; a dot signals it and
+                  gets out of the way. */}
+              <span className="flex items-center gap-1 font-figtree text-[11.5px] font-bold text-[#5A413F]">
+                {committedStore && (
+                  <span className="size-[5px] shrink-0 rounded-full bg-[#0E8A5F]" />
+                )}
+                {value}
+              </span>
+            </span>
+            <Pencil size={12} strokeWidth={2.2} className="shrink-0 text-[#B77767]" />
+          </>
+        ) : (
+          // One line, no eyebrow. "Delivery & stores" sat above "Add your pincode"
+          // saying the same thing twice, at 8.5px where it was barely legible, and
+          // it was the widest element in the pill so it set the width too. Dropping
+          // it lets the single line centre with real breathing room, in the same
+          // register as the "Build Your Jewelry" chip beside it.
+          <span className="whitespace-nowrap font-figtree text-[11.5px] font-bold text-[#B77767]">
+            Find your store
           </span>
-          <span
-            className={`flex items-center gap-1 font-figtree text-[11.5px] font-bold ${
-              committedStore ? "text-[#006D4E]" : hasPin ? "text-[#5A413F]" : "text-[#B77767]"
-            }`}
-          >
-            {committedStore && (
-              <span className="size-[5px] shrink-0 rounded-full bg-[#006D4E]" />
-            )}
-            {value}
-          </span>
-        </span>
-
-        {hasPin && <Pencil size={12} strokeWidth={2.2} className="shrink-0 text-[#B77767]" />}
+        )}
       </button>
 
       {/* The 10px gap under the pill lives in this wrapper's padding rather than

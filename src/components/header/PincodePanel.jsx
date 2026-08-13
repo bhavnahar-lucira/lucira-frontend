@@ -23,7 +23,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ChevronRight, LocateFixed, Loader2, MapPin, Navigation,
-  CalendarCheck, Truck, Sparkles, AlertCircle,
+  CalendarCheck, Truck, Sparkles, AlertCircle, ArrowRight,
 } from "lucide-react";
 import { resolveNearestStores, formatKm, NO_PINCODE } from "@/lib/nearestStore";
 import { NEAREST_STORE_MAX_KM } from "@/data/storeGeo";
@@ -166,12 +166,14 @@ export function usePincodeResolution({ locationId = "Header" } = {}) {
  */
 function StoreRadar() {
   return (
-    <div className="relative mx-auto mb-3 grid size-[62px] place-items-center">
-      <span className="absolute inset-0 rounded-full bg-[#FFEDE9]" />
-      <span className="absolute inset-[8px] rounded-full bg-[#FBDCD3]" />
-      <span className="absolute inset-[17px] rounded-full bg-[#F1C4B5]" />
-      <span className="absolute inset-0 animate-ping rounded-full border border-[#E4A995] opacity-60 motion-reduce:hidden" />
-      <MapPin size={21} strokeWidth={2.2} className="relative text-[#8C5A4C]" />
+    <div className="relative mx-auto mb-3.5 grid size-[58px] place-items-center">
+      {/* A rotated square reads as a brilliant-cut stone rather than a generic
+          radar target — location, said in the brand's own vocabulary. */}
+      <span className="absolute inset-0 rotate-45 rounded-[17px] border border-[#F6E8E3] motion-safe:animate-pulse" />
+      <span className="absolute inset-[7px] rotate-45 rounded-[13px] border border-[#EFD8D0] bg-gradient-to-br from-[#FFF4F0] to-[#FADFD5]" />
+      <MapPin size={20} strokeWidth={2.2} className="relative text-[#8C5A4C]" />
+      <Sparkles size={9} strokeWidth={2.4} className="absolute right-0 top-1 text-[#C99C8B]" />
+      <Sparkles size={7} strokeWidth={2.4} className="absolute bottom-1 left-0.5 text-[#DFBEB1]" />
     </div>
   );
 }
@@ -186,7 +188,7 @@ function StoreCard({ store, rank, onNavigate }) {
       onClick={onNavigate}
       className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
         nearest
-          ? "border-[#A3D9C9] bg-[#F1FAF6] hover:border-[#006D4E]"
+          ? "border-[#DCEAE2] bg-[#F8FBF9] hover:border-[#A3D9C9]"
           : "border-[#F0E8E6] bg-white hover:border-[#B77767]"
       }`}
     >
@@ -227,7 +229,7 @@ function StoreCard({ store, rank, onNavigate }) {
 
       <ChevronRight
         size={15}
-        className={`shrink-0 ${nearest ? "text-[#006D4E]" : "text-[#B77767]"}`}
+        className="shrink-0 text-[#B77767]"
       />
     </Link>
   );
@@ -268,7 +270,7 @@ export default function PincodePanel({ ctl, onDone, compact = false }) {
     <div className="font-figtree">
       {showResult ? (
         /* ── resolved: pincode is quiet context, the store is the headline ── */
-        <div className="mb-3 flex items-center justify-between gap-2 rounded-xl bg-[#FAF6F5] px-3 py-2">
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-[#F4E4DE] bg-[#FFF7F4] px-3 py-2">
           <span className="flex min-w-0 items-center gap-2">
             <MapPin size={14} strokeWidth={2.2} className="shrink-0 text-[#B77767]" />
             <span className="min-w-0">
@@ -342,10 +344,13 @@ export default function PincodePanel({ ctl, onDone, compact = false }) {
             <button
               type="submit"
               disabled={draft.length !== 6 || busy}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#5A413F] px-4 py-2.5 font-figtree text-[11px] font-bold uppercase tracking-[0.09em] text-white transition-colors hover:bg-[#8C5A4C] disabled:cursor-not-allowed disabled:bg-[#EFE5E2] disabled:text-[#B9A6A1]"
+              // Stays solid brown when disabled and just dims. Swapping to a flat
+              // grey-pink fill made it read as broken rather than as "not yet".
+              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#5A413F] px-3.5 py-2.5 font-figtree text-[11px] font-bold uppercase tracking-[0.09em] text-white transition-all hover:bg-[#8C5A4C] disabled:cursor-not-allowed disabled:opacity-35"
             >
-              {busy && <Loader2 size={12} className="animate-spin" />}
+              {busy ? <Loader2 size={12} className="animate-spin" /> : null}
               Apply
+              {!busy && <ArrowRight size={12} strokeWidth={2.6} />}
             </button>
           </form>
 
@@ -424,7 +429,7 @@ export default function PincodePanel({ ctl, onDone, compact = false }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={onDone}
-                  className="flex items-center justify-center gap-1.5 rounded-xl bg-[#006D4E] px-3 py-2.5 font-figtree text-[11px] font-bold uppercase tracking-[0.09em] text-white transition-colors hover:bg-[#005A40]"
+                  className="flex items-center justify-center gap-1.5 rounded-xl bg-[#5A413F] px-3 py-2.5 font-figtree text-[11px] font-bold uppercase tracking-[0.09em] text-white transition-colors hover:bg-[#8C5A4C]"
                 >
                   <Navigation size={13} strokeWidth={2.2} />
                   Directions to {resolved.nearest.shortName}
