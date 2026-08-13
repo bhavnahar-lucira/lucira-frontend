@@ -815,7 +815,7 @@ export default function PaymentPage() {
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
 
           {/* Main Content Area (60%) */}
-          <div className="grow lg:basis-[60%] lg:shrink-0 p-0 lg:py-10 lg:px-4 lg:pr-12 space-y-10 bg-white">
+          <div className="grow lg:basis-[60%] lg:shrink-0 p-0 lg:py-10 lg:px-4 lg:pr-12 space-y-10 bg-white min-w-0">
 
             {/* MOBILE ONLY ORDER */}
             {!isDesktop && (
@@ -830,7 +830,7 @@ export default function PaymentPage() {
                         Delivering to {customer?.name || user?.name || "Customer"}
                       </p>
                       <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
-                        {isPickup ? checkoutSelection?.selectedStore?.address : formatAddressPreview(selectedAddress)}
+                        {isPickup ? [checkoutSelection?.selectedStore?.address, checkoutSelection?.selectedStore?.city, checkoutSelection?.selectedStore?.state, checkoutSelection?.selectedStore?.zip].filter(Boolean).join(", ") : formatAddressPreview(selectedAddress)}
                       </p>
                     </div>
                     <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
@@ -920,7 +920,7 @@ export default function PaymentPage() {
                         Delivering to {customer?.name || user?.name || "Customer"}
                       </p>
                       <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
-                        {isPickup ? checkoutSelection?.selectedStore?.address : formatAddressPreview(selectedAddress)}
+                        {isPickup ? [checkoutSelection?.selectedStore?.address, checkoutSelection?.selectedStore?.city, checkoutSelection?.selectedStore?.state, checkoutSelection?.selectedStore?.zip].filter(Boolean).join(", ") : formatAddressPreview(selectedAddress)}
                       </p>
                     </div>
                     <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">

@@ -6,20 +6,24 @@ const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
 
 function readStoredBillingSelection() {
   if (typeof window === "undefined") {
-    return { billingAddressMode: "same", billingAddressId: "" };
+    return { billingAddressMode: "same", billingAddressId: "", billingAddressSnapshot: null };
   }
 
   try {
     const rawValue = window.localStorage.getItem(BILLING_SELECTION_STORAGE_KEY);
     const parsedValue = rawValue ? JSON.parse(rawValue) : null;
     if (parsedValue?.billingAddressMode === "different" && parsedValue?.billingAddressId) {
-      return { billingAddressMode: "different", billingAddressId: parsedValue.billingAddressId };
+      return { 
+        billingAddressMode: "different", 
+        billingAddressId: parsedValue.billingAddressId,
+        billingAddressSnapshot: parsedValue.billingAddressSnapshot || null
+      };
     }
   } catch (error) {
     console.error("Billing selection restore error:", error);
   }
 
-  return { billingAddressMode: "same", billingAddressId: "" };
+  return { billingAddressMode: "same", billingAddressId: "", billingAddressSnapshot: null };
 }
 
 function persistBillingSelection(selection) {
@@ -28,7 +32,11 @@ function persistBillingSelection(selection) {
   if (selection?.billingAddressMode === "different" && selection?.billingAddressId) {
     window.localStorage.setItem(
       BILLING_SELECTION_STORAGE_KEY,
-      JSON.stringify({ billingAddressMode: "different", billingAddressId: selection.billingAddressId })
+      JSON.stringify({ 
+        billingAddressMode: "different", 
+        billingAddressId: selection.billingAddressId,
+        billingAddressSnapshot: selection.billingAddressSnapshot || null
+      })
     );
     return;
   }
@@ -70,6 +78,9 @@ export function useBillingAddress({ accessToken, addresses, loadingAddresses, se
       if (effective.billingAddressMode === "different" && effective.billingAddressId) {
         setBillingAddressModeState("different");
         setSelectedBillingAddressId(effective.billingAddressId);
+        if (effective.billingAddressSnapshot) {
+          setBillingAddressSnapshot(effective.billingAddressSnapshot);
+        }
       } else {
         setBillingAddressModeState("same");
       }
@@ -87,6 +98,10 @@ export function useBillingAddress({ accessToken, addresses, loadingAddresses, se
     if (loadingAddresses || loadingBillingSelection) return;
     if (billingAddressMode !== "different" || !selectedBillingAddressId) return;
     if (addresses.some((address) => address.id === selectedBillingAddressId)) return;
+    
+    // If we have a snapshot that matches the selected ID, we keep it! 
+    // This protects against Shopify API cache delays during checkout navigation.
+    if (billingAddressSnapshot && billingAddressSnapshot.id === selectedBillingAddressId) return;
 
     setBillingAddressModeState("same");
     setSelectedBillingAddressId("");
@@ -103,12 +118,16 @@ export function useBillingAddress({ accessToken, addresses, loadingAddresses, se
   }, [billingAddressMode, selectedAddress, addresses, selectedBillingAddressId, billingAddressSnapshot]);
 
   const selectBillingAddress = useCallback(
-    async (addressId) => {
-      const nextBillingAddress = addresses.find((address) => address.id === addressId) || null;
+    async (addressId, overrideAddress = null) => {
+      const nextBillingAddress = overrideAddress || addresses.find((address) => address.id === addressId) || null;
       setBillingAddressModeState("different");
       setSelectedBillingAddressId(addressId);
       setBillingAddressSnapshot(nextBillingAddress);
-      persistBillingSelection({ billingAddressMode: "different", billingAddressId: addressId });
+      persistBillingSelection({ 
+        billingAddressMode: "different", 
+        billingAddressId: addressId,
+        billingAddressSnapshot: nextBillingAddress
+      });
 
       try {
         await saveCheckoutAddressSelection({ billingAddressMode: "different", billingAddressId: addressId }, accessToken);

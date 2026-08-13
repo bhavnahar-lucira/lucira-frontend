@@ -95,7 +95,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           <div className="flex items-center h-14 rounded-sm border border-zinc-200 bg-[#FAFAFA] px-4 gap-3">
             <LocateFixed size={18} className="text-black shrink-0" />
             <span className="text-[1rem] lg:text-[1.0625rem] font-figtree font-medium text-[#5A413F]">
-              {pincodeQuery || "400064"}
+              {pincodeQuery || selectedStore.zip || "Current location"}
             </span>
           </div>
 

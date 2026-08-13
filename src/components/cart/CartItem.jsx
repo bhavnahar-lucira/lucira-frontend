@@ -839,7 +839,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
           <div className="bg-white rounded-t-[16px] lg:rounded-[10px] w-full lg:w-[420px] overflow-hidden flex flex-col relative animate-in slide-in-from-bottom-full lg:slide-in-from-bottom-0 lg:zoom-in-95 duration-300 font-figtree">
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-4">
-              <h3 className="font-abhaya text-[1.25rem] font-bold text-primary tracking-tight leading-tight">
+              <h3 className="font-abhaya lg:font-figtree text-[1.25rem] lg:text-[1.2rem] font-bold lg:font-semibold text-primary tracking-tight leading-tight">
                 {isBYJ ? "Remove from Bag" : "Move from Bag"}
               </h3>
               <button
@@ -863,7 +863,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 />
               </div>
               <div className="min-w-0 flex-1 text-left">
-                <h4 className="truncate font-figtree text-[0.875rem] font-semibold text-zinc-900 leading-snug">
+                <h4 className="truncate font-figtree text-[0.875rem] lg:text-[1rem] font-semibold text-zinc-900 leading-snug">
                   {item.title}
                 </h4>
                 <p className="truncate font-figtree text-[0.75rem] text-zinc-500 mt-1">
@@ -873,8 +873,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
 
             {/* Confirmation Text */}
-            <p className="px-5 pb-6 font-figtree text-[0.8125rem] text-zinc-600 text-left">
-              Are you sure you want to remove this item from bag?
+            <p className="px-5 pb-6 font-figtree text-[0.8125rem] lg:text-[1rem] text-zinc-600 text-left">
+              {isBYJ ? "Are you sure you want to remove this item from bag?" : "Are you sure you want to move this item from bag?"}
             </p>
 
             {/* Actions */}

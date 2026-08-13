@@ -82,7 +82,7 @@ export function BillingAddressSection({
         payload.addresses?.find((a) => a.address1 === createForm.address1 && a.zip === createForm.zip) ||
         payload.addresses?.[payload.addresses.length - 1];
       if (newAddress) {
-        await selectBillingAddress(newAddress.id);
+        await selectBillingAddress(newAddress.id, newAddress);
       }
       setBillingView("card");
       toast.success("Address added");

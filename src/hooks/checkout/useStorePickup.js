@@ -64,7 +64,6 @@ export function useStorePickup({ selectedShippingZip } = {}) {
   const [tempSelectedStoreId, setTempSelectedStoreId] = useState("");
   const [pincodeQuery, setPincodeQuery] = useState("");
   const [searchCoords, setSearchCoords] = useState(null);
-  const [locationPermission, setLocationPermission] = useState("unknown");
   const [hasResolvedStore, setHasResolvedStore] = useState(false);
 
   useEffect(() => {
@@ -128,33 +127,6 @@ export function useStorePickup({ selectedShippingZip } = {}) {
       );
     };
     fetchStores();
-  }, []);
-
-  useEffect(() => {
-    if (typeof navigator === "undefined" || !navigator.permissions?.query) {
-      setLocationPermission("unsupported");
-      return;
-    }
-
-    let permissionStatus;
-    let cancelled = false;
-
-    navigator.permissions
-      .query({ name: "geolocation" })
-      .then((status) => {
-        if (cancelled) return;
-        permissionStatus = status;
-        setLocationPermission(status.state);
-        status.onchange = () => setLocationPermission(status.state);
-      })
-      .catch(() => {
-        if (!cancelled) setLocationPermission("unsupported");
-      });
-
-    return () => {
-      cancelled = true;
-      if (permissionStatus) permissionStatus.onchange = null;
-    };
   }, []);
 
   const sortedStores = useMemo(() => {
@@ -259,15 +231,6 @@ export function useStorePickup({ selectedShippingZip } = {}) {
     findNearestByGeolocation();
   }, [pincodeQuery, findNearestByPincode, findNearestByGeolocation]);
 
-  // Once the browser already has location access, resolve a store right away
-  // instead of making the customer type a PIN code.
-  useEffect(() => {
-    if (locationPermission === "granted" && dbStores.length > 0 && !selectedStoreId) {
-      findNearestByGeolocation();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationPermission, dbStores.length]);
-
   const openStoreDialog = () => {
     setTempSelectedStoreId(selectedStoreId || (sortedStores.length > 0 ? sortedStores[0].id : ""));
     setShowStoreDialog(true);
@@ -295,7 +258,6 @@ export function useStorePickup({ selectedShippingZip } = {}) {
     pincodeQuery,
     setPincodeQuery,
     hasResolvedStore,
-    locationPermission,
     findNearestStore,
     findNearestByGeolocation,
     openStoreDialog,
