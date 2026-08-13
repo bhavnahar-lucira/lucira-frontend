@@ -17,14 +17,17 @@ export function MobileBottomSheet({
   disableDrag = false
 }) {
   const isContentHeight = detent === "content-height";
-  
+  // react-modal-sheet only recognizes 'default' | 'full' | 'content' — translate
+  // our "content-height" convenience value so keyboard-avoidance sizing actually applies.
+  const sheetDetent = isContentHeight ? "content" : detent;
+
   return (
-    <Sheet 
-      isOpen={isOpen} 
+    <Sheet
+      isOpen={isOpen}
       onClose={onClose}
       snapPoints={!isContentHeight ? (snapPoints || [0, 0.95, 1]) : undefined}
       initialSnap={!isContentHeight ? 1 : undefined}
-      detent={detent}
+      detent={sheetDetent}
       disableDrag={disableDrag}
     >
       <Sheet.Container className="!rounded-t-[32px]">
