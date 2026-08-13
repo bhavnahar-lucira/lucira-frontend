@@ -107,7 +107,7 @@ export default function PaymentPage() {
   const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(0);
 
-  const { user, accessToken } = useSelector((state) => state.user);
+  const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
   // We need eligiblePendantId first
@@ -177,6 +177,13 @@ export default function PaymentPage() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken || accessToken.startsWith("simulated_")) {
+      router.push("/cart");
+    }
+  }, [isAuthenticated, accessToken, router]);
+
 
   const scrollToSummary = () => {
     // Land on the price breakdown rather than the top of the section, which sits above
