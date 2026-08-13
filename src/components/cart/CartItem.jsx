@@ -397,247 +397,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
 
   return (
     <>
-      {/* DESKTOP DESIGN */}
-      <div className="hidden lg:block mb-6 overflow-visible rounded-card border border-zinc-100 bg-white">
-        <div className="relative flex flex-col gap-6 p-4 md:flex-row md:p-6 overflow-visible">
-          {updating && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
-              <Loader2 className="animate-spin text-primary" size={24} />
-            </div>
-          )}
-
-          <button
-            onClick={() => setShowRemoveModal(true)}
-            disabled={removing}
-            className="absolute -top-[10px] -right-[10px] lg:top-2 lg:right-2 lg:left-auto z-20 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 transition-colors hover:bg-zinc-200 disabled:opacity-50 shadow-sm lg:shadow-none"
-          >
-            <X size={14} />
-          </button>
-
-          <Link prefetch={false}
-            href={productLink}
-            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-card bg-[#FAFAFA] md:w-48 block transition-opacity"
-          >
-            <Image
-              loader={isShopifyImage ? shopifyLoader : undefined}
-              src={displayImage || "/images/product/1.jpg"}
-              alt={item.title}
-              width={200}
-              height={200}
-              className="h-auto w-full object-contain mix-blend-multiply"
-              style={{ color: 'transparent' }}
-            />
-            {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10" />}
-          </Link>
-
-          <div className="grow space-y-4">
-            <div className="flex justify-between items-start gap-4 pr-8">
-              <div className="space-y-1 min-w-0">
-                <Link prefetch={false} href={productLink} className="block" title={item.title}>
-                  <h3 className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none tracking-[0px] text-black truncate flex-1 mb-[10px] transition-colors hover:text-primary">
-                    {displayTitle}
-                  </h3>
-                </Link>
-                <p className="font-figtree font-medium text-[0.75rem] uppercase tracking-[0px] leading-none text-zinc-400">
-                  SKU: {currentVariant?.sku || item.sku || "N/A"}
-                </p>
-                {item.engraving && (
-                  <p className="font-figtree font-medium text-[0.75rem] uppercase tracking-[0px] leading-none text-primary mt-1">
-                    Engraving: &quot;{item.engraving}&quot;
-                  </p>
-                )}
-                {isBYJ && (
-                  <button 
-                    onClick={() => setShowBreakdown(!showBreakdown)}
-                    className="flex items-center gap-1 text-[0.6875rem] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-1"
-                  >
-                    {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
-                    <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-col items-end whitespace-nowrap shrink-0">
-                <div className="font-figtree font-semibold text-[1.2rem] leading-none tracking-[0px] mb-[6px] text-zinc-900">
-                  ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-                {hasDiscount && (
-                  <div className="font-figtree font-normal text-[0.75rem] leading-none tracking-[0px] text-[#909090] line-through">
-                    ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {isBYJ && showBreakdown && (
-              <div className="mt-4 bg-[#fef5f1] p-6 rounded-md space-y-6 border border-[#e0d0ba]/30">
-                <div className="space-y-6">
-                  <div className="border-b border-[#e0d0ba] pb-2">
-                    <div className="flex justify-between items-end mb-1">
-                      <span className="text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Product Type</span>
-                    </div>
-                    <div className="text-sm font-medium">{item.properties['Product Type']}</div>
-                  </div>
-
-                  <div className="border-b border-[#e0d0ba] pb-2">
-                    <div className="flex justify-between items-end mb-1">
-                      <span className="text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Style</span>
-                      <span className="text-sm font-bold text-[#1c1810]">₹ {parseFloat(item.properties['_byj_style_price'] / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                    </div>
-                    <div className="text-sm font-medium text-zinc-800">{item.properties['Style']}</div>
-                  </div>
-
-                  <div className="border-b border-[#e0d0ba] pb-2">
-                    <div className="flex justify-between items-end mb-1">
-                      <span className="text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Length</span>
-                    </div>
-                    <div className="text-sm font-medium">{item.properties['Length']}</div>
-                  </div>
-
-                  <div className="pb-2">
-                    <div className="flex justify-between items-end mb-1">
-                      <span className="text-[0.625rem] font-bold uppercase tracking-widest text-[#5c4f3a]">Charms</span>
-                    </div>
-                    <div className="space-y-3 mt-3">
-                      {byjCharms.map((charm, idx) => (
-                        <div key={idx} className="flex justify-between items-start gap-4">
-                          <div className="flex gap-3 items-center flex-1">
-                            <div className="w-10 h-10 bg-white border border-[#e0d0ba]/50 rounded-sm overflow-hidden shrink-0 p-1">
-                              <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
-                            </div>
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
-                              {charm.sku && <span className="text-[0.5625rem] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
-                            </div>
-                          </div>
-                          <span className="text-sm font-bold text-[#1c1810] whitespace-nowrap">₹ {((parseFloat(charm.price) * (charm.qty || 1)) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="pt-4 border-t border-[#e0d0ba] flex justify-between items-center">
-                  <span className="text-sm font-medium text-[#5c4f3a]">Subtotal</span>
-                  <span className="text-lg font-bold text-[#1c1810]">₹ {lineAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-col border border-zinc-100 rounded-sm overflow-hidden text-[0.95rem] font-medium text-zinc-800">
-
-              {/* Row 1: Size & Quantity */}
-              <div className="flex border-b border-zinc-100 min-h-[44px]">
-                {displaySize ? (
-                  <div className="w-[160px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
-                    {sizeLabel}
-                  </div>
-                ) : (
-                  <div className="w-[160px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
-                    Quantity
-                  </div>
-                )}
-
-                <div className="flex-1 bg-white px-4 py-2 flex items-center flex-wrap gap-x-6 gap-y-2 font-figtree font-medium text-[0.95rem] leading-none tracking-[0px] text-[#000]">
-                  {displaySize && (
-                    <div className="flex items-center min-w-[60px]">
-                      {canEditSize ? (
-                        <Select
-                          value={String(item.size)}
-                          onValueChange={(val) => handleUpdate("size", val)}
-                          disabled={updating}
-                        >
-                          <SelectTrigger className="h-6 w-auto border-none bg-transparent p-0 font-medium text-zinc-800 shadow-none focus:ring-0 gap-2">
-                            <SelectValue placeholder={formatSizeLabel(item.size)} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sizeOptions.map((variant) => (
-                              <SelectItem key={variant.variantId || variant.size} value={String(variant.size)}>
-                                {formatSizeLabel(variant.size)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] text-[#000]">{displaySize}</span>
-                      )}
-                    </div>
-                  )}
-
-                  {displaySize && <div className="h-4 w-px bg-zinc-200 hidden sm:block" />}
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-zinc-500 font-normal font-figtree text-[0.95rem] leading-none tracking-[0px]">Quantity</span>
-                    {canEditQuantity ? (
-                      <Select
-                        value={String(item.quantity)}
-                        onValueChange={(val) => handleUpdate("quantity", val)}
-                        disabled={updating}
-                      >
-                        <SelectTrigger className="h-6 w-auto border-none bg-transparent p-0 font-medium text-zinc-800 shadow-none focus:ring-0 gap-2">
-                          <SelectValue placeholder={item.quantity} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[...Array(10)].map((_, i) => (
-                            <SelectItem key={i + 1} value={String(i + 1)}>
-                              {i + 1}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                        <span className="font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] text-[#000]">{item.quantity}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Row 2: Metal (+ net weight, when the variant carries one) */}
-              <div className="flex border-b border-zinc-100 min-h-[44px]">
-                <div className="w-[160px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
-                  {item.goldWeight ? "Metal / Net Wt" : "Metal"}
-                </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.95rem] leading-none tracking-[0px] text-[#000]">
-                  {formatMetal(item.karat, item.color)}
-                  {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
-                </div>
-              </div>
-
-              {/* Row 3: Stone (If diamondTotalPcs > 0) */}
-              {/* {item.diamondTotalPcs > 0 && (
-                <div className="flex border-b border-zinc-100 min-h-[44px]">
-                  <div className="w-[120px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.75rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
-                    Stone
-                  </div>
-                  <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-[#000]">
-                    {item.diamondTotalPcs} Diamond{item.diamondCarat ? `, ${item.diamondCarat} Carat` : ''}{item.diamondQuality ? `, ${item.diamondQuality}` : ''}
-                  </div>
-                </div>
-              )} */}
-
-              {/* Row 4: Status */}
-              <div className="flex min-h-[44px]">
-                <div className="w-[160px] px-4 py-2 text-[#000] font-medium font-figtree text-[0.95rem] leading-none tracking-[0px] flex items-center border-r border-zinc-100 shrink-0">
-                  Status
-                </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center font-figtree font-medium text-[0.95rem] leading-none tracking-[0px] text-[#000]">
-                  <span className={`font-medium uppercase ${statusClass}`}>{statusLabel}</span>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        <div className={`flex items-center gap-2 px-4 py-3 md:px-6 ${dispatchBgClass}`}>
-          <Truck size={16} className={`shrink-0 ${statusClass}`} />
-          <span className={`font-figtree font-medium text-[1rem] leading-none tracking-[0px] ${statusClass}`}>
-            {dispatchMessage}
-          </span>
-        </div>
-      </div>
-
-      {/* MOBILE DESIGN (< 1024px) */}
-      <div className="lg:hidden mb-4 pb-4 border-b border-[#E7E7E7] overflow-hidden rounded-card bg-white">
+      {/* SINGLE RESPONSIVE DESIGN */}
+      <div className="mb-4 pb-4 lg:mb-6 lg:pb-6 border-b border-[#E7E7E7] overflow-hidden rounded-card bg-white">
         <div className="relative">
           {updating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
@@ -645,69 +406,71 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
           )}
 
-          <div className="flex gap-4 items-center">
+          <button 
+            onClick={() => setShowRemoveModal(true)}
+            className="absolute top-0 right-0 z-10 shrink-0 flex items-center justify-center w-[22px] h-[22px] lg:w-[28px] lg:h-[28px] rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
+          >
+            <X className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+          </button>
+
+          <div className="flex gap-4 lg:gap-6 items-center">
             {/* Image Container */}
-            <div className="relative aspect-square w-32 shrink-0 overflow-hidden rounded-card bg-[#FAFAFA] border-0">
+            <div className="relative aspect-square w-32 lg:w-[140px] shrink-0 overflow-hidden rounded-card bg-[#FAFAFA] border-0">
               <Link prefetch={false} href={productLink} className="block h-full w-full p-2">
                 <Image
                   loader={isShopifyImage ? shopifyLoader : undefined}
                   src={displayImage || "/images/product/1.jpg"}
                   alt={item.title}
-                  width={150}
-                  height={150}
+                  width={200}
+                  height={200}
                   className="h-full w-full object-contain mix-blend-multiply"
                 />
               </Link>
-              <span className={`absolute top-1.5 left-1.5 z-10 rounded bg-white border border-zinc-100 px-1.5 py-0.5 font-figtree font-bold text-[0.5rem] leading-none tracking-[0px] uppercase ${statusClass}`}>
+              <span className={`absolute top-1.5 left-1.5 lg:top-2 lg:left-2 z-10 rounded bg-white border-0 lg:border-0 px-1.5 py-0.5 lg:px-2 lg:py-1 font-figtree font-bold text-[0.5rem] lg:text-[0.7rem] leading-none tracking-[0px] lg:tracking-[0.4px] uppercase ${statusClass}`}>
                 {statusLabel}
               </span>
-              {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10" />}
+              {!isFreeSilverPendant && !isBYJ && <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10" />}
             </div>
 
             {/* Info Content */}
-            <div className="flex-1 space-y-1 min-w-0">
-              <div className="flex items-center justify-between gap-2 mb-[8px]">
-                <h3 className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none tracking-[0px] text-black truncate flex-1">
-                  {displayTitle}
-                </h3>
-                <button 
-                  onClick={() => setShowRemoveModal(true)}
-                  className="shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
-                >
-                  <X size={14} />
-                </button>
+            <div className="flex-1 space-y-1 lg:space-y-1.5 min-w-0 lg:pt-1">
+              <div className="flex items-center gap-2 lg:gap-4 mb-[8px] lg:mb-[6px]">
+                <Link prefetch={false} href={productLink} className="block flex-1 min-w-0 pr-8 lg:pr-10" title={item.title}>
+                  <h3 className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none tracking-[0px] text-black truncate hover:text-primary transition-colors lg:mb-2">
+                    {displayTitle}
+                  </h3>
+                </Link>
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
-                <span className="font-figtree font-semibold text-[0.875rem] leading-none tracking-[0px] text-zinc-900">
+              <div className="flex items-center gap-1.5 lg:gap-2.5 flex-wrap mb-2.5 lg:mb-3.5">
+                <span className="font-figtree font-semibold text-[0.875rem] lg:text-[1.2rem] leading-none tracking-[0px] text-zinc-900">
                   ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </span>
                 {hasDiscount && (
-                  <>
-                    <span className="font-figtree font-normal text-[0.875rem] leading-none tracking-[0px] text-zinc-400 line-through">
-                      ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                    </span>
-                  </>
+                  <span className="font-figtree font-normal text-[0.875rem] lg:text-[0.9375rem] leading-none tracking-[0px] text-zinc-400 line-through">
+                    ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  </span>
                 )}
               </div>
-              <p className="font-figtree font-medium text-[0.625rem] leading-none tracking-[0px] text-[#909090] uppercase my-3">
+              <p className="font-figtree font-medium text-[0.625rem] lg:text-[0.8125rem] leading-none tracking-[0px] text-[#909090] uppercase my-3 lg:my-3.5">
                 SKU: {currentVariant?.sku || item.sku || "N/A"}
               </p>
               {item.engraving && (
-                <p className="text-[0.625rem] font-bold uppercase tracking-wider text-primary">
+                <p className="font-figtree font-medium text-[0.625rem] lg:text-[0.8125rem] uppercase tracking-wider lg:tracking-[0px] leading-none text-primary mt-1 lg:mb-2">
                   Engraving: &quot;{item.engraving}&quot;
                 </p>
               )}
-              <p className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-black capitalize mb-1.5">
-                Metal: <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-black">
+              <p className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-black capitalize mb-1.5 lg:mb-2.5">
+                Metal: <span className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-black">
                   {formatMetal(item.karat, item.color)}
+                  {item.goldWeight ? <span className="hidden lg:inline">, {item.goldWeight} gram</span> : ''}
                 </span>
               </p>
 
               {/* Selectors */}
-              <div className="flex items-center gap-3 pt-1 flex-wrap">
+              <div className="flex items-center gap-3 lg:gap-5 pt-1 lg:pt-2 flex-wrap">
                 {displaySize && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800">
+                  <div className="flex items-center gap-0.5 lg:gap-1.5">
+                    <span className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-800">
                       Size:
                     </span>
                     {canEditSize ? (
@@ -716,7 +479,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         onValueChange={(val) => handleUpdate("size", val)}
                         disabled={updating}
                       >
-                        <SelectTrigger className="h-auto border-none bg-transparent p-0 font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
+                        <SelectTrigger className="!h-auto border-none bg-transparent p-0 font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 lg:gap-1 min-w-0 w-auto">
                           <SelectValue placeholder={formatSizeLabel(item.size)} />
                         </SelectTrigger>
                         <SelectContent>
@@ -728,20 +491,22 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800">{displaySize}</span>
+                      <span className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-800">{displaySize}</span>
                     )}
                   </div>
                 )}
 
-                <div className="flex items-center gap-0.5">
-                  <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800">Quantity:</span>
+                {displaySize && <div className="h-3 lg:h-3.5 w-px bg-zinc-200 lg:bg-zinc-300" />}
+
+                <div className="flex items-center gap-0.5 lg:gap-1.5">
+                  <span className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-800">Quantity:</span>
                   {canEditQuantity ? (
                     <Select
                       value={String(item.quantity)}
                       onValueChange={(val) => handleUpdate("quantity", val)}
                       disabled={updating}
                     >
-                      <SelectTrigger className="h-auto border-none bg-transparent p-0 font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 min-w-0 w-auto">
+                      <SelectTrigger className="!h-auto border-none bg-transparent p-0 font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 lg:gap-1 min-w-0 w-auto">
                         <SelectValue placeholder={item.quantity} />
                       </SelectTrigger>
                       <SelectContent>
@@ -753,7 +518,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] text-zinc-800">{item.quantity}</span>
+                    <span className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-800">{item.quantity}</span>
                   )}
                 </div>
               </div>
@@ -761,7 +526,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               {isBYJ && (
                 <button 
                   onClick={() => setShowBreakdown(!showBreakdown)}
-                  className="flex items-center gap-1 text-[0.6875rem] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-2"
+                  className="flex items-center gap-1 text-[0.6875rem] lg:text-[0.75rem] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-2 lg:mt-4"
                 >
                   {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
                   <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
@@ -770,9 +535,9 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
           </div>
 
-          <div className={`mt-3 flex items-center gap-2 rounded-[4px] px-3 py-2 ${dispatchBgClass}`}>
-            <Truck size={13} className={`shrink-0 ${statusClass}`} />
-            <span className={`font-figtree font-medium text-[0.75rem] leading-none tracking-[0px] ${statusClass}`}>
+          <div className={`mt-3 lg:mt-5 flex items-center gap-2 lg:gap-2.5 rounded-[4px] px-3 py-2 lg:px-3.5 lg:py-2.5 ${dispatchBgClass}`}>
+            <Truck className={`shrink-0 w-[13px] h-[13px] lg:w-[16px] lg:h-[16px] ${statusClass}`} />
+            <span className={`font-figtree font-medium text-[0.75rem] lg:text-[1rem] leading-none tracking-[0px] ${statusClass}`}>
               {dispatchMessage}
             </span>
           </div>

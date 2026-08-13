@@ -829,7 +829,7 @@ export default function PaymentPage() {
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
 
           {/* Main Content Area (60%) */}
-          <div className="grow lg:basis-[60%] lg:shrink-0 p-0 lg:py-10 lg:px-4 lg:pr-12 space-y-10 bg-white min-w-0">
+          <div className="grow lg:basis-[60%] lg:shrink-0 p-0 lg:py-10 lg:px-4 lg:pl-[30px] lg:pr-[20px] space-y-10 bg-white min-w-0">
 
             {/* MOBILE ONLY ORDER */}
             {!isDesktop && (
