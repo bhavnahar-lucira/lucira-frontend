@@ -107,6 +107,9 @@ export default function PaymentPage() {
   const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(0);
 
+  const { user, accessToken } = useSelector((state) => state.user);
+  const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
+
   // We need eligiblePendantId first
   const diamondTotalForOffer = useMemo(() => {
     return (items || []).reduce((acc, item) => {
@@ -183,9 +186,6 @@ export default function PaymentPage() {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
-
-  const { user, accessToken } = useSelector((state) => state.user);
-  const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
   const { addresses, customer, selectedAddressId, selectedAddress, loadingAddresses } = useCustomerAddresses({ accessToken, user });
   const { selectedBillingAddress } = useBillingAddress({
