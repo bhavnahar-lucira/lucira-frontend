@@ -59,6 +59,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   const otpRefs = [useRef(), useRef(), useRef(), useRef()];
   const mobileRef = useRef();
@@ -71,6 +72,21 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
     }
     return () => clearTimeout(timerRef.current);
   }, [timer]);
+
+  // Detect iOS Safari keyboard open for bottom padding
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const handleResize = () => {
+      // If visual viewport is significantly smaller than innerHeight, keyboard is likely open
+      setIsKeyboardOpen(window.visualViewport.height < window.innerHeight - 100);
+    };
+    window.visualViewport.addEventListener('resize', handleResize);
+    window.visualViewport.addEventListener('scroll', handleResize);
+    return () => {
+      window.visualViewport.removeEventListener('resize', handleResize);
+      window.visualViewport.removeEventListener('scroll', handleResize);
+    };
+  }, []);
 
   // Focus management
   useEffect(() => {
@@ -251,7 +267,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
   };
 
   return (
-    <div className="w-full flex flex-col pt-0 md:pt-8 md:p-8 bg-white h-auto">
+    <div className={`w-full flex flex-col pt-0 md:pt-8 md:p-8 bg-white h-auto transition-all duration-300 ${isKeyboardOpen ? 'pb-[80px] md:pb-0' : 'pb-0'}`}>
 
       {step === "login" && (
         <div className="flex flex-col space-y-4">
