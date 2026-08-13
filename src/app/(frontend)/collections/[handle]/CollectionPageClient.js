@@ -76,6 +76,27 @@ const CUSTOM_COLLECTION_BANNERS = {
 const PLAIN_GOLD_HANDLES = ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"];
 const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_25_jpg.jpg?v=1786021278";
 
+// Per-collection hero images for the default banner layout, keyed by the handle in
+// /collections/<handle>. Add a handle here to swap only the image — the pink split
+// layout, title and trust badges stay. Use CUSTOM_COLLECTION_BANNERS above instead
+// when the collection needs a full-width banner that replaces the whole layout.
+const BESTSELLER_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bestseller_collection.jpg?v=1786605632";
+const COLLECTION_BANNER_IMAGES = {
+  "bestseller": BESTSELLER_BANNER_IMAGE,
+  // The header, footer and mega menu all link to the plural handle, so both are mapped.
+  "bestsellers": BESTSELLER_BANNER_IMAGE,
+  "earrings": "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/earrings_collection.jpg?v=1786605631",
+};
+
+const DEFAULT_COLLECTION_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073";
+
+// Every banner creative is 640x223, so these swap in without changing the layout.
+function getCollectionBannerImage(handle) {
+  if (COLLECTION_BANNER_IMAGES[handle]) return COLLECTION_BANNER_IMAGES[handle];
+  if (PLAIN_GOLD_HANDLES.includes(handle)) return PLAIN_GOLD_BANNER_IMAGE;
+  return DEFAULT_COLLECTION_BANNER_IMAGE;
+}
+
 // In-page promo banners injected into the product grid. They alternate in order
 // (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
 // then every 10 products after that.
@@ -1158,7 +1179,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </Breadcrumb>
           </div>
           <div className="w-full relative">
-            <Image src={PLAIN_GOLD_HANDLES.includes(handle) ? PLAIN_GOLD_BANNER_IMAGE : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073"} alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
+            <Image src={getCollectionBannerImage(handle)} alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
           </div>
         </div>
       ) : (
@@ -1175,7 +1196,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
             <div className="flex-1 w-full h-auto">
               <Image
-                src={PLAIN_GOLD_HANDLES.includes(handle) ? PLAIN_GOLD_BANNER_IMAGE : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073"}
+                src={getCollectionBannerImage(handle)}
                 alt={displayTitle}
                 width={640}
                 height={223}
