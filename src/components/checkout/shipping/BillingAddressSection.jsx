@@ -58,7 +58,7 @@ export function BillingAddressSection({
   // Seed the "nothing to pick yet" / new-address form once, without
   // clobbering anything the customer has already started typing.
   useEffect(() => {
-    if (addresses.length <= 1 || billingView === "form") {
+    if (addresses.length === 0 || billingView === "form") {
       setCreateForm((prev) => (prev.firstName || prev.address1 ? prev : normalizeAddressForm({}, customer || {})));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,7 +114,7 @@ export function BillingAddressSection({
       )}
 
       {showBillingContent &&
-        (addresses.length <= 1 ? (
+        (addresses.length === 0 ? (
           <AddressForm
             form={createForm}
             onChange={updateCreateForm}

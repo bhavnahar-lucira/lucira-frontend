@@ -535,7 +535,7 @@ export default function ShippingPage() {
                     shippingView === "form" ? (
                       <div className="space-y-6">
                         <div className="flex items-center gap-3">
-                          <button type="button" onClick={() => setShippingView("card")} className="text-zinc-500 hover:text-zinc-900">
+                          <button type="button" onClick={() => { setShippingView("card"); setDialogMode(""); }} className="text-zinc-500 hover:text-zinc-900">
                             <ChevronLeft className="size-5" />
                           </button>
                           <h3 className="font-figtree text-[0.9375rem] lg:text-[1rem] font-medium text-black">{dialogMode === "edit" ? "Edit Address" : "Shipping Address"}</h3>
@@ -550,14 +550,13 @@ export default function ShippingPage() {
                           submitLabel={dialogMode === "edit" ? "Save Changes" : "Save Address"}
                           onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
                           saving={dialogSaving}
-                          disablePhone={true}
                           hideEmail={addresses.length > 0}
                         />
                       </div>
                     ) : shippingView === "list" ? (
                       <div className="space-y-6">
                         <div className="flex items-center gap-3">
-                          <button type="button" onClick={() => setShippingView("card")} className="text-zinc-500 hover:text-zinc-900">
+                          <button type="button" onClick={() => dialogMode ? setDialogMode("") : setShippingView("card")} className="text-zinc-500 hover:text-zinc-900">
                             <ChevronLeft className="size-5" />
                           </button>
                           <h3 className="font-figtree text-[0.9375rem] lg:text-[1.0625rem] font-bold text-black">Select Address</h3>
@@ -580,7 +579,6 @@ export default function ShippingPage() {
                                   setDialogMode(""); // Close inline form on success
                                 }}
                                 saving={dialogSaving}
-                                disablePhone={true}
                                 hideEmail={addresses.length > 0}
                               >
                                 <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
@@ -606,7 +604,6 @@ export default function ShippingPage() {
                                   setDialogMode(""); // Close inline form on success
                                 }}
                                 saving={dialogSaving}
-                                disablePhone={true}
                                 hideEmail={addresses.length > 0}
                               >
                                 <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
@@ -689,7 +686,6 @@ export default function ShippingPage() {
                         submitLabel="Save Address"
                         onSubmit={() => handleCreateAddress(false)}
                         saving={inlineSaving}
-                        disablePhone={true}
                       />
                     </div>
                   )}
@@ -735,7 +731,7 @@ export default function ShippingPage() {
               )}
 
               <div className="hidden lg:flex flex-col md:flex-row items-center justify-between gap-6 pt-10 px-2">
-                <Link prefetch={false} href="/checkout/cart" className="flex items-center gap-1.5 text-sm font-semibold text-accent hover:opacity-80 transition-opacity">
+                <Link prefetch={false} href="/checkout/cart" className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
                   <ChevronLeft className="size-4" />
                   Return to cart
                 </Link>

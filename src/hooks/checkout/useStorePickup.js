@@ -269,13 +269,15 @@ export function useStorePickup({ selectedShippingZip } = {}) {
   }, [locationPermission, dbStores.length]);
 
   const openStoreDialog = () => {
-    setTempSelectedStoreId(selectedStoreId);
+    setTempSelectedStoreId(selectedStoreId || (sortedStores.length > 0 ? sortedStores[0].id : ""));
     setShowStoreDialog(true);
   };
 
   const saveStoreSelection = () => {
-    setSelectedStoreId(tempSelectedStoreId);
-    setHasResolvedStore(true);
+    if (tempSelectedStoreId) {
+      setSelectedStoreId(tempSelectedStoreId);
+      setHasResolvedStore(true);
+    }
     setShowStoreDialog(false);
   };
 

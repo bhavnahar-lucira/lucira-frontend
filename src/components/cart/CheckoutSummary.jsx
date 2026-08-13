@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
@@ -287,7 +286,7 @@ export default function CheckoutSummary({
 
 
   return (
-    <div className={`space-y-6 px-4 ${className}`}>
+    <div className={`space-y-6 ${className}`}>
       {showItems && (
         <div className="space-y-4">
           <h2 className="text-[0.8125rem] font-bold text-zinc-800 uppercase tracking-wide">ORDER SUMMARY</h2>
@@ -387,38 +386,40 @@ export default function CheckoutSummary({
             <span>Subtotal</span>
             <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
-          {totalSavings > 0 && !compactBreakdown && (
-            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>Saving</span>
-              <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-            </div>
-          )}
-          {appliedCoupon ? (
-            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span className="text-[#000000]">
-                {compactBreakdown ? "Cart Discount" : "Coupon Applied"}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                {!compactBreakdown && (
-                  <button
-                    onClick={removeCoupon}
-                    className="text-[0.625rem] font-bold text-red-500 hover:underline uppercase tracking-tighter"
-                  >
-                    (Remove)
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : (
-            !compactBreakdown && (
+          {isPaymentPage ? (
+            (totalSavings > 0 || Boolean(appliedCoupon)) && (
               <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-                <span>Coupon Discount</span>
-                <Link href="/checkout/cart" className="font-semibold text-[#5A413F] hover:underline">
-                  Apply Coupon
-                </Link>
+                <span>Cart Discount</span>
+                <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {(totalSavings + couponDiscountAmount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
               </div>
             )
+          ) : (
+            <>
+              {totalSavings > 0 && !compactBreakdown && (
+                <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
+                  <span>Saving</span>
+                  <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                </div>
+              )}
+              {Boolean(appliedCoupon) && (
+                <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
+                  <span className="text-[#000000]">
+                    {compactBreakdown ? "Cart Discount" : "Coupon Applied"}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                    {!compactBreakdown && (
+                      <button
+                        onClick={removeCoupon}
+                        className="text-[0.625rem] font-bold text-red-500 hover:underline uppercase tracking-tighter"
+                      >
+                        (Remove)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           {goldCoinItem && (
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
@@ -460,8 +461,8 @@ export default function CheckoutSummary({
           </div>
 
           <div className="border-t border-zinc-200 mt-4 pt-4 flex justify-between items-center">
-            <span className="font-figtree text-[0.9375rem] lg:text-base font-bold text-black uppercase">Grand Total</span>
-            <span className="font-figtree text-[1rem] lg:text-xl font-bold text-black">₹ {grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-figtree text-[0.9375rem] lg:text-base font-semibold text-black uppercase">Grand Total</span>
+            <span className="font-figtree text-[1rem] lg:text-xl font-semibold text-black">₹ {grandTotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
 
           {!compactBreakdown && (totalSavings > 0 || couponDiscountAmount > 0) && (
@@ -580,116 +581,54 @@ export default function CheckoutSummary({
       )}
 
       {shouldShowPointsSection && (
-        mobilePaymentCoinsTheme ? (
-          <div className="bg-[#F4E9DF] p-4 rounded-[8px]">
-            <div className="flex justify-between items-center mb-5">
-              <div>
-                <h3 className="text-black font-figtree font-medium text-[15px]">
-                  {pointsData?.points_label || "Claimable Lucira Loyalty Coins"}
-                </h3>
-                <p className="text-black/70 font-figtree text-[13px] mt-0.5">1 Coin = 1 Rupee</p>
-              </div>
-              <div className="bg-white px-3 py-1.5 rounded-[6px] flex items-center gap-2 border border-white shrink-0">
-                <div className="w-5 h-5 rounded-full bg-[#EBC850] flex items-center justify-center border border-[#D5A720]">
-                  <span className="text-[#3D2B28] font-serif text-[10px] italic">L</span>
-                </div>
-                <span className="font-figtree font-medium text-[16px] text-[#5A413F]">
-                  {pointsData?.points_balance || 0}
-                </span>
-              </div>
+        <div className="p-4 rounded-[8px]" style={{ background: 'linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)' }}>
+          <div className="flex justify-between items-center mb-5">
+            <div>
+              <h3 className="font-figtree font-medium text-[14px] leading-[1.3] tracking-normal align-middle mb-[7px] text-black">
+                {pointsData?.points_label || "Lucira Coins Balance"}
+              </h3>
+              <p className="font-figtree font-light text-[12px] leading-[1.3] tracking-normal align-middle text-black">1 Coin = 1 Rupee</p>
             </div>
-            {(() => {
-              if (loadingPoints) {
-                return (
-                  <div className="flex justify-center py-3">
-                    <Loader2 className="animate-spin text-[#5A413F]" size={20} />
-                  </div>
-                );
-              }
-              if (nectorPoints) {
-                return (
-                  <button
-                    onClick={handleRemovePoints}
-                    className="w-full py-3.5 bg-white border border-[#EBE1D7] hover:bg-zinc-50 text-[#5A413F] rounded-[6px] font-figtree font-medium text-[15px] transition-colors disabled:opacity-50"
-                  >
-                    Remove Coins
-                  </button>
-                );
-              }
+            <div className="bg-white px-3 py-1.5 rounded-[6px] flex items-center gap-2 border border-white shrink-0">
+              <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-coin.png?v=1786602463" width="20" height="20" alt="Lucira Coin" className="w-5 h-5 shrink-0" />
+              <span className="font-figtree font-medium text-[16px] text-[#5A413F]">
+                {pointsData?.points_balance || 0}
+              </span>
+            </div>
+          </div>
+          {(() => {
+            if (loadingPoints) {
+              return (
+                <div className="flex justify-center py-3">
+                  <Loader2 className="animate-spin text-[#5A413F]" size={20} />
+                </div>
+              );
+            }
+            if (nectorPoints) {
               return (
                 <button
-                  onClick={handleApplyPoints}
-                  disabled={pointsData?.points_balance === 0}
-                  className="w-full bg-[#5A413F] text-white py-3 rounded-[6px] font-figtree font-medium text-[0.9375rem] hover:bg-[#4A312F] transition-colors disabled:opacity-50"
+                  onClick={handleRemovePoints}
+                  className="w-full h-[46px] flex items-center justify-center bg-white border border-[#EBE1D7] hover:bg-zinc-50 text-[#5A413F] rounded-[6px] font-figtree font-medium text-[15px] transition-colors disabled:opacity-50"
                 >
-                  Apply Coins
+                  Remove Coins
                 </button>
               );
-            })()}
-          </div>
-        ) : (
-          <div className="bg-[#FAF6F3] p-4 rounded-xl border border-[#E8DCCF] space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Coins size={18} className="text-[#B4936B]" />
-                <span className="text-sm font-bold text-[#443360]">
-                  {loadingPoints ? "Checking balance..." : (pointsData?.points_label || "Lucira Coins Balance")}
-                </span>
-              </div>
-              {!loadingPoints && pointsData && (
-                <span className="text-sm font-bold text-[#B4936B]">{pointsData.points_balance}</span>
-              )}
-            </div>
-            {(() => {
-              if (loadingPoints) {
-                return (
-                  <div className="flex justify-center py-2">
-                    <Loader2 className="animate-spin text-[#B4936B]" size={20} />
-                  </div>
-                );
-              }
-              if (nectorPoints) {
-                return (
-                  <div className="flex items-center justify-between bg-white/80 p-3 rounded-lg border border-[#B4936B]/20">
-                    <div className="space-y-0.5">
-                      <span className="text-sm font-bold text-[#189351]">Applied: -₹{nectorPoints.fiat_value.toLocaleString('en-IN')}</span>
-                      <p className="text-[0.6875rem] text-zinc-500 font-medium">Redeemed {nectorPoints.coin_value} coins</p>
-                    </div>
-                    <button
-                      onClick={handleRemovePoints}
-                      className="text-[0.6875rem] font-bold text-red-600 hover:text-red-700 uppercase tracking-wider transition-colors"
-                    >
-                      REMOVE
-                    </button>
-                  </div>
-                );
-              }
-              if (hasDiamondJewellery && pointsData?.promotions?.[0]) {
-                return (
-                  <div className="space-y-3">
-                    <p className="text-[0.6875rem] text-zinc-500 leading-tight italic">Apply {pointsData.promotions[0].title} for {pointsData.promotions[0].coin_value} coins?</p>
-                    <button onClick={handleApplyPoints} className="w-full bg-[#B4936B] hover:bg-[#A3825A] text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Apply Points</button>
-                  </div>
-                );
-              }
-              if (!hasDiamondJewellery && pointsData) {
-                return (
-                  <p className="text-[0.625rem] text-zinc-400 text-center italic leading-tight">Loyalty points can only be applied to Diamond Jewellery.</p>
-                );
-              }
-              if (pointsData && (!pointsData.promotions || pointsData.promotions.length === 0)) {
-                return (
-                  <p className="text-[0.625rem] text-zinc-400 text-center italic">Not enough coins to redeem for this order.</p>
-                );
-              }
-              return null;
-            })()}
-          </div>
-        )
+            }
+            return (
+              <button
+                onClick={handleApplyPoints}
+                disabled={pointsData?.points_balance === 0 || !hasDiamondJewellery}
+                className="w-full h-[46px] flex items-center justify-center border border-transparent bg-[#5A413F] text-white rounded-[6px] font-figtree font-medium text-[15px] hover:bg-[#4A312F] transition-colors disabled:opacity-50"
+              >
+                {hasDiamondJewellery ? "Apply Coins" : "Valid on Diamond Jewelry"}
+              </button>
+            );
+          })()}
+        </div>
       )}
 
       {children}
-      {showContact && <CartContact productName={firstProductName} />}
+      {/* Contact Section removed */}
     </div>
   );
 }

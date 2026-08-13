@@ -30,7 +30,7 @@ export default function CheckoutHeader() {
               <Image
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
                 alt="Lucira"
-                width={120}
+                width={95}
                 height={50}
                 priority
               />
@@ -43,35 +43,37 @@ export default function CheckoutHeader() {
               {steps.map((step, index) => {
                 const isActive = index === currentStepIndex;
                 const isCompleted = index < currentStepIndex;
+                const isDone = isActive || isCompleted;
 
                 return (
-                  <div key={step.name} className="flex-1 flex flex-col items-center">
-                    {/* Step Label */}
-                    <span className={`text-[11px] font-bold uppercase tracking-widest mb-2 font-figtree transition-colors duration-300 ${isActive ? "text-primary" : "text-zinc-400"
-                      }`}>
-                      {step.name}
-                    </span>
-
-                    {/* Circle & Line Container */}
-                    <div className="relative flex items-center justify-center w-full">
-                      {/* Connector Line */}
-                      {index < steps.length - 1 && (
-                        <div className="absolute left-[50%] w-full h-px bg-zinc-200">
-                          <div
-                            className="h-full bg-green-600 transition-all duration-500 ease-in-out"
-                            style={{ width: isCompleted ? '100%' : '0%' }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Step Circle */}
-                      <div className={`w-4.5 h-4.5 rounded-full border-2 z-10 bg-white transition-colors duration-300 flex items-center justify-center ${isActive || isCompleted ? "border-green-600" : "border-zinc-300"
-                        }`}>
-                        {(isActive || isCompleted) && (
-                          <div className="w-2 h-2 bg-green-600 rounded-full" />
-                        )}
+                  <div key={step.name} className="flex items-center flex-1 last:flex-none">
+                    {/* Step (circle + label) */}
+                    <div className="flex flex-col items-center gap-2 flex-none">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors duration-300 ${isDone
+                          ? "bg-[#5A413F] shadow-[0_0_0_3px_rgba(90,65,63,0.12)]"
+                          : "border border-zinc-300 bg-white"
+                          }`}
+                      >
+                        <span
+                          className={`text-xs font-figtree ${isDone ? "text-white font-semibold" : "text-zinc-400 font-medium"
+                            }`}
+                        >
+                          {index + 1}
+                        </span>
                       </div>
+                      <span
+                        className={`text-[11px] tracking-[0.08em] font-figtree whitespace-nowrap ${isDone ? "text-[#5A413F] font-semibold" : "text-zinc-400 font-medium"
+                          }`}
+                      >
+                        {step.name.toUpperCase()}
+                      </span>
                     </div>
+
+                    {/* Connector Line */}
+                    {index < steps.length - 1 && (
+                      <div className={`flex-1 h-px mx-1.5 -mt-5.5 transition-colors duration-300 ${isCompleted ? "bg-[#5A413F]" : "bg-zinc-300"}`} />
+                    )}
                   </div>
                 );
               })}

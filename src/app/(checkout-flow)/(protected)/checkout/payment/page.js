@@ -124,7 +124,13 @@ export default function PaymentPage() {
   const [priceProtectionSeconds, setPriceProtectionSeconds] = useState(600);
   useEffect(() => {
     const interval = setInterval(() => {
-      setPriceProtectionSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+      setPriceProtectionSeconds((prev) => {
+        if (prev <= 1) {
+          window.location.reload();
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -820,10 +826,10 @@ export default function PaymentPage() {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
-                      <p className="font-figtree font-medium text-[15px] text-black truncate mb-0.5">
+                      <p className="font-figtree font-medium text-[14px] leading-none tracking-normal align-middle mb-[9px] text-black truncate">
                         Delivering to {customer?.name || user?.name || "Customer"}
                       </p>
-                      <p className="font-figtree text-[13px] text-[#222222]/70 truncate">
+                      <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
                         {isPickup ? checkoutSelection?.selectedStore?.address : formatAddressPreview(selectedAddress)}
                       </p>
                     </div>
@@ -839,7 +845,7 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                <div className="pt-2 lg:px-0">
+                <div className="lg:px-0">
                   <CheckoutSummary
                     showItems={false}
                     showBreakdown={false}
@@ -854,7 +860,7 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                <div ref={summaryRef} className="scroll-mt-16 bg-white pt-2 px-4 lg:px-0">
+                <div ref={summaryRef} className="scroll-mt-16 bg-white lg:px-0">
                   <CheckoutSummary
                     showItems={false}
                     showPoints={false}
@@ -870,7 +876,7 @@ export default function PaymentPage() {
                 {/* Payment options — only shown when more than one gateway is available */}
                 {paymentGateways.length > 1 && (
                   <div className="space-y-4 pt-2 px-4 pb-[150px] lg:pb-4">
-                    <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.875rem]">PAYMENT OPTIONS</h2>
+                    <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.9375rem] mb-4 lg:hidden">PAYMENT OPTIONS</h2>
                     <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
                       {paymentGateways.map((gateway) => (
                         <div key={gateway.id} className="relative">
@@ -880,14 +886,20 @@ export default function PaymentPage() {
                           >
                             <div className="flex justify-between items-center">
                               <div>
-                                <h4 className="font-figtree font-medium text-black text-[0.875rem]">
+                                <h4 className="font-figtree font-medium text-black text-[0.9rem] mb-[8px]">
                                   {gateway.id === "razorpay" ? `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
                                 </h4>
-                                <p className="font-figtree text-[0.75rem] text-black/70 mt-1">
+                                <p className="font-figtree text-[0.8rem] text-black/70 mt-1">
                                   {gateway.id === "razorpay" ? "Complete your Purchase with Ease" : `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
                                 </p>
                               </div>
-                              <RadioGroupItem value={gateway.id} id={`m-opt-${gateway.id}`} className="border-[#3D2B28] text-[#5A413F]" />
+                              <div className="relative flex items-center justify-center shrink-0">
+                                <RadioGroupItem value={gateway.id} id={`m-opt-${gateway.id}`} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M10.0003 18.3337C14.6027 18.3337 18.3337 14.6027 18.3337 10.0003C18.3337 5.39795 14.6027 1.66699 10.0003 1.66699C5.39795 1.66699 1.66699 5.39795 1.66699 10.0003C1.66699 14.6027 5.39795 18.3337 10.0003 18.3337Z" stroke={selectedPaymentGateway === gateway.id ? "#5A413F" : "#A1A1AA"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  {selectedPaymentGateway === gateway.id && <circle cx="10" cy="10" r="5" fill="#5A413F"/>}
+                                </svg>
+                              </div>
                             </div>
                           </Label>
                         </div>
@@ -900,107 +912,69 @@ export default function PaymentPage() {
 
             {/* DESKTOP ONLY ORDER */}
             {isDesktop && (
-              <div className="space-y-10">
-                <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
-                  <div className="p-4 grid grid-cols-[140px_1fr] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">Contact</span>
-                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || ""}</span>
-                  </div>
-                  <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Pickup location" : "Ship to"}</span>
-                    <div className="text-zinc-900 font-medium">
-                      {isPickup ? (
-                        <div className="space-y-1">
-                          <p className="font-bold">{checkoutSelection?.selectedStore?.code || checkoutSelection?.selectedStore?.name}</p>
-                          <p className="line-clamp-2 text-zinc-600 font-normal">{checkoutSelection?.selectedStore?.address}</p>
-                        </div>
-                      ) : selectedAddress ? (
-                        <div className="space-y-1">
-                          <p className="line-clamp-2">{formatAddressPreview(selectedAddress)}</p>
-                          {selectedAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedAddress.gstin}</p>}
-                        </div>
-                      ) : (
-                        <p>No shipping address selected</p>
-                      )}
+              <div className="space-y-6">
+                <div className="border border-[#EBE1D7] rounded-[8px] overflow-hidden">
+                  <div className="flex items-center gap-4 py-4 px-4 bg-white">
+                    <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                     </div>
-                    <Link prefetch={false} href={shipToChangeHref} className="text-black font-semibold text-right underline">Change</Link>
-                  </div>
-                  <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">Bill to</span>
-                    <div className="text-zinc-900 font-medium">
-                      {selectedBillingAddress ? (
-                        <div className="space-y-1">
-                          <p className="line-clamp-2">{formatAddressPreview(selectedBillingAddress)}</p>
-                          {selectedBillingAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedBillingAddress.gstin}</p>}
-                        </div>
-                      ) : (
-                        <p>No billing address selected</p>
-                      )}
+                    <div className="flex-1 min-w-0 pt-1">
+                      <p className="font-figtree font-medium text-[14px] leading-none tracking-normal align-middle mb-[9px] text-black truncate">
+                        Delivering to {customer?.name || user?.name || "Customer"}
+                      </p>
+                      <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
+                        {isPickup ? checkoutSelection?.selectedStore?.address : formatAddressPreview(selectedAddress)}
+                      </p>
                     </div>
-                    <Link prefetch={false} href={shipToChangeHref} className="text-black font-semibold text-right underline">Change</Link>
+                    <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
+                      Change
+                    </Link>
                   </div>
-                  <div className="p-4 grid grid-cols-[140px_1fr] items-center gap-4 text-sm">
-                    <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Method" : "Shipping method"}</span>
-                    <span className="text-zinc-900 font-medium">
-                      {isPickup ? "Pickup" : "Shipping Rate"} · <span className="font-bold">{isPickup || isIndiaShipping ? "FREE" : "Calculated at next step"}</span>
-                    </span>
-                  </div>
+
+                  <PriceProtectionTimer
+                    secondsLeft={priceProtectionSeconds}
+                    onInfoClick={() => setShowPriceProtection(true)}
+                    className="rounded-b-[8px] m-0"
+                  />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-abhaya font-bold text-zinc-900">Payment</h2>
-                    <p className="text-sm font-figtree text-zinc-500">All transactions are secure and encrypted.</p>
-                  </div>
-                  <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway} className="grid gap-0 border border-zinc-200 rounded-lg overflow-hidden bg-white">
-                    {paymentGateways.map((gateway, index) => (
-                      <div key={gateway.id} className={`flex flex-col ${index < paymentGateways.length - 1 ? "border-b border-zinc-100" : ""}`}>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedPaymentGateway(gateway.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setSelectedPaymentGateway(gateway.id);
-                            }
-                          }}
-                          className={`p-5 flex ${gateway.id === "partial_cod" ? "flex-row gap-3" : "flex-col md:flex-row gap-4 md:gap-0"} items-center justify-between transition-all cursor-pointer ${selectedPaymentGateway === gateway.id ? "bg-accent/15" : "bg-white"}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <RadioGroupItem value={gateway.id} id={gateway.id} className="text-[#005BD3] border-zinc-300" />
-                            <Label htmlFor={gateway.id} className="font-medium text-zinc-900 cursor-pointer">{gateway.name}</Label>
-                          </div>
-                          <div className={`flex items-center gap-3 ${gateway.id === "partial_cod" ? "shrink-0" : ""}`}>
-                            <span className="text-sm font-bold text-zinc-900">₹{Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                            {gateway.id === "razorpay" ? (
-                              <div className="flex items-center gap-2">
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/upi.svg" className="h-3 w-auto opacity-70" alt="UPI" width={36} height={12} unoptimized />
-                                </div>
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/visa.svg" className="h-2 w-auto opacity-70" alt="VISA" width={36} height={8} unoptimized />
-                                </div>
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/mastercard.svg" className="h-3 w-auto opacity-70" alt="MASTERCARD" width={36} height={12} unoptimized />
-                                </div>
-                                <span className="text-[10px] text-zinc-400 font-bold">+18</span>
+                {paymentGateways.length > 1 && (
+                  <div className="space-y-4 pt-2">
+                    <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[1.1rem]">PAYMENT OPTIONS</h2>
+                    <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
+                      {paymentGateways.map((gateway) => (
+                        <div key={gateway.id} className="relative m-0">
+                          <Label
+                            htmlFor={`d-opt-${gateway.id}`}
+                            className={`block p-4 rounded-[6px] border transition-colors cursor-pointer ${selectedPaymentGateway === gateway.id ? "border-[#5A413F] bg-[#FAF0E6]/40" : "border-[#EBE1D7]"}`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h4 className="font-figtree font-medium text-black text-[1.1rem] mb-[8px]">
+                                  {gateway.id === "razorpay" ? `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                </h4>
+                                <p className="font-figtree text-[12px] text-black/70 mt-[8px] mb-0">
+                                  {gateway.id === "razorpay" ? "Complete your Purchase with Ease" : `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
+                                </p>
                               </div>
-                            ) : (
-                              <span className="text-xs font-medium text-zinc-500">
-                                COD ₹{partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                              </span>
-                            )}
-                          </div>
+                              <div className="relative flex items-center justify-center shrink-0">
+                                <RadioGroupItem value={gateway.id} id={`d-opt-${gateway.id}`} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M10.0003 18.3337C14.6027 18.3337 18.3337 14.6027 18.3337 10.0003C18.3337 5.39795 14.6027 1.66699 10.0003 1.66699C5.39795 1.66699 1.66699 5.39795 1.66699 10.0003C1.66699 14.6027 5.39795 18.3337 10.0003 18.3337Z" stroke={selectedPaymentGateway === gateway.id ? "#5A413F" : "#A1A1AA"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  {selectedPaymentGateway === gateway.id && <circle cx="10" cy="10" r="5" fill="#5A413F"/>}
+                                </svg>
+                              </div>
+                            </div>
+                          </Label>
                         </div>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between gap-6 pt-4">
-                  <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-2 text-sm font-bold text-accent hover:underline">
-                    <ChevronLeft size={16} />
+                  <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
+                    <ChevronLeft className="size-4" />
                     Return to shipping
                   </Link>
                 </div>
@@ -1015,8 +989,10 @@ export default function PaymentPage() {
               <div className="relative z-10 py-10 px-4 lg:pl-12 lg:bg-transparent bg-[#FAFAFA] min-h-full scroll-mt-16" ref={summaryRef}>
                 <div className="lg:sticky lg:top-0 space-y-6">
                   <CheckoutSummary
+                    showItems={false}
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                    mobilePaymentCoinsTheme={true}
                   >
                     {/* Desktop Button - Moved here to match cart page */}
                     <div className="hidden lg:block">

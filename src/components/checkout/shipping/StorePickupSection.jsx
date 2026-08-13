@@ -154,7 +154,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           </div>
 
 
-          <Button type="button" onClick={findNearestStore} className="w-full h-12 bg-[#5A413F] hover:bg-[#4A312F] text-white text-[0.9375rem] lg:text-[1rem] font-figtree font-medium rounded-md transition-colors">
+          <Button type="button" onClick={findNearestStore} className="w-full h-12 lg:h-[45px] bg-[#5A413F] hover:bg-[#4A312F] text-white text-[0.9375rem] lg:text-[1.1rem] font-figtree font-medium rounded-md transition-colors">
             Find Nearest Store
           </Button>
         </div>
