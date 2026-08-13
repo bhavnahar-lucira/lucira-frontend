@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check } from "lucide-react";
+import { Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useSelector, useDispatch } from "react-redux";
@@ -536,7 +536,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 className="font-figtree font-normal text-[0.75rem] lg:text-[0.95rem] leading-[1.35] text-[#000000]"
                 style={{ color: "rgb(0, 0, 0)", fontWeight: 500 }}
               >
-                You've unlocked a Free Silver Pendant worth ₹{eligiblePendantId === SILVER_PENDANT_VARIANT_ID ? "10,000" : "5,000"}.
+                {!user ? (
+                  `Unlock to claim Free Silver Pendant worth ₹${eligiblePendantId === SILVER_PENDANT_VARIANT_ID ? "10,000" : "5,000"}.`
+                ) : (
+                  `You've unlocked a Free Silver Pendant worth ₹${eligiblePendantId === SILVER_PENDANT_VARIANT_ID ? "10,000" : "5,000"}.`
+                )}
               </p>
             </div>
             {isSilverPendantApplied ? (
@@ -555,12 +559,17 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             ) : (
               <button
                 type="button"
-                onClick={handleToggleSilverPendant}
+                onClick={!user ? () => openLogin() : handleToggleSilverPendant}
                 disabled={isSilverPendantLoading || loading}
                 className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-11 uppercase tracking-wide transition px-4 lg:px-5 font-figtree font-medium bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50 text-[0.75rem] lg:text-[0.8125rem] ml-0 lg:ml-2"
               >
                 {isSilverPendantLoading ? (
                   <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
+                ) : !user ? (
+                  <>
+                    <Lock className="w-3.5 h-3.5 lg:w-4 lg:h-4 hidden lg:block" />
+                    UNLOCK
+                  </>
                 ) : (
                   <>
                     <Gift className="w-3.5 h-3.5 lg:w-4 lg:h-4 hidden lg:block" />
