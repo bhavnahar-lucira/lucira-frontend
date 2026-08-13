@@ -28,6 +28,8 @@ import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
+const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
+const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID;
 
 // The payment page rebuilds the free pendant from this flag rather than from the cart line,
 // so removing the line here has to clear it too or the gift reappears at checkout.
@@ -142,14 +144,14 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   // For BYJ items, the unit price displayed should be the total of style + all charms
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
-  const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48052809498842" || String(item.title).toLowerCase().includes("silver pendant");
+  const isSilverPendant = isPendantVariant(item.variantId) || item.variantId === "48052809498842" || String(item.title).toLowerCase().includes("silver pendant") || String(item.title).toLowerCase().includes("diamond pendant");
   // Narrower than the display check above — only the gift variant should touch the claim flag.
-  const isFreeSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48052809498842";
+  const isFreeSilverPendant = isPendantVariant(item.variantId) || item.variantId === "48052809498842";
   const [fetchedPendantPrice, setFetchedPendantPrice] = useState(0);
 
   useEffect(() => {
     if (isSilverPendant && (!Number(item.comparePrice) && !Number(item.originalPrice))) {
-      apiFetch(`/api/products/pricing?variantId=48052809498842`, { suppressErrorLog: true })
+      apiFetch(`/api/products/pricing?variantId=${item.variantId.split('/').pop()}`, { suppressErrorLog: true })
         .then(data => {
           if (data?.price || data?.compare_price) {
             setFetchedPendantPrice(Number(data.price || data.compare_price));

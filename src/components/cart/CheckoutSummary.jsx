@@ -19,6 +19,8 @@ import { pushPromoClick } from "@/lib/gtm";
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
+const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
+const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID;
 
 export default function CheckoutSummary({
   showItems = true,
@@ -48,7 +50,7 @@ export default function CheckoutSummary({
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
     !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-    item.variantId !== SILVER_PENDANT_VARIANT_ID
+    !isPendantVariant(item.variantId)
   )?.title;
 
   const isPaymentPage = pathname && (pathname === "/checkout/payment" || pathname.includes("/checkout/payment"));
@@ -56,14 +58,9 @@ export default function CheckoutSummary({
   const isCheckoutPage = pathname && pathname.startsWith("/checkout") && pathname !== "/checkout/cart";
 
   // Fetch Pendant Price
-  useEffect(() => {
-    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
-      .then(data => {
-        const p = Number(data?.price || data?.compare_price || 0);
-        if (p > 0) setPendantPrice(p);
-      })
-      .catch(err => console.error("Error fetching pendant price:", err));
-  }, []);
+  // Note: we can't easily know which one is active here initially, so we can fetch whichever is eligible or both.
+  // Actually, we'll fetch the one we're eligible for after calculating diamondTotalForOffer.
+  // Let's do it after we define eligiblePendantId.
 
   // Dispatch Calculation
   const overallDispatchMessage = useMemo(() => {
@@ -87,7 +84,7 @@ export default function CheckoutSummary({
 
       // Exclude Gold Coins, Silver Pendants (paid), Insurance, BYJ
       const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
-      const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
+      const isSilverPendant = isPendantVariant(item.variantId);
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] ||
@@ -107,6 +104,20 @@ export default function CheckoutSummary({
   }, [items]);
 
   const hasDiamondJewellery = diamondTotalForOffer > 0;
+  
+  const isEligibleForPendant = diamondTotalForOffer >= 15000 && !appliedCoupon;
+  const eligiblePendantId = diamondTotalForOffer >= 30000 ? SILVER_PENDANT_VARIANT_ID : (diamondTotalForOffer >= 15000 ? PENDANT_5K_VARIANT_ID : null);
+
+  useEffect(() => {
+    if (eligiblePendantId) {
+      apiFetch(`/api/products/pricing?variantId=${eligiblePendantId.split('/').pop()}`, { suppressErrorLog: true })
+        .then(data => {
+          const p = Number(data?.price || data?.compare_price || 0);
+          if (p > 0) setPendantPrice(p);
+        })
+        .catch(err => console.error("Error fetching pendant price:", err));
+    }
+  }, [eligiblePendantId]);
 
   const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
@@ -119,7 +130,7 @@ export default function CheckoutSummary({
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
+      !(isPendantVariant(item.variantId) && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -133,7 +144,7 @@ export default function CheckoutSummary({
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
+      !(isPendantVariant(item.variantId) && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -244,9 +255,7 @@ export default function CheckoutSummary({
     });
   };
 
-  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
-
-  const hasPendantLine = (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+  const hasPendantLine = (items || []).some(item => isPendantVariant(item.variantId));
 
   // The cart line is the source of truth. The localStorage flag can be set from the PDP
   // offer popup without anything being added to the cart, so clear it once checkout sees
@@ -268,9 +277,9 @@ export default function CheckoutSummary({
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
 
-  if (isPendantActive && !displayItems.some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
+  if (isPendantActive && !displayItems.some(item => item.variantId === eligiblePendantId)) {
     displayItems.push({
-      variantId: SILVER_PENDANT_VARIANT_ID,
+      variantId: eligiblePendantId,
       quantity: 1,
       price: 0,
       comparePrice: pendantPrice,
@@ -302,7 +311,7 @@ export default function CheckoutSummary({
               const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
               const displayPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
               const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
-              const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || String(item.title).toLowerCase().includes("silver pendant");
+              const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver pendant") || String(item.title).toLowerCase().includes("diamond pendant");
               const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || pendantPrice || 0) : Number(item.comparePrice || 0);
 
               return (
@@ -475,7 +484,7 @@ export default function CheckoutSummary({
         </div>
       )}
 
-      {showSilverPendantOffer && isPaymentPage && diamondTotalForOffer >= 30000 && (
+      {showSilverPendantOffer && isPaymentPage && isEligibleForPendant && (
         <div className="bg-[#FDF2F5] rounded-2xl border border-[#F1D1D9] p-4 flex gap-4 transition-all">
           {/* Left Side: Image - Matching Order Summary Style */}
           <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
@@ -493,7 +502,7 @@ export default function CheckoutSummary({
           <div className="flex-1 flex flex-col justify-between py-0.5">
             <div className="space-y-1">
               <h3 className="text-[0.8125rem] font-bold text-[#443360] uppercase tracking-tight">Free Silver Pendant</h3>
-              <p className="text-[0.6875rem] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your free silver pendant now.</p>
+              <p className="text-[0.6875rem] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your Free Silver Pendant now.</p>
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-2">
@@ -514,8 +523,8 @@ export default function CheckoutSummary({
                     try {
                       pushPromoClick({
                         creative_name: "remove free silver pendant - checkout",
-                        promo_id: SILVER_PENDANT_VARIANT_ID,
-                        item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+                        promo_id: eligiblePendantId,
+                        item_id: variantId || eligiblePendantId,
                         promo_position: "Checkout Summary",
                       });
                     } catch (e) {
@@ -523,7 +532,7 @@ export default function CheckoutSummary({
                     }
                     if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
                     onToggleSilverPendant();
-                    toast.info("Free Silver Pendant removed from your order.");
+                    toast.info("Free Pendant removed from your order.");
                   }}
                   className="px-5 py-2 bg-zinc-100 hover:bg-red-50 hover:text-red-600 text-zinc-500 rounded-full text-[0.625rem] font-bold uppercase tracking-wider transition-all cursor-pointer"
                 >
@@ -537,8 +546,8 @@ export default function CheckoutSummary({
                     try {
                       pushPromoClick({
                         creative_name: "claim free silver pendant - checkout",
-                        promo_id: SILVER_PENDANT_VARIANT_ID,
-                        item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+                        promo_id: eligiblePendantId,
+                        item_id: variantId || eligiblePendantId,
                         promo_position: "Checkout Summary",
                       });
                     } catch (e) {

@@ -6,6 +6,9 @@ import { useState } from "react";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const INSURANCE_PRICE = 1;
+const PENDANT_10K_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
+const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
+const isPendantVariant = (id) => id === PENDANT_10K_VARIANT_ID || id === PENDANT_5K_VARIANT_ID;
 
 export default function InsuranceOption() {
   const { items, addToCart, removeFromCart, loading } = useCart();
@@ -22,7 +25,7 @@ export default function InsuranceOption() {
       .filter(item => 
         item.variantId !== INSURANCE_VARIANT_ID && 
         !(item.variantId === "gid://shopify/ProductVariant/47661824082138" && item.isFreeGift) &&
-        item.variantId !== "gid://shopify/ProductVariant/48052809498842"
+        !isPendantVariant(item.variantId)
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
