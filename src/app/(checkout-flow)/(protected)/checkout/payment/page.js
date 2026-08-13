@@ -845,7 +845,7 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                <div className="lg:px-0">
+                <div className="px-4 lg:px-0">
                   <CheckoutSummary
                     showItems={false}
                     showBreakdown={false}
@@ -860,7 +860,7 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                <div ref={summaryRef} className="scroll-mt-16 bg-white lg:px-0">
+                <div ref={summaryRef} className="scroll-mt-16 bg-white px-4 lg:px-0">
                   <CheckoutSummary
                     showItems={false}
                     showPoints={false}
@@ -950,7 +950,7 @@ export default function PaymentPage() {
                           >
                             <div className="flex justify-between items-center">
                               <div>
-                                <h4 className="font-figtree font-medium text-black text-[1.1rem] mb-[8px]">
+                                <h4 className="font-figtree font-medium text-black text-[1rem] mb-[8px]">
                                   {gateway.id === "razorpay" ? `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
                                 </h4>
                                 <p className="font-figtree text-[12px] text-black/70 mt-[8px] mb-0">
@@ -987,7 +987,7 @@ export default function PaymentPage() {
             <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
               <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
               <div className="relative z-10 py-10 px-4 lg:pl-12 lg:bg-transparent bg-[#FAFAFA] min-h-full scroll-mt-16" ref={summaryRef}>
-                <div className="lg:sticky lg:top-0 space-y-6">
+                <div className="lg:sticky lg:top-6 space-y-6">
                   <CheckoutSummary
                     showItems={false}
                     isSilverPendantClaimed={isSilverPendantClaimed}
@@ -995,12 +995,12 @@ export default function PaymentPage() {
                     mobilePaymentCoinsTheme={true}
                   >
                     {/* Desktop Button - Moved here to match cart page */}
-                    <div className="hidden lg:block">
+                    <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
                       <Button
                         type="button"
                         onClick={handlePayNow}
                         disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-                        className="w-full flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 font-figtree font-medium uppercase tracking-wide text-[1.15rem] text-white cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {paymentLoading
                           ? "Processing..."
@@ -1033,7 +1033,7 @@ export default function PaymentPage() {
           <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-            className="w-full flex items-center justify-center rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] h-[48px] font-figtree font-medium uppercase tracking-wide text-[16px] text-white cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
             {paymentLoading ? "PROCESSING..." : `PAY ₹${selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
           </Button>

@@ -782,7 +782,7 @@ export default function ShippingPage() {
                         handleContinueToPayment();
                         router.push("/checkout/payment");
                       }}
-                      className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
+                      className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       CONTINUE TO PAYMENT
                     </Button>
@@ -811,7 +811,7 @@ export default function ShippingPage() {
           <Link prefetch={false} href="/checkout/payment" className={`w-full block ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
             <Button
               disabled={isContinueDisabled}
-              className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] h-[50px] font-figtree font-medium uppercase tracking-wider text-[0.9375rem] lg:text-[1.0625rem] text-white cursor-pointer transition-colors disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
               CONTINUE TO PAYMENT
             </Button>

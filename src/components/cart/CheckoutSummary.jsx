@@ -608,7 +608,7 @@ export default function CheckoutSummary({
               return (
                 <button
                   onClick={handleRemovePoints}
-                  className="w-full h-[46px] flex items-center justify-center bg-white border border-[#EBE1D7] hover:bg-zinc-50 text-[#5A413F] rounded-[6px] font-figtree font-medium text-[15px] transition-colors disabled:opacity-50"
+                  className="w-full h-[46px] lg:h-[40px] flex items-center justify-center bg-white border border-[#EBE1D7] hover:bg-zinc-50 text-[#5A413F] rounded-[6px] font-figtree font-medium text-[15px] lg:text-[1rem] transition-colors disabled:opacity-50"
                 >
                   Remove Coins
                 </button>
@@ -618,7 +618,7 @@ export default function CheckoutSummary({
               <button
                 onClick={handleApplyPoints}
                 disabled={pointsData?.points_balance === 0 || !hasDiamondJewellery}
-                className="w-full h-[46px] flex items-center justify-center border border-transparent bg-[#5A413F] text-white rounded-[6px] font-figtree font-medium text-[15px] hover:bg-[#4A312F] transition-colors disabled:opacity-50"
+                className="w-full h-[46px] lg:h-[40px] flex items-center justify-center border border-transparent bg-[#5A413F] text-white rounded-[6px] font-figtree font-medium text-[15px] lg:text-[1rem] hover:bg-[#4A312F] transition-colors disabled:opacity-50"
               >
                 {hasDiamondJewellery ? "Apply Coins" : "Valid on Diamond Jewelry"}
               </button>

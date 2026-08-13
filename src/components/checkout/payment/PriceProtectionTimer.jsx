@@ -8,7 +8,7 @@ export default function PriceProtectionTimer({ secondsLeft = 0, onInfoClick, cla
 
   return (
     <div className={`flex items-center justify-between gap-2 bg-[#FBEFDD] px-4 py-[12px] ${className}`}>
-      <span className="font-figtree text-[14px] leading-none font-normal tracking-normal text-[#3D2B28]">
+      <span className="font-figtree text-[1rem] leading-none font-normal tracking-normal text-[#3D2B28]">
         Price Protection active for <span className="font-semibold text-[#5A413F]">{mm}:{ss}</span> mins
       </span>
       <button

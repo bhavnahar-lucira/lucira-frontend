@@ -51,7 +51,7 @@ export default function CheckoutHeader() {
                     <div className="flex flex-col items-center gap-2 flex-none">
                       <div
                         className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors duration-300 ${isDone
-                          ? "bg-[#5A413F] shadow-[0_0_0_3px_rgba(90,65,63,0.12)]"
+                          ? "bg-[#5A413F]"
                           : "border border-zinc-300 bg-white"
                           }`}
                       >

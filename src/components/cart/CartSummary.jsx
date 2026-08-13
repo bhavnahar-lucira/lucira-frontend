@@ -755,7 +755,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
         <Button
           onClick={handleProceedToCheckout}
-          className="w-full flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-sm bg-[#5A413F] h-14 lg:h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-[1.15rem] text-white cursor-pointer"
+          className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
         >
           Proceed To Checkout
         </Button>
