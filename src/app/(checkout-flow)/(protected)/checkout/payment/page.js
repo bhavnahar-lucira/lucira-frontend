@@ -873,11 +873,9 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                {/* Payment options — only shown when more than one gateway is available */}
-                {paymentGateways.length > 1 && (
-                  <div className="space-y-4 pt-2 px-4 pb-[150px] lg:pb-4">
-                    <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.9375rem] mb-4 lg:hidden">PAYMENT OPTIONS</h2>
-                    <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
+                <div className="space-y-4 pt-2 px-4 pb-[150px] lg:pb-4">
+                  <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.9375rem] mb-4 lg:hidden">PAYMENT OPTIONS</h2>
+                  <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
                       {paymentGateways.map((gateway) => (
                         <div key={gateway.id} className="relative">
                           <Label
@@ -906,7 +904,6 @@ export default function PaymentPage() {
                       ))}
                     </RadioGroup>
                   </div>
-                )}
               </div>
             )}
 
@@ -938,10 +935,9 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                {paymentGateways.length > 1 && (
-                  <div className="space-y-4 pt-2">
-                    <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[1.1rem]">PAYMENT OPTIONS</h2>
-                    <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
+                <div className="space-y-4 pt-2">
+                  <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[1.1rem]">PAYMENT OPTIONS</h2>
+                  <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
                       {paymentGateways.map((gateway) => (
                         <div key={gateway.id} className="relative m-0">
                           <Label
@@ -970,7 +966,6 @@ export default function PaymentPage() {
                       ))}
                     </RadioGroup>
                   </div>
-                )}
 
                 <div className="flex items-center justify-between gap-6 pt-4">
                   <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
@@ -993,6 +988,10 @@ export default function PaymentPage() {
                     isSilverPendantClaimed={isSilverPendantClaimed}
                     onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                     mobilePaymentCoinsTheme={true}
+                    onApplyCoinsWarning={(proceed) => {
+                      setCoinsProceedAction(() => proceed);
+                      setShowCoinsNudge(true);
+                    }}
                   >
                     {/* Desktop Button - Moved here to match cart page */}
                     <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
