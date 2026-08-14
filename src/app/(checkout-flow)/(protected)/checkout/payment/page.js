@@ -839,7 +839,7 @@ export default function PaymentPage() {
 
   return (
     <div className="bg-white min-h-screen overflow-x-clip">
-      <div className="container-main relative z-10 !px-0 lg:!px-17">
+      <div className="container-main relative z-10 !px-0 lg:!px-17 lg:!max-w-[1160px]">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
 
           {/* Main Content Area (60%) */}

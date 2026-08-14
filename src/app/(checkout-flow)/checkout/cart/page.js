@@ -163,7 +163,7 @@ const filteredItems = items.filter(
     <div className="bg-white min-h-screen overflow-x-clip">
       {/* Mobile Header (LG Hidden) */}
 
-      <div className="container-main relative z-10">
+      <div className="container-main relative z-10 lg:!max-w-[1200px]">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           
           {/* Left Column: Cart Items (60%) */}
