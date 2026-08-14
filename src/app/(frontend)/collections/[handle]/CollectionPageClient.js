@@ -886,6 +886,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     let rewardBannerAt = -1;      // renderedCount when the claim banner was inserted
     let recentlyViewedAdded = false;
     let recentlyViewedAt = -1;    // renderedCount when the recently-viewed row was inserted
+    let categoryGroupsPlaced = 0; // number of category groups placed
     products.forEach((prod, idx) => {
       if (!prod) return;
       // First banner after 6 products, the second 10 later (6, 16). Each creative shows
