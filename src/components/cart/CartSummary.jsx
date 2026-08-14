@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check } from "lucide-react";
+import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import Image from "next/image";
@@ -23,6 +23,7 @@ import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
+const SILVER_PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
 
 export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const dispatch = useDispatch();
@@ -70,7 +71,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       .filter(item => 
         item.variantId !== INSURANCE_VARIANT_ID && 
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-        item.variantId !== SILVER_PENDANT_VARIANT_ID
+        item.variantId !== SILVER_PENDANT_VARIANT_ID &&
+        item.variantId !== SILVER_PENDANT_5K_VARIANT_ID
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
@@ -100,6 +102,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       return item.variantId !== INSURANCE_VARIANT_ID && 
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
         item.variantId !== SILVER_PENDANT_VARIANT_ID &&
+        item.variantId !== SILVER_PENDANT_5K_VARIANT_ID &&
         !isBYJ;
     })
     .reduce((acc, item) => {
@@ -135,24 +138,47 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
 
   const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
-  const silverPendantItem = items.find(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
-  const isSilverPendantEligible = diamondTotal >= 30000;
+  const isSilverPendant10kEligible = diamondTotal >= 30000;
+  const isSilverPendant5kEligible = diamondTotal >= 15000 && diamondTotal < 30000;
+  const isSilverPendantEligible = isSilverPendant10kEligible || isSilverPendant5kEligible;
+
+  const currentEligiblePendant = isSilverPendant10kEligible 
+    ? {
+        variantId: SILVER_PENDANT_VARIANT_ID,
+        productId: "gid://shopify/Product/9342370414810",
+        worthText: "₹10,000",
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+      } 
+    : isSilverPendant5kEligible 
+      ? {
+          variantId: SILVER_PENDANT_5K_VARIANT_ID,
+          productId: "gid://shopify/Product/9429345108186",
+          worthText: "₹5,000",
+          image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+        }
+      : null;
+
+  const silverPendantItem10k = items.find(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+  const silverPendantItem5k = items.find(item => item.variantId === SILVER_PENDANT_5K_VARIANT_ID);
+  const silverPendantItem = silverPendantItem10k || silverPendantItem5k;
   const isSilverPendantApplied = !!silverPendantItem;
+
   const [isSilverPendantLoading, setIsSilverPendantLoading] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(0);
 
   useEffect(() => {
-    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
+    if (!currentEligiblePendant) return;
+    apiFetch(`/api/products/pricing?variantId=${currentEligiblePendant.variantId.split('/').pop()}`, { suppressErrorLog: true })
       .then(data => {
         const p = Number(data?.price || data?.compare_price || 0);
         if (p > 0) setPendantPrice(p);
       })
       .catch(err => console.error("Error fetching silver pendant price:", err));
-  }, []);
+  }, [currentEligiblePendant?.variantId]);
 
   useEffect(() => {
     if (appliedCoupon && isSilverPendantApplied && !isSilverPendantLoading) {
-      removeFromCart(silverPendantItem?.lineId || SILVER_PENDANT_VARIANT_ID);
+      removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
       if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
       toast.info("Free Silver Pendant removed as it cannot be combined with a coupon.");
     }
@@ -166,8 +192,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       try {
         pushPromoClick({
           creative_name: isSilverPendantApplied ? "remove free silver pendant - cart" : "claim free silver pendant - cart",
-          promo_id: SILVER_PENDANT_VARIANT_ID,
-          item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+          promo_id: currentEligiblePendant?.variantId || SILVER_PENDANT_VARIANT_ID,
+          item_id: variantId || (currentEligiblePendant?.variantId || SILVER_PENDANT_VARIANT_ID),
           promo_position: "Cart Page",
         });
       } catch (e) {
@@ -176,19 +202,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
       if (isSilverPendantApplied) {
         if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-        await removeFromCart(silverPendantItem?.lineId || SILVER_PENDANT_VARIANT_ID);
+        await removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
         toast.info("Free Silver Pendant removed from your order.");
-      } else {
+      } else if (currentEligiblePendant) {
         if (appliedCoupon) {
           dispatch(removeCoupon());
           toast.info("Coupon removed as Free Pendant offer cannot be combined with coupons.");
         }
         if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
         const product = {
-          productId: "gid://shopify/Product/9342370414810",
-          variantId: SILVER_PENDANT_VARIANT_ID,
+          productId: currentEligiblePendant.productId,
+          variantId: currentEligiblePendant.variantId,
           title: "Free Silver Pendant",
-          image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617",
+          image: currentEligiblePendant.image,
           price: 0,
           originalPrice: pendantPrice,
           comparePrice: pendantPrice,
@@ -212,7 +238,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
     !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-    item.variantId !== SILVER_PENDANT_VARIANT_ID
+    item.variantId !== SILVER_PENDANT_VARIANT_ID &&
+    item.variantId !== SILVER_PENDANT_5K_VARIANT_ID
   )?.title;
 
   // Auto-sync insurance and gold coin quantities
@@ -247,10 +274,13 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     }
 
     // Sync Silver Pendant
-    if (silverPendantItem && !isSilverPendantEligible) {
-      removeFromCart(silverPendantItem.lineId || SILVER_PENDANT_VARIANT_ID);
+    if (silverPendantItem10k && currentEligiblePendant?.variantId !== SILVER_PENDANT_VARIANT_ID) {
+      removeFromCart(silverPendantItem10k.lineId || silverPendantItem10k.variantId);
     }
-  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled, silverPendantItem, isSilverPendantEligible]);
+    if (silverPendantItem5k && currentEligiblePendant?.variantId !== SILVER_PENDANT_5K_VARIANT_ID) {
+      removeFromCart(silverPendantItem5k.lineId || silverPendantItem5k.variantId);
+    }
+  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled, silverPendantItem10k, silverPendantItem5k, currentEligiblePendant]);
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
@@ -316,7 +346,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift) &&
+      !(item.variantId === SILVER_PENDANT_5K_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -331,7 +362,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift) &&
+      !(item.variantId === SILVER_PENDANT_5K_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -384,7 +416,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       }
 
       if (isSilverPendantApplied) {
-        await removeFromCart(silverPendantItem?.lineId || SILVER_PENDANT_VARIANT_ID);
+        await removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
         if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
         toast.info("Free Silver Pendant removed as it cannot be combined with a coupon.");
       }
@@ -529,76 +561,112 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       {/* Coupon Trigger placed above summary for all views */}
       <div className="flex flex-col mb-6">
         {couponTrigger}
-        {isSilverPendantEligible && (
-          <div
-            className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors pr-2.5 sm:pr-3.5"
-            style={{
-              borderRadius: "0px 0px 8px 8px",
-              borderTop: "0px",
-              background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
-              paddingTop: 8,
-              paddingBottom: 8,
-              paddingLeft: 0
-            }}
-          >
+        {(() => {
+          const isLocked = !isSilverPendantEligible;
+          const needsLogin = isSilverPendantEligible && !user;
+          const targetImage = isLocked ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-SLP001.jpg?v=1781353423" : currentEligiblePendant?.image;
+          const targetWorth = isLocked ? "₹5,000" : currentEligiblePendant?.worthText;
+          const shortfall = 15000 - diamondTotal;
+          
+          return (
             <div
-              className="w-[48px] h-[48px] sm:w-[60px] sm:h-[60px] overflow-hidden shrink-0 bg-white flex items-center justify-center"
-              style={{ border: 0 }}
+              className={`flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors pr-2.5 sm:pr-3.5 ${isLocked ? 'opacity-80' : ''}`}
+              style={{
+                borderRadius: "0px 0px 8px 8px",
+                borderTop: "0px",
+                background: isLocked ? "#FEF9F6" : "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
+                paddingTop: 8,
+                paddingBottom: 8,
+                paddingLeft: 0,
+                gap: 0
+              }}
             >
-              <img
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
-                alt="Silver Pendant"
-                className="w-full h-full object-cover"
+              <div
+                className={`w-[48px] h-[48px] sm:w-[60px] sm:h-[60px] overflow-hidden shrink-0 ${isLocked ? 'bg-[#f5f0ed]' : 'bg-white'} flex items-center justify-center`}
                 style={{ border: 0 }}
-              />
+              >
+                <img
+                  src={targetImage}
+                  alt="Silver Pendant"
+                  className={`w-full h-full object-cover ${isLocked ? 'mix-blend-multiply opacity-60' : ''}`}
+                  style={{ border: 0 }}
+                />
+              </div>
+              <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
+                <p
+                  className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]"
+                  style={{ color: "rgb(0, 0, 0)", fontWeight: 500, display: "none", marginBottom: "2px" }}
+                >
+                  Silver Pendant
+                </p>
+                <p
+                  className={`font-figtree font-normal text-[0.9rem] lg:text-[0.9rem] leading-[1.35] ${isLocked ? 'text-[#6B5B54]' : 'text-[#000000]'}`}
+                  style={{ color: isLocked ? "#6B5B54" : "rgb(0, 0, 0)", fontWeight: 500 }}
+                >
+                  {isLocked 
+                    ? <>Add <span className="font-bold text-[#e7000b]">₹{shortfall.toLocaleString('en-IN')}</span> more to unlock a FREE Diamond Pendant worth {targetWorth}.</>
+                    : needsLogin
+                      ? <>Unlock to claim a FREE Diamond Pendant worth {targetWorth}.</>
+                      : <>You&apos;ve unlocked a FREE Diamond Pendant worth {targetWorth}.</>
+                  }
+                </p>
+              </div>
+              {isLocked ? (
+                <button
+                  type="button"
+                  disabled
+                  className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#EBEBEB] text-[#888888] cursor-not-allowed"
+                  style={{ marginLeft: "20px" }}
+                >
+                  <Lock className="w-3.5 h-3.5 hidden lg:block" />
+                  LOCKED
+                </button>
+              ) : needsLogin ? (
+                <button
+                  type="button"
+                  onClick={() => openLogin()}
+                  className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer"
+                  style={{ marginLeft: "20px" }}
+                >
+                  <Lock className="w-3.5 h-3.5 hidden lg:block" />
+                  UNLOCK
+                </button>
+              ) : isSilverPendantApplied ? (
+                <button
+                  type="button"
+                  onClick={handleToggleSilverPendant}
+                  disabled={isSilverPendantLoading || loading}
+                  className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-2.5 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50"
+                  style={{
+                    border: "1px solid #e7000b",
+                    background: "transparent",
+                    color: "#e7000b",
+                    marginLeft: "20px"
+                  }}
+                >
+                  {isSilverPendantLoading ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : "REMOVE"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleToggleSilverPendant}
+                  disabled={isSilverPendantLoading || loading}
+                  className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
+                  style={{ marginLeft: "20px" }}
+                >
+                  {isSilverPendantLoading ? (
+                    <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
+                  ) : (
+                    <>
+                      <Gift className="w-3.5 h-3.5 hidden lg:block" />
+                      CLAIM
+                    </>
+                  )}
+                </button>
+              )}
             </div>
-            <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
-              <p
-                className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]"
-                style={{ color: "rgb(0, 0, 0)", fontWeight: 500, display: "none", marginBottom: "2px" }}
-              >
-                Silver Pendant
-              </p>
-              <p
-                className="font-figtree font-normal text-[0.9rem] lg:text-[0.9rem] leading-[1.35] text-[#000000]"
-                style={{ color: "rgb(0, 0, 0)", fontWeight: 500 }}
-              >
-                You've unlocked a FREE Diamond Pendant worth ₹10,000.
-              </p>
-            </div>
-            {isSilverPendantApplied ? (
-              <button
-                type="button"
-                onClick={handleToggleSilverPendant}
-                disabled={isSilverPendantLoading || loading}
-                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-2.5 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50"
-                style={{
-                  border: "1px solid #e7000b",
-                  background: "transparent",
-                  color: "#e7000b"
-                }}
-              >
-                {isSilverPendantLoading ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : "REMOVE"}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleToggleSilverPendant}
-                disabled={isSilverPendantLoading || loading}
-                className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
-              >
-                {isSilverPendantLoading ? (
-                  <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
-                ) : (
-                  <>
-                    <Gift className="w-3.5 h-3.5 hidden lg:block" />
-                    CLAIM
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Desktop Pricing Breakdown (LG) */}
