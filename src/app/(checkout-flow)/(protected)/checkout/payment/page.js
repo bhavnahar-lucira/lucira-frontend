@@ -105,12 +105,7 @@ export default function PaymentPage() {
   const [billingDialogOpen, setBillingDialogOpen] = useState(false);
   const hasFiredPaymentStep = useRef(false);
   
-  const [addresses, setAddresses] = useState([]);
-  const [customer, setCustomer] = useState(null);
-  const [selectedAddressId, setSelectedAddressId] = useState("");
-  const [billingAddressMode, setBillingAddressMode] = useState("same");
-  const [selectedBillingAddressId, setSelectedBillingAddressId] = useState("");
-  const [billingAddressSnapshot, setBillingAddressSnapshot] = useState(null);
+
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
   // Seeded from the cart, not localStorage: the PDP offer popup sets the claim flag
@@ -1032,7 +1027,7 @@ export default function PaymentPage() {
                         type="button"
                         onClick={handlePayNow}
                         disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-                        className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {paymentLoading
                           ? "Processing..."
@@ -1065,7 +1060,7 @@ export default function PaymentPage() {
           <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
             {paymentLoading ? "PROCESSING..." : `PAY ₹${selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
           </Button>

@@ -802,7 +802,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
         <Button
           onClick={handleProceedToCheckout}
-          className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
         >
           Proceed To Checkout
         </Button>

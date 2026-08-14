@@ -97,7 +97,7 @@ export default function CartViewLiveBanner({ items }) {
       <DrawerTrigger asChild>
         <button
           onClick={handleBannerClick}
-          className="flex w-full items-center gap-2.5 lg:gap-3 p-2 lg:p-[10px] transition-opacity hover:opacity-95 rounded-[6px] mb-[20px]"
+          className="flex w-full items-center gap-2.5 lg:gap-3 p-2 lg:p-[10px] transition-opacity hover:opacity-95 rounded-[6px] mb-[20px] cursor-pointer"
           style={{ background: "linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)" }}
         >
           <span className="relative h-10 w-10 lg:h-12 lg:w-12 shrink-0 overflow-hidden rounded-full bg-white border border-black/5">
