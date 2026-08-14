@@ -10,6 +10,7 @@ import {
   CART_ATTRIBUTES_UPDATE_MUTATION
 } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
+import { trackAddToCart as trackSearchAddToCart } from "@/lib/searchAnalytics";
 
 const DEFAULT_CONTEXT = process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront';
 
@@ -547,6 +548,10 @@ export const addToCart = createAsyncThunk(
     }
 
     if (shopifyCartData) {
+      // Track add to cart for search analytics
+      productsToAdd.forEach(p => {
+        trackSearchAddToCart(String(p.shopifyVariantId || p.variantId || p.id).split('/').pop(), p.quantity || 1);
+      });
       return mapShopifyCart(shopifyCartData, backendCart);
     }
     

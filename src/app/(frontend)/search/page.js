@@ -22,6 +22,7 @@ import {
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { apiFetch, trackProductSearchClick } from "@/lib/api";
+import { startSearch, trackSearchResultsView } from "@/lib/searchAnalytics";
 
 const SORT_OPTIONS = [
   { value: "relevance", label: "Relevance" },
@@ -122,8 +123,8 @@ export default function SearchPage() {
     else if (/\bbracelet(s)?\b/i.test(lowerQ)) detectedType = "Bracelets";
     else if (/\bpendant(s)?\b/i.test(lowerQ)) detectedType = "Pendants";
     else if (/\bbangle(s)?\b/i.test(lowerQ)) detectedType = "Bangles";
-    else if (/\bmangalsutra(s)?\b/i.test(lowerQ)) detectedType = "Mangalsutras";
-    else if (/\bnosering(s)?|nose pin(s)?|nose-pin(s)?\b/i.test(lowerQ)) detectedType = "Nose Pins";
+    else if (/\bmangal\s*sutra(s)?\b/i.test(lowerQ)) detectedType = "Mangalsutra";
+    else if (/\bnosering(s)?|nose pin(s)?|nose-pin(s)?\b/i.test(lowerQ)) detectedType = "Nosepins";
 
     if (detectedType) {
        const currentTypes = searchParams.getAll("filter.p.product_type");
@@ -389,7 +390,13 @@ export default function SearchPage() {
           page: prodData.pagination ? prodData.pagination.page : 1,
           totalPages: prodData.pagination ? prodData.pagination.totalPages : 1
         });
-        setTotalCount(prodData.pagination?.total || 0);
+        const total = prodData.pagination?.total || 0;
+        setTotalCount(total);
+        
+        // Track Search Analytics
+        await startSearch(query, total);
+        await trackSearchResultsView(total);
+        
       } catch (err) {
         console.error("Failed to fetch search data:", err);
       } finally {

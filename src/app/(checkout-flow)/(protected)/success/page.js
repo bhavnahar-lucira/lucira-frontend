@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { pushPurchase } from "@/lib/gtm";
+import { trackPurchase as trackSearchPurchase } from "@/lib/searchAnalytics";
 
 import { useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
@@ -32,6 +33,16 @@ export default function SuccessPage() {
         const purchaseData = JSON.parse(storedData);
         // Fire the Purchase Event
         pushPurchase(purchaseData);
+        
+        // Track Search Analytics Purchase
+        if (purchaseData.items) {
+          const simplifiedItems = purchaseData.items.map(item => ({
+            productId: String(item.item_id),
+            quantity: item.quantity
+          }));
+          trackSearchPurchase(orderName || purchaseData.transaction_id || "UNKNOWN", simplifiedItems);
+        }
+
         // Clear storage to prevent duplicate firing
         window.localStorage.removeItem("gtm_purchase_data");
       } catch (err) {

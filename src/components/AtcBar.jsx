@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectPincode } from "@/redux/features/user/userSlice";
 import { useAuth } from "@/hooks/useAuth";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, formatGtmPrice, getNumericId } from "@/lib/gtm";
 import { apiFetch } from "@/lib/api";
 import { calculateDistance } from "@/utils/distance";
 
@@ -173,11 +173,28 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
           timestamp: new Date().toISOString(),
         }),
       });
+      // Product context for the lead event. Prices/image come from the same
+      // static variant fields the sticky bar itself renders, so the payload
+      // always matches what the shopper was looking at when they submitted.
+      const sellingPrice = activeVariant?.price || product?.price || 0;
+      const preDiscountPrice = activeVariant?.compare_price || product?.compare_price || sellingPrice;
+      const variantId = getNumericId(activeVariant?.shopifyId || activeVariant?.id);
+      const rawImage = activeVariant?.image || product?.featuredImage || product?.images?.[0] || "";
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+
       pushPromoClick({
-        promo_id: device,
-        promo_name: phone,
+        promo_id: pincode,
+        promo_name: product?.title || "",
         creative_name: "store nearby sticky cta form filled",
-        location_id: pincode,
+        location_id: variantId,
+        promo_position: device,
+        sku: activeVariant?.sku || product?.variants?.[0]?.sku || "",
+        Grand_total: formatGtmPrice(preDiscountPrice),
+        productPrice: formatGtmPrice(sellingPrice),
+        Product_url: product?.handle
+          ? `${origin}/products/${product.handle}${variantId ? `?variant=${variantId}` : ""}`
+          : (typeof window !== "undefined" ? window.location.href : ""),
+        Product_image: typeof rawImage === "string" ? rawImage : (rawImage?.url || ""),
       });
       setSubmitted(true);
       setSubmitting(false);

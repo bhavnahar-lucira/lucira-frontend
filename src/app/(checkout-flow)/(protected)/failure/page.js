@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { pushPaymentFailure } from "@/lib/gtm";
+import { trackPaymentFailed as trackSearchPaymentFailed } from "@/lib/searchAnalytics";
 
 export default function FailurePage() {
   const router = useRouter();
@@ -24,6 +25,9 @@ export default function FailurePage() {
       
       // 2. Fire the Payment Failure Event
       pushPaymentFailure(failureData);
+      
+      // Track Search Analytics Payment Failure
+      trackSearchPaymentFailed(failureData?.error || "Payment Failed");
       
       // 3. Clear storage to prevent duplicate firing on refresh
       window.localStorage.removeItem("gtm_payment_failure_data");

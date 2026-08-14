@@ -30,7 +30,8 @@ import { getCookie } from "@/lib/utils";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
-import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { getStoredUtms, sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { trackPaymentStep } from "@/lib/searchAnalytics";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
@@ -100,6 +101,16 @@ export default function PaymentPage() {
   const router = useRouter();
   const dispatch = useDispatch();
 
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [billingDialogOpen, setBillingDialogOpen] = useState(false);
+  const hasFiredPaymentStep = useRef(false);
+  
+  const [addresses, setAddresses] = useState([]);
+  const [customer, setCustomer] = useState(null);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [billingAddressMode, setBillingAddressMode] = useState("same");
+  const [selectedBillingAddressId, setSelectedBillingAddressId] = useState("");
+  const [billingAddressSnapshot, setBillingAddressSnapshot] = useState(null);
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
   // Seeded from the cart, not localStorage: the PDP offer popup sets the claim flag
@@ -111,6 +122,12 @@ export default function PaymentPage() {
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
   // We need eligiblePendantId first
+  useEffect(() => {
+    if (items && items.length > 0 && !hasFiredPaymentStep.current) {
+      trackPaymentStep(items);
+      hasFiredPaymentStep.current = true;
+    }
+  }, [items]);
   const diamondTotalForOffer = useMemo(() => {
     return (items || []).reduce((acc, item) => {
       const type = (item.type || item.productType || item.product_type || "").toLowerCase();
@@ -541,6 +558,7 @@ export default function PaymentPage() {
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
         gclid: getCookie("gclid") || "",
+        utm: getStoredUtms(),
       }, accessToken);
 
       // Razorpay collects the draft-order total, which the server rebuilds from
@@ -693,6 +711,7 @@ export default function PaymentPage() {
               paymentMethod: order.paymentMethod || paymentMethodDetails,
               cartItems: checkoutItems, // Pass items explicitly as fallback for backend
               gclid: getCookie("gclid") || "",
+              utm: getStoredUtms(),
             }, accessToken);
 
             toast.success(

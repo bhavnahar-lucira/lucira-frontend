@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import { useCart } from "@/hooks/useCart";
 import { pushAddShippingInfo, pushBeginCheckout } from "@/lib/gtm";
+import { trackShippingStep } from "@/lib/searchAnalytics";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
@@ -136,6 +137,14 @@ export default function ShippingPage() {
   const [deliveryMethod, setDeliveryMethod] = useState(searchParams.get("method") || "ship");
   const summaryRef = useRef(null);
   const hasFiredBeginCheckout = useRef(false);
+  const hasFiredShippingStep = useRef(false);
+
+  useEffect(() => {
+    if (cartItems && cartItems.length > 0 && !hasFiredShippingStep.current) {
+      trackShippingStep(cartItems);
+      hasFiredShippingStep.current = true;
+    }
+  }, [cartItems]);
 
   const {
     addresses,

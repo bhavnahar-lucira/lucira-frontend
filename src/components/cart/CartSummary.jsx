@@ -6,13 +6,14 @@ import { Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Load
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useSelector, useDispatch } from "react-redux";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, getNumericId } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
 import InsuranceOption from "./InsuranceOption";
 import GoldCoinOption, { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
 import { useCart } from "@/hooks/useCart";
 import { applyCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
+import { trackCheckout as trackSearchCheckout } from "@/lib/searchAnalytics";
 import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
@@ -432,6 +433,33 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   // Shared by the "Proceed To Checkout" CTA.
   const handleProceedToCheckout = () => {
+    // If user not logged in, fire promoClick and open login modal
+    if (!user) {
+      const firstItem = items && items.length > 0 ? items[0] : null;
+      const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
+      const promoData = {
+        creative_name: "cart page login popup",
+        promo_id: firstItem?.sku || variantId || "",
+        item_id: variantId || "",
+        promo_position: "Cart Page",
+      };
+      try {
+        pushPromoClick(promoData);
+      } catch (e) {
+        // swallow errors from analytics
+        console.error('promo push failed', e);
+      }
+      openLogin("/checkout/shipping");
+      return;
+    }
+    
+    // Track checkout for search analytics (passing items in cart to see if any match the search context)
+    const simplifiedItems = items.map(item => ({
+      productId: String(getNumericId(item.productId)),
+      variantId: String(getNumericId(item.variantId)),
+      quantity: item.quantity
+    }));
+    trackSearchCheckout(simplifiedItems);
     onPlaceOrder();
   };
 

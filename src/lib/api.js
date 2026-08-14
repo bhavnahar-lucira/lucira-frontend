@@ -363,7 +363,7 @@ export const trackProductSearchClick = async (productId) => {
       body: JSON.stringify({ productId }),
     });
   } catch (err) {
-    console.error("Failed to track click", err);
+    // console.error("Failed to track click", err); // Suppress 404 errors for unimplemented legacy endpoint
   }
 };
 

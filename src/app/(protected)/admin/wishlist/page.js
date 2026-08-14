@@ -193,13 +193,16 @@ export default function WishlistPage() {
         finalPrice: selectedVariant.price_breakup?.total || selectedVariant.price,
         diamondTotalPcs: selectedVariant.price_breakup?.diamond?.pcs || 0,
          shippingDate: (() => {
+           const isInStock = Boolean(selectedVariant?.inStock);
+           const leadTime = parseInt(product?.productMetafields?.lead_time) || 12;
+           const totalDays = isInStock ? 2 : leadTime + 3;
            const date = new Date();
-           date.setDate(date.getDate() + 10);
+           date.setDate(date.getDate() + totalDays);
            const d = String(date.getDate()).padStart(2, "0");
            const m = String(date.getMonth() + 1).padStart(2, "0");
            const y = date.getFullYear();
            return `${d}/${m}/${y}`;
-         })(), // Mock or dynamic if available
+         })(),
 
         hasVideo: Boolean(product.media?.some((m) => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO")),
         hasSimilar: Boolean(product.handle),

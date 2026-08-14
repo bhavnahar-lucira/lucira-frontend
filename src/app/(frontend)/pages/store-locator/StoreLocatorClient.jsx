@@ -333,9 +333,10 @@ export default function StoreLocatorPage() {
 
   return (
     <div className="font-figtree text-[#333]">
-
       {/* ═══════════════════════════════════════════
           STORE LOCATOR SECTION
+          (First section on the page — the hero banner that used to sit above it
+          was removed so the search box and store cards land in the first fold.)
       ═══════════════════════════════════════════ */}
       <section id="locator-section" className="w-full py-12 md:py-15 bg-white overflow-hidden">
         <div className="container-main">
