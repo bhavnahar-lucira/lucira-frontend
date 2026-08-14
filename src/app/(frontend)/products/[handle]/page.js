@@ -242,6 +242,16 @@ async function getProduct(handle) {
     const metalComp = comps?.components?.find(c => c.item_group_name === "Gold");
     const diamondComps = comps?.components?.filter(c => c.item_group_name === "Diamond") || [];
     const gemstoneComps = comps?.components?.filter(c => c.item_group_name === "Gemstone" || c.item_group_name === "Color Stone") || [];
+    // Any component that isn't gold/diamond/gemstone (beads, evil eye, steel, etc.) is
+    // surfaced as a generic "Other Material" - one column per component, grouped by name.
+    const KNOWN_GROUPS = ["Gold", "Diamond", "Gemstone", "Color Stone"];
+    const otherComps = comps?.components?.filter(c => c.item_group_name && !KNOWN_GROUPS.includes(c.item_group_name)) || [];
+    const otherMaterials = otherComps.map(c => ({
+      material: c.item_group_name,
+      color: c.stone_color_code && c.stone_color_code !== "NA" ? c.stone_color_code : "",
+      pieces: c.pieces || "1",
+      weight: c.weight || "0",
+    }));
     const rawStoreData = v.in_store_available?.value || v.custom_in_store_available?.value;
     const in_store_available = rawStoreData ? JSON.parse(rawStoreData) : [];
 
@@ -412,6 +422,7 @@ async function getProduct(handle) {
         top_height: v.top_height?.value || v.custom_top_height?.value,
         diamonds,
         gemstones,
+        otherMaterials,
         components: v.components?.value,
         variant_config: v.variant_config?.value,
         in_store_available: in_store_available
