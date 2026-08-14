@@ -97,7 +97,7 @@ export default function CartViewLiveBanner({ items }) {
       <DrawerTrigger asChild>
         <button
           onClick={handleBannerClick}
-          className="flex w-full items-center gap-2.5 lg:gap-3 p-2 lg:p-[10px] transition-opacity hover:opacity-95 rounded-[6px] mb-[20px] cursor-pointer"
+          className="flex w-full items-center gap-2.5 lg:gap-3 p-2 lg:p-2 transition-opacity hover:opacity-95 rounded-[6px] mb-[20px] cursor-pointer"
           style={{ background: "linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)" }}
         >
           <span className="relative h-10 w-10 lg:h-12 lg:w-12 shrink-0 overflow-hidden rounded-full bg-white border border-black/5">
@@ -110,14 +110,14 @@ export default function CartViewLiveBanner({ items }) {
             />
           </span>
           <div className="min-w-0 flex-1 text-left">
-            <p className="font-figtree font-medium text-[0.75rem] lg:text-[1.05rem] leading-[1.3] text-black lg:text-[#3D2B28] mb-[1px] lg:mb-[2px] truncate">
+            <p className="font-figtree font-medium text-[0.75rem] lg:text-[1rem] leading-[1.3] text-black lg:text-[#3D2B28] mb-[1px] lg:mb-[2px] truncate">
               Shop with Complete Confidence
             </p>
-            <p className="font-figtree font-normal text-[0.75rem] lg:text-[0.875rem] leading-[1.3] text-[#000000] truncate">
+            <p className="font-figtree font-normal text-[0.75rem] lg:text-[0.85rem] lg:mt-1 leading-[1.3] text-[#000000] truncate">
               See every detail before you buy.
             </p>
           </div>
-          <span className="flex shrink-0 items-center justify-center gap-1.5 rounded-[4px] bg-[#5A413F] h-9 lg:h-11 px-4 lg:px-5 font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] align-middle uppercase text-white transition-transform active:scale-95">
+          <span className="flex shrink-0 items-center justify-center gap-1.5 lg:gap-2 rounded-[4px] bg-[#5A413F] h-9 lg:h-11 px-4 lg:px-5 font-figtree font-medium text-[0.75rem] lg:text-[0.85rem] leading-none tracking-[0px] align-middle uppercase text-white transition-transform active:scale-95">
             <Video size={14} className="lg:hidden" />
             <Video size={16} className="hidden lg:block" />
             View Live

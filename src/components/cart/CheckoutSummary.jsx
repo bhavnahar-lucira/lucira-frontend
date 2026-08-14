@@ -385,10 +385,58 @@ export default function CheckoutSummary({
             })}
           </div>
         </div>
+
+      )}
+
+      {shouldShowPointsSection && (
+        <div className="p-4 rounded-[8px]" style={{ background: 'linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)' }}>
+          <div className="flex justify-between items-center mb-5">
+            <div>
+              <h3 className="font-figtree font-medium text-[14px] leading-[1.3] tracking-normal align-middle mb-[7px] text-black">
+                {pointsData?.points_label || "Lucira Coins Balance"}
+              </h3>
+              <p className="font-figtree font-light text-[12px] leading-[1.3] tracking-normal align-middle text-black">1 Coin = 1 Rupee</p>
+            </div>
+            <div className="bg-white px-3 py-1.5 rounded-[6px] flex items-center gap-2 border border-white shrink-0">
+              <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-coin.png?v=1786602463" width="20" height="20" alt="Lucira Coin" className="w-5 h-5 shrink-0" />
+              <span className="font-figtree font-medium text-[16px] text-[#5A413F]">
+                {pointsData?.points_balance || 0}
+              </span>
+            </div>
+          </div>
+          {(() => {
+            if (loadingPoints) {
+              return (
+                <div className="flex justify-center py-3">
+                  <Loader2 className="animate-spin text-[#5A413F]" size={20} />
+                </div>
+              );
+            }
+            if (nectorPoints) {
+              return (
+                <button
+                  onClick={handleRemovePoints}
+                  className="w-full h-[46px] lg:h-[40px] flex items-center justify-center bg-white border border-[#EBE1D7] hover:bg-zinc-50 text-[#5A413F] rounded-[6px] font-figtree font-medium text-[15px] lg:text-[1rem] transition-colors disabled:opacity-50"
+                >
+                  Remove Coins
+                </button>
+              );
+            }
+            return (
+              <button
+                onClick={handleApplyPoints}
+                disabled={pointsData?.points_balance === 0 || !hasDiamondJewellery}
+                className="w-full h-[46px] lg:h-[40px] flex items-center justify-center border border-transparent bg-[#5A413F] text-white rounded-[6px] font-figtree font-medium text-[15px] lg:text-[1rem] hover:bg-[#4A312F] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+              >
+                {hasDiamondJewellery ? "Apply Coins" : "Valid on Diamond Jewelry"}
+              </button>
+            );
+          })()}
+        </div>
       )}
 
       {showBreakdown && (
-        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3.5 bg-transparent lg:pt-6 lg:pb-0 mb-0 lg:mb-[20px]">
+        <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3.5 bg-transparent lg:pt-0 lg:pb-0 mb-0 lg:mb-[20px]">
           <h2 className="text-[0.9375rem] font-figtree font-medium text-black uppercase tracking-wide mb-4 lg:hidden">ORDER SUMMARY</h2>
 
           <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
@@ -589,52 +637,6 @@ export default function CheckoutSummary({
         </div>
       )}
 
-      {shouldShowPointsSection && (
-        <div className="p-4 rounded-[8px]" style={{ background: 'linear-gradient(89.31deg, #FEF5F1 0%, #F1E4D1 100%)' }}>
-          <div className="flex justify-between items-center mb-5">
-            <div>
-              <h3 className="font-figtree font-medium text-[14px] leading-[1.3] tracking-normal align-middle mb-[7px] text-black">
-                {pointsData?.points_label || "Lucira Coins Balance"}
-              </h3>
-              <p className="font-figtree font-light text-[12px] leading-[1.3] tracking-normal align-middle text-black">1 Coin = 1 Rupee</p>
-            </div>
-            <div className="bg-white px-3 py-1.5 rounded-[6px] flex items-center gap-2 border border-white shrink-0">
-              <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-coin.png?v=1786602463" width="20" height="20" alt="Lucira Coin" className="w-5 h-5 shrink-0" />
-              <span className="font-figtree font-medium text-[16px] text-[#5A413F]">
-                {pointsData?.points_balance || 0}
-              </span>
-            </div>
-          </div>
-          {(() => {
-            if (loadingPoints) {
-              return (
-                <div className="flex justify-center py-3">
-                  <Loader2 className="animate-spin text-[#5A413F]" size={20} />
-                </div>
-              );
-            }
-            if (nectorPoints) {
-              return (
-                <button
-                  onClick={handleRemovePoints}
-                  className="w-full h-[46px] lg:h-[40px] flex items-center justify-center bg-white border border-[#EBE1D7] hover:bg-zinc-50 text-[#5A413F] rounded-[6px] font-figtree font-medium text-[15px] lg:text-[1rem] transition-colors disabled:opacity-50"
-                >
-                  Remove Coins
-                </button>
-              );
-            }
-            return (
-              <button
-                onClick={handleApplyPoints}
-                disabled={pointsData?.points_balance === 0 || !hasDiamondJewellery}
-                className="w-full h-[46px] lg:h-[40px] flex items-center justify-center border border-transparent bg-[#5A413F] text-white rounded-[6px] font-figtree font-medium text-[15px] lg:text-[1rem] hover:bg-[#4A312F] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {hasDiamondJewellery ? "Apply Coins" : "Valid on Diamond Jewelry"}
-              </button>
-            );
-          })()}
-        </div>
-      )}
 
       {children}
       {/* Contact Section removed */}

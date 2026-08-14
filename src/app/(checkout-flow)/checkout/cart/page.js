@@ -165,7 +165,7 @@ const filteredItems = items.filter(
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           
           {/* Left Column: Cart Items (60%) */}
-          <div className="grow lg:basis-[60%] lg:shrink-0 pt-[6px] pb-0 lg:py-10 lg:pl-[30px] lg:pr-[20px] bg-white">
+          <div className="grow lg:basis-[60%] lg:shrink-0 pt-[6px] pb-0 lg:py-10 lg:pl-0 lg:pr-[20px] bg-white">
             {/* Trust Badges (Mobile) */}
             <div className="lg:hidden flex items-center justify-center gap-10 pt-0 pb-[6px] border-b border-zinc-100 mb-4">
               <div className="flex items-center gap-3">

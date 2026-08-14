@@ -487,7 +487,7 @@ export default function ShippingPage() {
     <div className="bg-white min-h-screen overflow-x-clip">
       <div className="container-main relative z-10 max-lg:!px-0">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
-          <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white p-0 lg:pl-[30px] lg:pr-[20px] lg:py-10 min-w-0">
+          <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white p-0 lg:pl-0 lg:pr-[20px] lg:py-10 min-w-0">
             <h2 className="font-figtree text-[0.6875rem] md:text-[1rem] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 lg:px-0 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
             <div className="flex w-full md:max-w-[380px] gap-3 relative z-10 px-6 lg:px-0 -mb-[1px]">
               <button

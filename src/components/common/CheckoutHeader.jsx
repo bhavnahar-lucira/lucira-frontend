@@ -50,7 +50,7 @@ export default function CheckoutHeader() {
                     {/* Step (circle + label) */}
                     <div className="flex flex-col items-center gap-2 flex-none">
                       <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors duration-300 ${isDone
+                        className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors duration-300 ${isDone
                           ? "bg-[#5A413F]"
                           : "border border-zinc-300 bg-white"
                           }`}
@@ -82,9 +82,9 @@ export default function CheckoutHeader() {
 
           {/* Right: Security & Login */}
           <div className="flex-1 flex items-center justify-end gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-[#189351] bg-[#18935112] text-[#189351] px-3.5 py-[7px]">
+            <div className="flex items-center gap-2 rounded-full bg-[#18935112] text-[#189351] px-3.5 py-[7px]">
               <Lock size={12} strokeWidth={2.25} className="text-[#189351]" />
-              <span className="text-[10px] font-[800] uppercase tracking-[0.18em] text-[#189351] whitespace-nowrap">
+              <span className="text-xs font-bold uppercase tracking-[1px] text-[#189351] whitespace-nowrap">
                 100% Secure
               </span>
             </div>

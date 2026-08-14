@@ -108,7 +108,16 @@ export function BillingAddressSection({
           <span className="text-[0.9375rem] lg:text-[1rem] font-figtree font-medium text-black">Billing Address same as Shipping Address</span>
           <ToggleSwitch
             checked={billingAddressMode === "same"}
-            onCheckedChange={(checked) => setBillingMode(checked ? "same" : "different")}
+            onCheckedChange={(checked) => {
+              setBillingMode(checked ? "same" : "different");
+              if (!checked) {
+                // If they want a different address and only have 1 (the shipping one), show form.
+                // If they have multiple, show list so they can pick a different one.
+                setBillingView(addresses.length <= 1 ? "form" : "list");
+              } else {
+                setBillingView("card");
+              }
+            }}
           />
         </div>
       )}
@@ -127,11 +136,7 @@ export function BillingAddressSection({
             saving={creating}
           />
         ) : billingView === "form" ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              {backToCard}
-              <h3 className="text-lg font-bold text-zinc-900">Billing Address</h3>
-            </div>
+          <div className="space-y-4 mt-2">
             <AddressForm
               form={createForm}
               onChange={updateCreateForm}

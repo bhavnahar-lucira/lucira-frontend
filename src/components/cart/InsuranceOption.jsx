@@ -2,7 +2,7 @@
 
 import { useCart } from "@/hooks/useCart";
 import { Loader2, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const INSURANCE_PRICE = 1;
@@ -13,6 +13,7 @@ const isPendantVariant = (id) => id === PENDANT_10K_VARIANT_ID || id === PENDANT
 export default function InsuranceOption() {
   const { items, addToCart, removeFromCart, loading } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
+  const autoAddAttempted = useRef(false);
 
   const insuranceItem = items.find(item => item.variantId === INSURANCE_VARIANT_ID);
   const isAdded = !!insuranceItem;
@@ -56,6 +57,9 @@ export default function InsuranceOption() {
         inStock: true
       };
       await addToCart(product);
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("insuranceRemoved");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -65,10 +69,30 @@ export default function InsuranceOption() {
     setIsProcessing(true);
     try {
       await removeFromCart(INSURANCE_VARIANT_ID);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("insuranceRemoved", "true");
+      }
     } finally {
       setIsProcessing(false);
     }
   };
+
+  // Auto-add insurance if there are other items in the cart and the user hasn't explicitly removed it
+  useEffect(() => {
+    if (
+      otherItemsQuantity > 0 &&
+      !isAdded &&
+      !isProcessing &&
+      !loading &&
+      !autoAddAttempted.current &&
+      typeof window !== "undefined"
+    ) {
+      if (!sessionStorage.getItem("insuranceRemoved")) {
+        autoAddAttempted.current = true;
+        handleAdd();
+      }
+    }
+  }, [otherItemsQuantity, isAdded, isProcessing, loading]);
 
   if (otherItemsQuantity === 0 && !isAdded) return null;
 
