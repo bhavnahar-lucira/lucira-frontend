@@ -41,7 +41,7 @@ import "swiper/css";
 import { toast } from 'react-toastify';
 import { apiFetch, fetchVariantPricing } from "@/lib/api";
 import { motion } from "framer-motion";
-import { shopifyStorefrontFetch } from "@/lib/shopify-client";
+import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
 import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -687,6 +687,10 @@ export default function ProductPageClient({
   const [selectedSize, setSelectedSize] = useState(initialSize);
   const [activeVariant, setActiveVariant] = useState(initialVariant);
   const [priceBreakup, setPriceBreakup] = useState(null);
+  // Live Shopify price for SKUs with no dynamic gold/diamond config, fetched as a
+  // fallback so the PDP doesn't show a price stale by up to 24h (page.js
+  // revalidate: 86400) when the static ISR-cached price has drifted from Shopify.
+  const [livePrice, setLivePrice] = useState(null);
   const [isSchemeOpen, setIsSchemeOpen] = useState(false);
   const schemeTimeoutRef = useRef(null);
   const shouldToastVariantChangeRef = useRef(false);
@@ -1590,6 +1594,33 @@ export default function ProductPageClient({
       });
   }, [activeVariant, product.shopifyId, product.id]);
 
+  // Fetch the live Shopify price for the active variant, independent of the
+  // backend's gold/diamond breakup lookup above. That breakup is served from the
+  // Fastify backend's own in-memory price cache (see api/revalidate/route.js,
+  // which pings it to clear on ISR revalidation) and can go stale on a different
+  // schedule than Shopify itself — e.g. after a gold-rate sync pushes a new price
+  // to Shopify but the backend's cached breakup total isn't refreshed yet. Cart
+  // always reads Shopify's live price directly (cartSlice.js) and never shows
+  // this drift, so PDP fetches the same live value here to stay in sync with it.
+  useEffect(() => {
+    if (!activeVariant?.id) return;
+
+    const vid = getNumericId(activeVariant.id);
+    const snapshotId = String(activeVariant.id);
+
+    shopifyStorefrontFetch(VARIANT_PRICE_QUERY, { id: toShopifyGid(vid, "ProductVariant") })
+      .then((liveData) => {
+        const node = liveData?.node;
+        if (!node) return;
+        setLivePrice({
+          variantId: snapshotId,
+          price: node.price?.amount != null ? Number(node.price.amount) : null,
+          comparePrice: node.compareAtPrice?.amount != null ? Number(node.compareAtPrice.amount) : null,
+        });
+      })
+      .catch((err) => console.error("Live price fetch failed", err));
+  }, [activeVariant]);
+
   // Toast notification on price update
   useEffect(() => {
     if (activeVariant && shouldToastVariantChangeRef.current) {
@@ -1840,20 +1871,54 @@ export default function ProductPageClient({
     : Array.from(new Set(product.variants?.map(v => v.size) || []))
   ).sort((a, b) => parseFloat(a) - parseFloat(b));
 
-  // Get current display price from active variant or product, prioritized by dynamic breakup API if available
-  const currentPrice = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
-    ? priceBreakup.price
-    : (activeVariant ? activeVariant.price : product.price);
+  // Live Shopify price is what's actually charged at checkout (same value cart
+  // reads via cartSlice.js), so it takes priority over the backend's dynamic
+  // breakup total once fetched — the breakup can be independently stale (see
+  // the comment on the live-price fetch effect above).
+  const hasLivePrice = livePrice
+    && String(livePrice.variantId) === String(activeVariant?.id)
+    && livePrice.price != null;
+  const priceBreakupMatches = priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id);
 
-  // Static compare-at price from the variant/product (same source the AtcBar & ProductCard use).
-  const staticComparePrice = Number(activeVariant ? activeVariant.compare_price : product.compare_price) || 0;
-  // Dynamic pre-discount total from the pricing breakup, only when it matches the active variant.
-  const dynamicOriginalTotal = (priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id))
+  // Get current display price: live Shopify price first, then the dynamic breakup
+  // total (until the live price above resolves), then the static ISR-cached price.
+  const currentPrice = hasLivePrice
+    ? livePrice.price
+    : priceBreakupMatches
+      ? priceBreakup.price
+      : (activeVariant ? activeVariant.price : product.price);
+
+  // Compare-at price: live Shopify value once fetched, else the static value baked
+  // into the ISR-cached page (same source the AtcBar & ProductCard use).
+  const staticComparePrice = hasLivePrice
+    ? (livePrice.comparePrice || 0)
+    : Number(activeVariant ? activeVariant.compare_price : product.compare_price) || 0;
+  // Dynamic pre-discount total from the pricing breakup — only folded in while the
+  // live price hasn't resolved yet, so it can't reintroduce the staleness that
+  // currentPrice above already avoids once the live price is available.
+  const dynamicOriginalTotal = (!hasLivePrice && priceBreakupMatches)
     ? Number(priceBreakup.raw_breakup?.original_total) || 0
     : 0;
   // Use whichever is higher so the cut price shows consistently for gold products where the
   // breakup's original_total is present but not greater than the (dynamic) selling price.
   const currentComparePrice = Math.max(staticComparePrice, dynamicOriginalTotal);
+  // The itemized "Price & Savings Details" card (gold/diamond/making/GST rows)
+  // has no live equivalent — Shopify doesn't expose that breakdown, only the
+  // backend's dynamic-pricing service does, and that service can be stale (see
+  // the live-price fetch effect above). Keep the itemized rows exactly as the
+  // backend returned them, but reconcile the bottom-line Total (and the "Save
+  // on this jewelry" figure derived from it) with the live price once it
+  // resolves, so the number a shopper sees at the bottom always matches the
+  // headline price above it.
+  const priceBreakupDisplay = priceBreakupMatches
+    ? {
+        ...priceBreakup.price_breakup,
+        grand_total: hasLivePrice ? `₹${formatPrice(currentPrice)}` : priceBreakup.price_breakup?.grand_total,
+        total_savings: hasLivePrice
+          ? (currentComparePrice > currentPrice ? `₹${formatPrice(currentComparePrice - currentPrice)}` : "₹0")
+          : priceBreakup.price_breakup?.total_savings,
+      }
+    : priceBreakup?.price_breakup;
   // const mounted = useMounted();
   const isMobileView = useMediaQuery("(max-width: 1023px)");
   // if (!mounted) return null;
@@ -3405,7 +3470,7 @@ export default function ProductPageClient({
 
               <div ref={productDetailsRef} className="mt-8">
                 <PriceSavingsDetails
-                  priceBreakup={priceBreakup?.price_breakup}
+                  priceBreakup={priceBreakupDisplay}
                   onTabChange={(tab) => {
                     if (tab === 'price') {
                       const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
@@ -3421,10 +3486,10 @@ export default function ProductPageClient({
 
             </div>
 
-            {priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id) && priceBreakup?.price_breakup?.total_savings && priceBreakup?.price_breakup?.total_savings !== "₹0" && (
+            {priceBreakupMatches && priceBreakupDisplay?.total_savings && priceBreakupDisplay.total_savings !== "₹0" && (
               <div className="mt-4 flex justify-between items-center bg-success/8 border border-success rounded px-5 py-4">
                 <span className="text-base font-bold text-gray-900 uppercase tracking-tight">Save on this jewelry</span>
-                <span className="text-lg font-bold text-success">{priceBreakup.price_breakup.total_savings}</span>
+                <span className="text-lg font-bold text-success">{priceBreakupDisplay.total_savings}</span>
               </div>
             )}
 
