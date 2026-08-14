@@ -101,8 +101,8 @@ export default async function Home() {
       <MobileCategorySlider />
       <HeroSliderImage initialData={bannersInitial} />
       <FeatureBar />
-      <AspirationalCollections />
       <ExploreRange />
+      <AspirationalCollections />
 
       <BestsellerSection initialData={bestsellersInitial} />
 
