@@ -141,7 +141,7 @@ export default function CartViewLiveBanner({ items }) {
             </DrawerClose>
           </DrawerHeader>
 
-          <div className="min-h-0 flex-1 grid grid-cols-2 gap-3 overflow-y-auto p-4 lg:p-5">
+          <div className="min-h-0 flex-1 grid grid-cols-2 gap-3 content-start overflow-y-auto p-4 lg:p-5">
             {validItems.map((item) => {
               const displayImage = item.properties?._display_image || item.image;
               const isShopifyImage = displayImage?.includes("cdn.shopify.com");
