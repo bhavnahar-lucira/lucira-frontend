@@ -1,8 +1,20 @@
-import { fetchWithRetry } from "@/utils/helpers";
+import { fetchWithRetry, isNextControlFlowError } from "@/utils/helpers";
 
 const SHOP = "luciraonline";
 const rawStore = process.env.SHOPIFY_STORE || process.env.SHOPIFYSTORE || SHOP;
 const SHOP_DOMAIN = rawStore.includes(".") ? rawStore : `${rawStore}.myshopify.com`;
+
+/**
+ * Normalize a caching option that may be either a Next `cache` string
+ * ('force-cache' / 'no-store') or an ISR descriptor ({ revalidate: N }) into
+ * the fetch-init shape shopifyStorefrontFetch expects. Strings behave exactly
+ * as before, so existing callers are unaffected.
+ */
+export function toCacheInit(cacheOption) {
+  return typeof cacheOption === "string"
+    ? { cache: cacheOption }
+    : { next: cacheOption };
+}
 
 export async function shopifyStorefrontFetch(query, variables = {}, options = {}) {
   let token = process.env.STOREFRONT_TOKEN;
@@ -30,11 +42,17 @@ export async function shopifyStorefrontFetch(query, variables = {}, options = {}
         },
         body: JSON.stringify({ query, variables }),
         // Caller controls caching strategy:
-        //   ISR pages:   { cache: 'no-store' }    → fresh on each ISR render, page-level revalidate governs timing
-        //   Build-time:  { cache: 'force-cache' } → reuse build cache, no background re-renders
-        //   Default:     { cache: 'no-store' }    → safe default, avoids stale data
-        cache: options.cache ?? 'no-store',
-        ...(options.next ? { next: options.next } : {})
+        //   ISR pages:   { next: { revalidate: N } } → prerenders at build, refreshes every N seconds
+        //   Build-time:  { cache: 'force-cache' }    → reuse build cache, no background re-renders
+        //   Default:     { cache: 'no-store' }       → safe default, avoids stale data
+        //
+        // `cache` and `next.revalidate` are mutually exclusive in Next, and a
+        // `no-store` fetch opts the route out of static generation entirely —
+        // so only apply the cache default when no revalidate window was asked
+        // for. Callers that pass neither keep the previous 'no-store' default.
+        ...(options.next
+          ? { next: options.next }
+          : { cache: options.cache ?? 'no-store' })
       }
     );
 
@@ -54,6 +72,9 @@ export async function shopifyStorefrontFetch(query, variables = {}, options = {}
 
     return data.data;
   } catch (err) {
+    // Next's own render-control signal — pass it straight through unlogged.
+    if (isNextControlFlowError(err)) throw err;
+
     if (err.message && err.message.includes("Access denied")) {
       console.warn(`Storefront Fetch Warning (${SHOP_DOMAIN}):`, err.message);
       return {};

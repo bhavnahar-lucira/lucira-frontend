@@ -19,6 +19,21 @@ export const resolveShopifyLink = (url) => {
 };
 
 /**
+ * Next throws control-flow errors out of fetch() during `next build` —
+ * DynamicServerError ("Dynamic server usage"), redirect, notFound and static
+ * generation bailouts. They are signals telling Next how to render the route,
+ * not network failures: a retry can never change the outcome, and treating
+ * them as one cost ~1.5s of backoff sleep and 6 log lines per prerendered
+ * page. Detect them so they propagate untouched and Next still sees them.
+ */
+export function isNextControlFlowError(err) {
+  if (!err) return false;
+  const digest = typeof err.digest === "string" ? err.digest : "";
+  if (digest === "DYNAMIC_SERVER_USAGE" || digest.startsWith("NEXT_")) return true;
+  return typeof err.message === "string" && err.message.includes("Dynamic server usage");
+}
+
+/**
  * Fetch with basic retry logic for network errors and an explicit timeout
  */
 export async function fetchWithRetry(url, options = {}, retries = 2, backoff = 500) {
@@ -55,6 +70,9 @@ export async function fetchWithRetry(url, options = {}, retries = 2, backoff = 5
     return res;
   } catch (err) {
     clearTimeout(timeoutId);
+
+    // Not a fetch failure — rethrow immediately so Next handles the signal.
+    if (isNextControlFlowError(err)) throw err;
 
     const isTimeout = err.name === 'AbortError' || err.name === 'TimeoutError';
     if (isTimeout) {

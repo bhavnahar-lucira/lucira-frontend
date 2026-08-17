@@ -1,5 +1,5 @@
-import { shopifyStorefrontFetch, shopifyAdminRestFetch } from "./shopify";
-import { fetchWithRetry } from "@/utils/helpers";
+import { shopifyStorefrontFetch, shopifyAdminRestFetch, toCacheInit } from "./shopify";
+import { fetchWithRetry, isNextControlFlowError } from "@/utils/helpers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -95,7 +95,7 @@ export async function getPageByHandleStorefront(handle, cacheOption = 'force-cac
       }
     `;
   const data = await shopifyStorefrontFetch(query, { handle }, {
-    cache: cacheOption,
+    ...toCacheInit(cacheOption),
     useRwToken: true
   });
   return data?.page || null;
@@ -166,6 +166,10 @@ export async function getPageFromLiveSite(handle) {
       }
     );
   } catch (error) {
+    // During `next build`, this tier's no-store fetch makes Next throw its
+    // static-bailout signal — not a scraping failure. Rethrow so Next handles
+    // it (the route goes dynamic either way) instead of logging it as one.
+    if (isNextControlFlowError(error)) throw error;
     console.error(`Live site scraping failed for page ${handle}:`, error.message);
     return null;
   }
@@ -210,7 +214,8 @@ export async function getPageFromLiveSite(handle) {
 //  Tier 2: Shopify Admin REST API   (bypasses Shopify 2.0 section hiding)
 //  Tier 3: Live site HTML scraping  (last resort)
 //
-// cacheOption: 'force-cache' for static pages, 'no-store' for rate pages
+// cacheOption: 'force-cache' for static pages, { revalidate: N } for rate pages
+// (a plain 'no-store' string still works and forces the route dynamic)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getPageByHandle(handle, cacheOption = 'force-cache') {
@@ -228,6 +233,7 @@ export async function getPageByHandle(handle, cacheOption = 'force-cache') {
   try {
     adminPage = await getPageByHandleAdminRest(handle);
   } catch (e) {
+    if (isNextControlFlowError(e)) throw e;
     console.warn("Admin REST page fallback failed:", e.message);
   }
 
@@ -245,6 +251,7 @@ export async function getPageByHandle(handle, cacheOption = 'force-cache') {
   try {
     livePage = await getPageFromLiveSite(handle);
   } catch (e) {
+    if (isNextControlFlowError(e)) throw e;
     console.warn("Live site scraping fallback failed:", e.message);
   }
 

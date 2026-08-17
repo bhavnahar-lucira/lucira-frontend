@@ -1,4 +1,5 @@
-import { shopifyStorefrontFetch } from "./shopify";
+import { shopifyStorefrontFetch, toCacheInit } from "./shopify";
+import { isNextControlFlowError } from "@/utils/helpers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Gold Rate City metaobject fetch (Shopify Storefront API)
@@ -167,9 +168,12 @@ export async function getGoldRateCityMeta(handle, cacheOption = "no-store") {
     data = await shopifyStorefrontFetch(
       GOLD_CITY_META_QUERY,
       { handle },
-      { cache: cacheOption, useRwToken: true }
+      { ...toCacheInit(cacheOption), useRwToken: true }
     );
   } catch (e) {
+    // Next's static-generation bailout is expected on the no-store rate pages —
+    // rethrow so Next handles it; only log genuine fetch failures.
+    if (isNextControlFlowError(e)) throw e;
     console.warn("Gold city metaobject fetch failed:", e?.message);
     return null;
   }
@@ -253,8 +257,9 @@ const GOLD_HISTORY_QUERY = `
 export async function getGoldRateHistory(cacheOption = "no-store") {
   let data;
   try {
-    data = await shopifyStorefrontFetch(GOLD_HISTORY_QUERY, {}, { cache: cacheOption, useRwToken: true });
+    data = await shopifyStorefrontFetch(GOLD_HISTORY_QUERY, {}, { ...toCacheInit(cacheOption), useRwToken: true });
   } catch (e) {
+    if (isNextControlFlowError(e)) throw e;
     console.warn("Gold rate history fetch failed:", e?.message);
     return [];
   }

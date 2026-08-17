@@ -18,7 +18,7 @@ const LuxuryMarquee = dynamic(() => import("@/components/product/LuxuryMarquee")
 const ShopByOccasion = dynamic(() => import("@/components/home/ShopByOccasion"), { suspense: true });
 const FeaturedIn = dynamic(() => import("@/components/home/FeaturedIn"), { suspense: true });
 const WaysToExplore = dynamic(() => import("@/components/home/WaysToExplore"), { suspense: true });
-const EveryoneYouLove = dynamic(() => import("@/components/home/EveryoneYouLove"), { suspense: true });
+// const EveryoneYouLove = dynamic(() => import("@/components/home/EveryoneYouLove"), { suspense: true });
 const CuratedLooks = dynamic(() => import("@/components/home/CuratedLooks"), { suspense: true });
 const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { suspense: true });
 const CustomerReview = dynamic(() => import("@/components/home/CustomerReview"), { suspense: true });
@@ -131,9 +131,10 @@ export default async function Home() {
 
       <GemstoneSection initialProducts={gemstoneInitial} initialCategories={gemstoneCategoriesInitial} />
 
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+      {/* For Everyone You Love - hidden on the homepage */}
+      {/* <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <EveryoneYouLove />
-      </Suspense>
+      </Suspense> */}
 
       <ExploreCollectionSection initialData={exploreInitial} />
 
