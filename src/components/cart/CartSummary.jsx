@@ -562,6 +562,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       <div className="flex flex-col mb-6">
         {couponTrigger}
         {(() => {
+          if (diamondTotal === 0) return null;
+
           const isLocked = !isSilverPendantEligible;
           const needsLogin = isSilverPendantEligible && !user;
           const targetImage = isLocked ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-SLP001.jpg?v=1781353423" : currentEligiblePendant?.image;
