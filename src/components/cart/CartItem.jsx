@@ -312,7 +312,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
       if (isFreeSilverPendant) clearSilverPendantClaim();
 
       await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
-      toast.error("Moved to wishlist", {
+      toast.success("Moved to wishlist", {
         icon: <Check className="w-4 h-4" />
       });
     } catch (err) {

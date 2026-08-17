@@ -211,7 +211,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }
         if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
         
-        const isTier2 = eligiblePendantId === SILVER_PENDANT_VARIANT_ID;
+        const isTier2 = currentEligiblePendant.variantId === SILVER_PENDANT_VARIANT_ID;
         const productId = isTier2 ? "gid://shopify/Product/9342370414810" : "gid://shopify/Product/9429345108186";
 
         const product = {
@@ -534,10 +534,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         </svg>
       </span>
       <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none lg:leading-[1.3] text-black lg:text-[#3D2B28] mt-0 mb-1">
+        <p className="font-figtree font-medium text-[0.75rem] lg:text-[1rem] leading-none lg:leading-[1.3] text-black lg:text-[#3D2B28] mt-0 mb-1">
           {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
         </p>
-        <p className="font-figtree font-normal text-[0.75rem] lg:text-[0.9rem] leading-[1.4] lg:leading-[1.3] text-black mt-[5px]">
+        <p className="font-figtree font-normal text-[0.65rem] lg:text-[0.9rem] leading-[1.4] lg:leading-[1.3] text-black mt-[5px]">
           View all available coupons.
         </p>
       </div>
@@ -598,7 +598,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                   Silver Pendant
                 </p>
                 <p
-                  className={`font-figtree font-normal text-[0.9rem] lg:text-[0.9rem] leading-[1.35] ${isLocked ? 'text-[#6B5B54]' : 'text-[#000000]'}`}
+                  className={`font-figtree font-normal text-[0.7rem] lg:text-[0.9rem] leading-[1.35] ${isLocked ? 'text-[#6B5B54]' : 'text-[#000000]'}`}
                   style={{ color: isLocked ? "#6B5B54" : "rgb(0, 0, 0)", fontWeight: 500 }}
                 >
                   {isLocked 

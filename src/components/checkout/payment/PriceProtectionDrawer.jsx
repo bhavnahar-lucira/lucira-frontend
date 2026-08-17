@@ -66,7 +66,7 @@ export default function PriceProtectionDrawer({ open, onOpenChange, secondsLeft 
         <span className="font-semibold text-black">{mm}:{ss} mins</span>
       </p>
 
-      <div className="w-full space-y-5 text-left mb-2">
+      <div className="w-full space-y-5 text-left mb-6">
         {FEATURES.map(({ icon: Icon, title, description }) => (
           <div key={title} className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-full bg-[#FBEFDD] flex items-center justify-center shrink-0">
@@ -80,7 +80,7 @@ export default function PriceProtectionDrawer({ open, onOpenChange, secondsLeft 
         ))}
       </div>
 
-      <div className="w-full absolute bottom-5 left-0 px-[22px] bg-white pt-2 pb-0 shrink-0 z-10 before:absolute before:top-0 before:left-0 before:w-full before:h-4 before:-mt-4 before:bg-gradient-to-t before:from-white before:to-transparent">
+      <div className="w-full bg-white pt-2 pb-6 shrink-0 z-10">
         <p className="font-figtree text-[12px] text-[#222222]/50 mb-3">
           Complete your Payment to secure your Luxury
         </p>
@@ -103,7 +103,7 @@ export default function PriceProtectionDrawer({ open, onOpenChange, secondsLeft 
           <SheetHeader className="sr-only">
             <SheetTitle>A Promise to Protect Your Price</SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto p-6 pt-12 pb-[100px] no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 pt-12 pb-6 no-scrollbar">
             {content}
           </div>
         </SheetContent>
@@ -114,7 +114,7 @@ export default function PriceProtectionDrawer({ open, onOpenChange, secondsLeft 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="bg-white rounded-t-[20px] [&>div:first-child]:hidden max-h-[92vh] flex flex-col p-0 overflow-hidden z-[2000]">
-        <div className="flex-1 overflow-y-auto px-6 pt-6 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-2 no-scrollbar">
           {content}
         </div>
       </DrawerContent>
