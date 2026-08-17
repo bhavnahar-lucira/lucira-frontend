@@ -74,7 +74,7 @@ const CUSTOM_COLLECTION_BANNERS = {
 // Plain Gold sub-collections (see "Plain Gold" menu group in menu-data.json) use a
 // dedicated hero image in place of the generic collection banner's default image.
 const PLAIN_GOLD_HANDLES = ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"];
-const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_12.png?v=1786689049";
+const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg_44047036-a66f-4e34-8332-f226a6d24073.jpg";
 
 // In-page promo banners injected into the product grid. They alternate in order
 // (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
@@ -82,15 +82,15 @@ const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/348
 // TODO(banner): replace creative B's `src` with the second (right) banner image URL.
 const INPAGE_BANNERS = [
   {
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_1_21124512-753f-4c30-9aa7-28fb2dd4ac87.jpg",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
     alt: "Promo",
-    href: "/collections/bestsellers",
+    href: "/collections/rakhi",
   },
   {
     // Placeholder — falls back to creative A until the second image is provided.
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_1_21124512-753f-4c30-9aa7-28fb2dd4ac87.jpg",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
     alt: "Promo",
-    href: "/collections/bestsellers",
+    href: "/collections/rakhi",
   },
 ];
 
@@ -1153,7 +1153,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product.jpg?v=1786689049"
             : handle === "bestsellers"
               ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product2.jpg?v=1786689049"
-              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_3e543b5f-6dc9-4355-9db8-ccdb4fa1119d.jpg";
+              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_3.jpg";
 
         return isMobile ? (
           <div className="w-full">

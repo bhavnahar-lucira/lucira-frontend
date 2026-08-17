@@ -24,7 +24,7 @@ export default function InsuranceOption() {
       .filter(item => 
         item.variantId !== INSURANCE_VARIANT_ID && 
         !(item.variantId === "gid://shopify/ProductVariant/47661824082138" && item.isFreeGift) &&
-        item.variantId !== "gid://shopify/ProductVariant/48052809498842"
+        item.variantId !== "gid://shopify/ProductVariant/48414958715098"
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
