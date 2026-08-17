@@ -317,7 +317,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
     localStorage.setItem("isSilverPendantClaimed", "true");
     setClaimed(true);
     window.dispatchEvent(new Event("storage"));
-    toast.success("Free Silver Pendant worth ₹10,000 has been claimed and added to your order benefits!");
+    toast.success("Free Silver Bracelet worth ₹15,000 has been claimed and added to your order benefits!");
   };
 
   const handleViewAllOffers = () => {

@@ -82,15 +82,15 @@ const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/348
 // TODO(banner): replace creative B's `src` with the second (right) banner image URL.
 const INPAGE_BANNERS = [
   {
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_1_21124512-753f-4c30-9aa7-28fb2dd4ac87.jpg",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
     alt: "Promo",
-    href: "/collections/bestsellers",
+    href: "/collections/rakhi",
   },
   {
     // Placeholder — falls back to creative A until the second image is provided.
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_1_21124512-753f-4c30-9aa7-28fb2dd4ac87.jpg",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
     alt: "Promo",
-    href: "/collections/bestsellers",
+    href: "/collections/rakhi",
   },
 ];
 
@@ -1153,7 +1153,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product.jpg?v=1786689049"
             : handle === "bestsellers"
               ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product2.jpg?v=1786689049"
-              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_3e543b5f-6dc9-4355-9db8-ccdb4fa1119d.jpg";
+              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_3.jpg";
 
         return isMobile ? (
           <div className="w-full">

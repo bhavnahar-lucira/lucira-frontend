@@ -22,8 +22,7 @@ import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCoupo
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
-const SILVER_PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
+const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
 
 export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const dispatch = useDispatch();
@@ -68,11 +67,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     let qty = 0;
     const byjGroups = new Set();
     items
-      .filter(item => 
-        item.variantId !== INSURANCE_VARIANT_ID && 
+      .filter(item =>
+        item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-        item.variantId !== SILVER_PENDANT_VARIANT_ID &&
-        item.variantId !== SILVER_PENDANT_5K_VARIANT_ID
+        item.variantId !== SILVER_PENDANT_VARIANT_ID
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
@@ -99,10 +97,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         String(item.handle || "").toLowerCase().includes('byj') || 
         String(item.title || "").toLowerCase().includes('byj')
       );
-      return item.variantId !== INSURANCE_VARIANT_ID && 
+      return item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
         item.variantId !== SILVER_PENDANT_VARIANT_ID &&
-        item.variantId !== SILVER_PENDANT_5K_VARIANT_ID &&
         !isBYJ;
     })
     .reduce((acc, item) => {
@@ -138,49 +135,30 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
 
   const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
-  const isSilverPendant10kEligible = diamondTotal >= 30000;
-  const isSilverPendant5kEligible = diamondTotal >= 15000 && diamondTotal < 30000;
-  const isSilverPendantEligible = isSilverPendant10kEligible || isSilverPendant5kEligible;
+  const isSilverPendantEligible = diamondTotal >= 30000;
 
-  const currentEligiblePendant = isSilverPendant10kEligible 
+  const currentEligiblePendant = isSilverPendantEligible
     ? {
         variantId: SILVER_PENDANT_VARIANT_ID,
-        productId: "gid://shopify/Product/9342370414810",
-        worthText: "₹10,000",
-        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
-      } 
-    : isSilverPendant5kEligible 
-      ? {
-          variantId: SILVER_PENDANT_5K_VARIANT_ID,
-          productId: "gid://shopify/Product/9429345108186",
-          worthText: "₹5,000",
-          image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
-        }
-      : null;
+        productId: "gid://shopify/Product/9438188896474",
+        worthText: "₹15,000",
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
+      }
+    : null;
 
-  const silverPendantItem10k = items.find(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
-  const silverPendantItem5k = items.find(item => item.variantId === SILVER_PENDANT_5K_VARIANT_ID);
-  const silverPendantItem = silverPendantItem10k || silverPendantItem5k;
+  const silverPendantItem = items.find(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
   const isSilverPendantApplied = !!silverPendantItem;
 
   const [isSilverPendantLoading, setIsSilverPendantLoading] = useState(false);
-  const [pendantPrice, setPendantPrice] = useState(0);
-
-  useEffect(() => {
-    if (!currentEligiblePendant) return;
-    apiFetch(`/api/products/pricing?variantId=${currentEligiblePendant.variantId.split('/').pop()}`, { suppressErrorLog: true })
-      .then(data => {
-        const p = Number(data?.price || data?.compare_price || 0);
-        if (p > 0) setPendantPrice(p);
-      })
-      .catch(err => console.error("Error fetching silver pendant price:", err));
-  }, [currentEligiblePendant?.variantId]);
+  // Fixed marketing value for the free-gift line — the Silver Bracelet variant has no
+  // DI-GoldPrice variant_config metafield, so the dynamic pricing service can't price it.
+  const pendantPrice = 15000;
 
   useEffect(() => {
     if (appliedCoupon && isSilverPendantApplied && !isSilverPendantLoading) {
       removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
       if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-      toast.info("Free Silver Pendant removed as it cannot be combined with a coupon.");
+      toast.info("Free Silver Bracelet removed as it cannot be combined with a coupon.");
     }
   }, [appliedCoupon, isSilverPendantApplied, isSilverPendantLoading, removeFromCart, silverPendantItem, toast]);
 
@@ -203,17 +181,17 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       if (isSilverPendantApplied) {
         if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
         await removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
-        toast.info("Free Silver Pendant removed from your order.");
+        toast.info("Free Silver Bracelet removed from your order.");
       } else if (currentEligiblePendant) {
         if (appliedCoupon) {
           dispatch(removeCoupon());
-          toast.info("Coupon removed as Free Pendant offer cannot be combined with coupons.");
+          toast.info("Coupon removed as Free Bracelet offer cannot be combined with coupons.");
         }
         if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
         const product = {
           productId: currentEligiblePendant.productId,
           variantId: currentEligiblePendant.variantId,
-          title: "Free Silver Pendant",
+          title: "Free Silver Bracelet",
           image: currentEligiblePendant.image,
           price: 0,
           originalPrice: pendantPrice,
@@ -224,7 +202,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           isFreeGift: true
         };
         await addToCart(product);
-        toast.success("Free Silver Pendant added to your order!", {
+        toast.success("Free Silver Bracelet added to your order!", {
           icon: <Check className="w-4 h-4" />
         });
       }
@@ -238,8 +216,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
     !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-    item.variantId !== SILVER_PENDANT_VARIANT_ID &&
-    item.variantId !== SILVER_PENDANT_5K_VARIANT_ID
+    item.variantId !== SILVER_PENDANT_VARIANT_ID
   )?.title;
 
   // Auto-sync insurance and gold coin quantities
@@ -273,14 +250,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       }
     }
 
-    // Sync Silver Pendant
-    if (silverPendantItem10k && currentEligiblePendant?.variantId !== SILVER_PENDANT_VARIANT_ID) {
-      removeFromCart(silverPendantItem10k.lineId || silverPendantItem10k.variantId);
+    // Sync Silver Bracelet
+    if (silverPendantItem && !isSilverPendantEligible) {
+      removeFromCart(silverPendantItem.lineId || silverPendantItem.variantId);
     }
-    if (silverPendantItem5k && currentEligiblePendant?.variantId !== SILVER_PENDANT_5K_VARIANT_ID) {
-      removeFromCart(silverPendantItem5k.lineId || silverPendantItem5k.variantId);
-    }
-  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled, silverPendantItem10k, silverPendantItem5k, currentEligiblePendant]);
+  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled, silverPendantItem, isSilverPendantEligible]);
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
@@ -346,8 +320,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_5K_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -362,8 +335,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_5K_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -418,7 +390,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       if (isSilverPendantApplied) {
         await removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
         if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-        toast.info("Free Silver Pendant removed as it cannot be combined with a coupon.");
+        toast.info("Free Silver Bracelet removed as it cannot be combined with a coupon.");
       }
 
       dispatch(applyCoupon({
@@ -564,9 +536,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {(() => {
           const isLocked = !isSilverPendantEligible;
           const needsLogin = isSilverPendantEligible && !user;
-          const targetImage = isLocked ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-SLP001.jpg?v=1781353423" : currentEligiblePendant?.image;
-          const targetWorth = isLocked ? "₹5,000" : currentEligiblePendant?.worthText;
-          const shortfall = 15000 - diamondTotal;
+          const targetImage = isLocked ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png" : currentEligiblePendant?.image;
+          const targetWorth = isLocked ? "₹15,000" : currentEligiblePendant?.worthText;
+          const shortfall = 30000 - diamondTotal;
           
           return (
             <div
@@ -577,17 +549,17 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 background: isLocked ? "#FEF9F6" : "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
                 paddingTop: 8,
                 paddingBottom: 8,
-                paddingLeft: 0,
-                gap: 0
+                paddingLeft: 10,
+                gap: 10
               }}
             >
               <div
-                className={`w-[48px] h-[48px] sm:w-[60px] sm:h-[60px] overflow-hidden shrink-0 ${isLocked ? 'bg-[#f5f0ed]' : 'bg-white'} flex items-center justify-center`}
+                className={`w-[48px] h-[48px] sm:w-[60px] sm:h-[60px] overflow-hidden shrink-0 ${isLocked ? 'bg-[#f5f0ed]' : ''} flex items-center justify-center`}
                 style={{ border: 0 }}
               >
                 <img
-                  src={targetImage}
-                  alt="Silver Pendant"
+                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
+                  alt="Silver Bracelet"
                   className={`w-full h-full object-cover ${isLocked ? 'mix-blend-multiply opacity-60' : ''}`}
                   style={{ border: 0 }}
                 />
@@ -597,17 +569,17 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                   className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]"
                   style={{ color: "rgb(0, 0, 0)", fontWeight: 500, display: "none", marginBottom: "2px" }}
                 >
-                  Silver Pendant
+                  Silver Bracelet
                 </p>
                 <p
                   className={`font-figtree font-normal text-[0.9rem] lg:text-[0.9rem] leading-[1.35] ${isLocked ? 'text-[#6B5B54]' : 'text-[#000000]'}`}
                   style={{ color: isLocked ? "#6B5B54" : "rgb(0, 0, 0)", fontWeight: 500 }}
                 >
-                  {isLocked 
-                    ? <>Add <span className="font-bold text-[#e7000b]">₹{shortfall.toLocaleString('en-IN')}</span> more to unlock a FREE Diamond Pendant worth {targetWorth}.</>
+                  {isLocked
+                    ? <>Add <span className="font-bold text-[#e7000b]">₹{shortfall.toLocaleString('en-IN')}</span> more to unlock a FREE Diamond Bracelet worth {targetWorth}.</>
                     : needsLogin
-                      ? <>Unlock to claim a FREE Diamond Pendant worth {targetWorth}.</>
-                      : <>You&apos;ve unlocked a FREE Diamond Pendant worth {targetWorth}.</>
+                      ? <>Unlock to claim a FREE Diamond Bracelet worth {targetWorth}.</>
+                      : <>You&apos;ve unlocked a FREE Diamond Bracelet worth {targetWorth}.</>
                   }
                 </p>
               </div>
@@ -703,11 +675,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         )}
         {silverPendantItem && (
           <div className="flex justify-between items-center font-figtree text-base text-[#6B5B54]">
-            <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
+            <span>Free Silver Bracelet ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
             <div className="flex items-center gap-2">
-              {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
+              {pendantPrice > 0 && (
                 <span className="text-sm text-gray-400 line-through font-normal">
-                  ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  ₹ {pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </span>
               )}
               <span className="font-semibold text-[#189351]">₹ 0</span>
@@ -772,11 +744,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
             {silverPendantItem && (
               <div className="flex justify-between items-center font-figtree text-sm text-[#6B5B54]">
-                <span>Free Silver Pendant ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
+                <span>Free Silver Bracelet ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
                 <div className="flex items-center gap-2">
-                  {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
+                  {pendantPrice > 0 && (
                     <span className="text-xs text-gray-400 line-through font-normal">
-                      ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                      ₹ {pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                     </span>
                   )}
                   <span className="font-semibold text-[#189351]">₹ 0</span>

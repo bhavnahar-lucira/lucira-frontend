@@ -24,9 +24,8 @@ import {
 import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Video } from "lucide-react";
 import SocialProofBand from "@/components/common/SocialProofBand";
 import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/metal";
-import { apiFetch } from "@/lib/api";
 
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
+const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
 
 // The payment page rebuilds the free pendant from this flag rather than from the cart line,
 // so removing the line here has to clear it too or the gift reappears at checkout.
@@ -190,24 +189,14 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   // For BYJ items, the unit price displayed should be the total of style + all charms
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
-  const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48052809498842" || String(item.title).toLowerCase().includes("silver pendant");
+  const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48414958715098" || String(item.title).toLowerCase().includes("silver bracelet");
   // Narrower than the display check above — only the gift variant should touch the claim flag.
-  const isFreeSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48052809498842";
-  const [fetchedPendantPrice, setFetchedPendantPrice] = useState(0);
+  const isFreeSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48414958715098";
+  // Fixed marketing value for the free-gift line — the Silver Bracelet variant has no
+  // DI-GoldPrice variant_config metafield, so the dynamic pricing service can't price it.
+  const fetchedPendantPrice = 15000;
 
-  useEffect(() => {
-    if (isSilverPendant && (!Number(item.comparePrice) && !Number(item.originalPrice))) {
-      apiFetch(`/api/products/pricing?variantId=48052809498842`, { suppressErrorLog: true })
-        .then(data => {
-          if (data?.price || data?.compare_price) {
-            setFetchedPendantPrice(Number(data.price || data.compare_price));
-          }
-        })
-        .catch(() => {});
-    }
-  }, [isSilverPendant, item.comparePrice, item.originalPrice]);
-
-  const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || fetchedPendantPrice || 0) : (Number(item.comparePrice) || 0);
+  const effectiveComparePrice = isSilverPendant ? fetchedPendantPrice : (Number(item.comparePrice) || 0);
   const lineCompareAmount = effectiveComparePrice * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
@@ -459,7 +448,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               <div className="space-y-1">
                 <Link prefetch={false} href={productLink}>
                   <h3 className="font-abhaya text-lg font-bold text-black hover:text-primary transition-colors">
-                    {item.title}
+                    {isFreeSilverPendant ? "Free Diamond Bracelet" : item.title}
                   </h3>
                 </Link>
                 <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
@@ -616,15 +605,17 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               </div>
 
               {/* Row 2: Metal (+ net weight, when the variant carries one) */}
-              <div className="flex border-b border-zinc-100 min-h-[44px]">
-                <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
-                  {item.goldWeight ? "Metal / Net Wt" : "Metal"}
+              {!isFreeSilverPendant && (
+                <div className="flex border-b border-zinc-100 min-h-[44px]">
+                  <div className="w-[120px] bg-[#f9f9f9] px-4 py-2 text-zinc-500 font-normal flex items-center border-r border-zinc-100 shrink-0">
+                    {item.goldWeight ? "Metal / Net Wt" : "Metal"}
+                  </div>
+                  <div className="flex-1 bg-white px-4 py-2 flex items-center">
+                    {formatMetal(item.karat, item.color)}
+                    {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
+                  </div>
                 </div>
-                <div className="flex-1 bg-white px-4 py-2 flex items-center">
-                  {formatMetal(item.karat, item.color)}
-                  {item.goldWeight ? `, ${item.goldWeight} gram` : ''}
-                </div>
-              </div>
+              )}
 
               {/* Row 3: Stone (If diamondTotalPcs > 0) */}
               {/* {item.diamondTotalPcs > 0 && (
@@ -708,7 +699,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             {/* Info Content */}
             <div className="flex-1 space-y-1 min-w-0 pt-1">
               <h3 className="text-base font-medium text-black truncate leading-snug font-abhaya">
-                {item.title}
+                {isFreeSilverPendant ? "Free Diamond Bracelet" : item.title}
               </h3>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[15px] font-bold text-zinc-900">
@@ -730,11 +721,13 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   Engraving: &quot;{item.engraving}&quot;
                 </p>
               )}
-              <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-tight">
-                Metal: <span className="text-zinc-900">
-                  {formatMetal(item.karat, item.color)}
-                </span>
-              </p>
+              {!isFreeSilverPendant && (
+                <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-tight">
+                  Metal: <span className="text-zinc-900">
+                    {formatMetal(item.karat, item.color)}
+                  </span>
+                </p>
+              )}
 
               {/* Selectors */}
               <div className="flex items-center gap-3 pt-1 flex-wrap">
