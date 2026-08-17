@@ -37,16 +37,12 @@ export default function CartPage() {
 
   const cleanupInProgress = useRef(false);
 
-  // Fallback: If user logs in while on cart page, and was trying to checkout, redirect them
+  // Purge any legacy auth_redirect_path from localStorage to prevent unwanted redirects
   useEffect(() => {
-    if (isAuthenticated) {
-      const storedRedirect = localStorage.getItem("auth_redirect_path");
-      if (storedRedirect === "/checkout/shipping") {
-        localStorage.removeItem("auth_redirect_path");
-        router.push("/checkout/shipping");
-      }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_redirect_path");
     }
-  }, [isAuthenticated, router]);
+  }, []);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -96,9 +92,6 @@ const filteredItems = items.filter(
   }, [proofKey]);
 
   const handlePlaceOrder = () => {
-    if (!isAuthenticated) {
-      localStorage.setItem("auth_redirect_path", "/checkout/shipping");
-    }
     router.push("/checkout/shipping");
   };
 
