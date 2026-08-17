@@ -115,7 +115,11 @@ export default function CheckoutSummary({
           const p = Number(data?.price || data?.compare_price || 0);
           if (p > 0) setPendantPrice(p);
         })
-        .catch(err => console.error("Error fetching pendant price:", err));
+        .catch(err => {
+          if (!err.message?.includes("not found")) {
+            console.error("Error fetching pendant price:", err);
+          }
+        });
     }
   }, [eligiblePendantId]);
 

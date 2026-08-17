@@ -164,7 +164,11 @@ export default function PaymentPage() {
           const p = Number(data?.price || data?.compare_price || 0);
           if (p > 0) setPendantPrice(p);
         })
-        .catch(err => console.error("Error fetching pendant price in payment:", err));
+        .catch(err => {
+          if (!err.message?.includes("not found")) {
+            console.error("Error fetching pendant price in payment:", err);
+          }
+        });
     }
   }, [eligiblePendantId]);
 
