@@ -455,7 +455,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   // Shared by the "Proceed To Checkout" CTA.
   const handleProceedToCheckout = () => {
-    // If user not logged in, fire promoClick and open login modal
+    // If user not logged in, fire promoClick
     if (!user) {
       const firstItem = items && items.length > 0 ? items[0] : null;
       const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
@@ -471,8 +471,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         // swallow errors from analytics
         console.error('promo push failed', e);
       }
-      openLogin("/checkout/shipping");
-      return;
     }
     
     // Track checkout for search analytics (passing items in cart to see if any match the search context)
