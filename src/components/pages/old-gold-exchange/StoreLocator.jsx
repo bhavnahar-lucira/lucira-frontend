@@ -128,7 +128,7 @@ export default function StoreLocator({ data }) {
         </div>
 
         <div className="locator-controls flex flex-col items-center gap-6 mb-12">
-          <div className="search-input-group flex w-full max-w-[500px] border border-[#b76f79] rounded-lg overflow-hidden shadow-sm">
+          <div className="search-input-group flex w-full max-w-[500px] border border-[#B77767] rounded-lg overflow-hidden shadow-sm">
             <input
               type="text"
               placeholder="Search City, Pincode..."
@@ -139,7 +139,7 @@ export default function StoreLocator({ data }) {
             />
             <button
               onClick={handleSearch}
-              className="bg-[#b76f79] text-white px-8 uppercase text-xs font-bold tracking-widest hover:bg-[#a55f68] transition-colors"
+              className="bg-[#B77767] text-white px-8 uppercase text-xs font-bold tracking-widest hover:bg-[#8C5A4C] transition-colors"
             >
               Search
             </button>
@@ -153,7 +153,7 @@ export default function StoreLocator({ data }) {
 
           <button
             onClick={handleLocateMe}
-            className="flex items-center gap-2 px-8 py-4 bg-white border border-[#b76f79] text-[#b76f79] rounded-lg text-sm font-medium tracking-widest hover:bg-[#fef5f1] transition-all"
+            className="flex items-center gap-2 px-8 py-4 bg-white border border-[#B77767] text-[#B77767] rounded-lg text-sm font-medium tracking-widest hover:bg-[#fef5f1] transition-all"
           >
             <Navigation size={16} />
             Find Nearest Stores
@@ -193,7 +193,7 @@ export default function StoreLocator({ data }) {
                   <h3 className="text-lg font-semibold uppercase tracking-wider mb-4 border-b border-gray-100 pb-4">{store.name}</h3>
                   <div className="space-y-4 mb-6">
                     <div className="flex items-start gap-3">
-                      <MapPin size={18} className="text-[#b76f79] flex-shrink-0 mt-0.5" />
+                      <MapPin size={18} className="text-[#B77767] flex-shrink-0 mt-0.5" />
                       <p className="text-xs text-gray-500 leading-relaxed">{store.address}</p>
                     </div>
                   </div>
@@ -201,14 +201,14 @@ export default function StoreLocator({ data }) {
                   <div className="store-actions grid grid-cols-2 gap-3">
                     <a
                       href={`tel:${store.phone}`}
-                      className="flex items-center justify-center gap-2 py-3 border border-[#b76f79] text-[#b76f79] rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#fef5f1] transition-all"
+                      className="flex items-center justify-center gap-2 py-3 border border-[#B77767] text-[#B77767] rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#fef5f1] transition-all"
                     >
                       <Phone size={14} />
                       Call Us
                     </a>
                     <a
                       href={store.appointment_url}
-                      className="flex items-center justify-center gap-2 py-3 bg-[#b76f79] text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#a55f68] transition-all"
+                      className="flex items-center justify-center gap-2 py-3 bg-[#B77767] text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#8C5A4C] transition-all"
                     >
                       <CalendarDays size={14} />
                       WhatsApp

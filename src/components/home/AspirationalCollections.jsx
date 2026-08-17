@@ -10,6 +10,7 @@ import { pushPromoClick } from "@/lib/gtm";
 // wide cards plus the gap land level with Eterna's square in a 50/50 grid. The
 // stretch flag closes the few px that the fixed gap leaves over at wide viewports.
 const ETERNA = {
+  id: "eterna",
   href: "/collections/eterna",
   image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Eterna_jpg.jpg?v=1786516956",
   alt: "Eterna - Embrace Who You Are",
@@ -18,6 +19,7 @@ const ETERNA = {
 };
 
 const HEXA = {
+  id: "hexa",
   href: "/collections/hexa",
   image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_jpg_8ecd3784-feb4-43aa-8b2c-4b765dd201fd.jpg?v=1786516955",
   alt: "Hexa Cut - An ode to transformation",
@@ -26,6 +28,7 @@ const HEXA = {
 };
 
 const PORTUGUESE = {
+  id: "portuguese",
   href: "/collections/portuguese",
   image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Portuguese_jpg.jpg?v=1786516955",
   alt: "Portuguese - 3x facets, 3x sparkle",
@@ -69,14 +72,24 @@ export default function AspirationalCollections() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="w-full pb-5 lg:pb-10 bg-white overflow-hidden">
+    <section ref={sectionRef} className="w-full pt-5 pb-5 lg:pb-10 bg-white overflow-hidden">
       <div className="container-main">
-        <div className="grid gap-3 lg:grid-cols-2">
+        {/* Same heading block as Explore Our Range / Diamond Cuts / Shop By Occasion */}
+        <div className="text-left lg:text-center mb-6 px-1 lg:px-0">
+          <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
+            Collections You’ll Love
+          </h2>
+          <p className="text-black font-normal md:text-base text-sm leading-[1.4] tracking-normal align-middle">
+            Pick a collection. Your next obsession awaits.
+          </p>
+        </div>
+
+        <div className="grid gap-3 lg:gap-4 lg:grid-cols-2">
           {/* Eterna fills the left half and sets the row height */}
           <AspirationCard card={ETERNA} revealed={revealed} order={0} />
 
           {/* Hexa over Portuguese in the right half, stretched to match Eterna */}
-          <div className="grid gap-3 lg:grid-rows-2">
+          <div className="grid gap-3 lg:gap-4 lg:grid-rows-2">
             <AspirationCard card={HEXA} revealed={revealed} order={1} stretch />
             <AspirationCard card={PORTUGUESE} revealed={revealed} order={2} stretch />
           </div>
@@ -91,6 +104,8 @@ function AspirationCard({ card, revealed, order, stretch = false }) {
     pushPromoClick({
       creative_name: "aspirational section homepage",
       location_id: "homepage",
+      // Which of the three banners was clicked: eterna | hexa | portuguese
+      promo_id: card.id,
     });
   };
 
