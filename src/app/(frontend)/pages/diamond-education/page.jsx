@@ -20,37 +20,37 @@ export default function DiamondEducation() {
       key: "table",
       label: "Table",
       image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-table.png",
-      text: "The table is the largest facet of a diamond, located at the very top. It acts as the main entry point for light, playing a key role in the stone's brightness and overall brilliance.",
+      text: "Every part matters crown, girdle, pavilion, facets, and culet work together to shape light, enhance brilliance, and turn a diamond into a masterpiece of sparkle and precision",
     },
     {
       key: "crown",
       label: "Crown",
       image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-crown.png",
-      text: "The crown is the upper portion of the diamond between the girdle and the table. Its facets refract light and disperse it into flashes of color, contributing to the diamond's sparkle.",
+      text: "The crown is the top part of a diamond above the girdle, shaping its brilliance by controlling how light enters and reflects",
     },
     {
       key: "girdle",
       label: "Girdle",
       image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-girdle.png",
-      text: "The girdle is the narrow band that forms the widest edge of the diamond, separating the crown from the pavilion. It defines the outline of the stone and provides structural durability.",
+      text: "The girdle is the thin outer edge of a diamond where the crown meets the pavilion. It provides structure, helps set the stone securely, and can affect how light interacts with the diamond",
     },
     {
       key: "pavilion",
       label: "Pavilion",
       image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-pavilion.png",
-      text: "The pavilion is the lower portion of the diamond below the girdle. Its angles determine how light entering through the table is reflected back to the eye, directly influencing brilliance.",
+      text: "The pavilion’s precise angles and depth control how light reflects, enhancing the diamond’s brilliance and creating its signature sparkle.",
     },
     {
       key: "facet",
       label: "Facet",
       image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-facet.png",
-      text: "Facets are the flat, polished surfaces cut into a diamond. Each one acts like a tiny mirror, and together they control how light enters, bounces, and exits the stone.",
+      text: "Facets are the flat, polished surfaces on a diamond that catch and reflect light. Their arrangement and precision create brilliance, fire, and the diamond’s overall sparkle.  ",
     },
     {
       key: "culet",
       label: "Culet",
       image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-culet.png",
-      text: "The culet is the small facet, or sometimes a point, at the very bottom of the diamond. A well-proportioned culet helps prevent light from leaking out the base of the stone.",
+      text: "The culet is the tiny tip at the bottom of a diamond. A well-proportioned culet prevents chipping and ensures light reflects properly for maximum brilliance.",
     },
   ];
 
@@ -69,22 +69,22 @@ export default function DiamondEducation() {
     {
       key: "cut",
       label: "Cut",
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-cut.jpg",
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cut_48fc3b00-7b47-4059-a4a4-d5dc1fab871f.jpg?v=1786444903",
     },
     {
       key: "clarity",
       label: "Clarity",
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-clarity.jpg",
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_effe4bc9-24e6-4a4a-844e-ee6e24c25d9d.jpg?v=1786444903",
     },
     {
       key: "color",
       label: "Color",
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-color.jpg",
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_5abf6cae-8c02-4c18-bec3-3a0abbc7c41b.jpg?v=1786444904",
     },
     {
       key: "carat",
       label: "Carat",
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond-carat.jpg",
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Carat_9dfac57e-c5d7-45d2-83b3-c8ff0e456df5.jpg?v=1786444902",
     },
   ];
 
@@ -92,25 +92,25 @@ export default function DiamondEducation() {
     {
       key: "ideal",
       label: "Ideal Cut",
-      desc: "Lorem ipsum dolor sit amet, consectetur",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/cut-ideal-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/cut-ideal-real.jpg",
+      desc: "Expertly angled for superior shine",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cut_1.jpg_1.jpg?v=1786445249",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cut_r1.jpg_1.jpg?v=1786445825",
       highlight: true,
     },
     {
       key: "deep",
       label: "Deep Cut",
-      desc: "Lorem ipsum dolor sit amet, consectetur",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/cut-deep-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/cut-deep-real.jpg",
+      desc: "Depth that enhances brilliance",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cut_2.jpg_1.jpg?v=1786445250",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cut_r2.jpg_1.jpg?v=1786445823",
       highlight: false,
     },
     {
       key: "shallow",
       label: "Shallow Cut",
-      desc: "Lorem ipsum dolor sit amet, consectetur",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/cut-shallow-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/cut-shallow-real.jpg",
+      desc: "Light escapes, subtle sparkle",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cut_3.jpg_1.jpg?v=1786445249",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cut_r3.jpg_1.jpg?v=1786445823",
       highlight: false,
     },
   ];
@@ -119,32 +119,32 @@ export default function DiamondEducation() {
     {
       key: "if",
       label: "IF",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-if-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-if-real.jpg",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Vector_29_201_1.jpg?v=1786446394",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Real_29_201_1.jpg?v=1786446623",
     },
     {
       key: "vvs",
       label: "VVS",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-vvs-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-vvs-real.jpg",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Vector_29_202_1.jpg?v=1786446393",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Real_29_202_2.jpg?v=1786447340",
     },
     {
       key: "vs",
       label: "VS",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-vs-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-vs-real.jpg",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Vector_29_203_1.jpg?v=1786446393",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Real_29_203_4.jpg?v=1786450721",
     },
     {
       key: "si",
       label: "SI",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-si-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-si-real.jpg",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Vector_29_204_1.jpg?v=1786446393",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Real_29_204_1.jpg?v=1786450181",
     },
     {
       key: "i",
       label: "I",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-i-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/clarity-i-real.jpg",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Vector_29_205_1.jpg?v=1786446394",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Clarity_20Desktop_201720x715_20_28Real_29_205_2.jpg?v=1786450014",
     },
   ];
 
@@ -153,29 +153,29 @@ export default function DiamondEducation() {
       key: "df",
       label: "D-F",
       desc: "Colorless",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/color-df-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/color-df-real.jpg",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_20Desktop_201720x715_20_28Vector_29_201_1.jpg?v=1786965194",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_20Desktop_201720x715_20_28Real_29_201.jpg?v=1786964441",
     },
     {
       key: "gj",
       label: "G-J",
       desc: "Near Colorless",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/color-gj-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/color-gj-real.jpg",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_20Desktop_201720x715_20_28Vector_29_202_1.jpg?v=1786965234",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_20Desktop_201720x715_20_28Real_29_202.jpg?v=1786964568",
     },
     {
       key: "km",
       label: "K-M",
-      desc: "Faint",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/color-km-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/color-km-real.jpg",
+      desc: "Yellowish",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_20Desktop_201720x715_20_28Vector_29_203_1.jpg?v=1786965282",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_20Desktop_201720x715_20_28Real_29_203.jpg?v=1786964613",
     },
     {
       key: "nz",
-      label: "N-Z",
-      desc: "Very Light",
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/color-nz-diagram.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/color-nz-real.jpg",
+      label: "S-Z",
+      desc: "Dark Yellow",
+      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_20Desktop_201720x715_20_28Vector_29_204_1.jpg?v=1786965286",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Color_20Desktop_201720x715_20_28Real_29_203.jpg?v=1786964613",
     },
   ];
 
@@ -184,76 +184,70 @@ export default function DiamondEducation() {
       key: "025",
       label: "0.25",
       size: 34,
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-diagram-025.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-real-025.png",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/4mm_200.25ct.png?v=1786968106",
     },
     {
       key: "05",
       label: "0.5",
       size: 42,
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-diagram-05.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-real-05.png",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/5.10mm_200.50ct.png?v=1786968215",
     },
     {
       key: "075",
       label: "0.75",
       size: 50,
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-diagram-075.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-real-075.png",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/5.80mm_200.75ct.png?v=1786968144",
     },
     {
       key: "1",
       label: "1",
       size: 58,
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-diagram-1.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-real-1.png",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/6.50mm_201.00ct.png?v=1786968131",
     },
     {
       key: "125",
       label: "1.25",
       size: 66,
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-diagram-125.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-real-125.png",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/6.95mm_201.25ct.png?v=1786968250",
     },
     {
       key: "15",
       label: "1.5",
       size: 74,
-      diagramImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-diagram-15.png",
-      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-real-15.png",
+      realImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1.50cm_201.50ct.png?v=1786968273",
     },
   ];
 
   const faqData = [
     {
-      question: "What is a gemstone?",
+      question: "Which of the 4Cs is most important for sparkle?",
       answer:
-        "A gemstone is a naturally occurring mineral or organic material that is cut and polished for use in jewelry. It is valued for its beauty, rarity, and durability.",
+        "Cut is the most vital. Even with perfect color/clarity, a poor cut looks dull. Prioritize 'Ideal' or 'Excellent' cuts for maximum brilliance.",
     },
     {
-      question: " How do I choose the right gemstone?",
+      question: "How can I get a larger diamond on a fixed budget?",
       answer:
-        "Choose based on personal preference, birthstone, symbolism, durability, and lifestyle. Consider colour, meaning, and how often you plan to wear it.",
+        "Consider Lab-Grown Diamonds or 'Near Colorless' grades (G-J). Choosing shapes like Oval or Pear also creates the illusion of a larger stone.",
     },
     {
-      question: "What is the Mohs scale?",
+      question: "Are lab-grown diamonds as durable as mined?",
       answer:
-        "The Mohs scale measures a gemstone's hardness and resistance to scratching, ranking from 1 (softest) to 10 (hardest, like diamond).",
+        "Yes. They are chemically and physically identical, with a Mohs hardness of 10/10. Both are perfect for daily wear and lifelong durability.",
     },
     {
-      question: "Are all gemstones suitable for daily wear?",
+      question: "Which diamond shape offers the best value?",
       answer:
-        "Not all. Stones with hardness 7 and above are generally better for everyday wear, while softer stones like opal or pearl require extra care.",
+        "Oval and Cushion cuts typically cost less per carat than Round Brilliant cuts while offering a large surface area and magnificent light return",
     },
     {
-      question: "What is the difference between precious and semi-precious stones?",
+      question: "Do all your diamonds come with a GIA report?",
       answer:
-        "Traditionally, diamond, ruby, sapphire, and emerald are considered \"precious,\" while others fall under \"semi-precious,\" though rarity varies widely.",
+        "Yes. Every center stone is GIA or IGI certified, ensuring the 4Cs—Cut, Color, Clarity, and Carat—are independently verified for your peace of mind.",
     },
     {
-      question: "How should I care for my gemstone jewelry?",
+      question: "Do lab-grown diamonds have resale value?",
       answer:
-        "Clean gently with mild soap and water, avoid harsh chemicals, store separately to prevent scratches, and remove before heavy activities.",
+        "While lab diamonds offer more \"size for your spend,\" natural diamonds generally retain higher long-term resale value due to their inherent rarity. ",
     },
   ];
 
@@ -264,7 +258,7 @@ export default function DiamondEducation() {
           className="
             relative w-full
             h-[535px] md:h-[605px] lg:h-[725px]
-            bg-[url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Banner_20428x535_20_28Mobile_29_699adcc2-b2ce-4af4-8d56-fbf6fb687bdb.jpg?v=1785237804')]
+            bg-[url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/B anner_20428x535_20_28Mobile_29_699adcc2-b2ce-4af4-8d56-fbf6fb687bdb.jpg?v=1785237804')]
             md:bg-[url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Banner_201920x823_20_28Desktop_29_a1e8019b-7252-42ca-93b4-6827c5fc5e4c.jpg?v=1785237800')]
             bg-cover bg-center
             flex items-end justify-center
@@ -276,7 +270,7 @@ export default function DiamondEducation() {
               DIAMOND EDUCATION
             </h2>
             <p className="text-[12px] md:text-[18px]">
-              Let's learn about the colourful world of diamonds
+              A diamond is more than sparkle; it's precision and choice
             </p>
           </div>
         </div>
@@ -289,9 +283,7 @@ export default function DiamondEducation() {
               DIAMOND ANATOMY
             </h2>
             <p className="text-[12px] md:text-[15px] text-gray-500 mt-2 max-w-xl mx-auto">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-              tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-              veniam, ut alconsequat.
+              Every facet measured, every proportion balanced; this is what gives a diamond its unmatched sparkle and timeless allure. Cut, clarity, and symmetry transform each stone into a masterpiece.
             </p>
           </div>
 
@@ -334,14 +326,14 @@ export default function DiamondEducation() {
 
                     {isOpen && (
                       <div className="px-6 pb-6 bg-[#efefef] flex items-start gap-5">
-                        <div className="relative w-[100px] h-[100px] shrink-0">
+                        {/* <div className="relative w-[100px] h-[100px] shrink-0">
                           <Image
                             src={item.image}
                             alt={item.label}
                             fill
                             className="object-contain"
                           />
-                        </div>
+                        </div> */}
                         <p className="text-[13px] md:text-[14px] text-gray-500 leading-relaxed">
                           {item.text}
                         </p>
@@ -359,12 +351,10 @@ export default function DiamondEducation() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-10">
             <h2 className="text-[18px] md:text-[24px] font-medium tracking-wide">
-              LGD VS MINED
+              Modern Sparkle vs Classic Heritage
             </h2>
             <p className="text-[12px] md:text-[15px] text-gray-500 mt-2 max-w-xl mx-auto">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-              tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-              veniam, ut alconsequat.
+              Both sparkle, but lab-grown diamonds offer precision, ethical sourcing, and sustainable luxury while mined diamonds carry tradition and timeless allure.
             </p>
           </div>
 
@@ -448,12 +438,10 @@ export default function DiamondEducation() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-10">
             <h2 className="text-[18px] md:text-[24px] font-medium tracking-wide">
-              DIAMOND 4C's
+              Diamonds Decoded
             </h2>
             <p className="text-[12px] md:text-[15px] text-gray-500 mt-2 max-w-xl mx-auto">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-              tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-              veniam, ut alconsequat.
+              Cut, Clarity, Color, and Carat the 4Cs define every diamond’s brilliance, beauty, and value. Understanding them ensures a choice that’s both dazzling and informed
             </p>
           </div>
 
@@ -519,9 +507,7 @@ export default function DiamondEducation() {
             {cutTypes.map((cut, index) => (
               <div
                 key={cut.key}
-                className={`flex flex-col items-center text-center px-6 py-10 rounded-md ${
-                  cut.highlight ? "bg-[#f9dede]/70" : "bg-transparent"
-                } ${index === 0 ? "col-span-2 md:col-span-1" : "col-span-1"}`}
+                className={`flex flex-col items-center text-center px-6 py-10 rounded-md ${index === 0 ? "col-span-2 md:col-span-1" : "col-span-1"}`}
               >
                 <div className="relative w-full h-[220px] mb-6">
                   <Image
@@ -547,11 +533,10 @@ export default function DiamondEducation() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-6">
             <h2 className="text-[18px] md:text-[24px] font-medium tracking-wide">
-              CLARITY
+              Flawless Beauty Revealed
             </h2>
             <p className="text-[12px] md:text-[15px] text-gray-500 mt-2 max-w-xl mx-auto">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-              tempor incididunt ut labore et dolore magna aliqua
+              Diamond clarity shows internal flaws. Fewer inclusions mean more sparkle, brilliance, and value. Checked via loupe or certificate, clarity ensures light reflects perfectly for unmatched elegance.
             </p>
           </div>
 
@@ -626,11 +611,10 @@ export default function DiamondEducation() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-6">
             <h2 className="text-[18px] md:text-[24px] font-medium tracking-wide">
-              COLOR
+              The Hue & Tint Guide
             </h2>
             <p className="text-[12px] md:text-[15px] text-gray-500 mt-2 max-w-xl mx-auto">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-              tempor incididunt ut labore et dolore magna aliqua
+              From icy colorless to warm honey tones, a diamond’s color grade significantly impacts its value. Choose the perfect hue that balances pure brilliance in your budget.
             </p>
           </div>
 
@@ -717,11 +701,10 @@ export default function DiamondEducation() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-6">
             <h2 className="text-[18px] md:text-[24px] font-medium tracking-wide">
-              CARAT
+              Understanding Carats
             </h2>
             <p className="text-[12px] md:text-[15px] text-gray-500 mt-2 max-w-xl mx-auto">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-              tempor incididunt ut labore et dolore magna aliqua
+              Carat measures a diamond's weight, not its physical size. Discover how the right cut can make a smaller carat appear larger, and find the perfect balance.
             </p>
           </div>
 
@@ -751,15 +734,15 @@ export default function DiamondEducation() {
           <div className="relative w-full h-[420px] md:h-[520px] mb-10">
             {/* Hand image: stays fixed regardless of carat size or toggle */}
             <Image
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/carat-hand-base.jpg"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Carat_20Mobile_20776x1260_fa64709c-c180-49e0-b5a9-f05671aec17e.jpg?v=1786965408"
               alt="Hand with ring finger"
               fill
-              className="object-contain"
+              className="object-none"
             />
 
             {/* Diamond overlay: swaps image + size as carat / toggle change */}
             <div
-              className="absolute"
+              className="absolute object-none"
               style={{
                 top: "48%",
                 left: "37%",
@@ -818,8 +801,8 @@ export default function DiamondEducation() {
 
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <FAQ
-          title="Know your Gems"
-          description="Discover expert-backed answers that help you understand quality, authenticity, and timeless value in every gemstone."
+          title="Your Jewelry Questions"
+          description="Quick answers to help you choose the perfect diamond"
           faqs={faqData}
         />
       </Suspense>
