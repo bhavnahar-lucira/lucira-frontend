@@ -74,7 +74,7 @@ const CUSTOM_COLLECTION_BANNERS = {
 // Plain Gold sub-collections (see "Plain Gold" menu group in menu-data.json) use a
 // dedicated hero image in place of the generic collection banner's default image.
 const PLAIN_GOLD_HANDLES = ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"];
-const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_12.png?v=1786689049";
+const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg_44047036-a66f-4e34-8332-f226a6d24073.jpg";
 
 // In-page promo banners injected into the product grid. They alternate in order
 // (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
