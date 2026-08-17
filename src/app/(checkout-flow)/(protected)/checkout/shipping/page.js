@@ -174,7 +174,7 @@ export default function ShippingPage() {
   const [dialogSaving, setDialogSaving] = useState(false);
   const [inlineSaving, setInlineSaving] = useState(false);
   const [addressForm, setAddressForm] = useState(emptyAddressForm);
-  const [makeDefault, setMakeDefault] = useState(false);
+  const [makeDefault, setMakeDefault] = useState(true);
   const [editingAddressId, setEditingAddressId] = useState("");
   const [isCompanyPurchase, setIsCompanyPurchase] = useState(false);
   const addressFormRef = useRef(null);
@@ -488,7 +488,7 @@ export default function ShippingPage() {
 
   return (
     <div className="bg-white min-h-screen overflow-x-clip">
-      <div className="container-main relative z-10 max-lg:!px-0 lg:!max-w-[1160px]">
+      <div className="container-main relative z-10 max-lg:!px-0 lg:!max-w-[2100px] lg:!w-[94%]">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
           <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white p-0 lg:pl-0 lg:pr-[20px] lg:py-10 min-w-0">
             <h2 className="font-figtree text-[0.6875rem] md:text-[1rem] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 lg:px-0 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
@@ -727,6 +727,7 @@ export default function ShippingPage() {
                     pickup={pickup}
                     pickupPhone={pickupPhone}
                     setPickupPhone={setPickupPhone}
+                    cartItems={cartItems}
                   />
 
                   <BillingAddressSection
@@ -756,7 +757,7 @@ export default function ShippingPage() {
 
           <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
-            <div className="relative z-10 py-6 px-4 lg:px-0 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white scroll-mt-16" ref={summaryRef}>
+            <div className="relative z-10 py-6 px-4 lg:px-0 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white">
               <div className="lg:sticky lg:top-4 space-y-6">
                 {deliveryMethod === "ship" && hasSavedAddresses && (
                   <div className="pt-6 border-t border-zinc-200 lg:border-none lg:pt-0">
@@ -784,9 +785,10 @@ export default function ShippingPage() {
                     </div>
                   </div>
                 )}
-                <CheckoutSummary showItems={false} showContact={false}>
-                  {/* Desktop Button - Moved inside to match cart and payment pages */}
-                  <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
+                <div ref={summaryRef} className="scroll-mt-16">
+                  <CheckoutSummary showItems={false} showContact={false}>
+                    {/* Desktop Button - Moved inside to match cart and payment pages */}
+                    <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
                     <Button
                       disabled={isContinueDisabled}
                       onClick={() => {
@@ -803,6 +805,7 @@ export default function ShippingPage() {
                     </Button>
                   </div>
                 </CheckoutSummary>
+                </div>
               </div>
             </div>
           </div>

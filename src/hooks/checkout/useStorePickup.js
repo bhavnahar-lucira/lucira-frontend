@@ -72,7 +72,9 @@ export function useStorePickup({ selectedShippingZip } = {}) {
         const data = await apiFetch("/api/stores");
         if (data && data.stores && data.stores.length > 0) {
           setDbStores(
-            data.stores.map((s) => {
+            data.stores
+              .filter(s => !s.name.toLowerCase().includes("divinecarat"))
+              .map((s) => {
               // Dynamically cross-reference ALL_STORES from StoreLocatorClient
               // to find matching phone numbers so there is a single source of truth.
               const sName = s.name.toLowerCase();
@@ -107,7 +109,9 @@ export function useStorePickup({ selectedShippingZip } = {}) {
       
       // Fallback if API fails or returns no stores
       setDbStores(
-        ALL_STORES.map((s, index) => {
+        ALL_STORES
+          .filter(s => !s.name.toLowerCase().includes("divinecarat"))
+          .map((s, index) => {
           // Extract pincode from address if available (6 digit number at end)
           const zipMatch = s.address?.match(/\b\d{6}\b/);
           return {
@@ -140,6 +144,7 @@ export function useStorePickup({ selectedShippingZip } = {}) {
 
     return [...dbStores]
       .map((store) => ({ ...store, distance: calculateDistance(center.lat, center.lng, store.lat, store.lng) }))
+      .filter((store) => store.distance <= 50)
       .sort((a, b) => (a.distance || 0) - (b.distance || 0));
   }, [selectedShippingZip, searchCoords, dbStores]);
 
@@ -147,6 +152,7 @@ export function useStorePickup({ selectedShippingZip } = {}) {
     (coords) => {
       const nearest = [...dbStores]
         .map((store) => ({ ...store, distance: calculateDistance(coords.lat, coords.lng, store.lat, store.lng) }))
+        .filter((store) => store.distance <= 50)
         .sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
       return nearest || null;
     },

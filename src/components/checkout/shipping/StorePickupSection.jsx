@@ -20,7 +20,7 @@ const getStoreDisplayName = (codeOrName) => {
   return storeNameMapping[codeOrName] || codeOrName;
 };
 
-export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPhone }) {
+export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPhone, cartItems = [] }) {
   const {
     sortedStores,
     selectedStore,
@@ -37,6 +37,17 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
     saveStoreSelection,
   } = pickup;
 
+  let maxDispatchDays = 0;
+  if (cartItems && cartItems.length > 0) {
+    cartItems.forEach(item => {
+      let itemDays = item.inStock ? 2 : ((parseInt(item.leadTime) || 12) + 3);
+      if (itemDays > maxDispatchDays) maxDispatchDays = itemDays;
+    });
+  } else {
+    maxDispatchDays = 2; // default if no items
+  }
+  const pickupDaysFromNow = maxDispatchDays + 2;
+
   return (
     <div className="space-y-6">
       {showStoreDialog ? (
@@ -44,9 +55,14 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           <h2 className="font-figtree text-[1rem] lg:text-[1.125rem] font-medium text-black mb-4">Stores Available Near You</h2>
           
           <div className="space-y-3 pb-6">
-            {sortedStores.map((store, index) => {
-              const isSelected = tempSelectedStoreId === store.id;
-              return (
+            {sortedStores.length === 0 ? (
+              <div className="p-6 text-center border border-zinc-200 rounded-[6px] bg-[#FAFAFA]">
+                <p className="font-figtree text-[0.9375rem] text-zinc-600">No stores available within 50km of your location.</p>
+              </div>
+            ) : (
+              sortedStores.map((store, index) => {
+                const isSelected = tempSelectedStoreId === store.id;
+                return (
                 <div
                   key={store.id}
                   onClick={() => setTempSelectedStoreId(store.id)}
@@ -80,7 +96,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
                   </div>
                 </div>
               );
-            })}
+            }))}
           </div>
           
           <div className="hidden lg:block absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-0">
@@ -115,7 +131,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
               </p>
               <div className="flex items-center gap-2 text-[0.9375rem] lg:text-[1rem] text-[#22A05B] font-figtree font-medium pt-1">
                 <span className="size-1.5 rounded-full bg-[#22A05B]" />
-                Pickup Available by {formatPickupReadyDate()}
+                Pickup Available by {formatPickupReadyDate(pickupDaysFromNow)}
               </div>
             </div>
 

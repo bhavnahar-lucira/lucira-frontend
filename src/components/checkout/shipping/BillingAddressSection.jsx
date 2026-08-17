@@ -52,7 +52,7 @@ export function BillingAddressSection({
 }) {
   const [billingView, setBillingView] = useState("card"); // "card" | "list" | "form"
   const [createForm, setCreateForm] = useState(emptyAddressForm);
-  const [createMakeDefault, setCreateMakeDefault] = useState(false);
+  const [createMakeDefault, setCreateMakeDefault] = useState(true);
   const [createIsCompany, setCreateIsCompany] = useState(false);
   const [creating, setCreating] = useState(false);
 

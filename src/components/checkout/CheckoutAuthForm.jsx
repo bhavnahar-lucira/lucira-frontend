@@ -283,7 +283,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
               type="tel"
               placeholder="Enter Mobile Number"
               maxLength="10"
-              className="w-full h-full text-[14px] md:text-[15px] lg:text-[1rem] font-medium border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400 max-md:font-figtree max-md:leading-[140%] max-md:text-[#909090] md:text-zinc-900"
+              className="w-full h-full text-[14px] md:text-[15px] lg:text-[1rem] font-medium border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400 max-md:font-figtree max-md:leading-[140%] max-md:text-zinc-700 md:text-zinc-900"
               value={mobile}
               onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}

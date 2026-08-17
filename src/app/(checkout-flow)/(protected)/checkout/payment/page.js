@@ -843,7 +843,7 @@ export default function PaymentPage() {
 
   return (
     <div className="bg-white min-h-screen overflow-x-clip">
-      <div className="container-main relative z-10 !px-0 lg:!px-17 lg:!max-w-[1160px]">
+      <div className="container-main relative z-10 !px-0 lg:!px-17 lg:!max-w-[2100px] lg:!w-[94%]">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
 
           {/* Main Content Area (60%) */}
@@ -852,7 +852,7 @@ export default function PaymentPage() {
             {/* MOBILE ONLY ORDER */}
             {!isDesktop && (
               <div className="space-y-6 px-0 lg:px-4">
-                <div className="border-0 lg:border lg:border-[#EBE1D7] lg:rounded-[8px] overflow-hidden">
+                <div className="border-0 lg:border lg:border-[#EBE1D7] lg:rounded-[8px] overflow-hidden mb-3 lg:mb-0">
                   <div className="flex items-center gap-4 py-4 px-4 bg-white">
                     <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
@@ -877,35 +877,7 @@ export default function PaymentPage() {
                   />
                 </div>
 
-                <div className="px-4 lg:px-0">
-                  <CheckoutSummary
-                    showItems={false}
-                    showBreakdown={false}
-                    showContact={false}
-                    isSilverPendantClaimed={isSilverPendantClaimed}
-                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
-                    mobilePaymentCoinsTheme={true}
-                    onApplyCoinsWarning={(proceed) => {
-                      setCoinsProceedAction(() => proceed);
-                      setShowCoinsNudge(true);
-                    }}
-                  />
-                </div>
-
-                <div ref={summaryRef} className="scroll-mt-16 bg-white px-4 lg:px-0">
-                  <CheckoutSummary
-                    showItems={false}
-                    showPoints={false}
-                    showContact={false}
-                    isSilverPendantClaimed={isSilverPendantClaimed}
-                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
-                    showSilverPendantOffer={false}
-                    breakdownRef={summaryBreakdownRef}
-                    compactBreakdown={true}
-                  />
-                </div>
-
-                <div className="space-y-4 pt-2 px-4 pb-[150px] lg:pb-4">
+                <div className="space-y-4 pt-2 px-4 lg:pb-4">
                   <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.9375rem] mb-4 lg:hidden">PAYMENT OPTIONS</h2>
                   <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
                       {paymentGateways.map((gateway) => (
@@ -936,6 +908,34 @@ export default function PaymentPage() {
                       ))}
                     </RadioGroup>
                   </div>
+
+                <div className="px-4 lg:px-0">
+                  <CheckoutSummary
+                    showItems={false}
+                    showBreakdown={false}
+                    showContact={false}
+                    isSilverPendantClaimed={isSilverPendantClaimed}
+                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                    mobilePaymentCoinsTheme={true}
+                    onApplyCoinsWarning={(proceed) => {
+                      setCoinsProceedAction(() => proceed);
+                      setShowCoinsNudge(true);
+                    }}
+                  />
+                </div>
+
+                <div ref={summaryRef} className="scroll-mt-16 bg-white px-4 lg:px-0 pb-[150px]">
+                  <CheckoutSummary
+                    showItems={false}
+                    showPoints={false}
+                    showContact={false}
+                    isSilverPendantClaimed={isSilverPendantClaimed}
+                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
+                    showSilverPendantOffer={false}
+                    breakdownRef={summaryBreakdownRef}
+                    compactBreakdown={true}
+                  />
+                </div>
               </div>
             )}
 

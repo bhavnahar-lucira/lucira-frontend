@@ -398,7 +398,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   return (
     <>
       {/* SINGLE RESPONSIVE DESIGN */}
-      <div className="mb-4 pb-4 lg:mb-6 lg:pb-6 border-b border-[#E7E7E7] overflow-hidden rounded-card bg-white">
+      <div className="mb-4 lg:mb-6 overflow-hidden rounded-card bg-white">
         <div className="relative">
           {updating && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50">
