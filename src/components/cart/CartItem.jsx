@@ -482,7 +482,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                         <SelectTrigger className="!h-auto border-none bg-transparent p-0 font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 lg:gap-1 min-w-0 w-auto">
                           <SelectValue placeholder={formatSizeLabel(item.size)} />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent position="popper" sideOffset={4} className="max-h-[240px] min-w-[80px]">
                           {sizeOptions.map((variant) => (
                             <SelectItem key={variant.variantId || variant.size} value={String(variant.size)}>
                               {formatSizeLabel(variant.size)}
@@ -509,7 +509,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       <SelectTrigger className="!h-auto border-none bg-transparent p-0 font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-800 shadow-none focus:ring-0 gap-0.5 lg:gap-1 min-w-0 w-auto">
                         <SelectValue placeholder={item.quantity} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="max-h-[240px] min-w-[80px]">
                         {[...Array(10)].map((_, i) => (
                           <SelectItem key={i + 1} value={String(i + 1)}>
                             {i + 1}
