@@ -19,7 +19,7 @@ import { pushPromoClick } from "@/lib/gtm";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
+const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
 
 export default function CheckoutSummary({
   showItems = true,
@@ -47,7 +47,7 @@ export default function CheckoutSummary({
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
     !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-    item.variantId !== SILVER_PENDANT_VARIANT_ID
+    item.variantId !== SILVER_BRACELET_VARIANT_ID
   )?.title;
 
   const isPaymentPage = pathname && (pathname === "/checkout/payment" || pathname.includes("/checkout/payment"));
@@ -76,7 +76,7 @@ export default function CheckoutSummary({
 
       // Exclude Gold Coins, Silver Bracelets (paid), Insurance, BYJ
       const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
-      const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
+      const isSilverPendant = item.variantId === SILVER_BRACELET_VARIANT_ID;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] || 
@@ -108,7 +108,7 @@ export default function CheckoutSummary({
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === SILVER_BRACELET_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -122,7 +122,7 @@ export default function CheckoutSummary({
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === SILVER_BRACELET_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -221,7 +221,7 @@ export default function CheckoutSummary({
 
   const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
 
-  const hasPendantLine = (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+  const hasPendantLine = (items || []).some(item => item.variantId === SILVER_BRACELET_VARIANT_ID);
 
   // The cart line is the source of truth. The localStorage flag can be set from the PDP
   // offer popup without anything being added to the cart, so clear it once checkout sees
@@ -243,9 +243,9 @@ export default function CheckoutSummary({
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
 
-  if (isPendantActive && !displayItems.some(item => item.variantId === SILVER_PENDANT_VARIANT_ID)) {
+  if (isPendantActive && !displayItems.some(item => item.variantId === SILVER_BRACELET_VARIANT_ID)) {
     displayItems.push({
-      variantId: SILVER_PENDANT_VARIANT_ID,
+      variantId: SILVER_BRACELET_VARIANT_ID,
       quantity: 1,
       price: 0,
       comparePrice: pendantPrice,
@@ -277,7 +277,7 @@ export default function CheckoutSummary({
               const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
               const displayPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
               const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
-              const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || String(item.title).toLowerCase().includes("silver bracelet");
+              const isSilverPendant = item.variantId === SILVER_BRACELET_VARIANT_ID || String(item.title).toLowerCase().includes("silver bracelet");
               // The free-gift "worth" is a fixed marketing value, not the variant's real Shopify price.
               const effectiveComparePrice = isSilverPendant ? pendantPrice : Number(item.comparePrice || 0);
 
@@ -463,8 +463,8 @@ export default function CheckoutSummary({
                     try {
                       pushPromoClick({
                         creative_name: "remove free silver pendant - checkout",
-                        promo_id: SILVER_PENDANT_VARIANT_ID,
-                        item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+                        promo_id: SILVER_BRACELET_VARIANT_ID,
+                        item_id: variantId || SILVER_BRACELET_VARIANT_ID,
                         promo_position: "Checkout Summary",
                       });
                     } catch (e) {
@@ -486,8 +486,8 @@ export default function CheckoutSummary({
                     try {
                       pushPromoClick({
                         creative_name: "claim free silver pendant - checkout",
-                        promo_id: SILVER_PENDANT_VARIANT_ID,
-                        item_id: variantId || SILVER_PENDANT_VARIANT_ID,
+                        promo_id: SILVER_BRACELET_VARIANT_ID,
+                        item_id: variantId || SILVER_BRACELET_VARIANT_ID,
                         promo_position: "Checkout Summary",
                       });
                     } catch (e) {

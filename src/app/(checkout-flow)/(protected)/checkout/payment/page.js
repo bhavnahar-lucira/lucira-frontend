@@ -52,7 +52,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
+const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
 
 const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
 
@@ -306,7 +306,7 @@ export default function PaymentPage() {
                         hasDiamondCharges;
 
       const isGoldCoin = item.variantId === "gid://shopify/ProductVariant/47753346973914" || item.variantId === "gid://shopify/ProductVariant/47661824082138";
-      const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
+      const isSilverPendant = item.variantId === SILVER_BRACELET_VARIANT_ID;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] || 
@@ -328,21 +328,21 @@ export default function PaymentPage() {
   const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
 
   useEffect(() => {
-    const claimed = isEligibleForPendant && (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+    const claimed = isEligibleForPendant && (items || []).some(item => item.variantId === SILVER_BRACELET_VARIANT_ID);
     setIsSilverPendantClaimed(claimed);
     if (!claimed && typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
   }, [items, appliedCoupon, isEligibleForPendant]);
 
   const checkoutItems = useMemo(() => {
     // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
-    const baseItems = (items || []).filter(item => item.variantId !== SILVER_PENDANT_VARIANT_ID);
+    const baseItems = (items || []).filter(item => item.variantId !== SILVER_BRACELET_VARIANT_ID);
 
     if (!isEligibleForPendant || !isSilverPendantClaimed) return baseItems;
     
     return [
       ...baseItems,
       {
-        variantId: SILVER_PENDANT_VARIANT_ID,
+        variantId: SILVER_BRACELET_VARIANT_ID,
         quantity: 1,
         price: 0,
         finalPrice: 0,
@@ -783,7 +783,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-            else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Bracelet";
+            else if (item.variantId === SILVER_BRACELET_VARIANT_ID) category = "Silver Bracelet";
           }
 
           return {
@@ -819,7 +819,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-            else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Bracelet";
+            else if (item.variantId === SILVER_BRACELET_VARIANT_ID) category = "Silver Bracelet";
           }
 
           return {
@@ -963,7 +963,7 @@ export default function PaymentPage() {
                   else if (lowerTitle.includes("bracelet")) category = "Bracelets";
                   else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
                   else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-                  else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Bracelet";
+                  else if (item.variantId === SILVER_BRACELET_VARIANT_ID) category = "Silver Bracelet";
                 }
 
                 return {
@@ -1121,7 +1121,7 @@ export default function PaymentPage() {
               else if (lowerTitle.includes("bracelet")) category = "Bracelets";
               else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
               else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-              else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Bracelet";
+              else if (item.variantId === SILVER_BRACELET_VARIANT_ID) category = "Silver Bracelet";
             }
 
             return {

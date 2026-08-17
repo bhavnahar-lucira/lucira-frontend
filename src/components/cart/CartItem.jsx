@@ -25,7 +25,7 @@ import { Trash2, Heart, Loader2, X, ChevronDown, Store, ChevronRight, Check, Vid
 import SocialProofBand from "@/components/common/SocialProofBand";
 import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/metal";
 
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
+const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
 
 // The payment page rebuilds the free pendant from this flag rather than from the cart line,
 // so removing the line here has to clear it too or the gift reappears at checkout.
@@ -189,9 +189,9 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   // For BYJ items, the unit price displayed should be the total of style + all charms
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
-  const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48414958715098" || String(item.title).toLowerCase().includes("silver bracelet");
+  const isSilverPendant = item.variantId === SILVER_BRACELET_VARIANT_ID || item.variantId === "48414958715098" || String(item.title).toLowerCase().includes("silver bracelet");
   // Narrower than the display check above — only the gift variant should touch the claim flag.
-  const isFreeSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID || item.variantId === "48414958715098";
+  const isFreeSilverPendant = item.variantId === SILVER_BRACELET_VARIANT_ID || item.variantId === "48414958715098";
   // Fixed marketing value for the free-gift line — the Silver Bracelet variant has no
   // DI-GoldPrice variant_config metafield, so the dynamic pricing service can't price it.
   const fetchedPendantPrice = 15000;

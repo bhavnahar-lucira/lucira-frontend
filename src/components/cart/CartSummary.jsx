@@ -22,7 +22,7 @@ import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCoupo
 import { apiFetch } from "@/lib/api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
+const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
 
 export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const dispatch = useDispatch();
@@ -70,7 +70,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       .filter(item =>
         item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-        item.variantId !== SILVER_PENDANT_VARIANT_ID
+        item.variantId !== SILVER_BRACELET_VARIANT_ID
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
@@ -99,7 +99,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       );
       return item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-        item.variantId !== SILVER_PENDANT_VARIANT_ID &&
+        item.variantId !== SILVER_BRACELET_VARIANT_ID &&
         !isBYJ;
     })
     .reduce((acc, item) => {
@@ -139,14 +139,14 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   const currentEligiblePendant = isSilverPendantEligible
     ? {
-        variantId: SILVER_PENDANT_VARIANT_ID,
+        variantId: SILVER_BRACELET_VARIANT_ID,
         productId: "gid://shopify/Product/9438188896474",
         worthText: "₹15,000",
         image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
       }
     : null;
 
-  const silverPendantItem = items.find(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
+  const silverPendantItem = items.find(item => item.variantId === SILVER_BRACELET_VARIANT_ID);
   const isSilverPendantApplied = !!silverPendantItem;
 
   const [isSilverPendantLoading, setIsSilverPendantLoading] = useState(false);
@@ -170,8 +170,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       try {
         pushPromoClick({
           creative_name: isSilverPendantApplied ? "remove free silver pendant - cart" : "claim free silver pendant - cart",
-          promo_id: currentEligiblePendant?.variantId || SILVER_PENDANT_VARIANT_ID,
-          item_id: variantId || (currentEligiblePendant?.variantId || SILVER_PENDANT_VARIANT_ID),
+          promo_id: currentEligiblePendant?.variantId || SILVER_BRACELET_VARIANT_ID,
+          item_id: variantId || (currentEligiblePendant?.variantId || SILVER_BRACELET_VARIANT_ID),
           promo_position: "Cart Page",
         });
       } catch (e) {
@@ -216,7 +216,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
     !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-    item.variantId !== SILVER_PENDANT_VARIANT_ID
+    item.variantId !== SILVER_BRACELET_VARIANT_ID
   )?.title;
 
   // Auto-sync insurance and gold coin quantities
@@ -320,7 +320,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === SILVER_BRACELET_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -335,7 +335,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(item.variantId === SILVER_PENDANT_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === SILVER_BRACELET_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
