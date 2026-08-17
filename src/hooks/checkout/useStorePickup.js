@@ -159,6 +159,10 @@ export function useStorePickup({ selectedShippingZip } = {}) {
       toast.error("Enter a PIN code to find nearby stores");
       return;
     }
+    if (query.length !== 6) {
+      toast.error("Please enter a valid 6-digit pincode");
+      return;
+    }
 
     let coords;
 

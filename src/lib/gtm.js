@@ -309,8 +309,9 @@ export const pushRemoveFromWishlist = (data) => {
 };
 
 export const pushCustomerData = (customerData) => {
+  const isCheckout = typeof window !== 'undefined' && window.location.pathname.includes('/checkout');
   pushToDataLayer({
-    event: 'customerData',
+    event: isCheckout ? 'promoClick' : 'customerData',
     customer: customerData
   });
 };
@@ -332,8 +333,9 @@ export const pushNewsletterSubscription = (email) => {
 };
 
 export const pushSignup = (userData) => {
+  const isCheckout = typeof window !== 'undefined' && window.location.pathname.includes('/checkout');
   pushToDataLayer({
-    event: "signup",
+    event: isCheckout ? 'promoClick' : 'signup',
     user: userData
   });
 };
@@ -346,8 +348,9 @@ export const pushLogout = (userData) => {
 };
 
 export const pushLogin = (userData) => {
+  const isCheckout = typeof window !== 'undefined' && window.location.pathname.includes('/checkout');
   pushToDataLayer({
-    event: 'login',
+    event: isCheckout ? 'promoClick' : 'login',
     user: userData // Standardized to lowercase 'user'
   });
 };

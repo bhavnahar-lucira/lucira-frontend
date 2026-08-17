@@ -53,34 +53,36 @@ export default function PriceProtectionDrawer({ open, onOpenChange, secondsLeft 
   const ss = String(secondsLeft % 60).padStart(2, "0");
 
   const content = (
-    <div className="flex flex-col items-center max-w-sm mx-auto w-full text-center">
-      <div className="w-14 h-14 rounded-full bg-[#FBEFDD] flex items-center justify-center mb-4">
-        <ShieldCheckIcon className="text-[#5A413F]" />
+    <div className="flex flex-col h-full max-w-sm mx-auto w-full">
+      <div className="flex-1 flex flex-col justify-center items-center w-full py-8">
+        <div className="w-14 h-14 rounded-full bg-[#FBEFDD] flex items-center justify-center mb-4">
+          <ShieldCheckIcon className="text-[#5A413F]" />
+        </div>
+
+        <h3 className="font-figtree font-semibold text-[16px] text-black leading-[1.4] tracking-normal text-center mb-2">
+          A Promise to Protect Your Price
+        </h3>
+        <p className="font-figtree font-normal text-[12px] text-[#222222]/70 mb-6 leading-[1.7] tracking-normal text-center">
+          Your Final Price won&apos;t fluctuate as per the market for{" "}
+          <span className="font-semibold text-black">{mm}:{ss} mins</span>
+        </p>
+
+        <div className="w-full space-y-5 text-left">
+          {FEATURES.map(({ icon: Icon, title, description }) => (
+            <div key={title} className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#FBEFDD] flex items-center justify-center shrink-0">
+                <Icon size={16} className="text-[#5A413F]" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="font-figtree font-semibold text-[13.5px] text-black leading-tight mb-[5px]">{title}</p>
+                <p className="font-figtree font-normal text-[12px] text-[#222222]/65 leading-[16px] tracking-normal align-middle mt-0.5">{description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <h3 className="font-figtree font-semibold text-[16px] text-black leading-[1.4] tracking-normal text-center mb-2">
-        A Promise to Protect Your Price
-      </h3>
-      <p className="font-figtree font-normal text-[12px] text-[#222222]/70 mb-6 leading-[1.7] tracking-normal text-center">
-        Your Final Price won&apos;t fluctuate as per the market for{" "}
-        <span className="font-semibold text-black">{mm}:{ss} mins</span>
-      </p>
-
-      <div className="w-full space-y-5 text-left mb-6">
-        {FEATURES.map(({ icon: Icon, title, description }) => (
-          <div key={title} className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#FBEFDD] flex items-center justify-center shrink-0">
-              <Icon size={16} className="text-[#5A413F]" strokeWidth={2} />
-            </div>
-            <div>
-              <p className="font-figtree font-semibold text-[13.5px] text-black leading-tight mb-[5px]">{title}</p>
-              <p className="font-figtree font-normal text-[12px] text-[#222222]/65 leading-[16px] tracking-normal align-middle mt-0.5">{description}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="w-full bg-white pt-2 pb-6 shrink-0 z-10">
+      <div className="w-full bg-white pt-4 pb-6 shrink-0 mt-auto text-center">
         <p className="font-figtree text-[12px] text-[#222222]/50 mb-3">
           Complete your Payment to secure your Luxury
         </p>
@@ -103,7 +105,7 @@ export default function PriceProtectionDrawer({ open, onOpenChange, secondsLeft 
           <SheetHeader className="sr-only">
             <SheetTitle>A Promise to Protect Your Price</SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto p-6 pt-12 pb-6 no-scrollbar">
+          <div className="flex-1 flex flex-col overflow-y-auto px-6 pt-12 pb-0 no-scrollbar">
             {content}
           </div>
         </SheetContent>
@@ -114,7 +116,7 @@ export default function PriceProtectionDrawer({ open, onOpenChange, secondsLeft 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="bg-white rounded-t-[20px] [&>div:first-child]:hidden max-h-[92vh] flex flex-col p-0 overflow-hidden z-[2000]">
-        <div className="flex-1 overflow-y-auto px-6 pt-6 pb-2 no-scrollbar">
+        <div className="flex-1 flex flex-col overflow-y-auto px-6 pt-6 pb-0 no-scrollbar">
           {content}
         </div>
       </DrawerContent>

@@ -117,9 +117,11 @@ export function AddressForm({
         <div className={`col-span-2 flex items-center px-3 has-[input:disabled]:opacity-50 border ${inputClasses}`}>
           <span className="text-[0.9375rem] lg:text-[1rem] font-figtree text-zinc-900 mr-2">+91</span>
           <input
+            type="tel"
             placeholder="Phone (optional)"
             value={form.phone}
-            onChange={(e) => onChange("phone", e.target.value)}
+            maxLength={10}
+            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, ""))}
             disabled={disablePhone}
             className="h-full grow bg-transparent outline-none text-[0.9375rem] lg:text-[1.0625rem] font-figtree text-zinc-900 placeholder:text-zinc-400 disabled:cursor-not-allowed"
           />

@@ -170,7 +170,7 @@ export default function ShippingPage() {
   const [pickupPhone, setPickupPhone] = useState("");
 
   const [shippingView, setShippingView] = useState("card"); // "card" | "list" | "form" (only relevant once there's a saved address)
-  const [dialogMode, setDialogMode] = useState("create");
+  const [dialogMode, setDialogMode] = useState("");
   const [dialogSaving, setDialogSaving] = useState(false);
   const [inlineSaving, setInlineSaving] = useState(false);
   const [addressForm, setAddressForm] = useState(emptyAddressForm);
@@ -671,7 +671,10 @@ export default function ShippingPage() {
                         <AddressSummaryCard
                           address={selectedAddress}
                           onEdit={() => openEditDialog(selectedAddress)}
-                          onChangeClick={() => setShippingView("list")}
+                          onChangeClick={() => {
+                            setShippingView("list");
+                            setDialogMode("");
+                          }}
                         />
 
                         {!isDeliverable && selectedAddress && !checkingPincode && (
@@ -805,27 +808,37 @@ export default function ShippingPage() {
 
       {/* Mobile Sticky Footer */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        <div className="flex flex-col gap-[14px]">
-          <div className="flex items-center justify-between">
-            <span className="text-[1.125rem] font-semibold text-black leading-none font-figtree tracking-normal">
-              ₹{finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-            </span>
-            <button
-              onClick={scrollToSummary}
-              className="text-[0.875rem] lg:text-[0.9375rem] font-medium text-black cursor-pointer font-figtree"
-            >
-              View Order Summary
-            </button>
+        {deliveryMethod === "pickup" && pickup.showStoreDialog ? (
+          <Button
+            type="button"
+            onClick={pickup.saveStoreSelection}
+            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white"
+          >
+            CONFIRM
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-[14px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[1.125rem] font-semibold text-black leading-none font-figtree tracking-normal">
+                ₹{finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </span>
+              <button
+                onClick={scrollToSummary}
+                className="text-[0.875rem] lg:text-[0.9375rem] font-medium text-black cursor-pointer font-figtree"
+              >
+                View Order Summary
+              </button>
+            </div>
+            <Link prefetch={false} href="/checkout/payment" className={`w-full block ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
+              <Button
+                disabled={isContinueDisabled}
+                className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                CONTINUE TO PAYMENT
+              </Button>
+            </Link>
           </div>
-          <Link prefetch={false} href="/checkout/payment" className={`w-full block ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
-            <Button
-              disabled={isContinueDisabled}
-              className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              CONTINUE TO PAYMENT
-            </Button>
-          </Link>
-        </div>
+        )}
       </div>
 
       {/* AUTHENTICATION OVERLAY */}

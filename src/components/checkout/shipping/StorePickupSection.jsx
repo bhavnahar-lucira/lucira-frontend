@@ -83,7 +83,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
             })}
           </div>
           
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-0">
+          <div className="hidden lg:block absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-0">
             <Button type="button" onClick={saveStoreSelection} className="w-full h-[50px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree text-[1rem] lg:text-[1.0625rem] font-medium tracking-wide uppercase rounded-[4px] transition-colors shadow-sm">
               Confirm
             </Button>
@@ -102,11 +102,11 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           {/* Selected Store Card */}
           <div className="border border-zinc-200 rounded-sm overflow-hidden bg-white">
             <div className="p-4 sm:p-5 space-y-3">
-              <div className="flex justify-between items-start gap-4">
+              <div className="flex items-center gap-3">
                 <h3 className="font-figtree text-[1.0625rem] lg:text-[1.125rem] font-bold text-black">{getStoreDisplayName(selectedStore.code || selectedStore.name)}</h3>
                 {selectedStore.distance !== undefined && (
-                  <span className="font-figtree text-[0.875rem] lg:text-[0.9375rem] font-medium text-black whitespace-nowrap pt-0.5">
-                    {Number(selectedStore.distance).toFixed(2)} Km Away
+                  <span className="font-figtree text-[0.875rem] lg:text-[0.9375rem] font-medium text-black whitespace-nowrap">
+                    ({Number(selectedStore.distance).toFixed(2)} Km Away)
                   </span>
                 )}
               </div>
