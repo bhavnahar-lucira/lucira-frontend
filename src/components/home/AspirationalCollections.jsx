@@ -72,7 +72,7 @@ export default function AspirationalCollections() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="w-full pt-5 pb-5 lg:pb-10 bg-white overflow-hidden">
+    <section ref={sectionRef} className="w-full pt-5 bg-white overflow-hidden">
       <div className="container-main">
         {/* Same heading block as Explore Our Range / Diamond Cuts / Shop By Occasion */}
         <div className="text-left lg:text-center mb-6 px-1 lg:px-0">
