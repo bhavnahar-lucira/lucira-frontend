@@ -90,6 +90,18 @@ export function AddressForm({
           onChange={(e) => {
             const value = e.target.value.replace(/\D/g, "");
             onChange("zip", value);
+            if (value.length === 6) {
+              fetch(`https://api.postalpincode.in/pincode/${value}`)
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data?.[0]?.Status === "Success" && data[0].PostOffice?.length > 0) {
+                    const po = data[0].PostOffice[0];
+                    if (!form.city) onChange("city", po.District || po.Block || "");
+                    if (!form.province) onChange("province", po.State || "");
+                  }
+                })
+                .catch(() => {});
+            }
           }}
           className={inputClasses}
         />

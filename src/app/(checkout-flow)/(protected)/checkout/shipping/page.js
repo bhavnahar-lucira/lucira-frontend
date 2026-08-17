@@ -310,8 +310,11 @@ export default function ShippingPage() {
     }
 
     if (!addressForm.country.trim()) return "Country is required";
-    if (addressForm.gstin.trim() && addressForm.gstin.trim().length !== 15) {
-      return "GSTIN must be 15 characters";
+    if (addressForm.gstin.trim()) {
+      const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstinRegex.test(addressForm.gstin.trim())) {
+        return "Please enter a valid 15-digit GSTIN";
+      }
     }
     return "";
   };
