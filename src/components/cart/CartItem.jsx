@@ -606,7 +606,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
           <div className="bg-white rounded-t-[16px] lg:rounded-[10px] w-full lg:w-[420px] overflow-hidden flex flex-col relative animate-in slide-in-from-bottom-full lg:slide-in-from-bottom-0 lg:zoom-in-95 duration-300 font-figtree">
             {/* Header */}
             <div className="flex items-center justify-between px-5 pt-5 pb-4">
-              <h3 className="font-abhaya lg:font-figtree text-[1.25rem] lg:text-[1.2rem] font-bold lg:font-semibold text-primary tracking-tight leading-tight">
+              <h3 className="font-figtree text-[1rem] lg:text-[1.2rem] font-semibold text-primary tracking-tight leading-tight">
                 {isBYJ ? "Remove from Bag" : "Move from Bag"}
               </h3>
               <button
@@ -618,7 +618,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
 
             {/* Product Row */}
-            <div className="flex items-center gap-4 px-5 pb-5">
+            <div className="flex items-center gap-4 px-5 pb-3">
               <div className="relative w-16 h-16 shrink-0 rounded-[10px] overflow-hidden border border-zinc-100 bg-[#F9F9F9]">
                 <Image
                   loader={isShopifyImage ? shopifyLoader : undefined}
@@ -640,7 +640,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
 
             {/* Confirmation Text */}
-            <p className="px-5 pb-6 font-figtree text-[0.8125rem] lg:text-[1rem] text-zinc-600 text-left">
+            <p className="px-5 pb-[18px] lg:pb-4 font-figtree text-[0.8125rem] lg:text-[1rem] text-zinc-600 text-left">
               {isBYJ ? "Are you sure you want to remove this item from bag?" : "Are you sure you want to move this item from bag?"}
             </p>
 
@@ -650,7 +650,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 <>
                   <button
                     onClick={() => setShowRemoveModal(false)}
-                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[0.75rem] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[0.7rem] lg:text-[0.85rem] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
                   >
                     Keep it
                   </button>
@@ -660,7 +660,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       setShowRemoveModal(false);
                     }}
                     disabled={removing}
-                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[0.75rem] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[0.7rem] lg:text-[0.85rem] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
                   >
                     {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
                   </button>
@@ -673,7 +673,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       setShowRemoveModal(false);
                     }}
                     disabled={removing || movingToWishlist}
-                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[0.75rem] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                    className="w-full h-12 text-zinc-700 font-figtree font-semibold text-[0.7rem] lg:text-[0.85rem] uppercase tracking-[0.4px] bg-white border border-zinc-200 hover:bg-zinc-50 rounded-[4px] transition-colors flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
                   >
                     {removing ? <Loader2 size={16} className="animate-spin" /> : "Remove"}
                   </button>
@@ -683,7 +683,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                       setShowRemoveModal(false);
                     }}
                     disabled={removing || movingToWishlist}
-                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[0.75rem] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
+                    className="w-full h-12 bg-primary text-white font-figtree font-semibold text-[0.7rem] lg:text-[0.85rem] uppercase tracking-[0.4px] rounded-[4px] hover:bg-primary/90 transition-all active:scale-[0.98] flex items-center justify-center text-center leading-none px-2 align-middle disabled:opacity-50"
                   >
                     {movingToWishlist ? <Loader2 size={16} className="animate-spin" /> : "Move to Wishlist"}
                   </button>
