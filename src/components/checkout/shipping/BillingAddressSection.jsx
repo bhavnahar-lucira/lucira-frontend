@@ -93,12 +93,6 @@ export function BillingAddressSection({
     }
   };
 
-  const backToCard = (
-    <button type="button" onClick={() => setBillingView("card")} className="text-zinc-500 hover:text-zinc-900">
-      <ChevronLeft className="size-5" />
-    </button>
-  );
-
   return (
     <div className="space-y-4">
       {isPickup ? (
@@ -111,9 +105,7 @@ export function BillingAddressSection({
             onCheckedChange={(checked) => {
               setBillingMode(checked ? "same" : "different");
               if (!checked) {
-                // If they want a different address and only have 1 (the shipping one), show form.
-                // If they have multiple, show list so they can pick a different one.
-                setBillingView(addresses.length <= 1 ? "form" : "list");
+                openCreate();
               } else {
                 setBillingView("card");
               }
@@ -149,26 +141,8 @@ export function BillingAddressSection({
               saving={creating}
             />
           </div>
-        ) : billingView === "list" ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              {backToCard}
-              <h3 className="text-lg font-bold text-zinc-900">All Addresses</h3>
-            </div>
-            <AddressListInline
-              addresses={addresses}
-              selectedAddressId={selectedBillingAddress?.id || ""}
-              onSelect={async (id) => {
-                await selectBillingAddress(id);
-                setBillingView("card");
-              }}
-              onDelete={deleteAddress}
-              radioGroupName="billing-addresses"
-              onAddNew={openCreate}
-            />
-          </div>
         ) : (
-          <AddressSummaryCard address={selectedBillingAddress} onChangeClick={() => setBillingView("list")} />
+          <AddressSummaryCard address={selectedBillingAddress} onChangeClick={() => openCreate()} />
         ))}
     </div>
   );

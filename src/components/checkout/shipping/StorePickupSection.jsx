@@ -102,7 +102,14 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           {/* Selected Store Card */}
           <div className="border border-zinc-200 rounded-sm overflow-hidden bg-white">
             <div className="p-4 sm:p-5 space-y-3">
-              <h3 className="font-figtree text-[1.0625rem] lg:text-[1.125rem] font-bold text-black">{getStoreDisplayName(selectedStore.code || selectedStore.name)}</h3>
+              <div className="flex justify-between items-start gap-4">
+                <h3 className="font-figtree text-[1.0625rem] lg:text-[1.125rem] font-bold text-black">{getStoreDisplayName(selectedStore.code || selectedStore.name)}</h3>
+                {selectedStore.distance !== undefined && (
+                  <span className="font-figtree text-[0.875rem] lg:text-[0.9375rem] font-medium text-black whitespace-nowrap pt-0.5">
+                    {Number(selectedStore.distance).toFixed(2)} Km Away
+                  </span>
+                )}
+              </div>
               <p className="text-[0.875rem] lg:text-[0.9375rem] leading-relaxed text-black font-medium font-figtree pr-4 md:pr-10">
                 {selectedStore.address}, {selectedStore.city} {selectedStore.state}
               </p>
