@@ -36,28 +36,28 @@ const RAKHI_BANNERS = {
 };
 
 // "Return Gift For Her" price-band tiles overlaid on the banner above.
-// TODO(rakhi-phase-2): tile images and redirect links are placeholders — swap
-// `image` and `href` with the final URLs once provided.
+// NOTE: creative filenames don't all match the price bands — mapping follows the
+// creative's contents (UNDER_35K.jpg is the rings shot, UNDER_30K.jpg the pendants shot).
 const RETURN_GIFT_TILES = [
   {
-    label: "Under ₹20,000",
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-PD0244YG_1_55e48701-fba4-46c9-9833-cd9f633279c7.jpg?v=1777961836",
-    href: "/collections/gifts-for-sisters",
+    label: "Rings Under 45k",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/UNDER_35K.jpg?v=1787050813",
+    href: "/collections/lab-grown-diamond-rings-under-45k",
   },
   {
-    label: "₹20,000 - ₹50,000",
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-E00015WG_1.webp?v=1769088443",
-    href: "/collections/gifts-for-sisters",
+    label: "Earrings Under 25k",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/UNDER_25K.jpg?v=1787050813",
+    href: "/collections/lab-grown-diamond-earrings-under-25k",
   },
   {
-    label: "₹50,000 - ₹80,000",
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00012YG_1.jpg?v=1767094207",
-    href: "/collections/gifts-for-sisters",
+    label: "Pendants Under 35k",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/UNDER_30K.jpg?v=1787050813",
+    href: "/collections/lab-grown-diamond-pendants-under-35k",
   },
   {
-    label: "Above ₹80,000",
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-N00005YG_1.webp?v=1770719360",
-    href: "/collections/gifts-for-sisters",
+    label: "Bracelets Under 55k",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/UNDER_55K.jpg?v=1787050812",
+    href: "/collections/lab-grown-diamond-bracelets-under-55k",
   },
 ];
 
@@ -175,6 +175,11 @@ export default function RakhiLandingPage({ products = [], loading = false }) {
       {/* ============ 2. RAKHI PRODUCTS ROW ============ */}
       <section className="w-full overflow-hidden py-8 md:py-12">
         <div className="container-main">
+          <div className="text-center mb-6 md:mb-8">
+            <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya text-black">
+              Rakhis That Become Pendants
+            </h2>
+          </div>
           <CollectionSlider
             products={products}
             loading={loading}
@@ -215,9 +220,10 @@ export default function RakhiLandingPage({ products = [], loading = false }) {
 
       {/* ============ 5. RETURN GIFT FOR HER BANNER + PRICE-BAND TILES ============ */}
       <section className="w-full">
-        <div className="text-center mb-6 md:mb-8">
-          <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya text-black">
-            Return Gift For Her
+        {/* Mobile: title above the banner. On desktop it moves inside the banner's blank area. */}
+        <div className="text-center mb-6 lg:hidden">
+          <h2 className="text-2xl font-extrabold font-abhaya text-black">
+            Gifts She&rsquo;ll Treasure, Under ₹50K
           </h2>
         </div>
 
@@ -235,7 +241,10 @@ export default function RakhiLandingPage({ products = [], loading = false }) {
               sizes="100vw"
               draggable={false}
             />
-            <div className="absolute inset-y-0 left-[4%] w-[40%] flex items-center">
+            <div className="absolute inset-y-0 left-[4%] w-[40%] flex flex-col justify-center">
+              <h2 className="text-center text-3xl xl:text-4xl font-extrabold font-abhaya text-black mb-6 xl:mb-8">
+                Gifts She&rsquo;ll Treasure, Under ₹50K
+              </h2>
               <div className="grid w-full grid-cols-2 gap-4 xl:gap-5">
                 {RETURN_GIFT_TILES.map((tile) => (
                   <ReturnGiftTile key={tile.label} tile={tile} />
@@ -272,6 +281,11 @@ export default function RakhiLandingPage({ products = [], loading = false }) {
       {(sistersLoading || sisterProducts.length > 0) && (
         <section className="w-full overflow-hidden py-8 md:py-12 pb-10 md:pb-16">
           <div className="container-main">
+            <div className="text-center mb-6 md:mb-8">
+              <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya text-black">
+                What Are You Getting Her?
+              </h2>
+            </div>
             <CollectionSlider
               products={sisterProducts}
               loading={sistersLoading}
