@@ -36,6 +36,7 @@ import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } 
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
+import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
 import { apiFetch } from "@/lib/api";
 
 const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar", "lajpat-nagar-store"];
@@ -1087,6 +1088,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     if (pagination.hasNextPage) return `${products.length}+ items`;
     return `${products.length} ${products.length === 1 ? "item" : "items"}`;
   }, [totalCount, products.length, pagination.hasNextPage, searchParams, availableFilters]);
+
+  // Rakhi gets a fully custom landing page (no filters/grid) — see the design draft.
+  if (handle === "rakhi") {
+    return <RakhiLandingPage products={products} loading={productsLoading} />;
+  }
 
   return (
     <div className="min-h-screen bg-white">
