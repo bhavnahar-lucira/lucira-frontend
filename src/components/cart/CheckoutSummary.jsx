@@ -18,10 +18,8 @@ import { pushPromoClick } from "@/lib/gtm";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
-const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
 const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
-const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID || id === SILVER_BRACELET_VARIANT_ID;
+const isPendantVariant = (id) => id === SILVER_BRACELET_VARIANT_ID;
 
 export default function CheckoutSummary({
   showItems = true,
@@ -323,7 +321,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
               const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
               const displayPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
               const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
-              const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver pendant") || String(item.title).toLowerCase().includes("diamond pendant");
+              const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver bracelet");
               const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || pendantPrice || 0) : Number(item.comparePrice || 0);
 
               return (

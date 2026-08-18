@@ -27,10 +27,8 @@ import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/meta
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
-const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
 const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
-const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID || id === SILVER_BRACELET_VARIANT_ID;
+const isPendantVariant = (id) => id === SILVER_BRACELET_VARIANT_ID;
 
 // The payment page rebuilds the free pendant from this flag rather than from the cart line,
 // so removing the line here has to clear it too or the gift reappears at checkout.
@@ -145,8 +143,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   // For BYJ items, the unit price displayed should be the total of style + all charms
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
-const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver pendant") || String(item.title).toLowerCase().includes("diamond pendant") || String(item.title).toLowerCase().includes("silver bracelet");
-  const isFreeSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver bracelet") || String(item.title).toLowerCase().includes("silver pendant") || String(item.title).toLowerCase().includes("diamond pendant");
+const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver bracelet");
+  const isFreeSilverPendant = isSilverPendant;
   const [fetchedPendantPrice, setFetchedPendantPrice] = useState(0);
 
   useEffect(() => {

@@ -6,9 +6,8 @@ import { useState, useEffect, useRef } from "react";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const INSURANCE_PRICE = 1;
-const PENDANT_10K_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
-const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
-const isPendantVariant = (id) => id === PENDANT_10K_VARIANT_ID || id === PENDANT_5K_VARIANT_ID;
+const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
+const isPendantVariant = (id) => id === SILVER_BRACELET_VARIANT_ID;
 
 export default function InsuranceOption() {
   const { items, addToCart, removeFromCart, loading } = useCart();
