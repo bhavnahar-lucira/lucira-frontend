@@ -459,6 +459,7 @@ const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).t
                 )}
               </div>
             </div>
+          <button
             onClick={() => setShowRemoveModal(true)}
             className="absolute top-0 right-0 z-10 shrink-0 flex items-center justify-center w-[22px] h-[22px] lg:w-[28px] lg:h-[28px] rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
           >
