@@ -1153,7 +1153,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product.jpg?v=1786689049"
             : handle === "bestsellers"
               ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product2.jpg?v=1786689049"
-              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile_3.jpg";
+              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg";
 
         return isMobile ? (
           <div className="w-full">
