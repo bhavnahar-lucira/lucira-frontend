@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import shopifyLoader from "@/utils/shopifyLoader";
 import CollectionSlider from "@/components/home/homeCollection/CollectionSlider";
 import { apiFetch } from "@/lib/api";
@@ -26,7 +27,39 @@ const RAKHI_BANNERS = {
     desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Middle-Banner-Desktop_fb3ee746-ecd8-442f-8aa6-2a7b9ede5ae7.jpg?v=1787032488",
     mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Middle-Banner-Mobile_28162d30-8c0c-4e13-8fb1-a485ec6fe2eb.jpg?v=1787032488",
   },
+  // Desktop (1920x1072): couple on the right, blank space on the left for the tiles.
+  // Mobile (1080x1920): couple on top, blank space at the bottom for the tiles.
+  returnGift: {
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_71a1e43d-6ee6-4bd7-a05e-4fc6022c6e2a.png?v=1787044227",
+    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_e25767f9-520c-450e-9f6c-9545bd8c9296.png?v=1787044227",
+  },
 };
+
+// "Return Gift For Her" price-band tiles overlaid on the banner above.
+// TODO(rakhi-phase-2): tile images and redirect links are placeholders — swap
+// `image` and `href` with the final URLs once provided.
+const RETURN_GIFT_TILES = [
+  {
+    label: "Under ₹20,000",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-PD0244YG_1_55e48701-fba4-46c9-9833-cd9f633279c7.jpg?v=1777961836",
+    href: "/collections/gifts-for-sisters",
+  },
+  {
+    label: "₹20,000 - ₹50,000",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-E00015WG_1.webp?v=1769088443",
+    href: "/collections/gifts-for-sisters",
+  },
+  {
+    label: "₹50,000 - ₹80,000",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00012YG_1.jpg?v=1767094207",
+    href: "/collections/gifts-for-sisters",
+  },
+  {
+    label: "Above ₹80,000",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-N00005YG_1.webp?v=1770719360",
+    href: "/collections/gifts-for-sisters",
+  },
+];
 
 // Desktop creatives are 1920x823, mobile creatives are 1080x1350.
 function ResponsiveBanner({ desktop, mobile, alt, priority = false }) {
@@ -61,6 +94,32 @@ function ResponsiveBanner({ desktop, mobile, alt, priority = false }) {
         />
       </div>
     </div>
+  );
+}
+
+function ReturnGiftTile({ tile }) {
+  return (
+    <Link
+      href={tile.href}
+      className="group block overflow-hidden rounded-md bg-white shadow-sm"
+    >
+      <div className="relative aspect-[4/3] lg:aspect-[3/2] w-full overflow-hidden">
+        <Image
+          loader={shopifyLoader}
+          src={tile.image}
+          alt={tile.label}
+          fill
+          sizes="(min-width: 1024px) 21vw, 44vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          draggable={false}
+        />
+      </div>
+      <div className="bg-white py-1.5 md:py-2.5 text-center">
+        <span className="font-figtree text-[0.625rem] md:text-sm font-semibold uppercase tracking-wide text-[#2B1F1E]">
+          {tile.label}
+        </span>
+      </div>
+    </Link>
   );
 }
 
@@ -154,15 +213,65 @@ export default function RakhiLandingPage({ products = [], loading = false }) {
         />
       </div>
 
-      {/* ============ 5. GIFTS FOR SISTERS ROW ============ */}
-      {(sistersLoading || sisterProducts.length > 0) && (
-        <section className="w-full overflow-hidden pb-10 md:pb-16">
-          <div className="container-main">
-            <div className="text-center mb-6 md:mb-8">
-              <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya text-black">
-                Return Gift For Her
-              </h2>
+      {/* ============ 5. RETURN GIFT FOR HER BANNER + PRICE-BAND TILES ============ */}
+      <section className="w-full">
+        <div className="text-center mb-6 md:mb-8">
+          <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya text-black">
+            Return Gift For Her
+          </h2>
+        </div>
+
+        <div className="relative w-full">
+          {/* Desktop: couple on the right, tiles overlaid on the blank left side */}
+          <div className="hidden lg:block relative w-full">
+            <Image
+              loader={shopifyLoader}
+              src={RAKHI_BANNERS.returnGift.desktop}
+              alt="Return Gift For Her"
+              width={1920}
+              height={1072}
+              loading="lazy"
+              className="w-full h-auto object-cover object-center"
+              sizes="100vw"
+              draggable={false}
+            />
+            <div className="absolute inset-y-0 left-[4%] w-[40%] flex items-center">
+              <div className="grid w-full grid-cols-2 gap-4 xl:gap-5">
+                {RETURN_GIFT_TILES.map((tile) => (
+                  <ReturnGiftTile key={tile.label} tile={tile} />
+                ))}
+              </div>
             </div>
+          </div>
+
+          {/* Mobile: couple on top, tiles overlaid on the blank bottom area */}
+          <div className="block lg:hidden relative w-full">
+            <Image
+              loader={shopifyLoader}
+              src={RAKHI_BANNERS.returnGift.mobile}
+              alt="Return Gift For Her"
+              width={1080}
+              height={1920}
+              loading="lazy"
+              className="w-full h-auto object-cover object-center"
+              sizes="100vw"
+              draggable={false}
+            />
+            <div className="absolute inset-x-[5%] bottom-[2%]">
+              <div className="grid grid-cols-2 gap-2.5">
+                {RETURN_GIFT_TILES.map((tile) => (
+                  <ReturnGiftTile key={tile.label} tile={tile} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============ 6. GIFTS FOR SISTERS ROW ============ */}
+      {(sistersLoading || sisterProducts.length > 0) && (
+        <section className="w-full overflow-hidden py-8 md:py-12 pb-10 md:pb-16">
+          <div className="container-main">
             <CollectionSlider
               products={sisterProducts}
               loading={sistersLoading}
