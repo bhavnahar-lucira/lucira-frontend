@@ -42,7 +42,97 @@ const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
-const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID;
+const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
+const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID || id === SILVER_BRACELET_VARIANT_ID;
+
+const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
+
+const emptyAddressForm = {
+  firstName: "",
+  lastName: "",
+  company: "",
+  address1: "",
+  address2: "",
+  city: "",
+  province: "",
+  zip: "",
+  country: "India",
+  phone: "",
+  gstin: "",
+};
+
+function normalizeAddressForm(address = {}, customer = {}) {
+  return {
+    ...emptyAddressForm,
+    firstName: address.firstName || customer.firstName || "",
+    lastName: address.lastName || customer.lastName || "",
+    company: address.company || "",
+    address1: address.address1 || "",
+    address2: address.address2 || "",
+    city: address.city || "",
+    province: address.province || "",
+    zip: address.zip || "",
+    country: address.country || "India",
+    phone: address.phone || "",
+    gstin: address.gstin || "",
+  };
+}
+
+function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, children, isMobile = false }) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input placeholder="First name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="Last name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="Company (optional)" value={form.company} onChange={(e) => onChange("company", e.target.value)} className="h-12 border-zinc-200" />
+        {form.country.trim().toLowerCase() === "india" ? (
+          <Input
+            placeholder="GSTIN (optional, 15 characters)"
+            value={form.gstin}
+            onChange={(e) => onChange("gstin", e.target.value.toUpperCase())}
+            maxLength={15}
+            className="h-12 border-zinc-200"
+          />
+        ) : (
+          <div className="hidden md:block" />
+        )}
+        <div className="md:col-span-2">
+          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
+        </div>
+        <div className="md:col-span-2">
+          <Input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className="h-12 border-zinc-200" />
+        </div>
+        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="PIN code" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
+        <div className="md:col-span-2">
+          <Input
+            placeholder="Phone (10 digits) *"
+            value={form.phone}
+            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+            className="h-12 border-zinc-200"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox id={`make-default-${isMobile ? 'mobile' : 'desktop'}`} checked={makeDefault} onCheckedChange={(checked) => onDefaultChange(Boolean(checked))} />
+        <label htmlFor={`make-default-${isMobile ? 'mobile' : 'desktop'}`} className="text-sm font-medium text-zinc-700 cursor-pointer">
+          Use this as my default shipping address
+        </label>
+      </div>
+
+      <div className="flex items-center justify-between gap-4">
+        <Button type="button" onClick={onSubmit} disabled={saving} className={`grow md:grow-0 md:w-auto h-14 md:h-12 bg-primary hover:bg-primary/90 text-white font-bold ${isMobile ? 'rounded-full uppercase tracking-widest' : ''}`}>
+          {saving ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
+        </Button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 
 function formatAddressPreview(address) {
   if (!address) return "";
@@ -111,7 +201,15 @@ export default function PaymentPage() {
   // Seeded from the cart, not localStorage: the PDP offer popup sets the claim flag
   // without adding the gift, which made the pendant appear here when it was never added.
   const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
+const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(0);
+  const [checkoutSelection, setCheckoutSelection] = useState(null);
+  const summaryRef = useRef(null);
+  const summaryBreakdownRef = useRef(null);
+  const [addAddressDialogOpen, setAddAddressDialogOpen] = useState(false);
+  const [addressForm, setAddressForm] = useState(emptyAddressForm);
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [makeDefault, setMakeDefault] = useState(false);
 
   const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
@@ -135,7 +233,7 @@ export default function PaymentPage() {
                         hasDiamondCharges;
 
       const isGoldCoin = item.variantId === "gid://shopify/ProductVariant/47753346973914" || item.variantId === "gid://shopify/ProductVariant/47661824082138";
-      const isSilverPendant = isPendantVariant(item.variantId);
+const isSilverPendant = isPendantVariant(item.variantId);
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] ||
@@ -158,7 +256,7 @@ export default function PaymentPage() {
   const eligiblePendantId = diamondTotalForOffer >= 30000 ? SILVER_PENDANT_VARIANT_ID : (diamondTotalForOffer >= 15000 ? PENDANT_5K_VARIANT_ID : null);
 
   useEffect(() => {
-    if (eligiblePendantId) {
+if (eligiblePendantId) {
       apiFetch(`/api/products/pricing?variantId=${eligiblePendantId.split('/').pop()}`, { suppressErrorLog: true })
         .then(data => {
           const p = Number(data?.price || data?.compare_price || 0);
@@ -176,34 +274,7 @@ export default function PaymentPage() {
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
 
-  const [showPriceProtection, setShowPriceProtection] = useState(false);
-  const [showCoinsNudge, setShowCoinsNudge] = useState(false);
-  const [coinsProceedAction, setCoinsProceedAction] = useState(null);
-
-  const [priceProtectionSeconds, setPriceProtectionSeconds] = useState(600);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPriceProtectionSeconds((prev) => {
-        if (prev <= 1) {
-          window.location.reload();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated || !accessToken || accessToken.startsWith("simulated_")) {
-      router.push("/cart");
-    }
-  }, [isAuthenticated, accessToken, router]);
-
-
   const scrollToSummary = () => {
-    // Land on the price breakdown rather than the top of the section, which sits above
-    // the items and offers. Falls back to the section if the breakdown isn't rendered.
     const target = summaryBreakdownRef.current || summaryRef.current;
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -224,25 +295,28 @@ export default function PaymentPage() {
     setIsSilverPendantClaimed(claimed);
     if (!claimed && typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
   }, [items, appliedCoupon, isEligibleForPendant]);
+    setIsSilverPendantClaimed(claimed);
+    if (!claimed && typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
+  }, [items, appliedCoupon, isEligibleForPendant]);
 
   const checkoutItems = useMemo(() => {
     // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
-    const baseItems = (items || []).filter(item => !isPendantVariant(item.variantId));
+const baseItems = (items || []).filter(item => !isPendantVariant(item.variantId));
 
     if (!isEligibleForPendant || !isSilverPendantClaimed) return baseItems;
 
     return [
       ...baseItems,
       {
-        variantId: eligiblePendantId,
+variantId: eligiblePendantId,
         quantity: 1,
         price: 0,
         finalPrice: 0,
         originalPrice: pendantPrice || 0,
         comparePrice: pendantPrice || 0,
-        title: "Free Silver Pendant",
+        title: "Free Silver Bracelet",
         isFreeGift: true,
-        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
       }
     ];
   }, [items, isSilverPendantClaimed, isEligibleForPendant, pendantPrice, eligiblePendantId]);
@@ -472,7 +546,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-            else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
+else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
           }
 
           return {
@@ -508,7 +582,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-            else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
+else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
           }
 
           return {
@@ -652,7 +726,7 @@ export default function PaymentPage() {
                   else if (lowerTitle.includes("bracelet")) category = "Bracelets";
                   else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
                   else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-                  else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
+else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
                 }
 
                 return {
@@ -810,7 +884,7 @@ export default function PaymentPage() {
               else if (lowerTitle.includes("bracelet")) category = "Bracelets";
               else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
               else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-              else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
+else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
             }
 
             return {

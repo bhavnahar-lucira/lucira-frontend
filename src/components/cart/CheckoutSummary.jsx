@@ -18,9 +18,12 @@ import { pushPromoClick } from "@/lib/gtm";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
+const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
+const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
-const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID;
+const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
+const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID || id === SILVER_BRACELET_VARIANT_ID;
 
 export default function CheckoutSummary({
   showItems = true,
@@ -45,10 +48,14 @@ export default function CheckoutSummary({
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
-  const [pendantPrice, setPendantPrice] = useState(0);
+  // Fixed marketing value for the free-gift line — the Silver Bracelet variant has no
+  // DI-GoldPrice variant_config metafield, so the dynamic pricing service can't price it.
+  const pendantPrice = 15000;
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
+    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+item.variantId !== INSURANCE_VARIANT_ID &&
     !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
     !isPendantVariant(item.variantId)
   )?.title;
@@ -61,7 +68,6 @@ export default function CheckoutSummary({
   // Note: we can't easily know which one is active here initially, so we can fetch whichever is eligible or both.
   // Actually, we'll fetch the one we're eligible for after calculating diamondTotalForOffer.
   // Let's do it after we define eligiblePendantId.
-
   // Dispatch Calculation
   const overallDispatchMessage = useMemo(() => {
     if (!items || items.length === 0) return "";
@@ -82,9 +88,9 @@ export default function CheckoutSummary({
         type.includes("gemstone") || title.includes("gemstone") ||
         hasDiamondCharges;
 
-      // Exclude Gold Coins, Silver Pendants (paid), Insurance, BYJ
+      // Exclude Gold Coins, Silver Bracelets (paid), Insurance, BYJ
       const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
-      const isSilverPendant = isPendantVariant(item.variantId);
+const isSilverPendant = isPendantVariant(item.variantId);
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] ||
@@ -134,6 +140,8 @@ export default function CheckoutSummary({
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       !(isPendantVariant(item.variantId) && item.isFreeGift)
     )
     .reduce((acc, item) => {
@@ -146,6 +154,8 @@ export default function CheckoutSummary({
 
   const totalSavings = (items || [])
     .filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       !(isPendantVariant(item.variantId) && item.isFreeGift)
@@ -263,6 +273,10 @@ export default function CheckoutSummary({
 
   // The cart line is the source of truth. The localStorage flag can be set from the PDP
   // offer popup without anything being added to the cart, so clear it once checkout sees
+  // there is no actual pendant line for the current order.
+
+  // The cart line is the source of truth. The localStorage flag can be set from the PDP
+  // offer popup without anything being added to the cart, so clear it once checkout sees
   // that the gift isn't actually there (or the order no longer qualifies).
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -284,12 +298,21 @@ export default function CheckoutSummary({
   if (isPendantActive && !displayItems.some(item => item.variantId === eligiblePendantId)) {
     displayItems.push({
       variantId: eligiblePendantId,
+      title: "Free Silver Pendant",
       quantity: 1,
       price: 0,
       comparePrice: pendantPrice,
-      title: "Free Silver Pendant",
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617",
       isFreeGift: true,
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+      isPendant: true,
+    });
+  }
+      quantity: 1,
+      price: 0,
+      comparePrice: pendantPrice,
+      title: "Free Silver Bracelet",
+      isFreeGift: true,
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
     });
   }
 
@@ -332,11 +355,13 @@ export default function CheckoutSummary({
                       />
                     </div>
                     <div className="flex-grow space-y-1">
-                      <h3 className="text-sm font-medium text-zinc-800 leading-tight transition-colors">{item.title}</h3>
+                      <h3 className="text-sm font-medium text-zinc-800 leading-tight transition-colors">{isSilverPendant ? "Free Diamond Bracelet" : item.title}</h3>
                       <div className="flex flex-col gap-0.5">
-                        <p className="text-xs text-zinc-500 font-medium uppercase tracking-tight">
-                          Metal: <span className="text-zinc-800">{formatMetal(item.karat, item.color)}</span>
-                        </p>
+                        {!isSilverPendant && (
+                          <p className="text-xs text-zinc-500 font-medium uppercase tracking-tight">
+                            Metal: <span className="text-zinc-800">{formatMetal(item.karat, item.color)}</span>
+                          </p>
+                        )}
                         <p className="text-xs text-zinc-500">Quantity: {item.quantity}</p>
                       </div>
                       <div className="flex items-center gap-2 pt-1">
@@ -541,6 +566,8 @@ export default function CheckoutSummary({
           {/* Left Side: Image - Matching Order Summary Style */}
           <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
             <Image
+          <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
+            <Image
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
               width={80}
               height={80}
@@ -549,12 +576,19 @@ export default function CheckoutSummary({
               unoptimized
             />
           </div>
+              className="w-full h-full object-contain mix-blend-multiply"
+              unoptimized
+            />
+          </div>
 
           {/* Right Side: Content & Action */}
           <div className="flex-1 flex flex-col justify-between py-0.5">
             <div className="space-y-1">
+          <div className="flex-1 flex flex-col justify-between py-0.5">
+            <div className="space-y-1">
               <h3 className="text-[0.8125rem] font-bold text-[#443360] uppercase tracking-tight">Free Silver Pendant</h3>
               <p className="text-[0.6875rem] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your Free Silver Pendant now.</p>
+            </div>
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-2">
@@ -607,11 +641,11 @@ export default function CheckoutSummary({
                     }
                     if (appliedCoupon) {
                       removeCoupon();
-                      toast.info("Coupon removed as Free Pendant offer cannot be combined with coupons.");
+                      toast.info("Coupon removed as Free Bracelet offer cannot be combined with coupons.");
                     }
                     if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
                     onToggleSilverPendant();
-                    toast.success("Free Silver Pendant added to your order!", {
+                    toast.success("Free Silver Bracelet added to your order!", {
                       icon: <Check className="w-4 h-4" />
                     });
                   }}

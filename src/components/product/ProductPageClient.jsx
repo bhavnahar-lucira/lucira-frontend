@@ -30,7 +30,7 @@ const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocator
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
 import ExploreOtherRings from "@/components/product/ExploreOtherRings";
-import WearThisWith from "@/components/product/WearThisWith";
+// import WearThisWith from "@/components/product/WearThisWith";
 import ProductCard from "@/components/product/ProductCard";
 import { Separator } from "@/components/ui/separator";
 import ProductGallery from "@/components/product/ProductGallery";
@@ -3668,8 +3668,8 @@ export default function ProductPageClient({
             )}
 
             <ProductAccordion />
-            {/* Wear This With Slider */}
-            {complementaryProducts.length > 0 && <WearThisWith products={complementaryProducts} />}
+            {/* Wear This With Slider - hidden on the product page */}
+            {/* {complementaryProducts.length > 0 && <WearThisWith products={complementaryProducts} />} */}
           </div>
         </div>
       </div>

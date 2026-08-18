@@ -12,11 +12,33 @@ import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage"
 
 // Static pages (About, Careers, T&C, etc.) stay fully static — force-cache at the fetch
 // level means they never re-render after build.
-// Metal rate pages bypass the cache (no-store) and use ISR (revalidate: 3600) so any
-// body edits made in Shopify are reflected on the site within one hour — same strategy
-// as blog articles.
+//
+// Metal rate pages stay 'no-store': the rates team updates the gold_rate_history
+// metaobject every morning and the pages must show the new rate the moment it is
+// written — an ISR window would keep serving yesterday's rate for up to an hour.
+// no-store also makes the rate routes bail out of static generation at the FIRST
+// Storefront fetch, so the Admin-REST and live-site-scrape fallback tiers in
+// getPageByHandle never run for the ~637 city pages (switching to ISR made every
+// empty-body silver/platinum page crawl those tiers on each build/regeneration).
+// The DynamicServerError this throws during `next build` is expected control flow;
+// fetchWithRetry/shopifyStorefrontFetch recognize and rethrow it silently.
 export const revalidate = 3600;
+const RATE_PAGE_CACHE = 'no-store';
 export const dynamicParams = true;
+
+// ─── Locally-rendered pages ──────────────────────────────────────────────────
+// These handles render a local component instead of the Shopify page body (see
+// Page below). Their metadata has to be authored here too: falling through to the
+// Shopify record produced a description sliced out of raw body text, which mixed
+// Title Case prose with the ALL-CAPS field labels ("CALL US", "MAIL US") and cut
+// off mid-value. Title Case title, sentence-case description, no shouting.
+const LOCAL_PAGE_META = {
+  "contact-us": {
+    title: "Contact Us - Lucira Jewelry",
+    description:
+      "Get in touch with Lucira Jewelry for bespoke assistance and jewelry consultations. Call, email or visit our Mumbai head office — our concierge will reply soon.",
+  },
+};
 
 // ─── City / State lookup (shared by all rate-page types) ─────────────────────
 const STATE_CITY_MAP = {
@@ -129,26 +151,36 @@ export async function generateMetadata({ params }) {
   const isPlatinumRatePage = handle.includes("platinum-rate-today");
   const isGoldRatePage = handle.includes("gold-rate-today");
   const isRatePage = isSilverRatePage || isPlatinumRatePage || isGoldRatePage;
-  const cacheStrategy = isRatePage ? 'no-store' : 'force-cache';
+  const cacheStrategy = isRatePage ? RATE_PAGE_CACHE : 'force-cache';
 
-  const page = await getPageByHandle(handle, cacheStrategy);
-  if (!page) return {};
+  let title;
+  let description;
 
-  let title = page.seo?.title || page.title || "Lucira Jewelry";
-  let description = page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
+  const localMeta = LOCAL_PAGE_META[handle];
+  if (localMeta) {
+    // Body comes from a local component, so the Shopify record is not the source
+    // of truth here — skip the fetch entirely.
+    ({ title, description } = localMeta);
+  } else {
+    const page = await getPageByHandle(handle, cacheStrategy);
+    if (!page) return {};
 
-  // Gold rate pages: the Gold Rate City metaobject carries curated seo_title /
-  // seo_description per city — prefer those over the Shopify page's SEO fields
-  // so the title tag matches the content actually rendered from the metaobject.
-  if (isGoldRatePage) {
-    try {
-      const goldMeta = await getGoldRateCityMeta(handle, "no-store");
-      if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
-      if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
-    } catch {
-      // fall back to page SEO fields
+    title = page.seo?.title || page.title || "Lucira Jewelry";
+    description = page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
+
+    // Gold rate pages: the Gold Rate City metaobject carries curated seo_title /
+    // seo_description per city — prefer those over the Shopify page's SEO fields
+    // so the title tag matches the content actually rendered from the metaobject.
+    if (isGoldRatePage) {
+      try {
+        const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
+        if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
+        if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
+      } catch {
+        // fall back to page SEO fields
+      }
+      title = withRateDate(title);
     }
-    title = withRateDate(title);
   }
 
   return {
@@ -189,10 +221,10 @@ export default async function Page({ params }) {
   const isGoldRatePage = handle.includes("gold-rate-today");
   const isRatePage = isSilverRatePage || isPlatinumRatePage || isGoldRatePage;
 
-  // Rate pages: no-store so Shopify body edits appear after the ISR window (1 hour).
+  // Rate pages: ISR so Shopify body edits appear after the revalidate window (1 hour).
   // All other pages: force-cache (permanent SSG, never re-fetched after build).
   // This mirrors exactly how blogs.js handles article content.
-  const cacheStrategy = isRatePage ? 'no-store' : 'force-cache';
+  const cacheStrategy = isRatePage ? RATE_PAGE_CACHE : 'force-cache';
 
   // 3-tier fetch: Storefront API → Admin REST API → Live site scraping
   // (same strategy as getArticleByBlogAndHandle in blogs.js)
@@ -234,10 +266,10 @@ export default async function Page({ params }) {
   // metaobject is missing the page falls back to page.body below.
   if (isGoldRatePage) {
     try {
-      const goldMeta = await getGoldRateCityMeta(handle, "no-store");
+      const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
       if (goldMeta) {
         try {
-          goldMeta.history = await getGoldRateHistory("no-store");
+          goldMeta.history = await getGoldRateHistory(RATE_PAGE_CACHE);
         } catch {
           goldMeta.history = [];
         }

@@ -29,7 +29,8 @@ import { getEstimatedDispatchDate } from "@/lib/utils";
 
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
-const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID;
+const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
+const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === PENDANT_5K_VARIANT_ID || id === SILVER_BRACELET_VARIANT_ID;
 
 // The payment page rebuilds the free pendant from this flag rather than from the cart line,
 // so removing the line here has to clear it too or the gift reappears at checkout.
@@ -144,9 +145,8 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   // For BYJ items, the unit price displayed should be the total of style + all charms
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
-  const isSilverPendant = isPendantVariant(item.variantId) || item.variantId === "48052809498842" || String(item.title).toLowerCase().includes("silver pendant") || String(item.title).toLowerCase().includes("diamond pendant");
-  // Narrower than the display check above — only the gift variant should touch the claim flag.
-  const isFreeSilverPendant = isPendantVariant(item.variantId) || item.variantId === "48052809498842";
+const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver pendant") || String(item.title).toLowerCase().includes("diamond pendant") || String(item.title).toLowerCase().includes("silver bracelet");
+  const isFreeSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver bracelet") || String(item.title).toLowerCase().includes("silver pendant") || String(item.title).toLowerCase().includes("diamond pendant");
   const [fetchedPendantPrice, setFetchedPendantPrice] = useState(0);
 
   useEffect(() => {
@@ -406,7 +406,59 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
           )}
 
-          <button 
+<Link prefetch={false}
+            href={productLink}
+            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-card border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
+          >
+            <Image
+              loader={isShopifyImage ? shopifyLoader : undefined}
+              src={displayImage || "/images/product/1.jpg"}
+              alt={item.title}
+              width={200}
+              height={200}
+              className="h-auto w-full object-contain mix-blend-multiply"
+              style={{ color: 'transparent' }}
+            />
+            {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10 shadow-sm" />}
+          </Link>
+
+          <div className="grow space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <Link prefetch={false} href={productLink}>
+                  <h3 className="font-abhaya text-lg font-bold text-black hover:text-primary transition-colors">
+                    {isFreeSilverPendant ? "Free Diamond Bracelet" : item.title}
+                  </h3>
+                </Link>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
+                  SKU: {currentVariant?.sku || item.sku || "N/A"}
+                </p>
+                {item.engraving && (
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Engraving: &quot;{item.engraving}&quot;
+                  </p>
+                )}
+                {isBYJ && (
+                  <button 
+                    onClick={() => setShowBreakdown(!showBreakdown)}
+                    className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-1"
+                  >
+                    {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
+                    <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-col items-end whitespace-nowrap">
+                <div className="text-xl font-bold text-zinc-900">
+                  ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                </div>
+                {hasDiscount && (
+                  <div className="text-sm text-zinc-400 line-through">
+                    ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  </div>
+                )}
+              </div>
+            </div>
             onClick={() => setShowRemoveModal(true)}
             className="absolute top-0 right-0 z-10 shrink-0 flex items-center justify-center w-[22px] h-[22px] lg:w-[28px] lg:h-[28px] rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
           >
@@ -433,16 +485,24 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
 
             {/* Info Content */}
-            <div className="flex-1 space-y-1 lg:space-y-1.5 min-w-0 lg:pt-1">
+<div className="flex-1 space-y-1 lg:space-y-1.5 min-w-0 lg:pt-1">
               <div className="flex items-center gap-2 lg:gap-4 mb-[8px] lg:mb-[6px]">
                 <Link prefetch={false} href={productLink} className="block flex-1 min-w-0 pr-8 lg:pr-10" title={item.title}>
                   <h3 className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none tracking-[0px] text-black truncate hover:text-primary transition-colors lg:mb-2">
-                    {displayTitle}
+                    {isFreeSilverPendant ? "Free Diamond Bracelet" : item.title}
                   </h3>
                 </Link>
               </div>
               <div className="flex items-center gap-1.5 lg:gap-2.5 flex-wrap mb-2.5 lg:mb-3.5">
                 <span className="font-figtree font-semibold text-[0.875rem] lg:text-[1.2rem] leading-none tracking-[0px] text-zinc-900">
+                  ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                </span>
+                {hasDiscount && (
+                  <span className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-400 line-through">
+                    ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  </span>
+                )}
+              </div>
                   ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                 </span>
                 {hasDiscount && (
@@ -459,7 +519,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   Engraving: &quot;{item.engraving}&quot;
                 </p>
               )}
-              <p className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-black capitalize mb-1.5 lg:mb-2.5">
+<p className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-black capitalize mb-1.5 lg:mb-2.5">
                 Metal: <span className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-black">
                   {formatMetal(item.karat, item.color)}
                   {item.goldWeight ? <span className="hidden lg:inline">, {item.goldWeight} gram</span> : ''}

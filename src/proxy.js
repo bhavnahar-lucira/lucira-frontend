@@ -15,7 +15,7 @@ import { NextResponse } from "next/server";
 // (e.g. /images/certificate/SampleCertificate.jpg).
 const SKIP_PREFIX = /^\/(?:api|_next)\//;
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname } = request.nextUrl;
 
   if (SKIP_PREFIX.test(pathname)) return NextResponse.next();
