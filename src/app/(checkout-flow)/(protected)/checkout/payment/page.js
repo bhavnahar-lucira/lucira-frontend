@@ -220,15 +220,29 @@ export default function PaymentPage() {
 
   const [priceProtectionSeconds, setPriceProtectionSeconds] = useState(600);
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let endTime = localStorage.getItem("priceProtectionEndTime");
+    if (!endTime || parseInt(endTime, 10) < Date.now()) {
+      endTime = Date.now() + 600 * 1000;
+      localStorage.setItem("priceProtectionEndTime", endTime);
+    } else {
+      endTime = parseInt(endTime, 10);
+    }
+
     const interval = setInterval(() => {
-      setPriceProtectionSeconds((prev) => {
-        if (prev <= 1) {
-          window.location.reload();
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+      setPriceProtectionSeconds(remaining);
+      
+      if (remaining <= 0) {
+        clearInterval(interval);
+        localStorage.removeItem("priceProtectionEndTime");
+        window.location.reload();
+      }
     }, 1000);
+    
+    setPriceProtectionSeconds(Math.max(0, Math.floor((endTime - Date.now()) / 1000)));
+
     return () => clearInterval(interval);
   }, []);
 

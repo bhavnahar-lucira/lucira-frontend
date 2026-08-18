@@ -147,9 +147,9 @@ const mapShopifyCart = (cart, backendCart = null) => {
   // FORCE INCLUSION of missing backend items to avoid ghost cart items mismatch
   if (backendCart?.items?.length > 0) {
     backendCart.items.forEach(bItem => {
-      const bVarId = String(bItem.variantId).toLowerCase();
+      const bVarId = String(bItem.variantId).toLowerCase().split('?')[0];
       const foundInShopify = items.find(sItem => {
-        const sVarId = String(sItem.variantId).toLowerCase();
+        const sVarId = String(sItem.variantId).toLowerCase().split('?')[0];
         return bVarId === sVarId || bVarId.includes(sVarId) || sVarId.includes(bVarId);
       });
 
@@ -760,9 +760,25 @@ export const updateCartItem = createAsyncThunk(
   }
 );
 
+// Module-level, not Redux state — de-dupes concurrent mergeCart calls for the
+// same login. Five different components each call mergeCart on their own
+// successful login (LoginForm, RegisterForm, OtpSpinAuth, CheckoutAuthForm,
+// UnlockCoupon); if a single login event reaches more than one of these —
+// plausible around the checkout auth gate, which can render alongside the
+// global header — two concurrent merges can each read the guest cart before
+// the other's write lands, producing a duplicate line for whatever the guest
+// cart held (the backend's /api/cart/merge is a read-modify-write, not
+// atomic). The backend now self-heals any duplicate that slips through
+// regardless of cause, but this stops the double call at its source instead
+// of relying on that safety net.
+let mergeCartInFlight = null;
+
 export const mergeCart = createAsyncThunk(
   "cart/mergeCart",
   async ({ userId, context = DEFAULT_CONTEXT } = {}, { dispatch, getState }) => {
+    if (mergeCartInFlight) return mergeCartInFlight;
+
+    const run = async () => {
     const finalUserId = userId || getState().user?.user?.id || null;
     const sessionId = getSessionId();
     const cartId = getCartId();
@@ -823,6 +839,12 @@ export const mergeCart = createAsyncThunk(
     // Step 3: Fetch the final merged cart state
     const result = await dispatch(fetchCart({ userId: finalUserId, context })).unwrap();
     return result;
+    };
+
+    mergeCartInFlight = run().finally(() => {
+      mergeCartInFlight = null;
+    });
+    return mergeCartInFlight;
   }
 );
 

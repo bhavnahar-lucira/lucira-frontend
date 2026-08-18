@@ -3,6 +3,7 @@
 import { useCart } from "@/hooks/useCart";
 import { Loader2, Check } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { isFreeGiftVariant } from "@/lib/freeGifts";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const INSURANCE_PRICE = 1;
@@ -22,7 +23,8 @@ export default function InsuranceOption() {
     items
       .filter(item =>
         item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === "gid://shopify/ProductVariant/47661824082138" && item.isFreeGift)
+        !(item.variantId === "gid://shopify/ProductVariant/47661824082138" && item.isFreeGift) &&
+        !isFreeGiftVariant(item.variantId)
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];

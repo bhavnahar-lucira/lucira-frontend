@@ -1,3 +1,5 @@
+import { GOLDCOIN_VARIANT_ID } from "@/components/cart/GoldCoinOption";
+
 // Single source of truth for the promotional coupon ladder shown on the PDP
 // (UnlockCoupon) and in the cart's Saving Zone drawer. Both surfaces render the
 // same list through the shared CouponCard, so edits here reach every surface.
@@ -79,7 +81,6 @@ export const getApplicableCouponCodes = (cartValue) => {
 };
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 /**
  * The one place the coupon discount is computed. Every surface that shows or

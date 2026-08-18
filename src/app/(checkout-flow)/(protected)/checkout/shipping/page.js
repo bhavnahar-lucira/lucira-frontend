@@ -191,7 +191,7 @@ export default function ShippingPage() {
 
   useEffect(() => {
     const currentCustomer = customer || user;
-    if (cartItems && cartItems.length > 0 && !hasFiredBeginCheckout.current) {
+    if (isAuthenticated && cartItems && cartItems.length > 0 && !hasFiredBeginCheckout.current) {
       const getNumericId = (gid) => {
         if (!gid) return 0;
         if (typeof gid === 'number') return gid;
@@ -254,7 +254,7 @@ export default function ShippingPage() {
 
       hasFiredBeginCheckout.current = true;
     }
-  }, [cartItems, totalAmount, appliedCoupon, customer, user]);
+  }, [cartItems, totalAmount, appliedCoupon, customer, user, isAuthenticated]);
 
 
 

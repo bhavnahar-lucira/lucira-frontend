@@ -110,7 +110,11 @@ export function BillingAddressSection({
             onCheckedChange={(checked) => {
               setBillingMode(checked ? "same" : "different");
               if (!checked) {
-                openCreate();
+                if (addresses.length > 0) {
+                  setBillingView("list");
+                } else {
+                  openCreate();
+                }
               } else {
                 setBillingView("card");
               }
@@ -146,8 +150,25 @@ export function BillingAddressSection({
               saving={creating}
             />
           </div>
+        ) : billingView === "list" ? (
+          <div className="space-y-4 mt-2">
+            <AddressListInline
+              addresses={addresses}
+              selectedAddressId={selectedBillingAddress?.id}
+              onSelect={async (id) => {
+                const addr = addresses.find((a) => a.id === id);
+                if (addr) {
+                  await selectBillingAddress(id, addr);
+                }
+                setBillingView("card");
+              }}
+              onDelete={deleteAddress}
+              onAddNew={openCreate}
+              radioGroupName="billing-addresses"
+            />
+          </div>
         ) : (
-          <AddressSummaryCard address={selectedBillingAddress} onChangeClick={() => openCreate()} />
+          <AddressSummaryCard address={selectedBillingAddress} onChangeClick={() => setBillingView("list")} />
         ))}
     </div>
   );

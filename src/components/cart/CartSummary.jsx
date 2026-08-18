@@ -21,6 +21,8 @@ import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCoupo
 import { apiFetch } from "@/lib/api";
 import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
+import FreeGiftReward from "./FreeGiftReward";
+import { FREE_GIFTS, isFreeGiftVariant } from "@/lib/freeGifts";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
@@ -69,7 +71,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     items
       .filter(item =>
         item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !isFreeGiftVariant(item.variantId)
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
@@ -98,6 +101,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       );
       return item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !isFreeGiftVariant(item.variantId) &&
         !isBYJ;
     })
     .reduce((acc, item) => {
@@ -133,10 +137,15 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
 
   const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
+  // Claiming requires a logged-in user, so a gift line without one is an
+  // invalid leftover state (FreeGiftReward's own effect removes it), not a
+  // legitimate claim — don't reflect it as applied here in the meantime.
+  const appliedGiftItem = user ? items.find(item => isFreeGiftVariant(item.variantId)) : null;
 
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+    !isFreeGiftVariant(item.variantId)
   )?.title;
 
   // Auto-sync insurance and gold coin quantities
@@ -235,7 +244,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const originalSubtotal = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -249,7 +259,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const totalSavings = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -277,6 +288,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const handleApplyCoupon = async (codeOverride) => {
     const code = (codeOverride ?? couponCode).trim();
     if (!code) return;
+    if (items.some(item => isFreeGiftVariant(item.variantId))) {
+      toast.error("Coupons cannot be applied while a free gift is claimed. Please remove it first.");
+      return;
+    }
 
     setIsApplying(true);
     if (codeOverride) setApplyingCode(code);
@@ -402,7 +417,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         setIsCouponDrawerOpen(true);
       }}
       className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white transition-colors hover:border-[#5A413F]/30 cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
-      style={{ margin: "0px", borderRadius: "4px", borderColor: "#eaeaea" }}
+      style={{ margin: "0px", borderRadius: FREE_GIFTS.length > 0 ? "4px 4px 0px 0px" : "4px", borderColor: "#eaeaea" }}
     >
       <span className="flex h-9 w-9 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
         <svg viewBox="0 0 24 24" fill="none" className="text-[#5A413F] w-[18px] h-[18px] lg:w-[24px] lg:h-[24px]">
@@ -435,6 +450,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             textTransform: "uppercase"
         }}>OFFER ZONE</h3>
         {couponTrigger}
+        <FreeGiftReward diamondTotal={diamondTotal} />
       </div>
 
       {/* Desktop Pricing Breakdown (LG) */}
@@ -477,6 +493,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
             <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
             <span className="font-semibold text-[#00A63E]">₹ 0</span>
+          </div>
+        )}
+        {appliedGiftItem && (
+          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
+            <span>{appliedGiftItem.title} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+            <div className="flex items-center gap-2">
+              {Number(appliedGiftItem.comparePrice || 0) > 0 && (
+                <span className="text-sm text-gray-400 line-through font-normal">
+                  ₹ {Number(appliedGiftItem.comparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+              )}
+              <span className="font-semibold text-[#00A63E]">₹ 0</span>
+            </div>
           </div>
         )}
 
@@ -557,7 +586,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               </div>
             )}
 
-
+            {appliedGiftItem && (
+              <div className="flex justify-between items-center font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
+                <span>{appliedGiftItem.title} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+                <div className="flex items-center gap-2">
+                  {Number(appliedGiftItem.comparePrice || 0) > 0 && (
+                    <span className="text-[0.625rem] text-gray-400 line-through font-normal">
+                      ₹ {Number(appliedGiftItem.comparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </span>
+                  )}
+                  <span className="font-semibold text-[#00A63E]">₹ 0</span>
+                </div>
+              </div>
+            )}
 
             {insuranceItem && (
               <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
@@ -632,15 +673,15 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon) handleApplyCoupon();
+              if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon && !appliedGiftItem) handleApplyCoupon();
             }}
-            disabled={!!appliedCoupon}
-            placeholder="Enter Coupon Code"
+            disabled={!!appliedCoupon || !!appliedGiftItem}
+            placeholder={appliedGiftItem ? `Disabled due to ${appliedGiftItem.title}` : "Enter Coupon Code"}
             className="h-12 flex-1 rounded-sm border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
           />
           <Button
             onClick={() => handleApplyCoupon()}
-            disabled={isApplying || !couponCode.trim() || !!appliedCoupon}
+            disabled={isApplying || !couponCode.trim() || !!appliedCoupon || !!appliedGiftItem}
             className="h-12 shrink-0 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] px-5 font-figtree uppercase font-semibold tracking-[0.1em] text-xs text-white transition-colors disabled:opacity-50"
           >
             {isApplying && !applyingCode ? <Loader2 className="animate-spin" /> : "Apply"}
@@ -654,6 +695,20 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             </p>
             <button
               onClick={handleRemoveCoupon}
+              className="shrink-0 font-figtree text-[0.6875rem] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        {appliedGiftItem && !appliedCoupon && (
+          <div className="flex items-center justify-between gap-3 rounded-sm border border-amber-200 bg-amber-50/70 px-3.5 py-2.5">
+            <p className="font-figtree text-xs font-medium leading-[1.4] text-[#3D2B28]">
+              Coupons cannot be applied while {appliedGiftItem.title} is claimed.
+            </p>
+            <button
+              onClick={() => removeFromCart(appliedGiftItem.lineId || appliedGiftItem.variantId)}
               className="shrink-0 font-figtree text-[0.6875rem] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
             >
               Remove
@@ -739,6 +794,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                       applyingCode={applyingCode}
                       appliedCode={appliedCoupon ? couponDetails.code : null}
                       isApplicable={allApplicable.includes(coupon.code)}
+                      disabled={!!appliedGiftItem}
                     />
                   </div>
                 ));

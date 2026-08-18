@@ -15,9 +15,10 @@ import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { pushPromoClick } from "@/lib/gtm";
+import { isFreeGiftVariant } from "@/lib/freeGifts";
+import { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 
 export default function CheckoutSummary({
   showItems = true,
@@ -107,7 +108,8 @@ export default function CheckoutSummary({
   const originalSubtotalValue = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -120,7 +122,8 @@ export default function CheckoutSummary({
   const totalSavings = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -235,9 +238,15 @@ export default function CheckoutSummary({
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
+
+  // Claiming requires a logged-in user, so a gift line without one is an
+  // invalid leftover state (FreeGiftReward's own effect removes it), not a
+  // legitimate claim — don't reflect it as applied here in the meantime.
+  const appliedGiftItem = user ? (items || []).find((item) => isFreeGiftVariant(item.variantId)) : null;
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
   const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
@@ -431,6 +440,19 @@ export default function CheckoutSummary({
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
               <span className="font-semibold text-[#00A63E]">₹ 0</span>
+            </div>
+          )}
+          {appliedGiftItem && (
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
+              <span>{appliedGiftItem.title} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+              <div className="flex items-center gap-2">
+                {Number(appliedGiftItem.comparePrice || 0) > 0 && (
+                  <span className="text-sm text-gray-400 line-through font-normal">
+                    ₹ {Number(appliedGiftItem.comparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  </span>
+                )}
+                <span className="font-semibold text-[#00A63E]">₹ 0</span>
+              </div>
             </div>
           )}
 
