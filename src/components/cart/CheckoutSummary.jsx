@@ -18,8 +18,6 @@ import { pushPromoClick } from "@/lib/gtm";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
-const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
 const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 const PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
 const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
@@ -48,14 +46,13 @@ export default function CheckoutSummary({
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
-  // Fixed marketing value for the free-gift line — the Silver Bracelet variant has no
-  // DI-GoldPrice variant_config metafield, so the dynamic pricing service can't price it.
-  const pendantPrice = 15000;
+  // Falls back to this marketing value until the dynamic pricing fetch below resolves —
+  // the Silver Bracelet variant has no DI-GoldPrice variant_config metafield, so pricing
+  // isn't always available from the API.
+  const [pendantPrice, setPendantPrice] = useState(15000);
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-item.variantId !== INSURANCE_VARIANT_ID &&
     !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
     !isPendantVariant(item.variantId)
   )?.title;
@@ -111,8 +108,8 @@ const isSilverPendant = isPendantVariant(item.variantId);
 
   const hasDiamondJewellery = diamondTotalForOffer > 0;
   
-  const isEligibleForPendant = diamondTotalForOffer >= 15000 && !appliedCoupon;
-  const eligiblePendantId = diamondTotalForOffer >= 30000 ? SILVER_PENDANT_VARIANT_ID : (diamondTotalForOffer >= 15000 ? PENDANT_5K_VARIANT_ID : null);
+  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
+  const eligiblePendantId = diamondTotalForOffer >= 30000 ? SILVER_BRACELET_VARIANT_ID : null;
 
   useEffect(() => {
     if (eligiblePendantId) {
@@ -140,8 +137,6 @@ const isSilverPendant = isPendantVariant(item.variantId);
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       !(isPendantVariant(item.variantId) && item.isFreeGift)
     )
     .reduce((acc, item) => {
@@ -154,8 +149,6 @@ const isSilverPendant = isPendantVariant(item.variantId);
 
   const totalSavings = (items || [])
     .filter(item =>
-      item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       !(isPendantVariant(item.variantId) && item.isFreeGift)
@@ -298,21 +291,13 @@ const isSilverPendant = isPendantVariant(item.variantId);
   if (isPendantActive && !displayItems.some(item => item.variantId === eligiblePendantId)) {
     displayItems.push({
       variantId: eligiblePendantId,
-      title: "Free Silver Pendant",
+      title: "Free Diamond Bracelet",
       quantity: 1,
       price: 0,
       comparePrice: pendantPrice,
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617",
+      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png",
       isFreeGift: true,
       isPendant: true,
-    });
-  }
-      quantity: 1,
-      price: 0,
-      comparePrice: pendantPrice,
-      title: "Free Silver Bracelet",
-      isFreeGift: true,
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
     });
   }
 
@@ -515,7 +500,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
           )}
           {isPendantActive && (
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>Free Silver Pendant</span>
+              <span>Free Diamond Bracelet</span>
               <div className="flex items-center gap-2">
                 {pendantPrice > 0 && (
                   <span className="text-sm text-gray-400 line-through font-normal">
@@ -566,16 +551,10 @@ const isSilverPendant = isPendantVariant(item.variantId);
           {/* Left Side: Image - Matching Order Summary Style */}
           <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
             <Image
-          <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
-            <Image
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
               width={80}
               height={80}
-              alt="Free Silver Pendant"
-              className="w-full h-full object-contain mix-blend-multiply"
-              unoptimized
-            />
-          </div>
+              alt="Free Diamond Bracelet"
               className="w-full h-full object-contain mix-blend-multiply"
               unoptimized
             />
@@ -584,11 +563,8 @@ const isSilverPendant = isPendantVariant(item.variantId);
           {/* Right Side: Content & Action */}
           <div className="flex-1 flex flex-col justify-between py-0.5">
             <div className="space-y-1">
-          <div className="flex-1 flex flex-col justify-between py-0.5">
-            <div className="space-y-1">
-              <h3 className="text-[0.8125rem] font-bold text-[#443360] uppercase tracking-tight">Free Silver Pendant</h3>
-              <p className="text-[0.6875rem] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your Free Silver Pendant now.</p>
-            </div>
+              <h3 className="text-[0.8125rem] font-bold text-[#443360] uppercase tracking-tight">Free Diamond Bracelet</h3>
+              <p className="text-[0.6875rem] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your Free Diamond Bracelet now.</p>
             </div>
 
             <div className="flex items-center justify-between gap-3 pt-2">
@@ -618,7 +594,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
                     }
                     if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
                     onToggleSilverPendant();
-                    toast.info("Free Pendant removed from your order.");
+                    toast.info("Free Bracelet removed from your order.");
                   }}
                   className="px-5 py-2 bg-zinc-100 hover:bg-red-50 hover:text-red-600 text-zinc-500 rounded-full text-[0.625rem] font-bold uppercase tracking-wider transition-all cursor-pointer"
                 >

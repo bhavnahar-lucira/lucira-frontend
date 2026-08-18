@@ -23,16 +23,10 @@ export default function InsuranceOption() {
     let qty = 0;
     const byjGroups = new Set();
     items
-      .filter(item => 
-        item.variantId !== INSURANCE_VARIANT_ID && 
-        !(item.variantId === "gid://shopify/ProductVariant/47661824082138" && item.isFreeGift) &&
-      .filter(item => 
-        item.variantId !== INSURANCE_VARIANT_ID && 
+      .filter(item =>
+        item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === "gid://shopify/ProductVariant/47661824082138" && item.isFreeGift) &&
         !isPendantVariant(item.variantId)
-      )
-      .forEach(item => {
-        const byjGroupId = item.properties?.['_byj_group_id'];
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];

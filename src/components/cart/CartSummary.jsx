@@ -23,14 +23,8 @@ import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-import Image from "next/image";
-
-const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
-const SILVER_PENDANT_5K_VARIANT_ID = "gid://shopify/ProductVariant/48335367602394";
 const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
-const isPendantVariant = (id) => id === SILVER_PENDANT_VARIANT_ID || id === SILVER_PENDANT_5K_VARIANT_ID || id === SILVER_BRACELET_VARIANT_ID;
+const isPendantVariant = (id) => id === SILVER_BRACELET_VARIANT_ID;
 
 export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const dispatch = useDispatch();
@@ -78,8 +72,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       .filter(item =>
         item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
         !isPendantVariant(item.variantId)
       )
       .forEach(item => {
@@ -109,10 +101,7 @@ item.variantId !== INSURANCE_VARIANT_ID &&
       );
       return item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-return item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
         !isPendantVariant(item.variantId) &&
-        !isBYJ;
         !isBYJ;
     })
     .reduce((acc, item) => {
@@ -213,9 +202,6 @@ const [pendantPrice, setPendantPrice] = useState(0);
           toast.info("Coupon removed as Free Bracelet offer cannot be combined with coupons.");
         }
         if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
-        
-        const isTier2 = currentEligiblePendant.variantId === SILVER_PENDANT_VARIANT_ID;
-        const productId = isTier2 ? "gid://shopify/Product/9342370414810" : "gid://shopify/Product/9429345108186";
 
         const product = {
           productId: currentEligiblePendant.productId,
@@ -244,8 +230,6 @@ const [pendantPrice, setPendantPrice] = useState(0);
 
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-item.variantId !== INSURANCE_VARIANT_ID &&
     !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
     !isPendantVariant(item.variantId)
   )?.title;
@@ -351,8 +335,6 @@ item.variantId !== INSURANCE_VARIANT_ID &&
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       !(isPendantVariant(item.variantId) && item.isFreeGift)
     )
     .reduce((acc, item) => {
@@ -366,8 +348,6 @@ item.variantId !== INSURANCE_VARIANT_ID &&
   // Total savings = sum of (original price - selling price) across all real cart products
   const totalSavings = items
     .filter(item =>
-      item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
       !(isPendantVariant(item.variantId) && item.isFreeGift)
@@ -399,7 +379,7 @@ item.variantId !== INSURANCE_VARIANT_ID &&
     const code = (codeOverride ?? couponCode).trim();
     if (!code) return;
     if (isSilverPendantApplied) {
-      toast.error("Coupons cannot be applied while Free Silver Pendant is claimed. Please remove the pendant first.");
+      toast.error("Coupons cannot be applied while Free Silver Bracelet is claimed. Please remove the bracelet first.");
       return;
     }
     setIsApplying(true);
@@ -430,7 +410,7 @@ item.variantId !== INSURANCE_VARIANT_ID &&
       if (isSilverPendantApplied) {
         await removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
         if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-toast.info("Free Pendant removed as it cannot be combined with a coupon.");
+toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
       }
 
       dispatch(applyCoupon({
@@ -715,7 +695,7 @@ toast.info("Free Pendant removed as it cannot be combined with a coupon.");
         )}
         {silverPendantItem && (
 <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-            <span>{silverPendantItem.title || "Free Silver Pendant"} ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
+            <span>{silverPendantItem.title || "Free Diamond Bracelet"} ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
             <div className="flex items-center gap-2">
               {pendantPrice > 0 && (
                 <span className="text-sm text-gray-400 line-through font-normal">
@@ -805,16 +785,11 @@ toast.info("Free Pendant removed as it cannot be combined with a coupon.");
 
             {silverPendantItem && (
               <div className="flex justify-between items-center font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
-                <span>{silverPendantItem.title || "Free Silver Pendant"} ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
+                <span>{silverPendantItem.title || "Free Diamond Bracelet"} ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
                 <div className="flex items-center gap-2">
                   {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
                     <span className="text-[0.625rem] text-gray-400 line-through font-normal">
                       ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                    </span>
-                  )}
-                  <span className="font-semibold text-[#00A63E]">₹ 0</span>
-                </div>
-              </div>
                     </span>
                   )}
                   <span className="font-semibold text-[#00A63E]">₹ 0</span>
@@ -898,7 +873,7 @@ toast.info("Free Pendant removed as it cannot be combined with a coupon.");
               if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon && !isSilverPendantApplied) handleApplyCoupon();
             }}
             disabled={!!appliedCoupon || isSilverPendantApplied}
-            placeholder={isSilverPendantApplied ? "Disabled due to Free Silver Pendant" : "Enter Coupon Code"}
+            placeholder={isSilverPendantApplied ? "Disabled due to Free Silver Bracelet" : "Enter Coupon Code"}
             className="h-12 flex-1 rounded-sm border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
           />
           <Button
@@ -927,7 +902,7 @@ toast.info("Free Pendant removed as it cannot be combined with a coupon.");
         {isSilverPendantApplied && !appliedCoupon && (
           <div className="flex items-center justify-between gap-3 rounded-sm border border-amber-200 bg-amber-50/70 px-3.5 py-2.5">
             <p className="font-figtree text-xs font-medium leading-[1.4] text-[#3D2B28]">
-              Coupons cannot be applied while the Free Silver Pendant is claimed.
+              Coupons cannot be applied while the Free Silver Bracelet is claimed.
             </p>
             <button
               onClick={() => {
@@ -949,7 +924,7 @@ toast.info("Free Pendant removed as it cannot be combined with a coupon.");
             <h4 className="font-figtree font-semibold text-[#3D2B28] text-sm md:text-base mb-1.5 uppercase tracking-wide">
               Login to Unlock Coupons
             </h4>
-            <p className="font-figtree text-xs md:text-sm text-[#000000] mb-4">
+            <p className="font-figtree text-xs md:text-sm text-[#000000] mb-4" style={{ maxWidth: "270px" }}>
               Login or register to access members-only discounts and rewards.
             </p>
             <Button
@@ -969,7 +944,8 @@ toast.info("Free Pendant removed as it cannot be combined with a coupon.");
                 setIsCouponDrawerOpen(false);
                 openLogin();
               }}
-              className="h-11 px-6 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase font-semibold tracking-wide text-xs text-white transition-colors cursor-pointer"
+              className="h-11 px-6 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase text-xs text-white transition-colors cursor-pointer"
+              style={{ fontWeight: 400, letterSpacing: "0.6px", borderRadius: "4px" }}
             >
               Login / Register
             </Button>

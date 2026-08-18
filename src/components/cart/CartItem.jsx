@@ -406,59 +406,7 @@ const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).t
             </div>
           )}
 
-<Link prefetch={false}
-            href={productLink}
-            className="relative aspect-square w-full shrink-0 overflow-hidden rounded-card border border-zinc-100/50 bg-zinc-50 md:w-48 block transition-opacity"
-          >
-            <Image
-              loader={isShopifyImage ? shopifyLoader : undefined}
-              src={displayImage || "/images/product/1.jpg"}
-              alt={item.title}
-              width={200}
-              height={200}
-              className="h-auto w-full object-contain mix-blend-multiply"
-              style={{ color: 'transparent' }}
-            />
-            {!isFreeSilverPendant && <SocialProofBand socialProof={socialProof} variant="cart" className="absolute inset-x-0 mx-auto bottom-[8px] z-10 shadow-sm" />}
-          </Link>
-
-          <div className="grow space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <Link prefetch={false} href={productLink}>
-                  <h3 className="font-abhaya text-lg font-bold text-black hover:text-primary transition-colors">
-                    {isFreeSilverPendant ? "Free Diamond Bracelet" : item.title}
-                  </h3>
-                </Link>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                  SKU: {currentVariant?.sku || item.sku || "N/A"}
-                </p>
-                {item.engraving && (
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                    Engraving: &quot;{item.engraving}&quot;
-                  </p>
-                )}
-                {isBYJ && (
-                  <button 
-                    onClick={() => setShowBreakdown(!showBreakdown)}
-                    className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-primary transition-colors mt-1"
-                  >
-                    {showBreakdown ? 'Hide breakdown' : 'Show breakdown'}
-                    <ChevronDown size={14} className={`transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-col items-end whitespace-nowrap">
-                <div className="text-xl font-bold text-zinc-900">
-                  ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </div>
-                {hasDiscount && (
-                  <div className="text-sm text-zinc-400 line-through">
-                    ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                  </div>
-                )}
-              </div>
-            </div>
+<button
             onClick={() => setShowRemoveModal(true)}
             className="absolute top-0 right-0 z-10 shrink-0 flex items-center justify-center w-[22px] h-[22px] lg:w-[28px] lg:h-[28px] rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors"
           >
@@ -499,14 +447,6 @@ const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).t
                 </span>
                 {hasDiscount && (
                   <span className="font-figtree font-medium text-[0.75rem] lg:text-[0.875rem] leading-none tracking-[0px] text-zinc-400 line-through">
-                    ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                  </span>
-                )}
-              </div>
-                  ₹ {lineAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                </span>
-                {hasDiscount && (
-                  <span className="font-figtree font-normal text-[0.875rem] lg:text-[0.9375rem] leading-none tracking-[0px] text-zinc-400 line-through">
                     ₹ {lineCompareAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                   </span>
                 )}

@@ -201,7 +201,6 @@ export default function PaymentPage() {
   // Seeded from the cart, not localStorage: the PDP offer popup sets the claim flag
   // without adding the gift, which made the pendant appear here when it was never added.
   const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
-const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
   const [pendantPrice, setPendantPrice] = useState(0);
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
@@ -252,8 +251,8 @@ const isSilverPendant = isPendantVariant(item.variantId);
     }, 0);
   }, [items]);
 
-  const isEligibleForPendant = diamondTotalForOffer >= 15000 && !appliedCoupon;
-  const eligiblePendantId = diamondTotalForOffer >= 30000 ? SILVER_PENDANT_VARIANT_ID : (diamondTotalForOffer >= 15000 ? PENDANT_5K_VARIANT_ID : null);
+  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
+  const eligiblePendantId = diamondTotalForOffer >= 30000 ? SILVER_BRACELET_VARIANT_ID : null;
 
   useEffect(() => {
 if (eligiblePendantId) {
@@ -270,9 +269,23 @@ if (eligiblePendantId) {
     }
   }, [eligiblePendantId]);
 
-  const [checkoutSelection, setCheckoutSelection] = useState(null);
-  const summaryRef = useRef(null);
-  const summaryBreakdownRef = useRef(null);
+  const [showPriceProtection, setShowPriceProtection] = useState(false);
+  const [showCoinsNudge, setShowCoinsNudge] = useState(false);
+  const [coinsProceedAction, setCoinsProceedAction] = useState(null);
+
+  const [priceProtectionSeconds, setPriceProtectionSeconds] = useState(600);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPriceProtectionSeconds((prev) => {
+        if (prev <= 1) {
+          window.location.reload();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const scrollToSummary = () => {
     const target = summaryBreakdownRef.current || summaryRef.current;
@@ -292,9 +305,6 @@ if (eligiblePendantId) {
 
   useEffect(() => {
     const claimed = isEligibleForPendant && (items || []).some(item => isPendantVariant(item.variantId));
-    setIsSilverPendantClaimed(claimed);
-    if (!claimed && typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-  }, [items, appliedCoupon, isEligibleForPendant]);
     setIsSilverPendantClaimed(claimed);
     if (!claimed && typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
   }, [items, appliedCoupon, isEligibleForPendant]);
@@ -546,7 +556,7 @@ variantId: eligiblePendantId,
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
+else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
           }
 
           return {
@@ -582,7 +592,7 @@ else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
+else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
           }
 
           return {
@@ -726,7 +736,7 @@ else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
                   else if (lowerTitle.includes("bracelet")) category = "Bracelets";
                   else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
                   else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
+else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
                 }
 
                 return {
@@ -884,7 +894,7 @@ else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
               else if (lowerTitle.includes("bracelet")) category = "Bracelets";
               else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
               else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-else if (isPendantVariant(item.variantId)) category = "Silver Pendant";
+else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
             }
 
             return {
