@@ -18,8 +18,6 @@ import { pushPromoClick } from "@/lib/gtm";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47753346973914";
-const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
-const isPendantVariant = (id) => id === SILVER_BRACELET_VARIANT_ID;
 
 export default function CheckoutSummary({
   showItems = true,
@@ -27,9 +25,6 @@ export default function CheckoutSummary({
   showPoints = true,
   showContact = true,
   className = "",
-  isSilverPendantClaimed = false,
-  onToggleSilverPendant = () => { },
-  showSilverPendantOffer = false,
   breakdownRef = null,
   onApplyCoinsWarning = null,
   mobilePaymentCoinsTheme = false,
@@ -44,25 +39,20 @@ export default function CheckoutSummary({
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
-  // Falls back to this marketing value until the dynamic pricing fetch below resolves —
-  // the Silver Bracelet variant has no DI-GoldPrice variant_config metafield, so pricing
-  // isn't always available from the API.
-  const [pendantPrice, setPendantPrice] = useState(15000);
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-    !isPendantVariant(item.variantId)
+    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
   )?.title;
 
   const isPaymentPage = pathname && (pathname === "/checkout/payment" || pathname.includes("/checkout/payment"));
 
   const isCheckoutPage = pathname && pathname.startsWith("/checkout") && pathname !== "/checkout/cart";
 
-  // Fetch Pendant Price
+  // Fetch Bracelet Price
   // Note: we can't easily know which one is active here initially, so we can fetch whichever is eligible or both.
   // Actually, we'll fetch the one we're eligible for after calculating diamondTotalForOffer.
-  // Let's do it after we define eligiblePendantId.
+  // Let's do it after we define eligibleBraceletId.
   // Dispatch Calculation
   const overallDispatchMessage = useMemo(() => {
     if (!items || items.length === 0) return "";
@@ -83,9 +73,8 @@ export default function CheckoutSummary({
         type.includes("gemstone") || title.includes("gemstone") ||
         hasDiamondCharges;
 
-      // Exclude Gold Coins, Silver Bracelets (paid), Insurance, BYJ
+      // Exclude Gold Coins, Insurance, BYJ
       const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
-const isSilverPendant = isPendantVariant(item.variantId);
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] ||
@@ -97,7 +86,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
         String(item.title || "").toLowerCase().includes('byj')
       );
 
-      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance && !isBYJ) {
+      if (isDiamond && !isGoldCoin && !isInsurance && !isBYJ) {
         return acc + (Number(item.price || 0) * Number(item.quantity || 1));
       }
       return acc;
@@ -106,23 +95,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
 
   const hasDiamondJewellery = diamondTotalForOffer > 0;
   
-  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
-  const eligiblePendantId = diamondTotalForOffer >= 30000 ? SILVER_BRACELET_VARIANT_ID : null;
 
-  useEffect(() => {
-    if (eligiblePendantId) {
-      apiFetch(`/api/products/pricing?variantId=${eligiblePendantId.split('/').pop()}`, { suppressErrorLog: true })
-        .then(data => {
-          const p = Number(data?.price || data?.compare_price || 0);
-          if (p > 0) setPendantPrice(p);
-        })
-        .catch(err => {
-          if (!err.message?.includes("not found")) {
-            console.error("Error fetching pendant price:", err);
-          }
-        });
-    }
-  }, [eligiblePendantId]);
 
   const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
@@ -134,8 +107,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
   const originalSubtotalValue = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(isPendantVariant(item.variantId) && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -148,8 +120,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
   const totalSavings = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(isPendantVariant(item.variantId) && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -260,24 +231,6 @@ const isSilverPendant = isPendantVariant(item.variantId);
     });
   };
 
-  const hasPendantLine = (items || []).some(item => isPendantVariant(item.variantId));
-
-  // The cart line is the source of truth. The localStorage flag can be set from the PDP
-  // offer popup without anything being added to the cart, so clear it once checkout sees
-  // there is no actual pendant line for the current order.
-
-  // The cart line is the source of truth. The localStorage flag can be set from the PDP
-  // offer popup without anything being added to the cart, so clear it once checkout sees
-  // that the gift isn't actually there (or the order no longer qualifies).
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if ((!isEligibleForPendant || !hasPendantLine) && localStorage.getItem("isSilverPendantClaimed") === "true") {
-      localStorage.removeItem("isSilverPendantClaimed");
-    }
-  }, [isEligibleForPendant, hasPendantLine]);
-
-  const isPendantActive = isEligibleForPendant && hasPendantLine;
-
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
@@ -285,19 +238,6 @@ const isSilverPendant = isPendantVariant(item.variantId);
       !item.properties?.['_byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
-
-  if (isPendantActive && !displayItems.some(item => item.variantId === eligiblePendantId)) {
-    displayItems.push({
-      variantId: eligiblePendantId,
-      title: "Free Diamond Bracelet",
-      quantity: 1,
-      price: 0,
-      comparePrice: pendantPrice,
-      image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png",
-      isFreeGift: true,
-      isPendant: true,
-    });
-  }
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
   const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
@@ -321,8 +261,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
               const byjCharmsPrice = isBYJ ? byjCharms.reduce((acc, c) => acc + (parseFloat(c.price || 0) * (c.qty || 1)), 0) / 100 : 0;
               const displayPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
               const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
-              const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver bracelet");
-              const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || pendantPrice || 0) : Number(item.comparePrice || 0);
+              const effectiveComparePrice = Number(item.comparePrice || 0);
 
               return (
                 <div key={index} className="space-y-3">
@@ -338,13 +277,11 @@ const isSilverPendant = isPendantVariant(item.variantId);
                       />
                     </div>
                     <div className="flex-grow space-y-1">
-                      <h3 className="text-sm font-medium text-zinc-800 leading-tight transition-colors">{isSilverPendant ? "Free Diamond Bracelet" : item.title}</h3>
+                      <h3 className="text-sm font-medium text-zinc-800 leading-tight transition-colors">{item.title}</h3>
                       <div className="flex flex-col gap-0.5">
-                        {!isSilverPendant && (
-                          <p className="text-xs text-zinc-500 font-medium uppercase tracking-tight">
-                            Metal: <span className="text-zinc-800">{formatMetal(item.karat, item.color)}</span>
-                          </p>
-                        )}
+                        <p className="text-xs text-zinc-500 font-medium uppercase tracking-tight">
+                          Metal: <span className="text-zinc-800">{formatMetal(item.karat, item.color)}</span>
+                        </p>
                         <p className="text-xs text-zinc-500">Quantity: {item.quantity}</p>
                       </div>
                       <div className="flex items-center gap-2 pt-1">
@@ -496,19 +433,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
               <span className="font-semibold text-[#00A63E]">₹ 0</span>
             </div>
           )}
-          {isPendantActive && (
-            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>Free Diamond Bracelet</span>
-              <div className="flex items-center gap-2">
-                {pendantPrice > 0 && (
-                  <span className="text-sm text-gray-400 line-through font-normal">
-                    ₹ {pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </span>
-                )}
-                <span className="font-semibold text-[#00A63E]">₹ 0</span>
-              </div>
-            </div>
-          )}
+
           {insuranceValue > 0 && (
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span>Insurance</span>
@@ -544,110 +469,7 @@ const isSilverPendant = isPendantVariant(item.variantId);
         </div>
       )}
 
-      {showSilverPendantOffer && isPaymentPage && isEligibleForPendant && (
-        <div className="bg-[#FDF2F5] rounded-2xl border border-[#F1D1D9] p-4 flex gap-4 transition-all">
-          {/* Left Side: Image - Matching Order Summary Style */}
-          <div className="w-20 h-20 bg-white rounded-md border border-[#F1D1D9]/50 p-1 shrink-0 flex items-center justify-center overflow-hidden">
-            <Image
-              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
-              width={80}
-              height={80}
-              alt="Free Diamond Bracelet"
-              className="w-full h-full object-contain mix-blend-multiply"
-              unoptimized
-            />
-          </div>
 
-          {/* Right Side: Content & Action */}
-          <div className="flex-1 flex flex-col justify-between py-0.5">
-            <div className="space-y-1">
-              <h3 className="text-[0.8125rem] font-bold text-[#443360] uppercase tracking-tight">Free Diamond Bracelet</h3>
-              <p className="text-[0.6875rem] text-zinc-500 leading-snug">Gift unlocked for your Diamond order! Claim your Free Diamond Bracelet now.</p>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 pt-2">
-              <div className="flex items-center gap-2">
-                {pendantPrice > 0 && (
-                  <span className="text-xs text-zinc-400 line-through font-figtree">
-                    ₹{pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </span>
-                )}
-                <span className="text-sm font-bold text-[#189351] font-figtree">FREE</span>
-              </div>
-
-              {isPendantActive ? (
-                <button
-                  onClick={() => {
-                    const firstItem = items && items.length > 0 ? items[0] : null;
-                    const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
-                    try {
-                      pushPromoClick({
-                        creative_name: "remove free silver pendant - checkout",
-                        promo_id: eligiblePendantId,
-                        item_id: variantId || eligiblePendantId,
-                        promo_position: "Checkout Summary",
-                      });
-                    } catch (e) {
-                      console.error("promoClick push failed", e);
-                    }
-                    if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-                    onToggleSilverPendant();
-                    toast.info("Free Bracelet removed from your order.");
-                  }}
-                  className="px-5 py-2 bg-zinc-100 hover:bg-red-50 hover:text-red-600 text-zinc-500 rounded-full text-[0.625rem] font-bold uppercase tracking-wider transition-all cursor-pointer"
-                >
-                  REMOVE
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    const firstItem = items && items.length > 0 ? items[0] : null;
-                    const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
-                    try {
-                      pushPromoClick({
-                        creative_name: "claim free silver pendant - checkout",
-                        promo_id: eligiblePendantId,
-                        item_id: variantId || eligiblePendantId,
-                        promo_position: "Checkout Summary",
-                      });
-                    } catch (e) {
-                      console.error("promoClick push failed", e);
-                    }
-                    if (appliedCoupon) {
-                      removeCoupon();
-                      toast.info("Coupon removed as Free Bracelet offer cannot be combined with coupons.");
-                    }
-                    if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
-                    onToggleSilverPendant();
-                    toast.success("Free Silver Bracelet added to your order!", {
-                      icon: <Check className="w-4 h-4" />
-                    });
-                  }}
-                  className="group relative px-8 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-full text-[0.625rem] font-bold uppercase tracking-[0.15em] transition-all active:scale-[0.98] overflow-hidden cursor-pointer"
-                >
-                  <span className="relative z-10">CLAIM</span>
-
-                  {/* Shine Effect */}
-                  <div className="absolute inset-0 z-0">
-                    <div className="absolute top-0 -left-[100%] h-full w-[50%] bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-25deg] animate-button-shine" />
-                  </div>
-
-                  <style jsx>{`
-                    @keyframes button-shine {
-                      0% { left: -100%; }
-                      20% { left: 100%; }
-                      100% { left: 100%; }
-                    }
-                    .animate-button-shine {
-                      animation: button-shine 3s infinite linear;
-                    }
-                  `}</style>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
 
       {children}

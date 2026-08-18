@@ -11,7 +11,7 @@ import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useDispatch, useSelector } from "react-redux";
 import { setAvatar } from "@/redux/features/user/userSlice";
-import { fetchCart, clearCart } from "@/redux/features/cart/cartSlice";
+import { fetchCart, clearCart, removeFromCart } from "@/redux/features/cart/cartSlice";
 import {
   mergeGuestWishlist,
   restoreGuestWishlist,
@@ -373,6 +373,7 @@ export default function MainHeader() {
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {
+
       authLogout();
       dispatch(clearCart());
       dispatch(restoreGuestWishlist());

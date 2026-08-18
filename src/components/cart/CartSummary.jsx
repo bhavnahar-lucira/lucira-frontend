@@ -23,8 +23,6 @@ import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
-const isPendantVariant = (id) => id === SILVER_BRACELET_VARIANT_ID;
 
 export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const dispatch = useDispatch();
@@ -71,8 +69,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     items
       .filter(item =>
         item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-        !isPendantVariant(item.variantId)
+        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
@@ -101,7 +98,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       );
       return item.variantId !== INSURANCE_VARIANT_ID &&
         !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-        !isPendantVariant(item.variantId) &&
         !isBYJ;
     })
     .reduce((acc, item) => {
@@ -137,101 +133,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
 
   const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
-  const isSilverPendantEligible = diamondTotal >= 30000;
-
-  const currentEligiblePendant = isSilverPendantEligible
-    ? {
-        variantId: SILVER_BRACELET_VARIANT_ID,
-        productId: "gid://shopify/Product/9438188896474",
-        worthText: "₹15,000",
-        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
-      }
-    : null;
-
-  const silverPendantItem = items.find(item => item.variantId === SILVER_BRACELET_VARIANT_ID);
-  const isSilverPendantApplied = !!silverPendantItem;
-
-  const [isSilverPendantLoading, setIsSilverPendantLoading] = useState(false);
-const [pendantPrice, setPendantPrice] = useState(0);
-
-  useEffect(() => {
-    if (!currentEligiblePendant) return;
-    apiFetch(`/api/products/pricing?variantId=${currentEligiblePendant.variantId.split('/').pop()}`, { suppressErrorLog: true })
-      .then(data => {
-        const p = Number(data?.price || data?.compare_price || 0);
-        if (p > 0) setPendantPrice(p);
-      })
-      .catch(err => {
-        if (!err.message?.includes("not found")) {
-          console.error("Error fetching silver pendant price:", err);
-        }
-      });
-  }, [currentEligiblePendant?.variantId]);
-
-  useEffect(() => {
-    if (appliedCoupon && isSilverPendantApplied && !isSilverPendantLoading) {
-      removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
-      if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-      toast.info("Free Silver Bracelet removed as it cannot be combined with a coupon.");
-    }
-  }, [appliedCoupon, isSilverPendantApplied, isSilverPendantLoading, removeFromCart, silverPendantItem, toast]);
-
-  const handleToggleSilverPendant = async () => {
-    setIsSilverPendantLoading(true);
-    try {
-      const firstItem = items && items.length > 0 ? items[0] : null;
-      const variantId = firstItem?.variantId || firstItem?.id || firstItem?.shopifyId || "";
-      try {
-        pushPromoClick({
-          creative_name: isSilverPendantApplied ? "remove free silver pendant - cart" : "claim free silver pendant - cart",
-          promo_id: currentEligiblePendant?.variantId || SILVER_BRACELET_VARIANT_ID,
-          item_id: variantId || (currentEligiblePendant?.variantId || SILVER_BRACELET_VARIANT_ID),
-          promo_position: "Cart Page",
-        });
-      } catch (e) {
-        console.error("promoClick push failed", e);
-      }
-
-      if (isSilverPendantApplied) {
-        if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-        await removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
-        toast.info("Free Silver Bracelet removed from your order.");
-      } else if (currentEligiblePendant) {
-        if (appliedCoupon) {
-          dispatch(removeCoupon());
-          toast.info("Coupon removed as Free Bracelet offer cannot be combined with coupons.");
-        }
-        if (typeof window !== "undefined") localStorage.setItem("isSilverPendantClaimed", "true");
-
-        const product = {
-          productId: currentEligiblePendant.productId,
-          variantId: currentEligiblePendant.variantId,
-          title: "Free Silver Bracelet",
-          image: currentEligiblePendant.image,
-          price: 0,
-          originalPrice: pendantPrice,
-          comparePrice: pendantPrice,
-          quantity: 1,
-          variantTitle: "Free Gift",
-          inStock: true,
-          isFreeGift: true
-        };
-        await addToCart(product);
-        toast.success("Free Silver Bracelet added to your order!", {
-          icon: <Check className="w-4 h-4" />
-        });
-      }
-    } catch (e) {
-      console.error("Error updating Free Pendant:", e);
-    } finally {
-      setIsSilverPendantLoading(false);
-    }
-  };
 
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-    !isPendantVariant(item.variantId)
+    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
   )?.title;
 
   // Auto-sync insurance and gold coin quantities
@@ -265,11 +170,7 @@ const [pendantPrice, setPendantPrice] = useState(0);
       }
     }
 
-    // Sync Silver Bracelet
-    if (silverPendantItem && !isSilverPendantEligible) {
-      removeFromCart(silverPendantItem.lineId || silverPendantItem.variantId);
-    }
-  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled, silverPendantItem, isSilverPendantEligible]);
+  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled]);
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
@@ -334,8 +235,7 @@ const [pendantPrice, setPendantPrice] = useState(0);
   const originalSubtotal = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(isPendantVariant(item.variantId) && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -349,8 +249,7 @@ const [pendantPrice, setPendantPrice] = useState(0);
   const totalSavings = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !(isPendantVariant(item.variantId) && item.isFreeGift)
+      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -378,10 +277,7 @@ const [pendantPrice, setPendantPrice] = useState(0);
   const handleApplyCoupon = async (codeOverride) => {
     const code = (codeOverride ?? couponCode).trim();
     if (!code) return;
-    if (isSilverPendantApplied) {
-      toast.error("Coupons cannot be applied while Free Silver Bracelet is claimed. Please remove the bracelet first.");
-      return;
-    }
+
     setIsApplying(true);
     if (codeOverride) setApplyingCode(code);
     try {
@@ -407,11 +303,7 @@ const [pendantPrice, setPendantPrice] = useState(0);
         });
       }
 
-      if (isSilverPendantApplied) {
-        await removeFromCart(silverPendantItem?.lineId || silverPendantItem?.variantId);
-        if (typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
-      }
+
 
       dispatch(applyCoupon({
         code: data.code,
@@ -510,7 +402,7 @@ toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
         setIsCouponDrawerOpen(true);
       }}
       className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white transition-colors hover:border-[#5A413F]/30 cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
-      style={{ margin: "0px", borderRadius: isSilverPendantEligible ? "4px 4px 0px 0px" : "4px", borderColor: "#eaeaea" }}
+      style={{ margin: "0px", borderRadius: "4px", borderColor: "#eaeaea" }}
     >
       <span className="flex h-9 w-9 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
         <svg viewBox="0 0 24 24" fill="none" className="text-[#5A413F] w-[18px] h-[18px] lg:w-[24px] lg:h-[24px]">
@@ -543,112 +435,6 @@ toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
             textTransform: "uppercase"
         }}>OFFER ZONE</h3>
         {couponTrigger}
-        {(() => {
-          const isLocked = !isSilverPendantEligible;
-          const needsLogin = isSilverPendantEligible && !user;
-          const targetImage = isLocked ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png" : currentEligiblePendant?.image;
-          const targetWorth = isLocked ? "₹15,000" : currentEligiblePendant?.worthText;
-          const shortfall = 30000 - diamondTotal;
-          
-          return (
-            <div
-              className={`flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors pr-2.5 sm:pr-3.5 ${isLocked ? 'opacity-80' : ''}`}
-              style={{
-                borderRadius: "0px 0px 8px 8px",
-                borderTop: "0px",
-                background: isLocked ? "#FEF9F6" : "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
-                paddingTop: 8,
-                paddingBottom: 8,
-                paddingLeft: 10,
-                gap: 10
-              }}
-            >
-              <div
-                className={`w-[48px] h-[48px] sm:w-[60px] sm:h-[60px] overflow-hidden shrink-0 ${isLocked ? 'bg-[#f5f0ed]' : ''} flex items-center justify-center`}
-                style={{ border: 0 }}
-              >
-                <img
-                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
-                  alt="Silver Bracelet"
-                  className={`w-full h-full object-cover ${isLocked ? 'mix-blend-multiply opacity-60' : ''}`}
-                  style={{ border: 0 }}
-                />
-              </div>
-              <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
-                <p
-                  className="font-figtree font-medium text-sm lg:text-base leading-[1.3] text-[#3D2B28]"
-                  style={{ color: "rgb(0, 0, 0)", fontWeight: 500, display: "none", marginBottom: "2px" }}
-                >
-                  Silver Bracelet
-                </p>
-                <p
-                  className={`font-figtree font-normal text-[0.7rem] lg:text-[0.9rem] leading-[1.35] ${isLocked ? 'text-[#6B5B54]' : 'text-[#000000]'}`}
-                  style={{ color: isLocked ? "#6B5B54" : "rgb(0, 0, 0)", fontWeight: 500 }}
-                >
-                  {isLocked
-                    ? <>Add <span className="font-bold text-[#e7000b]">₹{shortfall.toLocaleString('en-IN')}</span> more to unlock a FREE Diamond Bracelet worth {targetWorth}.</>
-                    : needsLogin
-                      ? <>Unlock to claim a FREE Diamond Bracelet worth {targetWorth}.</>
-                      : <>You&apos;ve unlocked a FREE Diamond Bracelet worth {targetWorth}.</>
-                  }
-                </p>
-              </div>
-              {isLocked ? (
-                <button
-                  type="button"
-                  disabled
-                  className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#EBEBEB] text-[#888888] cursor-not-allowed"
-                  style={{ marginLeft: "20px" }}
-                >
-                  <Lock className="w-3.5 h-3.5 hidden lg:block" />
-                  LOCKED
-                </button>
-              ) : needsLogin ? (
-                <button
-                  type="button"
-                  onClick={() => openLogin()}
-                  className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer"
-                  style={{ marginLeft: "20px" }}
-                >
-                  <Lock className="w-3.5 h-3.5 hidden lg:block" />
-                  UNLOCK
-                </button>
-              ) : isSilverPendantApplied ? (
-                <button
-                  type="button"
-                  onClick={handleToggleSilverPendant}
-                  disabled={isSilverPendantLoading || loading}
-                  className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-2.5 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50"
-                  style={{
-                    border: "1px solid #e7000b",
-                    background: "transparent",
-                    color: "#e7000b",
-                    marginLeft: "20px"
-                  }}
-                >
-                  {isSilverPendantLoading ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : "REMOVE"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleToggleSilverPendant}
-                  disabled={isSilverPendantLoading || loading}
-                  className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
-                  style={{ marginLeft: "20px" }}
-                >
-                  {isSilverPendantLoading ? (
-                    <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <Gift className="w-3.5 h-3.5 hidden lg:block" />
-                      CLAIM
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          );
-        })()}
       </div>
 
       {/* Desktop Pricing Breakdown (LG) */}
@@ -693,19 +479,7 @@ toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
             <span className="font-semibold text-[#00A63E]">₹ 0</span>
           </div>
         )}
-        {silverPendantItem && (
-<div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-            <span>{silverPendantItem.title || "Free Diamond Bracelet"} ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
-            <div className="flex items-center gap-2">
-              {pendantPrice > 0 && (
-                <span className="text-sm text-gray-400 line-through font-normal">
-                  ₹ {pendantPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </span>
-              )}
-              <span className="font-semibold text-[#00A63E]">₹ 0</span>
-            </div>
-          </div>
-        )}
+
         {insuranceItem && (
           <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
             <span>Insurance</span>
@@ -783,19 +557,7 @@ toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
               </div>
             )}
 
-            {silverPendantItem && (
-              <div className="flex justify-between items-center font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
-                <span>{silverPendantItem.title || "Free Diamond Bracelet"} ({Number(silverPendantItem.quantity || silverPendantItem.qty || 1)})</span>
-                <div className="flex items-center gap-2">
-                  {(Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice) > 0) && (
-                    <span className="text-[0.625rem] text-gray-400 line-through font-normal">
-                      ₹ {Number(silverPendantItem.comparePrice || silverPendantItem.originalPrice || pendantPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                    </span>
-                  )}
-                  <span className="font-semibold text-[#00A63E]">₹ 0</span>
-                </div>
-              </div>
-            )}
+
 
             {insuranceItem && (
               <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
@@ -870,15 +632,15 @@ toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
             value={couponCode}
             onChange={(e) => setCouponCode(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon && !isSilverPendantApplied) handleApplyCoupon();
+              if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon) handleApplyCoupon();
             }}
-            disabled={!!appliedCoupon || isSilverPendantApplied}
-            placeholder={isSilverPendantApplied ? "Disabled due to Free Silver Bracelet" : "Enter Coupon Code"}
+            disabled={!!appliedCoupon}
+            placeholder="Enter Coupon Code"
             className="h-12 flex-1 rounded-sm border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
           />
           <Button
             onClick={() => handleApplyCoupon()}
-            disabled={isApplying || !couponCode.trim() || !!appliedCoupon || isSilverPendantApplied}
+            disabled={isApplying || !couponCode.trim() || !!appliedCoupon}
             className="h-12 shrink-0 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] px-5 font-figtree uppercase font-semibold tracking-[0.1em] text-xs text-white transition-colors disabled:opacity-50"
           >
             {isApplying && !applyingCode ? <Loader2 className="animate-spin" /> : "Apply"}
@@ -899,22 +661,7 @@ toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
           </div>
         )}
 
-        {isSilverPendantApplied && !appliedCoupon && (
-          <div className="flex items-center justify-between gap-3 rounded-sm border border-amber-200 bg-amber-50/70 px-3.5 py-2.5">
-            <p className="font-figtree text-xs font-medium leading-[1.4] text-[#3D2B28]">
-              Coupons cannot be applied while the Free Silver Bracelet is claimed.
-            </p>
-            <button
-              onClick={() => {
-                setIsCouponDrawerOpen(false);
-                handleToggleSilverPendant();
-              }}
-              className="shrink-0 font-figtree text-[0.6875rem] font-bold uppercase tracking-wider text-red-500 hover:underline cursor-pointer"
-            >
-              Remove Pendant
-            </button>
-          </div>
-        )}
+
 
         {!user ? (
           <div className="rounded-sm border border-[#EADFD8] bg-[#FFF8F6] px-5 py-6 flex flex-col items-center justify-center text-center mt-2">
@@ -992,7 +739,6 @@ toast.info("Free Bracelet removed as it cannot be combined with a coupon.");
                       applyingCode={applyingCode}
                       appliedCode={appliedCoupon ? couponDetails.code : null}
                       isApplicable={allApplicable.includes(coupon.code)}
-                      disabled={isSilverPendantApplied}
                     />
                   </div>
                 ));

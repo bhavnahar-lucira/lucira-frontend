@@ -27,16 +27,6 @@ import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/meta
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 
-const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
-const isPendantVariant = (id) => id === SILVER_BRACELET_VARIANT_ID;
-
-// The payment page rebuilds the free pendant from this flag rather than from the cart line,
-// so removing the line here has to clear it too or the gift reappears at checkout.
-function clearSilverPendantClaim() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("isSilverPendantClaimed");
-  }
-}
 
 // Rotation, icons, colours and labels live in the shared band
 // ("@/components/common/SocialProofBand") so the cart and the product page stay in sync.
@@ -143,23 +133,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   // For BYJ items, the unit price displayed should be the total of style + all charms
   const baseUnitPrice = isBYJ ? (byjStylePrice + byjCharmsPrice) : (item.price || 0);
   const lineAmount = baseUnitPrice * (item.quantity || 1);
-const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).toLowerCase().includes("silver bracelet");
-  const isFreeSilverPendant = isSilverPendant;
-  const [fetchedPendantPrice, setFetchedPendantPrice] = useState(0);
-
-  useEffect(() => {
-    if (isSilverPendant && (!Number(item.comparePrice) && !Number(item.originalPrice))) {
-      apiFetch(`/api/products/pricing?variantId=${item.variantId.split('/').pop()}`, { suppressErrorLog: true })
-        .then(data => {
-          if (data?.price || data?.compare_price) {
-            setFetchedPendantPrice(Number(data.price || data.compare_price));
-          }
-        })
-        .catch(() => {});
-    }
-  }, [isSilverPendant, item.comparePrice, item.originalPrice]);
-
-  const effectiveComparePrice = isSilverPendant ? (Number(item.comparePrice) || Number(item.originalPrice) || fetchedPendantPrice || 0) : (Number(item.comparePrice) || 0);
+  const effectiveComparePrice = (Number(item.comparePrice) || 0);
   const lineCompareAmount = effectiveComparePrice * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
@@ -232,7 +206,6 @@ const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).t
         }
       }
 
-      if (isFreeSilverPendant) clearSilverPendantClaim();
 
       await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.error("Removed from cart", {
@@ -307,7 +280,6 @@ const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).t
       const commonTrackingData = getStandardWishlistPayload(mockProduct, mockVariant, currentOrigin, item.image);
       pushAddToWishlist(commonTrackingData);
 
-      if (isFreeSilverPendant) clearSilverPendantClaim();
 
       await dispatch(removeFromCart({ userId: user?.id, lineId: item.lineId || item.variantId })).unwrap();
       toast.success("Moved to wishlist", {
@@ -427,7 +399,7 @@ const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).t
               <span className={`absolute top-1.5 left-1.5 lg:top-2 lg:left-2 z-10 rounded bg-white border-0 lg:border-0 px-1.5 py-0.5 lg:px-2 lg:py-1 font-figtree font-bold text-[0.5rem] lg:text-[0.7rem] leading-none tracking-[0px] lg:tracking-[0.4px] uppercase ${statusClass}`}>
                 {statusLabel}
               </span>
-              {!isFreeSilverPendant && !isBYJ && <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10" />}
+              {!isBYJ && <SocialProofBand socialProof={socialProof} variant="cartCompact" className="absolute inset-x-0 mx-auto bottom-[9px] z-10" />}
             </div>
 
             {/* Info Content */}
@@ -435,7 +407,7 @@ const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).t
               <div className="flex items-center gap-2 lg:gap-4 mb-[8px] lg:mb-[6px]">
                 <Link prefetch={false} href={productLink} className="block flex-1 min-w-0 pr-8 lg:pr-10" title={item.title}>
                   <h3 className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none tracking-[0px] text-black truncate hover:text-primary transition-colors lg:mb-2">
-                    {isFreeSilverPendant ? "Free Diamond Bracelet" : item.title}
+                    {item.title}
                   </h3>
                 </Link>
               </div>
@@ -577,7 +549,13 @@ const isSilverPendant = isPendantVariant(item.variantId) || String(item.title).t
                             <img src={charm.img} alt={charm.title} className="w-full h-full object-contain mix-blend-multiply" />
                           </div>
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-xs sm:text-sm font-medium text-zinc-800 leading-tight">{idx + 1}. {charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</span>
+                            <h3 className="text-sm font-medium text-[#3D2B28] leading-tight transition-colors">{charm.title} {charm.qty > 1 ? `x ${charm.qty}` : ''}</h3>
+        <div className="flex flex-col gap-0.5">
+          <p className="text-[0.6875rem] text-zinc-500 font-medium uppercase tracking-tight">
+            Metal: <span className="text-zinc-800">{formatMetal(item.karat, item.color)}</span>
+          </p>
+          <p className="text-[0.6875rem] text-zinc-500">Quantity: {charm.qty || 1}</p>
+        </div>
                             {charm.sku && <span className="text-[0.5rem] sm:text-[0.5625rem] font-bold text-zinc-400 uppercase tracking-tighter">SKU: {charm.sku}</span>}
                           </div>
                         </div>

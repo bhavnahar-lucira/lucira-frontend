@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
-import { clearCart } from "@/redux/features/cart/cartSlice";
+import { clearCart, removeFromCart } from "@/redux/features/cart/cartSlice";
 import { restoreGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { useMenu } from "@/hooks/useMenu";
@@ -1020,6 +1020,7 @@ export default function MobileHeader({ menuData }) {
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {
+
       authLogout();
       dispatch(clearCart());
       dispatch(restoreGuestWishlist());

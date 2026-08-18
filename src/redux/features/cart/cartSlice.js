@@ -925,6 +925,7 @@ const cartSlice = createSlice({
           localStorage.removeItem("shopify_cart_id");
           localStorage.removeItem("checkout_selection");
           localStorage.removeItem("checkoutBillingAddressSelection");
+
         }
       })
       .addCase(fetchCart.pending, (state) => {

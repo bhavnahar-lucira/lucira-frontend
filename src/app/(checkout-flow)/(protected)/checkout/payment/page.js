@@ -40,8 +40,6 @@ import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
-const SILVER_BRACELET_VARIANT_ID = "gid://shopify/ProductVariant/48414958715098";
-const isPendantVariant = (id) => id === SILVER_BRACELET_VARIANT_ID;
 
 const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
 
@@ -196,10 +194,6 @@ export default function PaymentPage() {
 
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
-  // Seeded from the cart, not localStorage: the PDP offer popup sets the claim flag
-  // without adding the gift, which made the pendant appear here when it was never added.
-  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
-  const [pendantPrice, setPendantPrice] = useState(0);
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
@@ -211,61 +205,14 @@ export default function PaymentPage() {
   const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
   const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
 
-  // We need eligiblePendantId first
+  // We need eligibleBraceletId first
   useEffect(() => {
     if (items && items.length > 0 && !hasFiredPaymentStep.current) {
       trackPaymentStep(items);
       hasFiredPaymentStep.current = true;
     }
   }, [items]);
-  const diamondTotalForOffer = useMemo(() => {
-    return (items || []).reduce((acc, item) => {
-      const type = (item.type || item.productType || item.product_type || "").toLowerCase();
-      const title = (item.title || "").toLowerCase();
-      const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
 
-      const isDiamond = type.includes("diamond") || title.includes("diamond") ||
-                        type.includes("solitaire") || title.includes("solitaire") ||
-                        type.includes("gemstone") || title.includes("gemstone") ||
-                        hasDiamondCharges;
-
-      const isGoldCoin = item.variantId === "gid://shopify/ProductVariant/47753346973914" || item.variantId === "gid://shopify/ProductVariant/47661824082138";
-const isSilverPendant = isPendantVariant(item.variantId);
-      const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
-      const isBYJ = Boolean(
-        item.properties?.['_byj_group_id'] ||
-        item.properties?.['_byj_preview'] ||
-        item.properties?.['_byj_parent'] ||
-        item.properties?.[' _byj_parent'] ||
-        item.tags?.includes('BYJ') ||
-        String(item.handle || "").toLowerCase().includes('byj') ||
-        String(item.title || "").toLowerCase().includes('byj')
-      );
-
-      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance && !isBYJ) {
-        return acc + (Number(item.price || 0) * Number(item.quantity || 1));
-      }
-      return acc;
-    }, 0);
-  }, [items]);
-
-  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
-  const eligiblePendantId = diamondTotalForOffer >= 30000 ? SILVER_BRACELET_VARIANT_ID : null;
-
-  useEffect(() => {
-if (eligiblePendantId) {
-      apiFetch(`/api/products/pricing?variantId=${eligiblePendantId.split('/').pop()}`, { suppressErrorLog: true })
-        .then(data => {
-          const p = Number(data?.price || data?.compare_price || 0);
-          if (p > 0) setPendantPrice(p);
-        })
-        .catch(err => {
-          if (!err.message?.includes("not found")) {
-            console.error("Error fetching pendant price in payment:", err);
-          }
-        });
-    }
-  }, [eligiblePendantId]);
 
   const [showPriceProtection, setShowPriceProtection] = useState(false);
   const [showCoinsNudge, setShowCoinsNudge] = useState(false);
@@ -301,33 +248,9 @@ if (eligiblePendantId) {
     selectedAddress,
   });
 
-  useEffect(() => {
-    const claimed = isEligibleForPendant && (items || []).some(item => isPendantVariant(item.variantId));
-    setIsSilverPendantClaimed(claimed);
-    if (!claimed && typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-  }, [items, appliedCoupon, isEligibleForPendant]);
-
   const checkoutItems = useMemo(() => {
-    // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
-const baseItems = (items || []).filter(item => !isPendantVariant(item.variantId));
-
-    if (!isEligibleForPendant || !isSilverPendantClaimed) return baseItems;
-
-    return [
-      ...baseItems,
-      {
-variantId: eligiblePendantId,
-        quantity: 1,
-        price: 0,
-        finalPrice: 0,
-        originalPrice: pendantPrice || 0,
-        comparePrice: pendantPrice || 0,
-        title: "Free Silver Bracelet",
-        isFreeGift: true,
-        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png"
-      }
-    ];
-  }, [items, isSilverPendantClaimed, isEligibleForPendant, pendantPrice, eligiblePendantId]);
+    return items || [];
+  }, [items]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -554,7 +477,6 @@ variantId: eligiblePendantId,
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
           }
 
           return {
@@ -590,7 +512,6 @@ else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
           }
 
           return {
@@ -734,7 +655,6 @@ else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
                   else if (lowerTitle.includes("bracelet")) category = "Bracelets";
                   else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
                   else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
                 }
 
                 return {
@@ -892,7 +812,6 @@ else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
               else if (lowerTitle.includes("bracelet")) category = "Bracelets";
               else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
               else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
             }
 
             return {
@@ -996,8 +915,6 @@ else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
                     showItems={false}
                     showBreakdown={false}
                     showContact={false}
-                    isSilverPendantClaimed={isSilverPendantClaimed}
-                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                     mobilePaymentCoinsTheme={true}
                     onApplyCoinsWarning={(proceed) => {
                       setCoinsProceedAction(() => proceed);
@@ -1008,12 +925,9 @@ else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
 
                 <div ref={summaryRef} className="scroll-mt-16 bg-white px-4 lg:px-0 pb-[150px]">
                   <CheckoutSummary
-                    showItems={false}
-                    showPoints={false}
-                    showContact={false}
-                    isSilverPendantClaimed={isSilverPendantClaimed}
-                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
-                    showSilverPendantOffer={false}
+                    items={checkoutItems}
+                    cartTotal={totalAmount}
+                    showControls={false}
                     breakdownRef={summaryBreakdownRef}
                     compactBreakdown={true}
                   />
@@ -1099,8 +1013,6 @@ else if (isPendantVariant(item.variantId)) category = "Silver Bracelet";
                 <div className="lg:sticky lg:top-6 space-y-6">
                   <CheckoutSummary
                     showItems={false}
-                    isSilverPendantClaimed={isSilverPendantClaimed}
-                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
                     mobilePaymentCoinsTheme={true}
                     onApplyCoinsWarning={(proceed) => {
                       setCoinsProceedAction(() => proceed);
