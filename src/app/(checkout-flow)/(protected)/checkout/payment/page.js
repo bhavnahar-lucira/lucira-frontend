@@ -222,13 +222,22 @@ export default function PaymentPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    if (window.__paymentPageUnmountTimeout) {
+      clearTimeout(window.__paymentPageUnmountTimeout);
+      window.__paymentPageUnmountTimeout = null;
+    }
+
+    let isSamePage = sessionStorage.getItem("paymentPageActive") === "true";
+
     let endTime = localStorage.getItem("priceProtectionEndTime");
-    if (!endTime || parseInt(endTime, 10) < Date.now()) {
+    if (!isSamePage || !endTime || parseInt(endTime, 10) < Date.now()) {
       endTime = Date.now() + 600 * 1000;
       localStorage.setItem("priceProtectionEndTime", endTime);
     } else {
       endTime = parseInt(endTime, 10);
     }
+
+    sessionStorage.setItem("paymentPageActive", "true");
 
     const interval = setInterval(() => {
       const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
@@ -237,13 +246,19 @@ export default function PaymentPage() {
       if (remaining <= 0) {
         clearInterval(interval);
         localStorage.removeItem("priceProtectionEndTime");
+        sessionStorage.removeItem("paymentPageActive");
         window.location.reload();
       }
     }, 1000);
     
     setPriceProtectionSeconds(Math.max(0, Math.floor((endTime - Date.now()) / 1000)));
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.__paymentPageUnmountTimeout = setTimeout(() => {
+        sessionStorage.removeItem("paymentPageActive");
+      }, 200);
+    };
   }, []);
 
   const scrollToSummary = () => {
