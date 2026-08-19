@@ -60,11 +60,20 @@ export function normalizeAddressForm(address = {}, customer = {}) {
     phone = phone.substring(2).trim();
   }
 
+  // Extract GSTIN from company field if it was packed there
+  let rawCompany = address.company || "";
+  let extractedGstin = "";
+  const gstinMatch = rawCompany.match(/(?: - )?\(?GSTIN:\s*([A-Z0-9]{15})\)?$/i);
+  if (gstinMatch) {
+    extractedGstin = gstinMatch[1];
+    rawCompany = rawCompany.replace(gstinMatch[0], "").trim();
+  }
+
   return {
     ...emptyAddressForm,
     firstName: address.firstName || customer.firstName || customer.first_name || "",
     lastName: address.lastName || customer.lastName || customer.last_name || "",
-    company: address.company || "",
+    company: rawCompany,
     address1: address.address1 || "",
     address2: address.address2 || "",
     city: address.city || "",
@@ -73,7 +82,7 @@ export function normalizeAddressForm(address = {}, customer = {}) {
     country: address.country || "India",
     phone: phone,
     email: address.email || customer.email || "",
-    gstin: address.gstin || "",
+    gstin: address.gstin || extractedGstin || "",
   };
 }
 

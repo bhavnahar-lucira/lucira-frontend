@@ -105,7 +105,12 @@ export function useCustomerAddresses({ accessToken, user }) {
         throw new Error("We are not delivering product on this address");
       }
 
-      const { email: _formEmail, ...addressToSave } = form;
+      const { email: _formEmail, gstin: _formGstin, ...addressToSave } = form;
+      if (form.gstin) {
+        addressToSave.company = addressToSave.company 
+          ? `${addressToSave.company} - GSTIN: ${form.gstin}`
+          : `GSTIN: ${form.gstin}`;
+      }
       const payload = await createCustomerAddress({ address: addressToSave, makeDefault }, accessToken);
       applyAddressPayload(payload);
       await syncProfile(form);
@@ -121,7 +126,12 @@ export function useCustomerAddresses({ accessToken, user }) {
         throw new Error("We are not delivering product on this address");
       }
 
-      const { email: _formEmail, ...addressToSave } = form;
+      const { email: _formEmail, gstin: _formGstin, ...addressToSave } = form;
+      if (form.gstin) {
+        addressToSave.company = addressToSave.company 
+          ? `${addressToSave.company} - GSTIN: ${form.gstin}`
+          : `GSTIN: ${form.gstin}`;
+      }
       const b64AddressId = typeof window !== 'undefined' ? btoa(addressId) : Buffer.from(addressId).toString('base64');
       const payload = await updateCustomerAddress({ addressId: b64AddressId, address: addressToSave, makeDefault }, accessToken);
       applyAddressPayload(payload);
