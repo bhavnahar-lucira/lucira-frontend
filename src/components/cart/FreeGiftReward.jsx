@@ -167,7 +167,7 @@ export default function FreeGiftReward({ diamondTotal }) {
       </div>
       <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
         <p
-          className={`font-figtree font-normal text-[0.9rem] lg:text-[0.9rem] leading-[1.35] ${isLocked ? "text-[#6B5B54]" : "text-[#000000]"}`}
+          className={`font-figtree text-xs lg:text-[0.9rem] leading-[1.35] ${isLocked ? "text-[#6B5B54]" : "text-[#000000]"}`}
           style={{ color: isLocked ? "#6B5B54" : "rgb(0, 0, 0)", fontWeight: 500 }}
         >
           {isLocked ? (
@@ -183,8 +183,7 @@ export default function FreeGiftReward({ diamondTotal }) {
         <button
           type="button"
           disabled
-          className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#EBEBEB] text-[#888888] cursor-not-allowed"
-          style={{ marginLeft: "20px" }}
+          className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#EBEBEB] text-[#888888] cursor-not-allowed ml-0 lg:ml-[20px]"
         >
           <Lock className="w-3.5 h-3.5 hidden lg:block" />
           LOCKED
@@ -193,8 +192,7 @@ export default function FreeGiftReward({ diamondTotal }) {
         <button
           type="button"
           onClick={() => openLogin()}
-          className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer"
-          style={{ marginLeft: "20px" }}
+          className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer ml-0 lg:ml-[20px]"
         >
           <Lock className="w-3.5 h-3.5 hidden lg:block" />
           UNLOCK
@@ -204,12 +202,11 @@ export default function FreeGiftReward({ diamondTotal }) {
           type="button"
           onClick={handleToggle}
           disabled={isProcessing || loading}
-          className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-2.5 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50"
+          className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-2.5 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50 ml-0 lg:ml-[20px]"
           style={{
             border: "1px solid #e7000b",
             background: "transparent",
             color: "#e7000b",
-            marginLeft: "20px",
           }}
         >
           {isProcessing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : "REMOVE"}
@@ -219,8 +216,7 @@ export default function FreeGiftReward({ diamondTotal }) {
           type="button"
           onClick={handleToggle}
           disabled={isProcessing || loading}
-          className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50"
-          style={{ marginLeft: "20px" }}
+          className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50 ml-0 lg:ml-[20px]"
         >
           {isProcessing ? (
             <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />

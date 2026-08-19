@@ -46,13 +46,13 @@ export function AddressListInline({
             <div className="flex justify-between items-start w-full">
               <div className="flex-1 w-full overflow-hidden pr-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-figtree text-[1.0625rem] font-semibold text-black break-words">
+                  <h3 className="font-figtree text-[0.9375rem] lg:text-[1.0625rem] font-medium text-black">
                     {[address.firstName, address.lastName].filter(Boolean).join(" ")}
                     {address.phone ? ` | ${address.phone}` : ""}
                   </h3>
                 </div>
                 
-                <div className="text-[0.9375rem] lg:text-[1rem] leading-relaxed text-zinc-600 font-medium font-figtree pr-4 lg:max-w-[80%]">
+                <div className="text-[0.875rem] lg:text-[1rem] leading-snug text-zinc-600 font-medium font-figtree pr-4 lg:pr-0 lg:max-w-[80%] lg:mb-[6px]">
                   {formatAddressLines(address).filter(line => line !== [address.firstName, address.lastName].filter(Boolean).join(" ")).join(", ")}
                   {address.gstin && <p className="font-medium text-zinc-900 mt-1">GSTIN: {address.gstin}</p>}
                 </div>

@@ -471,20 +471,13 @@ export default function CheckoutSummary({
           {goldCoinItem && (
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-              <span className="font-semibold text-[#00A63E]">₹ 0</span>
+              <span className="font-semibold text-[#00A63E]">Free</span>
             </div>
           )}
           {appliedGiftItem && (
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>{appliedGiftItem.title} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
-              <div className="flex items-center gap-2">
-                {Number(appliedGiftItem.comparePrice || 0) > 0 && (
-                  <span className="text-sm text-gray-400 line-through font-normal">
-                    ₹ {Number(appliedGiftItem.comparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </span>
-                )}
-                <span className="font-semibold text-[#00A63E]">₹ 0</span>
-              </div>
+              <span>Diamond Pendant ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+              <span className="font-semibold text-[#00A63E]">Free</span>
             </div>
           )}
 

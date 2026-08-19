@@ -948,6 +948,8 @@ export default function PaymentPage() {
                     items={checkoutItems}
                     cartTotal={totalAmount}
                     showControls={false}
+                    showPoints={false}
+                    showItems={false}
                     breakdownRef={summaryBreakdownRef}
                     compactBreakdown={true}
                   />
