@@ -203,7 +203,7 @@ export default function PaymentPage() {
   const [makeDefault, setMakeDefault] = useState(false);
 
   const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
-  const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
+  const { items, totalAmount, appliedCoupon, nectorPoints, loading } = useCart();
 
   // We need eligibleBraceletId first
   useEffect(() => {
@@ -861,6 +861,72 @@ export default function PaymentPage() {
   };
 
   const shipToChangeHref = `/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`;
+
+  // Track if cart has been fetched at least once
+  const cartFetched = useRef(false);
+  useEffect(() => {
+    if (!loading) {
+      cartFetched.current = true;
+    }
+  }, [loading]);
+
+  const isInitialLoading = loading && !cartFetched.current;
+
+  if (isInitialLoading) {
+    return (
+      <div className="bg-white min-h-screen overflow-x-clip">
+        <div className="container-main relative z-10 !px-0 lg:!px-17 lg:!max-w-[2100px] lg:!w-[94%]">
+          <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
+            <div className="grow lg:basis-[60%] lg:shrink-0 p-0 lg:py-10 lg:px-4 lg:pl-[30px] lg:pr-[20px] space-y-10 bg-white min-w-0">
+              <div className="space-y-10 animate-pulse mt-4 px-4 lg:px-0">
+                <div className="space-y-4">
+                  {/* Address box skeleton */}
+                  <div className="h-20 w-full lg:max-w-md bg-zinc-50 rounded-lg border border-zinc-100" />
+                </div>
+                <div className="space-y-4">
+                  <div className="h-6 w-40 bg-zinc-200 rounded-md" />
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-14 w-full lg:max-w-md bg-zinc-50 rounded-md border border-zinc-100" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="w-full lg:basis-[40%] lg:shrink-0 lg:py-10 lg:pl-12 lg:bg-transparent bg-[#FAFAFA]">
+              <div className="space-y-8 animate-pulse lg:pt-4 p-4 lg:p-0">
+                <div className="space-y-6">
+                  <div className="h-6 w-32 bg-zinc-200 rounded-md lg:hidden" />
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex gap-4">
+                      <div className="size-20 bg-zinc-100 rounded-md shrink-0" />
+                      <div className="flex-1 space-y-3 py-1">
+                        <div className="h-4 w-full bg-zinc-100 rounded" />
+                        <div className="h-3 w-2/3 bg-zinc-50 rounded" />
+                        <div className="h-4 w-1/3 bg-zinc-100 rounded mt-2" />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="space-y-4 pt-6 border-t border-zinc-100">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex justify-between items-center">
+                        <div className="h-4 w-24 bg-zinc-100 rounded" />
+                        <div className="h-4 w-16 bg-zinc-100 rounded" />
+                      </div>
+                    ))}
+                    <div className="border-t border-zinc-100 pt-4 flex justify-between items-center">
+                      <div className="h-5 w-32 bg-zinc-200 rounded" />
+                      <div className="h-6 w-24 bg-zinc-200 rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen overflow-x-clip">

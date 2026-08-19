@@ -29,7 +29,7 @@ const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 export default function CartPage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { items, totalQuantity, totalAmount, appliedCoupon } = useSelector((state) => state.cart);  
+  const { items, totalQuantity, totalAmount, appliedCoupon, loading } = useSelector((state) => state.cart);
   const { user, isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
@@ -153,7 +153,64 @@ const filteredItems = items.filter(
     }
   }, [items, displayQuantity, user?.id, dispatch]);
 
-  if (items.length === 0 || displayQuantity === 0) {
+  // Track if cart has been fetched at least once
+  const cartFetched = useRef(false);
+  useEffect(() => {
+    if (!loading) {
+      cartFetched.current = true;
+    }
+  }, [loading]);
+
+  // We only want to show the full page skeleton on the initial load, not on every quantity update.
+  if (loading && !cartFetched.current) {
+    return (
+      <div className="bg-white min-h-screen overflow-x-clip">
+        <div className="container-main relative z-10 lg:!max-w-[2100px] lg:!w-[94%]">
+          <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
+            <div className="grow lg:basis-[60%] lg:shrink-0 pt-[6px] pb-0 lg:py-10 lg:pl-0 lg:pr-[20px] bg-white">
+              <div className="space-y-10 animate-pulse mt-4">
+                <div className="hidden lg:flex items-center gap-3 mb-6 pb-4 border-b border-zinc-100">
+                  <div className="h-6 w-40 bg-zinc-200 rounded-md" />
+                  <div className="h-6 w-20 bg-zinc-100 rounded-full" />
+                </div>
+                {[1, 2].map((i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="size-24 lg:size-32 bg-zinc-100 rounded-lg shrink-0" />
+                    <div className="flex-1 space-y-3 py-2">
+                      <div className="h-5 w-3/4 bg-zinc-200 rounded" />
+                      <div className="h-4 w-1/2 bg-zinc-100 rounded" />
+                      <div className="h-6 w-1/4 bg-zinc-200 rounded mt-4" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="w-full lg:basis-[40%] lg:shrink-0 py-10 px-4 lg:pl-12 lg:bg-transparent bg-[#FAFAFA]">
+              <div className="space-y-8 animate-pulse lg:pt-4">
+                <div className="space-y-6">
+                  <div className="h-6 w-32 bg-zinc-200 rounded-md lg:hidden" />
+                  <div className="space-y-4 pt-6">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex justify-between items-center">
+                        <div className="h-4 w-24 bg-zinc-100 rounded" />
+                        <div className="h-4 w-16 bg-zinc-100 rounded" />
+                      </div>
+                    ))}
+                    <div className="border-t border-zinc-100 pt-4 flex justify-between items-center">
+                      <div className="h-5 w-32 bg-zinc-200 rounded" />
+                      <div className="h-6 w-24 bg-zinc-200 rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!loading && (items.length === 0 || displayQuantity === 0)) {
     return (
       <div className="bg-white min-h-screen overflow-x-clip">
         <div className="container-main relative z-10 lg:!max-w-[2100px] lg:!w-[94%]">

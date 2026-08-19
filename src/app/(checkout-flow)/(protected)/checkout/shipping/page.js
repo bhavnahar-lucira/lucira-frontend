@@ -50,43 +50,37 @@ const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 const ShippingSkeleton = () => (
-  <div className="space-y-10 animate-pulse">
+  <div className="space-y-10 animate-pulse mt-4">
     {/* Delivery Method Skeleton */}
-    <div className="space-y-4">
-      <div className="h-7 w-48 bg-zinc-200 rounded-md" />
-      <div className="h-12 w-full max-w-md bg-zinc-100 rounded-lg" />
+    <div className="space-y-6">
+      <div className="h-6 w-40 bg-zinc-200 rounded-md" />
+      <div className="h-12 w-full max-w-md bg-zinc-100 rounded-md" />
     </div>
 
     {/* Shipping Address Header Skeleton */}
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div className="space-y-2">
-          <div className="h-7 w-40 bg-zinc-200 rounded-md" />
-          <div className="h-4 w-64 bg-zinc-100 rounded-md" />
+          <div className="h-6 w-32 bg-zinc-200 rounded-md" />
+          <div className="h-4 w-48 bg-zinc-100 rounded-md" />
         </div>
-        <div className="h-11 w-44 bg-zinc-100 rounded-lg" />
+        <div className="h-10 w-40 bg-zinc-100 rounded-md" />
       </div>
 
       {/* Address Cards Skeleton */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="space-y-4">
         {[1, 2].map((i) => (
-          <div key={i} className="h-56 w-full border border-zinc-200 rounded-lg bg-white p-6 space-y-4">
+          <div key={i} className="w-full bg-white p-4 space-y-4">
             <div className="flex justify-between items-start">
-              <div className="flex items-center gap-4">
-                <div className="size-5 rounded-full border-2 border-zinc-200" />
-                <div className="h-6 w-32 bg-zinc-200 rounded" />
-              </div>
-              <div className="flex gap-2">
-                <div className="size-8 rounded-full bg-zinc-50 border border-zinc-100" />
-                <div className="size-8 rounded-full bg-zinc-50 border border-zinc-100" />
+              <div className="flex items-center gap-3">
+                <div className="size-4 rounded-full border-2 border-zinc-200" />
+                <div className="h-5 w-28 bg-zinc-200 rounded" />
               </div>
             </div>
-            <div className="pl-9 space-y-2">
+            <div className="pl-7 space-y-2">
               <div className="h-3.5 w-1/2 bg-zinc-100 rounded" />
               <div className="h-3.5 w-3/4 bg-zinc-100 rounded" />
               <div className="h-3.5 w-2/3 bg-zinc-100 rounded" />
-              <div className="h-3.5 w-1/2 bg-zinc-100 rounded" />
-              <div className="h-3.5 w-1/4 bg-zinc-100 rounded" />
             </div>
           </div>
         ))}
@@ -96,30 +90,29 @@ const ShippingSkeleton = () => (
 );
 
 const SummarySkeleton = () => (
-  <div className="space-y-8 animate-pulse">
-    <div className="space-y-4">
-      <div className="h-7 w-32 bg-zinc-200 rounded-md" />
-      <div className="h-80 w-full bg-white rounded-lg border border-zinc-200 p-6 space-y-6">
-        {[1, 2].map((i) => (
-          <div key={i} className="flex gap-4">
-            <div className="size-20 bg-zinc-100 rounded-md" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-full bg-zinc-100 rounded" />
-              <div className="h-3 w-1/2 bg-zinc-50 rounded" />
-            </div>
+  <div className="space-y-8 animate-pulse pt-4">
+    <div className="space-y-6">
+      <div className="h-6 w-32 bg-zinc-200 rounded-md lg:hidden" />
+      {[1, 2].map((i) => (
+        <div key={i} className="flex gap-4">
+          <div className="size-20 bg-zinc-100 rounded-md shrink-0" />
+          <div className="flex-1 space-y-3 py-1">
+            <div className="h-4 w-full bg-zinc-100 rounded" />
+            <div className="h-3 w-2/3 bg-zinc-50 rounded" />
+            <div className="h-4 w-1/3 bg-zinc-100 rounded mt-2" />
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
-    <div className="h-60 w-full bg-white rounded-lg border border-zinc-200 p-6 space-y-4">
+    <div className="space-y-4 pt-6 border-t border-zinc-100">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="flex justify-between">
+        <div key={i} className="flex justify-between items-center">
           <div className="h-4 w-24 bg-zinc-100 rounded" />
           <div className="h-4 w-16 bg-zinc-100 rounded" />
         </div>
       ))}
-      <div className="border-t border-zinc-100 pt-4 flex justify-between">
-        <div className="h-6 w-32 bg-zinc-200 rounded" />
+      <div className="border-t border-zinc-100 pt-4 flex justify-between items-center">
+        <div className="h-5 w-32 bg-zinc-200 rounded" />
         <div className="h-6 w-24 bg-zinc-200 rounded" />
       </div>
     </div>
