@@ -1086,6 +1086,7 @@ const cartSlice = createSlice({
         state.loading = false;
         state.error = action.error.message;
       })
+      // removeMultipleFromCart
       .addCase(removeMultipleFromCart.pending, (state) => {
         state.loading = true;
         state.error = null;

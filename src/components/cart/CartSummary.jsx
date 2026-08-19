@@ -49,7 +49,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   }, []);
   // Which listed coupon is mid-apply, so only that card shows a spinner.
   
-  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, addToCart, loading, nectorPoints } = useCart();
+  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, removeMultipleFromCart, addToCart, loading, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
   const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: true, threshold: 20000 });
@@ -162,7 +162,14 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     if (insuranceItem) {
       const currentInsQty = Number(insuranceItem.quantity || insuranceItem.qty || 0);
       if (otherItemsQuantity <= 0) {
-        removeFromCart(INSURANCE_VARIANT_ID);
+        const insuranceItems = items.filter(i => i.variantId === INSURANCE_VARIANT_ID);
+        if (insuranceItems.length > 1) {
+          const lineIds = insuranceItems.map(i => i.lineId).filter(Boolean);
+          const variantIds = insuranceItems.map(i => i.variantId).filter(Boolean);
+          removeMultipleFromCart({ lineIds, variantIds });
+        } else {
+          removeFromCart(insuranceItems[0]?.lineId || INSURANCE_VARIANT_ID);
+        }
       } else if (currentInsQty !== otherItemsQuantity) {
         updateCartItem({
           currentVariantId: INSURANCE_VARIANT_ID,
@@ -177,7 +184,14 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       
       // Remove if promotion is disabled OR if eligibility threshold not met
       if (!goldCoinConfig.enabled || eligibleGoldCoins <= 0) {
-        removeFromCart(goldCoinItem.lineId || GOLDCOIN_VARIANT_ID);
+        const coinItems = items.filter(i => i.variantId === GOLDCOIN_VARIANT_ID && i.isFreeGift);
+        if (coinItems.length > 1) {
+          const lineIds = coinItems.map(i => i.lineId).filter(Boolean);
+          const variantIds = coinItems.map(i => i.variantId).filter(Boolean);
+          removeMultipleFromCart({ lineIds, variantIds });
+        } else {
+          removeFromCart(coinItems[0]?.lineId || GOLDCOIN_VARIANT_ID);
+        }
       } else if (currentCoinQty !== eligibleGoldCoins) {
         updateCartItem({
           lineId: goldCoinItem.lineId,

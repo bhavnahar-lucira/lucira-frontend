@@ -9,7 +9,7 @@ const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const INSURANCE_PRICE = 1;
 
 export default function InsuranceOption() {
-  const { items, addToCart, removeFromCart, loading } = useCart();
+  const { items, addToCart, removeFromCart, removeMultipleFromCart, loading } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const autoAddAttempted = useRef(false);
 
@@ -44,6 +44,9 @@ export default function InsuranceOption() {
     if (isAdded) return;
     setIsProcessing(true);
     try {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("insuranceRemoved");
+      }
       const product = {
         productId: "gid://shopify/Product/9207163617498",
         variantId: INSURANCE_VARIANT_ID,
@@ -55,9 +58,6 @@ export default function InsuranceOption() {
         inStock: true
       };
       await addToCart(product);
-      if (typeof window !== "undefined") {
-        sessionStorage.removeItem("insuranceRemoved");
-      }
     } finally {
       setIsProcessing(false);
     }
@@ -66,9 +66,18 @@ export default function InsuranceOption() {
   const handleRemove = async () => {
     setIsProcessing(true);
     try {
-      await removeFromCart(INSURANCE_VARIANT_ID);
       if (typeof window !== "undefined") {
         sessionStorage.setItem("insuranceRemoved", "true");
+      }
+      const insuranceItems = items.filter(item => item.variantId === INSURANCE_VARIANT_ID);
+      // If no items found, still try to remove by variant ID just in case
+      if (insuranceItems.length <= 1) {
+        await removeFromCart(insuranceItems[0]?.lineId || INSURANCE_VARIANT_ID);
+      } else {
+        // Remove all instances of the insurance item in one call to avoid race conditions
+        const lineIds = insuranceItems.map(item => item.lineId).filter(Boolean);
+        const variantIds = insuranceItems.map(item => item.variantId).filter(Boolean);
+        await removeMultipleFromCart({ lineIds, variantIds });
       }
     } finally {
       setIsProcessing(false);
