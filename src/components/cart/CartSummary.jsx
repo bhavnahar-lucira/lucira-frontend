@@ -193,14 +193,17 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     ? appliedCoupon 
     : { code: appliedCoupon || "", summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
 
+  const hasCoupon = !!appliedCoupon;
+  const currentCouponCode = couponDetails?.code;
+
   // Re-validate coupon when items change
   useEffect(() => {
-    if (appliedCoupon && items.length === 0) {
+    if (hasCoupon && items.length === 0) {
       dispatch(removeCoupon());
       return;
     }
 
-    if (appliedCoupon && items.length > 0 && couponDetails?.code) {
+    if (hasCoupon && items.length > 0 && currentCouponCode) {
         // Clearing the timer is not enough: once the request is in flight, its
         // resolution would re-dispatch applyCoupon and resurrect a coupon the
         // user just removed — which is why removing used to take several taps.
@@ -212,7 +215,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               method: "POST",
               body: JSON.stringify({
                 items,
-                couponCode: couponDetails.code,
+                couponCode: currentCouponCode,
                 customerEmail: user?.email
               }),
               suppressErrorLog: true
@@ -246,7 +249,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         clearTimeout(timer);
       };
     }
-  }, [items, appliedCoupon, couponDetails?.code, user?.email, dispatch]);
+  }, [items, hasCoupon, currentCouponCode, user?.email, dispatch]);
 
   // Sum of original prices (comparePrice if it is greater than price, otherwise price)
   const originalSubtotal = items
