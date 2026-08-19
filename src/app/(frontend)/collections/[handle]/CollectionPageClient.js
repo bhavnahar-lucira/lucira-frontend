@@ -715,20 +715,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
-      // Check if we can skip the fetch completely because it's the first render AND we have SSG data
-      if (isFirstRender.current && initialData) {
-        isFirstRender.current = false;
-
-        // Ensure we are on the default path (no params or only sort=manual)
-        const paramsString = searchParams.toString();
-        if (paramsString === "" || paramsString === "sort=manual") {
-          return; // Skip API fetch, initialData holds exactly what we need!
-        }
-      }
+      const isInitialMount = isFirstRender.current;
       isFirstRender.current = false;
 
-      setProductsLoading(true);
-      setFiltersLoading(true);
+      // Only show loading skeletons if this is NOT the initial mount (e.g. user clicked a filter)
+      // On initial mount, we keep the SSG data visible while we fetch fresh data in the background (SWR pattern).
+      if (!isInitialMount) {
+        setProductsLoading(true);
+        setFiltersLoading(true);
+      }
 
       try {
         const sort = searchParams.get("sort") || "manual";
