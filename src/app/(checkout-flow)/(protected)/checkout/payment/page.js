@@ -367,13 +367,19 @@ export default function PaymentPage() {
   useEffect(() => {
     if (nectorPoints) {
       const hasDiamondJewellery = items.some(item => {
-        const type = (item.type || item.productType || item.product_type || "").toLowerCase();
+        const type = (item.type || item.category || item.productType || item.product_type || "").toLowerCase();
         const title = (item.title || "").toLowerCase();
+        const tags = (item.tags || []).map(t => t.toLowerCase());
         const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
+
+        const isPlainGold = tags.some(t => t.includes("plain gold") || t === "plaingold");
+
+        if (isPlainGold) return false;
 
         return type.includes("diamond") || title.includes("diamond") ||
           type.includes("solitaire") || title.includes("solitaire") ||
           type.includes("gemstone") || title.includes("gemstone") ||
+          tags.some(t => t.includes("diamond") || t.includes("solitaire")) ||
           hasDiamondCharges;
       });
 

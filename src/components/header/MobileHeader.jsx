@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { apiFetch, fetchSearchResults, fetchCollectionProducts, fetchHomeComponent } from "@/lib/api";
+import { isFreeGiftVariant } from "@/lib/freeGifts";
 
 // Scroll depths that drive the PDP mobile search bar. It starts collapsed to a
 // bare icon beside the wishlist and expands into the full bar past EXPAND_Y,
@@ -527,6 +528,7 @@ export default function MobileHeader({ menuData }) {
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
@@ -552,6 +554,7 @@ export default function MobileHeader({ menuData }) {
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
           !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !isFreeGiftVariant(item.variantId) &&
           !item.properties?.['_byj_parent'] &&
           !item.properties?.[' _byj_parent'] &&
           !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])

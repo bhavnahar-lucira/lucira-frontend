@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { Edit2, Loader2, CheckCircle2 } from "lucide-react";
@@ -9,6 +10,7 @@ import {
   sendOtpApi,
   verifyOtpApi,
   registerCustomer,
+  apiFetch
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
@@ -155,6 +157,30 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
     } catch (err) { }
 
     try {
+      const { store } = await import("@/redux/store");
+      const guestItems = store.getState().cart?.items || [];
+      const guestVariantIds = guestItems.map(i => i.variantId);
+      
+      // Pass the new access token explicitly to avoid localStorage race conditions
+      const authHeader = { Authorization: `Bearer ${data.accessToken}` };
+      const backendCart = await apiFetch(`/api/cart/get?userId=${userId}`, { headers: authHeader });
+      const itemsToRemove = backendCart?.items || [];
+      const sessionId = getSessionId();
+      
+      if (itemsToRemove.length > 0) {
+        await Promise.all(itemsToRemove.map(item => 
+          apiFetch("/api/cart/remove", {
+            method: "POST",
+            headers: authHeader,
+            body: JSON.stringify({ userId, sessionId, variantId: item.variantId })
+          }).catch((err) => console.error("Backend remove failed:", err))
+        ));
+      }
+    } catch (err) {
+      console.warn("Could not clear old cart items:", err);
+    }
+
+    try {
       await dispatch(mergeCart({ userId })).unwrap();
     } catch (err) {
       console.error("Cart merge failed:", err);
@@ -291,7 +317,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
           </div>
 
           <p className="text-[10px] md:text-[11px] lg:text-[0.8rem] font-light md:font-medium max-md:font-figtree text-left leading-[1.6] mb-[12px] text-black max-[380px]:max-w-[285px]">
-            By proceeding you accept Lucira&apos;s <span className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Terms & Conditions</span> & <span className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Privacy Policy</span>
+            By proceeding you accept Lucira&apos;s <Link href="/pages/exclusive-promotions-page" target="_blank" rel="noopener noreferrer" className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Terms & Conditions</Link> & <Link href="/pages/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Privacy Policy</Link>
           </p>
 
           <Button

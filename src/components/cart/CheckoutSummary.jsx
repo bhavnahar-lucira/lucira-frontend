@@ -62,16 +62,18 @@ export default function CheckoutSummary({
     return getEstimatedDispatchDate(!anyMadeToOrder, maxLeadTime);
   }, [items]);
 
-  // Calculate Diamond Total for Offers
+  // Calculate Diamond Total for Offers (Bracelet)
   const diamondTotalForOffer = useMemo(() => {
     return (items || []).reduce((acc, item) => {
-      const type = (item.type || item.productType || item.product_type || "").toLowerCase();
+      const type = (item.type || item.category || item.productType || item.product_type || "").toLowerCase();
       const title = (item.title || "").toLowerCase();
+      const tags = (item.tags || []).map(t => t.toLowerCase());
       const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
 
       const isDiamond = type.includes("diamond") || title.includes("diamond") ||
         type.includes("solitaire") || title.includes("solitaire") ||
         type.includes("gemstone") || title.includes("gemstone") ||
+        tags.some(t => t.includes("diamond") || t.includes("solitaire")) ||
         hasDiamondCharges;
 
       // Exclude Gold Coins, Insurance, BYJ
@@ -82,7 +84,7 @@ export default function CheckoutSummary({
         item.properties?.['_byj_preview'] ||
         item.properties?.['_byj_parent'] ||
         item.properties?.[' _byj_parent'] ||
-        item.tags?.includes('BYJ') ||
+        tags.includes('byj') ||
         String(item.handle || "").toLowerCase().includes('byj') ||
         String(item.title || "").toLowerCase().includes('byj')
       );
@@ -94,7 +96,37 @@ export default function CheckoutSummary({
     }, 0);
   }, [items]);
 
-  const hasDiamondJewellery = diamondTotalForOffer > 0;
+  // Calculate if the cart has eligible diamond jewelry for COINS
+  const hasDiamondJewellery = useMemo(() => {
+    return (items || []).some(item => {
+      const type = (item.type || item.category || item.productType || item.product_type || "").toLowerCase();
+      const title = (item.title || "").toLowerCase();
+      const tags = (item.tags || []).map(t => t.toLowerCase());
+      const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
+
+      const isDiamond = type.includes("diamond") || title.includes("diamond") ||
+        type.includes("solitaire") || title.includes("solitaire") ||
+        type.includes("gemstone") || title.includes("gemstone") ||
+        tags.some(t => t.includes("diamond") || t.includes("solitaire")) ||
+        hasDiamondCharges;
+
+      const isPlainGold = tags.some(t => t.includes("plain gold") || t === "plaingold");
+      
+      const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
+      const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
+      const isBYJ = Boolean(
+        item.properties?.['_byj_group_id'] ||
+        item.properties?.['_byj_preview'] ||
+        item.properties?.['_byj_parent'] ||
+        item.properties?.[' _byj_parent'] ||
+        tags.includes('byj') ||
+        String(item.handle || "").toLowerCase().includes('byj') ||
+        String(item.title || "").toLowerCase().includes('byj')
+      );
+
+      return isDiamond && !isPlainGold && !isGoldCoin && !isInsurance && !isBYJ;
+    });
+  }, [items]);
   
 
 

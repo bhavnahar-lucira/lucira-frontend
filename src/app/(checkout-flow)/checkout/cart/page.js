@@ -95,9 +95,30 @@ const filteredItems = items.filter(
     router.push("/checkout/shipping");
   };
 
-  // Effect to cleanup orphaned BYJ charms
+  // Effect to cleanup orphaned BYJ charms and empty cart state
   useEffect(() => {
     if (items.length > 0 && !cleanupInProgress.current) {
+      // If there are no real products left in the cart, clean up all accessories (gifts, insurance, coins)
+      if (displayQuantity === 0) {
+        cleanupInProgress.current = true;
+        const lineIds = items.map(c => c.lineId).filter(Boolean);
+        const variantIds = items.map(c => c.variantId).filter(Boolean);
+
+        dispatch(removeMultipleFromCart({ 
+          userId: user?.id, 
+          lineIds, 
+          variantIds 
+        }))
+        .unwrap()
+        .catch((e) => {
+          console.error("Failed to cleanup empty cart:", e);
+        })
+        .finally(() => {
+          cleanupInProgress.current = false;
+        });
+        return;
+      }
+
       const parentGroupIds = new Set(
         items
           .filter(item => item.properties?.['_byj_preview'])
@@ -130,24 +151,56 @@ const filteredItems = items.filter(
         });
       }
     }
-  }, [items, user?.id, dispatch]);
+  }, [items, displayQuantity, user?.id, dispatch]);
 
   if (items.length === 0 || displayQuantity === 0) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 space-y-6 bg-white">
-        <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-100 mb-2">
-          <ShoppingBag size={40} className="text-zinc-300" strokeWidth={1.5} />
+      <div className="bg-white min-h-screen overflow-x-clip">
+        <div className="container-main relative z-10 lg:!max-w-[2100px] lg:!w-[94%]">
+          <div className="min-h-[calc(100vh-80px)] flex items-center justify-center py-14 px-4">
+            <div className="w-full max-w-md">
+              <div className="bg-[#F5F5F5] lg:bg-[#F9F9F9] border border-zinc-100 rounded-[10px] px-6 py-12 md:px-10 md:py-14 flex flex-col items-center text-center">
+                <div className="w-20 h-20 rounded-full bg-[#FDF1EC] flex items-center justify-center mb-6">
+                  <ShoppingBag size={32} className="text-[#5A413F]" strokeWidth={1.5} />
+                </div>
+                <h1 className="text-[1.5rem] md:text-[1.75rem] font-bold text-zinc-900 font-abhaya mb-2">Your Cart is Empty</h1>
+                <p className="text-zinc-500 font-figtree text-[0.9375rem] max-w-xs mx-auto mb-8">
+                  Looks like you haven&apos;t added anything to your cart yet. Explore our collections to find something you&apos;ll love.
+                </p>
+                <Link prefetch={false} href="/collections/jewelry" className="w-full">
+                  <Button className="w-full flex items-center justify-center gap-2 rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] text-white cursor-pointer">
+                    Shop Now
+                    <ArrowRight size={18} />
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="flex items-center justify-center gap-10 mt-8">
+                <div className="flex items-center gap-3">
+                  <Image
+                    src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/igi-certified.png?v=1786168166"
+                    alt="IGI Certified"
+                    width={64}
+                    height={64}
+                    className="w-9 h-9 shrink-0 object-contain"
+                  />
+                  <span className="font-figtree text-[13px] font-semibold text-black leading-tight">IGI Certified</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Image
+                    src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bsi-hallmarked.png?v=1786168167"
+                    alt="BSI Hallmarked"
+                    width={64}
+                    height={64}
+                    className="w-9 h-9 shrink-0 object-contain"
+                  />
+                  <span className="font-figtree text-[13px] font-semibold text-black leading-tight">BSI Hallmarked</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-zinc-800 font-abhaya">Your cart is empty</h1>
-          <p className="text-zinc-500 max-w-xs mx-auto">Looks like you haven&apos;t added anything to your cart yet.</p>
-        </div>
-        <Link prefetch={false} href="/collections/jewelry">
-          <Button className="bg-primary hover:bg-primary/90 text-white font-bold h-12 px-8 uppercase tracking-widest rounded-sm flex items-center gap-2">
-            Shop Now
-            <ArrowRight size={18} />
-          </Button>
-        </Link>
       </div>
     );
   }

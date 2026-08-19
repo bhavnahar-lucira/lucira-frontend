@@ -39,10 +39,10 @@ export const getSessionId = () => {
 };
 
 // Map Shopify Cart to local state structure, merging custom attributes from the backend cart
-const mapShopifyCart = (cart, backendCart = null) => {
+export const mapShopifyCart = (cart, backendCart = null) => {
   if (!cart) return { items: [], totalQuantity: 0, totalAmount: 0 };
   
-  const items = cart?.lines?.edges?.map(({ node }) => {
+  let items = cart?.lines?.edges?.map(({ node }) => {
     const variantId = node.merchandise.id;
 
     // Extract attributes from Shopify CartLine first
@@ -144,6 +144,38 @@ const mapShopifyCart = (cart, backendCart = null) => {
       };
     }) || [];
 
+  // Deduplicate free gifts (restrict to 1 claim) and identical items
+  const seenFreeGifts = new Set();
+  const seenVariants = new Set();
+  const duplicateLineIds = [];
+  
+  items = items.filter(item => {
+    if (item.isFreeGift) {
+      if (seenFreeGifts.has(item.variantId)) {
+        duplicateLineIds.push(item.lineId);
+        return false;
+      }
+      seenFreeGifts.add(item.variantId);
+      item.quantity = 1; // Force max 1 quantity for free gifts
+    } else {
+      // Basic deduplication for identical UI line items (if no custom properties)
+      const propKeys = Object.keys(item.properties || {}).filter(k => !k.startsWith('_'));
+      if (propKeys.length === 0) {
+        if (seenVariants.has(item.variantId)) {
+          // If we see it again, just add to the quantity of the first one
+          const existing = items.find(i => i.variantId === item.variantId && !i.isFreeGift);
+          if (existing) {
+            existing.quantity += item.quantity;
+            duplicateLineIds.push(item.lineId);
+            return false;
+          }
+        }
+        seenVariants.add(item.variantId);
+      }
+    }
+    return true;
+  });
+
   // FORCE INCLUSION of missing backend items to avoid ghost cart items mismatch
   if (backendCart?.items?.length > 0) {
     backendCart.items.forEach(bItem => {
@@ -204,6 +236,7 @@ const mapShopifyCart = (cart, backendCart = null) => {
     items,
     totalQuantity,
     totalAmount,
+    duplicateLineIds
   };
 };
 
@@ -344,12 +377,61 @@ export const fetchCart = createAsyncThunk(
         // Re-fetch Shopify cart to get updated state
         const updatedShopifyData = await shopifyStorefrontFetch(CART_QUERY, { cartId });
         if (updatedShopifyData?.cart) {
-          return mapShopifyCart(updatedShopifyData.cart, finalBackendCart);
+          const mappedState = mapShopifyCart(updatedShopifyData.cart, finalBackendCart);
+          
+          // 5. Aggressive cleanup of dropped duplicates from Shopify and Backend
+          if (mappedState.duplicateLineIds && mappedState.duplicateLineIds.length > 0) {
+            console.warn("[fetchCart] Cleaning up duplicates:", mappedState.duplicateLineIds);
+            shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
+              cartId: updatedShopifyData.cart.id,
+              lineIds: mappedState.duplicateLineIds
+            }).catch(err => console.error("Failed to clean duplicate Shopify lines", err));
+            
+            // Ensure backend removes them too (fire and forget)
+            if (userId) {
+              const dupVariants = finalBackendCart?.items
+                ?.filter(i => mappedState.duplicateLineIds.includes(i.lineId))
+                ?.map(i => i.variantId) || [];
+              if (dupVariants.length > 0) {
+                dupVariants.forEach(vId => {
+                  apiFetch("/api/cart/remove", {
+                    method: "POST",
+                    body: JSON.stringify({ userId, sessionId, variantId: vId, context })
+                  }).catch(()=>{});
+                });
+              }
+            }
+          }
+          return mappedState;
+        }
+      }
+    }
+    const mappedState = mapShopifyCart(data?.cart, finalBackendCart);
+    
+    // 5. Aggressive cleanup of dropped duplicates from Shopify and Backend
+    if (mappedState.duplicateLineIds && mappedState.duplicateLineIds.length > 0 && cartId) {
+      console.warn("[fetchCart] Main return cleaning up duplicates:", mappedState.duplicateLineIds);
+      shopifyStorefrontFetch(CART_LINES_REMOVE_MUTATION, {
+        cartId,
+        lineIds: mappedState.duplicateLineIds
+      }).catch(err => console.error("Failed to clean duplicate Shopify lines", err));
+      
+      if (userId) {
+        const dupVariants = finalBackendCart?.items
+          ?.filter(i => mappedState.duplicateLineIds.includes(i.lineId))
+          ?.map(i => i.variantId) || [];
+        if (dupVariants.length > 0) {
+          dupVariants.forEach(vId => {
+            apiFetch("/api/cart/remove", {
+              method: "POST",
+              body: JSON.stringify({ userId, sessionId, variantId: vId, context })
+            }).catch(()=>{});
+          });
         }
       }
     }
     
-    return mapShopifyCart(data?.cart, finalBackendCart);
+    return mappedState;
   }
 );
 
@@ -521,6 +603,7 @@ export const addToCart = createAsyncThunk(
       // Let's assume the backend cart can handle a batch if we send it correctly or just sync later.
       backendCart = await apiFetch("/api/cart/add", {
         method: "POST",
+        suppressErrorLog: true,
         body: JSON.stringify({
           userId: finalUserId,
           sessionId,
@@ -544,7 +627,7 @@ export const addToCart = createAsyncThunk(
         })
       });
     } catch (e) {
-      console.error("[addToCart] Backend Cart update failed:", e);
+      console.warn("[addToCart] Backend Cart update failed:", e);
     }
 
     if (shopifyCartData) {
@@ -934,7 +1017,13 @@ const cartSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Clear cart on global logout
-      .addCase("user/logout", (state) => {
+      .addCase("user/logout", (state, action) => {
+        // If the logout was due to session expiry (401), preserve the local cart
+        // so the user isn't redirected away from checkout and can seamlessly log back in.
+        if (action.payload?.isSessionExpired) {
+          return;
+        }
+
         state.items = [];
         state.totalQuantity = 0;
         state.totalAmount = 0;
@@ -947,7 +1036,6 @@ const cartSlice = createSlice({
           localStorage.removeItem("shopify_cart_id");
           localStorage.removeItem("checkout_selection");
           localStorage.removeItem("checkoutBillingAddressSelection");
-
         }
       })
       .addCase(fetchCart.pending, (state) => {
