@@ -120,8 +120,16 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             } catch(e) {}
         }
 
-        // Final fallback: If it's a diamond ring but charges still 0, use price
-        if (charges === 0 && (item.title?.toLowerCase().includes("diamond") || item.handle?.toLowerCase().includes("diamond"))) {
+        const lowerTitle = item.title?.toLowerCase() || "";
+        const lowerHandle = item.handle?.toLowerCase() || "";
+        const lowerType = (item.type || item.category || item.productType || item.product_type || "").toLowerCase();
+        const tags = Array.isArray(item.tags) ? item.tags.map(t => String(t).toLowerCase()) : [];
+        const hasDiamondKeywords = lowerTitle.includes("diamond") || lowerHandle.includes("diamond") || lowerType.includes("diamond") ||
+                                 lowerTitle.includes("solitaire") || lowerHandle.includes("solitaire") || lowerType.includes("solitaire") ||
+                                 lowerTitle.includes("gemstone") || lowerType.includes("gemstone") ||
+                                 tags.some(t => t.includes("diamond") || t.includes("solitaire") || t.includes("gemstone"));
+        
+        if (charges === 0 && hasDiamondKeywords) {
            charges = item.price;
         }
 
