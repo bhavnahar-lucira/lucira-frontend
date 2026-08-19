@@ -122,8 +122,8 @@ export function useCustomerAddresses({ accessToken, user }) {
       }
 
       const { email: _formEmail, ...addressToSave } = form;
-      const cleanAddressId = addressId ? String(addressId).split('/').pop() : addressId;
-      const payload = await updateCustomerAddress({ addressId: cleanAddressId, address: addressToSave, makeDefault }, accessToken);
+      const b64AddressId = typeof window !== 'undefined' ? btoa(addressId) : Buffer.from(addressId).toString('base64');
+      const payload = await updateCustomerAddress({ addressId: b64AddressId, address: addressToSave, makeDefault }, accessToken);
       applyAddressPayload(payload);
       await syncProfile(form);
       return payload;
@@ -142,8 +142,8 @@ export function useCustomerAddresses({ accessToken, user }) {
 
       setSelectedAddressId(addressId);
       try {
-        const cleanAddressId = addressId ? String(addressId).split('/').pop() : addressId;
-        applyAddressPayload(await selectDefaultCustomerAddress(cleanAddressId, accessToken));
+        const b64AddressId = typeof window !== 'undefined' ? btoa(addressId) : Buffer.from(addressId).toString('base64');
+        applyAddressPayload(await selectDefaultCustomerAddress(b64AddressId, accessToken));
 
         if (addressToSelect && accessToken && !accessToken.startsWith("simulated_") && addresses.length <= 1) {
           try {
@@ -184,8 +184,8 @@ export function useCustomerAddresses({ accessToken, user }) {
         return;
       }
       try {
-        const cleanAddressId = addressId ? String(addressId).split('/').pop() : addressId;
-        applyAddressPayload(await deleteCustomerAddress(cleanAddressId, accessToken));
+        const b64AddressId = typeof window !== 'undefined' ? btoa(addressId) : Buffer.from(addressId).toString('base64');
+        applyAddressPayload(await deleteCustomerAddress(b64AddressId, accessToken));
         toast.success("Address removed");
       } catch (error) {
         toast.error(error.message || "Unable to remove address");
