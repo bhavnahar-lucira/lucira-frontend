@@ -405,9 +405,9 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             {/* Info Content */}
 <div className="flex-1 space-y-1 lg:space-y-1.5 min-w-0 lg:pt-1">
               <div className="flex items-center gap-2 lg:gap-4 mb-[8px] lg:mb-[6px]">
-                <Link prefetch={false} href={productLink} className="block flex-1 min-w-0 pr-8 lg:pr-10" title={item.title}>
+                <Link prefetch={false} href={productLink} className="block flex-1 min-w-0 pr-8 lg:pr-10" title={item.isFreeGift ? "Diamond Bracelet" : item.title}>
                   <h3 className="font-figtree font-medium text-[0.875rem] lg:text-[1rem] leading-none tracking-[0px] text-black truncate hover:text-primary transition-colors lg:mb-2">
-                    {item.title}
+                    {item.isFreeGift ? "Diamond Bracelet" : item.title}
                   </h3>
                 </Link>
               </div>

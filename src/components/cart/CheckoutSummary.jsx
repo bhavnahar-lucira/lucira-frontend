@@ -476,7 +476,7 @@ export default function CheckoutSummary({
           )}
           {appliedGiftItem && (
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>Diamond Pendant ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+              <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
               <span className="font-semibold text-[#00A63E]">Free</span>
             </div>
           )}

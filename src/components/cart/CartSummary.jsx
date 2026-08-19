@@ -503,19 +503,14 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {goldCoinItem && (
           <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
             <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-            <span className="font-semibold text-[#00A63E]">₹ 0</span>
+            <span className="font-semibold text-[#00A63E]">Free</span>
           </div>
         )}
         {appliedGiftItem && (
           <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-            <span>{appliedGiftItem.title} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+            <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
             <div className="flex items-center gap-2">
-              {Number(appliedGiftItem.comparePrice || 0) > 0 && (
-                <span className="text-sm text-gray-400 line-through font-normal">
-                  ₹ {Number(appliedGiftItem.comparePrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </span>
-              )}
-              <span className="font-semibold text-[#00A63E]">₹ 0</span>
+              <span className="font-semibold text-[#00A63E]">Free</span>
             </div>
           </div>
         )}
@@ -599,7 +594,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
             {appliedGiftItem && (
               <div className="flex justify-between items-center font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
-                <span>Diamond Pendant ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+                <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
                 <span className="font-semibold text-[#00A63E]">Free</span>
               </div>
             )}
@@ -680,7 +675,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               if (e.key === "Enter" && couponCode.trim() && !isApplying && !appliedCoupon && !appliedGiftItem) handleApplyCoupon();
             }}
             disabled={!!appliedCoupon || !!appliedGiftItem}
-            placeholder={appliedGiftItem ? `Disabled due to ${appliedGiftItem.title}` : "Enter Coupon Code"}
+            placeholder={appliedGiftItem ? `Disabled due to Diamond Bracelet` : "Enter Coupon Code"}
             className="h-12 flex-1 rounded-sm border-[#EADFD8] bg-white font-figtree text-sm font-semibold tracking-[0.1em] uppercase text-[#3D2B28] placeholder:text-[#B9A79E] placeholder:font-medium placeholder:tracking-normal placeholder:normal-case focus-visible:ring-2 focus-visible:ring-[#5A413F]/30 focus-visible:border-[#5A413F] disabled:opacity-55"
           />
           <Button
@@ -709,7 +704,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {appliedGiftItem && !appliedCoupon && (
           <div className="flex items-center justify-between gap-3 rounded-sm border border-amber-200 bg-amber-50/70 px-3.5 py-2.5">
             <p className="font-figtree text-xs font-medium leading-[1.4] text-[#3D2B28]">
-              Coupons cannot be applied while {appliedGiftItem.title} is claimed.
+              Coupons cannot be applied while Diamond Bracelet is claimed.
             </p>
             <button
               onClick={() => removeFromCart(appliedGiftItem.lineId || appliedGiftItem.variantId)}

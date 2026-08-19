@@ -601,8 +601,9 @@ export default function SearchPage() {
 
       <div className={isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}>
         {/* ================= FILTERS SIDEBAR ================= */}
-        <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
-          <div className="sticky top-19 self-start h-fit">
+        {(productsLoading || products.length > 0 || activeFilterCount > 0) && (
+          <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
+            <div className="sticky top-19 self-start h-fit">
             <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
               {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
                 <div className={`space-y-3 pr-4 transition-opacity duration-300 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
@@ -662,6 +663,7 @@ export default function SearchPage() {
             </ScrollArea>
           </div>
         </div>
+        )}
 
         {/* ================= RESULTS SECTION ================= */}
         <div className="flex-1">
@@ -674,7 +676,7 @@ export default function SearchPage() {
                 </>
               ) : (<span className="font-figtree text-sm text-[#696969]">{products.length}/{totalCount} results</span>)}
             </div>
-            {!isMobile && (
+            {!isMobile && (productsLoading || products.length > 0) && (
               <div className="flex items-center gap-2">
                 <span className="font-figtree text-sm text-[#696969] whitespace-nowrap">Sort by:</span>
                 <div className="relative flex items-center">
