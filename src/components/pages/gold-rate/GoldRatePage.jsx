@@ -201,6 +201,12 @@ export default function GoldRatePage({ page }) {
 
                     <h1 className="font-abhaya text-[30px] md:text-[44px] leading-tight text-zinc-900 font-semibold">
                         {(goldMeta && goldMeta.heroTitle) || `Gold Rate in ${cityNameDisplay} Today`}
+                        {" "}
+                        {goldMeta?.heroStamp ? (
+                            <span className="block md:inline font-figtree font-normal text-[14px] md:text-[18px] text-zinc-500 whitespace-nowrap">
+                                &ndash; {goldMeta.heroStamp} IST
+                            </span>
+                        ) : null}
                     </h1>
 
                     <p className="font-figtree text-[15px] md:text-[17px] text-zinc-700 leading-relaxed mt-3 md:mt-4 max-w-3xl">
@@ -438,17 +444,26 @@ export default function GoldRatePage({ page }) {
                 .footer-pages ul, .footer-pages ol {
                   margin-top: 1.25em;
                   margin-bottom: 1.25em;
-                  padding-left: 1.625em;
                 }
-                .footer-pages ul { list-style-type: disc; }
-                .footer-pages ol { list-style-type: decimal; }
-                .footer-pages li {
+                /* The bullet is the branded dot gold-rate.css draws via
+                   .footer-pages ul li::before — the native disc marker is
+                   disabled here so the two don't render as double bullets. */
+                .footer-pages ul { list-style-type: none; padding-left: 0; }
+                .footer-pages ol { list-style-type: decimal; padding-left: 1.625em; }
+                /* Match the paragraph size above (1.25rem). The shared
+                   .footer-pages ul li rule (gold-rate.css) is text-sm, which
+                   left bullets smaller than the surrounding prose — the ul/ol
+                   in this selector out-specifies it. */
+                .footer-pages ul li, .footer-pages ol li {
                   margin-top: 0.5em;
                   margin-bottom: 0.5em;
                   font-family: var(--font-figtree), sans-serif;
-                  font-size: 1.125rem;
+                  font-size: 1.25rem;
                   line-height: 1.75;
                 }
+                /* Re-centre the dot for the larger text (gold-rate.css tuned
+                   its top for text-sm). */
+                .footer-pages ul li::before { top: 0.7em; }
                 .footer-pages blockquote {
                   border-left: 4px solid #e4e4e7;
                   padding-left: 1em;

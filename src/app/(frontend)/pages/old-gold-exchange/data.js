@@ -46,7 +46,7 @@ export const PAGE_DATA = {
       subheading: "Search or use your location",
       // Full active store roster — mirrors src/data/stores.js / the main store
       // locator (StoreLocatorClient.jsx). Every store's WhatsApp button routes to
-      // the dedicated Old Gold Exchange line (919004435760), with the store name
+      // the dedicated Old Gold Exchange line (918976740895), with the store name
       // baked into the message at build time so it never ships as an unfilled
       // "[store name]" placeholder.
       stores: [
@@ -57,7 +57,7 @@ export const PAGE_DATA = {
           address: "Office 1402-2, DLH Park, 14th Floor, SV Rd, Mumbai, Maharashtra 400062",
           phone: "+919004436052",
           url: "/collections/malad",
-          appointment_url: "https://api.whatsapp.com/send/?phone=%2B919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Head+Office+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
+          appointment_url: "https://api.whatsapp.com/send/?phone=%2B918976740895&text=Hi%2C+I+want+to+get+more+information+about+Lucira%27s+Old+Gold+Exchange&type=phone_number&app_absent=0",
           image: "https://luciraonline.myshopify.com/cdn/shop/files/Lucira_contact_us_grid_900x.png?v=1757660196",
           lat: 19.1743,
           lng: 72.8445
@@ -69,7 +69,7 @@ export const PAGE_DATA = {
           address: "Shop No. 3 Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd, Chembur, Mumbai, Maharashtra 400071",
           phone: "+919004402038",
           url: "/collections/chembur-store",
-          appointment_url: "https://api.whatsapp.com/send/?phone=%2B919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
+          appointment_url: "https://api.whatsapp.com/send/?phone=%2B918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
           image: CDN + "Store-Collection-Banner_1.jpg",
           lat: 19.0575954,
           lng: 72.9006959
@@ -81,7 +81,7 @@ export const PAGE_DATA = {
           address: "Shop no. 3,4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd, Pune, Maharashtra 411005",
           phone: "+918433667236",
           url: "/collections/pune-store",
-          appointment_url: "https://api.whatsapp.com/send/?phone=%2B919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
+          appointment_url: "https://api.whatsapp.com/send/?phone=%2B918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
           image: CDN + "Store-PLP-2.jpg",
           lat: 18.5233007,
           lng: 73.8478627
@@ -93,7 +93,7 @@ export const PAGE_DATA = {
           address: "Sky City Mall, S-40, 2nd Floor, Western Express Hwy, Borivali East, Mumbai - 400066",
           phone: "+918433667238",
           url: "/collections/sky-city-borivali-store",
-          appointment_url: "https://api.whatsapp.com/send/?phone=%2B919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
+          appointment_url: "https://api.whatsapp.com/send/?phone=%2B918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
           image: CDN + "Store-Collection-Banner3_jpg.jpg",
           lat: 19.2226574,
           lng: 72.8643243
@@ -105,7 +105,7 @@ export const PAGE_DATA = {
           address: "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh 201301",
           phone: "+918657392887",
           url: "/collections/noida-store",
-          appointment_url: "https://api.whatsapp.com/send/?phone=%2B919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Noida+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
+          appointment_url: "https://api.whatsapp.com/send/?phone=%2B918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Noida+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
           image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
           lat: 28.5708,
           lng: 77.3261
@@ -117,7 +117,7 @@ export const PAGE_DATA = {
           address: "B-8, Shubham Enclave, Reserve Bank Enclave, Paschim Vihar, New Delhi, Delhi, 110063",
           phone: "+917208007494",
           url: "/collections/paschim-vihar",
-          appointment_url: "https://api.whatsapp.com/send/?phone=%2B919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Paschim+Vihar+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
+          appointment_url: "https://api.whatsapp.com/send/?phone=%2B918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Paschim+Vihar+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
           image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
           lat: 28.6698,
           lng: 77.0984
@@ -129,7 +129,7 @@ export const PAGE_DATA = {
           address: "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
           phone: "+917208007495",
           url: "/collections/lajpat-nagar-store",
-          appointment_url: "https://api.whatsapp.com/send/?phone=%2B919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Lajpat+Nagar+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
+          appointment_url: "https://api.whatsapp.com/send/?phone=%2B918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Lajpat+Nagar+Lucira+store+and+want+to+know+more+about+old+gold+exchange&type=phone_number&app_absent=0",
           image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
           lat: 28.5665,
           lng: 77.2431
