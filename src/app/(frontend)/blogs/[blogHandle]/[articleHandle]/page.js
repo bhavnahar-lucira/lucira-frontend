@@ -9,10 +9,14 @@ import BlogArticleClient from "@/components/blogs/BlogArticleClient";
 import "./blog-article.css";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 
-// SSG: Fully static blog articles. Pre-rendered at build time.
-// This eliminates Vercel function invocations and Data Cache reading costs.
+// SSG: static blog articles, pre-rendered at build time and served from the
+// cache like `revalidate: false` would. Unlike `false`, a page that fails to
+// fetch content during build (e.g. Shopify rate-limiting the live-scrape
+// fallback) isn't broken forever — Next revalidates it in the background at
+// most once a day, so it can self-heal on a later visit instead of staying
+// empty until the next full redeploy.
 export const dynamicParams = true;
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   return await getAllArticleHandles();
@@ -146,6 +150,12 @@ export default async function ArticlePage({ params }) {
   const publishedDate = formatDate(article.publishedAt || article.created_at || new Date().toISOString());
   const readTime = readingTime(article);
   const { html: bodyHtml, toc } = prepareArticleHtml(article.contentHtml || article.content);
+
+  // If the body is empty, it means Shopify 2.0 sections scraping failed (e.g., rate limiting).
+  // We throw an error so Next.js does not cache this broken, empty page.
+  if (!bodyHtml) {
+    throw new Error(`Article content is empty for ${articleHandle}. Scraping likely failed.`);
+  }
 
   const related = relatedArticles
     .filter((item) => item.handle !== article.handle)

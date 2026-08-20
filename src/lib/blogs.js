@@ -5,6 +5,46 @@ function serialize(value) {
   return value ? JSON.parse(JSON.stringify(value)) : null;
 }
 
+// `next build` can pre-render hundreds of blog articles in parallel. Every
+// one that falls through to live-site scraping (Shopify 2.0 sections hide
+// content from the Storefront/Admin APIs) hits luciraonline.myshopify.com at
+// once, which trips Shopify's rate limiting/bot protection — the failures
+// then get baked into the static page forever (revalidate: false). This
+// caps how many of those scrape requests run at the same time, with a small
+// random stagger, so a big build doesn't hammer Shopify in one burst.
+function createLimiter(concurrency) {
+  let active = 0;
+  const queue = [];
+
+  const runNext = () => {
+    if (active >= concurrency || queue.length === 0) return;
+    active += 1;
+    const { fn, resolve, reject } = queue.shift();
+    Promise.resolve()
+      .then(() => new Promise((r) => setTimeout(r, Math.random() * 300)))
+      .then(fn)
+      .then(resolve, reject)
+      .finally(() => {
+        active -= 1;
+        runNext();
+      });
+  };
+
+  return (fn) =>
+    new Promise((resolve, reject) => {
+      queue.push({ fn, resolve, reject });
+      runNext();
+    });
+}
+
+const limitLiveSiteFetch = createLimiter(Number(process.env.LIVE_SCRAPE_CONCURRENCY || 4));
+
+// Must match `revalidate` in the article page.js. `cache: 'force-cache'`
+// pins a fetch in the Data Cache forever regardless of the page's own ISR
+// setting — only `next: { revalidate }` lets a page that got baked in
+// broken (e.g. a rate-limited build) pick up good data on a later visit.
+const ARTICLE_CONTENT_REVALIDATE_SECONDS = 86400;
+
 function stripHtml(value) {
   return value?.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim() || "";
 }
@@ -128,7 +168,7 @@ export async function getArticleByBlogAndHandleStorefront(blogHandle, articleHan
   `;
 
   const data = await shopifyStorefrontFetch(query, { blogHandle, articleHandle }, {
-    cache: 'force-cache',
+    next: { revalidate: ARTICLE_CONTENT_REVALIDATE_SECONDS },
     useRwToken: true
   });
   const article = data?.blog?.articleByHandle;
@@ -180,7 +220,8 @@ export async function getArticleByBlogAndHandleAdminRest(blogHandle, articleHand
     const params = pageInfo ? { limit: 250, page_info: pageInfo } : { limit: 250 };
     const { data, linkHeader } = await shopifyAdminRestFetch(
       `blogs/${adminBlogId}/articles.json`,
-      params
+      params,
+      { next: { revalidate: ARTICLE_CONTENT_REVALIDATE_SECONDS } }
     );
     const article = data.articles?.find((item) => item.handle === articleHandle);
 
@@ -213,18 +254,18 @@ export async function getArticleByBlogAndHandleAdminRest(blogHandle, articleHand
 }
 
 export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) {
-  // No per-fetch revalidate — blog article pages are SSG (force-static).
-  // Cache: force-cache ensures the fetch result is reused within the same render pass.
   let res;
   try {
-    res = await fetchWithRetry(
-      `https://luciraonline.myshopify.com/blogs/${blogHandle}/${articleHandle}?_fd=0`,
-      {
-        cache: 'force-cache',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    res = await limitLiveSiteFetch(() =>
+      fetchWithRetry(
+        `https://luciraonline.myshopify.com/blogs/${blogHandle}/${articleHandle}?_fd=0&cb=1`,
+        {
+          next: { revalidate: ARTICLE_CONTENT_REVALIDATE_SECONDS },
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
         }
-      }
+      )
     );
   } catch (error) {
     console.error(`Live site scraping failed for ${articleHandle}:`, error.message);
@@ -235,6 +276,11 @@ export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) 
 
   const pageHtml = await res.text();
   const { contentHtml: liveContentHtml, bannerImage } = extractLiveMainContent(pageHtml);
+
+  if (!liveContentHtml) {
+    console.error(`Scraping yielded no content for ${articleHandle}. Possibly rate limited or bot challenged.`);
+    throw new Error(`Scraping yielded no content for ${articleHandle}`);
+  }
 
   // Extract title from HTML
   let title = pageHtml.match(/<h1[^>]*>(.*?)<\/h1>/i)?.[1]?.replace(/<[^>]*>?/gm, '').trim();
@@ -264,9 +310,9 @@ function extractLiveMainContent(html) {
   if (!mainContent) return { contentHtml: "", bannerImage: null };
 
   // The article's real hero banner lives inside a "banner" div at the top of
-  // the content. Capture its image URL BEFORE we strip banner divs, so it can
-  // be used as the article hero instead of the featured/card image.
-  const bannerImage = extractBannerImage(mainContent);
+  // the content. Capture its image URL(s) BEFORE we strip banner divs, so it
+  // can be used as the article hero instead of the featured/card image.
+  const bannerImage = extractBannerImage(mainContent, html);
 
   const contentHtml = mainContent
     .replace(/<div[^>]*class=["'][^"']*banner[^"']*["'][\s\S]*?<\/div>/gi, "")
@@ -277,21 +323,61 @@ function extractLiveMainContent(html) {
   return { contentHtml, bannerImage };
 }
 
-// Pull the best image URL out of the first "banner" block. Prefers the desktop
-// <img src>, falling back to a <source srcset>. Normalizes protocol-relative URLs.
-function extractBannerImage(mainContentHtml) {
-  const bannerDiv = extractDivsByClass(mainContentHtml, "banner")[0]?.html;
-  if (!bannerDiv) return null;
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-  let url =
-    bannerDiv.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ||
-    bannerDiv.match(/<source[^>]+srcset=["']([^"'\s,]+)/i)?.[1];
-
+function normalizeImageUrl(url) {
   if (!url) return null;
-
   url = url.trim();
   if (url.startsWith("//")) url = `https:${url}`;
   return url;
+}
+
+// The "Custom Background Banner" section renders two different images: a
+// mobile <img> inside the banner div, and a desktop image set as a CSS
+// background-image (in a <style> block, keyed by the banner div's own #id)
+// that lives outside the banner div's markup entirely. Grabbing only the
+// <img> — as this used to do — meant the mobile image got used for every
+// viewport. Returns { desktop, mobile }, each falling back to the other when
+// only one source is present.
+function extractBannerImage(mainContentHtml, fullHtml) {
+  const bannerDiv = extractDivsByClass(mainContentHtml, "banner")[0]?.html;
+  if (!bannerDiv) return null;
+
+  const bannerId = bannerDiv.match(/\sid=["']([^"']+)["']/i)?.[1];
+
+  let mobileUrl =
+    bannerDiv.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ||
+    bannerDiv.match(/<source[^>]+srcset=["']([^"'\s,]+)/i)?.[1];
+
+  let desktopUrl = null;
+  if (bannerId && fullHtml) {
+    const styleRule = new RegExp(
+      `#${escapeRegExp(bannerId)}\\s*\\{[^}]*background-image:\\s*url\\((['"]?)([^'")]+)\\1\\)`,
+      "gi"
+    );
+    let match;
+    while ((match = styleRule.exec(fullHtml))) {
+      const candidate = match[2];
+      // Shopify leaves a "Liquid error" placeholder in the mobile media-query
+      // block when that rule has no real image — skip it.
+      if (candidate && !candidate.includes("Liquid error")) {
+        desktopUrl = candidate;
+        break;
+      }
+    }
+  }
+
+  desktopUrl = normalizeImageUrl(desktopUrl);
+  mobileUrl = normalizeImageUrl(mobileUrl);
+
+  if (!desktopUrl && !mobileUrl) return null;
+
+  return {
+    desktop: desktopUrl || mobileUrl,
+    mobile: mobileUrl || desktopUrl,
+  };
 }
 
 function extractFirstDivByClass(html, className) {
