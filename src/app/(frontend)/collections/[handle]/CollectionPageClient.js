@@ -37,6 +37,7 @@ import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } 
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
+import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
 import { apiFetch } from "@/lib/api";
 
 const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar", "lajpat-nagar-store"];
@@ -75,7 +76,7 @@ const CUSTOM_COLLECTION_BANNERS = {
 // Plain Gold sub-collections (see "Plain Gold" menu group in menu-data.json) use a
 // dedicated hero image in place of the generic collection banner's default image.
 const PLAIN_GOLD_HANDLES = ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"];
-const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_25_jpg.jpg?v=1786021278";
+const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg_44047036-a66f-4e34-8332-f226a6d24073.jpg";
 
 // In-page promo banners injected into the product grid. They alternate in order
 // (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
@@ -83,15 +84,15 @@ const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/348
 // TODO(banner): replace creative B's `src` with the second (right) banner image URL.
 const INPAGE_BANNERS = [
   {
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_2_57cae96a-131f-4a7d-a5cf-10433e6f937d.png",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
     alt: "Promo",
-    href: "/collections/bestsellers",
+    href: "/collections/rakhi",
   },
   {
     // Placeholder — falls back to creative A until the second image is provided.
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_2_57cae96a-131f-4a7d-a5cf-10433e6f937d.png",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
     alt: "Promo",
-    href: "/collections/bestsellers",
+    href: "/collections/rakhi",
   },
 ];
 
@@ -732,19 +733,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
-      // Check if we can skip the fetch completely because it's the first render AND we have SSG data
-      if (isFirstRender.current && initialData) {
-        isFirstRender.current = false;
-
-        // Ensure we are on the default path (no params or only sort=manual).
-        // `storeOrderParam` has to be empty too: the statically-rendered payload
-        // is the unordered collection, so with a pincode set it is the wrong list
-        // and must be replaced by an ordered fetch.
-        const paramsString = searchParams.toString();
-        if ((paramsString === "" || paramsString === "sort=manual") && !storeOrderParam) {
-          return; // Skip API fetch, initialData holds exactly what we need!
-        }
-      }
+      const isInitialMount = isFirstRender.current;
       isFirstRender.current = false;
 
       // Re-running with an unchanged view means only the store ordering moved.
@@ -755,7 +744,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       const storeOrderOnly = viewKeyRef.current === viewKey;
       viewKeyRef.current = viewKey;
 
-      if (!storeOrderOnly) {
+      // Only show loading skeletons if this is NOT the initial mount (e.g. user clicked a filter)
+      // On initial mount, we keep the SSG data visible while we fetch fresh data in the background (SWR pattern).
+      if (!isInitialMount && !storeOrderOnly) {
         setProductsLoading(true);
         setFiltersLoading(true);
       }
@@ -919,7 +910,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     let rewardBannerAt = -1;      // renderedCount when the claim banner was inserted
     let recentlyViewedAdded = false;
     let recentlyViewedAt = -1;    // renderedCount when the recently-viewed row was inserted
-    let categoryGroupsPlaced = 0;
+    let categoryGroupsPlaced = 0; // number of category groups placed
     products.forEach((prod, idx) => {
       if (!prod) return;
       // First banner after 6 products, the second 10 later (6, 16). Each creative shows
@@ -1121,6 +1112,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return `${products.length} ${products.length === 1 ? "item" : "items"}`;
   }, [totalCount, products.length, pagination.hasNextPage, searchParams, availableFilters]);
 
+  // Rakhi gets a fully custom landing page (no filters/grid) — see the design draft.
+  if (handle === "rakhi") {
+    return <RakhiLandingPage products={products} loading={productsLoading} />;
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
@@ -1177,47 +1173,58 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         </div>
       ) : STORE_HANDLES.includes(handle) ? (
         <StoreCollectionBanner collectionHandle={handle} bannerImages={STORE_IMAGES[handle] || []} />
-      ) : isMobile ? (
-        <div className="w-full">
-          <div className="container-main mx-auto pt-2 px-4 py-3">
-            <Breadcrumb>
-              <BreadcrumbList className="text-[0.625rem] font-bold uppercase tracking-[0.15em] text-gray-400">
-                <BreadcrumbItem><BreadcrumbLink href="/" className="hover:text-[#5a413f] transition-colors">Home</BreadcrumbLink></BreadcrumbItem>
-                <BreadcrumbSeparator className="scale-75" />
-                <BreadcrumbItem><BreadcrumbLink href="/collections/jewelry" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
-                <BreadcrumbSeparator className="scale-75" />
-                <BreadcrumbItem className="truncate line-clamp-1 whitespace-nowrap"><BreadcrumbPage className="text-[#5a413f]">{displayTitle}</BreadcrumbPage></BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+      ) : (() => {
+        const heroBannerSrc = PLAIN_GOLD_HANDLES.includes(handle) 
+          ? PLAIN_GOLD_BANNER_IMAGE 
+          : handle === "earrings"
+            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product-3_f6e49a5f-f9a3-4af7-9fca-c9bce18aa4c4.jpg"
+          : handle === "all-earrings"
+            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product1_jpg.jpg?v=1787210650"
+            : handle === "bestsellers"
+              ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg"
+              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg";
+
+        return isMobile ? (
+          <div className="w-full">
+            <div className="container-main mx-auto pt-2 px-4 py-3">
+              <Breadcrumb>
+                <BreadcrumbList className="text-[0.625rem] font-bold uppercase tracking-[0.15em] text-gray-400">
+                  <BreadcrumbItem><BreadcrumbLink href="/" className="hover:text-[#5a413f] transition-colors">Home</BreadcrumbLink></BreadcrumbItem>
+                  <BreadcrumbSeparator className="scale-75" />
+                  <BreadcrumbItem><BreadcrumbLink href="/collections/jewelry" className="hover:text-[#5a413f] transition-colors">Collections</BreadcrumbLink></BreadcrumbItem>
+                  <BreadcrumbSeparator className="scale-75" />
+                  <BreadcrumbItem className="truncate line-clamp-1 whitespace-nowrap"><BreadcrumbPage className="text-[#5a413f]">{displayTitle}</BreadcrumbPage></BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+            <div className="w-full relative">
+              <Image src={heroBannerSrc} alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
+            </div>
           </div>
-          <div className="w-full relative">
-            <Image src={PLAIN_GOLD_HANDLES.includes(handle) ? PLAIN_GOLD_BANNER_IMAGE : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073"} alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
-          </div>
-        </div>
-      ) : (
-        <div className="bg-[#FFF5F1] overflow-hidden">
-          <div className="container-main flex flex-col md:flex-row items-center">
-            <div className="flex-1">
-              <h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px] capitalize">{displayTitle}</h1>
-              {/* <p className="text-gray-900 text-sm md:text-base mb-8 max-w-xl">{collection.description || "Find the perfect piece for your special moment."}</p> */}
-              <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
-                <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
-                <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
-                <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
+        ) : (
+          <div className="bg-[#FFF5F1] overflow-hidden">
+            <div className="container-main flex flex-col md:flex-row items-center">
+              <div className="flex-1">
+                <h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px] capitalize">{displayTitle}</h1>
+                <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
+                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
+                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
+                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
+                </div>
+              </div>
+              <div className="flex-1 w-full h-auto">
+                <Image
+                  src={heroBannerSrc}
+                  alt={displayTitle}
+                  width={640}
+                  height={223}
+                  className="w-full h-auto object-contain"
+                />
               </div>
             </div>
-            <div className="flex-1 w-full h-auto">
-              <Image
-                src={PLAIN_GOLD_HANDLES.includes(handle) ? PLAIN_GOLD_BANNER_IMAGE : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_1_291c202b-43a0-49f1-99dc-c956ebdd15e1.png?v=1785753073"}
-                alt={displayTitle}
-                width={640}
-                height={223}
-                className="w-full h-auto object-contain"
-              />
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {handle === "eterna" && <EternaBandsSection />}
 

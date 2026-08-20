@@ -10,13 +10,13 @@ const ROTATE_MS = 2600;
 // product page and the checkout cart behave identically.
 const VARIANTS = {
   product: {
-    pill: "px-2 py-0.5 lg:px-2.5 lg:py-1 max-[374px]:px-1.5",
+    pill: "w-fit rounded-card px-2 py-0.5 lg:px-2.5 lg:py-1 max-[374px]:px-1.5",
     spacer: "basis-[4px] max-w-[8px]",
     icon: "h-3 w-auto lg:h-[14px] max-[374px]:h-2.5",
     text: "font-figtree font-semibold tracking-tight text-[10px] lg:text-sm max-[374px]:text-[9px]",
   },
   cart: {
-    pill: "px-3 py-1.5 backdrop-blur-sm max-w-[calc(100%-16px)]",
+    pill: "w-fit rounded-card px-3 py-1.5 backdrop-blur-sm max-w-[calc(100%-16px)]",
     spacer: "basis-[6px] max-w-[10px]",
     icon: "h-[15px] w-auto",
     text: "font-semibold text-[13px]",
@@ -25,9 +25,9 @@ const VARIANTS = {
   // this variant is scaled down so even that one clears the inset instead of running
   // edge-to-edge across the image.
   cartCompact: {
-    pill: "px-2 py-1 backdrop-blur-sm max-w-[calc(100%-16px)]",
+    pill: "w-full justify-center rounded px-1.5 py-0.5 backdrop-blur-sm max-w-[calc(100%-16px)]",
     spacer: "basis-[4px] max-w-[8px]",
-    icon: "h-3 w-auto",
+    icon: "h-3 w-3",
     text: "font-semibold text-[10px]",
   },
 };
@@ -67,8 +67,8 @@ export default function SocialProofBand({ socialProof, variant = "product", clas
 
   return (
     <span
-      className={`social-badge-pill inline-flex w-fit shrink-0 items-center overflow-hidden rounded-card ${v.pill} ${className}`}
-      style={SOCIAL_BADGE_STYLES[metrics[active].key]}
+      className={`social-badge-pill inline-flex shrink-0 items-center overflow-hidden ${v.pill} ${className}`}
+      style={{ backgroundColor: SOCIAL_BADGE_STYLES[metrics[active].key].backgroundColor }}
     >
       <span className="grid items-center">
         {metrics.map((m, i) => {
@@ -79,6 +79,7 @@ export default function SocialProofBand({ socialProof, variant = "product", clas
               data-state={state}
               aria-hidden={state === "active" ? undefined : "true"}
               className="social-badge-item col-start-1 row-start-1 flex min-w-0 items-center justify-center"
+              style={{ color: SOCIAL_BADGE_STYLES[m.key].color }}
             >
               <SocialBadgeIcon type={m.key} animate={state === "active"} className={v.icon} />
               {/* Absorbs the leftover width a shorter metric leaves inside the fixed-width

@@ -26,7 +26,7 @@ import {
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 
-const ALL_STORES = [
+export const ALL_STORES = [
   {
     city: "Malad",
     name: "Head Office",
@@ -34,7 +34,7 @@ const ALL_STORES = [
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Lucira_contact_us_grid_900x.png?v=1757660196",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Mumbai/data=!4m2!3m1!1s0x0:0x268fe0bb8a89f9bb?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send?phone=919004435760&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Head%20Office%20and%20explore%20the%20designs.",
+    whatsappLink: "https://api.whatsapp.com/send?phone=918976740895&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Head%20Office%20and%20explore%20the%20designs.",
     callLink: "tel:+919004436052",
     designLink: "/collections/malad",
     directionsLink: "/collections/malad",
@@ -49,7 +49,7 @@ const ALL_STORES = [
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-Collection-Banner3_jpg_900x.jpg?v=1769237134",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Borivali+Mumbai/data=!4m2!3m1!1s0x0:0x8e0b915ac78ac1?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
     callLink: "tel:+918433667238",
     designLink: "/collections/sky-city-borivali-store",
     directionsLink: "/collections/sky-city-borivali-store",
@@ -64,7 +64,7 @@ const ALL_STORES = [
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-Collection-Banner-2_900x.jpg?v=1760699342",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Chembur+Mumbai/@19.0576005,72.898121,17z/data=!3m1!4b1!4m6!3m5!1s0x3be7c782f7511b79:0xaa877f3bbd754bfc!8m2!3d19.0575954!4d72.9006959!16s%2Fg%2F11xtgz09vw",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
     callLink: "tel:+919004402038",
     designLink: "/collections/chembur-store",
     directionsLink: "/collections/chembur-store",
@@ -79,7 +79,7 @@ const ALL_STORES = [
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-PLP-2_900x.jpg?v=1765807125",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+JM+Road+Pune/@18.5233058,73.8452878,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc2c1929b1639f7:0x7d0f5ff74de52a8d!8m2!3d18.5233007!4d73.8478627",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
     callLink: "tel:+918433667236",
     designLink: "/collections/pune-store",
     directionsLink: "https://www.lucirajewelry.com/collections/pune-store",
@@ -94,7 +94,7 @@ const ALL_STORES = [
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Wave+One+Mall,+Noida/data=!4m2!3m1!1s0x0:0xbdc183588be81689?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send?phone=919004435760&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Noida%20Store%20and%20explore%20the%20designs.",
+    whatsappLink: "https://api.whatsapp.com/send?phone=918976740895&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Noida%20Store%20and%20explore%20the%20designs.",
     callLink: "tel:+918657392887",
     designLink: "/collections/noida-store",
     directionsLink: "https://www.lucirajewelry.com/collections/noida-store",
@@ -109,7 +109,7 @@ const ALL_STORES = [
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Paschim+Vihar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Paschim+Vihar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
     callLink: "tel:+917208007494",
     designLink: "/collections/paschim-vihar",
     directionsLink: "https://www.lucirajewelry.com/collections/paschim-vihar",
@@ -124,7 +124,7 @@ const ALL_STORES = [
     image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
     timings: "Monday - Sunday | 10:30 am - 10:00 pm",
     mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=917208007495&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Lajpat+Nagar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Lajpat+Nagar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
     callLink: "tel:+917208007495",
     designLink: "/collections/lajpat-nagar-store",
     directionsLink: "https://www.lucirajewelry.com/collections/lajpat-nagar-store",
@@ -334,35 +334,9 @@ export default function StoreLocatorPage() {
   return (
     <div className="font-figtree text-[#333]">
       {/* ═══════════════════════════════════════════
-          BANNER
-      ═══════════════════════════════════════════ */}
-      <div className="w-full bg-white">
-        <div className="hidden lg:block w-full">
-          <LazyImage
-            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Store-Locator-Desktop_jpg.jpg?v=1786016630"
-            alt="Find a Lucira Store Near You"
-            width={1920}
-            height={823}
-            priority
-            sizes="100vw"
-            className="w-full h-auto object-cover object-center"
-          />
-        </div>
-        <div className="block lg:hidden w-full">
-          <LazyImage
-            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Store-Locator-Mobile_jpg.jpg?v=1786016631"
-            alt="Find a Lucira Store Near You"
-            width={1080}
-            height={1350}
-            priority
-            sizes="100vw"
-            className="w-full h-auto object-cover object-center"
-          />
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════
           STORE LOCATOR SECTION
+          (First section on the page — the hero banner that used to sit above it
+          was removed so the search box and store cards land in the first fold.)
       ═══════════════════════════════════════════ */}
       <section id="locator-section" className="w-full py-12 md:py-15 bg-white overflow-hidden">
         <div className="container-main">

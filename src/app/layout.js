@@ -31,6 +31,12 @@ export const metadata = {
   manifest: "/manifest.json",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  interactiveWidget: "resizes-content",
+};
+
 export default function RootLayout({ children }) {
   const isProd = process.env.NODE_ENV === "production";
   return (

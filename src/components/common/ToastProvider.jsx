@@ -40,6 +40,8 @@ export default function ToastProvider() {
       draggable
       pauseOnHover
       theme="light"
+      style={{ zIndex: 999999 }}
+      className="!z-[999999]"
       icon={({ type }) => {
         if (type === "success") {
           return <SuccessIcon />;

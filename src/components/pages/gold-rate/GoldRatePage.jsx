@@ -54,24 +54,27 @@ const stateCityMap = {
     'west-bengal': ['Alipurduar', 'Asansol', 'Barddhaman', 'Bhatpara', 'Haldia', 'Haora', 'Kolkata', 'Krishnanagar', 'Shiliguri'],
 };
 
+// "new-delhi" → "New Delhi". Lowercased first so a Caps-Lock URL that reached us
+// without a redirect can't leak "MYSORE" into the headings.
+function titleCaseSlug(slug) {
+    return String(slug || '')
+        .toLowerCase()
+        .split('-')
+        .filter(Boolean)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+}
+
 export default function GoldRatePage({ page }) {
     const router = useRouter();
 
-    // Extract city from URL handle if available
-    const getInitialCity = () => {
-        if (typeof window !== 'undefined') {
-            const pathname = window.location.pathname;
-            // Extract city slug from URL like /pages/kalyan-gold-rate-today
-            const match = pathname.match(/\/pages\/(.+?)-gold-rate-today/);
-            if (match && match[1]) {
-                return match[1];
-            }
-        }
-        return page?.city?.value?.toLowerCase().replace(/\s+/g, '-') || 'mumbai';
-    };
+    // The city this page is *about*, resolved server-side from the URL handle.
+    // Read it from the prop rather than window.location so SSR and hydration
+    // agree, and so it stays put while the visitor browses the dropdowns.
+    const pageCitySlug = (page?.city?.value || 'Mumbai').toLowerCase().replace(/\s+/g, '-');
 
     const [selectedState, setSelectedState] = useState(page?.state?.value?.toLowerCase().replace(/\s+/g, '-') || 'maharashtra');
-    const [selectedCity, setSelectedCity] = useState(getInitialCity());
+    const [selectedCity, setSelectedCity] = useState(pageCitySlug);
     const [currentDate, setCurrentDate] = useState("");
     const [rates, setRates] = useState(null);
 
@@ -81,10 +84,18 @@ export default function GoldRatePage({ page }) {
     // Shopify Gold Rate City metaobject content (fetched via Storefront API in page.js).
     const goldMeta = page?.goldMeta || null;
 
-    // Compute the current city display name from selectedCity state
+    // Display name for the city, used in the breadcrumb, H1, direct-answer
+    // paragraph and every child section.
+    //
+    // The metaobject's city_name wins over the URL slug: slugs keep the legacy
+    // spelling for SEO/backlink continuity (mysore, bangalore) while the copy the
+    // team authors uses the current one (Mysuru, Bengaluru). Deriving this from
+    // the slug is what made the H1 read "Gold Rate in Mysuru Today" while the
+    // breadcrumb right above it read "Gold Rate in MYSORE". GoldMetaContent
+    // already resolves its city the same way, so the whole page now agrees.
     const cityNameDisplay = useMemo(() => {
-        return selectedCity.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    }, [selectedCity]);
+        return (goldMeta?.cityName || '').trim() || titleCaseSlug(pageCitySlug);
+    }, [goldMeta, pageCitySlug]);
 
     useEffect(() => {
         const today = new Date();
@@ -190,6 +201,12 @@ export default function GoldRatePage({ page }) {
 
                     <h1 className="font-abhaya text-[30px] md:text-[44px] leading-tight text-zinc-900 font-semibold">
                         {(goldMeta && goldMeta.heroTitle) || `Gold Rate in ${cityNameDisplay} Today`}
+                        {" "}
+                        {goldMeta?.heroStamp ? (
+                            <span className="block md:inline font-figtree font-normal text-[14px] md:text-[18px] text-zinc-500 whitespace-nowrap">
+                                &ndash; {goldMeta.heroStamp} IST
+                            </span>
+                        ) : null}
                     </h1>
 
                     <p className="font-figtree text-[15px] md:text-[17px] text-zinc-700 leading-relaxed mt-3 md:mt-4 max-w-3xl">
@@ -427,17 +444,26 @@ export default function GoldRatePage({ page }) {
                 .footer-pages ul, .footer-pages ol {
                   margin-top: 1.25em;
                   margin-bottom: 1.25em;
-                  padding-left: 1.625em;
                 }
-                .footer-pages ul { list-style-type: disc; }
-                .footer-pages ol { list-style-type: decimal; }
-                .footer-pages li {
+                /* The bullet is the branded dot gold-rate.css draws via
+                   .footer-pages ul li::before — the native disc marker is
+                   disabled here so the two don't render as double bullets. */
+                .footer-pages ul { list-style-type: none; padding-left: 0; }
+                .footer-pages ol { list-style-type: decimal; padding-left: 1.625em; }
+                /* Match the paragraph size above (1.25rem). The shared
+                   .footer-pages ul li rule (gold-rate.css) is text-sm, which
+                   left bullets smaller than the surrounding prose — the ul/ol
+                   in this selector out-specifies it. */
+                .footer-pages ul li, .footer-pages ol li {
                   margin-top: 0.5em;
                   margin-bottom: 0.5em;
                   font-family: var(--font-figtree), sans-serif;
-                  font-size: 1.125rem;
+                  font-size: 1.25rem;
                   line-height: 1.75;
                 }
+                /* Re-centre the dot for the larger text (gold-rate.css tuned
+                   its top for text-sm). */
+                .footer-pages ul li::before { top: 0.7em; }
                 .footer-pages blockquote {
                   border-left: 4px solid #e4e4e7;
                   padding-left: 1em;

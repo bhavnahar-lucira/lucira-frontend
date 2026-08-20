@@ -51,14 +51,15 @@ export const startSearch = async (query, resultsCount) => {
     const anonymousId = getAnonymousId();
     const data = await apiFetch('/api/analytics/search/start', {
       method: 'POST',
-      body: JSON.stringify({ query, resultsCount, customerId, anonymousId })
+      body: JSON.stringify({ query, resultsCount, customerId, anonymousId }),
+      suppressErrorLog: true
     });
     if (data && data.searchId) {
       setContext(data.searchId);
       return data.searchId;
     }
   } catch (error) {
-    console.error("Failed to start search analytics", error);
+    console.warn("Failed to start search analytics", error);
   }
 };
 
@@ -73,7 +74,7 @@ export const trackSearchResultsView = async (resultsCount) => {
       body: JSON.stringify({ searchId, eventType: 'RESULTS_VIEW', metadata: { resultsCount }, customerId, anonymousId })
     });
   } catch (error) {
-    console.error("Failed to track results view", error);
+    console.warn("Failed to track results view", error);
   }
 };
 
@@ -88,7 +89,7 @@ export const trackProductClick = async (productId, position) => {
       body: JSON.stringify({ searchId, eventType: 'PRODUCT_CLICK', productId, metadata: { position }, customerId, anonymousId })
     });
   } catch (error) {
-    console.error("Failed to track product click", error);
+    console.warn("Failed to track product click", error);
   }
 };
 
@@ -103,7 +104,7 @@ export const trackProductView = async (productId) => {
       body: JSON.stringify({ searchId, eventType: 'PRODUCT_VIEW', productId, customerId, anonymousId })
     });
   } catch (error) {
-    console.error("Failed to track product view", error);
+    console.warn("Failed to track product view", error);
   }
 };
 
@@ -118,7 +119,7 @@ export const trackAddToCart = async (productId, quantity = 1) => {
       body: JSON.stringify({ searchId, eventType: 'ADD_TO_CART', productId, metadata: { quantity }, customerId, anonymousId })
     });
   } catch (error) {
-    console.error("Failed to track add to cart", error);
+    console.warn("Failed to track add to cart", error);
   }
 };
 
@@ -136,7 +137,7 @@ export const trackCheckout = async (cartItems) => {
       body: JSON.stringify({ searchId, eventType: 'BEGIN_CHECKOUT', metadata: { items: cartItems }, customerId, anonymousId })
     });
   } catch (error) {
-    console.error("Failed to track checkout", error);
+    console.warn("Failed to track checkout", error);
   }
 };
 
@@ -151,7 +152,7 @@ export const trackPurchase = async (orderId, cartItems) => {
       body: JSON.stringify({ searchId, eventType: 'PURCHASE', metadata: { orderId, items: cartItems }, customerId, anonymousId })
     });
   } catch (error) {
-    console.error("Failed to track purchase", error);
+    console.warn("Failed to track purchase", error);
   }
 };
 

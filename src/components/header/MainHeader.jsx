@@ -11,7 +11,7 @@ import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useDispatch, useSelector } from "react-redux";
 import { setAvatar } from "@/redux/features/user/userSlice";
-import { fetchCart, clearCart } from "@/redux/features/cart/cartSlice";
+import { fetchCart, clearCart, removeFromCart } from "@/redux/features/cart/cartSlice";
 import {
   mergeGuestWishlist,
   restoreGuestWishlist,
@@ -20,6 +20,7 @@ import {
 import { useDebounce } from "@/hooks/useDebounce";
 import { apiFetch, fetchSearchResults } from "@/lib/api";
 import PincodePicker from "./PincodePicker";
+import { isFreeGiftVariant } from "@/lib/freeGifts";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
@@ -96,6 +97,7 @@ export default function MainHeader() {
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
@@ -124,6 +126,7 @@ export default function MainHeader() {
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
           !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !isFreeGiftVariant(item.variantId) &&
           !item.properties?.['_byj_parent'] &&
           !item.properties?.[' _byj_parent'] &&
           !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
@@ -367,6 +370,7 @@ export default function MainHeader() {
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {
+
       authLogout();
       dispatch(clearCart());
       dispatch(restoreGuestWishlist());

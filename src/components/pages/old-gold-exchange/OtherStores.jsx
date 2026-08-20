@@ -47,7 +47,7 @@ export default function OtherStores({ data }) {
         <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl font-abhaya font-semibold uppercase tracking-[2px] mb-6 text-primary">Checking availability in your area?</h2>
             <div className="flex justify-center">
-                <div className="flex w-full max-w-[400px] border border-[#b76f79] rounded-lg overflow-hidden bg-white shadow-sm font-figtree">
+                <div className="flex w-full max-w-[400px] border border-[#B77767] rounded-lg overflow-hidden bg-white shadow-sm font-figtree">
                     <input 
                         type="tel" 
                         placeholder="Enter Pincode"
@@ -58,7 +58,7 @@ export default function OtherStores({ data }) {
                     />
                     <button 
                         onClick={handlePincodeSubmit}
-                        className="bg-[#b76f79] text-white px-8 uppercase text-xs font-bold tracking-widest"
+                        className="bg-[#B77767] text-white px-8 uppercase text-xs font-bold tracking-widest"
                     >
                         Check
                     </button>

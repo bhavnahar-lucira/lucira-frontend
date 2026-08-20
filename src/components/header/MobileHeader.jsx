@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
-import { clearCart } from "@/redux/features/cart/cartSlice";
+import { clearCart, removeFromCart } from "@/redux/features/cart/cartSlice";
 import { restoreGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { useMenu } from "@/hooks/useMenu";
@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { apiFetch, fetchSearchResults, fetchCollectionProducts, fetchHomeComponent } from "@/lib/api";
+import { isFreeGiftVariant } from "@/lib/freeGifts";
 
 // Scroll depths that drive the PDP mobile search bar. It starts collapsed to a
 // bare icon beside the wishlist and expands into the full bar past EXPAND_Y,
@@ -359,7 +360,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { transformMenuData } from "@/lib/menus";
+import { transformMenuData, withChunkyRings } from "@/lib/menus";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -519,8 +520,12 @@ export default function MobileHeader({ menuData }) {
       return 99;
     };
 
-    return [...menu, ...extraItems].sort(
-      (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
+    // Same Chunky Rings entry the desktop mega menu appends, so the RINGS
+    // section matches across breakpoints.
+    return withChunkyRings(
+      [...menu, ...extraItems].sort(
+        (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
+      )
     );
   }, [menuData]);
 
@@ -533,6 +538,7 @@ export default function MobileHeader({ menuData }) {
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
       !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
@@ -558,6 +564,7 @@ export default function MobileHeader({ menuData }) {
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
           !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !isFreeGiftVariant(item.variantId) &&
           !item.properties?.['_byj_parent'] &&
           !item.properties?.[' _byj_parent'] &&
           !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
@@ -1026,6 +1033,7 @@ export default function MobileHeader({ menuData }) {
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {
+
       authLogout();
       dispatch(clearCart());
       dispatch(restoreGuestWishlist());
