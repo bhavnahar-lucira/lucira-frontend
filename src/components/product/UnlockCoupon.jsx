@@ -37,23 +37,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
     }, 2000);
   };
 
-  const [claimed, setClaimed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("isSilverPendantClaimed") === "true";
-    }
-    return false;
-  });
 
-  // Keep claimed state in sync with localStorage updates
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleStorageChange = () => {
-        setClaimed(localStorage.getItem("isSilverPendantClaimed") === "true");
-      };
-      window.addEventListener("storage", handleStorageChange);
-      return () => window.removeEventListener("storage", handleStorageChange);
-    }
-  }, []);
 
   // Sync step if user logs in via another flow (e.g. main login)
   const [prevUser, setPrevUser] = useState(user);
@@ -256,9 +240,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
       console.error("Wishlist merge failed:", err);
     }
 
-    // Auto-claim the offer upon verification
-    localStorage.setItem("isSilverPendantClaimed", "true");
-    setClaimed(true);
+
 
     toast.success("Offer Unlocked Successfully!");
     setStep("unlocked");
@@ -313,12 +295,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [otpValues]);
 
-  const handleClaimOffer = () => {
-    localStorage.setItem("isSilverPendantClaimed", "true");
-    setClaimed(true);
-    window.dispatchEvent(new Event("storage"));
-    toast.success("Free Silver Pendant worth ₹10,000 has been claimed and added to your order benefits!");
-  };
+
 
   const handleViewAllOffers = () => {
     window.location.href = "/collections/pendants";

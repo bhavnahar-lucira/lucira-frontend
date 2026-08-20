@@ -35,7 +35,7 @@ export default function FAQSection({ data }) {
                 onClick={() => toggleAccordion(index)}
                 className="w-full flex justify-between items-center text-left focus:outline-none group"
               >
-                <h3 className="text-lg md:text-xl font-medium text-[#1a1a1a] group-hover:text-[#b76f79] transition-colors pr-8">
+                <h3 className="text-lg md:text-xl font-medium text-[#1a1a1a] group-hover:text-[#B77767] transition-colors pr-8">
                   {item.question}
                 </h3>
                 <span className="flex-shrink-0 text-gray-400">

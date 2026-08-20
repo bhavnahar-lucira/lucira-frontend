@@ -38,7 +38,7 @@ export default function HowItWorks({ data }) {
 
                 <div className="how-it-works-step-content text-left">
                   {step.number && (
-                    <p className="text-[#b76f79] font-medium text-sm mb-1 uppercase tracking-widest">
+                    <p className="text-[#B77767] font-medium text-sm mb-1 uppercase tracking-widest">
                       Step {step.number.toString().padStart(2, '0')}
                     </p>
                   )}

@@ -48,7 +48,7 @@ export function buildGoldRateSections(goldMeta, opts = {}) {
 
   sections.push({ id: S.atAGlance, label: `Today's Gold Rate in ${city} at a Glance` });
   if (hasTodayVsYesterday) {
-    sections.push({ id: S.todayVsYesterday, label: `Today vs Yesterday — Gold Rate Change` });
+    sections.push({ id: S.todayVsYesterday, label: `Today vs Yesterday - Gold Rate Change` });
   }
   sections.push({ id: S.purityComparison, label: "Gold Karat Purity Comparison" });
   if (hasWeekly) {

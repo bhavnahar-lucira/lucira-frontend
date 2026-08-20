@@ -77,10 +77,7 @@ export default function CouponDrawer({ open, onClose, title = "Available Coupons
           >
             {/* Header */}
             <div className="p-5 border-b border-[#FBE3DC] flex flex-col bg-white rounded-t-3xl sm:rounded-none shrink-0">
-              {/* Drag Handle for Mobile */}
-              <div className="flex justify-center pb-3.5 sm:hidden">
-                <div className="w-12 h-1 bg-zinc-200 rounded-full" />
-              </div>
+
               <div className="flex items-center justify-between w-full">
                 <h3 className="text-base font-figtree font-semibold text-[#5C3E35] tracking-wide uppercase">
                   {title}

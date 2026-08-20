@@ -1,5 +1,6 @@
 import { getPageByHandle, getAllPages } from "@/lib/pages";
 import { getGoldRateCityMeta, getGoldRateHistory } from "@/lib/goldRate";
+import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
 import { notFound } from "next/navigation";
 import "@/styles/gold-rate.css";
 
@@ -12,11 +13,33 @@ import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage"
 
 // Static pages (About, Careers, T&C, etc.) stay fully static — force-cache at the fetch
 // level means they never re-render after build.
-// Metal rate pages bypass the cache (no-store) and use ISR (revalidate: 3600) so any
-// body edits made in Shopify are reflected on the site within one hour — same strategy
-// as blog articles.
+//
+// Metal rate pages stay 'no-store': the rates team updates the gold_rate_history
+// metaobject every morning and the pages must show the new rate the moment it is
+// written — an ISR window would keep serving yesterday's rate for up to an hour.
+// no-store also makes the rate routes bail out of static generation at the FIRST
+// Storefront fetch, so the Admin-REST and live-site-scrape fallback tiers in
+// getPageByHandle never run for the ~637 city pages (switching to ISR made every
+// empty-body silver/platinum page crawl those tiers on each build/regeneration).
+// The DynamicServerError this throws during `next build` is expected control flow;
+// fetchWithRetry/shopifyStorefrontFetch recognize and rethrow it silently.
 export const revalidate = 3600;
+const RATE_PAGE_CACHE = 'no-store';
 export const dynamicParams = true;
+
+// ─── Locally-rendered pages ──────────────────────────────────────────────────
+// These handles render a local component instead of the Shopify page body (see
+// Page below). Their metadata has to be authored here too: falling through to the
+// Shopify record produced a description sliced out of raw body text, which mixed
+// Title Case prose with the ALL-CAPS field labels ("CALL US", "MAIL US") and cut
+// off mid-value. Title Case title, sentence-case description, no shouting.
+const LOCAL_PAGE_META = {
+  "contact-us": {
+    title: "Contact Us - Lucira Jewelry",
+    description:
+      "Get in touch with Lucira Jewelry for bespoke assistance and jewelry consultations. Call, email or visit our Mumbai head office — our concierge will reply soon.",
+  },
+};
 
 // ─── City / State lookup (shared by all rate-page types) ─────────────────────
 const STATE_CITY_MAP = {
@@ -59,7 +82,10 @@ const STATE_CITY_MAP = {
 };
 
 function resolveCityState(handle, rateType) {
-  const citySlug = handle.replace(rateType, '');
+  // Fold the case before matching: middleware redirects Caps-Lock URLs, but this
+  // also runs for direct/internal calls it never sees, and an unfolded "MYSORE"
+  // misses STATE_CITY_MAP silently (→ wrong state, city echoed back in caps).
+  const citySlug = handle.toLowerCase().replace(rateType, '');
   const cityCapitalized = citySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   for (const [stateKey, cities] of Object.entries(STATE_CITY_MAP)) {
@@ -76,6 +102,47 @@ function resolveCityState(handle, rateType) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── Gold rate title date stamp ──────────────────────────────────────────────
+// Gold rate pages carry the current day + date in the title tag as a freshness
+// signal. Asia/Kolkata is pinned deliberately: the production server clock runs
+// in UTC, so without it the title would show the previous day's date until
+// 05:30 IST every morning.
+const GOLD_TITLE_DATE_FORMAT = {
+  timeZone: "Asia/Kolkata",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+};
+
+function withRateDate(title) {
+  if (!title || ALREADY_DATED.test(title)) return title;
+
+  const stamp = new Intl.DateTimeFormat("en-IN", GOLD_TITLE_DATE_FORMAT).format(new Date());
+
+  // Insert ahead of the trailing brand segment so "| Lucira" stays last.
+  const lastPipe = title.lastIndexOf("|");
+  if (lastPipe > 0) {
+    return `${title.slice(0, lastPipe).trim()} (${stamp}) ${title.slice(lastPipe)}`;
+  }
+  return `${title} (${stamp})`;
+}
+
+// ─── Gold rate city meta (competitor-style) ──────────────────────────────────
+// "Todays Gold Rate in Mumbai for 14, 18, 22 & 24 Carat - 18 Aug 2026, 11 AM"
+// Short month keeps the title near the SERP character limit while still
+// carrying the date + current IST time as a freshness signal. Rate pages
+// render with no-store, so the stamp is the actual request time.
+function goldRateCityMeta(city) {
+  const { fullDate, time } = istRateStamp();
+
+  return {
+    title: `Todays Gold Rate in ${city} for 14, 18, 22 & 24 Carat - ${fullDate}, ${time}`,
+    description: `Gold Rate Today in ${city} - ${fullDate}, ${time} IST. Get live gold rates for 14K, 18K, 22K & 24K in ${city} and yesterday's gold rate per gram.`,
+  };
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function generateStaticParams() {
   const pages = await getAllPages();
   return pages.map((page) => ({
@@ -84,30 +151,51 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }) {
-  const { handle } = await params;
+  const { handle: rawHandle } = await params;
+  // Shopify handles are always lowercase, and so is every link we emit — fold the
+  // param so a Caps-Lock URL resolves the same page instead of falling through
+  // the rate-page detection below and 404ing.
+  const handle = rawHandle.toLowerCase();
 
   const isSilverRatePage = handle.includes("silver-rate-today");
   const isPlatinumRatePage = handle.includes("platinum-rate-today");
   const isGoldRatePage = handle.includes("gold-rate-today");
   const isRatePage = isSilverRatePage || isPlatinumRatePage || isGoldRatePage;
-  const cacheStrategy = isRatePage ? 'no-store' : 'force-cache';
+  const cacheStrategy = isRatePage ? RATE_PAGE_CACHE : 'force-cache';
 
-  const page = await getPageByHandle(handle, cacheStrategy);
-  if (!page) return {};
+  let title;
+  let description;
 
-  let title = page.seo?.title || page.title || "Lucira Jewelry";
-  let description = page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
+  const localMeta = LOCAL_PAGE_META[handle];
+  if (localMeta) {
+    // Body comes from a local component, so the Shopify record is not the source
+    // of truth here — skip the fetch entirely.
+    ({ title, description } = localMeta);
+  } else {
+    const page = await getPageByHandle(handle, cacheStrategy);
+    if (!page) return {};
 
-  // Gold rate pages: the Gold Rate City metaobject carries curated seo_title /
-  // seo_description per city — prefer those over the Shopify page's SEO fields
-  // so the title tag matches the content actually rendered from the metaobject.
-  if (isGoldRatePage) {
-    try {
-      const goldMeta = await getGoldRateCityMeta(handle, "no-store");
-      if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
-      if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
-    } catch {
-      // fall back to page SEO fields
+    title = page.seo?.title || page.title || "Lucira Jewelry";
+    description = page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
+
+    // Gold rate pages: known city pages get the generated competitor-style
+    // title/description (uniform format, fresh date + IST time). Anything else
+    // ("gold-rate-today" itself, cities missing from STATE_CITY_MAP) keeps the
+    // curated metaobject seo_title / seo_description with the date stamp.
+    if (isGoldRatePage) {
+      const { cityCapitalized, matched } = resolveCityState(handle, "-gold-rate-today");
+      if (matched) {
+        ({ title, description } = goldRateCityMeta(cityCapitalized));
+      } else {
+        try {
+          const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
+          if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
+          if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
+        } catch {
+          // fall back to page SEO fields
+        }
+        title = withRateDate(title);
+      }
     }
   }
 
@@ -132,7 +220,8 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function Page({ params }) {
-  const { handle } = await params;
+  const { handle: rawHandle } = await params;
+  const handle = rawHandle.toLowerCase();
 
   if (handle === "contact-us") {
     return <ContactSection />;
@@ -148,10 +237,10 @@ export default async function Page({ params }) {
   const isGoldRatePage = handle.includes("gold-rate-today");
   const isRatePage = isSilverRatePage || isPlatinumRatePage || isGoldRatePage;
 
-  // Rate pages: no-store so Shopify body edits appear after the ISR window (1 hour).
+  // Rate pages: ISR so Shopify body edits appear after the revalidate window (1 hour).
   // All other pages: force-cache (permanent SSG, never re-fetched after build).
   // This mirrors exactly how blogs.js handles article content.
-  const cacheStrategy = isRatePage ? 'no-store' : 'force-cache';
+  const cacheStrategy = isRatePage ? RATE_PAGE_CACHE : 'force-cache';
 
   // 3-tier fetch: Storefront API → Admin REST API → Live site scraping
   // (same strategy as getArticleByBlogAndHandle in blogs.js)
@@ -193,12 +282,19 @@ export default async function Page({ params }) {
   // metaobject is missing the page falls back to page.body below.
   if (isGoldRatePage) {
     try {
-      const goldMeta = await getGoldRateCityMeta(handle, "no-store");
+      const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
       if (goldMeta) {
         try {
-          goldMeta.history = await getGoldRateHistory("no-store");
+          goldMeta.history = await getGoldRateHistory(RATE_PAGE_CACHE);
         } catch {
           goldMeta.history = [];
+        }
+        // Freshness stamp for the H1 — the same IST date + time the <title>
+        // carries. Computed here on the server so the client component hydrates
+        // with an identical string instead of tripping a mismatch when the
+        // browser renders on the other side of an hour boundary.
+        if (!ALREADY_DATED.test(goldMeta.heroTitle || "")) {
+          goldMeta.heroStamp = istRateStamp().stamp;
         }
         page.goldMeta = goldMeta;
       }

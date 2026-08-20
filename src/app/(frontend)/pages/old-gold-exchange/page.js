@@ -20,13 +20,13 @@ export default function OldGoldExchangePage() {
   ];
 
   return (
-    <div className="w-full bg-[#f8f8f8] font-figtree">
+    <div className="w-full bg-[#FAF7F5] font-figtree">
       {/* ─────── BANNER SECTION ─────── */}
 
 
       {/* ─────── PAGE SECTIONS ─────── */}
       <div className="page-sections flex flex-col gap-0 font-figtree">
-        <LuxuryMarquee prop={["bg-[#B76F79]", "text-white", "text-md", "font-semibold"]} items={marqueeItems} />
+        <LuxuryMarquee prop={["bg-[#B77767]", "text-white", "text-md", "font-semibold"]} items={marqueeItems} />
         <OldGoldCalculator config={calculator} />
 
         <HowItWorks data={how_it_works} />

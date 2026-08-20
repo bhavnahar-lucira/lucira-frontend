@@ -180,3 +180,36 @@ function getFileUrl(metafield) {
     if (typeof metafield.value === 'string' && (metafield.value.startsWith('http') || metafield.value.startsWith('/'))) return metafield.value;
     return null;
 }
+
+// Chunky Rings isn't in the Shopify menu yet, so it's appended to the RINGS
+// "Shop by Style" column at render time. Shared by the desktop mega menu
+// (Navbar) and the mobile drawer (MobileHeader) so the two can't drift apart
+// or end up with different icons.
+export const CHUNKY_RINGS_ITEM = {
+  label: 'Chunky Rings',
+  href: '/collections/chunky-rings',
+  menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/chunky_rings.png?v=1787210554',
+};
+
+export function withChunkyRings(menus) {
+  return (menus || []).map((menu) => {
+    const label = (menu.label || menu.title || '').toLowerCase().trim();
+    if (label !== 'rings') return menu;
+
+    let injected = false;
+    const columns = (menu.columns || []).map((col) => {
+      if (injected) return col;
+      if (!(col.title || '').toLowerCase().includes('shop by style')) return col;
+      const items = col.items || [];
+      // Idempotent: the CMS may add the item for real later.
+      if (items.some((i) => (i.label || '').toLowerCase().trim() === 'chunky rings')) {
+        injected = true;
+        return col;
+      }
+      injected = true;
+      return { ...col, items: [...items, CHUNKY_RINGS_ITEM] };
+    });
+
+    return injected ? { ...menu, columns } : menu;
+  });
+}

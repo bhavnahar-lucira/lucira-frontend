@@ -1,7 +1,7 @@
 "use client";
 
 import { useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { repriceCartForCheckout } from "@/redux/features/cart/cartSlice";
@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 
 export default function CheckoutProtectedLayout({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useDispatch();
   const { isAuthenticated, accessToken } = useSelector(
     (state) => state.user
@@ -18,9 +19,11 @@ export default function CheckoutProtectedLayout({ children }) {
 
   useEffect(() => {
     if (!isAuthenticated || !accessToken || accessToken.startsWith('simulated_')) {
-      router.push("/login"); // Redirect to login page instead of homepage
+      if (!pathname.startsWith("/checkout")) {
+        router.push("/login"); // Redirect to login page instead of homepage
+      }
     }
-  }, [isAuthenticated, accessToken, router]);
+  }, [isAuthenticated, accessToken, router, pathname]);
 
   useEffect(() => {
     if (!isAuthenticated || hasRepricedRef.current) return;
@@ -44,7 +47,11 @@ export default function CheckoutProtectedLayout({ children }) {
       });
   }, [dispatch, isAuthenticated, user?.id]);
 
-  if (!isAuthenticated || !accessToken || accessToken.startsWith('simulated_')) return null;
+  if (!isAuthenticated || !accessToken || accessToken.startsWith('simulated_')) {
+    if (!pathname.startsWith("/checkout")) {
+      return null;
+    }
+  }
 
   return <>{children}</>;
 }

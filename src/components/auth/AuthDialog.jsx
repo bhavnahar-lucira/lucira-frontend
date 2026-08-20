@@ -69,7 +69,7 @@ export function AuthDialog({
       <Sheet
         isOpen={isOpen}
         onClose={handleClose}
-        detent="content-height"
+        detent="content"
         avoidKeyboard={true}
         style={{ zIndex: 2000 }}
       >

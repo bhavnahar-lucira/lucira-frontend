@@ -98,7 +98,7 @@ export default function CouponCard({
             disabled={isOutOfTier || isBlockedByOther || !!applyingCode || disabled}
             title={
               disabled
-                ? "Not available while Free Silver Pendant is claimed"
+                ? "Not available while Free Silver Bracelet is claimed"
                 : isOutOfTier
                 ? `Not applicable — ${coupon.condition}`
                 : isBlockedByOther

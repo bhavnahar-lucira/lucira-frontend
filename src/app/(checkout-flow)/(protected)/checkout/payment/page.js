@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CheckoutSummary from "@/components/cart/CheckoutSummary";
+import PriceProtectionTimer from "@/components/checkout/payment/PriceProtectionTimer";
+import PriceProtectionDrawer from "@/components/checkout/payment/PriceProtectionDrawer";
+import CoinsNudgeDrawer from "@/components/checkout/payment/CoinsNudgeDrawer";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -13,46 +16,30 @@ import {
   applyPoints,
   repriceCartForCheckout,
 } from "@/redux/features/cart/cartSlice";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ChevronLeft, Trash2, Plus, Loader2, X, Check } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import {
   apiFetch,
   completeRazorpayPayment,
   createRazorpayOrder,
-  deleteCustomerAddress,
-  fetchCheckoutAddressSelection,
-  fetchCustomerAddresses,
-  saveCheckoutAddressSelection,
-  selectDefaultCustomerAddress,
-  createCustomerAddress,
 } from "@/lib/api";
 import { getCookie } from "@/lib/utils";
-import { selectUser } from "@/redux/features/user/userSlice";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
 import { getStoredUtms, sendCheckoutCrmEvent } from "@/lib/checkout-crm";
 import { trackPaymentStep } from "@/lib/searchAnalytics";
 import { calculateCouponDiscount } from "@/lib/coupons";
-import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
+import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
-const SILVER_PENDANT_VARIANT_ID = "gid://shopify/ProductVariant/48052809498842";
 
 const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
 
@@ -142,6 +129,7 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
   );
 }
 
+
 function formatAddressPreview(address) {
   if (!address) return "";
 
@@ -153,55 +141,6 @@ function formatAddressPreview(address) {
   ]
     .filter(Boolean)
     .join(", ");
-}
-
-function formatAddressLines(address) {
-  if (!address) return [];
-
-  return [
-    address.address1,
-    address.address2,
-    [address.city, address.province, address.zip].filter(Boolean).join(", "),
-    address.country,
-  ].filter(Boolean);
-}
-
-function readStoredBillingSelection() {
-  if (typeof window === "undefined") {
-    return { billingAddressMode: "same", billingAddressId: "" };
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(BILLING_SELECTION_STORAGE_KEY);
-    const parsedValue = rawValue ? JSON.parse(rawValue) : null;
-    if (parsedValue?.billingAddressMode === "different" && parsedValue?.billingAddressId) {
-      return {
-        billingAddressMode: "different",
-        billingAddressId: parsedValue.billingAddressId,
-      };
-    }
-  } catch (error) {
-    console.error("Billing selection restore error:", error);
-  }
-
-  return { billingAddressMode: "same", billingAddressId: "" };
-}
-
-function persistBillingSelection(selection) {
-  if (typeof window === "undefined") return;
-
-  if (selection?.billingAddressMode === "different" && selection?.billingAddressId) {
-    window.localStorage.setItem(
-      BILLING_SELECTION_STORAGE_KEY,
-      JSON.stringify({
-        billingAddressMode: "different",
-        billingAddressId: selection.billingAddressId,
-      })
-    );
-    return;
-  }
-
-  window.localStorage.removeItem(BILLING_SELECTION_STORAGE_KEY);
 }
 
 function getCartSessionId() {
@@ -252,48 +191,21 @@ export default function PaymentPage() {
   const [billingDialogOpen, setBillingDialogOpen] = useState(false);
   const hasFiredPaymentStep = useRef(false);
   
-  const [addresses, setAddresses] = useState([]);
-  const [customer, setCustomer] = useState(null);
-  const [selectedAddressId, setSelectedAddressId] = useState("");
-  const [billingAddressMode, setBillingAddressMode] = useState("same");
-  const [selectedBillingAddressId, setSelectedBillingAddressId] = useState("");
-  const [billingAddressSnapshot, setBillingAddressSnapshot] = useState(null);
+
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
-  // Seeded from the cart, not localStorage: the PDP offer popup sets the claim flag
-  // without adding the gift, which made the pendant appear here when it was never added.
-  const [isSilverPendantClaimed, setIsSilverPendantClaimed] = useState(false);
-  const [pendantPrice, setPendantPrice] = useState(0);
-
-  useEffect(() => {
-    apiFetch(`/api/products/pricing?variantId=${SILVER_PENDANT_VARIANT_ID.split('/').pop()}`, { suppressErrorLog: true })
-      .then(data => {
-        const p = Number(data?.price || data?.compare_price || 0);
-        if (p > 0) setPendantPrice(p);
-      })
-      .catch(err => console.error("Error fetching pendant price in payment:", err));
-  }, []);
   const [checkoutSelection, setCheckoutSelection] = useState(null);
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
-
-  const scrollToSummary = () => {
-    // Land on the price breakdown rather than the top of the section, which sits above
-    // the items and offers. Falls back to the section if the breakdown isn't rendered.
-    const target = summaryBreakdownRef.current || summaryRef.current;
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
   const [addAddressDialogOpen, setAddAddressDialogOpen] = useState(false);
   const [addressForm, setAddressForm] = useState(emptyAddressForm);
   const [addressSaving, setAddressSaving] = useState(false);
   const [makeDefault, setMakeDefault] = useState(false);
 
-  const { user, accessToken } = useSelector((state) => state.user);
-  const { items, totalAmount, appliedCoupon, nectorPoints } = useCart();
+  const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
+  const { items, totalAmount, appliedCoupon, nectorPoints, loading } = useCart();
 
+  // We need eligibleBraceletId first
   useEffect(() => {
     if (items && items.length > 0 && !hasFiredPaymentStep.current) {
       trackPaymentStep(items);
@@ -301,66 +213,73 @@ export default function PaymentPage() {
     }
   }, [items]);
 
-  const diamondTotalForOffer = useMemo(() => {
-    return (items || []).reduce((acc, item) => {
-      const type = (item.type || item.productType || item.product_type || "").toLowerCase();
-      const title = (item.title || "").toLowerCase();
-      const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
-      
-      const isDiamond = type.includes("diamond") || title.includes("diamond") || 
-                        type.includes("solitaire") || title.includes("solitaire") ||
-                        type.includes("gemstone") || title.includes("gemstone") ||
-                        hasDiamondCharges;
 
-      const isGoldCoin = item.variantId === "gid://shopify/ProductVariant/47753346973914" || item.variantId === "gid://shopify/ProductVariant/47661824082138";
-      const isSilverPendant = item.variantId === SILVER_PENDANT_VARIANT_ID;
-      const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
-      const isBYJ = Boolean(
-        item.properties?.['_byj_group_id'] || 
-        item.properties?.['_byj_preview'] || 
-        item.properties?.['_byj_parent'] || 
-        item.properties?.[' _byj_parent'] || 
-        item.tags?.includes('BYJ') || 
-        String(item.handle || "").toLowerCase().includes('byj') || 
-        String(item.title || "").toLowerCase().includes('byj')
-      );
+  const [showPriceProtection, setShowPriceProtection] = useState(false);
+  const [showCoinsNudge, setShowCoinsNudge] = useState(false);
+  const [coinsProceedAction, setCoinsProceedAction] = useState(null);
 
-      if (isDiamond && !isGoldCoin && !isSilverPendant && !isInsurance && !isBYJ) {
-        return acc + (Number(item.price || 0) * Number(item.quantity || 1));
-      }
-      return acc;
-    }, 0);
-  }, [items]);
-
-  const isEligibleForPendant = diamondTotalForOffer >= 30000 && !appliedCoupon;
-
+  const [priceProtectionSeconds, setPriceProtectionSeconds] = useState(600);
   useEffect(() => {
-    const claimed = isEligibleForPendant && (items || []).some(item => item.variantId === SILVER_PENDANT_VARIANT_ID);
-    setIsSilverPendantClaimed(claimed);
-    if (!claimed && typeof window !== "undefined") localStorage.removeItem("isSilverPendantClaimed");
-  }, [items, appliedCoupon, isEligibleForPendant]);
+    if (typeof window === "undefined") return;
+
+    if (window.__paymentPageUnmountTimeout) {
+      clearTimeout(window.__paymentPageUnmountTimeout);
+      window.__paymentPageUnmountTimeout = null;
+    }
+
+    let isSamePage = sessionStorage.getItem("paymentPageActive") === "true";
+
+    let endTime = localStorage.getItem("priceProtectionEndTime");
+    if (!isSamePage || !endTime || parseInt(endTime, 10) < Date.now()) {
+      endTime = Date.now() + 600 * 1000;
+      localStorage.setItem("priceProtectionEndTime", endTime);
+    } else {
+      endTime = parseInt(endTime, 10);
+    }
+
+    sessionStorage.setItem("paymentPageActive", "true");
+
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+      setPriceProtectionSeconds(remaining);
+      
+      if (remaining <= 0) {
+        clearInterval(interval);
+        localStorage.removeItem("priceProtectionEndTime");
+        sessionStorage.removeItem("paymentPageActive");
+        window.location.reload();
+      }
+    }, 1000);
+    
+    setPriceProtectionSeconds(Math.max(0, Math.floor((endTime - Date.now()) / 1000)));
+
+    return () => {
+      clearInterval(interval);
+      window.__paymentPageUnmountTimeout = setTimeout(() => {
+        sessionStorage.removeItem("paymentPageActive");
+      }, 200);
+    };
+  }, []);
+
+  const scrollToSummary = () => {
+    const target = summaryBreakdownRef.current || summaryRef.current;
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const { addresses, customer, selectedAddressId, selectedAddress, loadingAddresses } = useCustomerAddresses({ accessToken, user });
+  const { selectedBillingAddress } = useBillingAddress({
+    accessToken,
+    addresses,
+    loadingAddresses,
+    selectedAddressId,
+    selectedAddress,
+  });
 
   const checkoutItems = useMemo(() => {
-    // ALWAYS remove any persistent pendant first to prevent duplicates/persistence
-    const baseItems = (items || []).filter(item => item.variantId !== SILVER_PENDANT_VARIANT_ID);
-
-    if (!isEligibleForPendant || !isSilverPendantClaimed) return baseItems;
-    
-    return [
-      ...baseItems,
-      {
-        variantId: SILVER_PENDANT_VARIANT_ID,
-        quantity: 1,
-        price: 0,
-        finalPrice: 0,
-        originalPrice: pendantPrice || 0,
-        comparePrice: pendantPrice || 0,
-        title: "Free Silver Pendant",
-        isFreeGift: true,
-        image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/ChatGPT_Image_Aug_3_2026_01_42_46_PM.png?v=1785745617"
-      }
-    ];
-  }, [items, isSilverPendantClaimed, isEligibleForPendant, pendantPrice]);
+    return items || [];
+  }, [items]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -372,23 +291,6 @@ export default function PaymentPage() {
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
   }, [items, totalAmount, appliedCoupon, nectorPoints]);
-
-  const selectedAddress = useMemo(
-    () => addresses.find((address) => address.id === selectedAddressId) || null,
-    [addresses, selectedAddressId]
-  );
-
-  const billingModeRef = useRef("same");
-  const billingAddressIdRef = useRef("");
-
-  const selectedBillingAddress = useMemo(() => {
-    if (billingAddressMode === "same") return selectedAddress;
-    return (
-      addresses.find((address) => address.id === selectedBillingAddressId) ||
-      billingAddressSnapshot ||
-      null
-    );
-  }, [addresses, billingAddressMode, selectedAddress, selectedBillingAddressId, billingAddressSnapshot]);
 
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
@@ -478,63 +380,21 @@ export default function PaymentPage() {
   }, [partialCodDetails.isEligible, selectedPaymentGateway]);
 
   useEffect(() => {
-    if (customer) {
-      setAddressForm(normalizeAddressForm({}, customer));
-    }
-  }, [customer]);
-
-  const updateAddressForm = (field, value) => {
-    setAddressForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleCreateNewAddress = async () => {
-    if (!addressForm.firstName.trim() || !addressForm.address1.trim() || !addressForm.city.trim() || !addressForm.zip.trim()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    setAddressSaving(true);
-    try {
-      const payload = await createCustomerAddress({
-        address: addressForm,
-        makeDefault,
-      }, accessToken);
-
-      applyAddressPayload(payload);
-
-      const newAddress = payload.addresses.find(a =>
-        a.address1 === addressForm.address1 && a.zip === addressForm.zip
-      ) || payload.addresses[payload.addresses.length - 1];
-
-      if (newAddress) {
-        handleSelectBillingAddress(newAddress.id);
-      }
-
-      setAddAddressDialogOpen(false);
-      setAddressForm(normalizeAddressForm({}, customer));
-      toast.success("Address added successfully");
-    } catch (error) {
-      toast.error(error.message || "Unable to add address");
-    } finally {
-      setAddressSaving(false);
-    }
-  };
-
-  const openAddNewAddress = () => {
-    setBillingDialogOpen(false);
-    setAddAddressDialogOpen(true);
-  };
-
-  useEffect(() => {
     if (nectorPoints) {
       const hasDiamondJewellery = items.some(item => {
-        const type = (item.type || item.productType || item.product_type || "").toLowerCase();
+        const type = (item.type || item.category || item.productType || item.product_type || "").toLowerCase();
         const title = (item.title || "").toLowerCase();
+        const tags = (item.tags || []).map(t => t.toLowerCase());
         const hasDiamondCharges = !!item.diamondCharges || (item.customAttributes?.some(attr => attr.key === "_Diamond Charges" && attr.value));
+
+        const isPlainGold = tags.some(t => t.includes("plain gold") || t === "plaingold");
+
+        if (isPlainGold) return false;
 
         return type.includes("diamond") || title.includes("diamond") ||
           type.includes("solitaire") || title.includes("solitaire") ||
           type.includes("gemstone") || title.includes("gemstone") ||
+          tags.some(t => t.includes("diamond") || t.includes("solitaire")) ||
           hasDiamondCharges;
       });
 
@@ -555,144 +415,6 @@ export default function PaymentPage() {
       }
     }
   }, []);
-
-  useEffect(() => {
-    billingModeRef.current = billingAddressMode;
-  }, [billingAddressMode]);
-
-  useEffect(() => {
-    billingAddressIdRef.current = selectedBillingAddressId;
-  }, [selectedBillingAddressId]);
-
-  const applyAddressPayload = useCallback(
-    (payload, selection = null) => {
-      setAddresses(payload.addresses || []);
-      setCustomer(payload.customer || null);
-
-      const nextSelectedId = payload.defaultAddressId || payload.addresses?.[0]?.id || "";
-      const requestedBillingMode = selection?.billingAddressMode || billingModeRef.current;
-      const requestedBillingAddressId = selection?.billingAddressId || billingAddressIdRef.current;
-      const hasRequestedBillingAddress =
-        requestedBillingMode === "different" &&
-        (payload.addresses || []).some((address) => address.id === requestedBillingAddressId);
-      const resolvedBillingMode = hasRequestedBillingAddress ? "different" : "same";
-      const resolvedBillingAddressId = hasRequestedBillingAddress
-        ? requestedBillingAddressId
-        : nextSelectedId;
-      const currentAddress = (payload.addresses || []).find((address) => address.id === nextSelectedId) || null;
-      const currentBillingAddress = (payload.addresses || []).find((address) => address.id === resolvedBillingAddressId) || null;
-
-      billingModeRef.current = resolvedBillingMode;
-      billingAddressIdRef.current = resolvedBillingAddressId;
-      setSelectedAddressId(nextSelectedId);
-      setBillingAddressMode(resolvedBillingMode);
-      setSelectedBillingAddressId(resolvedBillingAddressId);
-      setBillingAddressSnapshot(currentBillingAddress || null);
-    },
-    []
-  );
-
-  const loadAddresses = useCallback(async () => {
-    try {
-      const storedSelection = readStoredBillingSelection();
-      const [payload, selection] = await Promise.all([
-        fetchCustomerAddresses(accessToken),
-        fetchCheckoutAddressSelection(accessToken),
-      ]);
-      const effectiveSelection =
-        selection?.billingAddressMode === "different" && selection?.billingAddressId
-          ? selection
-          : storedSelection;
-      applyAddressPayload(payload, effectiveSelection);
-    } catch (error) {
-      toast.error(error.message || "Unable to load addresses");
-    }
-  }, [applyAddressPayload, accessToken]);
-
-  useEffect(() => {
-    Promise.resolve().then(loadAddresses);
-  }, [loadAddresses]);
-
-  const handleSelectAddress = async (addressId) => {
-    try {
-      applyAddressPayload(await selectDefaultCustomerAddress(addressId, accessToken));
-      setAddressDialogOpen(false);
-      if (billingAddressMode === "same") {
-        setSelectedBillingAddressId(addressId);
-      }
-    } catch (error) {
-      toast.error(error.message || "Unable to select address");
-    }
-  };
-
-  const handleDeleteAddress = async (addressId) => {
-    try {
-      const payload = await deleteCustomerAddress(addressId, accessToken);
-      applyAddressPayload(payload);
-      if (selectedBillingAddressId === addressId) {
-        setSelectedBillingAddressId(payload.defaultAddressId || payload.addresses?.[0]?.id || "");
-        setBillingAddressMode("same");
-        setBillingAddressSnapshot(payload.addresses?.[0] || null);
-        billingModeRef.current = "same";
-        billingAddressIdRef.current = payload.defaultAddressId || payload.addresses?.[0]?.id || "";
-        persistBillingSelection({ billingAddressMode: "same" });
-        await saveCheckoutAddressSelection({ billingAddressMode: "same" }, accessToken);
-      }
-      toast.error("Address removed", {
-        icon: <Check className="w-4 h-4" />
-      });
-    } catch (error) {
-      toast.error(error.message || "Unable to remove address");
-    }
-  };
-
-  const handleSelectBillingAddress = async (addressId) => {
-    const nextBillingAddress = addresses.find((address) => address.id === addressId) || null;
-    billingModeRef.current = "different";
-    billingAddressIdRef.current = addressId;
-    setBillingAddressMode("different");
-    setSelectedBillingAddressId(addressId);
-    setBillingAddressSnapshot(nextBillingAddress);
-    setBillingDialogOpen(false);
-    persistBillingSelection({
-      billingAddressMode: "different",
-      billingAddressId: addressId,
-    });
-
-    try {
-      await saveCheckoutAddressSelection({
-        billingAddressMode: "different",
-        billingAddressId: addressId,
-      }, accessToken);
-    } catch (error) {
-      toast.error(error.message || "Unable to save billing address");
-    }
-  };
-
-  const handleBillingModeChange = async (value) => {
-    setBillingAddressMode(value);
-
-    if (value === "same") {
-      billingModeRef.current = "same";
-      billingAddressIdRef.current = selectedAddressId;
-      setSelectedBillingAddressId(selectedAddressId);
-      setBillingAddressSnapshot(selectedAddress);
-      persistBillingSelection({ billingAddressMode: "same" });
-      try {
-        await saveCheckoutAddressSelection({ billingAddressMode: "same" }, accessToken);
-      } catch (error) {
-        toast.error(error.message || "Unable to save billing preference");
-      }
-      return;
-    }
-
-    if (!selectedBillingAddressId) {
-      billingAddressIdRef.current = selectedAddressId;
-      setSelectedBillingAddressId(selectedAddressId);
-      setBillingAddressSnapshot(selectedAddress);
-    }
-    setBillingDialogOpen(true);
-  };
 
   const handlePayNow = async () => {
     if (selectedPaymentGateway === "partial_cod" && !partialCodDetails.isEligible) {
@@ -790,7 +512,6 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-            else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Pendant";
           }
 
           return {
@@ -826,7 +547,6 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
             else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-            else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Pendant";
           }
 
           return {
@@ -970,7 +690,6 @@ export default function PaymentPage() {
                   else if (lowerTitle.includes("bracelet")) category = "Bracelets";
                   else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
                   else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-                  else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Pendant";
                 }
 
                 return {
@@ -1128,7 +847,6 @@ export default function PaymentPage() {
               else if (lowerTitle.includes("bracelet")) category = "Bracelets";
               else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
               else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
-              else if (item.variantId === SILVER_PENDANT_VARIANT_ID) category = "Silver Pendant";
             }
 
             return {
@@ -1157,400 +875,234 @@ export default function PaymentPage() {
     }
   };
 
-  const AddressListContent = ({ type }) => (
-    <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1 custom-scrollbar">
-      {addresses.map((address) => {
-        const isSelected = type === "shipping" ? selectedAddressId === address.id : selectedBillingAddress?.id === address.id;
-        return (
-          <div
-            key={`${type}-${address.id}`}
-            onClick={() => type === "shipping" ? handleSelectAddress(address.id) : handleSelectBillingAddress(address.id)}
-            role="button"
-            tabIndex={0}
-            className={`rounded-xl border p-4 text-left transition-all ${isSelected ? "border-accent bg-accent/10" : "border-zinc-200 bg-white"
-              }`}
-          >
-            <div className="flex items-start gap-3">
-              <input
-                type="radio"
-                name={`${type}-addresses`}
-                checked={isSelected}
-                onChange={() => { }}
-                className="mt-1 size-4 accent-black"
-              />
-              <div className="flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-zinc-900">
-                      {[address.firstName, address.lastName].filter(Boolean).join(" ") || "Saved address"}
-                    </h3>
-                    {address.isDefault && (
-                      <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                        Default
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      await handleDeleteAddress(address.id);
-                    }}
-                    className="rounded-full bg-white shadow border border-zinc-200 p-2 text-zinc-600 transition hover:border-red-200 hover:text-red-600"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+  const shipToChangeHref = `/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`;
+
+  // Track if cart has been fetched at least once
+  const cartFetched = useRef(false);
+  useEffect(() => {
+    if (!loading) {
+      cartFetched.current = true;
+    }
+  }, [loading]);
+
+  const isInitialLoading = loading && !cartFetched.current;
+
+  if (isInitialLoading) {
+    return (
+      <div className="bg-white min-h-screen overflow-x-clip">
+        <div className="container-main relative z-10 !px-0 lg:!px-17 lg:!max-w-[2100px] lg:!w-[94%]">
+          <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
+            <div className="grow lg:basis-[60%] lg:shrink-0 p-0 lg:py-10 lg:px-4 lg:pl-[30px] lg:pr-[20px] space-y-10 bg-white min-w-0">
+              <div className="space-y-10 animate-pulse mt-4 px-4 lg:px-0">
+                <div className="space-y-4">
+                  {/* Address box skeleton */}
+                  <div className="h-20 w-full lg:max-w-md bg-zinc-50 rounded-lg border border-zinc-100" />
                 </div>
-                <div className="mt-2 space-y-1 text-sm text-zinc-600">
-                  {formatAddressLines(address).map((line) => (
-                    <p key={`line-${address.id}-${line}`}>{line}</p>
+                <div className="space-y-4">
+                  <div className="h-6 w-40 bg-zinc-200 rounded-md" />
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-14 w-full lg:max-w-md bg-zinc-50 rounded-md border border-zinc-100" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="w-full lg:basis-[40%] lg:shrink-0 lg:py-10 lg:pl-12 lg:bg-transparent bg-[#FAFAFA]">
+              <div className="space-y-8 animate-pulse lg:pt-4 p-4 lg:p-0">
+                <div className="space-y-6">
+                  <div className="h-6 w-32 bg-zinc-200 rounded-md lg:hidden" />
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex gap-4">
+                      <div className="size-20 bg-zinc-100 rounded-md shrink-0" />
+                      <div className="flex-1 space-y-3 py-1">
+                        <div className="h-4 w-full bg-zinc-100 rounded" />
+                        <div className="h-3 w-2/3 bg-zinc-50 rounded" />
+                        <div className="h-4 w-1/3 bg-zinc-100 rounded mt-2" />
+                      </div>
+                    </div>
                   ))}
-                  {address.gstin && <p className="font-medium text-zinc-800">GSTIN: {address.gstin}</p>}
+                  <div className="space-y-4 pt-6 border-t border-zinc-100">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex justify-between items-center">
+                        <div className="h-4 w-24 bg-zinc-100 rounded" />
+                        <div className="h-4 w-16 bg-zinc-100 rounded" />
+                      </div>
+                    ))}
+                    <div className="border-t border-zinc-100 pt-4 flex justify-between items-center">
+                      <div className="h-5 w-32 bg-zinc-200 rounded" />
+                      <div className="h-6 w-24 bg-zinc-200 rounded" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        );
-      })}
-      {type === "billing" && (
-        <Button
-          variant="outline"
-          onClick={openAddNewAddress}
-          className="w-full h-12 border-dashed border-2 border-zinc-200 text-zinc-500 hover:text-primary hover:border-primary transition-all flex items-center justify-center gap-2 font-bold"
-        >
-          <Plus size={18} />
-          Add new address
-        </Button>
-      )}
-    </div>
-  );
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white min-h-screen overflow-x-hidden">
-      <div className="max-w-7xl w-full mx-auto relative z-10 px-4">
+    <div className="bg-white min-h-screen overflow-x-clip">
+      <div className="container-main relative z-10 !px-0 lg:!px-17 lg:!max-w-[2100px] lg:!w-[94%]">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
 
           {/* Main Content Area (60%) */}
-          <div className="grow lg:basis-[60%] lg:shrink-0 py-10 px-0 lg:pr-12 space-y-10 bg-white">
+          <div className="grow lg:basis-[60%] lg:shrink-0 p-0 lg:py-10 lg:px-4 lg:pl-[30px] lg:pr-[20px] space-y-10 bg-white min-w-0">
 
             {/* MOBILE ONLY ORDER */}
             {!isDesktop && (
-              <div className="space-y-10 px-4">
-                {/* 1. Lucira Coins Balance */}
-                <CheckoutSummary 
-                  showItems={false} 
-                  showBreakdown={false} 
-                  showContact={false} 
-                  isSilverPendantClaimed={isSilverPendantClaimed}
-                  onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
-                />
-
-                {/* 2. Payment options */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-abhaya font-bold text-zinc-900">Payment</h2>
-                    <p className="text-sm font-figtree text-zinc-500">All transactions are secure and encrypted.</p>
+              <div className="space-y-6 px-0 lg:px-4">
+                <div className="border-0 lg:border lg:border-[#EBE1D7] lg:rounded-[8px] overflow-hidden mb-3 lg:mb-0">
+                  <div className="flex items-center gap-4 py-4 px-4 bg-white">
+                    <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </div>
+                    <div className="flex-1 min-w-0 pt-1">
+                      <p className="font-figtree font-medium text-[14px] leading-none tracking-normal align-middle mb-[9px] text-black truncate">
+                        Delivering to {customer?.name || user?.name || "Customer"}
+                      </p>
+                      <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
+                        {isPickup ? [checkoutSelection?.selectedStore?.address, checkoutSelection?.selectedStore?.city, checkoutSelection?.selectedStore?.state, checkoutSelection?.selectedStore?.zip].filter(Boolean).join(", ") : formatAddressPreview(selectedAddress)}
+                      </p>
+                    </div>
+                    <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
+                      Change
+                    </Link>
                   </div>
-                  <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway} className="grid gap-0 border border-zinc-200 rounded-lg overflow-hidden bg-white">
-                    {paymentGateways.map((gateway, index) => (
-                      <div key={gateway.id} className={`flex flex-col ${index < paymentGateways.length - 1 ? "border-b border-zinc-100" : ""}`}>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedPaymentGateway(gateway.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setSelectedPaymentGateway(gateway.id);
-                            }
-                          }}
-                          className={`p-5 flex ${gateway.id === "partial_cod" ? "flex-row gap-3" : "flex-col md:flex-row gap-4 md:gap-0"} items-center justify-between transition-all cursor-pointer ${selectedPaymentGateway === gateway.id ? "bg-accent/15" : "bg-white"}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <RadioGroupItem value={gateway.id} id={`m-${gateway.id}`} className="text-[#005BD3] border-zinc-300" />
-                            <Label htmlFor={`m-${gateway.id}`} className="font-medium text-zinc-900 cursor-pointer">{gateway.name}</Label>
-                          </div>
-                          <div className={`flex items-center gap-3 ${gateway.id === "partial_cod" ? "shrink-0" : ""}`}>
-                            <span className="text-sm font-bold text-zinc-900">₹{Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                            {gateway.id === "razorpay" ? (
-                              <div className="flex items-center gap-2">
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" className="h-3 w-auto opacity-70" alt="UPI" width={36} height={12} unoptimized />
-                                </div>
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" className="h-2 w-auto opacity-70" alt="VISA" width={36} height={8} unoptimized />
-                                </div>
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" className="h-3 w-auto opacity-70" alt="MASTERCARD" width={36} height={12} unoptimized />
-                                </div>
-                                <span className="text-[10px] text-zinc-400 font-bold">+18</span>
-                              </div>
-                            ) : (
-                              <span className="text-xs font-medium text-zinc-500">
-                                COD ₹{partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
 
-                {/* 3. Order Summary */}
-                <div ref={summaryRef}>
-                  <CheckoutSummary
-                    showPoints={false}
-                    showContact={false}
-                    isSilverPendantClaimed={isSilverPendantClaimed}
-                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
-                    showSilverPendantOffer={false}
-                    breakdownRef={summaryBreakdownRef}
+                  <PriceProtectionTimer
+                    secondsLeft={priceProtectionSeconds}
+                    onInfoClick={() => setShowPriceProtection(true)}
+                    className="rounded-none lg:rounded-b-[8px] mb-0 lg:mb-2"
                   />
                 </div>
 
-                {/* 4. Contact, Ship to, Bill to section */}
-                <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
-                  <div className="p-4 grid grid-cols-[100px_1fr] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">Contact</span>
-                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || ""}</span>
-                  </div>
-                  <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Pickup" : "Ship to"}</span>
-                    <div className="text-zinc-900 font-medium">
-                      {isPickup ? (
-                        <div className="space-y-1">
-                          <p className="font-bold">{checkoutSelection?.selectedStore?.code || checkoutSelection?.selectedStore?.name}</p>
-                          <p className="line-clamp-2 text-zinc-600 font-normal">{checkoutSelection?.selectedStore?.address}</p>
+                <div className="space-y-4 pt-2 px-4 lg:pb-4">
+                  <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.9375rem] mb-4 lg:hidden">PAYMENT OPTIONS</h2>
+                  <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
+                      {paymentGateways.map((gateway) => (
+                        <div key={gateway.id} className="relative">
+                          <Label
+                            htmlFor={`m-opt-${gateway.id}`}
+                            className={`block p-4 rounded-[6px] border transition-colors cursor-pointer ${selectedPaymentGateway === gateway.id ? "border-[#5A413F] bg-[#FAF0E6]/40" : "border-[#EBE1D7]"}`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h4 className="font-figtree font-medium text-black text-[0.9rem] mb-[8px]">
+                                  {gateway.id === "razorpay" ? `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                </h4>
+                                <p className="font-figtree text-[0.8rem] text-black/70 mt-1">
+                                  {gateway.id === "razorpay" ? "Complete your Purchase with Ease" : `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
+                                </p>
+                              </div>
+                              <div className="relative flex items-center justify-center shrink-0">
+                                <RadioGroupItem value={gateway.id} id={`m-opt-${gateway.id}`} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M10.0003 18.3337C14.6027 18.3337 18.3337 14.6027 18.3337 10.0003C18.3337 5.39795 14.6027 1.66699 10.0003 1.66699C5.39795 1.66699 1.66699 5.39795 1.66699 10.0003C1.66699 14.6027 5.39795 18.3337 10.0003 18.3337Z" stroke={selectedPaymentGateway === gateway.id ? "#5A413F" : "#A1A1AA"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  {selectedPaymentGateway === gateway.id && <circle cx="10" cy="10" r="5" fill="#5A413F"/>}
+                                </svg>
+                              </div>
+                            </div>
+                          </Label>
                         </div>
-                      ) : selectedAddress ? (
-                        <div className="space-y-1">
-                          <p className="line-clamp-2">{formatAddressPreview(selectedAddress)}</p>
-                          {selectedAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedAddress.gstin}</p>}
-                        </div>
-                      ) : (
-                        <p>No shipping address selected</p>
-                      )}
-                    </div>
-                    <Link prefetch={false} href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
-                  </div>
-                  {!isPickup && (
-                    <div className="p-4 grid grid-cols-[100px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                      <span className="text-zinc-500 whitespace-nowrap">Bill to</span>
-                      <div className="text-zinc-900 font-medium">
-                        {selectedBillingAddress ? (
-                          <div className="space-y-1">
-                            <p className="line-clamp-2">{formatAddressPreview(selectedBillingAddress)}</p>
-                            {selectedBillingAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedBillingAddress.gstin}</p>}
-                          </div>
-                        ) : (
-                          <p>No billing address selected</p>
-                        )}
-                      </div>
-                      <button type="button" onClick={() => setBillingDialogOpen(true)} className="text-black font-semibold text-right underline">Change</button>
-                    </div>
-                  )}
-                  <div className="p-4 grid grid-cols-[100px_1fr] items-center gap-4 text-sm">
-                    <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Method" : "Shipping"}</span>
-                    <span className="text-zinc-900 font-medium">
-                      {isPickup ? "Pickup" : "Shipping Rate"} · <span className="font-bold">{isPickup || isIndiaShipping ? "FREE" : "Calculated at next step"}</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* 5. Billing address selection */}
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-bold text-zinc-900 font-abhaya">Billing address</h2>
-                    <p className="text-sm font-figtree text-zinc-500">Select the address that matches your card.</p>
-                  </div>
-                  {isPickup ? (
-                    <div className="border border-zinc-100 rounded-xl overflow-hidden bg-white">
-                      <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          {selectedBillingAddress ? (
-                            <>
-                              <h4 className="font-bold text-zinc-900">{[selectedBillingAddress.firstName, selectedBillingAddress.lastName].filter(Boolean).join(" ")}</h4>
-                              <p className="text-sm text-zinc-500">{formatAddressPreview(selectedBillingAddress)}</p>
-                            </>
-                          ) : (
-                            <p className="text-sm text-zinc-500 italic">No billing address selected</p>
-                          )}
-                        </div>
-                        <Button variant="outline" onClick={() => setBillingDialogOpen(true)} className="border-zinc-200 text-zinc-800 font-bold">Select billing address</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <RadioGroup value={billingAddressMode} onValueChange={handleBillingModeChange} className="grid gap-0 border border-zinc-100 rounded-lg overflow-hidden bg-white">
-                      <div className={`p-5 flex items-center gap-3 border-b border-zinc-100 ${billingAddressMode === "same" ? "bg-accent/15" : ""}`}>
-                        <RadioGroupItem value="same" id="m-same" className="text-black border-zinc-300" />
-                        <Label htmlFor="m-same" className="font-medium text-zinc-900 cursor-pointer">Same as shipping address</Label>
-                      </div>
-                      <div className={`p-5 flex items-center gap-3 transition-all hover:bg-zinc-50/50 cursor-pointer ${billingAddressMode === "different" ? "bg-accent/15" : ""}`}>
-                        <RadioGroupItem value="different" id="m-different" className="text-black border-zinc-300" />
-                        <Label htmlFor="m-different" className="font-medium text-zinc-900 cursor-pointer">Use a different billing address</Label>
-                      </div>
+                      ))}
                     </RadioGroup>
-                  )}
+                  </div>
+
+                <div className="px-4 lg:px-0">
+                  <CheckoutSummary
+                    showItems={false}
+                    showBreakdown={false}
+                    showContact={false}
+                    mobilePaymentCoinsTheme={true}
+                    onApplyCoinsWarning={(proceed) => {
+                      setCoinsProceedAction(() => proceed);
+                      setShowCoinsNudge(true);
+                    }}
+                  />
                 </div>
 
-                {/* 6. CONTACT US FOR ASSISTANCE */}
-                <CheckoutSummary showItems={false} showBreakdown={false} showPoints={false} showSilverPendantOffer={false} />
+                <div ref={summaryRef} className="scroll-mt-16 bg-white px-4 lg:px-0 pb-[150px]">
+                  <CheckoutSummary
+                    items={checkoutItems}
+                    cartTotal={totalAmount}
+                    showControls={false}
+                    showPoints={false}
+                    showItems={false}
+                    breakdownRef={summaryBreakdownRef}
+                    compactBreakdown={true}
+                  />
+                </div>
               </div>
             )}
 
             {/* DESKTOP ONLY ORDER */}
             {isDesktop && (
-              <div className="space-y-10">
-                <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
-                  <div className="p-4 grid grid-cols-[140px_1fr] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">Contact</span>
-                    <span className="text-zinc-900 font-medium truncate">{customer?.email || checkoutSelection?.customerEmail || ""}</span>
-                  </div>
-                  <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                    <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Pickup location" : "Ship to"}</span>
-                    <div className="text-zinc-900 font-medium">
-                      {isPickup ? (
-                        <div className="space-y-1">
-                          <p className="font-bold">{checkoutSelection?.selectedStore?.code || checkoutSelection?.selectedStore?.name}</p>
-                          <p className="line-clamp-2 text-zinc-600 font-normal">{checkoutSelection?.selectedStore?.address}</p>
-                        </div>
-                      ) : selectedAddress ? (
-                        <div className="space-y-1">
-                          <p className="line-clamp-2">{formatAddressPreview(selectedAddress)}</p>
-                          {selectedAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedAddress.gstin}</p>}
-                        </div>
-                      ) : (
-                        <p>No shipping address selected</p>
-                      )}
+              <div className="space-y-6">
+                <div className="border border-[#EBE1D7] rounded-[8px] overflow-hidden">
+                  <div className="flex items-center gap-4 py-4 px-4 bg-white">
+                    <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
                     </div>
-                    <Link prefetch={false} href={`/checkout/shipping?method=${isPickup ? "pickup" : "ship"}`} className="text-black font-semibold text-right underline">Change</Link>
-                  </div>
-                  {!isPickup && (
-                    <div className="p-4 grid grid-cols-[140px_1fr_60px] items-center gap-4 text-sm border-b border-zinc-100">
-                      <span className="text-zinc-500 whitespace-nowrap">Bill to</span>
-                      <div className="text-zinc-900 font-medium">
-                        {selectedBillingAddress ? (
-                          <div className="space-y-1">
-                            <p className="line-clamp-2">{formatAddressPreview(selectedBillingAddress)}</p>
-                            {selectedBillingAddress.gstin && <p className="text-sm font-semibold">GSTIN: {selectedBillingAddress.gstin}</p>}
-                          </div>
-                        ) : (
-                          <p>No billing address selected</p>
-                        )}
-                      </div>
-                      <button type="button" onClick={() => setBillingDialogOpen(true)} className="text-black font-semibold text-right underline">Change</button>
+                    <div className="flex-1 min-w-0 pt-1">
+                      <p className="font-figtree font-medium text-[14px] leading-none tracking-normal align-middle mb-[9px] text-black truncate">
+                        Delivering to {customer?.name || user?.name || "Customer"}
+                      </p>
+                      <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
+                        {isPickup ? [checkoutSelection?.selectedStore?.address, checkoutSelection?.selectedStore?.city, checkoutSelection?.selectedStore?.state, checkoutSelection?.selectedStore?.zip].filter(Boolean).join(", ") : formatAddressPreview(selectedAddress)}
+                      </p>
                     </div>
-                  )}
-                  <div className="p-4 grid grid-cols-[140px_1fr] items-center gap-4 text-sm">
-                    <span className="text-zinc-500 whitespace-nowrap">{isPickup ? "Method" : "Shipping method"}</span>
-                    <span className="text-zinc-900 font-medium">
-                      {isPickup ? "Pickup" : "Shipping Rate"} · <span className="font-bold">{isPickup || isIndiaShipping ? "FREE" : "Calculated at next step"}</span>
-                    </span>
+                    <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
+                      Change
+                    </Link>
                   </div>
+
+                  <PriceProtectionTimer
+                    secondsLeft={priceProtectionSeconds}
+                    onInfoClick={() => setShowPriceProtection(true)}
+                    className="rounded-b-[8px] m-0"
+                  />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-bold text-zinc-900 font-abhaya">Billing address</h2>
-                    <p className="text-sm font-figtree text-zinc-500">Select the address that matches your card or payment method.</p>
-                  </div>
-                  {isPickup ? (
-                    <div className="border border-zinc-100 rounded-xl overflow-hidden bg-white">
-                      <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          {selectedBillingAddress ? (
-                            <>
-                              <h4 className="font-bold text-zinc-900">{[selectedBillingAddress.firstName, selectedBillingAddress.lastName].filter(Boolean).join(" ")}</h4>
-                              <p className="text-sm text-zinc-500">{formatAddressPreview(selectedBillingAddress)}</p>
-                            </>
-                          ) : (
-                            <p className="text-sm text-zinc-500 italic">No billing address selected</p>
-                          )}
-                        </div>
-                        <Button variant="outline" onClick={() => setBillingDialogOpen(true)} className="border-zinc-200 text-zinc-800 font-bold">Select billing address</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <RadioGroup value={billingAddressMode} onValueChange={handleBillingModeChange} className="grid gap-0 border border-zinc-100 rounded-lg overflow-hidden bg-white">
-                      <div className={`p-5 flex items-center gap-3 border-b border-zinc-100 ${billingAddressMode === "same" ? "bg-accent/15" : ""}`}>
-                        <RadioGroupItem value="same" id="same" className="text-black border-zinc-300" />
-                        <Label htmlFor="same" className="font-medium text-zinc-900 cursor-pointer">Same as shipping address</Label>
-                      </div>
-                      <div className={`p-5 flex items-center gap-3 transition-all hover:bg-zinc-50/50 cursor-pointer ${billingAddressMode === "different" ? "bg-accent/15" : ""}`}>
-                        <RadioGroupItem value="different" id="different" className="text-black border-zinc-300" />
-                        <Label htmlFor="different" className="font-medium text-zinc-900 cursor-pointer">Use a different billing address</Label>
-                      </div>
-                    </RadioGroup>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-abhaya font-bold text-zinc-900">Payment</h2>
-                    <p className="text-sm font-figtree text-zinc-500">All transactions are secure and encrypted.</p>
-                  </div>
-                  <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway} className="grid gap-0 border border-zinc-200 rounded-lg overflow-hidden bg-white">
-                    {paymentGateways.map((gateway, index) => (
-                      <div key={gateway.id} className={`flex flex-col ${index < paymentGateways.length - 1 ? "border-b border-zinc-100" : ""}`}>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSelectedPaymentGateway(gateway.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setSelectedPaymentGateway(gateway.id);
-                            }
-                          }}
-                          className={`p-5 flex ${gateway.id === "partial_cod" ? "flex-row gap-3" : "flex-col md:flex-row gap-4 md:gap-0"} items-center justify-between transition-all cursor-pointer ${selectedPaymentGateway === gateway.id ? "bg-accent/15" : "bg-white"}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <RadioGroupItem value={gateway.id} id={gateway.id} className="text-[#005BD3] border-zinc-300" />
-                            <Label htmlFor={gateway.id} className="font-medium text-zinc-900 cursor-pointer">{gateway.name}</Label>
-                          </div>
-                          <div className={`flex items-center gap-3 ${gateway.id === "partial_cod" ? "shrink-0" : ""}`}>
-                            <span className="text-sm font-bold text-zinc-900">₹{Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                            {gateway.id === "razorpay" ? (
-                              <div className="flex items-center gap-2">
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/upi.svg" className="h-3 w-auto opacity-70" alt="UPI" width={36} height={12} unoptimized />
-                                </div>
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/visa.svg" className="h-2 w-auto opacity-70" alt="VISA" width={36} height={8} unoptimized />
-                                </div>
-                                <div className="flex gap-1 items-center bg-white px-2 py-1 rounded border border-zinc-100">
-                                  <Image src="/images/icons/mastercard.svg" className="h-3 w-auto opacity-70" alt="MASTERCARD" width={36} height={12} unoptimized />
-                                </div>
-                                <span className="text-[10px] text-zinc-400 font-bold">+18</span>
+                <div className="space-y-4 pt-2">
+                  <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[1.1rem]">PAYMENT OPTIONS</h2>
+                  <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
+                      {paymentGateways.map((gateway) => (
+                        <div key={gateway.id} className="relative m-0">
+                          <Label
+                            htmlFor={`d-opt-${gateway.id}`}
+                            className={`block p-4 rounded-[6px] border transition-colors cursor-pointer ${selectedPaymentGateway === gateway.id ? "border-[#5A413F] bg-[#FAF0E6]/40" : "border-[#EBE1D7]"}`}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h4 className="font-figtree font-medium text-black text-[1rem] mb-[8px]">
+                                  {gateway.id === "razorpay" ? `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                </h4>
+                                <p className="font-figtree text-[12px] text-black/70 mt-[8px] mb-0">
+                                  {gateway.id === "razorpay" ? "Complete your Purchase with Ease" : `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
+                                </p>
                               </div>
-                            ) : (
-                              <span className="text-xs font-medium text-zinc-500">
-                                COD ₹{partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                              </span>
-                            )}
-                          </div>
+                              <div className="relative flex items-center justify-center shrink-0">
+                                <RadioGroupItem value={gateway.id} id={`d-opt-${gateway.id}`} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M10.0003 18.3337C14.6027 18.3337 18.3337 14.6027 18.3337 10.0003C18.3337 5.39795 14.6027 1.66699 10.0003 1.66699C5.39795 1.66699 1.66699 5.39795 1.66699 10.0003C1.66699 14.6027 5.39795 18.3337 10.0003 18.3337Z" stroke={selectedPaymentGateway === gateway.id ? "#5A413F" : "#A1A1AA"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  {selectedPaymentGateway === gateway.id && <circle cx="10" cy="10" r="5" fill="#5A413F"/>}
+                                </svg>
+                              </div>
+                            </div>
+                          </Label>
                         </div>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
 
                 <div className="flex items-center justify-between gap-6 pt-4">
-                  <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-2 text-sm font-bold text-accent hover:underline">
-                    <ChevronLeft size={16} />
+                  <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
+                    <ChevronLeft className="size-4" />
                     Return to shipping
                   </Link>
-                  <Button
-                    type="button"
-                    onClick={handlePayNow}
-                    disabled={paymentLoading || !totalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-                    className="px-14 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {paymentLoading
-                      ? "Processing..."
-                      : `Pay now ₹${selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-                  </Button>
                 </div>
               </div>
             )}
@@ -1559,13 +1111,31 @@ export default function PaymentPage() {
           {/* Desktop Summary Sidebar (40%) */}
           {isDesktop && (
             <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
-              <div className="hidden lg:block absolute inset-y-0 left-0 w-screen bg-[#FAFAFA] border-l border-zinc-100 z-0" />
-              <div className="relative z-10 py-10 px-4 lg:pl-12 bg-[#FAFAFA] lg:bg-transparent min-h-full">
-                <div className="lg:sticky lg:top-0">
-                  <CheckoutSummary 
-                    isSilverPendantClaimed={isSilverPendantClaimed}
-                    onToggleSilverPendant={() => setIsSilverPendantClaimed(!isSilverPendantClaimed)}
-                  />
+              <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
+              <div className="relative z-10 py-10 px-4 lg:pl-12 lg:bg-transparent bg-[#FAFAFA] min-h-full scroll-mt-16" ref={summaryRef}>
+                <div className="lg:sticky lg:top-6 space-y-6">
+                  <CheckoutSummary
+                    showItems={false}
+                    mobilePaymentCoinsTheme={true}
+                    onApplyCoinsWarning={(proceed) => {
+                      setCoinsProceedAction(() => proceed);
+                      setShowCoinsNudge(true);
+                    }}
+                  >
+                    {/* Desktop Button - Moved here to match cart page */}
+                    <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
+                      <Button
+                        type="button"
+                        onClick={handlePayNow}
+                        disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
+                        className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {paymentLoading
+                          ? "Processing..."
+                          : `Pay now ₹${selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                      </Button>
+                    </div>
+                  </CheckoutSummary>
                 </div>
               </div>
             </div>
@@ -1574,97 +1144,43 @@ export default function PaymentPage() {
       </div>
 
       {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-lg font-bold text-zinc-900 leading-none">₹ {selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-            <button
-              onClick={scrollToSummary}
-              className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
-            >
-              View Order Summary
-            </button>
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#EBE1D7] px-4 pt-3.5 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center px-0.5">
+            <span className="text-[14px] font-medium text-black font-figtree flex items-center gap-2">
+              Pay Securely
+              <div className="flex items-center gap-2 ml-1">
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_upi.svg" className="h-[12px] w-auto" alt="UPI" width={36} height={12} unoptimized />
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_visa.svg" className="h-[10px] w-auto" alt="VISA" width={36} height={10} unoptimized />
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icon_mastercard.svg" className="h-[12px] w-auto" alt="MASTERCARD" width={36} height={12} unoptimized />
+                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Icons_rupay.svg" className="h-[12px] w-auto" alt="RuPay" width={36} height={12} unoptimized />
+                <span className="text-[12px] text-zinc-500 font-medium">+12</span>
+              </div>
+            </span>
           </div>
           <Button
             onClick={handlePayNow}
             disabled={paymentLoading || !finalAmount || !selectedBillingAddress || (!isPickup && !selectedAddress)}
-            className="grow flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-[45px] px-4 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer hover:bg-[#4A312F] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {paymentLoading ? "Processing..." : "Pay Now"}
+            {paymentLoading ? "PROCESSING..." : `PAY ₹${selectedPayableAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
           </Button>
         </div>
       </div>
 
-      {/* POPUPS */}
-      {isDesktop ? (
-        <>
-          <Dialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>All addresses</DialogTitle>
-                <DialogDescription>Select an address to use for shipping.</DialogDescription>
-              </DialogHeader>
-              <AddressListContent type="shipping" />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={billingDialogOpen} onOpenChange={setBillingDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Billing address</DialogTitle>
-                <DialogDescription>Select the billing address to use for this payment.</DialogDescription>
-              </DialogHeader>
-              <AddressListContent type="billing" />
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={addAddressDialogOpen} onOpenChange={setAddAddressDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add new address</DialogTitle>
-                <DialogDescription>Email and phone stay tied to your account.</DialogDescription>
-              </DialogHeader>
-              <AddressFields
-                form={addressForm}
-                onChange={updateAddressForm}
-                makeDefault={makeDefault}
-                onDefaultChange={setMakeDefault}
-                submitLabel="Save address"
-                onSubmit={handleCreateNewAddress}
-                saving={addressSaving}
-              >
-                <Button variant="link" onClick={() => { setAddAddressDialogOpen(false); setBillingDialogOpen(true); }} className="font-bold underline px-0">Choose existing</Button>
-              </AddressFields>
-            </DialogContent>
-          </Dialog>
-        </>
-      ) : (
-        <>
-          <MobileBottomSheet isOpen={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} title="All addresses">
-            <AddressListContent type="shipping" />
-          </MobileBottomSheet>
-
-          <MobileBottomSheet isOpen={billingDialogOpen} onClose={() => setBillingDialogOpen(false)} title="Billing address">
-            <AddressListContent type="billing" />
-          </MobileBottomSheet>
-
-          <MobileBottomSheet isOpen={addAddressDialogOpen} onClose={() => setAddAddressDialogOpen(false)} title="Add new address">
-            <AddressFields
-              form={addressForm}
-              onChange={updateAddressForm}
-              makeDefault={makeDefault}
-              onDefaultChange={setMakeDefault}
-              submitLabel="SAVE ADDRESS"
-              onSubmit={handleCreateNewAddress}
-              saving={addressSaving}
-              isMobile={true}
-            >
-              <Button variant="link" onClick={() => { setAddAddressDialogOpen(false); setBillingDialogOpen(true); }} className="font-bold underline px-0">Choose existing</Button>
-            </AddressFields>
-          </MobileBottomSheet>
-        </>
-      )}
+      <PriceProtectionDrawer
+        open={showPriceProtection}
+        onOpenChange={setShowPriceProtection}
+        secondsLeft={priceProtectionSeconds}
+      />
+      <CoinsNudgeDrawer
+        open={showCoinsNudge}
+        onOpenChange={setShowCoinsNudge}
+        onProceed={() => {
+          if (coinsProceedAction) coinsProceedAction();
+          setCoinsProceedAction(null);
+        }}
+      />
     </div>
   );
 }
-

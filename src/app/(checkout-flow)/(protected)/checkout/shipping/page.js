@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import {
   ChevronLeft,
@@ -11,9 +11,6 @@ import {
   Loader2,
   MapPin,
   Navigation,
-  Pencil,
-  Plus,
-  Trash2,
   Truck,
   Store,
   CheckCircle2,
@@ -22,225 +19,68 @@ import {
   Search,
   X,
   Check,
+  Plus,
 } from "lucide-react";
 import CheckoutSummary from "@/components/cart/CheckoutSummary";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  apiFetch,
-  createCustomerAddress,
-  deleteCustomerAddress,
-  fetchCustomerAddresses,
-  selectDefaultCustomerAddress,
-  updateCustomerAddress,
-} from "@/lib/api";
-import { shopifyStorefrontFetch, CUSTOMER_UPDATE_MUTATION } from "@/lib/shopify-client";
-import { selectUser, updateUser } from "@/redux/features/user/userSlice";
+import { apiFetch } from "@/lib/api";
 import { useCart } from "@/hooks/useCart";
 import { pushAddShippingInfo, pushBeginCheckout } from "@/lib/gtm";
 import { trackShippingStep } from "@/lib/searchAnalytics";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
+import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { AddressForm } from "@/components/checkout/shipping/AddressForm";
+import { AddressListInline } from "@/components/checkout/shipping/AddressListInline";
+import { AddressSummaryCard } from "@/components/checkout/shipping/AddressSummaryCard";
+import { BillingAddressSection } from "@/components/checkout/shipping/BillingAddressSection";
+import { StorePickupSection } from "@/components/checkout/shipping/StorePickupSection";
+import { emptyAddressForm, normalizeAddressForm } from "@/lib/checkout/address-helpers";
+import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
+import { usePincodeLookup } from "@/hooks/checkout/usePincodeLookup";
+import { usePincodeDeliverability } from "@/hooks/checkout/usePincodeDeliverability";
+import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
+import { useStorePickup } from "@/hooks/checkout/useStorePickup";
+import { getEstimatedDispatchDate } from "@/lib/utils";
+import Image from "next/image";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
-const emptyAddressForm = {
-  firstName: "",
-  lastName: "",
-  company: "",
-  address1: "",
-  address2: "",
-  city: "",
-  province: "",
-  zip: "",
-  country: "India",
-  phone: "",
-  email: "",
-  gstin: "",
-};
-
-const STORES = [];
-
-const PINCODE_COORDS = {
-  "400071": { lat: 19.0522, lng: 72.8995 },
-  "400064": { lat: 19.186, lng: 72.848 },
-  "400092": { lat: 19.231, lng: 72.8521 },
-  "411005": { lat: 18.5196, lng: 73.8447 },
-  "400001": { lat: 18.9322, lng: 72.8344 }, 
-  "110001": { lat: 28.6353, lng: 77.225 }, 
-};
-
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; 
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function normalizeAddressForm(address = {}, customer = {}) {
-  return {
-    ...emptyAddressForm,
-    firstName: address.firstName || customer.firstName || customer.first_name || "",
-    lastName: address.lastName || customer.lastName || customer.last_name || "",
-    company: address.company || "",
-    address1: address.address1 || "",
-    address2: address.address2 || "",
-    city: address.city || "",
-    province: address.province || "",
-    zip: address.zip || "",
-    country: address.country || "India",
-    phone: address.phone || customer.phone || customer.mobile || "",
-    email: address.email || customer.email || "",
-    gstin: address.gstin || "",
-  };
-}
-
-function formatAddressPreview(address) {
-  const pieces = [
-    [address.firstName, address.lastName].filter(Boolean).join(" "),
-    address.company,
-    address.address1,
-    address.address2,
-    [address.city, address.province, address.zip].filter(Boolean).join(", "),
-    address.country,
-  ];
-
-  return pieces.filter(Boolean);
-}
-
-function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLabel, onSubmit, saving, isMobile = false, disablePhone = false, fetchPincodeDetails, hideEmail = false }) {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <Input placeholder="First name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="Last name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
-        
-        <Input placeholder="Company (optional)" value={form.company} onChange={(e) => onChange("company", e.target.value)} className="h-12 border-zinc-200" />
-        {form.country.trim().toLowerCase() === "india" ? (
-          <Input
-            placeholder="GSTIN (optional)"
-            value={form.gstin}
-            onChange={(e) => onChange("gstin", e.target.value.toUpperCase())}
-            maxLength={15}
-            className="h-12 border-zinc-200"
-          />
-        ) : (
-          <div className="hidden" />
-        )}
-        
-        <div className="col-span-2">
-          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
-        </div>
-        <div className="col-span-2">
-          <Input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className="h-12 border-zinc-200" />
-        </div>
-        
-        {/* <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" /> */}
-
-        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
-        
-        {/* <Input placeholder="PIN code" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" /> */}
-        <Input
-          placeholder="PIN code"
-          value={form.zip}
-          maxLength={6}
-          onChange={(e) => {
-            const value = e.target.value.replace(/\D/g, "");
-            onChange("zip", value);
-          }}
-          className="h-12 border-zinc-200"
-        />
-        <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
-        
-        <Input
-          placeholder="Phone (optional)"
-          value={form.phone}
-          onChange={(e) => onChange("phone", e.target.value)}
-          className="h-12 border-zinc-200"
-          disabled={disablePhone}
-        />
-        {!hideEmail && (
-          <Input
-            placeholder="Email address"
-            value={form.email}
-            onChange={(e) => onChange("email", e.target.value)}
-            className="h-12 border-zinc-200"
-          />
-        )}
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox id={`make-default-${isMobile ? 'mobile' : 'desktop'}`} checked={makeDefault} onCheckedChange={(checked) => onDefaultChange(Boolean(checked))} />
-        <label htmlFor={`make-default-${isMobile ? 'mobile' : 'desktop'}`} className="text-sm font-medium text-zinc-700 cursor-pointer">
-          Use this as my default shipping address
-        </label>
-      </div>
-
-      <Button type="button" onClick={onSubmit} disabled={saving} className={`w-full md:w-auto h-14 md:h-12 bg-primary hover:bg-primary/90 text-white font-bold ${isMobile ? 'rounded-full uppercase tracking-widest' : ''}`}>
-        {saving ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
-      </Button>
-    </div>
-  );
-}
-
 const ShippingSkeleton = () => (
-  <div className="space-y-10 animate-pulse">
+  <div className="space-y-10 animate-pulse mt-4">
     {/* Delivery Method Skeleton */}
-    <div className="space-y-4">
-      <div className="h-7 w-48 bg-zinc-200 rounded-md" />
-      <div className="h-12 w-full max-w-md bg-zinc-100 rounded-lg" />
+    <div className="space-y-6">
+      <div className="h-6 w-40 bg-zinc-200 rounded-md" />
+      <div className="h-12 w-full max-w-md bg-zinc-100 rounded-md" />
     </div>
 
     {/* Shipping Address Header Skeleton */}
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div className="space-y-2">
-          <div className="h-7 w-40 bg-zinc-200 rounded-md" />
-          <div className="h-4 w-64 bg-zinc-100 rounded-md" />
+          <div className="h-6 w-32 bg-zinc-200 rounded-md" />
+          <div className="h-4 w-48 bg-zinc-100 rounded-md" />
         </div>
-        <div className="h-11 w-44 bg-zinc-100 rounded-lg" />
+        <div className="h-10 w-40 bg-zinc-100 rounded-md" />
       </div>
 
       {/* Address Cards Skeleton */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="space-y-4">
         {[1, 2].map((i) => (
-          <div key={i} className="h-56 w-full border border-zinc-200 rounded-lg bg-white p-6 space-y-4">
+          <div key={i} className="w-full bg-white p-4 space-y-4">
             <div className="flex justify-between items-start">
-              <div className="flex items-center gap-4">
-                <div className="size-5 rounded-full border-2 border-zinc-200" />
-                <div className="h-6 w-32 bg-zinc-200 rounded" />
-              </div>
-              <div className="flex gap-2">
-                <div className="size-8 rounded-full bg-zinc-50 border border-zinc-100" />
-                <div className="size-8 rounded-full bg-zinc-50 border border-zinc-100" />
+              <div className="flex items-center gap-3">
+                <div className="size-4 rounded-full border-2 border-zinc-200" />
+                <div className="h-5 w-28 bg-zinc-200 rounded" />
               </div>
             </div>
-            <div className="pl-9 space-y-2">
+            <div className="pl-7 space-y-2">
               <div className="h-3.5 w-1/2 bg-zinc-100 rounded" />
               <div className="h-3.5 w-3/4 bg-zinc-100 rounded" />
               <div className="h-3.5 w-2/3 bg-zinc-100 rounded" />
-              <div className="h-3.5 w-1/2 bg-zinc-100 rounded" />
-              <div className="h-3.5 w-1/4 bg-zinc-100 rounded" />
             </div>
           </div>
         ))}
@@ -250,43 +90,41 @@ const ShippingSkeleton = () => (
 );
 
 const SummarySkeleton = () => (
-  <div className="space-y-8 animate-pulse">
-    <div className="space-y-4">
-      <div className="h-7 w-32 bg-zinc-200 rounded-md" />
-      <div className="h-80 w-full bg-white rounded-lg border border-zinc-200 p-6 space-y-6">
-        {[1, 2].map((i) => (
-          <div key={i} className="flex gap-4">
-            <div className="size-20 bg-zinc-100 rounded-md" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-full bg-zinc-100 rounded" />
-              <div className="h-3 w-1/2 bg-zinc-50 rounded" />
-            </div>
+  <div className="space-y-8 animate-pulse pt-4">
+    <div className="space-y-6">
+      <div className="h-6 w-32 bg-zinc-200 rounded-md lg:hidden" />
+      {[1, 2].map((i) => (
+        <div key={i} className="flex gap-4">
+          <div className="size-20 bg-zinc-100 rounded-md shrink-0" />
+          <div className="flex-1 space-y-3 py-1">
+            <div className="h-4 w-full bg-zinc-100 rounded" />
+            <div className="h-3 w-2/3 bg-zinc-50 rounded" />
+            <div className="h-4 w-1/3 bg-zinc-100 rounded mt-2" />
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
-    <div className="h-60 w-full bg-white rounded-lg border border-zinc-200 p-6 space-y-4">
-       {[1, 2, 3].map((i) => (
-         <div key={i} className="flex justify-between">
-           <div className="h-4 w-24 bg-zinc-100 rounded" />
-           <div className="h-4 w-16 bg-zinc-100 rounded" />
-         </div>
-       ))}
-       <div className="border-t border-zinc-100 pt-4 flex justify-between">
-         <div className="h-6 w-32 bg-zinc-200 rounded" />
-         <div className="h-6 w-24 bg-zinc-200 rounded" />
-       </div>
+    <div className="space-y-4 pt-6 border-t border-zinc-100">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex justify-between items-center">
+          <div className="h-4 w-24 bg-zinc-100 rounded" />
+          <div className="h-4 w-16 bg-zinc-100 rounded" />
+        </div>
+      ))}
+      <div className="border-t border-zinc-100 pt-4 flex justify-between items-center">
+        <div className="h-5 w-32 bg-zinc-200 rounded" />
+        <div className="h-6 w-24 bg-zinc-200 rounded" />
+      </div>
     </div>
   </div>
 );
 
- 
+
 
 export default function ShippingPage() {
-  const dispatch = useDispatch();
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const { user, accessToken } = useSelector((state) => state.user);
+  const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
   const { items: cartItems, totalAmount, appliedCoupon, nectorPoints } = useCart();
   const searchParams = useSearchParams();
   const [deliveryMethod, setDeliveryMethod] = useState(searchParams.get("method") || "ship");
@@ -301,140 +139,52 @@ export default function ShippingPage() {
     }
   }, [cartItems]);
 
-  const [addresses, setAddresses] = useState([]);
-  const [customer, setCustomer] = useState(null);
-  const [selectedAddressId, setSelectedAddressId] = useState("");
-  const [dbStores, setDbStores] = useState([]);
-  const [selectedStoreId, setSelectedStoreId] = useState("");
-  const [showStoreDialog, setShowStoreDialog] = useState(false);
-  const [storeSearchQuery, setStoreSearchQuery] = useState("");
-  const [searchCoords, setSearchCoords] = useState(null);
-  const [tempSelectedStoreId, setTempSelectedStoreId] = useState("");
-  const [loadingAddresses, setLoadingAddresses] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState("create");
+  const {
+    addresses,
+    customer,
+    selectedAddressId,
+    selectedAddress,
+    hasSavedAddresses,
+    loadingAddresses,
+    createAddress,
+    updateAddress,
+    selectAddress,
+    deleteAddress,
+  } = useCustomerAddresses({ accessToken, user });
+
+  const {
+    billingAddressMode,
+    selectedBillingAddress,
+    setBillingMode,
+    selectBillingAddress,
+  } = useBillingAddress({ accessToken, addresses, loadingAddresses, selectedAddressId, selectedAddress });
+
+  const pickup = useStorePickup({ selectedShippingZip: selectedAddress?.zip });
+  const [pickupPhone, setPickupPhone] = useState("");
+
+  const [shippingView, setShippingView] = useState("card"); // "card" | "list" | "form" (only relevant once there's a saved address)
+  const [dialogMode, setDialogMode] = useState("");
   const [dialogSaving, setDialogSaving] = useState(false);
   const [inlineSaving, setInlineSaving] = useState(false);
-  const [addressListOpen, setAddressListOpen] = useState(false);
   const [addressForm, setAddressForm] = useState(emptyAddressForm);
   const [makeDefault, setMakeDefault] = useState(true);
   const [editingAddressId, setEditingAddressId] = useState("");
-  const [pincodeLoading, setPincodeLoading] = useState(false);
-  const [isPincodeAutofilled, setIsPincodeAutofilled] = useState(false);
+  const [isCompanyPurchase, setIsCompanyPurchase] = useState(false);
+  const addressFormRef = useRef(null);
 
-  const pincodeCache = useRef({});
-  const lastFetchedPincode = useRef("");
+  const { pincodeLoading } = usePincodeLookup(addressForm.zip, setAddressForm);
 
-  const fetchPincodeDetails = async (pincode) => {
-    try {
-      if (!pincode || pincode.length !== 6) return;
-
-      // Use cached value
-      if (pincodeCache.current[pincode]) {
-        const cachedData = pincodeCache.current[pincode];
-
-        setAddressForm((prev) => ({
-          ...prev,
-          ...cachedData,
-        }));
-
-        return;
-      }
-
-      setPincodeLoading(true);
-
-      const data = await apiFetch(`/api/pincode?pincode=${pincode}`);
-
-      const result = data?.[0];
-
-      if (
-        !result ||
-        result.Status !== "Success" ||
-        !Array.isArray(result.PostOffice) ||
-        result.PostOffice.length === 0
-      ) {
-        lastFetchedPincode.current = "";
-
-        setAddressForm((prev) => ({
-          ...prev,
-          city: "",
-          province: "",
-        }));
-
-        toast.error(
-          "Unable to verify PIN Code. Please enter City and State manually."
-        );
-
-        return;
-      }
-
-      const office = result.PostOffice[0];
-
-      const addressData = {
-        city: office.District || "",
-        province: office.State || "",
-        country: office.Country || "India",
-
-        // Save original values for validation
-        _pincodeCity: office.District || "",
-        _pincodeProvince: office.State || "",
-      };
-
-      // Store in memory cache
-      pincodeCache.current[pincode] = addressData;
-
-      setAddressForm((prev) => ({
-        ...prev,
-        ...addressData,
-      }));
-    } catch (error) {
-      console.error("Pincode lookup failed:", error);
-
-      toast.error(
-        "Unable to fetch PIN Code details. Please enter City and State manually."
-      );
-    } finally {
-      setPincodeLoading(false);
-    }
-  };
-
+  // Pre-fill the inline create form once we know the customer has no saved addresses.
   useEffect(() => {
-    const pincode = addressForm?.zip?.trim();
-
-    // Clear autofilled values when PIN becomes invalid
-    if (!pincode || pincode.length < 6) {
-      lastFetchedPincode.current = "";
-
-      setAddressForm((prev) => ({
-        ...prev,
-        city: "",
-        province: "",
-        _pincodeCity: "",
-        _pincodeProvince: "",
-      }));
-
-      return;
+    if (!loadingAddresses && addresses.length === 0) {
+      setAddressForm(normalizeAddressForm({}, customer || user || {}));
     }
-
-    if (!/^\d{6}$/.test(pincode)) {
-      return;
-    }
-
-    if (lastFetchedPincode.current === pincode) {
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      await fetchPincodeDetails(pincode);
-      lastFetchedPincode.current = pincode;
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [addressForm?.zip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingAddresses, addresses.length, customer, user]);
 
   useEffect(() => {
     const currentCustomer = customer || user;
-    if (cartItems && cartItems.length > 0 && currentCustomer?.email && !hasFiredBeginCheckout.current) {
+    if (isAuthenticated && cartItems && cartItems.length > 0 && !hasFiredBeginCheckout.current) {
       const getNumericId = (gid) => {
         if (!gid) return 0;
         if (typeof gid === 'number') return gid;
@@ -497,9 +247,9 @@ export default function ShippingPage() {
 
       hasFiredBeginCheckout.current = true;
     }
-  }, [cartItems, totalAmount, appliedCoupon, customer, user]);
+  }, [cartItems, totalAmount, appliedCoupon, customer, user, isAuthenticated]);
 
- 
+
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (cartItems || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -512,264 +262,29 @@ export default function ShippingPage() {
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
   }, [cartItems, totalAmount, appliedCoupon, nectorPoints]);
 
-  useEffect(() => {
-    const fetchStores = async () => {
-      try {
-        const data = await apiFetch("/api/stores");
-        if (data.stores) {
-          const mappedStores = data.stores.map(s => ({
-            id: s.shopifyId,
-            name: s.name,
-            code: s.name,
-            address: s.address || "",
-            city: s.city || "",
-            state: s.provinceCode || s.province || "",
-            zip: s.zip || "",
-            lat: s.latitude || 0,
-            lng: s.longitude || 0,
-            readyTime: "Usually ready in 24 hours",
-          }));
-          setDbStores(mappedStores);
-        }
-      } catch (err) {
-        console.error("Failed to fetch stores:", err);
-      }
-    };
-    fetchStores();
-  }, []);
-
   const scrollToSummary = () => {
     if (summaryRef.current) {
       summaryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
-  const hasSavedAddresses = addresses.length > 0;
-  const orderedAddresses = useMemo(() => {
-    if (!selectedAddressId || addresses.length <= 1) return addresses;
-
-    const selectedIndex = addresses.findIndex((address) => address.id === selectedAddressId);
-    if (selectedIndex === -1) return addresses;
-    if (selectedIndex <= 1) return addresses;
-
-    const selected = addresses.find((address) => address.id === selectedAddressId);
-    if (!selected) return addresses;
-
-    const remaining = addresses.filter((address) => address.id !== selectedAddressId);
-    const firstAddress = remaining[0];
-
-    if (!firstAddress) return [selected];
-
-    return [firstAddress, selected, ...remaining.slice(1)];
-  }, [addresses, selectedAddressId]);
-  const visibleAddresses = orderedAddresses.slice(0, 2);
-  const extraAddressCount = Math.max(0, addresses.length - visibleAddresses.length);
-  const selectedAddress = useMemo(
-    () => addresses.find((address) => address.id === selectedAddressId) || null,
-    [addresses, selectedAddressId]
-  );
-
-  const sortedStores = useMemo(() => {
-    let center = searchCoords;
-    
-    if (!center && selectedAddress?.zip) {
-      center = PINCODE_COORDS[selectedAddress.zip];
-    }
-    
-    if (!center) {
-      return [...dbStores];
-    }
-
-    return [...dbStores]
-      .map((store) => ({
-        ...store,
-        distance: calculateDistance(center.lat, center.lng, store.lat, store.lng),
-      }))
-      .sort((a, b) => (a.distance || 0) - (b.distance || 0));
-  }, [selectedAddress, searchCoords, dbStores]);
-
-  const storeAvailability = useMemo(() => {
-    const filteredItems = cartItems.filter(
-      (item) =>
-        item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-        !item.properties?.['_byj_parent'] &&
-        !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
-    );
-    return sortedStores.reduce((acc, store) => {
-      acc[store.id] = filteredItems.map((item, index) => ({
-        ...item,
-        isAvailable: true,
-      }));
-      return acc;
-    }, {});
-  }, [sortedStores, cartItems]);
-
-  useEffect(() => {
-    if (sortedStores.length > 0 && !selectedStoreId) {
-      setSelectedStoreId(sortedStores[0].id);
-    }
-  }, [sortedStores, selectedStoreId]);
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       const selection = {
         deliveryMethod,
-        selectedStoreId,
-        selectedStore: dbStores.find(s => s.id === selectedStoreId) || null,
+        selectedStoreId: pickup.selectedStoreId,
+        selectedStore: pickup.dbStores.find((s) => s.id === pickup.selectedStoreId) || null,
         selectedAddress: selectedAddress,
-        customerEmail: customer?.email || ""
+        customerEmail: customer?.email || "",
+        pickupPhone,
       };
       window.localStorage.setItem("checkout_selection", JSON.stringify(selection));
     }
-  }, [deliveryMethod, selectedStoreId, selectedAddress, customer, dbStores]);
+  }, [deliveryMethod, pickup.selectedStoreId, pickup.dbStores, selectedAddress, customer, pickupPhone]);
 
-  const handleStoreSearch = () => {
-    const query = storeSearchQuery.trim();
-    if (!query) return;
-    
-    let coords = PINCODE_COORDS[query];
-    
-    if (!coords && query.length >= 3) {
-      const prefix = query.substring(0, 3);
-      const similarPincode = Object.keys(PINCODE_COORDS).find(p => p.startsWith(prefix));
-      if (similarPincode) {
-        coords = PINCODE_COORDS[similarPincode];
-        toast.info(`Showing stores near ${similarPincode} (closest to ${query})`);
-      }
-    }
-
-    if (coords) {
-      setSearchCoords(coords);
-      const nearest = [...dbStores]
-        .map((store) => ({
-          ...store,
-          distance: calculateDistance(coords.lat, coords.lng, store.lat, store.lng),
-        }))
-        .sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
-      
-      if (nearest) {
-        setTempSelectedStoreId(nearest.id);
-      }
-    } else {
-      toast.info("No exact location found. Showing all stores. Try 400071, 400092 or 411005.");
-    }
-  };
-
-  const handleUseMyLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        setSearchCoords(coords);
-        const nearest = [...dbStores]
-          .map((store) => ({
-            ...store,
-            distance: calculateDistance(coords.lat, coords.lng, store.lat, store.lng),
-          }))
-          .sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
-        
-        if (nearest) {
-          setTempSelectedStoreId(nearest.id);
-        }
-        toast.success("Nearby stores updated based on your location");
-      },
-      () => {
-        toast.error("Unable to retrieve your location. Please check permissions.");
-      }
-    );
-  };
-
-  const handleOpenStoreDialog = () => {
-    setTempSelectedStoreId(selectedStoreId);
-    setShowStoreDialog(true);
-  };
-
-  const handleSaveStoreSelection = () => {
-    setSelectedStoreId(tempSelectedStoreId);
-    setShowStoreDialog(false);
-  };
-
-  const [isDeliverable, setIsDeliverable] = useState(true);
-  const [checkingPincode, setCheckingPincode] = useState(false);
-
-  const checkPincodeDeliverability = async (pincode) => {
-    if (!pincode) return false;
-    try {
-      const data = await apiFetch(`/api/pincodes/check?pincode=${pincode.trim()}`);
-      return data.success && data.deliverable;
-    } catch (err) {
-      console.error("Pincode check failed:", err);
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    let isMounted = true;
-    const checkSelected = async () => {
-      if (deliveryMethod === "ship" && selectedAddress?.zip) {
-        setCheckingPincode(true);
-        const deliverable = await checkPincodeDeliverability(selectedAddress.zip);
-        if (isMounted) {
-          setIsDeliverable(deliverable);
-          setCheckingPincode(false);
-        }
-      } else {
-        if (isMounted) {
-          setIsDeliverable(true);
-          setCheckingPincode(false);
-        }
-      }
-    };
-    checkSelected();
-    return () => { isMounted = false; };
-  }, [selectedAddress?.zip, deliveryMethod]);
-
-  const applyAddressPayload = useCallback((payload) => {
-    setAddresses(payload.addresses || []);
-    setCustomer(payload.customer || null);
-
-    // Pre-fill form if no addresses
-    if (!payload.addresses || payload.addresses.length === 0) {
-      setAddressForm(normalizeAddressForm({}, payload.customer || user || {}));
-    }
-
-    const nextSelectedId = payload.defaultAddressId || payload.addresses?.[0]?.id || "";
-    setSelectedAddressId(nextSelectedId);
-
-    if (typeof window !== "undefined") {
-      const currentAddress = (payload.addresses || []).find((address) => address.id === nextSelectedId) || null;
-      window.localStorage.setItem(
-        "checkoutShippingAddress",
-        JSON.stringify({
-          customer: payload.customer || null,
-          address: currentAddress,
-        })
-      );
-    }
-  }, [user]);
-
-  const loadAddresses = useCallback(async () => {
-    try {
-      setLoadingAddresses(true);
-      applyAddressPayload(await fetchCustomerAddresses(accessToken));
-    } catch (error) {
-      toast.error(error.message || "Unable to load saved addresses");
-    } finally {
-      setLoadingAddresses(false);
-    }
-  }, [accessToken, applyAddressPayload]);
-
-  useEffect(() => {
-    loadAddresses();
-  }, [loadAddresses]);
+  const { isDeliverable, checkingPincode } = usePincodeDeliverability(selectedAddress?.zip, {
+    enabled: deliveryMethod === "ship",
+  });
 
   const updateForm = (field, value) => {
     setAddressForm((prev) => ({ ...prev, [field]: value }));
@@ -782,111 +297,66 @@ export default function ShippingPage() {
     if (!addressForm.city.trim()) return "City is required";
     if (!addressForm.province.trim()) return "State is required";
     if (!addressForm.zip.trim()) return "PIN code is required";
-    
+
     if (!/^\d{6}$/.test(addressForm.zip.trim())) {
       return "Please enter a valid 6-digit PIN code";
     }
 
     if (!addressForm.country.trim()) return "Country is required";
-    if (addressForm.gstin.trim() && addressForm.gstin.trim().length !== 15) {
-      return "GSTIN must be 15 characters";
+    if (addressForm.gstin.trim()) {
+      const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstinRegex.test(addressForm.gstin.trim())) {
+        return "Please enter a valid 15-digit GSTIN";
+      }
     }
     return "";
+  };
+
+  const confirmPincodeMismatch = (form) => {
+    if (form.zip && form._pincodeCity && form._pincodeProvince) {
+      const cityMismatch = form.city?.trim().toLowerCase() !== form._pincodeCity?.trim().toLowerCase();
+      const stateMismatch = form.province?.trim().toLowerCase() !== form._pincodeProvince?.trim().toLowerCase();
+
+      if (cityMismatch || stateMismatch) {
+        return window.confirm(
+          `The entered City/State does not match the PIN Code.\n\nPIN ${form.zip} belongs to:\n${form._pincodeCity}, ${form._pincodeProvince}\n\nDo you want to continue?`
+        );
+      }
+    }
+    return true;
   };
 
   const openCreateDialog = () => {
     setDialogMode("create");
     setEditingAddressId("");
-    setAddressForm(normalizeAddressForm({}, customer || {}));
+    setAddressForm(normalizeAddressForm({}, customer || user || {}));
     setMakeDefault(!hasSavedAddresses);
-    setDialogOpen(true);
+    setIsCompanyPurchase(false);
+    setShippingView("form");
   };
 
   const openEditDialog = (address) => {
     setDialogMode("edit");
     setEditingAddressId(address.id);
-    setAddressForm(normalizeAddressForm(address, customer || {}));
+    setAddressForm(normalizeAddressForm(address, customer || user || {}));
     setMakeDefault(Boolean(address.isDefault));
-    setDialogOpen(true);
+    setIsCompanyPurchase(Boolean(address.company || address.gstin));
+    setShippingView("form");
   };
 
   const handleCreateAddress = async (useDialog = false) => {
     const validationError = validateForm();
     if (validationError) return toast.error(validationError);
-
-    if (
-      addressForm.zip &&
-      addressForm._pincodeCity &&
-      addressForm._pincodeProvince
-    ) {
-      const cityMismatch =
-        addressForm.city?.trim().toLowerCase() !==
-        addressForm._pincodeCity?.trim().toLowerCase();
-
-      const stateMismatch =
-        addressForm.province?.trim().toLowerCase() !==
-        addressForm._pincodeProvince?.trim().toLowerCase();
-
-      if (cityMismatch || stateMismatch) {
-        const proceed = window.confirm(
-          `The entered City/State does not match the PIN Code.\n\nPIN ${addressForm.zip} belongs to:\n${addressForm._pincodeCity}, ${addressForm._pincodeProvince}\n\nDo you want to continue?`
-        );
-
-        if (!proceed) {
-          return;
-        }
-      }
-    }
+    if (!confirmPincodeMismatch(addressForm)) return;
 
     try {
       if (useDialog) setDialogSaving(true);
       else setInlineSaving(true);
 
-      const deliverable = await checkPincodeDeliverability(addressForm.zip.trim());
-      if (!deliverable) {
-        return toast.error("We are not delivering product on this address");
-      }
-
-      // Prepare address for saving (exclude email as it's for profile only)
-      const { email: formEmail, ...addressToSave } = addressForm;
-
-      applyAddressPayload(
-        await createCustomerAddress({
-          address: addressToSave,
-          makeDefault,
-        }, accessToken)
-      );
-
-      // Requirement: Update profile only if addresses.length <= 1 (not greater than one)
-      if (accessToken && !accessToken.startsWith("simulated_") && addresses.length <= 1) {
-        try {
-          const profileUpdate = {
-            firstName: addressForm.firstName,
-            lastName: addressForm.lastName,
-            phone: addressForm.phone,
-            email: addressForm.email
-          };
-
-          await Promise.all([
-            apiFetch("/api/customer/profile", {
-              method: "PATCH",
-              body: JSON.stringify(profileUpdate),
-            }),
-            shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
-              customerAccessToken: accessToken,
-              customer: profileUpdate
-            })
-          ]);
-
-          // Sync local Redux state for real-time Header reflection
-          dispatch(updateUser(profileUpdate));
-        } catch (syncErr) {
-          console.warn("[ShippingPage] Failed to sync profile:", syncErr);
-        }
-      }
+      await createAddress(addressForm, { makeDefault });
 
       toast.success("Address added");
-      if (useDialog) setDialogOpen(false);
+      if (useDialog) setShippingView("card");
     } catch (error) {
       toast.error(error.message || "Unable to add address");
     } finally {
@@ -898,54 +368,14 @@ export default function ShippingPage() {
   const handleUpdateAddress = async () => {
     const validationError = validateForm();
     if (validationError) return toast.error(validationError);
+    if (!confirmPincodeMismatch(addressForm)) return;
 
     try {
       setDialogSaving(true);
 
-      const deliverable = await checkPincodeDeliverability(addressForm.zip.trim());
-      if (!deliverable) {
-        return toast.error("We are not delivering product on this address");
-      }
+      await updateAddress(editingAddressId, addressForm, { makeDefault });
 
-      // Prepare address for saving
-      const { email: formEmail, ...addressToSave } = addressForm;
-
-      applyAddressPayload(
-        await updateCustomerAddress({
-          addressId: editingAddressId,
-          address: addressToSave,
-          makeDefault,
-        }, accessToken)
-      );
-
-      // Sync profile ONLY if addresses.length <= 1
-      if (accessToken && !accessToken.startsWith("simulated_") && addresses.length <= 1) {
-        try {
-          const profileUpdate = { 
-            firstName: addressForm.firstName, 
-            lastName: addressForm.lastName,
-            phone: addressForm.phone,
-            email: addressForm.email
-          };
-          await Promise.all([
-            apiFetch("/api/customer/profile", {
-              method: "PATCH",
-              body: JSON.stringify(profileUpdate),
-            }),
-            shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
-              customerAccessToken: accessToken,
-              customer: profileUpdate
-            })
-          ]);
-
-          // Sync local Redux state for real-time Header reflection
-          dispatch(updateUser(profileUpdate));
-        } catch (syncErr) {
-          console.warn("[ShippingPage] Failed to sync profile:", syncErr);
-        }
-      }
-
-      setDialogOpen(false);
+      setShippingView("card");
       toast.success("Address updated");
     } catch (error) {
       toast.error(error.message || "Unable to update address");
@@ -953,65 +383,6 @@ export default function ShippingPage() {
       setDialogSaving(false);
     }
   };
-
-  const handleSelectAddress = async (addressId) => {
-    const addressToSelect = addresses.find(a => a.id === addressId);
-    if (addressToSelect?.isDefault) {
-      toast.info("This address is already default");
-      setSelectedAddressId(addressId);
-      return;
-    }
-
-    setSelectedAddressId(addressId);
-    try {
-      applyAddressPayload(await selectDefaultCustomerAddress(addressId, accessToken));
-
-      // If we are selecting a new default address, sync that name to the profile too (ONLY if addresses <= 1)
-      if (addressToSelect && accessToken && !accessToken.startsWith("simulated_") && addresses.length <= 1) {
-        try {
-          const profileUpdate = { 
-            firstName: addressToSelect.firstName, 
-            lastName: addressToSelect.lastName,
-            phone: addressToSelect.phone,
-            email: customer?.email || user?.email || ""
-          };
-          await Promise.all([
-            apiFetch("/api/customer/profile", {
-              method: "PATCH",
-              body: JSON.stringify(profileUpdate),
-            }),
-            shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
-              customerAccessToken: accessToken,
-              customer: profileUpdate
-            })
-          ]);
-
-          // Sync local Redux state for real-time Header reflection
-          dispatch(updateUser(profileUpdate));
-        } catch (syncErr) {
-          console.warn("[ShippingPage] Failed to sync selected address name with profile:", syncErr);
-        }
-      }
-    } catch (error) {
-      toast.error(error.message || "Unable to select address");
-      loadAddresses();
-    }
-  };
-
-  const handleDeleteAddress = async (addressId) => {
-    const addressToDelete = addresses.find(a => a.id === addressId);
-    if (addressToDelete?.isDefault) {
-      return toast.error("You cannot delete default address");
-    }
-    try {
-      applyAddressPayload(await deleteCustomerAddress(addressId, accessToken));
-      toast.success("Address removed");
-    } catch (error) {
-      toast.error(error.message || "Unable to remove address");
-    }
-  };
-
-  const selectedStore = dbStores.find(s => s.id === selectedStoreId) || sortedStores[0];
 
   const handleContinueToPayment = () => {
     const getNumericId = (gid) => {
@@ -1084,133 +455,19 @@ export default function ShippingPage() {
     pushAddShippingInfo(shippingData);
   };
 
-  const StorePickupContent = () => (
-    <div className="p-6 space-y-6">
-      <div className="space-y-4">
-        <button onClick={handleUseMyLocation} className="flex items-center gap-2 text-sm font-medium text-zinc-700 hover:underline">
-          <Navigation size={16} />
-          Use my location
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        <p className="text-sm text-zinc-500">
-          There are {sortedStores.length} locations with your item
-        </p>
-
-        <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-          {sortedStores.map((store) => {
-            const isSelected = tempSelectedStoreId === store.id;
-            return (
-              <div
-                key={store.id}
-                onClick={() => setTempSelectedStoreId(store.id)}
-                className={`relative flex items-start gap-4 p-5 rounded-lg border-2 transition-all cursor-pointer ${
-                  isSelected ? "border-accent bg-accent/10 shadow-sm" : "border-zinc-100 hover:border-zinc-200"
-                }`}
-              >
-                <div className={`mt-1 size-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                  isSelected ? "border-accent bg-accent/10" : "border-zinc-300"
-                }`}>
-                  {isSelected && <div className="size-2 rounded-full bg-white" />}
-                </div>
-                
-                <div className="grow space-y-2">
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-bold text-zinc-900">{store.code || store.name}</h3>
-                    <span className="font-bold text-zinc-900 text-sm">FREE</span>
-                  </div>
-                  <p className="text-sm text-zinc-500 leading-relaxed pr-8">
-                    {store.address}, {store.city} {store.state}
-                  </p>
-                  {/* <div className="flex items-center gap-2 text-zinc-400 text-base">
-                    <Clock size={14} />
-                    <span>{store.readyTime}</span>
-                  </div> */}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-
-  const AddressListContent = () => (
-    <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1 custom-scrollbar">
-      {addresses.map((address) => {
-        const isSelected = selectedAddressId === address.id;
-        return (
-          <div
-            key={`all-${address.id}`}
-            onClick={async () => {
-              await handleSelectAddress(address.id);
-              setAddressListOpen(false);
-            }}
-            role="button"
-            tabIndex={0}
-            className={`rounded-lg border p-4 text-left transition-all ${
-              isSelected ? "border-primary bg-[#FFF8F4]" : "border-zinc-200 bg-white"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <input
-                type="radio"
-                name="all-shipping-addresses"
-                checked={isSelected}
-                onChange={() => {}}
-                className="mt-1 size-4 accent-black"
-              />
-              <div className="flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-zinc-900">
-                      {[address.firstName, address.lastName].filter(Boolean).join(" ") || "Saved address"}
-                    </h3>
-                    {address.isDefault && (
-                      <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white">
-                        Default
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    disabled={address.isDefault}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      await handleDeleteAddress(address.id);
-                    }}
-                    className={`rounded-full border border-zinc-200 p-2 text-zinc-600 transition ${address.isDefault ? "opacity-50 cursor-not-allowed" : "hover:border-red-200 hover:text-red-600"}`}
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-                <div className="mt-2 space-y-1 text-sm text-zinc-600">
-                  {formatAddressPreview(address).map((line) => (
-                    <p key={`list-${address.id}-${line}`}>{line}</p>
-                  ))}
-                  {address.gstin && <p className="font-medium text-zinc-800">GSTIN: {address.gstin}</p>}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-
   const isLoading = loadingAddresses;
 
-  const isContinueDisabled = deliveryMethod === "ship" 
-    ? (!selectedAddress || !isDeliverable || checkingPincode) 
-    : !selectedStoreId;
+  const isContinueDisabled = (deliveryMethod === "ship"
+    ? (!selectedAddress || !isDeliverable || checkingPincode)
+    : !pickup.selectedStoreId) || !selectedBillingAddress;
+
 
   if (isLoading) {
     return (
       <div className="bg-white min-h-screen">
-        <div className="max-w-7xl w-full mx-auto px-4">
+        <div className="container-main">
           <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
-            <div className="grow lg:basis-[60%] lg:shrink-0 py-10 px-4 lg:pr-12">
+            <div className="grow lg:basis-[60%] lg:shrink-0 py-10 px-4 lg:pl-[30px] lg:pr-[20px] min-w-0">
               <ShippingSkeleton />
             </div>
             <div className="w-full lg:basis-[40%] lg:shrink-0 py-10 px-4 lg:pl-12 bg-[#FAFAFA]">
@@ -1223,354 +480,382 @@ export default function ShippingPage() {
   }
 
   return (
-    <div className="bg-white min-h-screen overflow-x-hidden">
-      <div className="max-w-7xl w-full mx-auto relative z-10">
+    <div className="bg-white min-h-screen overflow-x-clip">
+      <div className="container-main relative z-10 max-lg:!px-0 lg:!max-w-[2100px] lg:!w-[94%]">
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
-          <div className="grow lg:basis-[60%] lg:shrink-0 lg:py-10 px-4 lg:pr-12 space-y-10 bg-white">
-            <div className="space-y-4 mb-5 md:mb-0">
-              <h2 className="text-2xl font-bold text-zinc-900 font-abhaya mt-5 md:mt-0">Delivery method</h2>
-              <div className="flex p-1 bg-zinc-100 rounded-lg w-full max-w-md">
-                <button
-                  onClick={() => setDeliveryMethod("ship")}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-bold transition-all ${
-                    deliveryMethod === "ship" ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:text-zinc-700"
+          <div className="grow lg:basis-[60%] lg:shrink-0 flex flex-col bg-white p-0 lg:pl-0 lg:pr-[20px] lg:py-10 min-w-0">
+            <h2 className="font-figtree text-[0.6875rem] md:text-[1rem] font-bold md:font-medium text-zinc-900 uppercase tracking-[0.1em] md:tracking-normal leading-normal md:leading-none px-6 lg:px-0 mt-5 md:mt-0 mb-3 md:mb-5">Delivery Method</h2>
+            <div className="flex w-full md:max-w-[380px] gap-3 relative z-10 px-6 lg:px-0 -mb-[1px]">
+              <button
+                onClick={() => setDeliveryMethod("ship")}
+                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.875rem] lg:text-[1rem] font-medium transition-all ${deliveryMethod === "ship" ? "bg-[#F5F5F5] lg:bg-[#F9F9F9] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-t-[10px] rounded-b-none"
                   }`}
-                >
-                  <Truck size={18} />
-                  Ship
-                </button>
-                <button
-                  onClick={() => setDeliveryMethod("pickup")}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-bold transition-all ${
-                    deliveryMethod === "pickup" ? "bg-white shadow-sm text-zinc-900" : "text-zinc-500 hover:text-zinc-700"
+              >
+                <svg width="15" height="12" viewBox="0 0 15 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8.5 9.83333V1.83333C8.5 1.47971 8.35952 1.14057 8.10948 0.890524C7.85943 0.640476 7.52029 0.5 7.16667 0.5H1.83333C1.47971 0.5 1.14057 0.640476 0.890524 0.890524C0.640476 1.14057 0.5 1.47971 0.5 1.83333V9.16667C0.5 9.34348 0.570238 9.51305 0.695262 9.63807C0.820286 9.7631 0.989856 9.83333 1.16667 9.83333H2.5M2.5 9.83333C2.5 10.5697 3.09695 11.1667 3.83333 11.1667C4.56971 11.1667 5.16667 10.5697 5.16667 9.83333M2.5 9.83333C2.5 9.09695 3.09695 8.5 3.83333 8.5C4.56971 8.5 5.16667 9.09695 5.16667 9.83333M9.16667 9.83333H5.16667M9.16667 9.83333C9.16667 10.5697 9.76362 11.1667 10.5 11.1667C11.2364 11.1667 11.8333 10.5697 11.8333 9.83333M9.16667 9.83333C9.16667 9.09695 9.76362 8.5 10.5 8.5C11.2364 8.5 11.8333 9.09695 11.8333 9.83333M11.8333 9.83333H13.1667C13.3435 9.83333 13.513 9.7631 13.6381 9.63807C13.7631 9.51305 13.8333 9.34348 13.8333 9.16667V6.73333C13.8331 6.58204 13.7813 6.43534 13.6867 6.31733L11.3667 3.41733C11.3043 3.33925 11.2252 3.27619 11.1352 3.2328C11.0452 3.18941 10.9466 3.16681 10.8467 3.16667H8.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Delivery
+                {deliveryMethod === "ship" && (
+                  <>
+                    <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5] lg:hidden">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
+                    </div>
+                    <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5] lg:text-[#F9F9F9]">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
+                    </div>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setDeliveryMethod("pickup")}
+                className={`relative flex-1 flex items-center justify-center gap-2 py-3.5 text-[0.875rem] lg:text-[1rem] font-medium transition-all ${deliveryMethod === "pickup" ? "bg-[#F5F5F5] lg:bg-[#F9F9F9] text-zinc-900 rounded-t-[10px] rounded-b-none" : "bg-transparent text-zinc-600 hover:bg-zinc-50 rounded-t-[10px] rounded-b-none"
                   }`}
-                >
-                  <MapPin size={18} />
-                  Pickup
-                </button>
+              >
+                <svg width="12" height="15" viewBox="0 0 12 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6.234 13.6993C7.474 12.6287 11.1667 9.162 11.1667 5.83333C11.1667 4.41885 10.6048 3.06229 9.60457 2.0621C8.60438 1.0619 7.24782 0.5 5.83333 0.5C4.41885 0.5 3.06229 1.0619 2.0621 2.0621C1.0619 3.06229 0.5 4.41885 0.5 5.83333C0.5 9.162 4.19267 12.6287 5.43267 13.6993C5.54818 13.7862 5.6888 13.8332 5.83333 13.8332C5.97787 13.8332 6.11848 13.7862 6.234 13.6993Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M5.83333 7.83333C6.9379 7.83333 7.83333 6.9379 7.83333 5.83333C7.83333 4.72876 6.9379 3.83333 5.83333 3.83333C4.72876 3.83333 3.83333 4.72876 3.83333 5.83333C3.83333 6.9379 4.72876 7.83333 5.83333 7.83333Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Pickup
+                {deliveryMethod === "pickup" && (
+                  <>
+                    <div className="absolute bottom-0 -left-3 w-3 h-3 text-[#F5F5F5] lg:text-[#F9F9F9]">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M12 12V0C12 6.627 6.627 12 0 12h12z" /></svg>
+                    </div>
+                    <div className="absolute bottom-0 -right-3 w-3 h-3 text-[#F5F5F5] lg:text-[#F9F9F9]">
+                      <svg viewBox="0 0 12 12" fill="currentColor"><path d="M0 12V0c0 6.627 5.373 12 12 12H0z" /></svg>
+                    </div>
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="bg-[#F5F5F5] lg:bg-[#F9F9F9] px-4 py-6 md:p-6 lg:p-8 lg:rounded-tr-[10px] lg:rounded-b-[10px] rounded-none relative z-0 lg:mt-0">
+              {deliveryMethod === "ship" ? (
+                <div key="ship" className="space-y-6">
+                  {loadingAddresses ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-zinc-200 p-6 text-zinc-600 bg-white">
+                      <Loader2 className="size-5 animate-spin" />
+                      Loading saved addresses...
+                    </div>
+                  ) : hasSavedAddresses ? (
+                    shippingView === "form" ? (
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => { setShippingView("card"); setDialogMode(""); }} className="text-zinc-500 hover:text-zinc-900">
+                            <ChevronLeft className="size-5" />
+                          </button>
+                          <h3 className="font-figtree text-[0.9375rem] lg:text-[1rem] font-medium text-black">{dialogMode === "edit" ? "Edit Address" : "Shipping Address"}</h3>
+                        </div>
+                        <AddressForm
+                          form={addressForm}
+                          onChange={updateForm}
+                          makeDefault={makeDefault}
+                          onDefaultChange={setMakeDefault}
+                          isCompanyPurchase={isCompanyPurchase}
+                          onCompanyPurchaseChange={setIsCompanyPurchase}
+                          submitLabel={dialogMode === "edit" ? "Save Changes" : "Save Address"}
+                          onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
+                          saving={dialogSaving}
+                          hideEmail={addresses.length > 0}
+                        />
+                      </div>
+                    ) : shippingView === "list" ? (
+                      <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => dialogMode ? setDialogMode("") : setShippingView("card")} className="text-zinc-500 hover:text-zinc-900">
+                            <ChevronLeft className="size-5" />
+                          </button>
+                          <h3 className="font-figtree text-[0.9375rem] lg:text-[1.0625rem] font-bold text-black">Select Address</h3>
+                        </div>
+
+                        {dialogMode === "create" ? (
+                          <div ref={addressFormRef} className="space-y-5">
+                            <h4 className="text-center text-[0.9375rem] lg:text-[1.0625rem] font-semibold font-figtree text-[#5A413F]">Adding New Address</h4>
+                            <div className="">
+                              <AddressForm
+                                form={addressForm}
+                                onChange={updateForm}
+                                makeDefault={makeDefault}
+                                onDefaultChange={setMakeDefault}
+                                isCompanyPurchase={isCompanyPurchase}
+                                onCompanyPurchaseChange={setIsCompanyPurchase}
+                                submitLabel="Save Address"
+                                onSubmit={async () => {
+                                  await handleCreateAddress(true);
+                                  setDialogMode(""); // Close inline form on success
+                                }}
+                                saving={dialogSaving}
+                                hideEmail={addresses.length > 0}
+                              >
+                                <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
+                                  Cancel
+                                </Button>
+                              </AddressForm>
+                            </div>
+                          </div>
+                        ) : dialogMode === "edit" ? (
+                          <div ref={addressFormRef} className="space-y-5">
+                            <h4 className="text-center text-[0.9375rem] lg:text-[1.0625rem] font-semibold font-figtree text-[#5A413F]">Editing Address</h4>
+                            <div className="">
+                              <AddressForm
+                                form={addressForm}
+                                onChange={updateForm}
+                                makeDefault={makeDefault}
+                                onDefaultChange={setMakeDefault}
+                                isCompanyPurchase={isCompanyPurchase}
+                                onCompanyPurchaseChange={setIsCompanyPurchase}
+                                submitLabel="Save Changes"
+                                onSubmit={async () => {
+                                  await handleUpdateAddress();
+                                  setDialogMode(""); // Close inline form on success
+                                }}
+                                saving={dialogSaving}
+                                hideEmail={addresses.length > 0}
+                              >
+                                <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
+                                  Cancel
+                                </Button>
+                              </AddressForm>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDialogMode("create");
+                              setEditingAddressId("");
+                              setAddressForm(normalizeAddressForm({}, customer || user || {}));
+                              setMakeDefault(!hasSavedAddresses);
+                              setIsCompanyPurchase(false);
+                              setTimeout(() => {
+                                addressFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                              }, 50);
+                            }}
+                            className="w-full h-[52px] rounded-md border-dashed border border-[#5A413F]/40 text-[#5A413F] bg-white hover:bg-[#FCF9F8] transition-colors flex items-center justify-center gap-2 font-figtree font-medium text-[0.9375rem] lg:text-[1rem]"
+                          >
+                            <Plus size={18} />
+                            Add New Address
+                          </button>
+                        )}
+
+                        <div className="space-y-4 pt-2">
+                          <h4 className="font-figtree text-[0.875rem] lg:text-[1rem] font-semibold text-black">Saved Addresses</h4>
+                          <AddressListInline
+                            addresses={addresses}
+                            selectedAddressId={selectedAddressId}
+                            onSelect={async (id) => {
+                              await selectAddress(id);
+                              setShippingView("card");
+                            }}
+                            onDelete={deleteAddress}
+                            onEdit={(address) => {
+                                  setDialogMode("edit");
+                                  setEditingAddressId(address.id);
+                                  setAddressForm(normalizeAddressForm(address, customer || user || {}));
+                                  setMakeDefault(Boolean(address.isDefault));
+                                  setIsCompanyPurchase(Boolean(address.company || address.gstin));
+                                  setTimeout(() => {
+                                    addressFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  }, 50);
+                                }}
+                                radioGroupName="all-shipping-addresses"
+                              />
+                            </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <h3 className="font-figtree text-[0.9375rem] lg:text-[1.0625rem] font-medium text-black">Shipping Address</h3>
+                        <AddressSummaryCard
+                          address={selectedAddress}
+                          onEdit={() => openEditDialog(selectedAddress)}
+                          onChangeClick={() => {
+                            setShippingView("list");
+                            setDialogMode("");
+                          }}
+                        />
+
+                        {!isDeliverable && selectedAddress && !checkingPincode && (
+                          <div className="mt-4 p-4 rounded-lg bg-red-50 border border-red-100 flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <XCircle className="size-5 shrink-0" />
+                            <p className="text-sm font-bold uppercase tracking-tight">We are not delivering product on this address</p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  ) : (
+                    <div className="space-y-4">
+                      <h3 className="font-figtree text-[0.9375rem] lg:text-[1.0625rem] font-medium text-black">Shipping Address</h3>
+                      <AddressForm
+                        form={addressForm}
+                        onChange={updateForm}
+                        makeDefault={makeDefault}
+                        onDefaultChange={setMakeDefault}
+                        isCompanyPurchase={isCompanyPurchase}
+                        onCompanyPurchaseChange={setIsCompanyPurchase}
+                        submitLabel="Save Address"
+                        onSubmit={() => handleCreateAddress(false)}
+                        saving={inlineSaving}
+                      />
+                    </div>
+                  )}
+
+                  <BillingAddressSection
+                    isDesktop={isDesktop}
+                    addresses={addresses}
+                    customer={customer}
+                    user={user}
+                    createAddress={createAddress}
+                    deleteAddress={deleteAddress}
+                    billingAddressMode={billingAddressMode}
+                    selectedBillingAddress={selectedBillingAddress}
+                    setBillingMode={setBillingMode}
+                    selectBillingAddress={selectBillingAddress}
+                  />
+
+
+                </div>
+              ) : (
+                <div key="pickup" className="space-y-6">
+                  <StorePickupSection
+                    isDesktop={isDesktop}
+                    pickup={pickup}
+                    pickupPhone={pickupPhone}
+                    setPickupPhone={setPickupPhone}
+                    cartItems={cartItems}
+                  />
+
+                  <BillingAddressSection
+                    isDesktop={isDesktop}
+                    isPickup={true}
+                    addresses={addresses}
+                    customer={customer}
+                    user={user}
+                    createAddress={createAddress}
+                    deleteAddress={deleteAddress}
+                    billingAddressMode={billingAddressMode}
+                    selectedBillingAddress={selectedBillingAddress}
+                    setBillingMode={setBillingMode}
+                    selectBillingAddress={selectBillingAddress}
+                  />
+                </div>
+              )}
+
+              <div className="hidden lg:flex flex-col md:flex-row items-center justify-between gap-6 pt-10 px-2">
+                <Link prefetch={false} href="/checkout/cart" className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
+                  <ChevronLeft className="size-4" />
+                  Return to cart
+                </Link>
               </div>
             </div>
+          </div>
 
-            {deliveryMethod === "ship" ? (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {loadingAddresses ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-zinc-200 p-6 text-zinc-600">
-                    <Loader2 className="size-5 animate-spin" />
-                    Loading saved addresses...
-                  </div>
-                ) : hasSavedAddresses ? (
-                  <>
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div>
-                        <h2 className="font-abhaya text-xl font-bold text-zinc-900">Shipping address</h2>
-                        <p className="font-figtree text-sm text-zinc-500">Select one of your saved addresses below.</p>
-                      </div>
-                      <Button type="button" variant="outline" onClick={openCreateDialog} className="h-11 bg-accent border-accent text-white hover:shadow-lg">
-                        <Plus className="size-4" />
-                        Add new address
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                      {visibleAddresses.map((address) => {
-                        const isSelected = selectedAddressId === address.id;
+          <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
+            <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
+            <div className="relative z-10 py-6 px-4 lg:px-0 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white">
+              <div className="lg:sticky lg:top-4 space-y-6">
+                {deliveryMethod === "ship" && hasSavedAddresses && (
+                  <div className="pt-6 border-t border-zinc-200 lg:border-none lg:pt-0">
+                    <h3 className="text-[14px] lg:text-[0.875rem] font-figtree font-medium lg:font-bold text-black uppercase tracking-normal lg:tracking-wide leading-none lg:leading-normal mb-4">DELIVERY ESTIMATES</h3>
+                    <div className="space-y-4">
+                      {cartItems.filter(i => i.variantId !== INSURANCE_VARIANT_ID && i.variantId !== GOLDCOIN_VARIANT_ID && !i.properties?.['_byj_parent'] && !(i.properties?.['_byj_group_id'] && !i.properties?.['_byj_preview'])).map((item, idx) => {
+                        const isBYJ = item.properties?.['_byj_preview'];
+                        const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
                         return (
-                          <div
-                            key={address.id}
-                            onClick={() => handleSelectAddress(address.id)}
-                            role="button"
-                            tabIndex={0}
-                            className={`w-full rounded-lg border p-5 text-left transition-all ${
-                              isSelected ? "border-accent bg-accent/10" : "border-zinc-200 bg-white"
-                            }`}
-                          >
-                            <div className="flex items-start gap-4">
-                              <input type="radio" name="shipping-address" checked={isSelected} onChange={() => handleSelectAddress(address.id)} className="mt-1 size-4 accent-black" />
-                              <div className="flex-1 space-y-3">
-                                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <h3 className="font-semibold text-zinc-900">
-                                        {[address.firstName, address.lastName].filter(Boolean).join(" ") || "Saved address"}
-                                      </h3>
-                                      {address.isDefault && (
-                                        <span className="rounded-full bg-zinc-900 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                                          Default
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="mt-2 space-y-1 text-sm text-zinc-600">
-                                      {formatAddressPreview(address).map((line) => (
-                                        <p key={`${address.id}-${line}`}>{line}</p>
-                                      ))}
-                                      {address.gstin && <p className="font-medium text-zinc-800">GSTIN: {address.gstin}</p>}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <button type="button" onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditDialog(address);
-                                    }} className="rounded-full bg-white shadow border border-zinc-100 p-2 text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900">
-                                      <Pencil className="size-4" />
-                                    </button>
-                                    <button type="button" disabled={address.isDefault} onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteAddress(address.id);
-                                    }} className={`rounded-full bg-white shadow border border-zinc-100 p-2 text-zinc-600 transition ${address.isDefault ? "opacity-50 cursor-not-allowed" : "hover:border-red-200 hover:text-red-600"}`}>
-                                      <Trash2 className="size-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
+                          <div key={idx} className="flex gap-4 items-center">
+                            <div className="w-20 h-20 bg-[#FAFAFA] rounded-md shrink-0 p-1 flex items-center justify-center">
+                              {displayImage && (
+                                <Image src={displayImage} alt={item.title || "Product"} width={80} height={80} className="w-full h-full object-contain mix-blend-multiply" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-[0.8125rem] lg:text-[0.875rem] font-figtree text-black mb-1">Estimated Dispatch by</p>
+                              <p className="text-[14px] lg:text-[1rem] font-figtree font-semibold leading-none lg:leading-normal tracking-normal text-black align-middle lg:align-baseline">
+                                {getEstimatedDispatchDate(item.inStock, item.leadTime).replace(/Estimated dispatch by /i, "")}
+                              </p>
                             </div>
                           </div>
                         );
                       })}
                     </div>
-
-                    {!isDeliverable && selectedAddress && !checkingPincode && (
-                      <div className="mt-4 p-4 rounded-lg bg-red-50 border border-red-100 flex items-center gap-3 text-red-600 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <XCircle className="size-5 shrink-0" />
-                        <p className="text-sm font-bold uppercase tracking-tight">We are not delivering product on this address</p>
-                      </div>
-                    )}
-
-                    {extraAddressCount > 0 && (
-                      <div className="flex justify-end -mt-1">
-                        <button
-                          type="button"
-                          onClick={() => setAddressListOpen(true)}
-                          className="text-sm font-medium text-[#005BD3] hover:underline"
-                        >
-                          More addresses ({extraAddressCount})
-                        </button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-6">
-                    <div>
-                      <h2 className="text-xl font-bold text-zinc-900">Shipping address</h2>
-                      <p className="text-sm text-zinc-500 mt-1">
-                        You do not have a saved address yet. Add one to continue.
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-zinc-200 p-6">
-                      <AddressFields
-                        form={addressForm}
-                        onChange={updateForm}
-                        makeDefault={makeDefault}
-                        onDefaultChange={setMakeDefault}
-                        submitLabel="Save address"
-                        onSubmit={() => handleCreateAddress(false)}
-                        saving={inlineSaving}
-                        disablePhone={true}
-                        fetchPincodeDetails={fetchPincodeDetails}
-                      />
-                    </div>
                   </div>
                 )}
-
-                <div className="hidden lg:flex flex-col md:flex-row items-center justify-between gap-6 pt-4">
-                  <Link prefetch={false} href="/checkout/cart" className="flex items-center gap-1.5 text-sm font-semibold text-accent hover:opacity-80 transition-opacity">
-                    <ChevronLeft className="size-4" />
-                    Return to cart
-                  </Link>
-                  <Button 
-                    disabled={isContinueDisabled}
-                    onClick={() => {
-                      if (isContinueDisabled) {
-                        toast.error("Please select a valid shipping address");
-                        return;
-                      }
-                      handleContinueToPayment();
-                      router.push("/checkout/payment");
-                    }} 
-                    className="w-full md:w-70 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
-                  >
-                    CONTINUE TO PAYMENT
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-zinc-500">
-                      There are {sortedStores.length} locations with your item
-                    </p>
-                    <button onClick={handleOpenStoreDialog} className="flex items-center gap-1.5 text-sm text-primary font-bold hover:underline">
-                      <Navigation size={14} />
-                      India
-                    </button>
+                <div ref={summaryRef} className="scroll-mt-16">
+                  <CheckoutSummary showItems={false} showContact={false}>
+                    {/* Desktop Button - Moved inside to match cart and payment pages */}
+                    <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
+                    <Button
+                      disabled={isContinueDisabled}
+                      onClick={() => {
+                        if (isContinueDisabled) {
+                          toast.error(`Please select a valid ${deliveryMethod === "ship" ? "shipping address" : "pickup location"}`);
+                          return;
+                        }
+                        handleContinueToPayment();
+                        router.push("/checkout/payment");
+                      }}
+                      className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      CONTINUE TO PAYMENT
+                    </Button>
                   </div>
-                </div>
-
-                <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                  {selectedStore && (
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-zinc-900 text-base">{selectedStore.code}</h3>
-                        <span className="font-bold text-zinc-900 text-sm">FREE</span>
-                      </div>
-                      <div className="space-y-3">
-                        <p className="text-sm text-zinc-500 leading-relaxed max-w-100">
-                          {selectedStore.address}, {selectedStore.city} {selectedStore.state}
-                        </p>
-                        {/* <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                          <Clock size={16} />
-                          <span>{selectedStore.readyTime}</span>
-                        </div> */}
-                      </div>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleOpenStoreDialog}
-                    className="w-full flex items-center justify-between px-6 py-4 border-t border-zinc-100 hover:bg-zinc-50 transition-colors"
-                  >
-                    <span className="text-sm font-medium text-zinc-700">
-                      {sortedStores.length - 1} more locations
-                    </span>
-                    <ChevronRight size={16} className="text-zinc-700" />
-                  </button>
-                </div>
-
-                <div className="hidden lg:flex flex-col md:flex-row items-center justify-between gap-6 pt-4">
-                  <Link prefetch={false} href="/checkout/cart" className="flex items-center gap-1.5 text-sm font-semibold text-accent hover:opacity-80 transition-opacity">
-                    <ChevronLeft className="size-4" />
-                    Return to cart
-                  </Link>
-                  <Button 
-                    disabled={!selectedStoreId} 
-                    onClick={() => {
-                      handleContinueToPayment();
-                      router.push("/checkout/payment");
-                    }}
-                    className="w-full md:w-70 flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-14 px-4 lg:px-6 font-figtree font-medium uppercase tracking-wide text-lg text-white cursor-pointer hover:bg-[#4A312F] transition-colors"
-                  >
-                    CONTINUE TO PAYMENT
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="w-full lg:basis-[40%] lg:shrink-0 relative">
-            <div className="hidden lg:block absolute inset-y-0 left-0 w-screen bg-[#FAFAFA] border-l border-zinc-100 z-0" />
-              <div className="relative z-10 py-10 px-4 lg:pl-12 mb-10 lg:bg-transparent min-h-full bg-[#FAFAFA]" ref={summaryRef}>
-                <div className="lg:sticky lg:top-0">
-                  <CheckoutSummary />
+                </CheckoutSummary>
                 </div>
               </div>
             </div>
           </div>
-      </div>
-
-      {/* Mobile Sticky Footer */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-100 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.08)] z-[60]">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <span className="text-lg font-bold text-zinc-900 leading-none">₹ {finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-            <button 
-              onClick={scrollToSummary}
-              className="text-[11px] font-bold text-accent uppercase tracking-tight mt-1 text-left whitespace-nowrap"
-            >
-              View Summary
-            </button>
-          </div>
-          <Link prefetch={false} href="/checkout/payment" className={`grow ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
-             <Button 
-              disabled={isContinueDisabled}
-              className="w-full flex shrink-0 items-center justify-center rounded-sm bg-[#5A413F] h-[45px] px-4 font-figtree font-medium uppercase tracking-wide text-sm text-white whitespace-nowrap cursor-pointer hover:bg-[#4A312F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Continue to payment
-            </Button>
-          </Link>
         </div>
       </div>
 
-      {/* POPUPS */}
-      {isDesktop ? (
-        <>
-          {/* STORE PICKUP DIALOG */}
-          <Dialog open={showStoreDialog} onOpenChange={setShowStoreDialog}>
-            <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-lg border-none">
-              <DialogHeader className="p-6 pb-0">
-                <DialogTitle className="text-xl font-bold text-zinc-900">Pickup locations</DialogTitle>
-              </DialogHeader>
-              <StorePickupContent />
-              <div className="p-4 bg-zinc-50 border-t border-zinc-100 flex items-center justify-end gap-3">
-                <Button variant="outline" onClick={() => setShowStoreDialog(false)} className="px-8 h-12 border-zinc-200 text-zinc-600 font-bold">Cancel</Button>
-                <Button onClick={handleSaveStoreSelection} className="px-10 h-12 bg-primary hover:bg-primary/90 text-white font-bold">Save</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+      {/* Mobile Sticky Footer */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        {deliveryMethod === "pickup" && pickup.showStoreDialog ? (
+          <Button
+            type="button"
+            onClick={pickup.saveStoreSelection}
+            className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white"
+          >
+            CONFIRM
+          </Button>
+        ) : (
+          <div className="flex flex-col gap-[14px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[1.125rem] font-semibold text-black leading-none font-figtree tracking-normal">
+                ₹{finalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </span>
+              <button
+                onClick={scrollToSummary}
+                className="text-[0.875rem] lg:text-[0.9375rem] font-medium text-black cursor-pointer font-figtree"
+              >
+                View Order Summary
+              </button>
+            </div>
+            <Link prefetch={false} href="/checkout/payment" className={`w-full block ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
+              <Button
+                disabled={isContinueDisabled}
+                className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                CONTINUE TO PAYMENT
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
 
-          {/* ADDRESS FORM DIALOG */}
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{dialogMode === "edit" ? "Edit address" : "Add new address"}</DialogTitle>
-                <DialogDescription>
-                  {addresses.length > 0 ? "Phone stays tied to your account." : "Email and phone stay tied to your account."}
-                </DialogDescription>
-              </DialogHeader>
-              <AddressFields
-                form={addressForm}
-                onChange={updateForm}
-                makeDefault={makeDefault}
-                onDefaultChange={setMakeDefault}
-                submitLabel={dialogMode === "edit" ? "Save changes" : "Save address"}
-                onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
-                saving={dialogSaving}
-                disablePhone={true}
-                fetchPincodeDetails={fetchPincodeDetails}
-                hideEmail={addresses.length > 0}
-              />
-            </DialogContent>
-          </Dialog>
-
-          {/* ADDRESS LIST DIALOG */}
-          <Dialog open={addressListOpen} onOpenChange={setAddressListOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>All addresses</DialogTitle>
-                <DialogDescription>Select a default shipping address.</DialogDescription>
-              </DialogHeader>
-              <AddressListContent />
-            </DialogContent>
-          </Dialog>
-        </>
-      ) : (
-        <>
-          <MobileBottomSheet isOpen={showStoreDialog} onClose={() => setShowStoreDialog(false)} title="Pickup locations" footer={<Button onClick={handleSaveStoreSelection} className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-full uppercase tracking-widest">SAVE LOCATION</Button>}>
-            <StorePickupContent />
-          </MobileBottomSheet>
-
-          <MobileBottomSheet isOpen={dialogOpen} onClose={() => setDialogOpen(false)} title={dialogMode === "edit" ? "Edit address" : "Add new address"}>
-            <AddressFields
-              form={addressForm}
-              onChange={updateForm}
-              makeDefault={makeDefault}
-              onDefaultChange={setMakeDefault}
-              submitLabel={dialogMode === "edit" ? "SAVE CHANGES" : "SAVE ADDRESS"}
-              onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
-              saving={dialogSaving}
-              isMobile={true}
-              disablePhone={true}
-              fetchPincodeDetails={fetchPincodeDetails}
-              hideEmail={addresses.length > 0}
-            />
-          </MobileBottomSheet>
-
-          <MobileBottomSheet isOpen={addressListOpen} onClose={() => setAddressListOpen(false)} title="All addresses">
-            <AddressListContent />
-          </MobileBottomSheet>
-        </>
+      {/* AUTHENTICATION OVERLAY */}
+      {!isAuthenticated && (
+        isDesktop ? (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#00000099]">
+            <div className="bg-white rounded-lg shadow-2xl max-w-[420px] w-full overflow-hidden">
+              <CheckoutAuthForm onSuccess={() => { }} />
+            </div>
+          </div>
+        ) : (
+          <div className="fixed inset-0 z-[110] bg-[#00000099]">
+            <MobileBottomSheet isOpen={true} onClose={() => { }} title="Checkout Securely" hideHeader={true} detent="content-height" hideDragHandle={true} disableDrag={true}>
+              <CheckoutAuthForm onSuccess={() => { }} />
+            </MobileBottomSheet>
+          </div>
+        )
       )}
     </div>
   );
 }
-

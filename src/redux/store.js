@@ -27,7 +27,7 @@ const storage = typeof window !== "undefined" ? createWebStorage("local") : crea
 const cartPersistConfig = {
   key: "cart",
   storage,
-  blacklist: ["loading", "error"],
+  blacklist: ["loading", "error", "nectorPoints"],
 };
 
 const wishlistPersistConfig = {

@@ -55,30 +55,23 @@ export default function PlatinumRatePage({ page }) {
     const router = useRouter();
     const [isFlipped, setIsFlipped] = useState(false);
     
-    // Extract city from URL handle if available
-    const getInitialCity = () => {
-        if (typeof window !== 'undefined') {
-            const pathname = window.location.pathname;
-            // Extract city slug from URL like /pages/kalyan-platinum-rate-today
-            const match = pathname.match(/\/pages\/(.+?)-platinum-rate-today/);
-            if (match && match[1]) {
-                return match[1];
-            }
-        }
-        return page?.city?.value?.toLowerCase().replace(/\s+/g, '-') || 'mumbai';
-    };
+    // The city this page is *about*, resolved server-side from the URL handle.
+    // Read it from the prop rather than window.location so SSR and hydration
+    // agree, and so it stays put while the visitor browses the dropdowns.
+    const pageCitySlug = (page?.city?.value || 'Mumbai').toLowerCase().replace(/\s+/g, '-');
 
     const [selectedState, setSelectedState] = useState(page?.state?.value?.toLowerCase().replace(/\s+/g, '-') || 'maharashtra');
-    const [selectedCity, setSelectedCity] = useState(getInitialCity());
+    const [selectedCity, setSelectedCity] = useState(pageCitySlug);
     const [currentDate, setCurrentDate] = useState("");
     const [rates, setRates] = useState(null);
 
     const stateName = page?.state?.value || "Maharashtra";
 
-    // Compute the current city and state display names from state variables
+    // Display name for the city. Lowercased before title-casing so a Caps-Lock
+    // URL that reached us without a redirect can't leak "MYSORE" into headings.
     const cityNameDisplay = useMemo(() => {
-        return selectedCity.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    }, [selectedCity]);
+        return pageCitySlug.split('-').filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }, [pageCitySlug]);
 
     const stateNameDisplay = useMemo(() => {
         return selectedState.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');

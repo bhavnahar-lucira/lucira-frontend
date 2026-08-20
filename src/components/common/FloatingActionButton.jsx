@@ -31,6 +31,9 @@ export default function FloatingActionButton() {
     if (pathname.includes("gold-rate")) return { type: "gold-rate", title, slug: pathname.split('/').pop() };
     if (pathname.includes("platinum-rate")) return { type: "platinum-rate", title, slug: pathname.split('/').pop() };
     if (pathname.includes("silver-rate")) return { type: "silver-rate", title, slug: pathname.split('/').pop() };
+    if (pathname.startsWith("/schemes")) return { type: "schemes", title, sku };
+    if (pathname.includes("old-gold-exchange")) return { type: "old-gold-exchange", title, sku };
+    if (pathname.includes("store-locator")) return { type: "store-locator", title, sku };
 
     return { type: "other", title, sku };
   };
@@ -66,6 +69,15 @@ export default function FloatingActionButton() {
       message = `Tell me more about ${getRateCity(ctx.slug, 'platinum')} platinum rate`;
     } else if (ctx.type === "silver-rate") {
       message = `Tell me more about ${getRateCity(ctx.slug, 'silver')} silver rate`;
+    } else if (ctx.type === "schemes") {
+      // Scheme enquiries go to a dedicated line, not the main store number.
+      return `https://wa.me/918976740895?text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}`;
+    } else if (ctx.type === "old-gold-exchange") {
+      // Old Gold Exchange enquiries share the same dedicated line.
+      return `https://wa.me/918976740895?text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}`;
+    } else if (ctx.type === "store-locator") {
+      // Store-locator enquiries also go to the dedicated line (default message).
+      return `https://wa.me/918976740895?text=${encodeURIComponent(message)}`;
     }
 
     return `https://wa.me/919004435760?text=${encodeURIComponent(message)}`;

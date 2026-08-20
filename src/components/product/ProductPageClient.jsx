@@ -30,7 +30,7 @@ const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocator
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
 import ExploreOtherRings from "@/components/product/ExploreOtherRings";
-import WearThisWith from "@/components/product/WearThisWith";
+// import WearThisWith from "@/components/product/WearThisWith";
 import ProductCard from "@/components/product/ProductCard";
 import { Separator } from "@/components/ui/separator";
 import ProductGallery from "@/components/product/ProductGallery";
@@ -1102,8 +1102,8 @@ export default function ProductPageClient({
     const currentShopifyId = product?.shopifyId || product?.id;
     return recentlyViewedState.products.filter(item => {
       const isMatch = (item.handle && item.handle === currentHandle) ||
-                      (item.shopifyId && item.shopifyId === currentShopifyId) ||
-                      (item.id && item.id === currentShopifyId);
+        (item.shopifyId && item.shopifyId === currentShopifyId) ||
+        (item.id && item.id === currentShopifyId);
       return !isMatch;
     });
   }, [recentlyViewedState?.products, product?.handle, product?.shopifyId, product?.id]);
@@ -1175,7 +1175,7 @@ export default function ProductPageClient({
 
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("resize", handleScroll);
-    
+
     // Run once initially
     handleScroll();
 
@@ -1197,7 +1197,7 @@ export default function ProductPageClient({
 
   useEffect(() => {
     if (!product) return;
-    
+
     // Track product view for Search Analytics
     trackSearchProductView(String(getNumericId(product.shopifyId || product.id)));
 
@@ -1332,8 +1332,11 @@ export default function ProductPageClient({
         engravingFont: savedEngraving.font,
         giftText: giftText,
         shippingDate: (() => {
+          const isInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
+          const leadTime = parseInt(product?.productMetafields?.lead_time) || 12;
+          const totalDays = isInStock ? 2 : leadTime + 3;
           const date = new Date();
-          date.setDate(date.getDate() + 10);
+          date.setDate(date.getDate() + totalDays);
           const d = String(date.getDate()).padStart(2, "0");
           const m = String(date.getMonth() + 1).padStart(2, "0");
           const y = date.getFullYear();
@@ -1594,6 +1597,50 @@ export default function ProductPageClient({
       });
   }, [activeVariant, product.shopifyId, product.id]);
 
+  // Additional item (e.g. attached chain/material) sourced straight from the variant's
+  // DI-GoldPrice.variant_config metafield rather than the pricing API, since that engine
+  // doesn't know about this component.
+  const additionalItemInfo = useMemo(() => {
+    try {
+      const config = JSON.parse(activeVariant?.metafields?.variant_config || "{}");
+      const charges = Number(config.additional_item_charges || 0);
+      if (!config.additional_item_type || !charges) return null;
+      return {
+        type: config.additional_item_type,
+        weight: config.additional_item_weight,
+        charges,
+      };
+    } catch (e) {
+      return null;
+    }
+  }, [activeVariant]);
+
+  // Splice the additional item into the price breakup rows (right after Making Charges)
+  // and fold its charge into the displayed grand total, since the pricing API's total
+  // doesn't account for it.
+  const augmentedPriceBreakup = useMemo(() => {
+    const pb = priceBreakup?.price_breakup;
+    if (!pb || !additionalItemInfo) return pb;
+
+    const priceRows = [...(pb.price || [])];
+    const mcIndex = priceRows.findIndex((item) => item.label?.toLowerCase().includes("making charges"));
+    const newRow = { label: "Other Material", value: `₹${formatPrice(additionalItemInfo.charges)}` };
+
+    if (mcIndex >= 0) {
+      priceRows.splice(mcIndex + 1, 0, newRow);
+    } else {
+      priceRows.push(newRow);
+    }
+
+    const currentTotalNumeric = parseFloat(String(pb.grand_total || "0").replace(/[^\d.]/g, "")) || 0;
+
+    return {
+      ...pb,
+      price: priceRows,
+      grand_total: `₹${formatPrice(currentTotalNumeric + additionalItemInfo.charges)}`,
+    };
+  }, [priceBreakup, additionalItemInfo]);
+
   // Fetch the live Shopify price for the active variant, independent of the
   // backend's gold/diamond breakup lookup above. That breakup is served from the
   // Fastify backend's own in-memory price cache (see api/revalidate/route.js,
@@ -1620,7 +1667,6 @@ export default function ProductPageClient({
       })
       .catch((err) => console.error("Live price fetch failed", err));
   }, [activeVariant]);
-
   // Toast notification on price update
   useEffect(() => {
     if (activeVariant && shouldToastVariantChangeRef.current) {
@@ -1878,14 +1924,14 @@ export default function ProductPageClient({
   const hasLivePrice = livePrice
     && String(livePrice.variantId) === String(activeVariant?.id)
     && livePrice.price != null;
-  const priceBreakupMatches = priceBreakup && String(priceBreakup.variantId) === String(activeVariant?.id);
+  const priceBreakupMatches = priceBreakup && !priceBreakup.error && String(priceBreakup.variantId) === String(activeVariant?.id);
 
   // Get current display price: live Shopify price first, then the dynamic breakup
   // total (until the live price above resolves), then the static ISR-cached price.
   const currentPrice = hasLivePrice
     ? livePrice.price
     : priceBreakupMatches
-      ? priceBreakup.price
+      ? (Number(priceBreakup.raw_breakup?.total) || Number(priceBreakup.price) || 0) + (additionalItemInfo?.charges || 0)
       : (activeVariant ? activeVariant.price : product.price);
 
   // Compare-at price: live Shopify value once fetched, else the static value baked
@@ -1897,7 +1943,8 @@ export default function ProductPageClient({
   // live price hasn't resolved yet, so it can't reintroduce the staleness that
   // currentPrice above already avoids once the live price is available.
   const dynamicOriginalTotal = (!hasLivePrice && priceBreakupMatches)
-    ? Number(priceBreakup.raw_breakup?.original_total) || 0
+    ? (Number(priceBreakup.raw_breakup?.original_total) || 0) + (additionalItemInfo?.charges || 0)
+    : 0;
     : 0;
   // Use whichever is higher so the cut price shows consistently for gold products where the
   // breakup's original_total is present but not greater than the (dynamic) selling price.
@@ -1937,9 +1984,9 @@ export default function ProductPageClient({
 
   const shareIntentImage = getValidSrc(
     activeVariant?.image ||
-      getColorSpecificImage(product, activeColor) ||
-      product.featuredImage ||
-      product.media?.[0]?.url
+    getColorSpecificImage(product, activeColor) ||
+    product.featuredImage ||
+    product.media?.[0]?.url
   );
 
   const shareIntentSku = activeVariant?.sku || product?.variants?.[0]?.sku || "";
@@ -2152,57 +2199,57 @@ export default function ProductPageClient({
                   <div className="flex justify-between gap-2 items-center">
                     {/* Spec line + social-proof badge, grouped left (badge hugs the spec line) */}
                     <div className="flex items-center gap-2 min-w-0">
-                    {(() => {
-                      const variantMeta = activeVariant?.metafields;
-                      const prodMeta = product.productMetafields;
-                      const pricingDiamond = priceBreakup?.diamond_info;
-                      const ornaverseComp = parseOrnaverseComponent(variantMeta?.components || prodMeta?.components);
+                      {(() => {
+                        const variantMeta = activeVariant?.metafields;
+                        const prodMeta = product.productMetafields;
+                        const pricingDiamond = priceBreakup?.diamond_info;
+                        const ornaverseComp = parseOrnaverseComponent(variantMeta?.components || prodMeta?.components);
 
-                      // Find the first diamond component for summary display
-                      const firstDiamond = ornaverseComp?.components?.find(c =>
-                        (c.item_group_name === "Diamond" || (c.quality_code && c.quality_code !== "NA")) && (parseFloat(c.weight) > 0 || parseInt(c.pieces) > 0)
-                      );
+                        // Find the first diamond component for summary display
+                        const firstDiamond = ornaverseComp?.components?.find(c =>
+                          (c.item_group_name === "Diamond" || (c.quality_code && c.quality_code !== "NA")) && (parseFloat(c.weight) > 0 || parseInt(c.pieces) > 0)
+                        );
 
-                      const variantDiamonds = variantMeta?.diamonds?.filter(d => parseFloat(d.weight) > 0 || parseInt(d.pieces) > 0) || [];
-                      const isDiamondProduct = !!firstDiamond || variantDiamonds.length > 0 || (!!pricingDiamond && (parseFloat(pricingDiamond.carat) > 0 || parseInt(pricingDiamond.pcs) > 0));
+                        const variantDiamonds = variantMeta?.diamonds?.filter(d => parseFloat(d.weight) > 0 || parseInt(d.pieces) > 0) || [];
+                        const isDiamondProduct = !!firstDiamond || variantDiamonds.length > 0 || (!!pricingDiamond && (parseFloat(pricingDiamond.carat) > 0 || parseInt(pricingDiamond.pcs) > 0));
 
-                      const parts = [];
+                        const parts = [];
 
-                      if (isDiamondProduct) {
-                        // 1. Diamond Quality
-                        const quality = (firstDiamond?.quality_code && firstDiamond?.stone_color_code && firstDiamond.quality_code !== "NA" && firstDiamond.stone_color_code !== "NA")
-                          ? `${firstDiamond.quality_code}, ${firstDiamond.stone_color_code}`
-                          : (firstDiamond?.purity || variantDiamonds[0]?.quality || (pricingDiamond?.color && pricingDiamond?.clarity ? `${pricingDiamond.clarity}, ${pricingDiamond.color}` : pricingDiamond?.title) || prodMeta?.quality);
+                        if (isDiamondProduct) {
+                          // 1. Diamond Quality
+                          const quality = (firstDiamond?.quality_code && firstDiamond?.stone_color_code && firstDiamond.quality_code !== "NA" && firstDiamond.stone_color_code !== "NA")
+                            ? `${firstDiamond.quality_code}, ${firstDiamond.stone_color_code}`
+                            : (firstDiamond?.purity || variantDiamonds[0]?.quality || (pricingDiamond?.color && pricingDiamond?.clarity ? `${pricingDiamond.clarity}, ${pricingDiamond.color}` : pricingDiamond?.title) || prodMeta?.quality);
 
-                        // 2. Diamond Carat
-                        const totalWeight = variantDiamonds.length > 0 ? variantDiamonds.reduce((sum, d) => sum + parseFloat(d.weight || 0), 0) : 0;
-                        const carat = totalWeight > 0
-                          ? `${Number(totalWeight.toFixed(3))}ct`
-                          : (firstDiamond?.weight ? `${firstDiamond.weight}ct` : (pricingDiamond?.carat ? `${pricingDiamond.carat}ct` : prodMeta?.carat_range));
+                          // 2. Diamond Carat
+                          const totalWeight = variantDiamonds.length > 0 ? variantDiamonds.reduce((sum, d) => sum + parseFloat(d.weight || 0), 0) : 0;
+                          const carat = totalWeight > 0
+                            ? `${Number(totalWeight.toFixed(3))}ct`
+                            : (firstDiamond?.weight ? `${firstDiamond.weight}ct` : (pricingDiamond?.carat ? `${pricingDiamond.carat}ct` : prodMeta?.carat_range));
 
-                        if (quality && quality !== "NA") parts.push(quality);
-                        if (carat && carat !== "NA" && !String(carat).startsWith("0ct")) parts.push(carat);
-                      }
+                          if (quality && quality !== "NA") parts.push(quality);
+                          if (carat && carat !== "NA" && !String(carat).startsWith("0ct")) parts.push(carat);
+                        }
 
-                      // If no diamond parts were added, or it's not a diamond product, show metal purity
-                      if (parts.length === 0) {
-                        const metalPurity = variantMeta?.metal_purity || activeKarat;
-                        if (metalPurity) parts.push(metalPurity);
-                      }
+                        // If no diamond parts were added, or it's not a diamond product, show metal purity
+                        if (parts.length === 0) {
+                          const metalPurity = variantMeta?.metal_purity || activeKarat;
+                          if (metalPurity) parts.push(metalPurity);
+                        }
 
-                      // 3. Metal Weight
-                      const weightVal = variantMeta?.metal_weight || prodMeta?.weight;
-                      const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
-                      if (weight) parts.push(weight);
+                        // 3. Metal Weight
+                        const weightVal = variantMeta?.metal_weight || prodMeta?.weight;
+                        const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
+                        if (weight) parts.push(weight);
 
-                      if (parts.length === 0) return null;
+                        if (parts.length === 0) return null;
 
-                      return (
-                        <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 tracking-tight truncate">
-                          {parts.join(" · ")}
-                        </p>
-                      );
-                    })()}
+                        return (
+                          <p className="font-figtree text-[10px] lg:text-sm font-medium text-gray-800 tracking-tight truncate">
+                            {parts.join(" · ")}
+                          </p>
+                        );
+                      })()}
                       <ProductSocialProofBand socialProof={socialProof} />
                     </div>
                     {/* Rating */}
@@ -2263,7 +2310,7 @@ export default function ProductPageClient({
                 const isGoldCoinEligible = isDiamondJewelry && currentTotalPrice >= goldCoinConfig.threshold;
 
                 const slides = [];
-                
+
                 // if (currentTotalPrice >= 30000) {
                 //   slides.push({
                 //     icon: (
@@ -2280,9 +2327,9 @@ export default function ProductPageClient({
                 if (diamondDiscount > 0) {
                   slides.push({
                     icon: (
-                      <img 
-                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/basil_diamond-outline_1.png?v=1782295703" 
-                        alt="Diamond Discount" 
+                      <img
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/basil_diamond-outline_1.png?v=1782295703"
+                        alt="Diamond Discount"
                         className="w-5 h-5 object-contain inline-block align-middle"
                       />
                     ),
@@ -2292,9 +2339,9 @@ export default function ProductPageClient({
                 if (mcDiscount > 0) {
                   slides.push({
                     icon: (
-                      <img 
-                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3147_5.png?v=1782295698" 
-                        alt="Making Charges Discount" 
+                      <img
+                        src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3147_5.png?v=1782295698"
+                        alt="Making Charges Discount"
                         className="w-5 h-5 object-contain inline-block align-middle"
                       />
                     ),
@@ -2355,24 +2402,24 @@ export default function ProductPageClient({
             <div className="space-y-6 mt-4">
               {/* Mobile Customizer */}
               <div ref={customizeRef} className="lg:hidden">
-              <ProductCustomizerMobile
-                activeColor={activeColor}
-                activeKarat={activeKarat}
-                selectedSize={selectedSize}
-                handleGoldSelection={handleGoldSelection}
-                handleSizeSelection={handleSizeSelection}
-                availableSizes={availableSizes}
-                product={product}
-                isColorInStock={isColorInStock}
-                isSizeInStock={isSizeInStock}
-                nearestStore={nearestStore}
-                availableStores={availableStores}
-                availableStoreCount={availableStoreCount}
-                deliveryInfo={deliveryInfo}
-                getStoreDisplayName={getStoreDisplayName}
-                currentPrice={formatPrice(currentPrice)}
-                currentComparePrice={formatPrice(currentComparePrice)}
-              />
+                <ProductCustomizerMobile
+                  activeColor={activeColor}
+                  activeKarat={activeKarat}
+                  selectedSize={selectedSize}
+                  handleGoldSelection={handleGoldSelection}
+                  handleSizeSelection={handleSizeSelection}
+                  availableSizes={availableSizes}
+                  product={product}
+                  isColorInStock={isColorInStock}
+                  isSizeInStock={isSizeInStock}
+                  nearestStore={nearestStore}
+                  availableStores={availableStores}
+                  availableStoreCount={availableStoreCount}
+                  deliveryInfo={deliveryInfo}
+                  getStoreDisplayName={getStoreDisplayName}
+                  currentPrice={formatPrice(currentPrice)}
+                  currentComparePrice={formatPrice(currentComparePrice)}
+                />
               </div>
 
               {/* Desktop Selection Blocks */}
@@ -2760,7 +2807,7 @@ export default function ProductPageClient({
                           className="flex items-center justify-center shrink-0 overflow-hidden"
                         >
                           <svg width={28} height={18} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "28px", height: "18px" }}>
-                            <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M1 1H3L4.07085 6M4.07085 6L5.66 13.42C5.75758 13.8749 6.01067 14.2815 6.37571 14.5699C6.74075 14.8582 7.19491 15.0103 7.66 15H17.44C17.8952 14.9993 18.3365 14.8433 18.691 14.5578C19.0456 14.2724 19.2921 13.8745 19.39 13.43L21.04 6H4.07085ZM7.95 19.95C7.95 20.5023 7.50228 20.95 6.95 20.95C6.39772 20.95 5.95 20.5023 5.95 19.95C5.95 19.3977 6.39772 18.95 6.95 18.95C7.50228 18.95 7.95 19.3977 7.95 19.95ZM18.95 19.95C18.95 20.5023 18.5023 20.95 17.95 20.95C17.3977 20.95 16.95 20.5023 16.95 19.95C16.95 19.3977 17.3977 18.95 17.95 18.95C18.5023 18.95 18.95 19.3977 18.95 19.95Z" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         </motion.span>
                       )}
@@ -3042,14 +3089,14 @@ export default function ProductPageClient({
                 <div className="border border-gray-200 rounded-xl p-2.5 sm:p-4 flex gap-2 sm:gap-4 bg-white">
                   {/* Left Side: Image */}
                   <div className="w-[72px] sm:w-[110px] aspect-square shrink-0 self-center rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
-                    <Image 
-                      src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Available_Store_1.png?v=1784981054" 
-                      alt="Nearest Store" 
-                      fill 
-                      className="object-cover" 
+                    <Image
+                      src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Available_Store_1.png?v=1784981054"
+                      alt="Nearest Store"
+                      fill
+                      className="object-cover"
                     />
                   </div>
-                  
+
                   {/* Right Side: Content */}
                   <div className="flex-1 flex flex-col justify-center space-y-2 sm:space-y-2.5">
                     <div className="flex items-start sm:items-center gap-1.5 sm:gap-2 min-w-0">
@@ -3069,16 +3116,16 @@ export default function ProductPageClient({
                       <svg width="15" height="15" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <g clipPath="url(#clip0_2_63372)">
                           <mask id="mask0_2_63372" style={{ maskType: "luminance" }} maskUnits="userSpaceOnUse" x="0" y="0" width="17" height="17">
-                            <path d="M8.50033 15.5832C9.43069 15.5843 10.3521 15.4016 11.2117 15.0456C12.0712 14.6895 12.8519 14.1672 13.509 13.5085C14.1676 12.8514 14.69 12.0707 15.0461 11.2112C15.4021 10.3516 15.5848 9.43021 15.5837 8.49984C15.5848 7.56948 15.4021 6.64806 15.0461 5.78852C14.69 4.92898 14.1676 4.14826 13.509 3.49122C12.8519 2.83252 12.0712 2.31015 11.2117 1.9541C10.3521 1.59806 9.43069 1.41536 8.50033 1.41651C7.56997 1.41536 6.64854 1.59806 5.789 1.9541C4.92946 2.31015 4.14875 2.83252 3.49171 3.49122C2.83301 4.14826 2.31064 4.92898 1.95459 5.78852C1.59855 6.64806 1.41585 7.56948 1.417 8.49984C1.41585 9.43021 1.59855 10.3516 1.95459 11.2112C2.31064 12.0707 2.83301 12.8514 3.49171 13.5085C4.14875 14.1672 4.92946 14.6895 5.789 15.0456C6.64854 15.4016 7.56997 15.5843 8.50033 15.5832Z" fill="white" stroke="white" strokeWidth={2} strokeLinejoin="round"/>
-                            <path d="M5.66699 8.5L7.79199 10.625L12.042 6.375" stroke="black" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M8.50033 15.5832C9.43069 15.5843 10.3521 15.4016 11.2117 15.0456C12.0712 14.6895 12.8519 14.1672 13.509 13.5085C14.1676 12.8514 14.69 12.0707 15.0461 11.2112C15.4021 10.3516 15.5848 9.43021 15.5837 8.49984C15.5848 7.56948 15.4021 6.64806 15.0461 5.78852C14.69 4.92898 14.1676 4.14826 13.509 3.49122C12.8519 2.83252 12.0712 2.31015 11.2117 1.9541C10.3521 1.59806 9.43069 1.41536 8.50033 1.41651C7.56997 1.41536 6.64854 1.59806 5.789 1.9541C4.92946 2.31015 4.14875 2.83252 3.49171 3.49122C2.83301 4.14826 2.31064 4.92898 1.95459 5.78852C1.59855 6.64806 1.41585 7.56948 1.417 8.49984C1.41585 9.43021 1.59855 10.3516 1.95459 11.2112C2.31064 12.0707 2.83301 12.8514 3.49171 13.5085C4.14875 14.1672 4.92946 14.6895 5.789 15.0456C6.64854 15.4016 7.56997 15.5843 8.50033 15.5832Z" fill="white" stroke="white" strokeWidth={2} strokeLinejoin="round" />
+                            <path d="M5.66699 8.5L7.79199 10.625L12.042 6.375" stroke="black" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                           </mask>
                           <g mask="url(#mask0_2_63372)">
-                            <path d="M0 0H17V17H0V0Z" fill="#76D168"/>
+                            <path d="M0 0H17V17H0V0Z" fill="#76D168" />
                           </g>
                         </g>
                         <defs>
                           <clipPath id="clip0_2_63372">
-                            <rect width="17" height="17" fill="white"/>
+                            <rect width="17" height="17" fill="white" />
                           </clipPath>
                         </defs>
                       </svg>
@@ -3154,7 +3201,7 @@ export default function ProductPageClient({
                             : "FIND ALL STORES"}
                         </Button>
                       )}
-                      
+
                       {hasConfirmedPincode && nearbyAvailableStore && otherAvailableStoreCount > 0 && (
                         <p className="text-xs text-black mt-2">
                           Also available in {" "}
@@ -3242,7 +3289,7 @@ export default function ProductPageClient({
                       // Caught so a blocked clipboard (unfocused document, or a
                       // webview without permission) cannot surface as an
                       // unhandled promise rejection.
-                      navigator.clipboard?.writeText(activeVariant.sku).catch(() => {});
+                      navigator.clipboard?.writeText(activeVariant.sku).catch(() => { });
 
                       // Same share-intent sheet as a text copy. An explicit SKU
                       // copy is the strongest send-intent signal on the page, and
@@ -3464,13 +3511,75 @@ export default function ProductPageClient({
                     </div>
                   </div>
                 )}
+
+                {/* Other Material Card (beads, evil eye, steel, flexi belt, etc.) */}
+                {(() => {
+                  let config = {};
+                  try {
+                    config = JSON.parse(activeVariant?.metafields?.variant_config || "{}");
+                  } catch (e) { }
+
+                  const hasOtherMaterials = activeVariant?.metafields?.otherMaterials?.length > 0;
+                  const hasVariantConfigMaterial = config.additional_item_charges && Number(config.additional_item_charges) > 0;
+
+                  if (!hasOtherMaterials && !hasVariantConfigMaterial) return null;
+
+                  return (
+                    <div className="bg-[#F9F9F9] rounded p-5 space-y-5 col-span-2">
+                      <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                        <svg width="18" height="18" viewBox="-2 -2 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M9.61794 18.625L11.4269 9.62529M11.4269 9.62529L18.4666 12.4908M11.4269 9.62529L6.44997 0.897371M8.96454 0.810074C8.14227 0.535717 7.24861 0.567263 6.44773 0.898916C5.64685 1.23057 4.99254 1.84006 4.60499 2.61542L1.00502 9.81518C0.612643 10.6 0.520397 11.5011 0.745622 12.3491C0.970847 13.1971 1.49804 13.9336 2.22811 14.4203L7.62806 18.0202C8.21945 18.4145 8.91434 18.6249 9.62514 18.6249C10.3359 18.6249 11.0308 18.4145 11.6222 18.0202L17.0222 14.4203C17.6791 13.9823 18.1737 13.3405 18.43 12.5938C18.6863 11.847 18.69 11.0367 18.4405 10.2877L16.6406 4.88784C16.4638 4.35761 16.1661 3.87581 15.7709 3.4806C15.3756 3.0854 14.8938 2.78764 14.3636 2.61092L8.96454 0.810074Z" stroke="#785754" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Other Material
+                      </div>
+
+                      <div className="space-y-2">
+                        {hasOtherMaterials && activeVariant.metafields.otherMaterials.map((m, i) => (
+                          <div key={`other-mat-${i}`} className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500">Material</span>
+                              <span className="font-medium">{m.material || "-"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500">Color</span>
+                              <span className="font-medium">{m.color || "-"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500">Quantity</span>
+                              <span className="font-medium">{m.pieces || "1"}pcs</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500">Weight</span>
+                              <span className="font-medium">{m.weight || "0"}g</span>
+                            </div>
+                            {i < activeVariant.metafields.otherMaterials.length - 1 && (
+                              <div className="h-px bg-gray-200 my-3" />
+                            )}
+                          </div>
+                        ))}
+                        {hasVariantConfigMaterial && !hasOtherMaterials && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500">Material</span>
+                              <span className="font-medium capitalize">{config.additional_item_type || "-"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-500">Weight</span>
+                              <span className="font-medium">{config.additional_item_weight || "0"} gm</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
 
               <div ref={productDetailsRef} className="mt-8">
                 <PriceSavingsDetails
-                  priceBreakup={priceBreakupDisplay}
+                  priceBreakup={augmentedPriceBreakup || priceBreakupDisplay}
                   onTabChange={(tab) => {
                     if (tab === 'price') {
                       const totalSavingsAmount = priceBreakup?.raw_breakup?.total_savings || 0;
@@ -3604,13 +3713,13 @@ export default function ProductPageClient({
                   <div className="mt-4">
                     {product.tags?.includes("Tennis Bracelets") || product.tags?.includes("Eternity") ? (
                       <p className="text-sm text-black text-left"><strong>Note: </strong>
-                       Handcrafted and personalized with care - slight variations in metal weight, diamond weight and quantity are natural with different sizes.
+                        Handcrafted and personalized with care - slight variations in metal weight, diamond weight and quantity are natural with different sizes.
                       </p>
-                    ) : 
+                    ) :
                       <p className="text-sm text-black text-left"><strong>Note: </strong>
                         Handcrafted and personalized with care - slight variations in metal weight are natural with different sizes.
                       </p>
-                    }                    
+                    }
                     {product.tags?.includes("Only Pendant") && (
                       <p className="text-sm text-black text-left mt-1">Chain is not included in the purchase.</p>
                     )}
@@ -3620,8 +3729,8 @@ export default function ProductPageClient({
             )}
 
             <ProductAccordion />
-            {/* Wear This With Slider */}
-            {complementaryProducts.length > 0 && <WearThisWith products={complementaryProducts} />}
+            {/* Wear This With Slider - hidden on the product page */}
+            {/* {complementaryProducts.length > 0 && <WearThisWith products={complementaryProducts} />} */}
           </div>
         </div>
       </div>
@@ -3633,7 +3742,7 @@ export default function ProductPageClient({
       ) : (
         <ProductStory description={product.description} />
       )}
-      
+
       {isCentralInStock ? (
         <FindLuciraStore
           pincode={localPincode}
@@ -3662,7 +3771,7 @@ export default function ProductPageClient({
       </div>
 
       {matchedCollectionTag ? (
-        <StyledByLuciraCollection collectionHandle={matchedCollectionTag}/>
+        <StyledByLuciraCollection collectionHandle={matchedCollectionTag} />
       ) : (
         <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
           <StyledByLucira />
@@ -3730,8 +3839,8 @@ export default function ProductPageClient({
                           <div className="space-y-1">
                             {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
                             <h3 className="font-bold text-lg">
-                              {getStoreDisplayName(store.name) === "Head Office" 
-                                ? "Head Office" 
+                              {getStoreDisplayName(store.name) === "Head Office"
+                                ? "Head Office"
                                 : `${getStoreDisplayName(store.name)}`
                               }
                             </h3>
