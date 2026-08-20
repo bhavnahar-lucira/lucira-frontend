@@ -692,6 +692,7 @@ export const removeFromCart = createAsyncThunk(
       try {
         backendCart = await apiFetch("/api/cart/remove", {
           method: "POST",
+          suppressErrorLog: true,
           body: JSON.stringify({
             userId: finalUserId,
             sessionId,
@@ -700,7 +701,9 @@ export const removeFromCart = createAsyncThunk(
           })
         });
       } catch (e) {
-        console.error("removeFromCart backend error:", e);
+        if (!e.message?.toLowerCase().includes("not found")) {
+          console.error("removeFromCart backend error:", e);
+        }
       }
     }
 
@@ -743,6 +746,7 @@ export const removeMultipleFromCart = createAsyncThunk(
         try {
           backendCart = await apiFetch("/api/cart/remove", {
             method: "POST",
+            suppressErrorLog: true,
             body: JSON.stringify({
               userId: finalUserId,
               sessionId,
@@ -751,7 +755,9 @@ export const removeMultipleFromCart = createAsyncThunk(
             })
           });
         } catch (e) {
-          console.error("removeMultipleFromCart backend error:", e);
+          if (!e.message?.toLowerCase().includes("not found")) {
+            console.error("removeMultipleFromCart backend error:", e);
+          }
         }
       }
     }

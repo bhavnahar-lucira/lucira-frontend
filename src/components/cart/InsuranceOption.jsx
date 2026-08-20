@@ -101,6 +101,19 @@ export default function InsuranceOption() {
     }
   }, [otherItemsQuantity, isAdded, isProcessing, loading]);
 
+  // Auto-remove insurance if there are no other items in the cart
+  useEffect(() => {
+    if (
+      otherItemsQuantity === 0 &&
+      isAdded &&
+      !isProcessing &&
+      !loading &&
+      typeof window !== "undefined"
+    ) {
+      handleRemove();
+    }
+  }, [otherItemsQuantity, isAdded, isProcessing, loading]);
+
   if (otherItemsQuantity === 0 && !isAdded) return null;
 
   return (
