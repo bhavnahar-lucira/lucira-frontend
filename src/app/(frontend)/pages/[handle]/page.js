@@ -131,6 +131,24 @@ function withRateDate(title) {
   }
   return `${title} (${stamp})`;
 }
+
+// ─── Gold rate city meta (competitor-style) ──────────────────────────────────
+// "Todays Gold Rate in Mumbai for 14, 18, 22 & 24 Carat - 18 Aug 2026, 11 AM"
+// Short month keeps the title near the SERP character limit while still
+// carrying the date + current IST time as a freshness signal. Rate pages
+// render with no-store, so the stamp is the actual request time.
+function goldRateCityMeta(city) {
+  const now = new Date();
+  const ist = (opts) => new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", ...opts }).format(now);
+
+  const fullDate = ist({ day: "numeric", month: "short", year: "numeric" });  // "18 Aug 2026"
+  const time = ist({ hour: "numeric", hour12: true }).toUpperCase();          // "11 AM"
+
+  return {
+    title: `Todays Gold Rate in ${city} for 14, 18, 22 & 24 Carat - ${fullDate}, ${time}`,
+    description: `Gold Rate Today in ${city} - ${fullDate}, ${time} IST. Get live gold rates for 14K, 18K, 22K & 24K in ${city} and yesterday's gold rate per gram.`,
+  };
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateStaticParams() {
@@ -168,18 +186,24 @@ export async function generateMetadata({ params }) {
     title = page.seo?.title || page.title || "Lucira Jewelry";
     description = page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
 
-    // Gold rate pages: the Gold Rate City metaobject carries curated seo_title /
-    // seo_description per city — prefer those over the Shopify page's SEO fields
-    // so the title tag matches the content actually rendered from the metaobject.
+    // Gold rate pages: known city pages get the generated competitor-style
+    // title/description (uniform format, fresh date + IST time). Anything else
+    // ("gold-rate-today" itself, cities missing from STATE_CITY_MAP) keeps the
+    // curated metaobject seo_title / seo_description with the date stamp.
     if (isGoldRatePage) {
-      try {
-        const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
-        if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
-        if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
-      } catch {
-        // fall back to page SEO fields
+      const { cityCapitalized, matched } = resolveCityState(handle, "-gold-rate-today");
+      if (matched) {
+        ({ title, description } = goldRateCityMeta(cityCapitalized));
+      } else {
+        try {
+          const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
+          if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
+          if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
+        } catch {
+          // fall back to page SEO fields
+        }
+        title = withRateDate(title);
       }
-      title = withRateDate(title);
     }
   }
 
