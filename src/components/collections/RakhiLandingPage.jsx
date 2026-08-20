@@ -24,7 +24,7 @@ const RAKHI_BANNERS = {
   },
   strip: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PLP_20Strip.jpg?v=1787032488",
   middle: {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Middle-Banner-Desktop_fb3ee746-ecd8-442f-8aa6-2a7b9ede5ae7.jpg?v=1787032488",
+    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Middle-Banner-Desktop_fb3ee746-ecd8-442f-8aa6-2a7b9ede5ae7.jpg?v=1787146561",
     mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Middle-Banner-Mobile_28162d30-8c0c-4e13-8fb1-a485ec6fe2eb.jpg?v=1787032488",
   },
   // Desktop (1920x1072): couple on the right, blank space on the left for the tiles.
@@ -40,11 +40,6 @@ const RAKHI_BANNERS = {
 // creative's contents (UNDER_35K.jpg is the rings shot, UNDER_30K.jpg the pendants shot).
 const RETURN_GIFT_TILES = [
   {
-    label: "Rings Under 45k",
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/UNDER_35K.jpg?v=1787050813",
-    href: "/collections/lab-grown-diamond-rings-under-45k",
-  },
-  {
     label: "Earrings Under 25k",
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/UNDER_25K.jpg?v=1787050813",
     href: "/collections/lab-grown-diamond-earrings-under-25k",
@@ -53,6 +48,11 @@ const RETURN_GIFT_TILES = [
     label: "Pendants Under 35k",
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/UNDER_30K.jpg?v=1787050813",
     href: "/collections/lab-grown-diamond-pendants-under-35k",
+  },
+  {
+    label: "Rings Under 45k",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/UNDER_35K.jpg?v=1787050813",
+    href: "/collections/lab-grown-diamond-rings-under-45k",
   },
   {
     label: "Bracelets Under 55k",
@@ -223,7 +223,7 @@ export default function RakhiLandingPage({ products = [], loading = false }) {
         {/* Mobile: title above the banner. On desktop it moves inside the banner's blank area. */}
         <div className="text-center mb-6 lg:hidden">
           <h2 className="text-2xl font-extrabold font-abhaya text-black">
-            Gifts She&rsquo;ll Treasure, Under ₹50K
+            Gifts She&rsquo;ll Treasure, Under ₹55K
           </h2>
         </div>
 
@@ -243,7 +243,7 @@ export default function RakhiLandingPage({ products = [], loading = false }) {
             />
             <div className="absolute inset-y-0 left-[4%] w-[40%] flex flex-col justify-center">
               <h2 className="text-center text-3xl xl:text-4xl font-extrabold font-abhaya text-black mb-6 xl:mb-8">
-                Gifts She&rsquo;ll Treasure, Under ₹50K
+                Gifts She&rsquo;ll Treasure, Under ₹55K
               </h2>
               <div className="grid w-full grid-cols-2 gap-4 xl:gap-5">
                 {RETURN_GIFT_TILES.map((tile) => (
