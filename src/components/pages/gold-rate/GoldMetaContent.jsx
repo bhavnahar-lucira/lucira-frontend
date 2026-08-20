@@ -164,7 +164,7 @@ export default function GoldMetaContent({
             {/* Today vs Yesterday */}
             {y24 > 0 && (
               <>
-                <h2 id={S.todayVsYesterday} className="scroll-mt-24">Today vs Yesterday &mdash; Gold Rate Change in {city}</h2>
+                <h2 id={S.todayVsYesterday} className="scroll-mt-24">Today vs Yesterday - Gold Rate Change in {city}</h2>
                 <table>
                   <thead><tr><th>Karat</th><th>Today (₹/g)</th><th>Yesterday (₹/g)</th><th>Change</th></tr></thead>
                   <tbody>
@@ -218,7 +218,7 @@ export default function GoldMetaContent({
             </table>
 
             {/* Purity comparison */}
-            <h2 id={S.purityComparison} className="scroll-mt-24">Gold Karat Purity Comparison &mdash; {city} Buying Guide</h2>
+            <h2 id={S.purityComparison} className="scroll-mt-24">Gold Karat Purity Comparison - {city} Buying Guide</h2>
             <table>
               <thead><tr><th>Karat</th><th>Purity</th><th>Hallmark</th><th>Best For</th><th>Relative Price</th></tr></thead>
               <tbody>
@@ -236,7 +236,7 @@ export default function GoldMetaContent({
               <tbody>
                 <tr><th scope="row">999</th><td>99.9%</td><td>24K</td><td>Gold bars, coins, investment-grade gold</td></tr>
                 <tr><th scope="row">958</th><td>95.8%</td><td>23K</td><td>Rarely used in Indian jewellery market</td></tr>
-                <tr><th scope="row">916</th><td>91.6%</td><td>22K</td><td>Traditional jewellery &mdash; most common in {city}</td></tr>
+                <tr><th scope="row">916</th><td>91.6%</td><td>22K</td><td>Traditional jewellery, most common in {city}</td></tr>
                 <tr><th scope="row">875</th><td>87.5%</td><td>21K</td><td>Used in select Middle Eastern designs</td></tr>
                 <tr><th scope="row">750</th><td>75%</td><td>18K</td><td>Diamond and designer jewellery</td></tr>
                 <tr><th scope="row">585</th><td>58.5%</td><td>14K</td><td>Fashion and export jewellery</td></tr>
@@ -267,7 +267,7 @@ export default function GoldMetaContent({
             {/* Monthly trend */}
             {monthly.length > 0 && (
               <>
-                <h2 id={S.monthlyTrend} className="scroll-mt-24">Monthly Gold Rate Trend in {city} &mdash; Last 12 Months</h2>
+                <h2 id={S.monthlyTrend} className="scroll-mt-24">Monthly Gold Rate Trend in {city} - Last 12 Months</h2>
                 <table>
                   <thead><tr><th>Month</th><th>22K (₹/g)</th><th>24K (₹/g)</th><th>18K (₹/g)</th></tr></thead>
                   <tbody>
@@ -306,7 +306,7 @@ export default function GoldMetaContent({
             <table>
               <thead><tr><th>Component</th><th>Approximate Range</th><th>Notes</th></tr></thead>
               <tbody>
-                <tr><th scope="row">Base Gold Rate</th><td>MCX / IBJA rate</td><td>Published daily &mdash; forms the base of your jewellery cost</td></tr>
+                <tr><th scope="row">Base Gold Rate</th><td>MCX / IBJA rate</td><td>Published daily, forms the base of your jewellery cost</td></tr>
                 <tr><th scope="row">Making Charges</th><td>₹300 – ₹1,500/g</td><td>Higher for handcrafted, designer, and intricate pieces</td></tr>
                 <tr><th scope="row">GST</th><td>3%</td><td>On gold value + making charges</td></tr>
                 <tr><th scope="row">Wastage / Karigar</th><td>0–5%</td><td>Applies to handmade jewellery, charged by some retailers</td></tr>
@@ -317,7 +317,7 @@ export default function GoldMetaContent({
 
             {/* Investment guide + comparison */}
             {renderBlockJsx(bySlug["investment-guide"])}
-            <h3>Gold vs Other Investments &mdash; {city} Perspective</h3>
+            <h3>Gold vs Other Investments - {city} Perspective</h3>
             <table>
               <thead><tr><th>Factor</th><th>Gold</th><th>Fixed Deposit</th><th>Equity MF</th><th>SGBs</th><th>PPF</th></tr></thead>
               <tbody>
@@ -333,7 +333,7 @@ export default function GoldMetaContent({
 
             {/* Factors + table */}
             {renderBlockJsx(factorsBlock)}
-            <h3>Key Factors &mdash; How They Influence the {city} Gold Rate</h3>
+            <h3>Key Factors - How They Influence the {city} Gold Rate</h3>
             <table>
               <thead><tr><th>Factor</th><th>How It Influences {city} Gold Rate</th></tr></thead>
               <tbody>
@@ -354,11 +354,11 @@ export default function GoldMetaContent({
             <table>
               <thead><tr><th>Month/Period</th><th>Occasion</th><th>Demand Level</th><th>Buying Note</th></tr></thead>
               <tbody>
-                <tr><th scope="row">October/November</th><td>Dhanteras</td><td>Very High</td><td>Highest gold sales day in India &mdash; prices may carry a 1–3% premium</td></tr>
+                <tr><th scope="row">October/November</th><td>Dhanteras</td><td>Very High</td><td>Highest gold sales day in India, prices may carry a 1–3% premium</td></tr>
                 <tr><th scope="row">April/May</th><td>Akshaya Tritiya</td><td>Very High</td><td>Considered most auspicious; advance booking recommended</td></tr>
                 <tr><th scope="row">November–February</th><td>Wedding Season</td><td>Very High</td><td>Trousseau and gift buying peaks; plan 30–60 days in advance</td></tr>
                 <tr><th scope="row">January 14</th><td>Makar Sankranti</td><td>Moderate</td><td>Gifting gold is customary</td></tr>
-                <tr><th scope="row">June–August (Monsoon)</th><td>Slow Season</td><td>Low</td><td>Historically lower prices and demand &mdash; good buying window for investors</td></tr>
+                <tr><th scope="row">June–August (Monsoon)</th><td>Slow Season</td><td>Low</td><td>Historically lower prices and demand, good buying window for investors</td></tr>
               </tbody>
             </table>
 

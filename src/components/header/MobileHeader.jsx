@@ -358,7 +358,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { transformMenuData } from "@/lib/menus";
+import { transformMenuData, withChunkyRings } from "@/lib/menus";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -513,8 +513,12 @@ export default function MobileHeader({ menuData }) {
       return 99;
     };
 
-    return [...menu, ...extraItems].sort(
-      (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
+    // Same Chunky Rings entry the desktop mega menu appends, so the RINGS
+    // section matches across breakpoints.
+    return withChunkyRings(
+      [...menu, ...extraItems].sort(
+        (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
+      )
     );
   }, [menuData]);
 

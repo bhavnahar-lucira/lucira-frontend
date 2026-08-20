@@ -1,5 +1,6 @@
 import Header from "@/components/header/Header";
 import Footer from "@/components/common/Footer";
+import FloatingActionButton from "@/components/common/FloatingActionButton";
 import { getMenu } from "@/lib/menus";
 
 export const metadata = {
@@ -17,6 +18,7 @@ export default async function SchemesLayout({ children }) {
         {children}
       </main>
       <Footer />
+      <FloatingActionButton />
     </>
   );
 }

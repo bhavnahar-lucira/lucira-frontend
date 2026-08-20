@@ -7,13 +7,13 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { transformMenuData } from "@/lib/menus";
+import { transformMenuData, withChunkyRings } from "@/lib/menus";
 
 export default function Navbar({ hideTop, menuData }) {
   const MEGA_MENU = useMemo(() => {
     const menus = transformMenuData(menuData);
     
-    return menus.map(menu => {
+    return withChunkyRings(menus.map(menu => {
       const label = (menu.label || menu.title || '').toLowerCase();
       
       if (label.includes('more jewelry') || label.includes('more jewellery')) {
@@ -73,31 +73,8 @@ export default function Navbar({ hideTop, menuData }) {
         return { ...menu, columns: newCols };
       }
       
-      if (label === 'rings') {
-        const newCols = menu.columns?.map(col => {
-          const colTitle = (col.title || '').toLowerCase();
-          if (colTitle.includes('shop by style')) {
-            if (!col.items?.find(i => i.label === 'Chunky Rings')) {
-              return {
-                ...col,
-                items: [
-                  ...(col.items || []),
-                  {
-                    label: 'Chunky Rings',
-                    href: '/collections/chunky-rings',
-                    menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00972YG_1_180452a9-733e-438b-a7de-d7ee75b6bf6f.jpg?v=1784963998'
-                  }
-                ]
-              };
-            }
-          }
-          return col;
-        });
-        return { ...menu, columns: newCols };
-      }
-      
       return menu;
-    });
+    }));
   }, [menuData]);
   const [activeMenu, setActiveMenu] = useState(null);
   const pathname = usePathname();

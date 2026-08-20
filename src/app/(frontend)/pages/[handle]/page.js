@@ -1,5 +1,6 @@
 import { getPageByHandle, getAllPages } from "@/lib/pages";
 import { getGoldRateCityMeta, getGoldRateHistory } from "@/lib/goldRate";
+import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
 import { notFound } from "next/navigation";
 import "@/styles/gold-rate.css";
 
@@ -114,11 +115,6 @@ const GOLD_TITLE_DATE_FORMAT = {
   year: "numeric",
 };
 
-// The base title comes from a Shopify metaobject the marketing team edits, so
-// skip the stamp when a date has already been written into it by hand rather
-// than ending up with two.
-const ALREADY_DATED = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i;
-
 function withRateDate(title) {
   if (!title || ALREADY_DATED.test(title)) return title;
 
@@ -138,11 +134,7 @@ function withRateDate(title) {
 // carrying the date + current IST time as a freshness signal. Rate pages
 // render with no-store, so the stamp is the actual request time.
 function goldRateCityMeta(city) {
-  const now = new Date();
-  const ist = (opts) => new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", ...opts }).format(now);
-
-  const fullDate = ist({ day: "numeric", month: "short", year: "numeric" });  // "18 Aug 2026"
-  const time = ist({ hour: "numeric", hour12: true }).toUpperCase();          // "11 AM"
+  const { fullDate, time } = istRateStamp();
 
   return {
     title: `Todays Gold Rate in ${city} for 14, 18, 22 & 24 Carat - ${fullDate}, ${time}`,
@@ -296,6 +288,13 @@ export default async function Page({ params }) {
           goldMeta.history = await getGoldRateHistory(RATE_PAGE_CACHE);
         } catch {
           goldMeta.history = [];
+        }
+        // Freshness stamp for the H1 — the same IST date + time the <title>
+        // carries. Computed here on the server so the client component hydrates
+        // with an identical string instead of tripping a mismatch when the
+        // browser renders on the other side of an hour boundary.
+        if (!ALREADY_DATED.test(goldMeta.heroTitle || "")) {
+          goldMeta.heroStamp = istRateStamp().stamp;
         }
         page.goldMeta = goldMeta;
       }
