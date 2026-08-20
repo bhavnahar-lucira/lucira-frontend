@@ -47,7 +47,7 @@ export default function BlogArticleClient({
         />
       </div>
 
-      <div className="py-12">
+      <div className="pb-12 pt-5 lg:pt-12">
         <div className="blog-internal-container">
           {/* Main Content */}
           <main className="main-content">
