@@ -53,7 +53,7 @@ export default function InsuranceOption() {
         title: "Insurance",
         image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Insurance_Img_on_Cart_no_radius.png?v=1785224168",
         price: INSURANCE_PRICE,
-        quantity: otherItemsQuantity || 1,
+        quantity: 1,
         variantTitle: "Shipping Protection",
         inStock: true
       };
