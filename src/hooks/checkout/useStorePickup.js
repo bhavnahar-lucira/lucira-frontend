@@ -206,6 +206,9 @@ export function useStorePickup({ selectedShippingZip } = {}) {
       setSelectedStoreId(nearest.id);
       setTempSelectedStoreId(nearest.id);
       setHasResolvedStore(true);
+    } else {
+      toast.error("No stores available within 50km of this pincode.");
+      setShowStoreDialog(true);
     }
   }, [pincodeQuery, resolveNearestFrom]);
 
@@ -224,8 +227,11 @@ export function useStorePickup({ selectedShippingZip } = {}) {
           setSelectedStoreId(nearest.id);
           setTempSelectedStoreId(nearest.id);
           setHasResolvedStore(true);
+          toast.success("Nearby stores updated based on your location");
+        } else {
+          toast.error("No stores available within 50km of your location.");
+          setShowStoreDialog(true);
         }
-        toast.success("Nearby stores updated based on your location");
       },
       () => {
         toast.error("Unable to retrieve your location. Please check permissions.");

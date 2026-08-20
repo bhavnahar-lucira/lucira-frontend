@@ -63,7 +63,7 @@ export function AddressSummaryCard({
         <Button
           type="button"
           onClick={onChangeClick}
-          className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-colors"
+          className="w-full h-[48px] bg-transparent hover:bg-[#5A413F] hover:text-white border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-colors cursor-pointer"
         >
           {changeLabel}
         </Button>

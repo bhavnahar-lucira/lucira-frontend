@@ -1149,11 +1149,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const heroBannerSrc = PLAIN_GOLD_HANDLES.includes(handle) 
           ? PLAIN_GOLD_BANNER_IMAGE 
           : handle === "earrings"
-            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product-3.jpg?v=1786689049"
+            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product-3_f6e49a5f-f9a3-4af7-9fca-c9bce18aa4c4.jpg"
           : handle === "all-earrings"
-            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product.jpg?v=1786689049"
+            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product1_jpg.jpg?v=1787210650"
             : handle === "bestsellers"
-              ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product2.jpg?v=1786689049"
+              ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg"
               : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg";
 
         return isMobile ? (
