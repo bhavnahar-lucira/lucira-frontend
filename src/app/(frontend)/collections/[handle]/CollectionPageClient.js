@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, use, useRef, Fragment } from "react";
+import { useStoreOrdering } from "@/hooks/useStoreOrdering";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -518,6 +519,23 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const isFirstRender = useRef(true);
 
+  // Store-proximity ordering. Empty string = no pincode, unknown pincode, or no
+  // store in range — in which case every request below is byte-for-byte what it
+  // was before this feature existed.
+  const { storesParam } = useStoreOrdering();
+  // Only the default sort is reordered; an explicit Price/Newest choice must win
+  // outright. The backend enforces this too, but not sending the parameter keeps
+  // sorted views on the same server cache entries they already had.
+  const storeOrderParam =
+    storesParam && (searchParams.get("sort") || "manual") === "manual"
+      ? `&stores=${encodeURIComponent(storesParam)}`
+      : "";
+
+  // Identifies "the same view" — handle, filters, sort, page size. When only the
+  // store ordering changed, the grid on screen is still valid, so it is swapped
+  // in place instead of being blanked to skeletons.
+  const viewKeyRef = useRef("");
+
   const [trueMinPrice, setTrueMinPrice] = useState(null);
   const [trueMaxPrice, setTrueMaxPrice] = useState(null);
 
@@ -718,9 +736,17 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       const isInitialMount = isFirstRender.current;
       isFirstRender.current = false;
 
+      // Re-running with an unchanged view means only the store ordering moved.
+      // The products on screen are still the right products, so keep them visible
+      // and swap the order in when it lands — blanking a populated grid to
+      // skeletons would be a worse experience than a brief stale order.
+      const viewKey = `${handle}|${searchParams.toString()}|${limit}`;
+      const storeOrderOnly = viewKeyRef.current === viewKey;
+      viewKeyRef.current = viewKey;
+
       // Only show loading skeletons if this is NOT the initial mount (e.g. user clicked a filter)
       // On initial mount, we keep the SSG data visible while we fetch fresh data in the background (SWR pattern).
-      if (!isInitialMount) {
+      if (!isInitialMount && !storeOrderOnly) {
         setProductsLoading(true);
         setFiltersLoading(true);
       }
@@ -739,7 +765,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const filterParams = activeFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
 
         // 3. Fetch products and narrowed filters from Shopify
-        const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}`;
+        const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}${storeOrderParam}`;
 
         const collData = await apiFetch(apiUrl);
         if (cancelled) return;
@@ -768,7 +794,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     }
     fetchData();
     return () => { cancelled = true; };
-  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData]);
+  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
@@ -779,7 +805,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
       const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
 
-      const apiUrl = `/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor || ""}`;
+      // `stores` must be carried on every page, not just the first: it is what
+      // tells the endpoint to read the cursor as an offset into the ordered list.
+      const apiUrl = `/api/collection?handle=${handle}&${filterParams}&sort=${sort}&limit=${limit}&cursor=${pagination.endCursor || ""}${storeOrderParam}`;
 
       const collData = await apiFetch(apiUrl);
 
@@ -799,7 +827,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     } finally {
       setIsFetchingNextPage(false);
     }
-  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify]);
+  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify, storeOrderParam]);
 
   // Infinite scroll trigger
   useEffect(() => {
