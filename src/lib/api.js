@@ -67,8 +67,27 @@ export const apiFetch = async (url, options = {}) => {
         console.warn("[apiFetch] Unauthorized request. Triggering global logout.", finalUrl);
         if (typeof window !== "undefined") {
           const { store } = await import("@/redux/store");
-          store.dispatch(logout());
+          
+          // Remove any claimed free gifts before logging out so they reset
+          const cartItems = store.getState().cart?.items || [];
+          const freeGifts = cartItems.filter(item => item.isFreeGift);
+          if (freeGifts.length > 0) {
+            try {
+              const { removeMultipleFromCart } = await import("@/redux/features/cart/cartSlice");
+              const lineIds = freeGifts.map(g => g.lineId || g.variantId);
+              // Fire and forget so we don't block the logout
+              store.dispatch(removeMultipleFromCart({ lineIds }));
+            } catch (err) {
+              console.error("Failed to remove free gifts on session expiry:", err);
+            }
+          }
+          
+          store.dispatch(logout({ isSessionExpired: true }));
         }
+        
+        const friendlyMsg = "Your session has expired. Please log in again.";
+        console.warn(`[apiFetch Unauthorized] ${finalUrl}: ${data?.error || data?.message || `HTTP 401`}`);
+        throw new Error(friendlyMsg);
       }
 
       // Improve error reporting
@@ -77,7 +96,7 @@ export const apiFetch = async (url, options = {}) => {
       // Downgrade "not found" errors to warnings to prevent console pollution
       if (res.status === 404 || errorMsg.toLowerCase().includes("not found")) {
         console.warn(`[apiFetch Resource Not Found] ${finalUrl}: ${errorMsg}`);
-      } else if (res.status === 401 || res.status === 403) {
+      } else if (res.status === 403) {
         console.warn(`[apiFetch Unauthorized] ${finalUrl}: ${errorMsg}`);
       } else if (!options.suppressErrorLog) {
         console.error(`[apiFetch Error] ${finalUrl}: ${errorMsg}`, data);

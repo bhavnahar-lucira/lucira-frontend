@@ -681,15 +681,15 @@ export function OtpSpinAuth({
               width="120"
               height="49"
               alt="lucira jewelry logo"
-              className="mx-auto"
+              className="mx-auto max-w-[100px]"
             />
           </div>
         )}
 
         {step === "login" && (
           <>
-            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "WELCOME TO LUCIRA"}</p>
-            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideSubtext || "Welcome To The Jewelry World Of Lucira!"}</p>
+            <p className="mb-2 text-center text-[16px] leading-tight font-medium text-[#5a413f] capitalize mx-auto mt-0 cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "Your Lucira Reward Awaits!"}</p>
+            <p className="text-[12px] font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[300px] mx-auto cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideSubtext || "Sign up to get ₹500 Assured + Spin the Wheel!"}</p>
             <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
               <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
               <input

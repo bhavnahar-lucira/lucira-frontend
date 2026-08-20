@@ -596,20 +596,16 @@
 @keyframes socialIconHeartBeat {
   0% {
     opacity: 0;
-    transform: scale(0.7);
+    transform: scale(0.65);
   }
 
-  35% {
+  45% {
     opacity: 1;
-    transform: scale(1.22);
+    transform: scale(1.16);
   }
 
-  50% {
-    transform: scale(1);
-  }
-
-  65% {
-    transform: scale(1.14);
+  72% {
+    transform: scale(0.97);
   }
 
   100% {
@@ -640,7 +636,7 @@
 }
 
 .social-badge-icon--wishlist {
-  animation: socialIconHeartBeat 900ms ease-out both;
+  animation: socialIconHeartBeat 780ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .social-badge-icon--orders {
@@ -652,13 +648,12 @@
    Only opacity/transform animate, so this stays on the compositor. */
 
 .social-badge-pill {
-  transition: background-color 460ms cubic-bezier(0.4, 0, 0.2, 1),
-    color 460ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 560ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .social-badge-item {
-  transition: opacity 460ms cubic-bezier(0.4, 0, 0.2, 1),
-    transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 560ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 560ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .social-badge-item[data-state="active"] {
@@ -668,7 +663,7 @@
 
 .social-badge-item[data-state="exit"] {
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(-8px);
   pointer-events: none;
 }
 
@@ -676,7 +671,7 @@
    the exit position back down to the start is instant (and invisible). */
 .social-badge-item[data-state="idle"] {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(8px);
   pointer-events: none;
   transition: none;
 }
