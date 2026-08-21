@@ -152,6 +152,34 @@ const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Last-rendered grid per (view + ordering), so returning to a collection does
+// not visibly re-sort itself.
+//
+// WHY: this page is statically generated, and the SSG payload is fetched with no
+// `stores` parameter (see page.js), so `initialData` is always the UN-ordered
+// build-time order. React state dies on unmount, so every arrival — including
+// Back from a PDP — used to paint that un-ordered order and then swap the
+// store-ordered one in. On /collections/earrings the two pages share only 7 of
+// 25 products with 0 in the same position, so that swap reads as the whole grid
+// reshuffling under the shopper.
+//
+// Module scope, so it survives client-side navigation (Back included) but not a
+// full reload — exactly the lifetime of the problem. The fetch still runs and
+// still refreshes the grid; it just no longer has anything visible to change.
+// ─────────────────────────────────────────────────────────────────────────────
+const ORDERED_VIEW_CACHE = new Map();
+const MAX_CACHED_VIEWS = 8;
+
+function rememberView(key, value) {
+  if (!key) return;
+  ORDERED_VIEW_CACHE.delete(key); // re-insert so iteration order is LRU-ish
+  ORDERED_VIEW_CACHE.set(key, value);
+  while (ORDERED_VIEW_CACHE.size > MAX_CACHED_VIEWS) {
+    ORDERED_VIEW_CACHE.delete(ORDERED_VIEW_CACHE.keys().next().value);
+  }
+}
+
 // Simple rich text renderer for SEO content
 const renderShopifyRichText = (content) => {
   if (!content) return null;
@@ -504,11 +532,36 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     };
   }, [collection?.title]);
 
-  const [products, setProducts] = useState(() => (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
-  const [pagination, setPagination] = useState(() => initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null });
-  const [productsLoading, setProductsLoading] = useState(!initialData);
+  // Store-proximity ordering. Empty string = no pincode, unknown pincode, or no
+  // store in range — in which case every request below is byte-for-byte what it
+  // was before this feature existed. Resolved BEFORE the product state below so
+  // the memo key is known while that state is still initialising.
+  const { storesParam, storesReady } = useStoreOrdering();
+  // Only the default sort is reordered; an explicit Price/Newest choice must win
+  // outright. The backend enforces this too, but not sending the parameter keeps
+  // sorted views on the same server cache entries they already had.
+  const storeOrderParam =
+    storesParam && (searchParams.get("sort") || "manual") === "manual"
+      ? `&stores=${encodeURIComponent(storesParam)}`
+      : "";
+
+  // Identifies one exact rendered result: the view AND the ordering applied to it.
+  const viewCacheKey = `${handle}|${searchParams.toString()}|${limit}|${storeOrderParam}`;
+  const cachedView = ORDERED_VIEW_CACHE.get(viewCacheKey);
+
+  const [products, setProducts] = useState(() =>
+    cachedView
+      ? cachedView.products
+      : (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'))
+  );
+  const [pagination, setPagination] = useState(() =>
+    cachedView?.pagination || initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null }
+  );
+  const [productsLoading, setProductsLoading] = useState(!initialData && !cachedView);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
-  const [totalCount, setTotalCount] = useState(() => initialData?.collData?.totalProducts || 0);
+  const [totalCount, setTotalCount] = useState(() =>
+    cachedView?.totalCount || initialData?.collData?.totalProducts || 0
+  );
 
   // Set initial active mobile group if needed
   useEffect(() => {
@@ -518,18 +571,6 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   }, []);
 
   const isFirstRender = useRef(true);
-
-  // Store-proximity ordering. Empty string = no pincode, unknown pincode, or no
-  // store in range — in which case every request below is byte-for-byte what it
-  // was before this feature existed.
-  const { storesParam } = useStoreOrdering();
-  // Only the default sort is reordered; an explicit Price/Newest choice must win
-  // outright. The backend enforces this too, but not sending the parameter keeps
-  // sorted views on the same server cache entries they already had.
-  const storeOrderParam =
-    storesParam && (searchParams.get("sort") || "manual") === "manual"
-      ? `&stores=${encodeURIComponent(storesParam)}`
-      : "";
 
   // Identifies "the same view" — handle, filters, sort, page size. When only the
   // store ordering changed, the grid on screen is still valid, so it is swapped
@@ -733,6 +774,17 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   useEffect(() => {
     let cancelled = false;
     async function fetchData() {
+      // A real pincode whose ordering has not resolved yet. Firing now would
+      // fetch the un-ordered page, paint it, and then immediately refetch and
+      // repaint the ordered one — two product fetches and the reshuffle the memo
+      // above exists to prevent. Resolution is a memoised ~40ms pincode lookup,
+      // so waiting for it is cheaper than the request being skipped.
+      //
+      // Gated on `initialData` so this can never leave an empty grid: with no SSG
+      // payload to display there is nothing to protect, and fetching something
+      // beats showing nothing.
+      if (!storesReady && initialData) return;
+
       const isInitialMount = isFirstRender.current;
       isFirstRender.current = false;
 
@@ -778,9 +830,21 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         }
         setFiltersLoading(false);
 
-        setProducts((collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
-        setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
-        setTotalCount(collData.totalProducts || 0);
+        const freshProducts = (collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
+        const freshPagination = collData.pageInfo || { hasNextPage: false, endCursor: null };
+        const freshTotal = collData.totalProducts || 0;
+
+        setProducts(freshProducts);
+        setPagination(freshPagination);
+        setTotalCount(freshTotal);
+
+        // Remember this exact (view + ordering) so coming back to it repaints
+        // the same grid instead of the un-ordered build-time one.
+        rememberView(viewCacheKey, {
+          products: freshProducts,
+          pagination: freshPagination,
+          totalCount: freshTotal,
+        });
 
         try {
           const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
@@ -794,7 +858,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     }
     fetchData();
     return () => { cancelled = true; };
-  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam]);
+  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
@@ -811,14 +875,24 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       const collData = await apiFetch(apiUrl);
 
+      const nextPagination = collData.pageInfo || { hasNextPage: false, endCursor: null };
+
       setProducts((prev) => {
         const nextProducts = collData.products || [];
         const existingIds = new Set(prev.map(p => p.id));
         const filteredNew = nextProducts.filter(p => !existingIds.has(p.id) && !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
-        return [...prev, ...filteredNew];
+        const merged = [...prev, ...filteredNew];
+        // Keep the memo at the full scrolled depth, so Back from a PDP restores
+        // everything the shopper had loaded rather than snapping to page one.
+        rememberView(viewCacheKey, {
+          products: merged,
+          pagination: nextPagination,
+          totalCount: collData.totalProducts || collData.pagination?.total || 0,
+        });
+        return merged;
       });
 
-      setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
+      setPagination(nextPagination);
 
       if (collData.totalProducts) setTotalCount(collData.totalProducts);
       else if (collData.pagination?.total) setTotalCount(collData.pagination.total);
@@ -827,7 +901,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     } finally {
       setIsFetchingNextPage(false);
     }
-  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify, storeOrderParam]);
+  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify, storeOrderParam, viewCacheKey]);
 
   // Infinite scroll trigger
   useEffect(() => {

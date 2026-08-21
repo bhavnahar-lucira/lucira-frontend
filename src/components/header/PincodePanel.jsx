@@ -26,7 +26,6 @@ import {
   CalendarCheck, Truck, Sparkles, AlertCircle, ArrowRight,
 } from "lucide-react";
 import { resolveNearestStores, formatKm, NO_PINCODE } from "@/lib/nearestStore";
-import { NEAREST_STORE_MAX_KM } from "@/data/storeGeo";
 import { useUserPincode } from "@/hooks/useUserPincode";
 import { pushPromoClick, pushToDataLayer } from "@/lib/gtm";
 
@@ -398,8 +397,8 @@ export default function PincodePanel({ ctl, onDone, compact = false }) {
                   <b className="block text-[12.5px] font-bold text-[#241B19]">
                     We deliver here
                   </b>
-                  Our closest store is over {NEAREST_STORE_MAX_KM}&nbsp;km away, so
-                  shop the full collection online.
+                  No Lucira store near you yet — the full collection is
+                  available to order online.
                 </span>
               </div>
               <Link
