@@ -1683,6 +1683,27 @@ export default function ProductPageClient({
       } else {
         priceRows.push(newRow);
       }
+
+      // Add 3% GST on Other Material to the existing GST row
+      const gstIndex = priceRows.findIndex((item) => item.label?.toLowerCase().includes("gst"));
+      if (gstIndex >= 0) {
+        const gstRow = { ...priceRows[gstIndex] };
+        const additionalGst = additionalItemInfo.charges * 0.03;
+        
+        const parsePrice = (str) => Number(String(str).replace(/[^0-9.-]+/g, "")) || 0;
+        
+        if (gstRow.value) {
+          const currentGst = parsePrice(gstRow.value);
+          gstRow.value = `₹${formatPrice(currentGst + additionalGst)}`;
+        }
+        
+        if (gstRow.original_value) {
+          const currentOriginalGst = parsePrice(gstRow.original_value);
+          gstRow.original_value = `₹${formatPrice(currentOriginalGst + additionalGst)}`;
+        }
+        
+        priceRows[gstIndex] = gstRow;
+      }
     }
 
     return {
