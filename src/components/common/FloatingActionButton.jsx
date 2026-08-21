@@ -5,6 +5,17 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
+// Routes that render a sticky bottom CTA bar the FAB has to stay clear of.
+// Each value is the measured bar height + ~16px of breathing room, and the
+// breakpoint mirrors the bar's own `*:hidden` class so the FAB drops back to
+// its default position exactly when the bar stops rendering.
+// Keep in sync if a bar's padding/rows change.
+const STICKY_CTA_BAR_OFFSETS = {
+  '/schemes':         'bottom-[180px] md:bottom-10', // bar 165px, md:hidden
+  '/schemes/enroll':  'bottom-[165px] lg:bottom-10', // bar 149px, lg:hidden (covers tablet too)
+  '/schemes/payment': 'bottom-[90px] md:bottom-10',  // bar  73px, md:hidden
+};
+
 export default function FloatingActionButton() {
   const pathname = usePathname();
 
@@ -222,9 +233,13 @@ export default function FloatingActionButton() {
   const isCollectionPage = pathname.startsWith('/collections');
 
   return (
-    <div className={`fixed 
-      ${isProductPage ? 'bottom-22 md:bottom-22' : isCollectionPage ? 'bottom-20 md:bottom-10' : 'bottom-10'}
-      ${isCollectionPage ? 'right-[20px] md:right-[30px]' : 'right-[30px]'} 
+    <div className={`fixed
+      ${isProductPage
+        ? 'bottom-22 md:bottom-22'
+        : isCollectionPage
+          ? 'bottom-20 md:bottom-10'
+          : STICKY_CTA_BAR_OFFSETS[pathname] || 'bottom-10'}
+      ${isCollectionPage ? 'right-[20px] md:right-[30px]' : 'right-[30px]'}
       z-[40] flex flex-col items-center`}>
       {/* Tooltip */}
       {!isFabOpen && !isZohoActive && tooltipShown && (
