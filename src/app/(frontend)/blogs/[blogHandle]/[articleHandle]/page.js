@@ -9,10 +9,14 @@ import BlogArticleClient from "@/components/blogs/BlogArticleClient";
 import "./blog-article.css";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 
-// SSG: Fully static blog articles. Pre-rendered at build time.
-// This eliminates Vercel function invocations and Data Cache reading costs.
+// SSG: static blog articles, pre-rendered at build time and served from the
+// cache like `revalidate: false` would. Unlike `false`, a page that fails to
+// fetch content during build (e.g. Shopify rate-limiting the live-scrape
+// fallback) isn't broken forever — Next revalidates it in the background at
+// most once a day, so it can self-heal on a later visit instead of staying
+// empty until the next full redeploy.
 export const dynamicParams = true;
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
   return await getAllArticleHandles();
@@ -146,6 +150,19 @@ export default async function ArticlePage({ params }) {
   const publishedDate = formatDate(article.publishedAt || article.created_at || new Date().toISOString());
   const readTime = readingTime(article);
   const { html: bodyHtml, toc } = prepareArticleHtml(article.contentHtml || article.content);
+
+  // If the body is empty, Shopify 2.0 sections scraping likely failed (e.g. rate
+  // limiting during a big build). Throwing here would be worse than the bug it's
+  // trying to prevent: generateStaticParams pre-renders every article in ONE
+  // `next build`, so an uncaught error for a single article fails the entire
+  // build and blocks every other page from deploying. notFound() keeps the same
+  // guarantee (this broken, empty render is never cached) without taking the
+  // whole site down — dynamicParams + the 24h revalidate above mean this path
+  // just retries on a later visit instead of being pre-rendered now.
+  if (!bodyHtml) {
+    console.error(`Article content is empty for ${articleHandle}. Scraping likely failed.`);
+    return notFound();
+  }
 
   const related = relatedArticles
     .filter((item) => item.handle !== article.handle)

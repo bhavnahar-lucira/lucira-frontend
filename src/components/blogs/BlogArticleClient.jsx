@@ -30,6 +30,13 @@ export default function BlogArticleClient({
 
   const toggleToc = () => setIsTocOpen(!isTocOpen);
 
+  const bannerDesktop =
+    (typeof article.bannerImage === "object" ? article.bannerImage?.desktop : article.bannerImage) ||
+    article.image?.url;
+  const bannerMobile =
+    (typeof article.bannerImage === "object" ? article.bannerImage?.mobile : article.bannerImage) ||
+    article.image?.url;
+
   return (
     <div className="lucira-blogs">
       {/* Progress Bar */}
@@ -40,7 +47,7 @@ export default function BlogArticleClient({
         />
       </div>
 
-      <div className="py-12">
+      <div className="pb-12 pt-5 lg:pt-12">
         <div className="blog-internal-container">
           {/* Main Content */}
           <main className="main-content">
@@ -69,13 +76,18 @@ export default function BlogArticleClient({
               </div>
             </div>
 
-            {(article.bannerImage || article.image?.url) && (
+            {bannerDesktop && (
               <div className="hero-image-container">
-                <img
-                  src={article.bannerImage || article.image.url}
-                  alt={article.image?.altText || article.title}
-                  className="hero-image"
-                />
+                <picture>
+                  {bannerMobile && bannerMobile !== bannerDesktop && (
+                    <source media="(max-width: 767px)" srcSet={bannerMobile} />
+                  )}
+                  <img
+                    src={bannerDesktop}
+                    alt={article.image?.altText || article.title}
+                    className="hero-image"
+                  />
+                </picture>
               </div>
             )}
 
@@ -110,7 +122,7 @@ export default function BlogArticleClient({
           <aside className="right-sidebar">
             <div className="sidebar-inner">
               {toc.length > 0 && (
-                <section className="mb-10">
+                <section className="hidden lg:block mb-10">
                   <h3 className="sidebar-heading">Table of Content</h3>
                   <ul className="toc-list">
                     {toc.map((item) => (
