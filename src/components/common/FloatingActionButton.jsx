@@ -5,6 +5,17 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
+// Routes that render a sticky bottom CTA bar the FAB has to stay clear of.
+// Each value is the measured bar height + ~16px of breathing room, and the
+// breakpoint mirrors the bar's own `*:hidden` class so the FAB drops back to
+// its default position exactly when the bar stops rendering.
+// Keep in sync if a bar's padding/rows change.
+const STICKY_CTA_BAR_OFFSETS = {
+  '/schemes':         'bottom-[180px] md:bottom-10', // bar 165px, md:hidden
+  '/schemes/enroll':  'bottom-[165px] lg:bottom-10', // bar 149px, lg:hidden (covers tablet too)
+  '/schemes/payment': 'bottom-[90px] md:bottom-10',  // bar  73px, md:hidden
+};
+
 export default function FloatingActionButton() {
   const pathname = usePathname();
 
@@ -31,6 +42,9 @@ export default function FloatingActionButton() {
     if (pathname.includes("gold-rate")) return { type: "gold-rate", title, slug: pathname.split('/').pop() };
     if (pathname.includes("platinum-rate")) return { type: "platinum-rate", title, slug: pathname.split('/').pop() };
     if (pathname.includes("silver-rate")) return { type: "silver-rate", title, slug: pathname.split('/').pop() };
+    if (pathname.startsWith("/schemes")) return { type: "schemes", title, sku };
+    if (pathname.includes("old-gold-exchange")) return { type: "old-gold-exchange", title, sku };
+    if (pathname.includes("store-locator")) return { type: "store-locator", title, sku };
 
     return { type: "other", title, sku };
   };
@@ -66,6 +80,15 @@ export default function FloatingActionButton() {
       message = `Tell me more about ${getRateCity(ctx.slug, 'platinum')} platinum rate`;
     } else if (ctx.type === "silver-rate") {
       message = `Tell me more about ${getRateCity(ctx.slug, 'silver')} silver rate`;
+    } else if (ctx.type === "schemes") {
+      // Scheme enquiries go to a dedicated line, not the main store number.
+      return `https://wa.me/918976740895?text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}`;
+    } else if (ctx.type === "old-gold-exchange") {
+      // Old Gold Exchange enquiries share the same dedicated line.
+      return `https://wa.me/918976740895?text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}`;
+    } else if (ctx.type === "store-locator") {
+      // Store-locator enquiries also go to the dedicated line (default message).
+      return `https://wa.me/918976740895?text=${encodeURIComponent(message)}`;
     }
 
     return `https://wa.me/919004435760?text=${encodeURIComponent(message)}`;
@@ -210,9 +233,13 @@ export default function FloatingActionButton() {
   const isCollectionPage = pathname.startsWith('/collections');
 
   return (
-    <div className={`fixed 
-      ${isProductPage ? 'bottom-22 md:bottom-22' : isCollectionPage ? 'bottom-20 md:bottom-10' : 'bottom-10'}
-      ${isCollectionPage ? 'right-[20px] md:right-[30px]' : 'right-[30px]'} 
+    <div className={`fixed
+      ${isProductPage
+        ? 'bottom-22 md:bottom-22'
+        : isCollectionPage
+          ? 'bottom-20 md:bottom-10'
+          : STICKY_CTA_BAR_OFFSETS[pathname] || 'bottom-10'}
+      ${isCollectionPage ? 'right-[20px] md:right-[30px]' : 'right-[30px]'}
       z-[40] flex flex-col items-center`}>
       {/* Tooltip */}
       {!isFabOpen && !isZohoActive && tooltipShown && (

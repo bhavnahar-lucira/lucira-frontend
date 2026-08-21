@@ -51,7 +51,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
   return (
     <div className="space-y-6">
       {showStoreDialog ? (
-        <div className="relative bg-transparent pt-1 pb-[60px] min-h-[400px]">
+        <div className={`relative bg-transparent pt-1 pb-[60px] ${sortedStores.length > 0 ? "min-h-[400px]" : ""}`}>
           <h2 className="font-figtree text-[1rem] lg:text-[1.125rem] font-medium text-black mb-4">Stores Available Near You</h2>
           
           <div className="space-y-3 pb-6">
@@ -100,8 +100,8 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           </div>
           
           <div className="hidden lg:block absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-0">
-            <Button type="button" onClick={saveStoreSelection} className="w-full h-[50px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree text-[1rem] lg:text-[1.0625rem] font-medium tracking-wide uppercase rounded-[4px] transition-colors shadow-sm">
-              Confirm
+            <Button type="button" onClick={saveStoreSelection} className="w-full h-[50px] bg-[#5A413F] text-white hover:bg-transparent hover:text-[#5A413F] border border-[#5A413F] font-figtree text-[1rem] lg:text-[1.0625rem] font-medium tracking-wide uppercase rounded-[4px] transition-colors shadow-sm cursor-pointer">
+              {sortedStores.length === 0 ? 'Close' : 'Confirm'}
             </Button>
           </div>
         </div>
@@ -158,7 +158,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
             </div>
           </div>
           
-          <Button type="button" onClick={() => setShowStoreDialog(true)} className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-colors">
+          <Button type="button" onClick={() => setShowStoreDialog(true)} className="w-full h-[48px] bg-transparent hover:bg-[#5A413F] hover:text-white border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-colors cursor-pointer">
             Change Pickup
           </Button>
         </div>
@@ -177,7 +177,7 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
           </div>
 
 
-          <Button type="button" onClick={findNearestStore} className="w-full h-12 lg:h-[45px] bg-[#5A413F] hover:bg-[#4A312F] text-white text-[0.9375rem] lg:text-[1.1rem] font-figtree font-medium rounded-md transition-colors">
+          <Button type="button" onClick={findNearestStore} className="w-full h-12 lg:h-[45px] bg-[#5A413F] text-white hover:bg-transparent hover:text-[#5A413F] border border-[#5A413F] text-[0.9375rem] lg:text-[1.1rem] font-figtree font-medium rounded-md transition-colors cursor-pointer">
             Find Nearest Store
           </Button>
         </div>

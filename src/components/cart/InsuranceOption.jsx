@@ -53,7 +53,7 @@ export default function InsuranceOption() {
         title: "Insurance",
         image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Insurance_Img_on_Cart_no_radius.png?v=1785224168",
         price: INSURANCE_PRICE,
-        quantity: otherItemsQuantity || 1,
+        quantity: 1,
         variantTitle: "Shipping Protection",
         inStock: true
       };
@@ -98,6 +98,19 @@ export default function InsuranceOption() {
         autoAddAttempted.current = true;
         handleAdd();
       }
+    }
+  }, [otherItemsQuantity, isAdded, isProcessing, loading]);
+
+  // Auto-remove insurance if there are no other items in the cart
+  useEffect(() => {
+    if (
+      otherItemsQuantity === 0 &&
+      isAdded &&
+      !isProcessing &&
+      !loading &&
+      typeof window !== "undefined"
+    ) {
+      handleRemove();
     }
   }, [otherItemsQuantity, isAdded, isProcessing, loading]);
 

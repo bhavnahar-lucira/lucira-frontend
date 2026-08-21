@@ -16,6 +16,7 @@ import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LuciraLogo from "./LuciraLogo";
+import PincodeStrip from "./PincodeStrip";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sheet as MobileSheet } from "react-modal-sheet";
 import { useAuth } from "@/hooks/useAuth";
@@ -359,7 +360,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { transformMenuData } from "@/lib/menus";
+import { transformMenuData, withChunkyRings } from "@/lib/menus";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -367,6 +368,11 @@ export default function MobileHeader({ menuData }) {
   const dispatch = useDispatch();
   const isProductPage = pathname.startsWith('/products/');
   const isBYJPage = pathname.startsWith('/build-your-jewelry');
+  // The pincode chip rides in the header row itself. Gated exactly as the old
+  // full-width strip was: the PDP and Build-Your-Jewelry carry their own pincode
+  // surfaces (FindLuciraStore / AtcBar) reading the same cookie, and the PDP row
+  // is already spoken for by the expanding search bar.
+  const showPincodeChip = !isProductPage && !isBYJPage;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -514,8 +520,12 @@ export default function MobileHeader({ menuData }) {
       return 99;
     };
 
-    return [...menu, ...extraItems].sort(
-      (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
+    // Same Chunky Rings entry the desktop mega menu appends, so the RINGS
+    // section matches across breakpoints.
+    return withChunkyRings(
+      [...menu, ...extraItems].sort(
+        (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
+      )
     );
   }, [menuData]);
 
@@ -1546,8 +1556,23 @@ export default function MobileHeader({ menuData }) {
 
   return (
     <div className="bg-white border-b border-gray-200 lg:hidden">
-      <div className={cn("flex items-center justify-between px-4 py-3", isProductPage && "gap-3")}>
-        <div className={cn("flex items-center shrink-0", isProductPage ? "gap-2.5" : "gap-4")}>
+      {/* py drops to 6px only when the chip is in the row: the chip's 44px touch
+          target plus 2x6 lands on exactly the 56px this row has always been, so
+          absorbing the strip costs no header height. Rows without the chip keep
+          py-3 around their 32px children for the same 56px. */}
+      <div
+        className={cn(
+          "flex items-center justify-between px-4",
+          showPincodeChip ? "py-1.5" : "py-3",
+          isProductPage && "gap-3",
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center",
+            isProductPage ? "shrink-0 gap-2.5" : "min-w-0 flex-1 gap-3",
+          )}
+        >
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
               <button className="p-1">
@@ -1665,15 +1690,43 @@ export default function MobileHeader({ menuData }) {
                 />
               </span>
             ) : (
+              // The logo-mark, not the 80px wordmark. The wordmark's job — say
+              // whose site this is — is already done by the time the shopper is
+              // deep enough to need a header, and the 56px it gives back is what
+              // lets the pincode readout sit in this row at all.
               <Image
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
                 alt="Lucira Jewelry"
-                width={80}
-                height={32}
+                width={24}
+                height={44}
+                // Pinned to the 32px the wordmark occupied, so rows WITHOUT the
+                // chip (Build-Your-Jewelry) keep their original 56px height
+                // instead of growing to fit the mark's taller 2:3 aspect.
+                className="h-8 w-auto object-contain"
                 priority
               />
             )}
           </Link>
+
+          {/* Directly beside the logo, not centred in the row — brand and
+              "where you'll be served from" read as one left-aligned group,
+              and both thumb corners stay free for wishlist and cart. Sits on
+              the same min-w-0/flex-1 parent as the logo so long readouts
+              truncate against the row's actual leftover width instead of a
+              fixed slot. */}
+          {showPincodeChip && (
+            <PincodeStrip
+              variant="chip"
+              className="min-w-0 flex-1"
+              locationId={
+                pathname === "/"
+                  ? "homepage"
+                  : pathname.startsWith("/collections/")
+                    ? "plp"
+                    : "inner pages"
+              }
+            />
+          )}
         </div>
 
         {isProductPage && (
@@ -1719,42 +1772,11 @@ export default function MobileHeader({ menuData }) {
           </div>
         )}
 
+        {/* Schemes and account both moved into the menu drawer — schemes as the
+            "Vault Of Dreams" card, account as the drawer-header avatar and the
+            "Log In / Sign Up" button. Neither was pulling its weight as a header
+            icon, and the two of them are what pays for the pincode readout. */}
         <div className={cn("flex items-center shrink-0", isProductPage ? "gap-3" : "gap-4")}>
-          {!isProductPage && (
-            <>
-              <Link
-                href="/schemes"
-                prefetch={false}
-                onClick={() => {
-                  pushPromoClick({
-                    creative_name: "scheme icon header",
-                    location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
-                  });
-                }}
-                className="relative w-8 h-8 flex items-center justify-center shrink-0"
-              >
-                <img
-                  src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/m507t0003_16june22_icon_safe_box_04_1.jpg?v=1781505691"
-                  alt="Scheme"
-                  className="w-full h-full object-contain"
-                />
-              </Link>
-
-              {user ? (
-                <Link href="/admin" prefetch={false} className="p-1" id="nitro-login">
-                  <Avatar className="h-7 w-7 cursor-pointer border border-gray-100">
-                    {user.avatar && <AvatarImage src={user.avatar} alt={user.name} />}
-                    <AvatarFallback className="bg-[#5a413f] text-white font-bold text-[10px]">{getInitials(user?.name)}</AvatarFallback>
-                  </Avatar>
-                </Link>
-              ) : (
-                <button onClick={handleAuthTrigger} className="p-1" id="nitro-login">
-                  <UserIconCustom />
-                </button>
-              )}
-            </>
-          )}
-
           <Link href={user ? "/admin/wishlist" : "#"} prefetch={false} onClick={!user ? handleAuthTrigger : undefined} className="relative p-1">
             <HeartIcon />
             {wishlistItems.length > 0 && (

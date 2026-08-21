@@ -386,6 +386,14 @@ export default function CheckoutSummary({
                 {pointsData?.points_label || "Lucira Coins Balance"}
               </h3>
               <p className="font-figtree font-light text-[12px] leading-[1.3] tracking-normal align-middle text-black">1 Coin = 1 Rupee</p>
+              {pointsData?.promotions?.[0] && hasDiamondJewellery && (
+                <p 
+                  className="font-figtree font-medium text-[12px] leading-[1.3] tracking-normal align-middle text-[#00A63E] mt-1.5" 
+                  style={{ marginTop: '6px' }}
+                >
+                  Claimable on this order: {pointsData.promotions[0].coin_value} Coins
+                </p>
+              )}
             </div>
             <div className="bg-white px-3 py-1.5 rounded-[6px] flex items-center gap-2 border border-white shrink-0">
               <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-coin.png?v=1786602463" width="20" height="20" alt="Lucira Coin" className="w-5 h-5 shrink-0" />
@@ -434,12 +442,20 @@ export default function CheckoutSummary({
             <span className="font-semibold text-[#3D2B28]">₹ {originalSubtotalValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
           </div>
           {isPaymentPage ? (
-            (totalSavings > 0 || Boolean(appliedCoupon)) && (
-              <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-                <span>Cart Discount</span>
-                <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {(totalSavings + couponDiscountAmount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-              </div>
-            )
+            <>
+              {totalSavings > 0 && (
+                <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
+                  <span>Cart Discount</span>
+                  <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {totalSavings.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                </div>
+              )}
+              {Boolean(appliedCoupon) && (
+                <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
+                  <span>Coupon Discount</span>
+                  <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                </div>
+              )}
+            </>
           ) : (
             <>
               {totalSavings > 0 && !compactBreakdown && (

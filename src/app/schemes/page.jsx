@@ -80,7 +80,10 @@ export default function Page() {
       </motion.div>
 
       {/* Calculator Section */}
-      <section className="relative mt-12 md:mt-20 z-[60] px-4">
+      {/* No z-index here on purpose: a z-index would make this section a stacking
+          context and trap the calculator's fixed mobile bottom bar inside it,
+          which is what used to paint the whole section over the FAB. */}
+      <section className="relative mt-12 md:mt-20 px-4">
         <Suspense fallback={<div className="text-center py-20 bg-white rounded-3xl shadow-xl max-w-7xl mx-auto flex items-center justify-center gap-3"><Loader2 className="animate-spin" /> Loading calculator...</div>}>
           <motion.div
             initial={{ y: 30, opacity: 0 }}
