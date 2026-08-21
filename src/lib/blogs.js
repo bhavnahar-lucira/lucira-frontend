@@ -21,7 +21,7 @@ function createLimiter(concurrency) {
     active += 1;
     const { fn, resolve, reject } = queue.shift();
     Promise.resolve()
-      .then(() => new Promise((r) => setTimeout(r, Math.random() * 300)))
+      .then(() => new Promise((r) => setTimeout(r, Math.random() * 800)))
       .then(fn)
       .then(resolve, reject)
       .finally(() => {
@@ -37,7 +37,7 @@ function createLimiter(concurrency) {
     });
 }
 
-const limitLiveSiteFetch = createLimiter(Number(process.env.LIVE_SCRAPE_CONCURRENCY || 4));
+const limitLiveSiteFetch = createLimiter(Number(process.env.LIVE_SCRAPE_CONCURRENCY || 2));
 
 // Must match `revalidate` in the article page.js. `cache: 'force-cache'`
 // pins a fetch in the Data Cache forever regardless of the page's own ISR
@@ -264,7 +264,13 @@ export async function getArticleRenderedFromLiveSite(blogHandle, articleHandle) 
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           }
-        }
+        },
+        // More retries + a longer base backoff than the default (2 / 500ms):
+        // a big build can still 429 a couple of articles even at the lowered
+        // concurrency above, and giving up after ~1.5s wasn't enough headroom
+        // for Shopify's rate limit window to clear.
+        4,
+        1000
       )
     );
   } catch (error) {

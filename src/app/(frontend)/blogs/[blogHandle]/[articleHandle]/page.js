@@ -151,10 +151,17 @@ export default async function ArticlePage({ params }) {
   const readTime = readingTime(article);
   const { html: bodyHtml, toc } = prepareArticleHtml(article.contentHtml || article.content);
 
-  // If the body is empty, it means Shopify 2.0 sections scraping failed (e.g., rate limiting).
-  // We throw an error so Next.js does not cache this broken, empty page.
+  // If the body is empty, Shopify 2.0 sections scraping likely failed (e.g. rate
+  // limiting during a big build). Throwing here would be worse than the bug it's
+  // trying to prevent: generateStaticParams pre-renders every article in ONE
+  // `next build`, so an uncaught error for a single article fails the entire
+  // build and blocks every other page from deploying. notFound() keeps the same
+  // guarantee (this broken, empty render is never cached) without taking the
+  // whole site down — dynamicParams + the 24h revalidate above mean this path
+  // just retries on a later visit instead of being pre-rendered now.
   if (!bodyHtml) {
-    throw new Error(`Article content is empty for ${articleHandle}. Scraping likely failed.`);
+    console.error(`Article content is empty for ${articleHandle}. Scraping likely failed.`);
+    return notFound();
   }
 
   const related = relatedArticles
