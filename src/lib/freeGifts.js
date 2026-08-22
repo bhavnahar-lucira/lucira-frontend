@@ -27,23 +27,65 @@ export const FREE_GIFTS = [
   },
 ];
 
-const FREE_GIFT_VARIANT_IDS = new Set(FREE_GIFTS.map((g) => g.variantId));
-
 // True for any configured free-gift variant — use this instead of comparing
 // against a single hardcoded variant ID so new tiers are picked up everywhere
 // (subtotal/savings/insurance-quantity/item-list exclusions) automatically.
-export const isFreeGiftVariant = (variantId) => FREE_GIFT_VARIANT_IDS.has(variantId);
+// Accepts the current gift list so a dashboard-added tier is recognized
+// immediately, not just the two variants baked into this file at build time.
+export const isFreeGiftVariant = (variantId, gifts = FREE_GIFTS) =>
+  gifts.some((g) => g.variantId === variantId);
+
+/**
+ * Maps the backend's /api/settings/silver-bracelet tier shape
+ * ({ min, giftVariantId, giftProductId, giftTitle, giftWorthValue, giftImage })
+ * onto the shape the functions below expect.
+ *
+ * Falls back to the static FREE_GIFTS list only when `tiers` is missing
+ * entirely (the settings doc hasn't been saved even once yet) — NOT when it's
+ * an empty array. An empty array is a deliberate staff choice ("no gifts
+ * configured right now") and must render as no gift, not silently resurrect
+ * the old hardcoded bracelet.
+ */
+export const mapRemoteFreeGiftTiers = (tiers) => {
+  if (!Array.isArray(tiers)) return FREE_GIFTS;
+  return tiers
+    .map((t) => ({
+      id: t.id,
+      enabled: t.enabled !== false,
+      startsAt: t.startsAt || null,
+      endsAt: t.endsAt || null,
+      threshold: Number(t.min) || 0,
+      variantId: t.giftVariantId,
+      productId: t.giftProductId,
+      title: t.giftTitle,
+      image: t.giftImage,
+      worthValue: Number(t.giftWorthValue) || 0,
+      worthLabel: `₹${(Number(t.giftWorthValue) || 0).toLocaleString("en-IN")}`,
+    }))
+    .filter((t) => t.variantId)
+    // getApplicableFreeGift/getNextFreeGift assume ascending order.
+    .sort((a, b) => a.threshold - b.threshold);
+};
+
+// Mirrors the backend's isTierLive (cartPricing.js) — a scheduled-but-not-
+// yet-started or already-ended tier can't be newly claimed, even though its
+// variant still needs to be recognized elsewhere (isFreeGiftVariant) so an
+// already-claimed line from while it was live keeps pricing at ₹0.
+export const isTierLive = (tier, now = Date.now()) => {
+  if (tier.startsAt && new Date(tier.startsAt).getTime() > now) return false;
+  if (tier.endsAt && new Date(tier.endsAt).getTime() < now) return false;
+  return true;
+};
 
 /**
  * The single best gift a cart of this diamond value currently qualifies for.
  * Tiers are assumed ascending by threshold; the highest one cleared wins (a
  * shopper who clears a later, better tier isn't stuck with an earlier one).
  *
- * `gifts` defaults to the static FREE_GIFTS list but callers may pass a
- * threshold-overridden copy — see FreeGiftReward, which merges in the live
- * {enabled, threshold} from /api/settings/silver-bracelet the same way
- * GoldCoinOption merges in /api/settings/gold-coin, so an admin can retune
- * the threshold (or switch the offer off) without a code deploy.
+ * `gifts` defaults to the static FREE_GIFTS list but callers may pass the
+ * live tier list instead — see FreeGiftReward, which fetches and maps
+ * /api/settings/silver-bracelet via mapRemoteFreeGiftTiers so staff can add,
+ * edit, or disable tiers from the dashboard without a code deploy.
  */
 export const getApplicableFreeGift = (diamondValue, gifts = FREE_GIFTS) => {
   const value = Number(diamondValue) || 0;
