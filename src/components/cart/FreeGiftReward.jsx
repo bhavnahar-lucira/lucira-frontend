@@ -175,15 +175,15 @@ export default function FreeGiftReward({ diamondTotal }) {
         paddingTop: 8,
         paddingBottom: 8,
         paddingLeft: 10,
-        gap: 10,
+        gap: 16,
       }}
     >
       <div
-        className={`w-[48px] h-[48px] sm:w-[60px] sm:h-[60px] overflow-hidden shrink-0 ${isLocked ? "bg-[#f5f0ed]" : ""} flex items-center justify-center`}
+        className={`w-[40px] h-[40px] sm:w-[40px] sm:h-[40px] overflow-hidden shrink-0 ${isLocked ? "bg-[#f5f0ed]" : ""} flex items-center justify-center`}
         style={{ border: 0 }}
       >
         <img
-          src={(isLocked ? nextGift : displayGift)?.image}
+          src={(isLocked ? nextGift : displayGift)?.bannerImage || (isLocked ? nextGift : displayGift)?.image}
           alt={(isLocked ? nextGift : displayGift)?.title || "Free Gift"}
           className={`w-full h-full object-cover ${isLocked ? "mix-blend-multiply opacity-60" : ""}`}
           style={{ border: 0 }}
@@ -197,9 +197,17 @@ export default function FreeGiftReward({ diamondTotal }) {
           {isLocked ? (
             <>Add <span className="font-bold text-[#e7000b]">₹{Math.max(0, nextGift.threshold - diamondTotal).toLocaleString("en-IN")}</span> more to unlock a FREE {nextGift.title} worth {nextGift.worthLabel}.</>
           ) : needsLogin ? (
-            <>Unlock to claim a FREE {gift.title} worth {gift.worthLabel}.</>
+            gift.bannerText ? (
+              <>{gift.bannerText}</>
+            ) : (
+              <>Unlock to claim a FREE {gift.title} worth {gift.worthLabel}.</>
+            )
           ) : (
-            <>You&apos;ve unlocked a FREE {displayGift.title} worth {displayGift.worthLabel}.</>
+            displayGift.bannerText ? (
+              <>{displayGift.bannerText}</>
+            ) : (
+              <>You&apos;ve unlocked a FREE {displayGift.title} worth {displayGift.worthLabel}.</>
+            )
           )}
         </p>
       </div>

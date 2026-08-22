@@ -59,6 +59,8 @@ export const mapRemoteFreeGiftTiers = (tiers) => {
       productId: t.giftProductId,
       title: t.giftTitle,
       image: t.giftImage,
+      bannerImage: t.bannerImage,
+      bannerText: t.bannerText,
       worthValue: Number(t.giftWorthValue) || 0,
       worthLabel: `₹${(Number(t.giftWorthValue) || 0).toLocaleString("en-IN")}`,
     }))

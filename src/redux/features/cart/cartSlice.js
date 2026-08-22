@@ -402,6 +402,27 @@ export const fetchCart = createAsyncThunk(
               }
             }
           }
+
+          // 6. Aggressive cleanup of excess quantities in Shopify (e.g. Free Gifts > 1)
+          const linesToUpdate = [];
+          mappedState.items.forEach(mappedItem => {
+            const shopifyNode = updatedShopifyData.cart.lines.edges.find(e => e.node.id === mappedItem.lineId)?.node;
+            if (shopifyNode && shopifyNode.quantity > mappedItem.quantity) {
+              linesToUpdate.push({
+                id: mappedItem.lineId,
+                quantity: mappedItem.quantity
+              });
+            }
+          });
+          
+          if (linesToUpdate.length > 0) {
+            console.warn("[fetchCart] Reducing excess Shopify quantities:", linesToUpdate);
+            shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
+              cartId: updatedShopifyData.cart.id,
+              lines: linesToUpdate
+            }).catch(err => console.error("Failed to reduce excess Shopify quantities", err));
+          }
+
           return mappedState;
         }
       }
