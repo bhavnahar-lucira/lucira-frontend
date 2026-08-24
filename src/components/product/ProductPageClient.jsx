@@ -443,6 +443,7 @@ export default function ProductPageClient({
               {namespace: "shopify--discovery--product_recommendation", key: "complementary_products"},
               {namespace: "custom", key: "complementary_products"},
               {namespace: "custom", key: "complementary-products"},
+              {namespace: "custom", key: "from_the_same_collection_headless"},
               {namespace: "custom", key: "matching_product"},
               {namespace: "custom", key: "matching_products"}
             ]) {
@@ -532,11 +533,14 @@ export default function ProductPageClient({
 
         const complementaryFromMeta = [];
         const matchingFromMeta = [];
+        const sameCollectionFromMeta = [];
 
         metafields.forEach(m => {
           if (m?.references?.edges) {
             const refs = m.references.edges.map(e => e.node).filter(Boolean).map(mapProduct).filter(Boolean);
-            if (m.key.includes('matching')) {
+            if (m.key === 'from_the_same_collection_headless') {
+              sameCollectionFromMeta.push(...refs);
+            } else if (m.key.includes('matching')) {
               matchingFromMeta.push(...refs);
             } else {
               complementaryFromMeta.push(...refs);
@@ -549,13 +553,15 @@ export default function ProductPageClient({
           setComplementaryProducts(uniqueMapped);
         }
 
-        if (matchingFromMeta.length > 0) {
-          const uniqueMapped = Array.from(new Map(matchingFromMeta.map(p => [p.id, p])).values());
+        // Prefer the backend-computed collection recommendations; fall back to the legacy matching_product metafield
+        const youMayAlsoLikeSource = sameCollectionFromMeta.length > 0 ? sameCollectionFromMeta : matchingFromMeta;
+        if (youMayAlsoLikeSource.length > 0) {
+          const uniqueMapped = Array.from(new Map(youMayAlsoLikeSource.map(p => [p.id, p])).values());
           console.log("[fetchComplementary] Setting youMayAlsoLikeProducts:", uniqueMapped.length);
           setYouMayAlsoLikeProducts(uniqueMapped);
         }
 
-        return (rawProducts.length > 0 || complementaryFromMeta.length > 0 || matchingFromMeta.length > 0);
+        return (rawProducts.length > 0 || complementaryFromMeta.length > 0 || matchingFromMeta.length > 0 || sameCollectionFromMeta.length > 0);
       } catch (err) {
         console.error("Error fetching complementary products:", err);
       }
