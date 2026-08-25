@@ -1207,6 +1207,16 @@ export default function ProductPageClient({
     // Track product view for Search Analytics
     trackSearchProductView(String(getNumericId(product.shopifyId || product.id)));
 
+    // First-party view beacon for the recommendation engine (all traffic,
+    // anonymous included — the search-analytics call above only fires within
+    // 30 min of an on-site search, and Shopify analytics never sees this
+    // headless storefront). Fire-and-forget; failures are silent.
+    apiFetch("/api/products/track-view", {
+      method: "POST",
+      body: JSON.stringify({ productId: String(getNumericId(product.shopifyId || product.id)) }),
+      suppressErrorLog: true
+    }).catch(() => {});
+
     dispatch(
       addRecentlyViewed({
         id: product.id,
