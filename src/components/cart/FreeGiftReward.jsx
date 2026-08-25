@@ -26,10 +26,11 @@ import { FREE_GIFTS, isFreeGiftVariant, getApplicableFreeGift, getNextFreeGift, 
  *   ladder uses.
  */
 export default function FreeGiftReward({ diamondTotal }) {
-  const { items, appliedCoupon, addToCart, removeFromCart, removeCoupon, loading } = useCart();
+  const { items, appliedCoupon, addToCart, removeFromCart, removeCoupon, loading, activeDiscounts, claimDiscount, unclaimDiscount } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDiscountProcessing, setIsDiscountProcessing] = useState(false);
 
   // The full tier list lives server-side (settings collection, same doc the
   // backend's add-time and checkout-time checks read) so staff can add, edit,
@@ -112,11 +113,87 @@ export default function FreeGiftReward({ diamondTotal }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedCoupon, appliedItem, isProcessing]);
 
+  // Same banner slot, "whichever wins": a free gift tier always takes
+  // priority when one's available/claimed. Only when there's genuinely no
+  // gift tier at all does the slot fall back to the best claim-gated
+  // automatic discount (e.g. "3% off Diamond" vs "2% off Gold" — highest
+  // discountValue wins), so the two offers never compete for the same spot.
+  const bestDiscount = [...(activeDiscounts || [])].sort((a, b) => b.discountValue - a.discountValue)[0] || null;
+
+  const handleDiscountToggle = async () => {
+    if (!bestDiscount) return;
+    setIsDiscountProcessing(true);
+    try {
+      if (bestDiscount.claimed) {
+        await unclaimDiscount(bestDiscount.id);
+        toast.info(`${bestDiscount.title} removed from your order.`);
+      } else {
+        await claimDiscount(bestDiscount.id);
+        toast.success(`${bestDiscount.title} has been applied to your order!`);
+      }
+    } finally {
+      setIsDiscountProcessing(false);
+    }
+  };
+
   // Nothing to show: either nothing's configured/eligible/locked/applied, or
   // the promotion was switched off server-side (an already-claimed line from
   // before it was switched off still renders, so the shopper can remove it
   // rather than have it silently vanish).
-  if (!gift && !nextGift && !isApplied) return null;
+  if (!gift && !nextGift && !isApplied) {
+    if (!bestDiscount) return null;
+
+    const discountLabel =
+      bestDiscount.discountType === "percentage" ? `${bestDiscount.discountValue}% off` : `₹${bestDiscount.discountValue} off`;
+
+    return (
+      <div
+        className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors pr-2.5 sm:pr-3.5"
+        style={{
+          borderRadius: "0px 0px 8px 8px",
+          borderTop: "0px",
+          background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
+          paddingTop: 8,
+          paddingBottom: 8,
+          paddingLeft: 10,
+          gap: 16,
+        }}
+      >
+        <div className="w-[40px] h-[40px] shrink-0 flex items-center justify-center" style={{ border: 0 }}>
+          <NoImageIcon />
+        </div>
+        <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
+          <p className="font-figtree text-xs lg:text-[0.9rem] leading-[1.35]" style={{ color: "rgb(0, 0, 0)", fontWeight: 500 }}>
+            {bestDiscount.claimed
+              ? <>You&apos;ve applied <span className="font-bold">{discountLabel}</span> on {bestDiscount.title}.</>
+              : <>You&apos;ve unlocked <span className="font-bold">{discountLabel}</span> on {bestDiscount.title}.</>}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleDiscountToggle}
+          disabled={isDiscountProcessing || loading}
+          className={
+            bestDiscount.claimed
+              ? "flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-2.5 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50 ml-0 lg:ml-[20px]"
+              : "flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50 ml-0 lg:ml-[20px]"
+          }
+          style={bestDiscount.claimed ? { border: "1px solid #e7000b", background: "transparent", color: "#e7000b" } : undefined}
+        >
+          {isDiscountProcessing ? (
+            <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
+          ) : bestDiscount.claimed ? (
+            "REMOVE"
+          ) : (
+            <>
+              <Gift className="w-3.5 h-3.5 hidden lg:block" />
+              CLAIM
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
   if (remoteConfig && !remoteConfig.enabled && !isApplied) return null;
 
   const handleToggle = async () => {
@@ -182,12 +259,18 @@ export default function FreeGiftReward({ diamondTotal }) {
         className={`w-[40px] h-[40px] sm:w-[40px] sm:h-[40px] overflow-hidden shrink-0 ${isLocked ? "bg-[#f5f0ed]" : ""} flex items-center justify-center`}
         style={{ border: 0 }}
       >
-        <img
-          src={(isLocked ? nextGift : displayGift)?.bannerImage || (isLocked ? nextGift : displayGift)?.image}
-          alt={(isLocked ? nextGift : displayGift)?.title || "Free Gift"}
-          className={`w-full h-full object-cover ${isLocked ? "mix-blend-multiply opacity-60" : ""}`}
-          style={{ border: 0 }}
-        />
+        {(() => {
+          const imgSrc = (isLocked ? nextGift : displayGift)?.bannerImage || (isLocked ? nextGift : displayGift)?.image;
+          if (!imgSrc) return <NoImageIcon className={isLocked ? "opacity-60" : ""} />;
+          return (
+            <img
+              src={imgSrc}
+              alt={(isLocked ? nextGift : displayGift)?.title || "Free Gift"}
+              className={`w-full h-full object-cover ${isLocked ? "mix-blend-multiply opacity-60" : ""}`}
+              style={{ border: 0 }}
+            />
+          );
+        })()}
       </div>
       <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
         <p

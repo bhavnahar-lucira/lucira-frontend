@@ -1,4 +1,3 @@
-import { GOLDCOIN_VARIANT_ID } from "@/components/cart/GoldCoinOption";
 
 // Single source of truth for the promotional coupon ladder shown on the PDP
 // (UnlockCoupon) and in the cart's Saving Zone drawer. Both surfaces render the
@@ -126,7 +125,7 @@ export const calculateCouponDiscount = (appliedCoupon, items, subtotalValue) => 
     .filter((item) => {
       if (
         item.variantId === INSURANCE_VARIANT_ID ||
-        (item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+        item.isFreeGift
       )
         return false;
       const rawId = item.shopifyId || item.productId || item.id;

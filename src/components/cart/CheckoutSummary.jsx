@@ -16,7 +16,7 @@ import { getEstimatedDispatchDate } from "@/lib/utils";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { pushPromoClick } from "@/lib/gtm";
 import { isFreeGiftVariant } from "@/lib/freeGifts";
-import { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
+
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
@@ -43,7 +43,7 @@ export default function CheckoutSummary({
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+    !item.isFreeGift
   )?.title;
 
   const isPaymentPage = pathname && (pathname === "/checkout/payment" || pathname.includes("/checkout/payment"));
@@ -58,7 +58,7 @@ export default function CheckoutSummary({
   const overallDispatchMessage = useMemo(() => {
     if (!items || items.length === 0) return "";
     const maxLeadTime = items.reduce((max, item) => Math.max(max, Number(item.leadTime || 12)), 0);
-    const anyMadeToOrder = items.some(item => !item.inStock && item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift));
+    const anyMadeToOrder = items.some(item => !item.inStock && item.variantId !== INSURANCE_VARIANT_ID && !item.isFreeGift);
     return getEstimatedDispatchDate(!anyMadeToOrder, maxLeadTime);
   }, [items]);
 
@@ -77,7 +77,7 @@ export default function CheckoutSummary({
         hasDiamondCharges;
 
       // Exclude Gold Coins, Insurance, BYJ
-      const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
+      const isGoldCoin = item.isFreeGift;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] ||
@@ -112,7 +112,7 @@ export default function CheckoutSummary({
 
       const isPlainGold = tags.some(t => t.includes("plain gold") || t === "plaingold");
       
-      const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
+      const isGoldCoin = item.isFreeGift;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] ||
@@ -133,14 +133,13 @@ export default function CheckoutSummary({
   const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
 
-  const goldCoinItem = (items || []).find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
   const subtotalValue = (totalAmount || 0) - insuranceValue;
 
   // Sum of original prices (comparePrice if comparePrice > price, else price)
   const originalSubtotalValue = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
@@ -154,7 +153,7 @@ export default function CheckoutSummary({
   const totalSavings = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
@@ -269,7 +268,7 @@ export default function CheckoutSummary({
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
@@ -278,7 +277,7 @@ export default function CheckoutSummary({
   // Claiming requires a logged-in user, so a gift line without one is an
   // invalid leftover state (FreeGiftReward's own effect removes it), not a
   // legitimate claim — don't reflect it as applied here in the meantime.
-  const appliedGiftItem = user ? (items || []).find((item) => isFreeGiftVariant(item.variantId)) : null;
+  const appliedGiftItem = user ? (items || []).find((item) => item.isFreeGift || isFreeGiftVariant(item.variantId)) : null;
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
   const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
@@ -484,15 +483,9 @@ export default function CheckoutSummary({
               )}
             </>
           )}
-          {goldCoinItem && (
-            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-              <span className="font-semibold text-[#00A63E]">Free</span>
-            </div>
-          )}
           {appliedGiftItem && (
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+              <span>{appliedGiftItem.title || "Free Gift"} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
               <span className="font-semibold text-[#00A63E]">Free</span>
             </div>
           )}

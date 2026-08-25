@@ -35,7 +35,6 @@ const SEARCH_EASE = "transition-[width,background-color] duration-[450ms] ease-[
 const SEARCH_FADE = "transition-opacity duration-300";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 const CATEGORY_IMAGES = {
   "BEST SELLERS": "/images/menu/engagement-ring.jpg",
@@ -537,7 +536,7 @@ export default function MobileHeader({ menuData }) {
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] &&
@@ -563,7 +562,7 @@ export default function MobileHeader({ menuData }) {
       const filteredItemsForGtm = items.filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.isFreeGift &&
           !isFreeGiftVariant(item.variantId) &&
           !item.properties?.['_byj_parent'] &&
           !item.properties?.[' _byj_parent'] &&

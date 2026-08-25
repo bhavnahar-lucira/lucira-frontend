@@ -9,7 +9,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { pushPromoClick, getNumericId } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
 import InsuranceOption from "./InsuranceOption";
-import GoldCoinOption, { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
+
 import { useCart } from "@/hooks/useCart";
 import { applyCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
@@ -52,18 +52,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, removeMultipleFromCart, addToCart, loading, nectorPoints } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
-  const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: true, threshold: 20000 });
 
-  useEffect(() => {
-    apiFetch("/api/settings/gold-coin")
-      .then(data => {
-        setGoldCoinConfig({
-          enabled: data.enabled ?? false,
-          threshold: Number(data.threshold) || 20000
-        });
-      })
-      .catch(err => console.error("Error fetching gold coin threshold:", err));
-  }, []);
 
   const otherItemsQuantity = (() => {
     let qty = 0;
@@ -71,7 +60,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     items
       .filter(item =>
         item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !item.isFreeGift &&
         !isFreeGiftVariant(item.variantId)
       )
       .forEach(item => {
@@ -100,7 +89,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         String(item.title || "").toLowerCase().includes('byj')
       );
       return item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !item.isFreeGift &&
         !isFreeGiftVariant(item.variantId) &&
         !isBYJ;
     })
@@ -139,20 +128,16 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         return acc;
     }, 0);
 
-  const eligibleGoldCoins = Math.max(0, Math.floor(diamondTotal / goldCoinConfig.threshold));
-
   const insuranceItem = items.find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
-
-  const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
   // Claiming requires a logged-in user, so a gift line without one is an
   // invalid leftover state (FreeGiftReward's own effect removes it), not a
   // legitimate claim — don't reflect it as applied here in the meantime.
-  const appliedGiftItem = user ? items.find(item => isFreeGiftVariant(item.variantId)) : null;
+  const appliedGiftItem = user ? items.find(item => item.isFreeGift || isFreeGiftVariant(item.variantId)) : null;
 
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+    !item.isFreeGift &&
     !isFreeGiftVariant(item.variantId)
   )?.title;
 
@@ -178,30 +163,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       }
     }
 
-    // Sync Gold Coin
-    if (goldCoinItem && goldCoinItem.isFreeGift) {
-      const currentCoinQty = Number(goldCoinItem.quantity || goldCoinItem.qty || 0);
-      
-      // Remove if promotion is disabled OR if eligibility threshold not met
-      if (!goldCoinConfig.enabled || eligibleGoldCoins <= 0) {
-        const coinItems = items.filter(i => i.variantId === GOLDCOIN_VARIANT_ID && i.isFreeGift);
-        if (coinItems.length > 1) {
-          const lineIds = coinItems.map(i => i.lineId).filter(Boolean);
-          const variantIds = coinItems.map(i => i.variantId).filter(Boolean);
-          removeMultipleFromCart({ lineIds, variantIds });
-        } else {
-          removeFromCart(coinItems[0]?.lineId || GOLDCOIN_VARIANT_ID);
-        }
-      } else if (currentCoinQty !== eligibleGoldCoins) {
-        updateCartItem({
-          lineId: goldCoinItem.lineId,
-          currentVariantId: GOLDCOIN_VARIANT_ID,
-          quantity: eligibleGoldCoins
-        });
-      }
-    }
-
-  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled]);
+  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, updateCartItem, removeFromCart]);
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
@@ -269,7 +231,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const originalSubtotal = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
@@ -284,7 +246,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const totalSavings = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
@@ -313,7 +275,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const handleApplyCoupon = async (codeOverride) => {
     const code = (codeOverride ?? couponCode).trim();
     if (!code) return;
-    if (items.some(item => isFreeGiftVariant(item.variantId))) {
+    if (items.some(item => item.isFreeGift || isFreeGiftVariant(item.variantId))) {
       toast.error("Coupons cannot be applied while a free gift is claimed. Please remove it first.");
       return;
     }
@@ -514,15 +476,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             </button>
           )}
         </div>
-        {goldCoinItem && (
-          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-            <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-            <span className="font-semibold text-[#00A63E]">Free</span>
-          </div>
-        )}
         {appliedGiftItem && (
           <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-            <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+            <span>{appliedGiftItem.title || "Free Gift"} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-[#00A63E]">Free</span>
             </div>
@@ -599,16 +555,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               )}
             </div>
 
-            {goldCoinItem && (
-              <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
-                <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-                <span className="font-semibold text-[#00A63E]">Free</span>
-              </div>
-            )}
-
             {appliedGiftItem && (
               <div className="flex justify-between items-center font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
-                <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+                <span>{appliedGiftItem.title || "Free Gift"} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
                 <span className="font-semibold text-[#00A63E]">Free</span>
               </div>
             )}
@@ -647,7 +596,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       {/* Mobile Offers Group (Gold Coin, Insurance) - ALL BELOW SUMMARY */}
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
-          <GoldCoinOption />
           <InsuranceOption />
         </div>
       </div>
@@ -664,8 +612,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           Proceed To Checkout
         </Button>
         
-        <GoldCoinOption />
-
         <InsuranceOption />
       </div>
 

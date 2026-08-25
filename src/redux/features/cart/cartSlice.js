@@ -14,7 +14,6 @@ import { trackAddToCart as trackSearchAddToCart } from "@/lib/searchAnalytics";
 
 const DEFAULT_CONTEXT = process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront';
 
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 // Helper to get or create Shopify Cart ID
 const getCartId = () => {
@@ -106,8 +105,8 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         lineId: node.id,
         variantId,
         quantity: computedQuantity,
-        title: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gold Coin" : node.merchandise.product.title,
-        variantTitle: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gift" : node.merchandise.title,
+        title: isFreeGift ? (backendItem?.title || `Free ${node.merchandise.product.title}`) : node.merchandise.product.title,
+        variantTitle: isFreeGift ? "Free Gift" : node.merchandise.title,
         handle: node.merchandise.product.handle,
         tags: node.merchandise.product.tags || [],
         sku: node.merchandise.sku,

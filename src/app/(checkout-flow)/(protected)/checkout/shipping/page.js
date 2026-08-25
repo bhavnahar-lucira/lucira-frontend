@@ -47,7 +47,6 @@ import { getEstimatedDispatchDate } from "@/lib/utils";
 import Image from "next/image";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 const ShippingSkeleton = () => (
   <div className="space-y-10 animate-pulse mt-4">
@@ -195,7 +194,7 @@ export default function ShippingPage() {
       const filteredItemsForGtm = cartItems.filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.isFreeGift &&
           !item.properties?.['_byj_parent'] &&
           !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
       );
@@ -213,7 +212,7 @@ export default function ShippingPage() {
             else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
             else if (lowerTitle.includes("pendant")) category = "Pendants";
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-            else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+            else if (item.isFreeGift) category = "Free Gift";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
           }
           return {
@@ -405,7 +404,7 @@ export default function ShippingPage() {
     const filteredItemsForGtm = (cartItems || []).filter(
       (item) =>
         item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !item.isFreeGift &&
         !item.properties?.['_byj_parent'] &&
         !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
     );
@@ -432,7 +431,7 @@ export default function ShippingPage() {
           else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
           else if (lowerTitle.includes("pendant")) category = "Pendants";
           else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-          else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+          else if (item.isFreeGift) category = "Free Gift";
           else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
         }
 
@@ -756,7 +755,7 @@ export default function ShippingPage() {
                   <div className="pt-6 border-t border-zinc-200 lg:border-none lg:pt-0">
                     <h3 className="text-[14px] lg:text-[0.875rem] font-figtree font-medium lg:font-bold text-black uppercase tracking-normal lg:tracking-wide leading-none lg:leading-normal mb-4">DELIVERY ESTIMATES</h3>
                     <div className="space-y-4">
-                      {cartItems.filter(i => i.variantId !== INSURANCE_VARIANT_ID && i.variantId !== GOLDCOIN_VARIANT_ID && !i.properties?.['_byj_parent'] && !(i.properties?.['_byj_group_id'] && !i.properties?.['_byj_preview'])).map((item, idx) => {
+                      {cartItems.filter(i => i.variantId !== INSURANCE_VARIANT_ID && !i.isFreeGift && !i.properties?.['_byj_parent'] && !(i.properties?.['_byj_group_id'] && !i.properties?.['_byj_preview'])).map((item, idx) => {
                         const isBYJ = item.properties?.['_byj_preview'];
                         const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
                         return (
