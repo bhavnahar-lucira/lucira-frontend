@@ -22,6 +22,7 @@ import { apiFetch } from "@/lib/api";
 import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
 import FreeGiftReward from "./FreeGiftReward";
+import FeaturedOfferBanner from "./FeaturedOfferBanner";
 import { FREE_GIFTS, isFreeGiftVariant } from "@/lib/freeGifts";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -49,7 +50,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   }, []);
   // Which listed coupon is mid-apply, so only that card shows a spinner.
   
-  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, removeMultipleFromCart, addToCart, loading, nectorPoints } = useCart();
+  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, removeMultipleFromCart, addToCart, loading, nectorPoints, activeDiscounts, claimDiscount, unclaimDiscount } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
 
@@ -280,6 +281,29 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       return;
     }
 
+    // Drawer-listed "automatic" Product Discounts rules have no real Shopify
+    // code — they're claim-gated (see /api/cart/discount/claim), not
+    // something to submit through coupon/validate. A customer typing one in
+    // (or clicking its card) would otherwise always get "invalid code" back,
+    // since Shopify has no code to look up for an automatic discount.
+    const dynamicMatch = dynamicCoupons?.find((c) => c.code.toUpperCase() === code.toUpperCase());
+    if (dynamicMatch?.method === "automatic") {
+      setIsApplying(true);
+      if (codeOverride) setApplyingCode(code);
+      try {
+        await claimDiscount(dynamicMatch.id);
+        toast.success(`Coupon "${dynamicMatch.code}" applied!`);
+        setIsCouponDrawerOpen(false);
+        setCouponCode("");
+      } catch (err) {
+        // claimDiscount already shows its own error toast — nothing more to do.
+      } finally {
+        setIsApplying(false);
+        setApplyingCode(null);
+      }
+      return;
+    }
+
     setIsApplying(true);
     if (codeOverride) setApplyingCode(code);
     try {
@@ -305,7 +329,17 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         });
       }
 
-
+      const claimedProductDiscount = (activeDiscounts || []).find((d) => d.claimed);
+      if (claimedProductDiscount) {
+        try {
+          await unclaimDiscount(claimedProductDiscount.id);
+        } catch (e) {
+          // unclaimDiscount already shows its own error toast.
+        }
+        toast.info(`${claimedProductDiscount.title} removed as a coupon is applied.`, {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
 
       dispatch(applyCoupon({
         code: data.code,
@@ -326,7 +360,23 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     }
   };
 
-  const handleRemoveCoupon = () => {
+  // Called two ways: CouponCard's onRemove passes the card's own code
+  // string, but the "remove applied coupon" chip elsewhere just does
+  // onClick={handleRemoveCoupon} — React passes the click event there, not
+  // a code — so anything that isn't actually a string falls back to
+  // whichever coupon is currently applied.
+  const handleRemoveCoupon = async (code) => {
+    const targetCode = typeof code === "string" ? code : effectiveAppliedCode;
+    const dynamicMatch = dynamicCoupons?.find((c) => c.code.toUpperCase() === (targetCode || "").toUpperCase());
+    if (dynamicMatch?.method === "automatic") {
+      try {
+        await unclaimDiscount(dynamicMatch.id);
+        toast.error("Coupon removed", { icon: <Check className="w-4 h-4" /> });
+      } catch (err) {
+        // unclaimDiscount already shows its own error toast.
+      }
+      return;
+    }
     dispatch(removeCoupon());
     toast.error("Coupon removed", {
       icon: <Check className="w-4 h-4" />
@@ -373,16 +423,57 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const applicableCouponCode = getApplicableCouponCode(diamondTotal);
   const applicableCouponCodes = getApplicableCouponCodes(diamondTotal);
 
+  // The Saving Zone drawer is dashboard-driven: /api/cart/coupons/active
+  // returns codes staff toggled either "Show in Saving Zone drawer" OR
+  // "Featured Offer" on (the FeaturedOfferBanner above needs the latter too)
+  // — filter back down to drawer-only here so a featured-but-not-drawer rule
+  // doesn't also clutter this list. Falls back to the static ladder if that
+  // fetch hasn't resolved yet or failed, so the drawer never renders empty.
+  const couponsList = dynamicCoupons ? dynamicCoupons.filter((c) => c.showInDrawer) : COUPONS;
+  const isDynamicCouponsList = !!dynamicCoupons;
+
+  // Dashboard coupons carry their own minAmount instead of fitting the static
+  // ladder's exclusive bands, so applicability is just "cart clears this
+  // coupon's own minimum" — more than one can be applicable at once, unlike
+  // the old mutually-exclusive band logic.
+  //
+  // For "automatic" rules, diamondTotal (diamond-charges only) is the wrong
+  // yardstick — a rule can target any collection (e.g. Gold Jewelry), not
+  // just diamond items, so a gold-only cart would always read as ineligible.
+  // The backend already computed real eligibility (collection match + the
+  // cart's true aggregate subtotal for that rule) when it built
+  // activeDiscounts — use that instead of re-deriving it heuristically here.
+  // Code coupons have no such live signal until submitted, so they keep the
+  // diamondTotal heuristic the static ladder always used.
+  const applicableCoupons = couponsList.filter((c) => {
+    if (!isDynamicCouponsList) return applicableCouponCodes.includes(c.code);
+    if (c.method === "automatic") return !!activeDiscounts?.find((d) => d.id === c.id);
+    return diamondTotal >= Number(c.minAmount || 0);
+  });
+  const generalApplicableCode = isDynamicCouponsList
+    ? [...applicableCoupons].sort((a, b) => Number(b.minAmount || 0) - Number(a.minAmount || 0))[0]?.code || null
+    : applicableCouponCode;
+
+  // A code coupon (Redux appliedCoupon) and a claimed automatic discount
+  // (backend activeDiscounts) are two different mechanisms, but only one can
+  // ever be live at once (claiming removes an applied code, see useCart's
+  // claimDiscount) — so they collapse to one "currently applied" code for
+  // the card UI here.
+  const claimedDynamicCoupon = dynamicCoupons?.find(
+    (c) => c.method === "automatic" && activeDiscounts?.find((d) => d.id === c.id)?.claimed
+  );
+  const effectiveAppliedCode = appliedCoupon ? couponDetails.code : (claimedDynamicCoupon?.code || null);
+
   // Lead with the coupon the customer can actually use — an applied one first,
   // otherwise the qualifying tier — so the drawer never opens on a disabled
   // card. The remaining coupons keep their original ladder order beneath it.
-  const leadCouponCode = (appliedCoupon && couponDetails.code) || applicableCouponCode;
+  const leadCouponCode = effectiveAppliedCode || generalApplicableCode;
   const orderedCoupons = leadCouponCode
     ? [
-        ...COUPONS.filter((c) => c.code.toUpperCase() === leadCouponCode.toUpperCase()),
-        ...COUPONS.filter((c) => c.code.toUpperCase() !== leadCouponCode.toUpperCase()),
+        ...couponsList.filter((c) => c.code.toUpperCase() === leadCouponCode.toUpperCase()),
+        ...couponsList.filter((c) => c.code.toUpperCase() !== leadCouponCode.toUpperCase()),
       ]
-    : COUPONS;
+    : couponsList;
 
   // Same tile in the mobile and desktop offer groups; both open the one drawer.
   const couponTrigger = (
@@ -436,6 +527,16 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             letterSpacing: "0%",
             textTransform: "uppercase"
         }}>OFFER ZONE</h3>
+        <FeaturedOfferBanner
+          dynamicCoupons={dynamicCoupons}
+          activeDiscounts={activeDiscounts}
+          diamondTotal={diamondTotal}
+          effectiveAppliedCode={effectiveAppliedCode}
+          applyingCode={applyingCode}
+          onApply={handleApplyCoupon}
+          onRemove={handleRemoveCoupon}
+          loading={loading}
+        />
         {couponTrigger}
         <FreeGiftReward diamondTotal={diamondTotal} />
       </div>
@@ -714,7 +815,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         ) : (
           <>
             {/* Every card is disabled — say why rather than leaving a dead list */}
-            {!appliedCoupon && applicableCouponCodes.length === 0 && items.length > 0 && (
+            {!appliedCoupon && couponsList.length > 0 && applicableCoupons.length === 0 && items.length > 0 && (
               <div className="rounded-sm border border-[#EADFD8] bg-white px-3.5 py-2.5">
                 <p className="font-figtree text-xs font-medium leading-[1.4] text-[#000000]">
                   These coupons apply to diamond products only. Add a diamond product to unlock them.
@@ -722,25 +823,28 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               </div>
             )}
 
-            {/* The same coupon ladder the PDP shows, in the same card design */}
+            {/* The dashboard-driven coupon ladder, in the same card design */}
             {(() => {
-              const baseCoupons = [...COUPONS];
-              const allApplicable = [...applicableCouponCodes];
+              const baseCoupons = [...couponsList];
+              const allApplicable = applicableCoupons.map((c) => c.code);
 
-              const referenceOrder = [...baseCoupons];
+              const referenceOrder = [...baseCoupons].sort((a, b) => Number(a.minAmount || 0) - Number(b.minAmount || 0));
 
-              return baseCoupons
+              return [...referenceOrder]
                 .sort((a, b) => {
                   const aApp = allApplicable.includes(a.code);
                   const bApp = allApplicable.includes(b.code);
 
+                  // Always push applicable coupons to the top
                   if (aApp && !bApp) return -1;
                   if (!aApp && bApp) return 1;
 
+                  // If both are applicable, show highest minAmount first
                   if (aApp && bApp) {
-                     return referenceOrder.findIndex(c => c.code === b.code) - referenceOrder.findIndex(c => c.code === a.code);
+                     return Number(b.minAmount || 0) - Number(a.minAmount || 0);
                   }
-                  return referenceOrder.findIndex(c => c.code === a.code) - referenceOrder.findIndex(c => c.code === b.code);
+                  // If neither are applicable, show lowest minAmount first (closer to being reachable)
+                  return Number(a.minAmount || 0) - Number(b.minAmount || 0);
                 })
                 .map((coupon) => (
                   <div key={coupon.code} className="w-full">
@@ -751,7 +855,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                       onApply={handleApplyCoupon}
                       onRemove={handleRemoveCoupon}
                       applyingCode={applyingCode}
-                      appliedCode={appliedCoupon ? couponDetails.code : null}
+                      appliedCode={effectiveAppliedCode}
                       isApplicable={allApplicable.includes(coupon.code)}
                       disabled={!!appliedGiftItem}
                     />

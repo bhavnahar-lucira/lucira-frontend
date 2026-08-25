@@ -27,6 +27,19 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
+  const [dynamicCoupons, setDynamicCoupons] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/cart/coupons/active", { suppressErrorLog: true })
+      .then(res => {
+        if (!cancelled && res?.coupons) {
+          setDynamicCoupons(res.coupons);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const handleCopyCode = (code) => {
     navigator.clipboard.writeText(code);
@@ -301,8 +314,23 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
     window.location.href = "/collections/pendants";
   };
 
-  const activeIndex = getCouponIndexForPrice(currentPrice);
-  const visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
+  // /api/cart/coupons/active now also includes featured-only rules (not
+  // toggled "Show in Saving Zone drawer") for the cart's FeaturedOfferBanner
+  // — filter back down to drawer-only here, same as the cart's drawer list.
+  const couponsList = dynamicCoupons ? dynamicCoupons.filter((c) => c.showInDrawer) : COUPONS;
+  const isDynamicCouponsList = !!dynamicCoupons;
+
+  let visibleCoupons = [];
+  if (isDynamicCouponsList) {
+    const sorted = [...couponsList].sort((a, b) => Number(a.minAmount || 0) - Number(b.minAmount || 0));
+    const firstInvalid = sorted.findIndex(c => parsePrice(currentPrice) < Number(c.minAmount || 0));
+    const startIdx = firstInvalid > 0 ? firstInvalid - 1 : 0;
+    visibleCoupons = sorted.slice(startIdx, startIdx + 3);
+    if (visibleCoupons.length === 0) visibleCoupons = sorted.slice(0, 3);
+  } else {
+    const activeIndex = getCouponIndexForPrice(currentPrice);
+    visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
+  }
 
   const isUnlocked = step === "unlocked";
   const priceValue = parsePrice(currentPrice);
@@ -501,7 +529,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         onClose={() => setIsDrawerOpen(false)}
         title="Available Coupons"
       >
-        {COUPONS.map((coupon, idx) => (
+        {couponsList.map((coupon, idx) => (
           <div key={idx} className="w-full">
             <CouponCard
               coupon={coupon}

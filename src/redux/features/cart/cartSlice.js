@@ -235,7 +235,11 @@ export const mapShopifyCart = (cart, backendCart = null) => {
     items,
     totalQuantity,
     totalAmount,
-    duplicateLineIds
+    duplicateLineIds,
+    // Drawer-gated automatic product discounts currently eligible for this
+    // cart (lib/cartPricing.js:repriceItems on the backend) — the claim/
+    // unclaim buttons (FreeGiftReward's discount banner) read this.
+    activeDiscounts: backendCart?.activeDiscounts || [],
   };
 };
 
@@ -263,7 +267,10 @@ export const fetchCart = createAsyncThunk(
       });
 
     const shopifyPromise = cartId ? shopifyStorefrontFetch(CART_QUERY, { cartId }) : Promise.resolve(null);
-    let [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
+    // Fetch gift tiers concurrently to prevent UI delay in FreeGiftReward
+    const settingsPromise = apiFetch("/api/settings/silver-bracelet", { suppressErrorLog: true }).catch(() => null);
+
+    let [data, backendCart, settingsData] = await Promise.all([shopifyPromise, backendPromise, settingsPromise]);
     
     // Heal stale cart if shopifyPromise returned nothing but we had a cartId
     if (cartId && !data?.cart) {
@@ -451,7 +458,7 @@ export const fetchCart = createAsyncThunk(
       }
     }
     
-    return mappedState;
+    return { ...mappedState, settingsData };
   }
 );
 
@@ -990,6 +997,8 @@ const initialState = {
   isCartOpen: false,
   loading: false,
   error: null,
+  giftTiersConfig: null,
+  activeDiscounts: [],
 };
 
 const cartSlice = createSlice({
@@ -1068,6 +1077,10 @@ const cartSlice = createSlice({
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
+          state.activeDiscounts = action.payload.activeDiscounts || [];
+          if (action.payload.settingsData) {
+            state.giftTiersConfig = action.payload.settingsData;
+          }
         }
       })
       .addCase(fetchCart.rejected, (state, action) => {

@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiFetch } from "@/lib/api";
 import { pushPromoClick } from "@/lib/gtm";
 import { FREE_GIFTS, isFreeGiftVariant, getApplicableFreeGift, getNextFreeGift, mapRemoteFreeGiftTiers, isTierLive } from "@/lib/freeGifts";
+import NoImageIcon from "@/components/common/RewardBadgeIcon";
 
 /**
  * Cart free-gift-with-purchase widget — sits directly beneath the "Apply
@@ -26,20 +27,33 @@ import { FREE_GIFTS, isFreeGiftVariant, getApplicableFreeGift, getNextFreeGift, 
  *   ladder uses.
  */
 export default function FreeGiftReward({ diamondTotal }) {
-  const { items, appliedCoupon, addToCart, removeFromCart, removeCoupon, loading, activeDiscounts, claimDiscount, unclaimDiscount } = useCart();
+  const { items, appliedCoupon, addToCart, removeFromCart, removeCoupon, loading } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isDiscountProcessing, setIsDiscountProcessing] = useState(false);
 
-  // The full tier list lives server-side (settings collection, same doc the
-  // backend's add-time and checkout-time checks read) so staff can add, edit,
-  // or remove gifts from the dashboard without a redeploy. Falls back to the
-  // static FREE_GIFTS config until this resolves (or if it fails), so the
-  // widget never flashes locked.
-  const [remoteConfig, setRemoteConfig] = useState(null);
+  const giftTiersConfig = useSelector(state => state.cart.giftTiersConfig);
+
+  // Initialize from Redux if available to prevent any initial render flicker
+  const [remoteConfig, setRemoteConfig] = useState(() => {
+    if (giftTiersConfig) {
+      return {
+        enabled: giftTiersConfig.enabled ?? true,
+        tiers: mapRemoteFreeGiftTiers(giftTiersConfig.tiers),
+      };
+    }
+    return null;
+  });
 
   useEffect(() => {
+    if (giftTiersConfig) {
+      setRemoteConfig({
+        enabled: giftTiersConfig.enabled ?? true,
+        tiers: mapRemoteFreeGiftTiers(giftTiersConfig.tiers),
+      });
+      return;
+    }
+
     apiFetch("/api/settings/silver-bracelet", { suppressErrorLog: true })
       .then((data) => {
         setRemoteConfig({
@@ -48,7 +62,7 @@ export default function FreeGiftReward({ diamondTotal }) {
         });
       })
       .catch((err) => console.error("Error fetching silver bracelet setting:", err));
-  }, []);
+  }, [giftTiersConfig]);
 
   // All configured tiers, enabled or not — a disabled tier's gift line, if
   // one is already sitting in a cart from before it was disabled, still needs
@@ -113,88 +127,11 @@ export default function FreeGiftReward({ diamondTotal }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedCoupon, appliedItem, isProcessing]);
 
-  // Same banner slot, "whichever wins": a free gift tier always takes
-  // priority when one's available/claimed. Only when there's genuinely no
-  // gift tier at all does the slot fall back to the best claim-gated
-  // automatic discount (e.g. "3% off Diamond" vs "2% off Gold" — highest
-  // discountValue wins), so the two offers never compete for the same spot.
-  const bestDiscount = [...(activeDiscounts || [])].sort((a, b) => b.discountValue - a.discountValue)[0] || null;
+  const hasFreeGift = gift || nextGift || isApplied;
+  const isFreeGiftEnabled = remoteConfig && remoteConfig.enabled;
+  const showFreeGiftBanner = isFreeGiftEnabled || isApplied;
 
-  const handleDiscountToggle = async () => {
-    if (!bestDiscount) return;
-    setIsDiscountProcessing(true);
-    try {
-      if (bestDiscount.claimed) {
-        await unclaimDiscount(bestDiscount.id);
-        toast.info(`${bestDiscount.title} removed from your order.`);
-      } else {
-        await claimDiscount(bestDiscount.id);
-        toast.success(`${bestDiscount.title} has been applied to your order!`);
-      }
-    } finally {
-      setIsDiscountProcessing(false);
-    }
-  };
-
-  // Nothing to show: either nothing's configured/eligible/locked/applied, or
-  // the promotion was switched off server-side (an already-claimed line from
-  // before it was switched off still renders, so the shopper can remove it
-  // rather than have it silently vanish).
-  if (!gift && !nextGift && !isApplied) {
-    if (!bestDiscount) return null;
-
-    const discountLabel =
-      bestDiscount.discountType === "percentage" ? `${bestDiscount.discountValue}% off` : `₹${bestDiscount.discountValue} off`;
-
-    return (
-      <div
-        className="flex w-full items-center gap-2.5 sm:gap-3 border border-[#EADFD8] shadow-[0_2px_12px_-4px_rgba(90,65,63,0.10)] transition-colors pr-2.5 sm:pr-3.5"
-        style={{
-          borderRadius: "0px 0px 8px 8px",
-          borderTop: "0px",
-          background: "linear-gradient(89.31deg, rgb(254, 245, 241) 0%, rgb(241, 228, 209) 100%)",
-          paddingTop: 8,
-          paddingBottom: 8,
-          paddingLeft: 10,
-          gap: 16,
-        }}
-      >
-        <div className="w-[40px] h-[40px] shrink-0 flex items-center justify-center" style={{ border: 0 }}>
-          <NoImageIcon />
-        </div>
-        <div className="min-w-0 flex-1 text-left py-1 sm:py-0">
-          <p className="font-figtree text-xs lg:text-[0.9rem] leading-[1.35]" style={{ color: "rgb(0, 0, 0)", fontWeight: 500 }}>
-            {bestDiscount.claimed
-              ? <>You&apos;ve applied <span className="font-bold">{discountLabel}</span> on {bestDiscount.title}.</>
-              : <>You&apos;ve unlocked <span className="font-bold">{discountLabel}</span> on {bestDiscount.title}.</>}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={handleDiscountToggle}
-          disabled={isDiscountProcessing || loading}
-          className={
-            bestDiscount.claimed
-              ? "flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-2.5 sm:px-4 lg:px-6 font-figtree font-medium text-[10px] sm:text-[11px] lg:text-[13px] hover:bg-[#e7000b]/10 cursor-pointer disabled:opacity-50 ml-0 lg:ml-[20px]"
-              : "flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer disabled:opacity-50 ml-0 lg:ml-[20px]"
-          }
-          style={bestDiscount.claimed ? { border: "1px solid #e7000b", background: "transparent", color: "#e7000b" } : undefined}
-        >
-          {isDiscountProcessing ? (
-            <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" />
-          ) : bestDiscount.claimed ? (
-            "REMOVE"
-          ) : (
-            <>
-              <Gift className="w-3.5 h-3.5 hidden lg:block" />
-              CLAIM
-            </>
-          )}
-        </button>
-      </div>
-    );
-  }
-  if (remoteConfig && !remoteConfig.enabled && !isApplied) return null;
+  if (!hasFreeGift) return null;
 
   const handleToggle = async () => {
     setIsProcessing(true);

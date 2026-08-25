@@ -34,7 +34,8 @@ export default function CheckoutSummary({
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
-  const { items, totalAmount, appliedCoupon, removeCoupon, nectorPoints } = useCart();
+  const { items, totalAmount, appliedCoupon, removeCoupon, nectorPoints, activeDiscounts, unclaimDiscount } = useCart();
+  const claimedProductDiscount = (activeDiscounts || []).find((d) => d.claimed);
   const user = useSelector((state) => state.user.user);
 
   const [pointsData, setPointsData] = useState(null);
@@ -227,15 +228,23 @@ export default function CheckoutSummary({
       return;
     }
 
-    if (appliedCoupon) {
+    if (appliedCoupon || claimedProductDiscount) {
       if (onApplyCoinsWarning) {
         onApplyCoinsWarning(() => executeApplyPoints());
         return;
       }
-      removeCoupon();
-      toast.error("Coupon has been removed as loyalty points are applied.", {
-        icon: <Check className="w-4 h-4" />
-      });
+      if (appliedCoupon) {
+        removeCoupon();
+        toast.error("Coupon has been removed as loyalty points are applied.", {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
+      if (claimedProductDiscount) {
+        unclaimDiscount(claimedProductDiscount.id);
+        toast.error(`${claimedProductDiscount.title} has been removed as loyalty points are applied.`, {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
     }
 
     executeApplyPoints();
@@ -245,6 +254,12 @@ export default function CheckoutSummary({
     if (appliedCoupon) {
       removeCoupon();
       toast.error("Coupon has been removed as loyalty points are applied.", {
+        icon: <Check className="w-4 h-4" />
+      });
+    }
+    if (claimedProductDiscount) {
+      unclaimDiscount(claimedProductDiscount.id);
+      toast.error(`${claimedProductDiscount.title} has been removed as loyalty points are applied.`, {
         icon: <Check className="w-4 h-4" />
       });
     }
