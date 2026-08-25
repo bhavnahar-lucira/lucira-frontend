@@ -148,6 +148,7 @@ export async function shopifyAdminRestFetch(endpoint, params = {}, options = {})
       ...options.headers,
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
+    ...(options.next ? { next: options.next } : {}),
   });
 
   const data = await res.json();
