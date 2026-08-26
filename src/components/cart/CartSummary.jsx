@@ -305,7 +305,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       if (codeOverride) setApplyingCode(code);
       try {
         await claimDiscount(dynamicMatch.id, { coinsApplicable: !!dynamicMatch.coinsApplicable });
-        toast.success(`Coupon "${dynamicMatch.code}" applied!`);
+        toast.success("Coupon applied!");
         setIsCouponDrawerOpen(false);
         setCouponCode("");
       } catch (err) {
@@ -622,7 +622,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
       <div className="flex flex-col mb-[20px]">
-        <h3 className="font-figtree text-[0.875rem] lg:hidden font-medium text-black tracking-wider mb-3">Offer Zone</h3>
+        <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-0 mb-[14px] lg:hidden">Offer Zone</h3>
         <FeaturedOfferBanner
           dynamicCoupons={dynamicCoupons}
           activeDiscounts={activeDiscounts}
@@ -659,7 +659,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             <OfferCategoryIcon category={otherFeaturedOffer.category} className="h-3.5 w-3.5 shrink-0 opacity-70" />
             <span
               className="min-w-0 flex-1 truncate font-figtree leading-[1.3]"
-              style={{ color: "#000", fontSize: "0.85rem" }}
+              style={{ color: "#000", fontSize: "0.85rem", fontWeight: 500 }}
             >
               Also available:{" "}
               <span className="font-semibold" style={{ color: getOfferTheme(otherFeaturedOffer.category).accent }}>
@@ -667,8 +667,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               </span>{" "}
               on {OFFER_CATEGORY_LABEL[otherFeaturedOffer.category]}
             </span>
+            {/* The row itself is the whole tap target already (onClick above) —
+                "View" is dropped on mobile so the offer text gets the space
+                instead of truncating; the chevron alone still reads as
+                "opens something" at that width, same as the Apply Coupon row. */}
             <span
-              className="shrink-0 font-figtree font-semibold uppercase tracking-wide text-[#5A413F] underline-offset-2 group-hover:underline"
+              className="hidden shrink-0 font-figtree font-semibold uppercase tracking-wide text-[#5A413F] underline-offset-2 group-hover:underline lg:inline"
               style={{ fontSize: "0.85rem" }}
             >
               View
