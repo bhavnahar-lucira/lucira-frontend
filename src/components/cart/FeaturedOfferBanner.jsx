@@ -147,22 +147,18 @@ export default function FeaturedOfferBanner({
         const isDimmed = isBlockedByOther || isOutOfCategory;
 
         return (
-    /* A flat tile in the metal's palest tint — no gradient, no visible border,
-       no shadow. The border stays declared so a claimed offer can turn it
-       green without the box changing size. */
+    /* A flat tile in the metal's palest tint — no gradient, no border, no
+       shadow, in every state. The claimed state reads from the copy and the
+       Remove button, not from an outline. */
     <div
       key={best.code}
-      className={`relative w-full overflow-hidden border shadow-none transition-colors ${isDimmed ? "opacity-60" : ""}`}
-      style={{
-        borderRadius: "8px",
-        background: theme.flatBg,
-        borderColor: best.claimed ? "#A7D8BC" : theme.flatBg,
-      }}
+      className={`relative w-full overflow-hidden border-0 shadow-none transition-colors ${isDimmed ? "opacity-60" : ""}`}
+      style={{ borderRadius: "8px", background: theme.flatBg }}
     >
 
-      {/* Literal 8px, not p-2 — the site's root font-size makes rem padding
-          land at 6.5px, which reads visibly tighter than the spec. */}
-      <div className="relative flex items-center gap-2.5 sm:gap-3" style={{ padding: 8 }}>
+      {/* Literal px, not p-2 — the site's root font-size varies by breakpoint,
+          so rem padding drifts off the spec (p-2 lands at 6.5px in places). */}
+      <div className="relative flex items-center gap-2.5 p-[8px] sm:gap-3 lg:p-[10px]">
         <span
           className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-[6px]"
           style={{ background: theme.tileSolid, border: `1px solid ${theme.tileBorder}` }}
@@ -175,10 +171,10 @@ export default function FeaturedOfferBanner({
             Additional {amountLabel} Off
           </p>
 
-          {/* No code chip here — Claim submits the code for the customer, so
-              printing it only invites someone to retype it in the drawer. The
-              full card in the Saving Zone is where the code belongs. */}
-          <p className="mt-[3px] truncate font-figtree text-[0.68rem] leading-[1.3] text-black lg:text-[0.8rem]">
+          {/* No code anywhere on a featured offer — Claim submits it for the
+              customer, so the code is never something they need to see or
+              share. The cart trigger hides it for the same reason. */}
+          <p className="mt-[3px] truncate font-figtree text-[0.68rem] leading-[1.3] text-black lg:mt-[6px] lg:text-[0.875rem]">
             {best.claimed ? (
               best.savings > 0 ? (
                 <>
