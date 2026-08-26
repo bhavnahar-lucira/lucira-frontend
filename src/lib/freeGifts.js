@@ -63,6 +63,10 @@ export const mapRemoteFreeGiftTiers = (tiers) => {
       bannerText: t.bannerText,
       worthValue: Number(t.giftWorthValue) || 0,
       worthLabel: `₹${(Number(t.giftWorthValue) || 0).toLocaleString("en-IN")}`,
+      // On: claiming this gift doesn't remove an applied coupon (and applying
+      // a coupon doesn't remove this gift) — off is today's default, hard
+      // exclusivity between the two.
+      combineCoupons: t.combineCoupons === true,
     }))
     .filter((t) => t.variantId)
     // getApplicableFreeGift/getNextFreeGift assume ascending order.

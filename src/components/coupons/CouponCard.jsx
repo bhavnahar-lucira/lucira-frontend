@@ -81,7 +81,7 @@ export default function CouponCard({
         <span
           className={`font-figtree font-semibold ${isMini ? 'text-[9px] md:text-[11px] tracking-wider' : 'text-[0.75rem] sm:text-[0.875rem] tracking-widest'} leading-[1.4] text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle whitespace-nowrap`}
         >
-          {isBankOffer ? "BANK OFFER" : "DISCOUNT"}
+          {isBankOffer ? (coupon.offerLabel === "discount" ? "DISCOUNT" : "BANK OFFER") : "DISCOUNT"}
         </span>
       </div>
 

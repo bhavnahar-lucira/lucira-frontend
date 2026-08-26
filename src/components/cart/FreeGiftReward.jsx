@@ -116,16 +116,17 @@ export default function FreeGiftReward({ diamondTotal }) {
     }
   }, [appliedItem, appliedTierStillValid, user, removeFromCart]);
 
-  // The gift and a coupon can't both apply. Claiming removes an active
-  // coupon (see handleToggle) — this is the safety net for a coupon landing
-  // afterwards (e.g. re-applied from the drawer).
+  // The gift and a coupon can't both apply — unless staff ticked "Combine
+  // coupons" on the claimed tier. Claiming removes an active coupon (see
+  // handleToggle) when combining isn't allowed — this is the safety net for
+  // a coupon landing afterwards (e.g. re-applied from the drawer).
   useEffect(() => {
-    if (appliedCoupon && appliedItem && !isProcessing) {
+    if (appliedCoupon && appliedItem && !appliedTier?.combineCoupons && !isProcessing) {
       removeFromCart(appliedItem.lineId || appliedItem.variantId);
       toast.info(`${appliedItem.title || "Free gift"} removed as it cannot be combined with a coupon.`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedCoupon, appliedItem, isProcessing]);
+  }, [appliedCoupon, appliedItem, appliedTier, isProcessing]);
 
   const hasFreeGift = gift || nextGift || isApplied;
   const isFreeGiftEnabled = remoteConfig && remoteConfig.enabled;
@@ -153,7 +154,7 @@ export default function FreeGiftReward({ diamondTotal }) {
         await removeFromCart(appliedItem.lineId || appliedItem.variantId);
         toast.info(`${appliedItem.title || "Free gift"} removed from your order.`);
       } else if (gift) {
-        if (appliedCoupon) {
+        if (appliedCoupon && !gift.combineCoupons) {
           removeCoupon();
           toast.info("Coupon removed as the free gift offer cannot be combined with coupons.");
         }

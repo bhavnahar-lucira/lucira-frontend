@@ -159,6 +159,14 @@ export default function FeaturedOfferBanner({
   const claimedOffer = primary.claimed ? primary : null;
 
   const handleToggle = async (offer) => {
+    // The button's own `disabled` prop lags one render behind a click (React
+    // batches the setProcessingCode that would flip it), so a fast
+    // double-click/double-tap can still fire this twice before it takes
+    // effect — the two overlapping apply/remove calls then race and settle
+    // in whatever order their responses land, showing an "applied, removed,
+    // applied, removed" toast flicker along the way. This is a synchronous
+    // guard the render lag can't get around.
+    if (processingCode) return;
     setProcessingCode(offer.code);
     try {
       if (offer.claimed) {

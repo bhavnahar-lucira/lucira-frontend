@@ -81,33 +81,28 @@ export const getApplicableCouponCodes = (cartValue) => {
 
 
 /**
- * Whether a cart may hold these featured offers at the same time.
+ * Whether a cart may hold these offers at the same time.
  *
- * Combining is deliberately narrow: it exists so a cart holding BOTH diamond
- * and plain gold products can take the diamond rate on its diamond lines and
- * the gold rate on its gold lines. Every condition has to hold:
+ * The only gate is the dashboard's own "Combine coupons" toggle — every offer
+ * involved has to have it on, and each has to independently qualify (its own
+ * category is in the cart and clears its own minimum). Two offers landing on
+ * the same lines (e.g. two Diamond-scoped rules) are allowed to combine too
+ * if staff opted both in — calculateCouponDiscount already sums each coupon's
+ * discount independently regardless of category, so a flat-amount and a
+ * percentage rule both applying to the same Diamond Jewelry lines is exactly
+ * what "Combine coupons" is meant to produce; Shopify enforces this the same
+ * way via combinesWith, which the dashboard sets from the same toggle.
  *
- *   - every offer involved is flagged combineCoupons in the dashboard;
- *   - they cover DIFFERENT categories, so the discounts land on disjoint lines
- *     and simply add up — two offers over the same lines would double-discount;
- *   - each one independently qualifies (its own metal is in the cart and clears
- *     its own minimum).
- *
- * Anything else falls back to one-coupon-at-a-time.
+ * Anything else (any offer without the toggle on, or one that doesn't
+ * currently qualify) falls back to one-coupon-at-a-time.
  */
 export const canCombineOffers = (offers, totals) => {
   const list = (offers || []).filter(Boolean);
   if (list.length < 2) return false;
   if (!list.every((o) => o.combineCoupons)) return false;
 
-  const categories = list.map((o) => getOfferCategory(o));
-  // A category-less ("all products") offer overlaps everything, so it can
-  // never be safely added to another.
-  if (categories.some((c) => c === OFFER_CATEGORY.ALL)) return false;
-  if (new Set(categories).size !== categories.length) return false;
-
-  return list.every((o, i) => {
-    const base = getCategoryBase(categories[i], totals);
+  return list.every((o) => {
+    const base = getCategoryBase(getOfferCategory(o), totals);
     return base > 0 && base >= Number(o.minAmount || 0);
   });
 };
@@ -214,26 +209,40 @@ const DIAMOND_KEYWORDS = /(diamond|solitaire|gemstone)/;
 const GOLD_KEYWORDS = /(gold)/;
 
 export const getOfferCategory = (coupon) => {
-  // Deliberately excludes collectionTitles — a collection name like "Rose
-  // Gold Collection" scoping an otherwise-diamond rule would tip this into a
-  // false GOLD/ALL match on text that has nothing to do with the rule's own
-  // metal split. code/title/condition/description are staff-authored
-  // specifically to describe the rule, so they stay.
-  const haystack = [
-    coupon?.code,
-    coupon?.title,
-    coupon?.condition,
-    coupon?.description,
-  ]
+  // Tier 1: staff-authored text (code/title/condition/description) — the
+  // rule's own words about itself, checked first so a rule that already
+  // names its metal is never second-guessed by what it happens to apply to
+  // (e.g. a collection named "Rose Gold Collection" scoping an otherwise
+  // diamond-titled rule shouldn't flip it to gold).
+  const primaryHaystack = [coupon?.code, coupon?.title, coupon?.condition, coupon?.description]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
 
-  const isDiamond = DIAMOND_KEYWORDS.test(haystack);
-  const isGold = GOLD_KEYWORDS.test(haystack);
+  const primaryIsDiamond = DIAMOND_KEYWORDS.test(primaryHaystack);
+  const primaryIsGold = GOLD_KEYWORDS.test(primaryHaystack);
 
-  if (isDiamond && !isGold) return OFFER_CATEGORY.DIAMOND;
-  if (isGold && !isDiamond) return OFFER_CATEGORY.GOLD;
+  if (primaryIsDiamond && !primaryIsGold) return OFFER_CATEGORY.DIAMOND;
+  if (primaryIsGold && !primaryIsDiamond) return OFFER_CATEGORY.GOLD;
+
+  // Tier 2: what the rule actually applies to. A code like "GRAND750" names
+  // no metal at all, but can still be scoped to a Diamond Jewelry collection
+  // — without this fallback that rule reads as category-less ("ALL"), which
+  // silently blocks it from ever combining with another offer (canCombineOffers
+  // refuses to combine anything touching OFFER_CATEGORY.ALL) regardless of
+  // its own "Combine coupons" toggle in the dashboard.
+  const scopeHaystack = [
+    ...(Array.isArray(coupon?.collectionTitles) ? coupon.collectionTitles : []),
+    ...(Array.isArray(coupon?.productTitles) ? coupon.productTitles : []),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const scopeIsDiamond = DIAMOND_KEYWORDS.test(scopeHaystack);
+  const scopeIsGold = GOLD_KEYWORDS.test(scopeHaystack);
+
+  if (scopeIsDiamond && !scopeIsGold) return OFFER_CATEGORY.DIAMOND;
+  if (scopeIsGold && !scopeIsDiamond) return OFFER_CATEGORY.GOLD;
 
   // A featured/bank-offer rule landing here has lost its metal-specific
   // banner, icon, and combine-eligibility with no visible error anywhere —
@@ -241,7 +250,7 @@ export const getOfferCategory = (coupon) => {
   if (process.env.NODE_ENV === "development" && (coupon?.isFeatured || coupon?.isBankOffer)) {
     console.warn(
       `[getOfferCategory] "${coupon?.code || coupon?.title || "unknown coupon"}" did not match a single diamond/gold keyword ` +
-      `(matched diamond: ${isDiamond}, gold: ${isGold}) — falling back to OFFER_CATEGORY.ALL, which loses its metal-specific theme and combine eligibility.`
+      `in its own text or in what it applies to — falling back to OFFER_CATEGORY.ALL, which loses its metal-specific theme and combine eligibility.`
     );
   }
 
