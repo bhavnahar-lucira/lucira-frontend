@@ -992,6 +992,12 @@ const initialState = {
   items: [],
   totalQuantity: 0,
   totalAmount: 0,
+  // `appliedCoupons` is the source of truth — a cart can hold two offers at
+  // once when they cover different metals (see canCombineOffers).
+  // `appliedCoupon` is a denormalised "first one" for the many call sites
+  // that only ever need a single code to display; every reducer that writes
+  // one writes the other, so the two cannot drift.
+  appliedCoupons: [],
   appliedCoupon: null,
   nectorPoints: null, // { coin_value: 0, fiat_value: 0, points_label: "" }
   isCartOpen: false,
@@ -1009,6 +1015,7 @@ const cartSlice = createSlice({
       state.items = [];
       state.totalQuantity = 0;
       state.totalAmount = 0;
+      state.appliedCoupons = [];
       state.appliedCoupon = null;
       state.nectorPoints = null;
 
@@ -1020,15 +1027,42 @@ const cartSlice = createSlice({
       }
     },
     applyCoupon: (state, action) => {
-      state.appliedCoupon = action.payload;
-      state.nectorPoints = null; // Enforce only one discount type
+      // Replaces whatever was applied — the one-coupon-at-a-time default.
+      state.appliedCoupons = action.payload ? [action.payload] : [];
+      state.appliedCoupon = state.appliedCoupons[0] || null;
+      // Coins and a coupon are mutually exclusive unless staff ticked
+      // "Lucira Coins applicable" on this discount in the dashboard.
+      if (!action.payload?.coinsApplicable) state.nectorPoints = null;
     },
-    removeCoupon: (state) => {
-      state.appliedCoupon = null;
+    // Adds alongside what's already applied. Callers must have cleared this
+    // with canCombineOffers first — the reducer has no view of cart totals,
+    // so it can't check the rule itself. Re-applying the same code replaces
+    // that entry rather than duplicating it.
+    addCoupon: (state, action) => {
+      if (!action.payload?.code) return;
+      const code = String(action.payload.code).toUpperCase();
+      const rest = (state.appliedCoupons || []).filter(
+        (c) => String(c?.code || "").toUpperCase() !== code
+      );
+      state.appliedCoupons = [...rest, action.payload];
+      state.appliedCoupon = state.appliedCoupons[0] || null;
+      if (!action.payload.coinsApplicable) state.nectorPoints = null;
+    },
+    // No payload clears every applied coupon (the long-standing behaviour);
+    // a code string removes just that one, leaving any combined partner.
+    removeCoupon: (state, action) => {
+      const code = typeof action?.payload === "string" ? action.payload.toUpperCase() : null;
+      state.appliedCoupons = code
+        ? (state.appliedCoupons || []).filter((c) => String(c?.code || "").toUpperCase() !== code)
+        : [];
+      state.appliedCoupon = state.appliedCoupons[0] || null;
     },
     applyPoints: (state, action) => {
       state.nectorPoints = action.payload;
-      state.appliedCoupon = null; // Enforce only one discount type
+      // Redeeming coins drops every coupon unless each one allowed coins.
+      const kept = (state.appliedCoupons || []).filter((c) => c?.coinsApplicable);
+      state.appliedCoupons = kept;
+      state.appliedCoupon = kept[0] || null;
     },
     removePoints: (state) => {
       state.nectorPoints = null;
@@ -1056,6 +1090,7 @@ const cartSlice = createSlice({
         state.items = [];
         state.totalQuantity = 0;
         state.totalAmount = 0;
+        state.appliedCoupons = [];
         state.appliedCoupon = null;
         state.nectorPoints = null;
         state.error = null;
@@ -1190,6 +1225,7 @@ const cartSlice = createSlice({
 export const { 
   clearCart, 
   applyCoupon, 
+  addCoupon,
   removeCoupon, 
   applyPoints,
   removePoints,

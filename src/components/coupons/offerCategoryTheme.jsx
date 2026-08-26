@@ -2,6 +2,7 @@
 
 import { OFFER_CATEGORY } from "@/lib/coupons";
 
+
 /**
  * Presentation for the metal-split offers ("Additional 5% OFF on Diamond
  * Products", "Additional 2% OFF on Plain Gold Products"). The banner above

@@ -75,13 +75,15 @@ export const useCart = () => {
   // Only one discount mechanism applies at a time — claiming here removes an
   // applied code coupon or redeemed Lucira Coins/points first (mirrors the
   // free-gift claim flow, which does the same for the same reason).
-  const claimDiscount = async (discountId) => {
+  const claimDiscount = async (discountId, { coinsApplicable = false } = {}) => {
     try {
       if (cart.appliedCoupon) {
         dispatch(removeCoupon());
         toast.info("Coupon removed — only one discount can apply at a time.");
       }
-      if (cart.nectorPoints) {
+      // Coins survive the claim only when this rule was configured to
+      // allow them (dashboard: "Lucira Coins applicable").
+      if (cart.nectorPoints && !coinsApplicable) {
         dispatch(removePoints());
         toast.info("Lucira Coins removed — only one discount can apply at a time.");
       }
@@ -129,7 +131,10 @@ export const useCart = () => {
       }
     },
     updateCartItem,
-    removeCoupon: () => dispatch(removeCoupon()),
+    // A bare call clears every coupon; passing a code removes just that one
+    // so a combined partner survives. Guarded against click handlers that
+    // pass an event through.
+    removeCoupon: (code) => dispatch(removeCoupon(typeof code === "string" ? code : undefined)),
     openCart: () => dispatch(openCart()),
     closeCart: () => dispatch(closeCart()),
     toggleCart: () => dispatch(toggleCart()),

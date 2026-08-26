@@ -79,6 +79,39 @@ export const getApplicableCouponCodes = (cartValue) => {
   return COUPONS.slice(0, maxIndex + 1).map(c => c.code);
 };
 
+
+/**
+ * Whether a cart may hold these featured offers at the same time.
+ *
+ * Combining is deliberately narrow: it exists so a cart holding BOTH diamond
+ * and plain gold products can take the diamond rate on its diamond lines and
+ * the gold rate on its gold lines. Every condition has to hold:
+ *
+ *   - every offer involved is flagged combineCoupons in the dashboard;
+ *   - they cover DIFFERENT categories, so the discounts land on disjoint lines
+ *     and simply add up — two offers over the same lines would double-discount;
+ *   - each one independently qualifies (its own metal is in the cart and clears
+ *     its own minimum).
+ *
+ * Anything else falls back to one-coupon-at-a-time.
+ */
+export const canCombineOffers = (offers, totals) => {
+  const list = (offers || []).filter(Boolean);
+  if (list.length < 2) return false;
+  if (!list.every((o) => o.combineCoupons)) return false;
+
+  const categories = list.map((o) => getOfferCategory(o));
+  // A category-less ("all products") offer overlaps everything, so it can
+  // never be safely added to another.
+  if (categories.some((c) => c === OFFER_CATEGORY.ALL)) return false;
+  if (new Set(categories).size !== categories.length) return false;
+
+  return list.every((o, i) => {
+    const base = getCategoryBase(categories[i], totals);
+    return base > 0 && base >= Number(o.minAmount || 0);
+  });
+};
+
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
 /**
@@ -98,6 +131,17 @@ const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
  */
 export const calculateCouponDiscount = (appliedCoupon, items, subtotalValue) => {
   if (!appliedCoupon) return 0;
+
+  // A combined cart carries a list. The offers are category-restricted over
+  // disjoint lines (see canCombineOffers), so their discounts add up —
+  // recursing per coupon keeps the restricted/unrestricted branching below
+  // as the single place that knows how one coupon is priced.
+  if (Array.isArray(appliedCoupon)) {
+    return appliedCoupon.reduce(
+      (acc, c) => acc + calculateCouponDiscount(c, items, subtotalValue),
+      0
+    );
+  }
 
   const couponDetails =
     typeof appliedCoupon === "object"
@@ -170,12 +214,16 @@ const DIAMOND_KEYWORDS = /(diamond|solitaire|gemstone)/;
 const GOLD_KEYWORDS = /(gold)/;
 
 export const getOfferCategory = (coupon) => {
+  // Deliberately excludes collectionTitles — a collection name like "Rose
+  // Gold Collection" scoping an otherwise-diamond rule would tip this into a
+  // false GOLD/ALL match on text that has nothing to do with the rule's own
+  // metal split. code/title/condition/description are staff-authored
+  // specifically to describe the rule, so they stay.
   const haystack = [
     coupon?.code,
     coupon?.title,
     coupon?.condition,
     coupon?.description,
-    ...(Array.isArray(coupon?.collectionTitles) ? coupon.collectionTitles : []),
   ]
     .filter(Boolean)
     .join(" ")
@@ -186,6 +234,17 @@ export const getOfferCategory = (coupon) => {
 
   if (isDiamond && !isGold) return OFFER_CATEGORY.DIAMOND;
   if (isGold && !isDiamond) return OFFER_CATEGORY.GOLD;
+
+  // A featured/bank-offer rule landing here has lost its metal-specific
+  // banner, icon, and combine-eligibility with no visible error anywhere —
+  // this is the only signal a misclassified rule gets, so surface it in dev.
+  if (process.env.NODE_ENV === "development" && (coupon?.isFeatured || coupon?.isBankOffer)) {
+    console.warn(
+      `[getOfferCategory] "${coupon?.code || coupon?.title || "unknown coupon"}" did not match a single diamond/gold keyword ` +
+      `(matched diamond: ${isDiamond}, gold: ${isGold}) — falling back to OFFER_CATEGORY.ALL, which loses its metal-specific theme and combine eligibility.`
+    );
+  }
+
   return OFFER_CATEGORY.ALL;
 };
 

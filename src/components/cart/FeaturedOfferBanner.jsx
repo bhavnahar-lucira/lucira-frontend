@@ -26,8 +26,10 @@ import { getOfferCategory, getCategoryBase, OFFER_CATEGORY_LABEL } from "@/lib/c
  * The live featured offers are split by metal (5PERCENTDIAMOND /
  * 2PERCENTGOLD), which is why each is measured against its OWN slice of the
  * cart rather than one subtotal — a diamond rule is worth nothing on an
- * all-gold cart, so it drops out here entirely. A mixed cart surfaces
- * whichever single offer is worth more, rather than implying the two combine.
+ * all-gold cart, so it cannot lead. A mixed cart surfaces whichever single
+ * offer is worth more, rather than implying the two combine; whatever the
+ * banner did not lead with becomes a one-line teaser into the Saving Zone,
+ * so the other half of the offer structure is never silently absent.
  *
  * @param {Array} dynamicCoupons   full drawer-eligible coupon list (has
  *   .isFeatured, .method, .id, .code, .discountType/.discountValue, .minAmount)
@@ -46,28 +48,40 @@ import { getOfferCategory, getCategoryBase, OFFER_CATEGORY_LABEL } from "@/lib/c
  * @param {Function} onRemove  (code) => Promise — CartSummary's handleRemoveCoupon.
  * @param {boolean} loading    cart loading state, to disable the button.
  */
-export default function FeaturedOfferBanner({
+/**
+ * Which featured offer leads, and which are left over.
+ *
+ * Lives here rather than inline because two surfaces need the same answer and
+ * must not disagree: this banner renders `primary`, while CartSummary renders
+ * `others` as the "also available" line clipped under the Apply Coupon card.
+ * Deriving that twice is how the two would drift into advertising an offer the
+ * banner is already showing.
+ *
+ * @returns {{primary: object|null, others: object[]}}
+ */
+export function selectFeaturedOffers({
   dynamicCoupons,
   activeDiscounts,
-  diamondTotal,
+  diamondTotal = 0,
   goldTotal = 0,
   productTotal = 0,
   effectiveAppliedCode,
-  applyingCode,
-  onApply,
-  onRemove,
-  loading,
+  // Every applied code. A combined pair puts two on the cart, and checking
+  // only the first would report the second as unclaimed — which showed the
+  // combined banner a CLAIM button while both were already applied.
+  appliedCodes,
 }) {
-  const [processingCode, setProcessingCode] = useState(null);
-  const user = useSelector((state) => state.user.user);
-  const { openLogin } = useAuth();
-
+  const liveCodes = (appliedCodes && appliedCodes.length
+    ? appliedCodes
+    : effectiveAppliedCode
+      ? [effectiveAppliedCode]
+      : []).map((c) => String(c || "").toUpperCase());
   const featuredCandidates = (dynamicCoupons || []).filter((c) => c.isFeatured);
   const totals = { diamondTotal, goldTotal, productTotal };
 
   const withEligibility = featuredCandidates
     .map((c) => {
-      const isApplied = !!effectiveAppliedCode && effectiveAppliedCode.toUpperCase() === c.code.toUpperCase();
+      const isApplied = liveCodes.includes(String(c.code).toUpperCase());
       const category = getOfferCategory(c);
       const base = getCategoryBase(category, totals);
 
@@ -85,11 +99,11 @@ export default function FeaturedOfferBanner({
       // for ranking only (the real figure is whatever Shopify returns on
       // submit).
       //
-      // An offer whose metal isn't in the cart drops out here. The drawer is
-      // where the full structure stays visible; this placement only ever shows
-      // something the customer can act on right now.
+      // An offer whose metal isn't in the cart is kept rather than dropped —
+      // it can't be the banner, but the customer is still told it exists (see
+      // `otherOffers` below), which is how a gold-only cart learns the diamond
+      // side is worth more.
       const isApplicable = base > 0 && base >= Number(c.minAmount || 0);
-      if (!isApplicable && !isApplied) return null;
       const savings = c.discountType === "percentage" ? base * (c.discountValue / 100) : c.discountValue;
       return { ...c, category, claimed: isApplied, savings, isApplicable };
     })
@@ -98,18 +112,51 @@ export default function FeaturedOfferBanner({
   // At most ONE banner out here. A mixed diamond + plain gold cart qualifies
   // for both offers, but they never stack — showing both side by side reads
   // as if they add up. So the applied one leads (it has to stay removable),
-  // otherwise the highest-value offer wins and the rest live in the drawer.
-  const offers = [...withEligibility]
-    .sort((a, b) => {
-      if (a.claimed !== b.claimed) return a.claimed ? -1 : 1;
-      if (a.isApplicable !== b.isApplicable) return a.isApplicable ? -1 : 1;
-      return b.savings - a.savings;
-    })
-    .slice(0, 1);
+  // otherwise the highest-value offer wins.
+  const offers = [...withEligibility].sort((a, b) => {
+    if (a.claimed !== b.claimed) return a.claimed ? -1 : 1;
+    if (a.isApplicable !== b.isApplicable) return a.isApplicable ? -1 : 1;
+    return b.savings - a.savings;
+  });
 
-  if (!offers.length) return null;
+  // Nothing in the cart qualifies for any featured offer — there's no banner
+  // to lead with, so nothing renders at all.
+  const primary = offers.find((o) => o.claimed || o.isApplicable) || null;
+  if (!primary) return { primary: null, others: [] };
 
-  const claimedOffer = offers.find((o) => o.claimed) || null;
+  return { primary, others: offers.filter((o) => o.code !== primary.code) };
+}
+
+export default function FeaturedOfferBanner({
+  dynamicCoupons,
+  activeDiscounts,
+  diamondTotal,
+  goldTotal = 0,
+  productTotal = 0,
+  effectiveAppliedCode,
+  appliedCodes,
+  applyingCode,
+  onApply,
+  onRemove,
+  loading,
+}) {
+  const [processingCode, setProcessingCode] = useState(null);
+  const user = useSelector((state) => state.user.user);
+  const { openLogin } = useAuth();
+
+  const { primary } = selectFeaturedOffers({
+    dynamicCoupons,
+    activeDiscounts,
+    diamondTotal,
+    goldTotal,
+    productTotal,
+    effectiveAppliedCode,
+    appliedCodes,
+  });
+
+  if (!primary) return null;
+
+  const claimedOffer = primary.claimed ? primary : null;
 
   const handleToggle = async (offer) => {
     setProcessingCode(offer.code);
@@ -126,7 +173,7 @@ export default function FeaturedOfferBanner({
 
   return (
     <div className="flex w-full flex-col gap-2 mb-[10px]">
-      {offers.map((best) => {
+      {[primary].map((best) => {
         const theme = getOfferTheme(best.category);
         const amountLabel =
           best.discountType === "percentage"

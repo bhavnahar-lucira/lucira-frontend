@@ -32,6 +32,13 @@ export default function CouponCard({
   onRemove,
   applyingCode = null,
   appliedCode = null,
+  // Every code currently on the cart. A combined pair puts two here, so a
+  // card can tell "I am one of the applied ones" from "a different one is
+  // applied". Falls back to the single appliedCode when not supplied.
+  appliedCodes = null,
+  // Adding this card to what is already applied would satisfy the combine
+  // rule, so it must not be locked out as a conflict.
+  allowCombine = false,
   isApplicable = true,
   disabled = false,
   isBankOffer = false,
@@ -46,13 +53,19 @@ export default function CouponCard({
       : `₹${Number(coupon.discountValue ?? coupon.value ?? 0).toLocaleString("en-IN")}`
     : null;
   const isCopied = copiedCode === coupon.code;
-  const isApplied = mode === "apply" && appliedCode?.toUpperCase() === coupon.code.toUpperCase();
+  const liveCodes = (appliedCodes && appliedCodes.length
+    ? appliedCodes
+    : appliedCode
+      ? [appliedCode]
+      : []).map((c) => String(c || "").toUpperCase());
+  const isApplied = mode === "apply" && liveCodes.includes(coupon.code.toUpperCase());
   const isApplying = mode === "apply" && applyingCode === coupon.code;
   // The cart value falls outside this coupon's tier, so it can never succeed.
   const isOutOfTier = mode === "apply" && !isApplicable && !isApplied;
-  // Only one coupon can be live on a cart, so once any code is applied every
-  // other card is locked — the applied one has to be removed first.
-  const isBlockedByOther = mode === "apply" && !!appliedCode && !isApplied;
+  // A cart normally holds one coupon, so every other card locks once one is
+  // applied. The exception is a combinable pair: the diamond and gold bank
+  // offers discount disjoint lines, so both may be live at once.
+  const isBlockedByOther = mode === "apply" && liveCodes.length > 0 && !isApplied && !allowCombine;
   const isDimmed = isOutOfTier || isBlockedByOther || (mode === "apply" && disabled);
 
   return (

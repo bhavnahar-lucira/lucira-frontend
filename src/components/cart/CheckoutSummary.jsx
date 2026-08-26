@@ -34,13 +34,47 @@ export default function CheckoutSummary({
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
-  const { items, totalAmount, appliedCoupon, removeCoupon, nectorPoints, activeDiscounts, unclaimDiscount } = useCart();
-  const claimedProductDiscount = (activeDiscounts || []).find((d) => d.claimed);
+  const { items, totalAmount, appliedCoupon: rawAppliedCoupon, appliedCoupons, removeCoupon, nectorPoints, activeDiscounts, unclaimDiscount } = useCart();
   const user = useSelector((state) => state.user.user);
 
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  // Automatic Product Discounts rules (activeDiscounts, from the cart doc)
+  // don't carry their own "Lucira Coins applicable" flag — only the
+  // dashboard-driven coupon list does. Same live list CartSummary already
+  // fetches for its own coinsApplicable/combineCoupons hydration, so the
+  // payment-page nudge agrees with the cart page instead of assuming coins
+  // always conflict with a claimed discount.
+  const [dynamicCoupons, setDynamicCoupons] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/cart/coupons/active", { suppressErrorLog: true })
+      .then((res) => {
+        if (!cancelled && res?.coupons) setDynamicCoupons(res.coupons);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const rawClaimedProductDiscount = (activeDiscounts || []).find((d) => d.claimed);
+  const claimedProductDiscount = rawClaimedProductDiscount
+    ? {
+        ...rawClaimedProductDiscount,
+        coinsApplicable: !!dynamicCoupons?.find((c) => c.id === rawClaimedProductDiscount.id)?.coinsApplicable,
+      }
+    : null;
+
+  // A persisted coupon can predate a dashboard toggle change — re-read
+  // coinsApplicable from the live list before deciding anything (mirrors
+  // CartSummary's hydratedAppliedCoupons for the same reason).
+  const appliedCoupon = rawAppliedCoupon && typeof rawAppliedCoupon === "object"
+    ? {
+        ...rawAppliedCoupon,
+        coinsApplicable: !!(dynamicCoupons?.find((c) => c.code.toUpperCase() === String(rawAppliedCoupon.code || "").toUpperCase())?.coinsApplicable ?? rawAppliedCoupon.coinsApplicable),
+      }
+    : rawAppliedCoupon;
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
@@ -165,7 +199,7 @@ export default function CheckoutSummary({
     }, 0);
 
   const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
-  const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+  const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
   const discountValue = couponDiscountAmount;
   const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
@@ -228,18 +262,24 @@ export default function CheckoutSummary({
       return;
     }
 
-    if (appliedCoupon || claimedProductDiscount) {
+    // Coins survive a coupon/discount only when it was configured to allow
+    // them (dashboard: "Lucira Coins applicable") — mirrors cartSlice's own
+    // gating so the payment-page nudge agrees with the cart-page behavior.
+    const couponBlocksCoins = !!appliedCoupon && !appliedCoupon?.coinsApplicable;
+    const discountBlocksCoins = !!claimedProductDiscount && !claimedProductDiscount?.coinsApplicable;
+
+    if (couponBlocksCoins || discountBlocksCoins) {
       if (onApplyCoinsWarning) {
         onApplyCoinsWarning(() => executeApplyPoints());
         return;
       }
-      if (appliedCoupon) {
+      if (couponBlocksCoins) {
         removeCoupon();
         toast.error("Coupon has been removed as loyalty points are applied.", {
           icon: <Check className="w-4 h-4" />
         });
       }
-      if (claimedProductDiscount) {
+      if (discountBlocksCoins) {
         unclaimDiscount(claimedProductDiscount.id);
         toast.error(`${claimedProductDiscount.title} has been removed as loyalty points are applied.`, {
           icon: <Check className="w-4 h-4" />
@@ -251,13 +291,13 @@ export default function CheckoutSummary({
   };
 
   const executeApplyPoints = () => {
-    if (appliedCoupon) {
+    if (appliedCoupon && !appliedCoupon?.coinsApplicable) {
       removeCoupon();
       toast.error("Coupon has been removed as loyalty points are applied.", {
         icon: <Check className="w-4 h-4" />
       });
     }
-    if (claimedProductDiscount) {
+    if (claimedProductDiscount && !claimedProductDiscount?.coinsApplicable) {
       unclaimDiscount(claimedProductDiscount.id);
       toast.error(`${claimedProductDiscount.title} has been removed as loyalty points are applied.`, {
         icon: <Check className="w-4 h-4" />

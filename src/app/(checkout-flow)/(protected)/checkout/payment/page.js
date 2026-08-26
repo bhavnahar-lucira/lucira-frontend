@@ -202,7 +202,7 @@ export default function PaymentPage() {
   const [makeDefault, setMakeDefault] = useState(false);
 
   const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
-  const { items, totalAmount, appliedCoupon, nectorPoints, loading } = useCart();
+  const { items, totalAmount, appliedCoupon, appliedCoupons, nectorPoints, loading } = useCart();
 
   // We need eligibleBraceletId first
   useEffect(() => {
@@ -285,7 +285,7 @@ export default function PaymentPage() {
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -473,7 +473,7 @@ export default function PaymentPage() {
       const subtotalValue = (totalAmount || 0) - insuranceValue;
 
       const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-      const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+      const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
       const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
       const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -585,6 +585,7 @@ export default function PaymentPage() {
         },
         shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
         billingAddress: selectedBillingAddress,
+        appliedCoupons: appliedCoupons || [],
         appliedCoupon: appliedCoupon ? {
           ...couponDetails,
           value: couponDiscountAmount,
@@ -662,7 +663,7 @@ export default function PaymentPage() {
             const subtotalValue = (totalAmount || 0) - insuranceValue;
 
             const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-            const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+            const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
             const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
             const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -737,6 +738,7 @@ export default function PaymentPage() {
               },
               shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
               billingAddress: selectedBillingAddress,
+              appliedCoupons: appliedCoupons || [],
               appliedCoupon: appliedCoupon ? {
                 ...couponDetails,
                 value: couponDiscountAmount,
@@ -826,7 +828,7 @@ export default function PaymentPage() {
         const subtotalValue = (totalAmount || 0) - insuranceValue;
 
         const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-        const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+        const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
         const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount;
 
