@@ -27,9 +27,9 @@ import { getOfferCategory, getCategoryBase, OFFER_CATEGORY_LABEL } from "@/lib/c
  * 2PERCENTGOLD), which is why each is measured against its OWN slice of the
  * cart rather than one subtotal — a diamond rule is worth nothing on an
  * all-gold cart, so it cannot lead. A mixed cart surfaces whichever single
- * offer is worth more, rather than implying the two combine; whatever the
- * banner did not lead with becomes a one-line teaser into the Saving Zone,
- * so the other half of the offer structure is never silently absent.
+ * offer is worth more, rather than implying the two combine; the runner-up
+ * becomes a one-line teaser into the Saving Zone — but only while this cart
+ * still qualifies for it, so the teaser is never a deal the cart can't take.
  *
  * @param {Array} dynamicCoupons   full drawer-eligible coupon list (has
  *   .isFeatured, .method, .id, .code, .discountType/.discountValue, .minAmount)
@@ -65,6 +65,10 @@ export function selectFeaturedOffers({
   diamondTotal = 0,
   goldTotal = 0,
   productTotal = 0,
+  // { ruleId: value of the cart this rule's "Exclusions" carve out }. Comes
+  // off the backend's per-line excludedFromRuleIds tag — the browser has no
+  // view of a product's collections, so it can't derive this itself.
+  excludedTotalsByRule = {},
   effectiveAppliedCode,
   // Every applied code. A combined pair puts two on the cart, and checking
   // only the first would report the second as unclaimed — which showed the
@@ -83,7 +87,10 @@ export function selectFeaturedOffers({
     .map((c) => {
       const isApplied = liveCodes.includes(String(c.code).toUpperCase());
       const category = getOfferCategory(c);
-      const base = getCategoryBase(category, totals);
+      // Lines this rule excludes are not a base it can discount, so they come
+      // off before eligibility is judged — an all-excluded cart lands on
+      // base 0 and the offer drops out of the banner entirely.
+      const base = Math.max(0, getCategoryBase(category, totals) - Number(excludedTotalsByRule[c.id] || 0));
 
       if (c.method === "automatic") {
         // An automatic rule absent from activeDiscounts has no claimable id to
@@ -99,10 +106,9 @@ export function selectFeaturedOffers({
       // for ranking only (the real figure is whatever Shopify returns on
       // submit).
       //
-      // An offer whose metal isn't in the cart is kept rather than dropped —
-      // it can't be the banner, but the customer is still told it exists (see
-      // `otherOffers` below), which is how a gold-only cart learns the diamond
-      // side is worth more.
+      // An offer the cart can't take is scored here but filtered out at the
+      // end — neither the banner nor the "also available" teaser advertises
+      // a discount this cart wouldn't actually get.
       const isApplicable = base > 0 && base >= Number(c.minAmount || 0);
       const savings = c.discountType === "percentage" ? base * (c.discountValue / 100) : c.discountValue;
       return { ...c, category, claimed: isApplied, savings, isApplicable };
@@ -124,7 +130,14 @@ export function selectFeaturedOffers({
   const primary = offers.find((o) => o.claimed || o.isApplicable) || null;
   if (!primary) return { primary: null, others: [] };
 
-  return { primary, others: offers.filter((o) => o.code !== primary.code) };
+  // Only what this cart can actually take. `others` feeds the "also
+  // available" teaser under Apply Coupon, and an offer the cart doesn't
+  // qualify for reads there as a claimable deal that then refuses — so it is
+  // dropped rather than advertised.
+  return {
+    primary,
+    others: offers.filter((o) => o.code !== primary.code && (o.claimed || o.isApplicable)),
+  };
 }
 
 export default function FeaturedOfferBanner({
@@ -133,6 +146,7 @@ export default function FeaturedOfferBanner({
   diamondTotal,
   goldTotal = 0,
   productTotal = 0,
+  excludedTotalsByRule = {},
   effectiveAppliedCode,
   appliedCodes,
   applyingCode,
@@ -150,6 +164,7 @@ export default function FeaturedOfferBanner({
     diamondTotal,
     goldTotal,
     productTotal,
+    excludedTotalsByRule,
     effectiveAppliedCode,
     appliedCodes,
   });

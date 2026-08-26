@@ -18,7 +18,7 @@ import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
 import OfferCategoryIcon from "@/components/coupons/offerCategoryTheme";
-import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount, getOfferCategory, getCategoryBase, getItemOfferCategory, canCombineOffers, OFFER_CATEGORY, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
+import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount, getOfferCategory, getCategoryBase, getItemOfferCategory, getAppliedOfferLabel, canCombineOffers, OFFER_CATEGORY, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
@@ -122,6 +122,21 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   // Bundled once so the combine rule and the featured banner are always
   // measured against the same numbers.
   const offerTotals = { diamondTotal, goldTotal, productTotal };
+
+  // How much of the cart each rule's "Exclusions" carve out (dashboard field,
+  // tagged per line by the backend — the browser can't see a product's
+  // collections). Subtracted from an offer's base below so a cart made only of
+  // an excluded collection stops being offered the discount at all, instead of
+  // showing a CLAIM button that the server then refuses.
+  const excludedTotalsByRule = items.reduce((acc, item) => {
+    const ruleIds = item.excludedFromRuleIds || [];
+    if (ruleIds.length === 0) return acc;
+    const lineTotal = Number(item.price || 0) * Number(item.quantity || item.qty || 1);
+    ruleIds.forEach((ruleId) => {
+      acc[ruleId] = (acc[ruleId] || 0) + lineTotal;
+    });
+    return acc;
+  }, {});
 
   // Applied coupons come back from redux-persist, so a stored entry can
   // predate a dashboard toggle — or a field we only started saving later.
@@ -488,6 +503,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const applicableCoupons = couponsList.filter((c) => {
     if (!isDynamicCouponsList) return applicableCouponCodes.includes(c.code);
     if (c.method === "automatic") return !!activeDiscounts?.find((d) => d.id === c.id);
+    // A rule whose exclusions cover everything discountable in this cart can't
+    // be applied to it — /coupon/validate refuses the code — so it must not
+    // read as applicable in the drawer either.
+    const excluded = excludedTotalsByRule[c.id] || 0;
+    if (excluded > 0 && productTotal - excluded <= 0) return false;
     return diamondTotal >= Number(c.minAmount || 0);
   });
   // The metal-split "additional % off" rules staff toggled Featured on. They
@@ -501,7 +521,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     .filter((c) => c.isFeatured)
     .map((c) => {
       const category = getOfferCategory(c);
-      const base = getCategoryBase(category, { diamondTotal, goldTotal, productTotal });
+      const base = Math.max(0, getCategoryBase(category, { diamondTotal, goldTotal, productTotal }) - (excludedTotalsByRule[c.id] || 0));
       return { ...c, category, isApplicable: base > 0 && base >= Number(c.minAmount || 0) };
     })
     .sort((a, b) => Number(b.isApplicable) - Number(a.isApplicable));
@@ -538,6 +558,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const appliedCodes = (appliedCoupons || []).map((c) => String(c?.code || "").toUpperCase()).filter(Boolean);
   const claimedAutomaticCode = claimedDynamicCoupon?.code ? [String(claimedDynamicCoupon.code).toUpperCase()] : [];
   const allAppliedCodes = appliedCodes.length ? appliedCodes : claimedAutomaticCode;
+  // What the applied-discount row is labelled — "Additional 5% Off", never the
+  // code (see getAppliedOfferLabel).
+  const appliedCouponLabel = getAppliedOfferLabel(allAppliedCodes, dynamicCoupons);
+
   // Sum of the applied percentage rates, for the drawer's combined notice.
   // Only meaningful when a pair is live; each rate still only touches its
   // own products, which the notice says explicitly.
@@ -549,7 +573,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   // The featured offer the banner isn't leading with, if there is exactly one
   // — surfaced as the "also available" line under the Apply Coupon card. Both
   // that line and the banner read from the same selector so they can never
-  // end up advertising the same offer twice.
+  // end up advertising the same offer twice, and the selector only returns
+  // offers this cart currently qualifies for, so the line disappears rather
+  // than teasing a discount the cart can't take.
   const otherFeaturedOffer = (() => {
     const { others } = selectFeaturedOffers({
       dynamicCoupons,
@@ -557,6 +583,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       diamondTotal,
       goldTotal,
       productTotal,
+      excludedTotalsByRule,
       effectiveAppliedCode,
       appliedCodes: allAppliedCodes,
     });
@@ -651,6 +678,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           diamondTotal={diamondTotal}
           goldTotal={goldTotal}
           productTotal={productTotal}
+          excludedTotalsByRule={excludedTotalsByRule}
           effectiveAppliedCode={effectiveAppliedCode}
           appliedCodes={allAppliedCodes}
           applyingCode={applyingCode}
@@ -724,7 +752,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         )}
         <div className="flex justify-between items-center font-figtree text-base">
           <span className={appliedCoupon ? "text-[#189351] font-semibold uppercase tracking-wide" : "text-[#000000]"}>
-            {appliedCoupon ? "Coupon Applied" : "Coupon Discount"}
+            {appliedCoupon ? appliedCouponLabel : "Coupon Discount"}
           </span>
           {appliedCoupon ? (
             <div className="flex items-center gap-2">
@@ -802,7 +830,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
             <div className="flex justify-between font-figtree text-[0.75rem] items-center mb-2 leading-[1.4]">
               <span className={appliedCoupon ? "font-semibold uppercase tracking-wide text-[#189351]" : "text-black"}>
-                {appliedCoupon ? "Coupon Applied" : "Coupon Discount"}
+                {appliedCoupon ? appliedCouponLabel : "Coupon Discount"}
               </span>
               {appliedCoupon ? (
                 <div className="flex items-center gap-1.5">

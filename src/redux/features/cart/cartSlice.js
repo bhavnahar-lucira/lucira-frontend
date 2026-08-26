@@ -121,6 +121,11 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         estDelivery: backendItem?.estDelivery || null,
         leadTime: backendItem?.leadTime || 12,
         availableSizes: backendItem?.availableSizes || [],
+        // Which dashboard rules' "Exclusions" cover this line. Tagged by the
+        // backend because the browser has no view of a product's collections
+        // — without it the cart keeps offering a discount the server will
+        // refuse. This object is a whitelist, so it has to be named here.
+        excludedFromRuleIds: backendItem?.excludedFromRuleIds || [],
 
         // Dynamic metal / diamond attributes from backend cart
         goldWeight: backendItem?.goldWeight || 0,

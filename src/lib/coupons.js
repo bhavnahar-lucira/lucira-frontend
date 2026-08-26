@@ -320,3 +320,44 @@ export const getCategoryBase = (category, { diamondTotal = 0, goldTotal = 0, pro
   if (category === OFFER_CATEGORY.GOLD) return goldTotal;
   return productTotal;
 };
+
+/**
+ * How an applied offer is named in the price breakdown — "Additional 5% Off",
+ * the same wording the featured banner uses, so the row the customer ends up
+ * paying by is recognisably the offer they clicked.
+ *
+ * Never the code. A featured offer's code is deliberately hidden from the
+ * customer (see hideAppliedCode in CartSummary), and a Shopify-native code
+ * typed by hand isn't in the dashboard list at all — that one falls back to
+ * the generic wording rather than leaking the code. A combined pair, which
+ * shares a single summed row, names both.
+ *
+ * Lives here because the cart and the checkout render that row separately and
+ * must not word it differently.
+ */
+export const getAppliedOfferLabel = (codes, dynamicCoupons, fallback = "Coupon Applied") => {
+  const parts = (codes || [])
+    .map((code) => {
+      const live = (dynamicCoupons || []).find(
+        (c) => String(c.code).toUpperCase() === String(code || "").toUpperCase()
+      );
+      if (!live) return "";
+
+      const value = Number(live.discountValue) || 0;
+      if (value > 0) {
+        const amount = live.discountType === "percentage"
+          ? `${live.discountValue}%`
+          : `₹${value.toLocaleString("en-IN")}`;
+        return `Additional ${amount} Off`;
+      }
+
+      // No numeric value on the record (an older/synced rule) — fall back to
+      // its own value label, minus the terms asterisk it carries for the
+      // drawer ticket.
+      const title = String(live.title || "").replace(/\*+\s*$/, "").trim();
+      return title ? `Additional ${title}` : "";
+    })
+    .filter(Boolean);
+
+  return parts.length ? parts.join(" + ") : fallback;
+};

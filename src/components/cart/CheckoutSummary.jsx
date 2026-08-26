@@ -13,7 +13,7 @@ import CartContact from "./CartContact";
 import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
-import { calculateCouponDiscount } from "@/lib/coupons";
+import { calculateCouponDiscount, getAppliedOfferLabel } from "@/lib/coupons";
 import { pushPromoClick } from "@/lib/gtm";
 import { isFreeGiftVariant } from "@/lib/freeGifts";
 
@@ -199,6 +199,15 @@ export default function CheckoutSummary({
     }, 0);
 
   const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
+
+  // Label for the applied-discount row — same helper CartSummary uses, so the
+  // cart and the checkout never word this row differently.
+  const appliedCouponLabel = getAppliedOfferLabel(
+    (appliedCoupons?.length ? appliedCoupons : [appliedCoupon])
+      .map((c) => String((typeof c === 'object' ? c?.code : c) || ""))
+      .filter(Boolean),
+    dynamicCoupons
+  );
   const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
   const discountValue = couponDiscountAmount;
@@ -529,7 +538,7 @@ export default function CheckoutSummary({
               {Boolean(appliedCoupon) && (
                 <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
                   <span className="text-[#000000]">
-                    {compactBreakdown ? "Cart Discount" : "Coupon Applied"}
+                    {compactBreakdown ? "Cart Discount" : appliedCouponLabel}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
