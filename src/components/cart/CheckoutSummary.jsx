@@ -335,7 +335,11 @@ export default function CheckoutSummary({
   const appliedGiftItem = user ? (items || []).find((item) => item.isFreeGift || isFreeGiftVariant(item.variantId)) : null;
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
-  const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
+  // A zero balance still shows the card (with a disabled button) — Nector
+  // answers the checkout call with meta.code 422 and no points_balance when
+  // there's nothing to redeem, so gating on the balance made the whole block
+  // vanish on a 0-coin account and read as broken.
+  const shouldShowPointsSection = showPoints && isPaymentPage && user;
 
 
 
@@ -477,10 +481,14 @@ export default function CheckoutSummary({
             return (
               <button
                 onClick={handleApplyPoints}
-                disabled={pointsData?.points_balance === 0 || !hasDiamondJewellery}
+                disabled={!hasDiamondJewellery || !pointsData?.promotions?.[0]}
                 className="w-full h-[46px] lg:h-[40px] flex items-center justify-center border border-transparent bg-[#5A413F] text-white rounded-[6px] font-figtree font-medium text-[15px] lg:text-[1rem] hover:bg-[#4A312F] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
-                {hasDiamondJewellery ? "Apply Coins" : "Valid on Diamond Jewelry"}
+                {!hasDiamondJewellery
+                  ? "Valid on Diamond Jewelry"
+                  : !hasPointsBalance
+                    ? "No Coins to Redeem"
+                    : "Apply Coins"}
               </button>
             );
           })()}

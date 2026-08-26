@@ -17,7 +17,7 @@ import { trackCheckout as trackSearchCheckout } from "@/lib/searchAnalytics";
 import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
-import OfferCategoryIcon, { getOfferTheme } from "@/components/coupons/offerCategoryTheme";
+import OfferCategoryIcon from "@/components/coupons/offerCategoryTheme";
 import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount, getOfferCategory, getCategoryBase, getItemOfferCategory, canCombineOffers, OFFER_CATEGORY, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 import TrustBadges from "@/components/common/TrustBadges";
@@ -603,16 +603,16 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }
         setIsCouponDrawerOpen(true);
       }}
-      className="flex items-center gap-[12px] w-full border border-[#EADFD8] transition-colors hover:border-[#5A413F]/30 cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
+      className="flex items-center gap-[12px] w-full transition-colors cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
       style={{
         margin: "0px",
         borderRadius: FREE_GIFTS.length > 0 ? "4px 4px 0px 0px" : "4px",
-        border: "1px solid #eaeaea",
-        background: "#ffffff",
+        border: 0,
+        background: "#fafafa",
         boxShadow: "none",
       }}
     >
-      <span className="flex h-9 w-9 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-sm bg-white border border-[#EADFD8]">
+      <span className="flex h-9 w-9 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-sm bg-[#fafafa] border border-[#EADFD8]">
         <svg viewBox="0 0 24 24" fill="none" className="text-[#5A413F] w-[18px] h-[18px] lg:w-[24px] lg:h-[24px]">
           <path d="M15.0952 8.57815L8.59518 15.0781M8.59518 8.57815H8.60601M15.0952 15.0781H15.106M3.01601 8.16648C2.85789 7.45422 2.88217 6.71356 3.0866 6.01318C3.29103 5.31281 3.66899 4.67538 4.18544 4.16001C4.70188 3.64465 5.3401 3.26802 6.0409 3.06506C6.74171 2.8621 7.48242 2.83937 8.19435 2.99898C8.5862 2.38614 9.12602 1.8818 9.76404 1.53246C10.4021 1.18311 11.1178 1 11.8452 1C12.5726 1 13.2883 1.18311 13.9263 1.53246C14.5643 1.8818 15.1042 2.38614 15.496 2.99898C16.209 2.83867 16.951 2.8613 17.6529 3.06476C18.3549 3.26821 18.9939 3.64589 19.5107 4.16265C20.0274 4.67941 20.4051 5.31848 20.6086 6.0204C20.812 6.72232 20.8347 7.4643 20.6743 8.17732C21.2872 8.56917 21.7915 9.10899 22.1409 9.74701C22.4902 10.385 22.6733 11.1007 22.6733 11.8281C22.6733 12.5556 22.4902 13.2713 22.1409 13.9093C21.7915 14.5473 21.2872 15.0871 20.6743 15.479C20.834 16.1909 20.8112 16.9316 20.6083 17.6324C20.4053 18.3332 20.0287 18.9714 19.5133 19.4879C18.9979 20.0043 18.3605 20.3823 17.6601 20.5867C16.9598 20.7912 16.2191 20.8154 15.5068 20.6573C15.1155 21.2725 14.5753 21.779 13.9361 22.1299C13.297 22.4808 12.5797 22.6648 11.8506 22.6648C11.1215 22.6648 10.4042 22.4808 9.76504 22.1299C9.12593 21.779 8.58569 21.2725 8.19435 20.6573C7.48242 20.8169 6.74171 20.7942 6.0409 20.5912C5.3401 20.3883 4.70188 20.0117 4.18544 19.4963C3.66899 18.9809 3.29103 18.3435 3.0866 17.6431C2.88217 16.9427 2.85789 16.2021 3.01601 15.4898C2.39847 15.099 1.88979 14.5583 1.53732 13.9181C1.18484 13.2779 1 12.559 1 11.8281C1 11.0973 1.18484 10.3784 1.53732 9.73817C1.88979 9.09796 2.39847 8.5573 3.01601 8.16648Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -640,7 +640,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   return (
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
-      <div className="flex flex-col mb-[20px] lg:mb-0">
+      {/* The 20px gap lives here on every breakpoint — the "also available"
+          row below is flush (margin 0) so it stays clipped to the Apply
+          Coupon card. */}
+      <div className="flex flex-col mb-[20px]">
         <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-0 mb-[14px] lg:hidden">Offer Zone</h3>
         <FeaturedOfferBanner
           dynamicCoupons={dynamicCoupons}
@@ -665,22 +668,27 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           <button
             type="button"
             onClick={() => setIsCouponDrawerOpen(true)}
-            className="group mb-0 flex w-full cursor-pointer items-center gap-1.5 text-left transition-colors hover:bg-black/[0.03] lg:mb-[20px]"
+            className="group flex w-full cursor-pointer items-center gap-1.5 text-left transition-colors hover:bg-black/[0.03]"
             style={{
-              background: "#ffffff",
-              border: "1px solid #eaeaea",
-              borderTop: 0,
+              margin: 0,
+              background: "#fafafa",
+              border: 0,
+              borderTop: "1px solid #eaeaea",
               borderRadius: "0 0 4px 4px",
               padding: 8,
             }}
           >
-            <OfferCategoryIcon category={otherFeaturedOffer.category} className="h-3.5 w-3.5 shrink-0 opacity-70" />
+            {/* Primary brown, not the category accent — this row sits under
+                Apply Coupon and already carries "View" and the chevron in
+                primary, so a gold/blue accent here broke the one-control read.
+                The Saving Zone cards still theme by metal. */}
+            <OfferCategoryIcon category={otherFeaturedOffer.category} color="#5A413F" className="h-3.5 w-3.5 shrink-0 opacity-70" />
             <span
               className="min-w-0 flex-1 truncate font-figtree leading-[1.3]"
               style={{ color: "#000", fontSize: "0.85rem", fontWeight: 500 }}
             >
               Also available:{" "}
-              <span className="font-semibold" style={{ color: getOfferTheme(otherFeaturedOffer.category).accent }}>
+              <span className="font-semibold text-[#5A413F]">
                 Additional {otherFeaturedOffer.amountLabel} Off
               </span>{" "}
               on {OFFER_CATEGORY_LABEL[otherFeaturedOffer.category]}
