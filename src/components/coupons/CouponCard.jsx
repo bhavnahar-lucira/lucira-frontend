@@ -3,6 +3,8 @@
 import React from "react";
 import { CheckCircle, Copy, Loader2, Tag } from "lucide-react";
 import { useSelector } from "react-redux";
+import OfferCategoryIcon, { getOfferTheme } from "./offerCategoryTheme";
+import { getOfferCategory, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
 
 /**
  * Ticket-style coupon card shared by the PDP unlock strip and the cart's
@@ -10,6 +12,14 @@ import { useSelector } from "react-redux";
  *
  * mode="copy"  — PDP behaviour: copies the code to the clipboard.
  * mode="apply" — cart behaviour: applies the code straight to the cart.
+ *
+ * isBankOffer — the metal-split "additional % off" rules (5PERCENTDIAMOND /
+ * 2PERCENTGOLD). Same ticket, highlighted: the spine and the accent take the
+ * metal's colour, the logo slot carries a diamond or a bullion stack, and the
+ * headline is derived from the discount rather than a staff-typed title, so
+ * the card always reads "Additional 5% Off / On Diamond Products". Rendering
+ * these through CouponCard rather than a card of their own is deliberate —
+ * a separate component drifts from this one the first time either is touched.
  */
 export default function CouponCard({
   coupon,
@@ -24,8 +34,17 @@ export default function CouponCard({
   appliedCode = null,
   isApplicable = true,
   disabled = false,
+  isBankOffer = false,
 }) {
   const user = useSelector((state) => state.user?.user);
+  const category = isBankOffer ? getOfferCategory(coupon) : null;
+  const theme = isBankOffer ? getOfferTheme(category) : null;
+
+  const bankAmountLabel = isBankOffer
+    ? coupon.discountType === "percentage" || coupon.valueType === "PERCENTAGE"
+      ? `${coupon.discountValue ?? coupon.value}%`
+      : `₹${Number(coupon.discountValue ?? coupon.value ?? 0).toLocaleString("en-IN")}`
+    : null;
   const isCopied = copiedCode === coupon.code;
   const isApplied = mode === "apply" && appliedCode?.toUpperCase() === coupon.code.toUpperCase();
   const isApplying = mode === "apply" && applyingCode === coupon.code;
@@ -39,43 +58,66 @@ export default function CouponCard({
   return (
     <div className={`flex ${isMini ? 'h-24 md:h-28' : 'h-30 sm:h-30 min-[1500px]:h-30'} rounded-sm overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
-      <div className={`${isMini ? 'w-[32px] md:w-[38px]' : 'w-[40px]'} bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l-sm`}>
+      <div
+        className={`${isMini ? 'w-[32px] md:w-[38px]' : 'w-[40px]'} ${isBankOffer ? '' : 'bg-[#5C3E35]'} flex items-center justify-center relative shrink-0 rounded-l-sm`}
+        style={isBankOffer ? { background: theme.accent } : undefined}
+      >
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
         <div className={`absolute ${isMini ? '-left-[5px] w-2.5 h-2.5 md:-left-[6px] md:w-3.5 md:h-3.5' : '-left-[7px] w-3.5 h-3.5'} bg-[#FFF8F6] rounded-full z-20 top-1/2 -translate-y-1/2`} />
 
         <span
-          className={`font-figtree font-semibold ${isMini ? 'text-[9px] md:text-[11px] tracking-wider' : 'text-[0.75rem] sm:text-[0.875rem] tracking-widest'} leading-[1.4] text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle`}
+          className={`font-figtree font-semibold ${isMini ? 'text-[9px] md:text-[11px] tracking-wider' : 'text-[0.75rem] sm:text-[0.875rem] tracking-widest'} leading-[1.4] text-white uppercase [writing-mode:vertical-lr] rotate-180 align-middle whitespace-nowrap`}
         >
-          DISCOUNT
+          {isBankOffer ? "BANK OFFER" : "DISCOUNT"}
         </span>
       </div>
 
       {/* Vertical Dashed Divider */}
-      <div className="border-l border-dashed border-[#FBE3DC] h-full z-10" />
+      <div
+        className="border-l border-dashed border-[#FBE3DC] h-full z-10"
+        style={isBankOffer ? { borderColor: theme.tileBorder } : undefined}
+      />
 
       {/* Right Content Area (With border on top, right, bottom) */}
-      <div className={`flex-1 ${isMini ? 'p-2 md:p-3' : 'p-3'} flex flex-col justify-between min-w-0 bg-white rounded-r-sm border-y border-r border-[#FBE3DC] relative ${isDimmed ? 'opacity-55' : ''}`}>
+      <div
+        className={`flex-1 ${isMini ? 'p-2 md:p-3' : 'p-3'} flex flex-col justify-between min-w-0 ${isBankOffer ? '' : 'bg-white'} rounded-r-sm border-y border-r border-[#FBE3DC] relative ${isDimmed ? 'opacity-55' : ''}`}
+        style={isBankOffer ? { background: theme.background, borderColor: theme.border } : undefined}
+      >
         {/* Top Info & Vertical Capsule Logo */}
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
             <h4
               className={`${isMini ? 'text-[0.8rem] md:text-[0.95rem] font-semibold' : 'text-[1rem] sm:text-[1.1rem] font-semibold'} text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree`}
             >
-              {coupon.title}
+              {isBankOffer ? (
+                <>Additional <span style={{ color: theme.accent }}>{bankAmountLabel}</span> Off</>
+              ) : (
+                coupon.title
+              )}
             </h4>
             <span
               className={`${isMini ? 'text-[0.625rem] md:text-[0.725rem] font-normal md:font-medium' : 'text-[0.7rem] sm:text-[0.75rem] font-medium'} text-black block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal`}
             >
-              {coupon.condition}
+              {isBankOffer ? `On ${OFFER_CATEGORY_LABEL[category]}` : coupon.condition}
             </span>
           </div>
 
-          {/* Vertical Capsule Logo */}
-          <img
-            src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
-            alt="Lucira Logo"
-            className={`${isMini ? 'w-[18px] h-[28px] md:w-[22px] md:h-[32px]' : 'w-[24px] h-[36px]'} object-contain shrink-0 mt-0.5`}
-          />
+          {/* Vertical Capsule Logo — the metal stands in for it on a bank offer,
+              so the card says which half of the cart it covers at a glance. */}
+          {isBankOffer ? (
+            <span
+              className={`${isMini ? 'w-[24px] h-[24px] md:w-[28px] md:h-[28px]' : 'w-[30px] h-[30px]'} shrink-0 mt-0.5 flex items-center justify-center rounded-[5px]`}
+              style={{ background: theme.tileBg, border: `1px solid ${theme.tileBorder}` }}
+            >
+              <OfferCategoryIcon category={category} className={isMini ? "w-3.5 h-3.5 md:w-4 md:h-4" : "w-[18px] h-[18px]"} />
+            </span>
+          ) : (
+            <img
+              src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
+              alt="Lucira Logo"
+              className={`${isMini ? 'w-[18px] h-[28px] md:w-[22px] md:h-[32px]' : 'w-[24px] h-[36px]'} object-contain shrink-0 mt-0.5`}
+            />
+          )}
         </div>
 
         {/* Action Button Box — copy on the PDP, apply in the cart */}

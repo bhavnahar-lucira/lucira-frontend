@@ -17,7 +17,7 @@ import { trackCheckout as trackSearchCheckout } from "@/lib/searchAnalytics";
 import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
-import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount } from "@/lib/coupons";
+import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount, getOfferCategory, getCategoryBase, getItemOfferCategory, OFFER_CATEGORY } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
@@ -78,7 +78,22 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     return qty;
   })();
 
-  const diamondTotal = items
+  // Every line a discount could land on. Insurance and free gifts are neither
+  // discountable nor part of any offer's base, so they never count.
+  const productTotal = items
+    .filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !item.isFreeGift &&
+      !isFreeGiftVariant(item.variantId)
+    )
+    .reduce((acc, item) => acc + Number(item.price || 0) * Number(item.quantity || item.qty || 1), 0);
+
+  // Split by metal in one pass. The live offer structure prices the two
+  // categories differently (additional 5% on diamond, 2% on plain gold) and
+  // forbids stacking them, so each rule has to be weighed against its own
+  // half of the cart — see FeaturedOfferBanner. `goldTotal` is "everything
+  // eligible that isn't diamond", which in this catalogue is plain gold.
+  const { diamondTotal, goldTotal } = items
     .filter(item => {
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] || 
@@ -95,39 +110,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         !isBYJ;
     })
     .reduce((acc, item) => {
-        const itemQty = Number(item.quantity || item.qty || 1);
-        let charges = Number(item.diamondCharges || 0);
-        
-        // Robust Fallback: Try parsing variant_config if diamondCharges is 0
-        if (charges === 0 && item.metafields?.variant_config) {
-            try {
-                const config = JSON.parse(item.metafields.variant_config);
-                if (config.advanced_stone_config) {
-                    charges = config.advanced_stone_config.reduce((sAcc, s) => sAcc + (s.stone_weight * 50000), 0);
-                } else if (config.diamond_charges) {
-                    charges = config.diamond_charges;
-                }
-            } catch(e) {}
+        const lineTotal = Number(item.price) * Number(item.quantity || item.qty || 1);
+        if (getItemOfferCategory(item) === OFFER_CATEGORY.DIAMOND) {
+            return { ...acc, diamondTotal: acc.diamondTotal + lineTotal };
         }
-
-        const lowerTitle = item.title?.toLowerCase() || "";
-        const lowerHandle = item.handle?.toLowerCase() || "";
-        const lowerType = (item.type || item.category || item.productType || item.product_type || "").toLowerCase();
-        const tags = Array.isArray(item.tags) ? item.tags.map(t => String(t).toLowerCase()) : [];
-        const hasDiamondKeywords = lowerTitle.includes("diamond") || lowerHandle.includes("diamond") || lowerType.includes("diamond") ||
-                                 lowerTitle.includes("solitaire") || lowerHandle.includes("solitaire") || lowerType.includes("solitaire") ||
-                                 lowerTitle.includes("gemstone") || lowerType.includes("gemstone") ||
-                                 tags.some(t => t.includes("diamond") || t.includes("solitaire") || t.includes("gemstone"));
-        
-        if (charges === 0 && hasDiamondKeywords) {
-           charges = item.price;
-        }
-
-        if (charges > 0) {
-            return acc + (Number(item.price) * itemQty);
-        }
-        return acc;
-    }, 0);
+        return { ...acc, goldTotal: acc.goldTotal + lineTotal };
+    }, { diamondTotal: 0, goldTotal: 0 });
 
   const insuranceItem = items.find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
@@ -450,6 +438,22 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     if (c.method === "automatic") return !!activeDiscounts?.find((d) => d.id === c.id);
     return diamondTotal >= Number(c.minAmount || 0);
   });
+  // The metal-split "additional % off" rules staff toggled Featured on. They
+  // are deliberately absent from `couponsList` (their "Show in Saving Zone
+  // drawer" toggle is off — the cart banner is their lead placement), but the
+  // drawer is where a customer goes looking for offers, so they get a section
+  // of their own at the top instead of being invisible here. Both metals are
+  // listed even when only one qualifies, so the structure of the offer is
+  // legible; the one that can't win renders disabled.
+  const featuredBankOffers = (dynamicCoupons || [])
+    .filter((c) => c.isFeatured)
+    .map((c) => {
+      const category = getOfferCategory(c);
+      const base = getCategoryBase(category, { diamondTotal, goldTotal, productTotal });
+      return { ...c, category, isApplicable: base > 0 && base >= Number(c.minAmount || 0) };
+    })
+    .sort((a, b) => Number(b.isApplicable) - Number(a.isApplicable));
+
   const generalApplicableCode = isDynamicCouponsList
     ? [...applicableCoupons].sort((a, b) => Number(b.minAmount || 0) - Number(a.minAmount || 0))[0]?.code || null
     : applicableCouponCode;
@@ -494,7 +498,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }
         setIsCouponDrawerOpen(true);
       }}
-      className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white transition-colors hover:border-[#5A413F]/30 cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
+      className="flex items-center gap-[12px] w-full border border-[#EADFD8] bg-white transition-colors hover:border-[#5A413F]/30 cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
       style={{ margin: "0px", borderRadius: FREE_GIFTS.length > 0 ? "4px 4px 0px 0px" : "4px", borderColor: "#eaeaea" }}
     >
       <span className="flex h-9 w-9 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
@@ -510,8 +514,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           View all available coupons.
         </p>
       </div>
-      <span className="flex h-8 w-8 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-[50%]" style={{ background: "transparent" }}>
-        <ChevronRight className="text-[#5A413F] w-[24px] h-[24px] lg:w-[28px] lg:h-[28px]" />
+      {/* On mobile the chevron becomes a filled brand-brown disc, which is the
+          only affordance at that width that reads as "this opens something". */}
+      <span className="flex h-8 w-8 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-[50%] bg-[#5A413F]">
+        <ChevronRight className="text-white w-[18px] h-[18px]" />
       </span>
     </button>
   );
@@ -520,17 +526,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
       <div className="flex flex-col mb-[20px]">
-        <h3 className="font-figtree text-[0.875rem] lg:hidden font-medium text-black uppercase tracking-wider mb-3" style={{
+        <h3 className="font-figtree text-[0.875rem] lg:hidden font-medium text-black tracking-wider mb-3" style={{
             fontFamily: "Figtree",
             fontWeight: 500,
             lineHeight: "100%",
             letterSpacing: "0%",
-            textTransform: "uppercase"
-        }}>OFFER ZONE</h3>
+            textTransform: "capitalize"
+        }}>Offer Zone</h3>
         <FeaturedOfferBanner
           dynamicCoupons={dynamicCoupons}
           activeDiscounts={activeDiscounts}
           diamondTotal={diamondTotal}
+          goldTotal={goldTotal}
+          productTotal={productTotal}
           effectiveAppliedCode={effectiveAppliedCode}
           applyingCode={applyingCode}
           onApply={handleApplyCoupon}
@@ -814,6 +822,26 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           </div>
         ) : (
           <>
+            {/* Bank discounts lead the list — same ticket as every other
+                coupon, highlighted in its metal so it reads as the headline
+                offer rather than another rung on the ₹-ladder. */}
+            {featuredBankOffers.map((offer) => (
+              <div key={offer.code} className="w-full">
+                <CouponCard
+                  coupon={offer}
+                  className="w-full"
+                  mode="apply"
+                  isBankOffer
+                  onApply={handleApplyCoupon}
+                  onRemove={handleRemoveCoupon}
+                  applyingCode={applyingCode}
+                  appliedCode={effectiveAppliedCode}
+                  isApplicable={offer.isApplicable}
+                  disabled={!!appliedGiftItem}
+                />
+              </div>
+            ))}
+
             {/* Every card is disabled — say why rather than leaving a dead list */}
             {!appliedCoupon && couponsList.length > 0 && applicableCoupons.length === 0 && items.length > 0 && (
               <div className="rounded-sm border border-[#EADFD8] bg-white px-3.5 py-2.5">

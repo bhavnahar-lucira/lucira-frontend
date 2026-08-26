@@ -101,6 +101,7 @@ import ShareIntentSheet from "@/components/product/ShareIntentSheet";
 import { useShareIntent } from "@/hooks/useShareIntent";
 import { loadNectorReviews } from "@/lib/nector";
 import UnlockCoupon from "@/components/product/UnlockCoupon";
+import { OFFER_CATEGORY } from "@/lib/coupons";
 
 import { Sheet as MobileSheet } from "react-modal-sheet";
 
@@ -2419,6 +2420,11 @@ export default function ProductPageClient({
                   toast={toast}
                   currentPrice={currentPrice}
                   productId={getNumericId(product?.shopifyId || product?.id) || ""}
+                  productCategory={
+                    product?.tags?.some((tag) => tag.toLowerCase().replace("-", " ") === "plain gold")
+                      ? OFFER_CATEGORY.GOLD
+                      : OFFER_CATEGORY.DIAMOND
+                  }
                 />
               </div>
             )}

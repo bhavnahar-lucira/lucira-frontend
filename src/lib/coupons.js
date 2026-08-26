@@ -141,3 +141,114 @@ export const calculateCouponDiscount = (appliedCoupon, items, subtotalValue) => 
 
   return (applicableSubtotal * couponDetails.value) / 100;
 };
+
+/* ------------------------------------------------------------------ *
+ * Offer categories
+ *
+ * The current offer structure is split by metal: diamond products carry
+ * one "additional % off" rule and plain gold products carry a smaller
+ * one, and the two never stack — a mixed cart shows whichever single
+ * offer is worth more. Nothing in the dashboard payload states which
+ * category a rule belongs to, so it's inferred from the words staff
+ * already put in the code/title/condition ("5PERCENTDIAMOND",
+ * "2PERCENTGOLD", "…on plain gold"). A rule that names both metals, or
+ * neither, is treated as cart-wide.
+ * ------------------------------------------------------------------ */
+export const OFFER_CATEGORY = {
+  DIAMOND: "diamond",
+  GOLD: "gold",
+  ALL: "all",
+};
+
+export const OFFER_CATEGORY_LABEL = {
+  [OFFER_CATEGORY.DIAMOND]: "Diamond Products",
+  [OFFER_CATEGORY.GOLD]: "Plain Gold Products",
+  [OFFER_CATEGORY.ALL]: "Your Entire Order",
+};
+
+const DIAMOND_KEYWORDS = /(diamond|solitaire|gemstone)/;
+const GOLD_KEYWORDS = /(gold)/;
+
+export const getOfferCategory = (coupon) => {
+  const haystack = [
+    coupon?.code,
+    coupon?.title,
+    coupon?.condition,
+    coupon?.description,
+    ...(Array.isArray(coupon?.collectionTitles) ? coupon.collectionTitles : []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const isDiamond = DIAMOND_KEYWORDS.test(haystack);
+  const isGold = GOLD_KEYWORDS.test(haystack);
+
+  if (isDiamond && !isGold) return OFFER_CATEGORY.DIAMOND;
+  if (isGold && !isDiamond) return OFFER_CATEGORY.GOLD;
+  return OFFER_CATEGORY.ALL;
+};
+
+const STONE_KEYWORDS = /(diamond|solitaire|gemstone)/;
+
+/**
+ * Which category a cart line belongs to, for offer purposes.
+ *
+ * Order matters, and the first rule is the one that was missing: an explicit
+ * "plain gold" tag wins outright. This catalogue tags most gold products
+ * "Gold & Diamond" as a merchandising label, so any keyword sweep across tags
+ * reads a plain gold chain as diamond — which is how a ₹54,943 gold chain
+ * ended up advertising the 5% diamond offer.
+ *
+ * After that the authority is the price breakup: `diamondCharges` is
+ * price_breakup.diamond.final, carried onto the line when it was added, so a
+ * value above zero means the item genuinely has stones in it. The fuzzy
+ * title/type fallbacks only run when neither of those resolved, and tags that
+ * name both metals are ignored there for the same reason as above.
+ */
+export const getItemOfferCategory = (item) => {
+  const tags = Array.isArray(item?.tags) ? item.tags.map((t) => String(t).toLowerCase()) : [];
+  if (tags.some((t) => t.replace(/[-_]/g, " ").includes("plain gold"))) return OFFER_CATEGORY.GOLD;
+
+  let charges = Number(item?.diamondCharges || 0);
+
+  // The line was added before diamondCharges resolved — recover it from the
+  // variant config the same way the PDP does on add-to-cart.
+  if (charges === 0 && item?.metafields?.variant_config) {
+    try {
+      const config = JSON.parse(item.metafields.variant_config);
+      if (config.advanced_stone_config) {
+        charges = config.advanced_stone_config.reduce((acc, s) => acc + (s.stone_weight * 50000), 0);
+      } else if (config.diamond_charges) {
+        charges = config.diamond_charges;
+      }
+    } catch (e) {
+      /* malformed config — fall through to the keyword checks */
+    }
+  }
+  if (charges > 0) return OFFER_CATEGORY.DIAMOND;
+
+  const title = (item?.title || "").toLowerCase();
+  const handle = (item?.handle || "").toLowerCase();
+  const type = (item?.type || item?.category || item?.productType || item?.product_type || "").toLowerCase();
+  if (STONE_KEYWORDS.test(title) || STONE_KEYWORDS.test(handle) || STONE_KEYWORDS.test(type)) {
+    return OFFER_CATEGORY.DIAMOND;
+  }
+  // A tag naming both metals ("Gold & Diamond") says nothing about which of
+  // the two this particular product is, so it can't decide the category.
+  if (tags.some((t) => STONE_KEYWORDS.test(t) && !t.includes("gold"))) return OFFER_CATEGORY.DIAMOND;
+
+  return OFFER_CATEGORY.GOLD;
+};
+
+/**
+ * The slice of the cart an offer of this category can actually discount.
+ * Ranking two offers against each other is only meaningful on their own
+ * base — a diamond rule measured against a gold-only cart reads as ₹0,
+ * which is exactly what should disqualify it from the banner.
+ */
+export const getCategoryBase = (category, { diamondTotal = 0, goldTotal = 0, productTotal = 0 } = {}) => {
+  if (category === OFFER_CATEGORY.DIAMOND) return diamondTotal;
+  if (category === OFFER_CATEGORY.GOLD) return goldTotal;
+  return productTotal;
+};

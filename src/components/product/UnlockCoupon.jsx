@@ -7,7 +7,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import CouponCard from "@/components/coupons/CouponCard";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
-import { COUPONS, COUPON_DISCLAIMER, parsePrice, getCouponIndexForPrice } from "@/lib/coupons";
+import { COUPONS, COUPON_DISCLAIMER, parsePrice, getCouponIndexForPrice, getOfferCategory, OFFER_CATEGORY } from "@/lib/coupons";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
@@ -18,7 +18,7 @@ const generateSessionId = () => {
   return "session_" + Math.random().toString(36).substring(2, 15);
 };
 
-export default function UnlockCoupon({ user, dispatch, toast, currentPrice, productId }) {
+export default function UnlockCoupon({ user, dispatch, toast, currentPrice, productId, productCategory }) {
   const [mobile, setMobile] = useState("");
   const [otpValues, setOtpValues] = useState(["", "", "", ""]);
   const [step, setStep] = useState(user ? "unlocked" : "input");
@@ -332,6 +332,17 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
     visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
   }
 
+  // The metal-split "additional % off" offers. Only the one matching THIS
+  // product can ever apply to it, so a diamond PDP never advertises the plain
+  // gold rate and vice versa — a rule naming no metal applies to both.
+  const bankOffers = (dynamicCoupons || [])
+    .filter((c) => c.isFeatured)
+    .filter((c) => {
+      const category = getOfferCategory(c);
+      if (category === OFFER_CATEGORY.ALL || !productCategory) return true;
+      return category === productCategory;
+    });
+
   const isUnlocked = step === "unlocked";
   const priceValue = parsePrice(currentPrice);
 
@@ -363,6 +374,20 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
             spaceBetween={12}
             className="w-full pt-1"
           >
+            {/* The bank discount leads — it is the headline offer for this
+                product and the only one tied to its metal. */}
+            {bankOffers.map((offer) => (
+              <SwiperSlide key={`bank-${offer.code}`} className="!w-auto">
+                <CouponCard
+                  coupon={offer}
+                  onCopy={handleCopyCode}
+                  copiedCode={copiedCode}
+                  isMini={true}
+                  isBankOffer
+                  className="w-[230px] md:w-[270px]"
+                />
+              </SwiperSlide>
+            ))}
             {visibleCoupons.map((coupon, idx) => (
               <SwiperSlide key={idx} className="!w-auto">
                 <CouponCard
@@ -529,6 +554,18 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         onClose={() => setIsDrawerOpen(false)}
         title="Available Coupons"
       >
+        {bankOffers.map((offer) => (
+          <div key={`bank-${offer.code}`} className="w-full">
+            <CouponCard
+              coupon={offer}
+              onCopy={handleCopyCode}
+              copiedCode={copiedCode}
+              isBankOffer
+              className="w-full"
+            />
+          </div>
+        ))}
+
         {couponsList.map((coupon, idx) => (
           <div key={idx} className="w-full">
             <CouponCard
