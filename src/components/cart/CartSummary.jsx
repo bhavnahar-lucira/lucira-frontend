@@ -454,6 +454,19 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     })
     .sort((a, b) => Number(b.isApplicable) - Number(a.isApplicable));
 
+  // A featured offer is claimed from its banner, never typed, so its code is
+  // never shown to the customer — printing it here would be the one place it
+  // leaks, and invites someone to pass it around.
+  //
+  // `dynamicCoupons` arrives from a fetch, so on the first paint after a
+  // reload we don't yet know whether the applied code is featured. Withhold
+  // the code until we do: guessing "not featured" would flash the very code
+  // this is meant to hide.
+  const hideAppliedCode =
+    !!appliedCoupon &&
+    (!isDynamicCouponsList ||
+      !!featuredBankOffers.find((c) => c.code.toUpperCase() === (couponDetails.code || "").toUpperCase()));
+
   const generalApplicableCode = isDynamicCouponsList
     ? [...applicableCoupons].sort((a, b) => Number(b.minAmount || 0) - Number(a.minAmount || 0))[0]?.code || null
     : applicableCouponCode;
@@ -507,8 +520,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         </svg>
       </span>
       <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-[0.75rem] lg:text-[1rem] leading-none lg:leading-[1.3] text-black lg:text-[#3D2B28] mt-0 mb-1">
-          {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
+        <p className="truncate font-figtree text-[0.85rem] font-semibold capitalize leading-[1.25] tracking-[0.01em] lg:text-[1rem]">
+          {appliedCoupon
+            ? hideAppliedCode
+              ? "Offer Applied"
+              : `Applied: ${couponDetails.code}`
+            : "Apply Coupon"}
         </p>
         <p className="font-figtree font-normal text-[0.65rem] lg:text-[0.9rem] leading-[1.4] lg:leading-[1.3] text-black mt-[5px]">
           View all available coupons.
@@ -526,13 +543,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
       <div className="flex flex-col mb-[20px]">
-        <h3 className="font-figtree text-[0.875rem] lg:hidden font-medium text-black tracking-wider mb-3" style={{
-            fontFamily: "Figtree",
-            fontWeight: 500,
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            textTransform: "capitalize"
-        }}>Offer Zone</h3>
+        <h3 className="font-figtree text-[0.875rem] lg:hidden font-medium text-black tracking-wider mb-3">Offer Zone</h3>
         <FeaturedOfferBanner
           dynamicCoupons={dynamicCoupons}
           activeDiscounts={activeDiscounts}
