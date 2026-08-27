@@ -11,6 +11,10 @@ export const COLLECTION_QUICK_LINKS = [
   { label: "Peacock", href: "/collections/peacock", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Peacock.png?v=1785231427" },
   { label: "Hexa Moving Diamond", href: "/collections/hexa-moving-diamond", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_Moving_Diamond.png?v=1785231427" },
   { label: "Petalique", href: "/collections/petalique", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Petalique.png?v=1785231427" },
+  // mobileOnly keeps the desktop Collections grid an even 2x4; drop the flag
+  // once Infinity should appear on desktop too.
+  { label: "Infinity Collection", href: "/collections/infinity", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_collection_icon_91329834-7874-40aa-9871-bc03dc51ac8b.png?v=1787825093", mobileOnly: true },
+  { label: "Butterfly Collection", href: "/collections/butterfly-collection", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_Collection.png?v=1787824137" },
 ];
 
 export async function getMenu(handle = "main-menu-official") {

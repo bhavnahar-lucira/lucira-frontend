@@ -2,6 +2,6 @@
 
 import SophisticatedMetalCalculator from "../SophisticatedMetalCalculator";
 
-export default function GoldCalculator({ cityName }) {
-  return <SophisticatedMetalCalculator initialMetal="gold" initialCity={cityName} />;
+export default function GoldCalculator({ cityName, stateName, isStatePage }) {
+  return <SophisticatedMetalCalculator initialMetal="gold" initialCity={cityName} initialState={stateName} isStatePage={isStatePage} />;
 }

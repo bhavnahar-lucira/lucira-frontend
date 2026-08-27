@@ -492,13 +492,50 @@ export default function MobileHeader({ menuData }) {
         if (label.includes("lucira express")) {
           return { ...item, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" };
         }
+        // "View All" row at the top of these sub-drawers (exact match so
+        // Engagement & Bridal and Solitaires don't pick it up).
+        const trimmed = label.trim();
+        if (trimmed === "rings") {
+          return { ...item, viewAll: true, href: "/collections/rings" };
+        }
+        if (trimmed === "earrings") {
+          return { ...item, viewAll: true, href: item.href || "/collections/earrings" };
+        }
         return item;
       });
 
+    // Mirror the desktop More Jewelry columns so the Bracelets / Necklaces
+    // tiles open a sub-drawer (like Rings) instead of linking straight to the
+    // collection: same items, icons, and hrefs as the desktop mega menu,
+    // including the Gold item borrowed from the PLAIN GOLD column.
+    const moreJewelry = menu.find((item) => {
+      const l = (item.label || item.title || "").toLowerCase();
+      return l.includes("more jewelry") || l.includes("more jewellery");
+    });
+    const buildStyleColumn = (colName, goldLabel) => {
+      const col = moreJewelry?.columns?.find(
+        (c) => (c.title || "").toLowerCase().trim() === colName
+      );
+      if (!col?.items?.length) return undefined;
+      let items = col.items.map((i) =>
+        i.label === "Chain Bracelets"
+          ? { ...i, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chain_Bracelets.png?v=1787823937" }
+          : i
+      );
+      const plainGold = moreJewelry.columns.find((c) =>
+        (c.title || "").toLowerCase().includes("plain gold")
+      );
+      const gold = plainGold?.items?.find((i) => i.label === goldLabel);
+      if (gold && !items.some((i) => i.label === goldLabel)) {
+        items = [...items, gold];
+      }
+      return [{ title: "Shop by Style", type: "icon", items }];
+    };
+
     const extraItems = [
       { label: "New Arrivals", href: "/collections/new-arrivals", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/New_arrival_bracelet.png?v=1785159196" },
-      { label: "Bracelets", href: "/collections/bracelets", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_50.png?v=1785157008" },
-      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_52.png?v=1785159194" },
+      { label: "Bracelets", href: "/collections/bracelets", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_50.png?v=1785157008", columns: buildStyleColumn("bracelets", "Gold Bracelets"), viewAll: true },
+      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_52.png?v=1785159194", columns: buildStyleColumn("necklaces", "Gold Necklaces"), viewAll: true },
     ].filter(
       (extra) => !menu.some((item) => (item.label || item.title || "").toLowerCase().includes(extra.label.toLowerCase()))
     );
@@ -1099,6 +1136,19 @@ export default function MobileHeader({ menuData }) {
   const renderSubMenu = (activeItem) => {
     return (
       <div className="flex flex-col px-4 py-2">
+        {activeItem.viewAll && activeItem.href && (
+          <Link
+            href={activeItem.href}
+            prefetch={false}
+            onClick={() => setIsMenuOpen(false)}
+            className="mt-2 flex items-center justify-between bg-[#f8f8f8] rounded-xl px-4 py-3 active:bg-gray-200 transition-all border border-gray-50/50"
+          >
+            <span className="text-[13px] font-semibold font-figtree text-gray-900 leading-none">
+              View All {activeItem.label || activeItem.title}
+            </span>
+            <ChevronRight size={16} className="text-gray-500 shrink-0" />
+          </Link>
+        )}
         <Accordion type="multiple" className="w-full" defaultValue={activeItem.columns?.map((_, i) => `item-${i}`)}>
           {activeItem.columns?.map((col, idx) => (
             <AccordionItem key={idx} value={`item-${idx}`} className="border-none">

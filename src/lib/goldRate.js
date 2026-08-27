@@ -234,6 +234,146 @@ export async function getGoldRateCityMeta(handle, cacheOption = "no-store") {
   };
 }
 
+// ─── Gold Rate State metaobject ──────────────────────────────────────────────
+// State pages (maharashtra-gold-rate-today) mirror the city pipeline exactly:
+// page → custom.gold_rate_state metafield → gold_rate_state metaobject, which
+// reuses the same gold_rate_content_block / gold_rate_faq / gold_rate_table
+// definitions the city pages use. The normalizer returns the SAME shape as
+// getGoldRateCityMeta (state_name lands in cityName, state_intro in introHtml,
+// major_city_* in nearbyCity*) so GoldRatePage and GoldMetaContent render both
+// without knowing which kind of page they're on.
+const GOLD_STATE_META_QUERY = `
+  query goldRateStateMeta($handle: String!) {
+    page(handle: $handle) {
+      metafield(namespace: "custom", key: "gold_rate_state") {
+        reference {
+          ... on Metaobject {
+            type
+            state_name: field(key: "state_name") { value }
+            hero_title: field(key: "hero_title") { value }
+            hero_subtitle: field(key: "hero_subtitle") { value }
+            seo_title: field(key: "seo_title") { value }
+            seo_description: field(key: "seo_description") { value }
+            state_intro: field(key: "state_intro") { value }
+            major_city_name: field(key: "major_city_name") { value }
+            major_city_note: field(key: "major_city_note") { value }
+            content_blocks: field(key: "content_blocks") {
+              references(first: 50) {
+                nodes {
+                  ... on Metaobject {
+                    slug: field(key: "slug") { value }
+                    heading: field(key: "heading") { value }
+                    content: field(key: "content") { value }
+                    sort_order: field(key: "sort_order") { value }
+                    active: field(key: "active") { value }
+                  }
+                }
+              }
+            }
+            faq: field(key: "faq") {
+              references(first: 50) {
+                nodes {
+                  ... on Metaobject {
+                    question: field(key: "question") { value }
+                    answer: field(key: "answer") { value }
+                  }
+                }
+              }
+            }
+            table_reference: field(key: "table_reference") {
+              references(first: 25) {
+                nodes {
+                  ... on Metaobject {
+                    table_title: field(key: "table_title") { value }
+                    table_slug: field(key: "table_slug") { value }
+                    table_description: field(key: "table_description") { value }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Fetch normalized Gold Rate State metaobject content for a page handle
+ * ("maharashtra-gold-rate-today"). Same return shape as getGoldRateCityMeta —
+ * cityName carries the state's display name. Returns null when the page has no
+ * linked metaobject (→ caller uses template fallback).
+ */
+export async function getGoldRateStateMeta(handle, cacheOption = "no-store") {
+  let data;
+  try {
+    data = await shopifyStorefrontFetch(
+      GOLD_STATE_META_QUERY,
+      { handle },
+      { ...toCacheInit(cacheOption), useRwToken: true }
+    );
+  } catch (e) {
+    if (isNextControlFlowError(e)) throw e;
+    console.warn("Gold state metaobject fetch failed:", e?.message);
+    return null;
+  }
+
+  const ref = data?.page?.metafield?.reference;
+  if (!ref) return null;
+
+  const val = (node) => (node && node.value != null ? node.value : null);
+
+  const stateSlug = citySlugFromPageHandle(handle);
+
+  const blocks = (ref.content_blocks?.references?.nodes || [])
+    .map((n) => {
+      const slug = val(n.slug) || "";
+      return {
+        slug,
+        anchorId: toGenericAnchorId(slug, stateSlug),
+        heading: val(n.heading) || "",
+        html: richTextToHtml(val(n.content)),
+        sort: parseInt(val(n.sort_order) || "0", 10),
+        active: val(n.active) !== "false",
+      };
+    })
+    .filter((b) => b.active && (b.heading || b.html) && !SKIPPED_BLOCK_IDS.has(b.anchorId))
+    .sort((a, b) => a.sort - b.sort);
+
+  const faqs = (ref.faq?.references?.nodes || [])
+    .map((n) => ({
+      question: val(n.question) || "",
+      answerHtml: richTextToHtml(val(n.answer)),
+    }))
+    .filter((f) => f.question);
+
+  const tables = (ref.table_reference?.references?.nodes || [])
+    .map((n) => ({
+      title: val(n.table_title) || "",
+      slug: val(n.table_slug) || "",
+      description: val(n.table_description) || "",
+    }))
+    .filter((t) => t.title);
+
+  if (!blocks.length && !faqs.length) return null;
+
+  return {
+    cityName: val(ref.state_name),
+    state: val(ref.state_name),
+    heroTitle: val(ref.hero_title),
+    heroSubtitle: val(ref.hero_subtitle),
+    seoTitle: val(ref.seo_title),
+    seoDescription: val(ref.seo_description),
+    introHtml: richTextToHtml(val(ref.state_intro)),
+    nearbyCityName: val(ref.major_city_name),
+    nearbyCityNote: val(ref.major_city_note),
+    blocks,
+    faqs,
+    tables,
+    isStatePage: true,
+  };
+}
+
 const GOLD_HISTORY_QUERY = `
   query goldRateHistory {
     metaobjects(type: "gold_rate_history", first: 250) {

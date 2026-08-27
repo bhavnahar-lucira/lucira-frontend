@@ -1,5 +1,5 @@
 import { getPageByHandle, getAllPages } from "@/lib/pages";
-import { getGoldRateCityMeta, getGoldRateHistory } from "@/lib/goldRate";
+import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateHistory } from "@/lib/goldRate";
 import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
 import { notFound } from "next/navigation";
 import "@/styles/gold-rate.css";
@@ -100,6 +100,17 @@ function resolveCityState(handle, rateType) {
   // instead of fabricating a page for it (e.g. "/pages/hyde-gold-rate-today").
   return { cityCapitalized, resolvedState: null, matched: false };
 }
+
+// State pages: "maharashtra-gold-rate-today" → the slug is a STATE_CITY_MAP key
+// rather than a city. Checked only AFTER resolveCityState fails to match, so a
+// slug that is both (delhi, chandigarh, puducherry) keeps resolving as the city
+// page it always was.
+function resolveStatePage(handle, rateType) {
+  const slug = handle.toLowerCase().replace(rateType, '');
+  if (!STATE_CITY_MAP[slug]) return { matchedState: false };
+  const stateCapitalized = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return { matchedState: true, stateCapitalized };
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Gold rate title date stamp ──────────────────────────────────────────────
@@ -173,10 +184,13 @@ export async function generateMetadata({ params }) {
     ({ title, description } = localMeta);
   } else {
     const page = await getPageByHandle(handle, cacheStrategy);
-    if (!page) return {};
+    // Rate pages can exist without a Shopify Page record (city/state stubs are
+    // fabricated in Page below) — fall through so the generated title still
+    // lands. Everything else keeps the early return.
+    if (!page && !isRatePage) return {};
 
-    title = page.seo?.title || page.title || "Lucira Jewelry";
-    description = page.seo?.description || page.bodySummary || page.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
+    title = page?.seo?.title || page?.title || "Lucira Jewelry";
+    description = page?.seo?.description || page?.bodySummary || page?.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
 
     // Gold rate pages: known city pages get the generated competitor-style
     // title/description (uniform format, fresh date + IST time). Anything else
@@ -184,8 +198,13 @@ export async function generateMetadata({ params }) {
     // curated metaobject seo_title / seo_description with the date stamp.
     if (isGoldRatePage) {
       const { cityCapitalized, matched } = resolveCityState(handle, "-gold-rate-today");
+      const statePage = !matched ? resolveStatePage(handle, "-gold-rate-today") : { matchedState: false };
       if (matched) {
         ({ title, description } = goldRateCityMeta(cityCapitalized));
+      } else if (statePage.matchedState) {
+        // State pages get the same generated competitor-style title, with the
+        // state name in the city slot.
+        ({ title, description } = goldRateCityMeta(statePage.stateCapitalized));
       } else {
         try {
           const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
@@ -255,12 +274,18 @@ export default async function Page({ params }) {
 
     const { cityCapitalized, resolvedState, matched } = resolveCityState(handle, rateType);
 
+    // State pages exist for gold only (gold_rate_state metaobject); the city
+    // check above runs first so dual slugs (delhi, chandigarh, …) stay cities.
+    const statePage = !matched && isGoldRatePage
+      ? resolveStatePage(handle, rateType)
+      : { matchedState: false };
+
     if (!page) {
       // No real Shopify page for this handle. Only fabricate a stub for cities
-      // we actually recognize (STATE_CITY_MAP) — otherwise any random slug like
-      // "hyde-gold-rate-today" or "mum-gold-rate-today" would silently render a
-      // fake city page instead of 404ing.
-      if (!matched) return notFound();
+      // (or, on gold, states) we actually recognize (STATE_CITY_MAP) — otherwise
+      // any random slug like "hyde-gold-rate-today" or "mum-gold-rate-today"
+      // would silently render a fake city page instead of 404ing.
+      if (!matched && !statePage.matchedState) return notFound();
 
       page = {
         title: handle.replace(/-/g, ' ').toUpperCase(),
@@ -268,11 +293,19 @@ export default async function Page({ params }) {
       };
     }
 
-    // Always stamp city/state from the URL — Shopify page has no city metafield.
-    // If the page is real but the city isn't in our map (unmatched), fall back
-    // to Maharashtra rather than leaving state blank.
-    page.city = { value: cityCapitalized };
-    page.state = { value: resolvedState || 'Maharashtra' };
+    if (statePage.matchedState) {
+      // The state name rides in the city slot so GoldRatePage's headings and
+      // copy read "Gold Rate in Maharashtra Today" without a second code path.
+      page.city = { value: statePage.stateCapitalized };
+      page.state = { value: statePage.stateCapitalized };
+      page.isStatePage = true;
+    } else {
+      // Always stamp city/state from the URL — Shopify page has no city metafield.
+      // If the page is real but the city isn't in our map (unmatched), fall back
+      // to Maharashtra rather than leaving state blank.
+      page.city = { value: cityCapitalized };
+      page.state = { value: resolvedState || 'Maharashtra' };
+    }
   }
 
   if (!page) return notFound();
@@ -282,7 +315,11 @@ export default async function Page({ params }) {
   // metaobject is missing the page falls back to page.body below.
   if (isGoldRatePage) {
     try {
-      const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
+      // State pages read the gold_rate_state metaobject; city pages keep the
+      // gold_rate_city one. Both return the same normalized shape.
+      const goldMeta = page.isStatePage
+        ? await getGoldRateStateMeta(handle, RATE_PAGE_CACHE)
+        : await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
       if (goldMeta) {
         try {
           goldMeta.history = await getGoldRateHistory(RATE_PAGE_CACHE);

@@ -52,15 +52,29 @@ const defaultRates = {
   silver_price_1kg: 305001,
 };
 
-export default function SophisticatedMetalCalculator({ initialMetal = "gold", initialCity = "mumbai" }) {
+export default function SophisticatedMetalCalculator({ initialMetal = "gold", initialCity = "mumbai", initialState = "", isStatePage = false }) {
   const [activeMetal, setActiveMetal] = useState(initialMetal); // 'gold' | 'silver' | 'platinum'
   const [calcMode, setCalcMode] = useState("weight"); // 'weight' | 'amount'
   const [rates, setRates] = useState(null);
   
-  // City states
-  const [currentCitySlug, setCurrentCitySlug] = useState(initialCity.toLowerCase().replace(/\s+/g, '-'));
+  // City states. On a state page initialCity carries the STATE's name (it rides
+  // in the city slot for the headings), so no city is preselected there — the
+  // trigger reads "Select City" instead of echoing the state twice.
+  const [currentCitySlug, setCurrentCitySlug] = useState(
+    isStatePage ? "" : initialCity.toLowerCase().replace(/\s+/g, '-')
+  );
   const [isCityModalOpen, setIsCityModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // State picker (gold only — state pages exist just for gold). Preselected
+  // from the page's own state; picking a different one navigates to that
+  // state's gold rate page. Same modal UX as the city picker.
+  const [currentStateSlug, setCurrentStateSlug] = useState(
+    (initialState || "").toLowerCase().replace(/\s+/g, '-')
+  );
+  const [isStateModalOpen, setIsStateModalOpen] = useState(false);
+  const [stateSearchQuery, setStateSearchQuery] = useState("");
+  const stateModalRef = useRef(null);
 
   // Weight mode inputs
   const [goldPurity, setGoldPurity] = useState(22); // 24 | 22 | 18
@@ -125,8 +139,30 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
     return allCitiesList.filter(c => c.name.toLowerCase().includes(query));
   }, [searchQuery, allCitiesList]);
 
+  // List of all states, title-cased for display
+  const allStatesList = useMemo(() => {
+    return Object.keys(stateCityMap).map((slug) => ({
+      slug,
+      name: slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+    }));
+  }, []);
+
+  // Filtered states based on search
+  const filteredStates = useMemo(() => {
+    if (!stateSearchQuery.trim()) return allStatesList;
+    const query = stateSearchQuery.toLowerCase().trim();
+    return allStatesList.filter(s => s.name.toLowerCase().includes(query));
+  }, [stateSearchQuery, allStatesList]);
+
+  // Current display state name
+  const currentStateName = useMemo(() => {
+    const match = allStatesList.find(s => s.slug === currentStateSlug);
+    return match ? match.name : "Select State";
+  }, [currentStateSlug, allStatesList]);
+
   // Current display city name
   const currentCityName = useMemo(() => {
+    if (!currentCitySlug) return "Select City";
     const match = allCitiesList.find(c => c.slug === currentCitySlug);
     return match ? match.name : currentCitySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   }, [currentCitySlug, allCitiesList]);
@@ -206,22 +242,39 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
     };
   }, [rates]);
 
-  // Navigate when active metal or city changes
+  // Navigate when active metal or city changes. On a state page no city is
+  // selected: gold stays on the state page itself; silver/platinum (which have
+  // no state pages) fall back to the state's first city.
   const navigateToPage = (metal, citySlug) => {
-    window.location.href = `/pages/${citySlug}-${metal}-rate-today`;
+    let slug = citySlug;
+    if (!slug) {
+      if (metal === "gold" && currentStateSlug) {
+        slug = currentStateSlug;
+      } else {
+        const cities = stateCityMap[currentStateSlug] || [];
+        slug = (cities[0] || "Mumbai").toLowerCase().replace(/\s+/g, '-');
+      }
+    }
+    window.location.href = `/pages/${slug}-${metal}-rate-today`;
   };
 
-  // Close modal on escape or outer click
+  // Close modals on escape or outer click
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "Escape") setIsCityModalOpen(false);
-    };
-    const handleClickOutside = (e) => {
-      if (modalRef.current && !modalRef.current.contains(e.target)) {
+      if (e.key === "Escape") {
         setIsCityModalOpen(false);
+        setIsStateModalOpen(false);
       }
     };
-    if (isCityModalOpen) {
+    const handleClickOutside = (e) => {
+      if (isCityModalOpen && modalRef.current && !modalRef.current.contains(e.target)) {
+        setIsCityModalOpen(false);
+      }
+      if (isStateModalOpen && stateModalRef.current && !stateModalRef.current.contains(e.target)) {
+        setIsStateModalOpen(false);
+      }
+    };
+    if (isCityModalOpen || isStateModalOpen) {
       document.addEventListener("keydown", handleKeyDown);
       document.addEventListener("mousedown", handleClickOutside);
       document.body.style.overflow = "hidden";
@@ -232,7 +285,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isCityModalOpen]);
+  }, [isCityModalOpen, isStateModalOpen]);
 
   // Weight Mode Math
   const weightCalcResults = useMemo(() => {
@@ -329,14 +382,27 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
             </div>
           </div>
 
-          {/* City Selection Trigger */}
-          <button
-            onClick={() => setIsCityModalOpen(true)}
-            className="flex items-center justify-between gap-2 border border-[#F2E3C6] bg-[#FAF3EC]/50 px-5 py-2.5 rounded-xl text-zinc-900 text-sm font-medium hover:bg-white transition-all text-left"
-          >
-            <span>{currentCityName}</span>
-            <ChevronDown className="text-[#B77767] w-4 h-4" />
-          </button>
+          {/* State + City Selection */}
+          <div className="flex items-stretch gap-3">
+            {activeMetal === "gold" && (
+              <button
+                onClick={() => setIsStateModalOpen(true)}
+                className="flex-1 md:flex-none flex items-center justify-between gap-2 border border-[#F2E3C6] bg-[#FAF3EC]/50 px-5 py-2.5 rounded-xl text-zinc-900 text-sm font-medium hover:bg-white transition-all text-left"
+              >
+                <span>{currentStateName}</span>
+                <ChevronDown className="text-[#B77767] w-4 h-4" />
+              </button>
+            )}
+
+            {/* City Selection Trigger */}
+            <button
+              onClick={() => setIsCityModalOpen(true)}
+              className="flex-1 md:flex-none flex items-center justify-between gap-2 border border-[#F2E3C6] bg-[#FAF3EC]/50 px-5 py-2.5 rounded-xl text-zinc-900 text-sm font-medium hover:bg-white transition-all text-left"
+            >
+              <span>{currentCityName}</span>
+              <ChevronDown className="text-[#B77767] w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Karat Wise Rates Cards Row */}
@@ -648,6 +714,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                         }}
                         className="w-full bg-white border border-[#F2E3C6] rounded-xl px-4 py-3.5 text-zinc-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-base appearance-none cursor-pointer"
                       >
+                        {!currentCitySlug && <option value="">Select City</option>}
                         {allCitiesList.map((city) => (
                           <option key={city.slug} value={city.slug}>
                             {city.name}
@@ -768,6 +835,70 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
                 ))
               ) : (
                 <div className="text-center text-zinc-500 py-10">No cities matching search</div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* STATE SELECTION POPUP MODAL — same UX as the city picker */}
+      {isStateModalOpen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in font-figtree">
+          <div
+            ref={stateModalRef}
+            className="w-full max-w-xl bg-white rounded-2xl border border-[#F2E3C6] shadow-2xl flex flex-col h-[80vh] md:h-[600px] overflow-hidden animate-scale-up"
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-[#F2E3C6]">
+              <h3 className="text-zinc-900 text-lg font-bold">Select Your State</h3>
+              <button
+                onClick={() => setIsStateModalOpen(false)}
+                className="text-zinc-500 hover:text-zinc-900 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Search Container */}
+            <div className="px-6 py-4">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#B77767] w-4.5 h-4.5" />
+                <input
+                  type="text"
+                  placeholder="Search state..."
+                  value={stateSearchQuery}
+                  onChange={(e) => setStateSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-[#F2E3C6] rounded-xl pl-11 pr-4 py-3 text-zinc-900 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-[#B77767] focus:border-[#B77767] transition-all text-sm font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Scrollable list of states */}
+            <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-1 custom-scrollbar">
+              {filteredStates.length > 0 ? (
+                filteredStates.map((state) => (
+                  <button
+                    key={state.slug}
+                    onClick={() => {
+                      setIsStateModalOpen(false);
+                      setCurrentStateSlug(state.slug);
+                      window.location.href = `/pages/${state.slug}-gold-rate-today`;
+                    }}
+                    className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${
+                      currentStateSlug === state.slug
+                        ? "bg-[#FAF3EC]/50 border border-[#F2E3C6] text-zinc-900 font-bold"
+                        : "text-zinc-500 hover:text-zinc-900 hover:bg-[#FAF3EC]/50/50 border border-transparent"
+                    }`}
+                  >
+                    <span className="text-sm font-medium">{state.name}</span>
+                    {currentStateSlug === state.slug && (
+                      <Check className="w-4 h-4 text-[#B77767]" />
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="text-center text-zinc-500 py-10">No states matching search</div>
               )}
             </div>
           </div>

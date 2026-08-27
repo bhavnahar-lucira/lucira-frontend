@@ -270,7 +270,7 @@ export default function GoldRatePage({ page }) {
 
             {/* Calculator Section — prefer server-fetched history rate over the
                 client-fetched widget rate so the calculator is correct on first paint */}
-            <GoldCalculator cityName={cityNameDisplay} baseRate={heroR24 || todayRateNum} />
+            <GoldCalculator cityName={cityNameDisplay} stateName={stateName} isStatePage={!!page?.isStatePage} baseRate={heroR24 || todayRateNum} />
 
             {/* Jump links, directly under the calculator. Ids are city-independent,
                 so #todays-rate is the same fragment on every city page. */}
