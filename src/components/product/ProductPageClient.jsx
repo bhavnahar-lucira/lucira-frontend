@@ -3814,6 +3814,11 @@ export default function ProductPageClient({
           title="From the Same Collection"
           subtitle="Discover matching pieces that perfectly complement one another"
           products={matchingProducts}
+          promoClickMeta={{
+            creative_name: "from the same collection - pdp",
+            location_id: "pdp",
+            promoIdFromVariant: true,
+          }}
         />
       )}
 
@@ -3832,7 +3837,15 @@ export default function ProductPageClient({
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 md:gap-x-8 md:gap-y-12">
               {youMayAlsoLikeProducts.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  promoClickMeta={{
+                    creative_name: "from the same collection - pdp",
+                    location_id: "pdp",
+                    promoIdFromVariant: true,
+                  }}
+                />
               ))}
             </div>
           </div>

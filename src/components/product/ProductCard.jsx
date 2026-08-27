@@ -549,10 +549,11 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     trackSearchProductClick(String(getNumericId(product.shopifyId || product.id)), index || 0);
 
     if (promoClickMeta) {
+      const variantPromoId = String(getNumericId(currentVariant?.id || currentVariant?.shopifyId));
       pushPromoClick({
         creative_name: promoClickMeta.creative_name,
         location_id: promoClickMeta.location_id,
-        promo_id: promoClickMeta.promo_id,
+        promo_id: promoClickMeta.promoIdFromVariant ? variantPromoId : promoClickMeta.promo_id,
         promo_name: product.title,
       });
     }
