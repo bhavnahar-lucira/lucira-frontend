@@ -34,28 +34,30 @@ export default function Navbar({ hideTop, menuData }) {
           const colTitle = (col.title || '').toLowerCase();
           
           if (colTitle.includes('others')) {
-            if (!col.items?.find(i => i.label === 'Kids Collection')) {
-              return {
-                ...col,
-                items: [
-                  ...(col.items || []),
-                  {
-                    label: 'Kids Collection',
-                    href: '/collections/kids-collection',
-                    menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-N00126YG_1_35d904d4-fd5f-4701-b9e6-c77a770e5e9e.jpg?v=1784963525'
-                  }
-                ]
-              };
+            const kidsIcon = 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Kids_Collections.png?v=1787824033';
+            const items = (col.items || []).map(i =>
+              i.label === 'Kids Collection' ? { ...i, menuIcon: kidsIcon } : i
+            );
+            if (!items.find(i => i.label === 'Kids Collection')) {
+              items.push({
+                label: 'Kids Collection',
+                href: '/collections/kids-collection',
+                menuIcon: kidsIcon
+              });
             }
+            return { ...col, items };
           }
-          
-          if (colTitle === 'bracelets' && goldBracelets) {
-            if (!col.items?.find(i => i.label === 'Gold Bracelets')) {
-              return {
-                ...col,
-                items: [...(col.items || []), goldBracelets]
-              };
+
+          if (colTitle === 'bracelets') {
+            let items = (col.items || []).map(i =>
+              i.label === 'Chain Bracelets'
+                ? { ...i, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chain_Bracelets.png?v=1787823937' }
+                : i
+            );
+            if (goldBracelets && !items.find(i => i.label === 'Gold Bracelets')) {
+              items = [...items, goldBracelets];
             }
+            return { ...col, items };
           }
           
           if (colTitle === 'necklaces' && goldNecklaces) {
@@ -270,7 +272,7 @@ export default function Navbar({ hideTop, menuData }) {
                 /* IMAGE GRID */
                 if (isImageOnly) {
                   const allItems = menu.items || menu.cards || [];
-                  const quickLinks = menu.quickLinks || [];
+                  const quickLinks = (menu.quickLinks || []).filter((q) => !q.mobileOnly);
                   // Collections whose quick-link tile is desktop-only replace
                   // their big image card here (e.g. Cotton Candy).
                   const items = quickLinks.length
