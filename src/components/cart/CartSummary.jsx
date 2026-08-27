@@ -9,20 +9,22 @@ import { useSelector, useDispatch } from "react-redux";
 import { pushPromoClick, getNumericId } from "@/lib/gtm";
 import { useAuth } from "@/hooks/useAuth";
 import InsuranceOption from "./InsuranceOption";
-import GoldCoinOption, { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
+
 import { useCart } from "@/hooks/useCart";
-import { applyCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
+import { applyCoupon, addCoupon, removeCoupon, removePoints } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import { trackCheckout as trackSearchCheckout } from "@/lib/searchAnalytics";
 import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
-import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount } from "@/lib/coupons";
+import OfferCategoryIcon from "@/components/coupons/offerCategoryTheme";
+import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount, getOfferCategory, getCategoryBase, getItemOfferCategory, getAppliedOfferLabel, canCombineOffers, OFFER_CATEGORY, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
 import FreeGiftReward from "./FreeGiftReward";
-import { FREE_GIFTS, isFreeGiftVariant } from "@/lib/freeGifts";
+import FeaturedOfferBanner, { selectFeaturedOffers } from "./FeaturedOfferBanner";
+import { FREE_GIFTS, isFreeGiftVariant, mapRemoteFreeGiftTiers } from "@/lib/freeGifts";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
@@ -49,21 +51,11 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   }, []);
   // Which listed coupon is mid-apply, so only that card shows a spinner.
   
-  const { items, totalAmount, totalQuantity, appliedCoupon, updateCartItem, removeFromCart, removeMultipleFromCart, addToCart, loading, nectorPoints } = useCart();
+  const { items, totalAmount, totalQuantity, appliedCoupon, appliedCoupons, updateCartItem, removeFromCart, removeMultipleFromCart, addToCart, loading, nectorPoints, activeDiscounts, claimDiscount, unclaimDiscount } = useCart();
   const user = useSelector((state) => state.user.user);
+  const giftTiersConfig = useSelector((state) => state.cart.giftTiersConfig);
   const { openLogin } = useAuth();
-  const [goldCoinConfig, setGoldCoinConfig] = useState({ enabled: true, threshold: 20000 });
 
-  useEffect(() => {
-    apiFetch("/api/settings/gold-coin")
-      .then(data => {
-        setGoldCoinConfig({
-          enabled: data.enabled ?? false,
-          threshold: Number(data.threshold) || 20000
-        });
-      })
-      .catch(err => console.error("Error fetching gold coin threshold:", err));
-  }, []);
 
   const otherItemsQuantity = (() => {
     let qty = 0;
@@ -71,7 +63,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     items
       .filter(item =>
         item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !item.isFreeGift &&
         !isFreeGiftVariant(item.variantId)
       )
       .forEach(item => {
@@ -88,7 +80,22 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     return qty;
   })();
 
-  const diamondTotal = items
+  // Every line a discount could land on. Insurance and free gifts are neither
+  // discountable nor part of any offer's base, so they never count.
+  const productTotal = items
+    .filter(item =>
+      item.variantId !== INSURANCE_VARIANT_ID &&
+      !item.isFreeGift &&
+      !isFreeGiftVariant(item.variantId)
+    )
+    .reduce((acc, item) => acc + Number(item.price || 0) * Number(item.quantity || item.qty || 1), 0);
+
+  // Split by metal in one pass. The live offer structure prices the two
+  // categories differently (additional 5% on diamond, 2% on plain gold) and
+  // forbids stacking them, so each rule has to be weighed against its own
+  // half of the cart — see FeaturedOfferBanner. `goldTotal` is "everything
+  // eligible that isn't diamond", which in this catalogue is plain gold.
+  const { diamondTotal, goldTotal } = items
     .filter(item => {
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] || 
@@ -100,59 +107,74 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         String(item.title || "").toLowerCase().includes('byj')
       );
       return item.variantId !== INSURANCE_VARIANT_ID &&
-        !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+        !item.isFreeGift &&
         !isFreeGiftVariant(item.variantId) &&
         !isBYJ;
     })
     .reduce((acc, item) => {
-        const itemQty = Number(item.quantity || item.qty || 1);
-        let charges = Number(item.diamondCharges || 0);
-        
-        // Robust Fallback: Try parsing variant_config if diamondCharges is 0
-        if (charges === 0 && item.metafields?.variant_config) {
-            try {
-                const config = JSON.parse(item.metafields.variant_config);
-                if (config.advanced_stone_config) {
-                    charges = config.advanced_stone_config.reduce((sAcc, s) => sAcc + (s.stone_weight * 50000), 0);
-                } else if (config.diamond_charges) {
-                    charges = config.diamond_charges;
-                }
-            } catch(e) {}
+        const lineTotal = Number(item.price) * Number(item.quantity || item.qty || 1);
+        if (getItemOfferCategory(item) === OFFER_CATEGORY.DIAMOND) {
+            return { ...acc, diamondTotal: acc.diamondTotal + lineTotal };
         }
+        return { ...acc, goldTotal: acc.goldTotal + lineTotal };
+    }, { diamondTotal: 0, goldTotal: 0 });
 
-        const lowerTitle = item.title?.toLowerCase() || "";
-        const lowerHandle = item.handle?.toLowerCase() || "";
-        const lowerType = (item.type || item.category || item.productType || item.product_type || "").toLowerCase();
-        const tags = Array.isArray(item.tags) ? item.tags.map(t => String(t).toLowerCase()) : [];
-        const hasDiamondKeywords = lowerTitle.includes("diamond") || lowerHandle.includes("diamond") || lowerType.includes("diamond") ||
-                                 lowerTitle.includes("solitaire") || lowerHandle.includes("solitaire") || lowerType.includes("solitaire") ||
-                                 lowerTitle.includes("gemstone") || lowerType.includes("gemstone") ||
-                                 tags.some(t => t.includes("diamond") || t.includes("solitaire") || t.includes("gemstone"));
-        
-        if (charges === 0 && hasDiamondKeywords) {
-           charges = item.price;
+  // Bundled once so the combine rule and the featured banner are always
+  // measured against the same numbers.
+  const offerTotals = { diamondTotal, goldTotal, productTotal };
+
+  // How much of the cart each rule's "Exclusions" carve out (dashboard field,
+  // tagged per line by the backend — the browser can't see a product's
+  // collections). Subtracted from an offer's base below so a cart made only of
+  // an excluded collection stops being offered the discount at all, instead of
+  // showing a CLAIM button that the server then refuses.
+  const excludedTotalsByRule = items.reduce((acc, item) => {
+    const ruleIds = item.excludedFromRuleIds || [];
+    if (ruleIds.length === 0) return acc;
+    const lineTotal = Number(item.price || 0) * Number(item.quantity || item.qty || 1);
+    ruleIds.forEach((ruleId) => {
+      acc[ruleId] = (acc[ruleId] || 0) + lineTotal;
+    });
+    return acc;
+  }, {});
+
+  // Applied coupons come back from redux-persist, so a stored entry can
+  // predate a dashboard toggle — or a field we only started saving later.
+  // Re-read the stacking flags from the live coupon list before deciding
+  // anything, so the decision never rests on a stale snapshot.
+  const hydratedAppliedCoupons = (appliedCoupons || []).map((c) => {
+    const live = (dynamicCoupons || []).find(
+      (d) => String(d.code).toUpperCase() === String(c?.code || "").toUpperCase()
+    );
+    return live
+      ? {
+          ...c,
+          combineCoupons: !!live.combineCoupons,
+          coinsApplicable: !!live.coinsApplicable,
+          minAmount: live.minAmount,
+          discountType: live.discountType,
+          discountValue: live.discountValue,
         }
-
-        if (charges > 0) {
-            return acc + (Number(item.price) * itemQty);
-        }
-        return acc;
-    }, 0);
-
-  const eligibleGoldCoins = Math.max(0, Math.floor(diamondTotal / goldCoinConfig.threshold));
+      : c;
+  });
 
   const insuranceItem = items.find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
-
-  const goldCoinItem = items.find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
   // Claiming requires a logged-in user, so a gift line without one is an
   // invalid leftover state (FreeGiftReward's own effect removes it), not a
   // legitimate claim — don't reflect it as applied here in the meantime.
-  const appliedGiftItem = user ? items.find(item => isFreeGiftVariant(item.variantId)) : null;
+  const appliedGiftItem = user ? items.find(item => item.isFreeGift || isFreeGiftVariant(item.variantId)) : null;
+  // Which tier the claimed gift line belongs to, so the coupon-block below
+  // can tell a combinable tier ("Combine coupons" on) apart from the default
+  // exclusive one — mirrors FreeGiftReward's own appliedTier lookup.
+  const appliedGiftTier = appliedGiftItem
+    ? mapRemoteFreeGiftTiers(giftTiersConfig?.tiers).find((t) => t.variantId === appliedGiftItem.variantId)
+    : null;
+  const giftBlocksCoupon = !!appliedGiftItem && !appliedGiftTier?.combineCoupons;
 
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+    !item.isFreeGift &&
     !isFreeGiftVariant(item.variantId)
   )?.title;
 
@@ -178,30 +200,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       }
     }
 
-    // Sync Gold Coin
-    if (goldCoinItem && goldCoinItem.isFreeGift) {
-      const currentCoinQty = Number(goldCoinItem.quantity || goldCoinItem.qty || 0);
-      
-      // Remove if promotion is disabled OR if eligibility threshold not met
-      if (!goldCoinConfig.enabled || eligibleGoldCoins <= 0) {
-        const coinItems = items.filter(i => i.variantId === GOLDCOIN_VARIANT_ID && i.isFreeGift);
-        if (coinItems.length > 1) {
-          const lineIds = coinItems.map(i => i.lineId).filter(Boolean);
-          const variantIds = coinItems.map(i => i.variantId).filter(Boolean);
-          removeMultipleFromCart({ lineIds, variantIds });
-        } else {
-          removeFromCart(coinItems[0]?.lineId || GOLDCOIN_VARIANT_ID);
-        }
-      } else if (currentCoinQty !== eligibleGoldCoins) {
-        updateCartItem({
-          lineId: goldCoinItem.lineId,
-          currentVariantId: GOLDCOIN_VARIANT_ID,
-          quantity: eligibleGoldCoins
-        });
-      }
-    }
-
-  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, eligibleGoldCoins, goldCoinItem?.quantity, goldCoinItem?.qty, updateCartItem, removeFromCart, goldCoinConfig.enabled]);
+  }, [otherItemsQuantity, insuranceItem?.quantity, insuranceItem?.qty, updateCartItem, removeFromCart]);
 
   const couponDetails = (appliedCoupon && typeof appliedCoupon === 'object') 
     ? appliedCoupon 
@@ -269,7 +268,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const originalSubtotal = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
@@ -284,7 +283,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const totalSavings = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
@@ -297,7 +296,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   const subtotal = otherItemsQuantity > 0 ? (totalAmount - insuranceAmount) : 0;
 
-  const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotal);
+  const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotal);
 
   const discount = couponDiscountAmount;
   const shipping = 0;
@@ -313,8 +312,36 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const handleApplyCoupon = async (codeOverride) => {
     const code = (codeOverride ?? couponCode).trim();
     if (!code) return;
-    if (items.some(item => isFreeGiftVariant(item.variantId))) {
+    // Same re-entrancy risk FeaturedOfferBanner guards against: this is the
+    // shared apply path for the banner's CLAIM button, drawer coupon cards,
+    // and the manual code input, so a fast double-click on any of them could
+    // fire two overlapping applies whose responses land out of order.
+    if (isApplying) return;
+    if (giftBlocksCoupon) {
       toast.error("Coupons cannot be applied while a free gift is claimed. Please remove it first.");
+      return;
+    }
+
+    // Drawer-listed "automatic" Product Discounts rules have no real Shopify
+    // code — they're claim-gated (see /api/cart/discount/claim), not
+    // something to submit through coupon/validate. A customer typing one in
+    // (or clicking its card) would otherwise always get "invalid code" back,
+    // since Shopify has no code to look up for an automatic discount.
+    const dynamicMatch = dynamicCoupons?.find((c) => c.code.toUpperCase() === code.toUpperCase());
+    if (dynamicMatch?.method === "automatic") {
+      setIsApplying(true);
+      if (codeOverride) setApplyingCode(code);
+      try {
+        await claimDiscount(dynamicMatch.id, { coinsApplicable: !!dynamicMatch.coinsApplicable });
+        toast.success("Coupon applied!");
+        setIsCouponDrawerOpen(false);
+        setCouponCode("");
+      } catch (err) {
+        // claimDiscount already shows its own error toast — nothing more to do.
+      } finally {
+        setIsApplying(false);
+        setApplyingCode(null);
+      }
       return;
     }
 
@@ -336,23 +363,47 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         toast.error('This coupon is not applicable to the items in your cart.');
         return;
       }
-      if (nectorPoints) {
+      // Staff can mark a discount "Lucira Coins applicable", in which case
+      // redeemed coins stay put instead of being cleared on apply.
+      const coinsApplicable = !!dynamicMatch?.coinsApplicable;
+      if (nectorPoints && !coinsApplicable) {
         dispatch(removePoints());
         toast.info("Loyalty points removed as a coupon is applied.", {
           icon: <Check className="w-4 h-4" />
         });
       }
 
+      const claimedProductDiscount = (activeDiscounts || []).find((d) => d.claimed);
+      if (claimedProductDiscount) {
+        try {
+          await unclaimDiscount(claimedProductDiscount.id);
+        } catch (e) {
+          // unclaimDiscount already shows its own error toast.
+        }
+        toast.info(`${claimedProductDiscount.title} removed as a coupon is applied.`, {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
 
-
-      dispatch(applyCoupon({
+      const incoming = {
         code: data.code,
         summary: data.summary,
         value: data.value,
         valueType: data.valueType,
         restricted: data.restricted,
-        applicableItemIds: data.applicableItemIds
-      }));
+        applicableItemIds: data.applicableItemIds,
+        minAmount: dynamicMatch?.minAmount,
+        coinsApplicable,
+        combineCoupons: !!dynamicMatch?.combineCoupons
+      };
+      // Two offers may sit on the cart together only when they cover
+      // different metals and each independently qualifies — otherwise this
+      // replaces whatever was applied, as it always has.
+      const alreadyApplied = hydratedAppliedCoupons.filter(
+        (c) => String(c?.code || "").toUpperCase() !== String(data.code).toUpperCase()
+      );
+      const combines = canCombineOffers([...alreadyApplied, incoming], offerTotals);
+      dispatch(combines ? addCoupon(incoming) : applyCoupon(incoming));
       toast.success(`Coupon "${data.code}" applied!`);
       setIsCouponDrawerOpen(false);
       setCouponCode("");
@@ -364,8 +415,24 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     }
   };
 
-  const handleRemoveCoupon = () => {
-    dispatch(removeCoupon());
+  // Called two ways: CouponCard's onRemove passes the card's own code
+  // string, but the "remove applied coupon" chip elsewhere just does
+  // onClick={handleRemoveCoupon} — React passes the click event there, not
+  // a code — so anything that isn't actually a string falls back to
+  // whichever coupon is currently applied.
+  const handleRemoveCoupon = async (code) => {
+    const targetCode = typeof code === "string" ? code : effectiveAppliedCode;
+    const dynamicMatch = dynamicCoupons?.find((c) => c.code.toUpperCase() === (targetCode || "").toUpperCase());
+    if (dynamicMatch?.method === "automatic") {
+      try {
+        await unclaimDiscount(dynamicMatch.id);
+        toast.error("Coupon removed", { icon: <Check className="w-4 h-4" /> });
+      } catch (err) {
+        // unclaimDiscount already shows its own error toast.
+      }
+      return;
+    }
+    dispatch(removeCoupon(typeof code === "string" ? code : undefined));
     toast.error("Coupon removed", {
       icon: <Check className="w-4 h-4" />
     });
@@ -411,16 +478,138 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const applicableCouponCode = getApplicableCouponCode(diamondTotal);
   const applicableCouponCodes = getApplicableCouponCodes(diamondTotal);
 
+  // The Saving Zone drawer is dashboard-driven: /api/cart/coupons/active
+  // returns codes staff toggled either "Show in Saving Zone drawer" OR
+  // "Featured Offer" on (the FeaturedOfferBanner above needs the latter too)
+  // — filter back down to drawer-only here so a featured-but-not-drawer rule
+  // doesn't also clutter this list. Falls back to the static ladder if that
+  // fetch hasn't resolved yet or failed, so the drawer never renders empty.
+  const couponsList = dynamicCoupons ? dynamicCoupons.filter((c) => c.showInDrawer) : COUPONS;
+  const isDynamicCouponsList = !!dynamicCoupons;
+
+  // Dashboard coupons carry their own minAmount instead of fitting the static
+  // ladder's exclusive bands, so applicability is just "cart clears this
+  // coupon's own minimum" — more than one can be applicable at once, unlike
+  // the old mutually-exclusive band logic.
+  //
+  // For "automatic" rules, diamondTotal (diamond-charges only) is the wrong
+  // yardstick — a rule can target any collection (e.g. Gold Jewelry), not
+  // just diamond items, so a gold-only cart would always read as ineligible.
+  // The backend already computed real eligibility (collection match + the
+  // cart's true aggregate subtotal for that rule) when it built
+  // activeDiscounts — use that instead of re-deriving it heuristically here.
+  // Code coupons have no such live signal until submitted, so they keep the
+  // diamondTotal heuristic the static ladder always used.
+  const applicableCoupons = couponsList.filter((c) => {
+    if (!isDynamicCouponsList) return applicableCouponCodes.includes(c.code);
+    if (c.method === "automatic") return !!activeDiscounts?.find((d) => d.id === c.id);
+    // A rule whose exclusions cover everything discountable in this cart can't
+    // be applied to it — /coupon/validate refuses the code — so it must not
+    // read as applicable in the drawer either.
+    const excluded = excludedTotalsByRule[c.id] || 0;
+    if (excluded > 0 && productTotal - excluded <= 0) return false;
+    return diamondTotal >= Number(c.minAmount || 0);
+  });
+  // The metal-split "additional % off" rules staff toggled Featured on. They
+  // are deliberately absent from `couponsList` (their "Show in Saving Zone
+  // drawer" toggle is off — the cart banner is their lead placement), but the
+  // drawer is where a customer goes looking for offers, so they get a section
+  // of their own at the top instead of being invisible here. Both metals are
+  // listed even when only one qualifies, so the structure of the offer is
+  // legible; the one that can't win renders disabled.
+  const featuredBankOffers = (dynamicCoupons || [])
+    .filter((c) => c.isFeatured)
+    .map((c) => {
+      const category = getOfferCategory(c);
+      const base = Math.max(0, getCategoryBase(category, { diamondTotal, goldTotal, productTotal }) - (excludedTotalsByRule[c.id] || 0));
+      return { ...c, category, isApplicable: base > 0 && base >= Number(c.minAmount || 0) };
+    })
+    .sort((a, b) => Number(b.isApplicable) - Number(a.isApplicable));
+
+  // A featured offer is claimed from its banner, never typed, so its code is
+  // never shown to the customer — printing it here would be the one place it
+  // leaks, and invites someone to pass it around.
+  //
+  // `dynamicCoupons` arrives from a fetch, so on the first paint after a
+  // reload we don't yet know whether the applied code is featured. Withhold
+  // the code until we do: guessing "not featured" would flash the very code
+  // this is meant to hide.
+  const hideAppliedCode =
+    !!appliedCoupon &&
+    (!isDynamicCouponsList ||
+      !!featuredBankOffers.find((c) => c.code.toUpperCase() === (couponDetails.code || "").toUpperCase()));
+
+  const generalApplicableCode = isDynamicCouponsList
+    ? [...applicableCoupons].sort((a, b) => Number(b.minAmount || 0) - Number(a.minAmount || 0))[0]?.code || null
+    : applicableCouponCode;
+
+  // A code coupon (Redux appliedCoupon) and a claimed automatic discount
+  // (backend activeDiscounts) are two different mechanisms, but only one can
+  // ever be live at once (claiming removes an applied code, see useCart's
+  // claimDiscount) — so they collapse to one "currently applied" code for
+  // the card UI here.
+  const claimedDynamicCoupon = dynamicCoupons?.find(
+    (c) => c.method === "automatic" && activeDiscounts?.find((d) => d.id === c.id)?.claimed
+  );
+  const effectiveAppliedCode = appliedCoupon ? couponDetails.code : (claimedDynamicCoupon?.code || null);
+
+  // Both codes when a combined pair is live, so a card can tell "I am one of
+  // the applied ones" from "another one is applied".
+  const appliedCodes = (appliedCoupons || []).map((c) => String(c?.code || "").toUpperCase()).filter(Boolean);
+  const claimedAutomaticCode = claimedDynamicCoupon?.code ? [String(claimedDynamicCoupon.code).toUpperCase()] : [];
+  const allAppliedCodes = appliedCodes.length ? appliedCodes : claimedAutomaticCode;
+  // What the applied-discount row is labelled — "Additional 5% Off", never the
+  // code (see getAppliedOfferLabel).
+  const appliedCouponLabel = getAppliedOfferLabel(allAppliedCodes, dynamicCoupons);
+
+  // Sum of the applied percentage rates, for the drawer's combined notice.
+  // Only meaningful when a pair is live; each rate still only touches its
+  // own products, which the notice says explicitly.
+  const appliedCombinedPercent = (appliedCoupons || []).reduce((acc, c) => {
+    const pct = c?.valueType === "PERCENTAGE" ? Number(c.value) : Number(c?.discountValue) || 0;
+    return acc + (Number.isFinite(pct) ? pct : 0);
+  }, 0);
+
+  // The featured offer the banner isn't leading with, if there is exactly one
+  // — surfaced as the "also available" line under the Apply Coupon card. Both
+  // that line and the banner read from the same selector so they can never
+  // end up advertising the same offer twice, and the selector only returns
+  // offers this cart currently qualifies for, so the line disappears rather
+  // than teasing a discount the cart can't take.
+  const otherFeaturedOffer = (() => {
+    const { others } = selectFeaturedOffers({
+      dynamicCoupons,
+      activeDiscounts,
+      diamondTotal,
+      goldTotal,
+      productTotal,
+      excludedTotalsByRule,
+      effectiveAppliedCode,
+      appliedCodes: allAppliedCodes,
+    });
+    if (others.length !== 1) return null;
+    const o = others[0];
+    return {
+      ...o,
+      amountLabel:
+        o.discountType === "percentage"
+          ? `${o.discountValue}%`
+          : `₹${Number(o.discountValue).toLocaleString("en-IN")}`,
+    };
+  })();
+
+
   // Lead with the coupon the customer can actually use — an applied one first,
   // otherwise the qualifying tier — so the drawer never opens on a disabled
   // card. The remaining coupons keep their original ladder order beneath it.
-  const leadCouponCode = (appliedCoupon && couponDetails.code) || applicableCouponCode;
+
+  const leadCouponCode = effectiveAppliedCode || generalApplicableCode;
   const orderedCoupons = leadCouponCode
     ? [
-        ...COUPONS.filter((c) => c.code.toUpperCase() === leadCouponCode.toUpperCase()),
-        ...COUPONS.filter((c) => c.code.toUpperCase() !== leadCouponCode.toUpperCase()),
+        ...couponsList.filter((c) => c.code.toUpperCase() === leadCouponCode.toUpperCase()),
+        ...couponsList.filter((c) => c.code.toUpperCase() !== leadCouponCode.toUpperCase()),
       ]
-    : COUPONS;
+    : couponsList;
 
   // Same tile in the mobile and desktop offer groups; both open the one drawer.
   const couponTrigger = (
@@ -441,24 +630,36 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         }
         setIsCouponDrawerOpen(true);
       }}
-      className="flex items-center gap-4 w-full border border-[#EADFD8] bg-white transition-colors hover:border-[#5A413F]/30 cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
-      style={{ margin: "0px", borderRadius: FREE_GIFTS.length > 0 ? "4px 4px 0px 0px" : "4px", borderColor: "#eaeaea" }}
+      className="flex items-center gap-[12px] w-full transition-colors cursor-pointer px-[10px] py-[12px] lg:p-[10px]"
+      style={{
+        margin: "0px",
+        borderRadius: FREE_GIFTS.length > 0 ? "4px 4px 0px 0px" : "4px",
+        border: 0,
+        background: "#fafafa",
+        boxShadow: "none",
+      }}
     >
-      <span className="flex h-9 w-9 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-sm bg-[#FEF9F6] border border-[#EADFD8]">
+      <span className="flex h-9 w-9 lg:h-12 lg:w-12 shrink-0 items-center justify-center rounded-sm bg-[#fafafa] border border-[#EADFD8]">
         <svg viewBox="0 0 24 24" fill="none" className="text-[#5A413F] w-[18px] h-[18px] lg:w-[24px] lg:h-[24px]">
           <path d="M15.0952 8.57815L8.59518 15.0781M8.59518 8.57815H8.60601M15.0952 15.0781H15.106M3.01601 8.16648C2.85789 7.45422 2.88217 6.71356 3.0866 6.01318C3.29103 5.31281 3.66899 4.67538 4.18544 4.16001C4.70188 3.64465 5.3401 3.26802 6.0409 3.06506C6.74171 2.8621 7.48242 2.83937 8.19435 2.99898C8.5862 2.38614 9.12602 1.8818 9.76404 1.53246C10.4021 1.18311 11.1178 1 11.8452 1C12.5726 1 13.2883 1.18311 13.9263 1.53246C14.5643 1.8818 15.1042 2.38614 15.496 2.99898C16.209 2.83867 16.951 2.8613 17.6529 3.06476C18.3549 3.26821 18.9939 3.64589 19.5107 4.16265C20.0274 4.67941 20.4051 5.31848 20.6086 6.0204C20.812 6.72232 20.8347 7.4643 20.6743 8.17732C21.2872 8.56917 21.7915 9.10899 22.1409 9.74701C22.4902 10.385 22.6733 11.1007 22.6733 11.8281C22.6733 12.5556 22.4902 13.2713 22.1409 13.9093C21.7915 14.5473 21.2872 15.0871 20.6743 15.479C20.834 16.1909 20.8112 16.9316 20.6083 17.6324C20.4053 18.3332 20.0287 18.9714 19.5133 19.4879C18.9979 20.0043 18.3605 20.3823 17.6601 20.5867C16.9598 20.7912 16.2191 20.8154 15.5068 20.6573C15.1155 21.2725 14.5753 21.779 13.9361 22.1299C13.297 22.4808 12.5797 22.6648 11.8506 22.6648C11.1215 22.6648 10.4042 22.4808 9.76504 22.1299C9.12593 21.779 8.58569 21.2725 8.19435 20.6573C7.48242 20.8169 6.74171 20.7942 6.0409 20.5912C5.3401 20.3883 4.70188 20.0117 4.18544 19.4963C3.66899 18.9809 3.29103 18.3435 3.0866 17.6431C2.88217 16.9427 2.85789 16.2021 3.01601 15.4898C2.39847 15.099 1.88979 14.5583 1.53732 13.9181C1.18484 13.2779 1 12.559 1 11.8281C1 11.0973 1.18484 10.3784 1.53732 9.73817C1.88979 9.09796 2.39847 8.5573 3.01601 8.16648Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </span>
       <div className="min-w-0 flex-1 text-left">
-        <p className="font-figtree font-medium text-[0.75rem] lg:text-[1rem] leading-none lg:leading-[1.3] text-black lg:text-[#3D2B28] mt-0 mb-1">
-          {appliedCoupon ? `Applied: ${couponDetails.code}` : "Apply Coupon"}
+        <p className="truncate font-figtree text-[0.85rem] font-semibold capitalize leading-[1.25] tracking-[0.01em] lg:text-[1rem]">
+          {appliedCoupon
+            ? hideAppliedCode
+              ? "Offer Applied"
+              : `Applied: ${couponDetails.code}`
+            : "Apply Coupon"}
         </p>
         <p className="font-figtree font-normal text-[0.65rem] lg:text-[0.9rem] leading-[1.4] lg:leading-[1.3] text-black mt-[5px]">
           View all available coupons.
         </p>
       </div>
-      <span className="flex h-8 w-8 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-[50%]" style={{ background: "transparent" }}>
-        <ChevronRight className="text-[#5A413F] w-[24px] h-[24px] lg:w-[28px] lg:h-[28px]" />
+      {/* On mobile the chevron becomes a filled brand-brown disc, which is the
+          only affordance at that width that reads as "this opens something". */}
+      <span className="flex h-8 w-8 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-[50%] bg-[#5A413F]">
+        <ChevronRight className="text-white w-[18px] h-[18px]" />
       </span>
     </button>
   );
@@ -466,15 +667,74 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   return (
     <div className="space-y-4">
       {/* Coupon Trigger placed above summary for all views */}
+      {/* The 20px gap lives here on every breakpoint — the "also available"
+          row below is flush (margin 0) so it stays clipped to the Apply
+          Coupon card. */}
       <div className="flex flex-col mb-[20px]">
-        <h3 className="font-figtree text-[0.875rem] lg:hidden font-medium text-black uppercase tracking-wider mb-3" style={{
-            fontFamily: "Figtree",
-            fontWeight: 500,
-            lineHeight: "100%",
-            letterSpacing: "0%",
-            textTransform: "uppercase"
-        }}>OFFER ZONE</h3>
+        <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-0 mb-[14px] lg:hidden">Offer Zone</h3>
+        <FeaturedOfferBanner
+          dynamicCoupons={dynamicCoupons}
+          activeDiscounts={activeDiscounts}
+          diamondTotal={diamondTotal}
+          goldTotal={goldTotal}
+          productTotal={productTotal}
+          excludedTotalsByRule={excludedTotalsByRule}
+          effectiveAppliedCode={effectiveAppliedCode}
+          appliedCodes={allAppliedCodes}
+          applyingCode={applyingCode}
+          onApply={handleApplyCoupon}
+          onRemove={handleRemoveCoupon}
+          loading={loading}
+        />
         {couponTrigger}
+
+        {/* The featured offer the banner isn't leading with, clipped to the
+            bottom of the Apply Coupon card so the two read as one control. A
+            gold-only cart has no other way of learning the diamond side pays
+            more; tapping it opens the Saving Zone where both are listed. */}
+        {otherFeaturedOffer && (
+          <button
+            type="button"
+            onClick={() => setIsCouponDrawerOpen(true)}
+            className="group flex w-full cursor-pointer items-center gap-1.5 text-left transition-colors hover:bg-black/[0.03]"
+            style={{
+              margin: 0,
+              background: "#fafafa",
+              border: 0,
+              borderTop: "1px solid #eaeaea",
+              borderRadius: "0 0 4px 4px",
+              padding: 8,
+            }}
+          >
+            {/* Primary brown, not the category accent — this row sits under
+                Apply Coupon and already carries "View" and the chevron in
+                primary, so a gold/blue accent here broke the one-control read.
+                The Saving Zone cards still theme by metal. */}
+            <OfferCategoryIcon category={otherFeaturedOffer.category} color="#5A413F" className="h-3.5 w-3.5 shrink-0 opacity-70" />
+            <span
+              className="min-w-0 flex-1 truncate font-figtree leading-[1.3]"
+              style={{ color: "#000", fontSize: "0.85rem", fontWeight: 500 }}
+            >
+              Also available:{" "}
+              <span className="font-semibold text-[#5A413F]">
+                Additional {otherFeaturedOffer.amountLabel} Off
+              </span>{" "}
+              on {OFFER_CATEGORY_LABEL[otherFeaturedOffer.category]}
+            </span>
+            {/* The row itself is the whole tap target already (onClick above) —
+                "View" is dropped on mobile so the offer text gets the space
+                instead of truncating; the chevron alone still reads as
+                "opens something" at that width, same as the Apply Coupon row. */}
+            <span
+              className="hidden shrink-0 font-figtree font-semibold uppercase tracking-wide text-[#5A413F] underline-offset-2 group-hover:underline lg:inline"
+              style={{ fontSize: "0.85rem" }}
+            >
+              View
+            </span>
+            <ChevronRight className="shrink-0 text-[#5A413F]" style={{ width: 12, height: 12 }} />
+          </button>
+        )}
+
         <FreeGiftReward diamondTotal={diamondTotal} />
       </div>
 
@@ -492,7 +752,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         )}
         <div className="flex justify-between items-center font-figtree text-base">
           <span className={appliedCoupon ? "text-[#189351] font-semibold uppercase tracking-wide" : "text-[#000000]"}>
-            {appliedCoupon ? "Coupon Applied" : "Coupon Discount"}
+            {appliedCoupon ? appliedCouponLabel : "Coupon Discount"}
           </span>
           {appliedCoupon ? (
             <div className="flex items-center gap-2">
@@ -514,15 +774,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             </button>
           )}
         </div>
-        {goldCoinItem && (
-          <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-            <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-            <span className="font-semibold text-[#00A63E]">Free</span>
-          </div>
-        )}
         {appliedGiftItem && (
           <div className="flex justify-between items-center font-figtree text-base text-[#000000]">
-            <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+            <span>{appliedGiftItem.title || "Free Gift"} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-[#00A63E]">Free</span>
             </div>
@@ -576,7 +830,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
             <div className="flex justify-between font-figtree text-[0.75rem] items-center mb-2 leading-[1.4]">
               <span className={appliedCoupon ? "font-semibold uppercase tracking-wide text-[#189351]" : "text-black"}>
-                {appliedCoupon ? "Coupon Applied" : "Coupon Discount"}
+                {appliedCoupon ? appliedCouponLabel : "Coupon Discount"}
               </span>
               {appliedCoupon ? (
                 <div className="flex items-center gap-1.5">
@@ -599,16 +853,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               )}
             </div>
 
-            {goldCoinItem && (
-              <div className="flex justify-between font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
-                <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-                <span className="font-semibold text-[#00A63E]">Free</span>
-              </div>
-            )}
-
             {appliedGiftItem && (
               <div className="flex justify-between items-center font-figtree text-[0.75rem] text-black mb-2 leading-[1.4]">
-                <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+                <span>{appliedGiftItem.title || "Free Gift"} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
                 <span className="font-semibold text-[#00A63E]">Free</span>
               </div>
             )}
@@ -647,7 +894,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       {/* Mobile Offers Group (Gold Coin, Insurance) - ALL BELOW SUMMARY */}
       <div className="lg:hidden space-y-6">
         <div className="space-y-4">
-          <GoldCoinOption />
           <InsuranceOption />
         </div>
       </div>
@@ -664,8 +910,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           Proceed To Checkout
         </Button>
         
-        <GoldCoinOption />
-
         <InsuranceOption />
       </div>
 
@@ -704,7 +948,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         {appliedCoupon && (
           <div className="flex items-center justify-between gap-3 rounded-sm border border-emerald-200 bg-emerald-50/50 px-3.5 py-2.5">
             <p className="font-figtree text-xs font-medium leading-[1.4] text-emerald-700">
-              Only one coupon can be used at a time.
+              {appliedCodes.length > 1
+                ? `Both offers applied — ${appliedCombinedPercent}% combined, each rate on its own products.`
+                : "Only one coupon can be used at a time."}
             </p>
             <button
               onClick={handleRemoveCoupon}
@@ -715,10 +961,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           </div>
         )}
 
-        {appliedGiftItem && !appliedCoupon && (
+        {giftBlocksCoupon && !appliedCoupon && (
           <div className="flex items-center justify-between gap-3 rounded-sm border border-amber-200 bg-amber-50/70 px-3.5 py-2.5">
             <p className="font-figtree text-xs font-medium leading-[1.4] text-[#3D2B28]">
-              Coupons cannot be applied while Diamond Bracelet is claimed.
+              Coupons cannot be applied while {appliedGiftItem.title || "the free gift"} is claimed.
             </p>
             <button
               onClick={() => removeFromCart(appliedGiftItem.lineId || appliedGiftItem.variantId)}
@@ -767,8 +1013,30 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           </div>
         ) : (
           <>
+            {/* Bank discounts lead the list — same ticket as every other
+                coupon, highlighted in its metal so it reads as the headline
+                offer rather than another rung on the ₹-ladder. */}
+            {featuredBankOffers.map((offer) => (
+              <div key={offer.code} className="w-full">
+                <CouponCard
+                  coupon={offer}
+                  className="w-full"
+                  mode="apply"
+                  isBankOffer
+                  onApply={handleApplyCoupon}
+                  onRemove={handleRemoveCoupon}
+                  applyingCode={applyingCode}
+                  appliedCodes={allAppliedCodes}
+                  allowCombine={canCombineOffers([...hydratedAppliedCoupons, offer], offerTotals)}
+                  appliedCode={effectiveAppliedCode}
+                  isApplicable={offer.isApplicable}
+                  disabled={!!appliedGiftItem}
+                />
+              </div>
+            ))}
+
             {/* Every card is disabled — say why rather than leaving a dead list */}
-            {!appliedCoupon && applicableCouponCodes.length === 0 && items.length > 0 && (
+            {!appliedCoupon && couponsList.length > 0 && applicableCoupons.length === 0 && items.length > 0 && (
               <div className="rounded-sm border border-[#EADFD8] bg-white px-3.5 py-2.5">
                 <p className="font-figtree text-xs font-medium leading-[1.4] text-[#000000]">
                   These coupons apply to diamond products only. Add a diamond product to unlock them.
@@ -776,25 +1044,28 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               </div>
             )}
 
-            {/* The same coupon ladder the PDP shows, in the same card design */}
+            {/* The dashboard-driven coupon ladder, in the same card design */}
             {(() => {
-              const baseCoupons = [...COUPONS];
-              const allApplicable = [...applicableCouponCodes];
+              const baseCoupons = [...couponsList];
+              const allApplicable = applicableCoupons.map((c) => c.code);
 
-              const referenceOrder = [...baseCoupons];
+              const referenceOrder = [...baseCoupons].sort((a, b) => Number(a.minAmount || 0) - Number(b.minAmount || 0));
 
-              return baseCoupons
+              return [...referenceOrder]
                 .sort((a, b) => {
                   const aApp = allApplicable.includes(a.code);
                   const bApp = allApplicable.includes(b.code);
 
+                  // Always push applicable coupons to the top
                   if (aApp && !bApp) return -1;
                   if (!aApp && bApp) return 1;
 
+                  // If both are applicable, show highest minAmount first
                   if (aApp && bApp) {
-                     return referenceOrder.findIndex(c => c.code === b.code) - referenceOrder.findIndex(c => c.code === a.code);
+                     return Number(b.minAmount || 0) - Number(a.minAmount || 0);
                   }
-                  return referenceOrder.findIndex(c => c.code === a.code) - referenceOrder.findIndex(c => c.code === b.code);
+                  // If neither are applicable, show lowest minAmount first (closer to being reachable)
+                  return Number(a.minAmount || 0) - Number(b.minAmount || 0);
                 })
                 .map((coupon) => (
                   <div key={coupon.code} className="w-full">
@@ -805,7 +1076,9 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                       onApply={handleApplyCoupon}
                       onRemove={handleRemoveCoupon}
                       applyingCode={applyingCode}
-                      appliedCode={appliedCoupon ? couponDetails.code : null}
+                      appliedCodes={allAppliedCodes}
+                      allowCombine={canCombineOffers([...hydratedAppliedCoupons, coupon], offerTotals)}
+                      appliedCode={effectiveAppliedCode}
                       isApplicable={allApplicable.includes(coupon.code)}
                       disabled={!!appliedGiftItem}
                     />

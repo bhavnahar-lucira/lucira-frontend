@@ -43,14 +43,29 @@ export default function CustomerDashboard() {
 
     async function fetchReward() {
       try {
-        const data = await fetchRewardCoupon({
-          customerId: user?.id,
-          email: user?.email,
-          mobile: user?.mobile,
-        });
-        if (data?.hasCoupon && data?.code) {
-          const coupon = COUPONS.find((c) => c.code === data.code);
-          if (coupon) setRewardCoupon(coupon);
+        const [rewardData, dynamicCouponsData] = await Promise.all([
+          fetchRewardCoupon({
+            customerId: user?.id,
+            email: user?.email,
+            mobile: user?.mobile,
+          }),
+          apiFetch("/api/cart/coupons/active", { suppressErrorLog: true }).catch(() => null)
+        ]);
+
+        if (rewardData?.hasCoupon && rewardData?.code) {
+          const dynamicCoupons = dynamicCouponsData?.coupons || [];
+          const allCoupons = [...dynamicCoupons, ...COUPONS];
+          const coupon = allCoupons.find((c) => c.code === rewardData.code);
+          if (coupon) {
+            setRewardCoupon(coupon);
+          } else {
+            // Fallback if coupon is missing from both lists
+            setRewardCoupon({
+              code: rewardData.code,
+              title: "Exclusive Discount",
+              condition: "Applicable on your purchase",
+            });
+          }
         }
       } catch (err) {
         console.warn("[CustomerDashboard] Reward coupon fetch failed:", err);

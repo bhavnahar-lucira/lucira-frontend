@@ -14,7 +14,6 @@ import { trackAddToCart as trackSearchAddToCart } from "@/lib/searchAnalytics";
 
 const DEFAULT_CONTEXT = process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront';
 
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 // Helper to get or create Shopify Cart ID
 const getCartId = () => {
@@ -106,8 +105,8 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         lineId: node.id,
         variantId,
         quantity: computedQuantity,
-        title: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gold Coin" : node.merchandise.product.title,
-        variantTitle: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gift" : node.merchandise.title,
+        title: isFreeGift ? (backendItem?.title || `Free ${node.merchandise.product.title}`) : node.merchandise.product.title,
+        variantTitle: isFreeGift ? "Free Gift" : node.merchandise.title,
         handle: node.merchandise.product.handle,
         tags: node.merchandise.product.tags || [],
         sku: node.merchandise.sku,
@@ -122,6 +121,11 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         estDelivery: backendItem?.estDelivery || null,
         leadTime: backendItem?.leadTime || 12,
         availableSizes: backendItem?.availableSizes || [],
+        // Which dashboard rules' "Exclusions" cover this line. Tagged by the
+        // backend because the browser has no view of a product's collections
+        // — without it the cart keeps offering a discount the server will
+        // refuse. This object is a whitelist, so it has to be named here.
+        excludedFromRuleIds: backendItem?.excludedFromRuleIds || [],
 
         // Dynamic metal / diamond attributes from backend cart
         goldWeight: backendItem?.goldWeight || 0,
@@ -236,7 +240,11 @@ export const mapShopifyCart = (cart, backendCart = null) => {
     items,
     totalQuantity,
     totalAmount,
-    duplicateLineIds
+    duplicateLineIds,
+    // Drawer-gated automatic product discounts currently eligible for this
+    // cart (lib/cartPricing.js:repriceItems on the backend) — the claim/
+    // unclaim buttons (FreeGiftReward's discount banner) read this.
+    activeDiscounts: backendCart?.activeDiscounts || [],
   };
 };
 
@@ -264,7 +272,10 @@ export const fetchCart = createAsyncThunk(
       });
 
     const shopifyPromise = cartId ? shopifyStorefrontFetch(CART_QUERY, { cartId }) : Promise.resolve(null);
-    let [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
+    // Fetch gift tiers concurrently to prevent UI delay in FreeGiftReward
+    const settingsPromise = apiFetch("/api/settings/silver-bracelet", { suppressErrorLog: true }).catch(() => null);
+
+    let [data, backendCart, settingsData] = await Promise.all([shopifyPromise, backendPromise, settingsPromise]);
     
     // Heal stale cart if shopifyPromise returned nothing but we had a cartId
     if (cartId && !data?.cart) {
@@ -402,6 +413,27 @@ export const fetchCart = createAsyncThunk(
               }
             }
           }
+
+          // 6. Aggressive cleanup of excess quantities in Shopify (e.g. Free Gifts > 1)
+          const linesToUpdate = [];
+          mappedState.items.forEach(mappedItem => {
+            const shopifyNode = updatedShopifyData.cart.lines.edges.find(e => e.node.id === mappedItem.lineId)?.node;
+            if (shopifyNode && shopifyNode.quantity > mappedItem.quantity) {
+              linesToUpdate.push({
+                id: mappedItem.lineId,
+                quantity: mappedItem.quantity
+              });
+            }
+          });
+          
+          if (linesToUpdate.length > 0) {
+            console.warn("[fetchCart] Reducing excess Shopify quantities:", linesToUpdate);
+            shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
+              cartId: updatedShopifyData.cart.id,
+              lines: linesToUpdate
+            }).catch(err => console.error("Failed to reduce excess Shopify quantities", err));
+          }
+
           return mappedState;
         }
       }
@@ -431,7 +463,7 @@ export const fetchCart = createAsyncThunk(
       }
     }
     
-    return mappedState;
+    return { ...mappedState, settingsData };
   }
 );
 
@@ -965,11 +997,19 @@ const initialState = {
   items: [],
   totalQuantity: 0,
   totalAmount: 0,
+  // `appliedCoupons` is the source of truth — a cart can hold two offers at
+  // once when they cover different metals (see canCombineOffers).
+  // `appliedCoupon` is a denormalised "first one" for the many call sites
+  // that only ever need a single code to display; every reducer that writes
+  // one writes the other, so the two cannot drift.
+  appliedCoupons: [],
   appliedCoupon: null,
   nectorPoints: null, // { coin_value: 0, fiat_value: 0, points_label: "" }
   isCartOpen: false,
   loading: false,
   error: null,
+  giftTiersConfig: null,
+  activeDiscounts: [],
 };
 
 const cartSlice = createSlice({
@@ -980,6 +1020,7 @@ const cartSlice = createSlice({
       state.items = [];
       state.totalQuantity = 0;
       state.totalAmount = 0;
+      state.appliedCoupons = [];
       state.appliedCoupon = null;
       state.nectorPoints = null;
 
@@ -991,15 +1032,42 @@ const cartSlice = createSlice({
       }
     },
     applyCoupon: (state, action) => {
-      state.appliedCoupon = action.payload;
-      state.nectorPoints = null; // Enforce only one discount type
+      // Replaces whatever was applied — the one-coupon-at-a-time default.
+      state.appliedCoupons = action.payload ? [action.payload] : [];
+      state.appliedCoupon = state.appliedCoupons[0] || null;
+      // Coins and a coupon are mutually exclusive unless staff ticked
+      // "Lucira Coins applicable" on this discount in the dashboard.
+      if (!action.payload?.coinsApplicable) state.nectorPoints = null;
     },
-    removeCoupon: (state) => {
-      state.appliedCoupon = null;
+    // Adds alongside what's already applied. Callers must have cleared this
+    // with canCombineOffers first — the reducer has no view of cart totals,
+    // so it can't check the rule itself. Re-applying the same code replaces
+    // that entry rather than duplicating it.
+    addCoupon: (state, action) => {
+      if (!action.payload?.code) return;
+      const code = String(action.payload.code).toUpperCase();
+      const rest = (state.appliedCoupons || []).filter(
+        (c) => String(c?.code || "").toUpperCase() !== code
+      );
+      state.appliedCoupons = [...rest, action.payload];
+      state.appliedCoupon = state.appliedCoupons[0] || null;
+      if (!action.payload.coinsApplicable) state.nectorPoints = null;
+    },
+    // No payload clears every applied coupon (the long-standing behaviour);
+    // a code string removes just that one, leaving any combined partner.
+    removeCoupon: (state, action) => {
+      const code = typeof action?.payload === "string" ? action.payload.toUpperCase() : null;
+      state.appliedCoupons = code
+        ? (state.appliedCoupons || []).filter((c) => String(c?.code || "").toUpperCase() !== code)
+        : [];
+      state.appliedCoupon = state.appliedCoupons[0] || null;
     },
     applyPoints: (state, action) => {
       state.nectorPoints = action.payload;
-      state.appliedCoupon = null; // Enforce only one discount type
+      // Redeeming coins drops every coupon unless each one allowed coins.
+      const kept = (state.appliedCoupons || []).filter((c) => c?.coinsApplicable);
+      state.appliedCoupons = kept;
+      state.appliedCoupon = kept[0] || null;
     },
     removePoints: (state) => {
       state.nectorPoints = null;
@@ -1027,6 +1095,7 @@ const cartSlice = createSlice({
         state.items = [];
         state.totalQuantity = 0;
         state.totalAmount = 0;
+        state.appliedCoupons = [];
         state.appliedCoupon = null;
         state.nectorPoints = null;
         state.error = null;
@@ -1048,6 +1117,10 @@ const cartSlice = createSlice({
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
+          state.activeDiscounts = action.payload.activeDiscounts || [];
+          if (action.payload.settingsData) {
+            state.giftTiersConfig = action.payload.settingsData;
+          }
         }
       })
       .addCase(fetchCart.rejected, (state, action) => {
@@ -1157,6 +1230,7 @@ const cartSlice = createSlice({
 export const { 
   clearCart, 
   applyCoupon, 
+  addCoupon,
   removeCoupon, 
   applyPoints,
   removePoints,

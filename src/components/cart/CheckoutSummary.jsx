@@ -13,10 +13,10 @@ import CartContact from "./CartContact";
 import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 import { getEstimatedDispatchDate } from "@/lib/utils";
-import { calculateCouponDiscount } from "@/lib/coupons";
+import { calculateCouponDiscount, getAppliedOfferLabel } from "@/lib/coupons";
 import { pushPromoClick } from "@/lib/gtm";
 import { isFreeGiftVariant } from "@/lib/freeGifts";
-import { GOLDCOIN_VARIANT_ID } from "./GoldCoinOption";
+
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
@@ -34,16 +34,51 @@ export default function CheckoutSummary({
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
-  const { items, totalAmount, appliedCoupon, removeCoupon, nectorPoints } = useCart();
+  const { items, totalAmount, appliedCoupon: rawAppliedCoupon, appliedCoupons, removeCoupon, nectorPoints, activeDiscounts, unclaimDiscount } = useCart();
   const user = useSelector((state) => state.user.user);
 
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  // Automatic Product Discounts rules (activeDiscounts, from the cart doc)
+  // don't carry their own "Lucira Coins applicable" flag — only the
+  // dashboard-driven coupon list does. Same live list CartSummary already
+  // fetches for its own coinsApplicable/combineCoupons hydration, so the
+  // payment-page nudge agrees with the cart page instead of assuming coins
+  // always conflict with a claimed discount.
+  const [dynamicCoupons, setDynamicCoupons] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/cart/coupons/active", { suppressErrorLog: true })
+      .then((res) => {
+        if (!cancelled && res?.coupons) setDynamicCoupons(res.coupons);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const rawClaimedProductDiscount = (activeDiscounts || []).find((d) => d.claimed);
+  const claimedProductDiscount = rawClaimedProductDiscount
+    ? {
+        ...rawClaimedProductDiscount,
+        coinsApplicable: !!dynamicCoupons?.find((c) => c.id === rawClaimedProductDiscount.id)?.coinsApplicable,
+      }
+    : null;
+
+  // A persisted coupon can predate a dashboard toggle change — re-read
+  // coinsApplicable from the live list before deciding anything (mirrors
+  // CartSummary's hydratedAppliedCoupons for the same reason).
+  const appliedCoupon = rawAppliedCoupon && typeof rawAppliedCoupon === "object"
+    ? {
+        ...rawAppliedCoupon,
+        coinsApplicable: !!(dynamicCoupons?.find((c) => c.code.toUpperCase() === String(rawAppliedCoupon.code || "").toUpperCase())?.coinsApplicable ?? rawAppliedCoupon.coinsApplicable),
+      }
+    : rawAppliedCoupon;
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift)
+    !item.isFreeGift
   )?.title;
 
   const isPaymentPage = pathname && (pathname === "/checkout/payment" || pathname.includes("/checkout/payment"));
@@ -58,7 +93,7 @@ export default function CheckoutSummary({
   const overallDispatchMessage = useMemo(() => {
     if (!items || items.length === 0) return "";
     const maxLeadTime = items.reduce((max, item) => Math.max(max, Number(item.leadTime || 12)), 0);
-    const anyMadeToOrder = items.some(item => !item.inStock && item.variantId !== INSURANCE_VARIANT_ID && !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift));
+    const anyMadeToOrder = items.some(item => !item.inStock && item.variantId !== INSURANCE_VARIANT_ID && !item.isFreeGift);
     return getEstimatedDispatchDate(!anyMadeToOrder, maxLeadTime);
   }, [items]);
 
@@ -77,7 +112,7 @@ export default function CheckoutSummary({
         hasDiamondCharges;
 
       // Exclude Gold Coins, Insurance, BYJ
-      const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
+      const isGoldCoin = item.isFreeGift;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] ||
@@ -112,7 +147,7 @@ export default function CheckoutSummary({
 
       const isPlainGold = tags.some(t => t.includes("plain gold") || t === "plaingold");
       
-      const isGoldCoin = item.variantId === GOLDCOIN_VARIANT_ID || item.variantId === "gid://shopify/ProductVariant/47661824082138";
+      const isGoldCoin = item.isFreeGift;
       const isInsurance = item.variantId === INSURANCE_VARIANT_ID;
       const isBYJ = Boolean(
         item.properties?.['_byj_group_id'] ||
@@ -133,14 +168,13 @@ export default function CheckoutSummary({
   const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
 
-  const goldCoinItem = (items || []).find(item => item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift);
   const subtotalValue = (totalAmount || 0) - insuranceValue;
 
   // Sum of original prices (comparePrice if comparePrice > price, else price)
   const originalSubtotalValue = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
@@ -154,7 +188,7 @@ export default function CheckoutSummary({
   const totalSavings = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId)
     )
     .reduce((acc, item) => {
@@ -165,7 +199,16 @@ export default function CheckoutSummary({
     }, 0);
 
   const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, summary: "Applied", value: 0, valueType: "FIXED_AMOUNT" };
-  const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+
+  // Label for the applied-discount row — same helper CartSummary uses, so the
+  // cart and the checkout never word this row differently.
+  const appliedCouponLabel = getAppliedOfferLabel(
+    (appliedCoupons?.length ? appliedCoupons : [appliedCoupon])
+      .map((c) => String((typeof c === 'object' ? c?.code : c) || ""))
+      .filter(Boolean),
+    dynamicCoupons
+  );
+  const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
   const discountValue = couponDiscountAmount;
   const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
@@ -228,24 +271,44 @@ export default function CheckoutSummary({
       return;
     }
 
-    if (appliedCoupon) {
+    // Coins survive a coupon/discount only when it was configured to allow
+    // them (dashboard: "Lucira Coins applicable") — mirrors cartSlice's own
+    // gating so the payment-page nudge agrees with the cart-page behavior.
+    const couponBlocksCoins = !!appliedCoupon && !appliedCoupon?.coinsApplicable;
+    const discountBlocksCoins = !!claimedProductDiscount && !claimedProductDiscount?.coinsApplicable;
+
+    if (couponBlocksCoins || discountBlocksCoins) {
       if (onApplyCoinsWarning) {
         onApplyCoinsWarning(() => executeApplyPoints());
         return;
       }
-      removeCoupon();
-      toast.error("Coupon has been removed as loyalty points are applied.", {
-        icon: <Check className="w-4 h-4" />
-      });
+      if (couponBlocksCoins) {
+        removeCoupon();
+        toast.error("Coupon has been removed as loyalty points are applied.", {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
+      if (discountBlocksCoins) {
+        unclaimDiscount(claimedProductDiscount.id);
+        toast.error(`${claimedProductDiscount.title} has been removed as loyalty points are applied.`, {
+          icon: <Check className="w-4 h-4" />
+        });
+      }
     }
 
     executeApplyPoints();
   };
 
   const executeApplyPoints = () => {
-    if (appliedCoupon) {
+    if (appliedCoupon && !appliedCoupon?.coinsApplicable) {
       removeCoupon();
       toast.error("Coupon has been removed as loyalty points are applied.", {
+        icon: <Check className="w-4 h-4" />
+      });
+    }
+    if (claimedProductDiscount && !claimedProductDiscount?.coinsApplicable) {
+      unclaimDiscount(claimedProductDiscount.id);
+      toast.error(`${claimedProductDiscount.title} has been removed as loyalty points are applied.`, {
         icon: <Check className="w-4 h-4" />
       });
     }
@@ -269,7 +332,7 @@ export default function CheckoutSummary({
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
@@ -278,10 +341,14 @@ export default function CheckoutSummary({
   // Claiming requires a logged-in user, so a gift line without one is an
   // invalid leftover state (FreeGiftReward's own effect removes it), not a
   // legitimate claim — don't reflect it as applied here in the meantime.
-  const appliedGiftItem = user ? (items || []).find((item) => isFreeGiftVariant(item.variantId)) : null;
+  const appliedGiftItem = user ? (items || []).find((item) => item.isFreeGift || isFreeGiftVariant(item.variantId)) : null;
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
-  const shouldShowPointsSection = showPoints && isPaymentPage && user && (loadingPoints || nectorPoints || hasPointsBalance);
+  // A zero balance still shows the card (with a disabled button) — Nector
+  // answers the checkout call with meta.code 422 and no points_balance when
+  // there's nothing to redeem, so gating on the balance made the whole block
+  // vanish on a 0-coin account and read as broken.
+  const shouldShowPointsSection = showPoints && isPaymentPage && user;
 
 
 
@@ -423,10 +490,14 @@ export default function CheckoutSummary({
             return (
               <button
                 onClick={handleApplyPoints}
-                disabled={pointsData?.points_balance === 0 || !hasDiamondJewellery}
+                disabled={!hasDiamondJewellery || !pointsData?.promotions?.[0]}
                 className="w-full h-[46px] lg:h-[40px] flex items-center justify-center border border-transparent bg-[#5A413F] text-white rounded-[6px] font-figtree font-medium text-[15px] lg:text-[1rem] hover:bg-[#4A312F] transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
-                {hasDiamondJewellery ? "Apply Coins" : "Valid on Diamond Jewelry"}
+                {!hasDiamondJewellery
+                  ? "Valid on Diamond Jewelry"
+                  : !hasPointsBalance
+                    ? "No Coins to Redeem"
+                    : "Apply Coins"}
               </button>
             );
           })()}
@@ -467,7 +538,7 @@ export default function CheckoutSummary({
               {Boolean(appliedCoupon) && (
                 <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
                   <span className="text-[#000000]">
-                    {compactBreakdown ? "Cart Discount" : "Coupon Applied"}
+                    {compactBreakdown ? "Cart Discount" : appliedCouponLabel}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -484,15 +555,9 @@ export default function CheckoutSummary({
               )}
             </>
           )}
-          {goldCoinItem && (
-            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>Free Gold Coin ({Number(goldCoinItem.quantity || goldCoinItem.qty || 1)})</span>
-              <span className="font-semibold text-[#00A63E]">Free</span>
-            </div>
-          )}
           {appliedGiftItem && (
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-              <span>Diamond Bracelet ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
+              <span>{appliedGiftItem.title || "Free Gift"} ({Number(appliedGiftItem.quantity || appliedGiftItem.qty || 1)})</span>
               <span className="font-semibold text-[#00A63E]">Free</span>
             </div>
           )}

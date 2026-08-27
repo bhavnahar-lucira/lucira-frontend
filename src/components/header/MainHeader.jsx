@@ -23,7 +23,6 @@ import PincodePicker from "./PincodePicker";
 import { isFreeGiftVariant } from "@/lib/freeGifts";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 
 const getInitials = (name = "") =>
@@ -96,7 +95,7 @@ export default function MainHeader() {
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] &&
@@ -125,7 +124,7 @@ export default function MainHeader() {
       const filteredItemsForGtm = items.filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.isFreeGift &&
           !isFreeGiftVariant(item.variantId) &&
           !item.properties?.['_byj_parent'] &&
           !item.properties?.[' _byj_parent'] &&

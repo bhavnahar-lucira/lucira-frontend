@@ -2,7 +2,6 @@ import { getNumericId } from "./gtm";
 import { apiFetch } from "./api";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 export const getStoredUtms = () => {
   if (typeof window === 'undefined') return {};
