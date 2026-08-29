@@ -4,14 +4,26 @@ import { useCallback } from "react";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
 
-const TRACKING_API = "http://localhost:3010/api/analytics/events";
+const getTrackingApiUrl = () => {
+  if (process.env.NEXT_PUBLIC_DASHBOARD_URL) {
+    return `${process.env.NEXT_PUBLIC_DASHBOARD_URL.replace(/\/+$/, "")}/api/analytics/events`;
+  }
+  if (
+    typeof window !== "undefined" &&
+    !window.location.hostname.includes("localhost") &&
+    !window.location.hostname.includes("127.0.0.1")
+  ) {
+    return "https://db.lucirajewelry.com/api/analytics/events";
+  }
+  return "http://localhost:3010/api/analytics/events";
+};
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 const generateId = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  return 'xxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
@@ -32,20 +44,20 @@ export const useAnalytics = () => {
 
   const getSession = () => {
     if (typeof window === "undefined") return { sessionId: null };
-    
+
     const lastActivity = localStorage.getItem("lucira_session_last_activity");
     let sessionId = localStorage.getItem("lucira_session_id");
 
     const now = Date.now();
-    
+
     // If no session or timed out
     if (!sessionId || !lastActivity || now - parseInt(lastActivity, 10) > SESSION_TIMEOUT_MS) {
       sessionId = generateId();
       localStorage.setItem("lucira_session_id", sessionId);
     }
-    
+
     localStorage.setItem("lucira_session_last_activity", now.toString());
-    
+
     return { sessionId };
   };
 
@@ -53,10 +65,10 @@ export const useAnalytics = () => {
     try {
       const anonymousId = getAnonymousId();
       const { sessionId } = getSession();
-      
+
       // Extract customerId from redux state
       const customerId = user?.id || user?._id || user?.customerId || null;
-      
+
       const payload = {
         ...eventData,
         sessionId,
@@ -65,11 +77,13 @@ export const useAnalytics = () => {
         timestamp: new Date().toISOString()
       };
 
+      const trackingUrl = getTrackingApiUrl();
+
       // Use beacon API if requested and supported
       if (useBeacon && navigator.sendBeacon) {
-        navigator.sendBeacon(TRACKING_API, JSON.stringify(payload));
+        navigator.sendBeacon(trackingUrl, JSON.stringify(payload));
       } else {
-        fetch(TRACKING_API, {
+        fetch(trackingUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -136,7 +150,7 @@ export const useAnalytics = () => {
       cartId
     });
   }, [sendEvent]);
-  
+
   const trackBeginCheckout = useCallback((cartId, value) => {
     sendEvent({
       event: "begin_checkout",
