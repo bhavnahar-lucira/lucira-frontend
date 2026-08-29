@@ -39,7 +39,6 @@ import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
 
@@ -203,7 +202,7 @@ export default function PaymentPage() {
   const [makeDefault, setMakeDefault] = useState(false);
 
   const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
-  const { items, totalAmount, appliedCoupon, nectorPoints, loading } = useCart();
+  const { items, totalAmount, appliedCoupon, appliedCoupons, nectorPoints, loading } = useCart();
 
   // We need eligibleBraceletId first
   useEffect(() => {
@@ -286,7 +285,7 @@ export default function PaymentPage() {
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -332,7 +331,7 @@ export default function PaymentPage() {
     const total = Math.max(0, Number(finalAmount || 0));
 
     const hasGoldCoin = items?.length > 0 && items.some(item =>
-      item.variantId === GOLDCOIN_VARIANT_ID ||
+      item.isFreeGift ||
       (item.handle && item.handle.includes("gold-coin")) ||
       (item.type && item.type.toLowerCase() === "gold coin") ||
       (item.title && item.title.toLowerCase().includes("gold coin"))
@@ -464,7 +463,7 @@ export default function PaymentPage() {
       const filteredItemsForGtm = (items || []).filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.isFreeGift &&
           !item.properties?.['_byj_parent'] &&
           !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
       );
@@ -474,7 +473,7 @@ export default function PaymentPage() {
       const subtotalValue = (totalAmount || 0) - insuranceValue;
 
       const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-      const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+      const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
       const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
       const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -510,7 +509,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
             else if (lowerTitle.includes("pendant")) category = "Pendants";
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-            else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+            else if (item.isFreeGift) category = "Free Gift";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
           }
 
@@ -545,7 +544,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
             else if (lowerTitle.includes("pendant")) category = "Pendants";
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-            else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+            else if (item.isFreeGift) category = "Free Gift";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
           }
 
@@ -586,6 +585,7 @@ export default function PaymentPage() {
         },
         shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
         billingAddress: selectedBillingAddress,
+        appliedCoupons: appliedCoupons || [],
         appliedCoupon: appliedCoupon ? {
           ...couponDetails,
           value: couponDiscountAmount,
@@ -663,7 +663,7 @@ export default function PaymentPage() {
             const subtotalValue = (totalAmount || 0) - insuranceValue;
 
             const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-            const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+            const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
             const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
             const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
@@ -688,7 +688,7 @@ export default function PaymentPage() {
                   else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
                   else if (lowerTitle.includes("pendant")) category = "Pendants";
                   else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-                  else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+                  else if (item.isFreeGift) category = "Free Gift";
                   else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
                 }
 
@@ -738,6 +738,7 @@ export default function PaymentPage() {
               },
               shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
               billingAddress: selectedBillingAddress,
+              appliedCoupons: appliedCoupons || [],
               appliedCoupon: appliedCoupon ? {
                 ...couponDetails,
                 value: couponDiscountAmount,
@@ -827,7 +828,7 @@ export default function PaymentPage() {
         const subtotalValue = (totalAmount || 0) - insuranceValue;
 
         const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-        const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+        const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
         const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount;
 
@@ -845,7 +846,7 @@ export default function PaymentPage() {
               else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
               else if (lowerTitle.includes("pendant")) category = "Pendants";
               else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-              else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+              else if (item.isFreeGift) category = "Free Gift";
               else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
             }
 

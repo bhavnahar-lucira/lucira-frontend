@@ -42,11 +42,18 @@ function ensureResolved(pincode) {
 
   resolveNearestStores(pincode)
     .then((res) => {
-      // Visitable stores by distance, then the warehouse. A shopper far from every
-      // store still gets warehouse-stocked products ahead of made-to-order ones,
-      // which is the only ranking that means anything at that distance.
+      // EVERY visitable store, nearest first — `ranked`, not `nearby`, so the
+      // ordering is not capped at NEAREST_STORE_MAX_KM. A Pune shopper gets Pune
+      // stock first, then the next-nearest store's, and so on, instead of every
+      // out-of-range store collapsing into the same bucket as made-to-order.
+      //
+      // The warehouse / head office is appended LAST, always, regardless of how
+      // close it happens to sit to the shopper. It is not a place anyone visits,
+      // so its distance carries no meaning for a shopper choosing a piece — a
+      // Mumbai shopper standing next to Malad still wants the stock they can walk
+      // in and see ranked above the stock that merely ships from nearby.
       const handles = [
-        ...(res.nearby || []).map((s) => s.handle),
+        ...(res.ranked || []).map((s) => s.handle),
         ...(res.warehouses || []).map((s) => s.handle),
       ].filter(Boolean);
       resolved.set(pincode, handles.join(","));
@@ -62,9 +69,13 @@ function ensureResolved(pincode) {
 }
 
 /**
- * @returns {{ storesParam: string, pincode: string }}
+ * @returns {{ storesParam: string, pincode: string, storesReady: boolean }}
  *   storesParam — "" when there is no pincode, an unknown pincode, or no store
  *                 within range; otherwise "nearest,next,…,warehouse".
+ *   storesReady — false only while a real pincode is still resolving. Lets a
+ *                 caller tell "no ordering applies" apart from "ordering is not
+ *                 known yet", so it can avoid firing a request it would throw
+ *                 away a moment later. True when there is nothing to wait for.
  */
 export function useStoreOrdering() {
   const { pincode } = useUserPincode();
@@ -75,9 +86,15 @@ export function useStoreOrdering() {
     () => "" // statically rendered: no cookie on the server, so no ordering
   );
 
+  const storesReady = useSyncExternalStore(
+    subscribe,
+    () => pincode.length !== 6 || resolved.has(pincode),
+    () => true // statically rendered: nothing pending, so nothing to wait for
+  );
+
   useEffect(() => {
     ensureResolved(pincode);
   }, [pincode]);
 
-  return { storesParam, pincode };
+  return { storesParam, pincode, storesReady };
 }

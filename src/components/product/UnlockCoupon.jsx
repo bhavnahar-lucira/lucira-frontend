@@ -7,7 +7,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import CouponCard from "@/components/coupons/CouponCard";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
-import { COUPONS, COUPON_DISCLAIMER, parsePrice, getCouponIndexForPrice } from "@/lib/coupons";
+import { COUPONS, COUPON_DISCLAIMER, parsePrice, getCouponIndexForPrice, getOfferCategory, OFFER_CATEGORY } from "@/lib/coupons";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
@@ -18,7 +18,7 @@ const generateSessionId = () => {
   return "session_" + Math.random().toString(36).substring(2, 15);
 };
 
-export default function UnlockCoupon({ user, dispatch, toast, currentPrice, productId }) {
+export default function UnlockCoupon({ user, dispatch, toast, currentPrice, productId, productCategory }) {
   const [mobile, setMobile] = useState("");
   const [otpValues, setOtpValues] = useState(["", "", "", ""]);
   const [step, setStep] = useState(user ? "unlocked" : "input");
@@ -27,6 +27,19 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
+  const [dynamicCoupons, setDynamicCoupons] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/cart/coupons/active", { suppressErrorLog: true })
+      .then(res => {
+        if (!cancelled && res?.coupons) {
+          setDynamicCoupons(res.coupons);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const handleCopyCode = (code) => {
     navigator.clipboard.writeText(code);
@@ -301,8 +314,34 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
     window.location.href = "/collections/pendants";
   };
 
-  const activeIndex = getCouponIndexForPrice(currentPrice);
-  const visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
+  // /api/cart/coupons/active now also includes featured-only rules (not
+  // toggled "Show in Saving Zone drawer") for the cart's FeaturedOfferBanner
+  // — filter back down to drawer-only here, same as the cart's drawer list.
+  const couponsList = dynamicCoupons ? dynamicCoupons.filter((c) => c.showInDrawer) : COUPONS;
+  const isDynamicCouponsList = !!dynamicCoupons;
+
+  let visibleCoupons = [];
+  if (isDynamicCouponsList) {
+    const sorted = [...couponsList].sort((a, b) => Number(a.minAmount || 0) - Number(b.minAmount || 0));
+    const firstInvalid = sorted.findIndex(c => parsePrice(currentPrice) < Number(c.minAmount || 0));
+    const startIdx = firstInvalid > 0 ? firstInvalid - 1 : 0;
+    visibleCoupons = sorted.slice(startIdx, startIdx + 3);
+    if (visibleCoupons.length === 0) visibleCoupons = sorted.slice(0, 3);
+  } else {
+    const activeIndex = getCouponIndexForPrice(currentPrice);
+    visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
+  }
+
+  // The metal-split "additional % off" offers. Only the one matching THIS
+  // product can ever apply to it, so a diamond PDP never advertises the plain
+  // gold rate and vice versa — a rule naming no metal applies to both.
+  const bankOffers = (dynamicCoupons || [])
+    .filter((c) => c.isFeatured)
+    .filter((c) => {
+      const category = getOfferCategory(c);
+      if (category === OFFER_CATEGORY.ALL || !productCategory) return true;
+      return category === productCategory;
+    });
 
   const isUnlocked = step === "unlocked";
   const priceValue = parsePrice(currentPrice);
@@ -335,6 +374,20 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
             spaceBetween={12}
             className="w-full pt-1"
           >
+            {/* The bank discount leads — it is the headline offer for this
+                product and the only one tied to its metal. */}
+            {bankOffers.map((offer) => (
+              <SwiperSlide key={`bank-${offer.code}`} className="!w-auto">
+                <CouponCard
+                  coupon={offer}
+                  onCopy={handleCopyCode}
+                  copiedCode={copiedCode}
+                  isMini={true}
+                  isBankOffer
+                  className="w-[230px] md:w-[270px]"
+                />
+              </SwiperSlide>
+            ))}
             {visibleCoupons.map((coupon, idx) => (
               <SwiperSlide key={idx} className="!w-auto">
                 <CouponCard
@@ -501,7 +554,19 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         onClose={() => setIsDrawerOpen(false)}
         title="Available Coupons"
       >
-        {COUPONS.map((coupon, idx) => (
+        {bankOffers.map((offer) => (
+          <div key={`bank-${offer.code}`} className="w-full">
+            <CouponCard
+              coupon={offer}
+              onCopy={handleCopyCode}
+              copiedCode={copiedCode}
+              isBankOffer
+              className="w-full"
+            />
+          </div>
+        ))}
+
+        {couponsList.map((coupon, idx) => (
           <div key={idx} className="w-full">
             <CouponCard
               coupon={coupon}
