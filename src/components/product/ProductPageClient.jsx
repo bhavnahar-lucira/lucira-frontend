@@ -10,6 +10,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -297,13 +298,17 @@ export default function ProductPageClient({
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
   const dispatch = useDispatch();
+  const { trackProductView, trackAddToCart } = useAnalytics();
 
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
+    if (product) {
+      trackProductView(product);
+    }
     return () => {
       delete window.__LUCIRA_PRODUCT__;
     };
-  }, [product]);
+  }, [product, trackProductView]);
 
   const user = useSelector(selectUser);
   const isMobile = useMediaQuery("(max-width: 1023px)");
@@ -1400,6 +1405,8 @@ export default function ProductPageClient({
         products: atcData,
         ctaLocation: atcCtaLocation
       });
+
+      trackAddToCart(productData, 1);
 
       //gtm
 

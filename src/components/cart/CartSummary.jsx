@@ -25,11 +25,13 @@ import Image from "next/image";
 import FreeGiftReward from "./FreeGiftReward";
 import FeaturedOfferBanner, { selectFeaturedOffers } from "./FeaturedOfferBanner";
 import { FREE_GIFTS, isFreeGiftVariant, mapRemoteFreeGiftTiers } from "@/lib/freeGifts";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
 export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const dispatch = useDispatch();
+  const { trackBeginCheckout } = useAnalytics();
   // One drawer serves both breakpoints — it slides in from the right on desktop
   // and up from the bottom on mobile, so the old Dialog/Sheet pair is gone.
   const [isCouponDrawerOpen, setIsCouponDrawerOpen] = useState(false);
@@ -440,6 +442,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   // Shared by the "Proceed To Checkout" CTA.
   const handleProceedToCheckout = () => {
+    trackBeginCheckout(null, totalAmount);
     // If user not logged in, fire promoClick
     if (!user) {
       const firstItem = items && items.length > 0 ? items[0] : null;

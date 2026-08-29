@@ -9,11 +9,13 @@ import { trackPurchase as trackSearchPurchase } from "@/lib/searchAnalytics";
 import { useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { clearCart } from "@/redux/features/cart/cartSlice";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export default function SuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
+  const { trackPurchase } = useAnalytics();
   const orderName = searchParams.get("orderName");
   const [isVerifying, setIsVerifying] = useState(true);
 
@@ -33,6 +35,7 @@ export default function SuccessPage() {
         const purchaseData = JSON.parse(storedData);
         // Fire the Purchase Event
         pushPurchase(purchaseData);
+        trackPurchase(orderName || purchaseData.transaction_id || "UNKNOWN", purchaseData.value || 0, purchaseData.currency || "INR");
         
         // Track Search Analytics Purchase
         if (purchaseData.items) {
