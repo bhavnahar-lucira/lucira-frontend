@@ -994,7 +994,14 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
             <Link prefetch={false} className="cursor-default" href={banner.href} onClick={(e) => e.preventDefault()}>
-              <Image src={banner.src} alt={banner.alt} width={800} height={400} className="w-full h-full object-cover rounded-[4px]" />
+              <Image
+                loader={shopifyLoader}
+                src={banner.src}
+                alt={banner.alt}
+                width={800}
+                height={400}
+                className="w-full h-full object-cover rounded-[4px]"
+              />
             </Link>
           </div>
         );
@@ -1248,15 +1255,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       ) : STORE_HANDLES.includes(handle) ? (
         <StoreCollectionBanner collectionHandle={handle} bannerImages={STORE_IMAGES[handle] || []} />
       ) : (() => {
-        const heroBannerSrc = PLAIN_GOLD_HANDLES.includes(handle) 
-          ? PLAIN_GOLD_BANNER_IMAGE 
+        const heroBannerSrc = PLAIN_GOLD_HANDLES.includes(handle)
+          ? PLAIN_GOLD_BANNER_IMAGE
           : handle === "earrings"
             ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product-3_f6e49a5f-f9a3-4af7-9fca-c9bce18aa4c4.jpg"
-          : handle === "all-earrings"
-            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product1_jpg.jpg?v=1787210650"
-            : handle === "bestsellers"
-              ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg"
-              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg";
+            : handle === "all-earrings"
+              ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product1_jpg.jpg?v=1787210650"
+              : handle === "bestsellers"
+                ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg"
+                : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg?v=1787998995";
 
         return isMobile ? (
           <div className="w-full">
@@ -1272,7 +1279,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </Breadcrumb>
             </div>
             <div className="w-full relative">
-              <Image src={heroBannerSrc} alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
+              <Image
+                loader={shopifyLoader}
+                src={heroBannerSrc}
+                alt={displayTitle}
+                width={768}
+                height={480}
+                className="w-full h-auto object-contain"
+                priority
+              />
             </div>
           </div>
         ) : (
@@ -1288,6 +1303,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </div>
               <div className="flex-1 w-full h-auto">
                 <Image
+                  loader={shopifyLoader}
                   src={heroBannerSrc}
                   alt={displayTitle}
                   width={640}
