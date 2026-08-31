@@ -4,6 +4,7 @@ import { Phone, Calendar, Navigation, Clock, Star, ChevronLeft, ChevronRight, Lo
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
 import { isStoreActive, handleFromStoreName, isStoreOpeningSoon } from "@/data/stores";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -103,7 +104,7 @@ export function FindLuciraStore({
                   <div className="w-full bg-white border border-[#E5E5E5] rounded-sm overflow-hidden flex flex-col md:grid md:grid-cols-[45%_55%] min-h-fit md:min-h-[450px]">
                     {/* Map / Image */}
                     <div className="relative h-48 sm:h-64 md:h-full min-h-[200px]">
-                      <Image
+                      <Image loader={shopifyLoader}
                         src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
                         alt={getStoreDisplayName(store.name)}
                         fill
@@ -160,7 +161,7 @@ export function FindLuciraStore({
                           <div className="bg-[#F9FAFB] p-3 md:p-4 rounded-sm border border-gray-100">
                             <div className="flex gap-3 md:gap-4 items-center">
                               <div className="w-14 h-14 md:w-16 md:h-16 bg-[#F3F4F6] rounded-sm shrink-0 relative overflow-hidden">
-                                <Image 
+                                <Image loader={shopifyLoader} 
                                   src={getValidSrc(activeVariant?.image || product.featuredImage || product.images?.[0])}
                                   alt={product.title}
                                   fill

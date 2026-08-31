@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Menu, Search, TrendingUp, LayoutGrid, Heart, ShoppingBag, Home, X, ChevronRight, ChevronLeft, User as UserIcon, LogOut, MessageCircle, Package, Video, Store, ChevronDown } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
@@ -228,7 +229,7 @@ function MenuBannerSlider({ onBannerClick }) {
           className="shrink-0 snap-center rounded-xl overflow-hidden relative"
           style={{ width: 'calc(100% - 32px)', height: '165px' }}
         >
-          <Image
+          <Image loader={shopifyLoader}
             src={banner.image}
             alt={banner.alt}
             fill
@@ -874,7 +875,7 @@ export default function MobileHeader({ menuData }) {
                             className="flex items-center gap-3 p-2 rounded-md active:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors"
                           >
                             <div className="w-16 h-16 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                              <Image
+                              <Image loader={shopifyLoader}
                                 src={item.image || "/images/product/1.jpg"}
                                 alt={item.title}
                                 fill
@@ -1325,7 +1326,7 @@ export default function MobileHeader({ menuData }) {
                 onClick={() => setIsMenuOpen(false)}
                 className="relative aspect-4/4 overflow-hidden rounded-lg group bg-zinc-100"
               >
-                <Image
+                <Image loader={shopifyLoader}
                   src={image}
                   alt={label}
                   fill
@@ -1353,7 +1354,7 @@ export default function MobileHeader({ menuData }) {
                 className="bg-[#f8f8f8] rounded-xl p-2 flex items-center gap-2 active:bg-gray-200 transition-all border border-gray-50/50"
               >
                 <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-lg">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={link.image}
                     alt={link.label}
                     fill
@@ -1404,7 +1405,7 @@ export default function MobileHeader({ menuData }) {
                   isLuciraExpress ? "w-10 h-10" : "w-11 h-11"
                 )}>
                   {icon && (
-                    <Image
+                    <Image loader={shopifyLoader}
                       src={icon}
                       alt={label}
                       fill
@@ -1643,7 +1644,7 @@ export default function MobileHeader({ menuData }) {
                       </>
                     ) : (
                       <SheetTitle className="flex items-center">
-                        <Image
+                        <Image loader={shopifyLoader}
                           src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
                           alt="Lucira Jewelry"
                           width={100}
@@ -1743,7 +1744,7 @@ export default function MobileHeader({ menuData }) {
               // whose site this is — is already done by the time the shopper is
               // deep enough to need a header, and the 56px it gives back is what
               // lets the pincode readout sit in this row at all.
-              <Image
+              <Image loader={shopifyLoader}
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
                 alt="Lucira Jewelry"
                 width={24}

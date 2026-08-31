@@ -45,6 +45,7 @@ import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 import { useStorePickup } from "@/hooks/checkout/useStorePickup";
 import { getEstimatedDispatchDate } from "@/lib/utils";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
@@ -762,7 +763,7 @@ export default function ShippingPage() {
                           <div key={idx} className="flex gap-4 items-center">
                             <div className="w-20 h-20 bg-[#FAFAFA] rounded-md shrink-0 p-1 flex items-center justify-center">
                               {displayImage && (
-                                <Image src={displayImage} alt={item.title || "Product"} width={80} height={80} className="w-full h-full object-contain mix-blend-multiply" />
+                                <Image loader={shopifyLoader} src={displayImage} alt={item.title || "Product"} width={80} height={80} className="w-full h-full object-contain mix-blend-multiply" />
                               )}
                             </div>
                             <div>

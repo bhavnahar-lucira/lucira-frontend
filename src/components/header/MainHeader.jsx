@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import SearchPopup from "./SearchPopup";
@@ -391,7 +392,7 @@ export default function MainHeader() {
         {/* Logo */}
         <div className="flex items-center mr-8 lg:mr-16 shrink-0">
           <Link href="/" prefetch={false}>
-            <Image
+            <Image loader={shopifyLoader}
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
               alt="Lucira Jewelry"
               width={100}

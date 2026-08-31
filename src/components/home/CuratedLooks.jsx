@@ -8,6 +8,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination } from "swiper/modules";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 
@@ -262,7 +263,7 @@ export default function CuratedLooks() {
                                 className="relative flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-white/20 backdrop-blur-sm"
                               >
                                 <span className="absolute h-7 w-7 animate-ping rounded-full bg-white/30" />
-                                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/curatedLooks-icon.svg" alt="Hotspot" width={20} height={20} />
+                                <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/curatedLooks-icon.svg" alt="Hotspot" width={20} height={20} />
                               </button>
                             </div>
                           ))}
@@ -368,7 +369,7 @@ export default function CuratedLooks() {
                         className="relative flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/80 bg-white/20 backdrop-blur-sm"
                       >
                         <span className="absolute h-7 w-7 animate-ping rounded-full bg-white/30" />
-                        <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/curatedLooks-icon.svg" alt="Hotspot" width={20} height={20} />
+                        <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/curatedLooks-icon.svg" alt="Hotspot" width={20} height={20} />
                       </button>
 
                       {spot.product && (

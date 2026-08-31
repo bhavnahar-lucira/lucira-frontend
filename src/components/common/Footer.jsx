@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import {
   Mail,
@@ -33,7 +34,7 @@ export default function Footer() {
         <div className="px-6 flex flex-col items-center">
           {/* LOGO & TAGLINE */}
           <div className="mb-10 text-center">
-            <Image
+            <Image loader={shopifyLoader}
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/footer-logo.svg"
               alt="Lucira"
               width={50}
@@ -215,7 +216,7 @@ export default function Footer() {
           {/* LEFT LOGO */}
           <div className="text-center">
             <div className="mb-4 opacity-75">
-              <Image
+              <Image loader={shopifyLoader}
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/footer-logo.svg"
                 alt="Lucira"
                 width={90}

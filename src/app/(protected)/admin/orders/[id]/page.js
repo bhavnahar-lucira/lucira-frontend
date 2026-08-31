@@ -15,6 +15,7 @@ import {
   RefreshCcw
 } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -348,7 +349,7 @@ export default function OrderDetailsPage() {
                     <div className="flex gap-6 items-center">
                       {displayImage && (
                         <div className="size-24 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
-                          <Image src={displayImage} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
+                          <Image loader={shopifyLoader} src={displayImage} alt={item.title} width={96} height={96} className="object-cover w-full h-full" />
                         </div>
                       )}
                       <div className="flex-1">

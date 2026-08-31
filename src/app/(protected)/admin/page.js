@@ -13,6 +13,7 @@ import {
   Info,
 } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
@@ -323,7 +324,7 @@ export default function CustomerDashboard() {
                 >
                   {order.image && (
                     <div className="size-20 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
-                      <Image
+                      <Image loader={shopifyLoader}
                         src={order.image}
                         alt={order.product}
                         width={80}

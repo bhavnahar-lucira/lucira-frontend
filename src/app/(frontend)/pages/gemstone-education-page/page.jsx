@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { RotateCw } from "lucide-react";
 import { useState, Suspense } from "react"
 import FAQ from "@/components/common/FAQ";
@@ -281,7 +282,7 @@ export default function GemstoneEducationPage() {
                     
                     <div className="grid md:grid-cols-2 gap-6 md:gap-12 items-start transition-all duration-500">                        
                         <div className="relative w-full h-150">
-                            <Image fill 
+                            <Image loader={shopifyLoader} fill 
                                 src={birthstones[activeIndex].image}
                                 alt={birthstones[activeIndex].name}
                                 className="w-full rounded-md object-cover h-full"

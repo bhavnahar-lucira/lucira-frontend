@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { X, Play } from "lucide-react";
 import { Sheet } from "react-modal-sheet";
@@ -108,7 +109,7 @@ export function SizeGuideMobile({ children, product, nearestStore, availableStor
                   className="bg-[#F8F9FA] rounded-sm flex items-center mb-4 gap-4 px-4 py-2.5 border border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
                 >
                   <div className="relative w-20 h-16 bg-white rounded-lg shadow-sm overflow-hidden flex items-center justify-center shrink-0">
-                    <Image 
+                    <Image loader={shopifyLoader} 
                       src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Sizing_A_ring_thumb_fead0dba-6cb0-4c0c-95d1-e0b673d42401.jpg" 
                       alt="Video Icon" 
                       fill 
@@ -127,7 +128,7 @@ export function SizeGuideMobile({ children, product, nearestStore, availableStor
                   className="bg-white rounded-sm mb-4 flex items-center gap-4 p-3 border border-gray-100 shadow-sm"
                 >
                   <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0">
-                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg" alt="Lucira store" fill className="object-cover" />
+                    <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg" alt="Lucira store" fill className="object-cover" />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-bold text-sm text-gray-900">Visit Nearest Lucira Store</h4>

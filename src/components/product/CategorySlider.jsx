@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { useId } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 
 const CATEGORIES = [
   { id: 1, name: "Rings", handle: "rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Rings.jpg" },
@@ -72,7 +73,7 @@ export default function CategorySlider() {
                 >
                   {/* Category Image */}
                   <div className="w-full h-full transition-transform duration-700 group-hover:scale-110">
-                    <Image
+                    <Image loader={shopifyLoader}
                       src={category.image}
                       alt={category.name}
                       fill

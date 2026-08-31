@@ -5,6 +5,7 @@ import { Loader2, Home, Store as StoreIcon, X, MapPin, Phone } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectPincode } from "@/redux/features/user/userSlice";
@@ -337,7 +338,7 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
                               className="h-9 aspect-square bg-[#29a319] rounded-sm flex items-center justify-center shrink-0"
                             >
                               <div className="relative w-5 h-5">
-                                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
+                                <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
                               </div>
                             </a>
                             <a
@@ -813,7 +814,7 @@ export default function AtcBar({
               className="h-14 aspect-square bg-white shadow-md border border-zinc-100 rounded-sm flex items-center justify-center shrink-0"
             >
               <div className="relative w-7 h-7">
-                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="WhatsApp" fill className="object-contain" />
+                <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="WhatsApp" fill className="object-contain" />
               </div>
             </a>
 

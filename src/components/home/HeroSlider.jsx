@@ -11,6 +11,7 @@ import "swiper/css/pagination";
 import { Button } from "../ui/button";
 import LazyImage from "../common/LazyImage";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const slides = [
@@ -113,7 +114,7 @@ export default function HeroBanner() {
                     {/* RIGHT IMAGE */}
                     <div className="relative h-full">
                       {index === 0 ? (
-                        <Image
+                        <Image loader={shopifyLoader}
                           src={img}
                           alt="Hero Banner"
                           fill

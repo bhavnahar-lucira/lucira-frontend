@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, Mail, Phone, MapPin, Check, Store, ChevronDown } from "lucide-react";
@@ -116,7 +117,7 @@ export default function StoreGiveawayPage() {
         <div className="absolute inset-0 -z-10 bg-[#1a1a1a]">
           {/* Mobile Image */}
           <div className="block md:hidden absolute inset-0">
-            <Image
+            <Image loader={shopifyLoader}
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/993f34f813a40595ba8ebfbe90f2ac87be0a7024.jpg"
               alt="Giveaway background mobile"
               fill
@@ -126,7 +127,7 @@ export default function StoreGiveawayPage() {
           </div>
           {/* Desktop Image */}
           <div className="hidden md:block absolute inset-0">
-            <Image
+            <Image loader={shopifyLoader}
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Store_Giveaway_web_banner_1.png"
               alt="Giveaway background desktop"
               fill
@@ -140,7 +141,7 @@ export default function StoreGiveawayPage() {
 
       {/* Top Section: Logo & Progress */}
       <div className="w-full max-w-lg flex flex-col items-center gap-6 sm:gap-8 z-20">
-        <Image
+        <Image loader={shopifyLoader}
           src={step === 1 
             ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_Full_White_logo_1.svg?v=1767856155" 
             : "/images/logo.svg"

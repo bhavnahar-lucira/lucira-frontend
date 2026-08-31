@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Search, Plus, Trash2, Save, MoveUp, MoveDown, Package, X, Loader2, Target, ExternalLink, Upload } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { uploadToShopify } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 
@@ -283,7 +284,7 @@ export default function CuratedLooksDashboard() {
                   >
                     {look.image ? (
                         <>
-                            <Image src={look.image} alt="Look" fill className="object-cover" />
+                            <Image loader={shopifyLoader} src={look.image} alt="Look" fill className="object-cover" />
                             {look.hotspots.map((spot, sIndex) => (
                                 <div 
                                     key={spot.id} 
@@ -399,7 +400,7 @@ export default function CuratedLooksDashboard() {
                             {spot.product ? (
                                 <div className="flex-1 flex items-center gap-4 min-w-0">
                                     <div className="w-16 h-16 bg-zinc-50 rounded-xl overflow-hidden relative shrink-0 border border-zinc-100">
-                                        {spot.product.image && <Image src={spot.product.image} alt="Prod" fill className="object-cover" />}
+                                        {spot.product.image && <Image loader={shopifyLoader} src={spot.product.image} alt="Prod" fill className="object-cover" />}
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-sm font-bold truncate pr-4 leading-tight">{spot.product.name}</h4>
@@ -502,7 +503,7 @@ export default function CuratedLooksDashboard() {
                       className="w-full flex items-center gap-5 p-4 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all text-left group/item border border-transparent hover:border-zinc-100 dark:hover:border-zinc-700"
                     >
                       <div className="w-16 h-16 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800 overflow-hidden relative shrink-0 group-hover/item:scale-105 transition-transform">
-                        {product.images?.[0]?.url && <Image src={product.images[0].url} alt={product.title} fill className="object-cover" />}
+                        {product.images?.[0]?.url && <Image loader={shopifyLoader} src={product.images[0].url} alt={product.title} fill className="object-cover" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm truncate group-hover/item:text-black dark:group-hover/item:text-white transition-colors">{product.title}</p>

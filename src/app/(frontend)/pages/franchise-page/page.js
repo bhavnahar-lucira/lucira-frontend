@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Phone, User, Download, Send } from "lucide-react";
 import {
@@ -305,7 +306,7 @@ export default function FranchisePage() {
                 key={i}
                 className={`absolute overflow-hidden bg-[#f5f5f5] shadow-md rounded-lg ${galleryPositions[i]}`}
               >
-                <Image
+                <Image loader={shopifyLoader}
                   src={img.src}
                   alt={img.alt}
                   fill
@@ -360,7 +361,7 @@ export default function FranchisePage() {
                   "
                 >
                   {card.icon ? (
-                    <Image
+                    <Image loader={shopifyLoader}
                       src={card.icon}
                       alt={card.title}
                       width={40}
@@ -431,7 +432,7 @@ export default function FranchisePage() {
               <div key={i} className="group relative">
                 {/* Image */}
                 <div className="relative w-full pt-[85%] overflow-hidden rounded-xl bg-[#f0f0f0] shadow-sm">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={step.image}
                     alt={step.heading}
                     fill
@@ -481,7 +482,7 @@ export default function FranchisePage() {
               >
                 {/* Image */}
                 <div className="relative w-[120px] min-w-[120px] h-[100px]">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={step.image}
                     alt={step.heading}
                     fill
@@ -514,7 +515,7 @@ export default function FranchisePage() {
             rounded-2xl overflow-hidden bg-black
           "
         >
-          <Image
+          <Image loader={shopifyLoader}
             src="https://luciraonline.myshopify.com/cdn/shop/files/DSC_2445_1_40298bc3-12fc-4234-93c3-339092621f9e_1920x.jpg?v=1765198639"
             alt="Franchise banner background"
             fill

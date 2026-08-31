@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 
 const howItWorksSteps = [
   {
@@ -200,7 +201,7 @@ export default function VideoCallPage() {
             {howItWorksSteps.map((step) => (
               <div key={step.id} className="text-center">
                 <div className="relative w-full aspect-square overflow-hidden mb-5">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={step.image}
                     alt={step.alt}
                     fill
@@ -224,7 +225,7 @@ export default function VideoCallPage() {
       {/* VIDEO CALL SCHEDULER */}
       <section id="video-call-form" className="w-full pt-10 md:pt-20 pb-6">
         <div className="block md:hidden px-5 mb-8">
-          <Image
+          <Image loader={shopifyLoader}
             src="https://luciraonline.myshopify.com/cdn/shop/files/Macbook_Pro_8a067db9-0dce-4e3a-b3db-d3d5166c024c.png?v=1750666235"
             alt="Video Call Mobile"
             width={800}
@@ -235,7 +236,7 @@ export default function VideoCallPage() {
 
         <div className="max-w-[1320px] mx-auto px-5 md:px-10 flex flex-col md:flex-row items-start justify-between gap-10 md:gap-16">
           <div className="hidden md:block flex-1">
-            <Image
+            <Image loader={shopifyLoader}
               src="https://luciraonline.myshopify.com/cdn/shop/files/Macbook_Pro_8a067db9-0dce-4e3a-b3db-d3d5166c024c.png?v=1750666235"
               alt="Video Call Desktop"
               width={700}
@@ -436,7 +437,7 @@ export default function VideoCallPage() {
               >
                 {/* Desktop Image */}
                 <div className="hidden md:block relative overflow-hidden">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={item.desktopImage}
                     alt={`Explore our ${item.title} Collection`}
                     width={400}
@@ -448,7 +449,7 @@ export default function VideoCallPage() {
 
                 {/* Mobile Image */}
                 <div className="block md:hidden relative overflow-hidden">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={item.mobileImage}
                     alt={`Explore our ${item.title} Collection`}
                     width={420}
