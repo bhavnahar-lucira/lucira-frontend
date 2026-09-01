@@ -108,6 +108,10 @@ export default async function Home() {
 
       <StoreLocatorSection />
 
+      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+        <CuratedLooks />
+      </Suspense>
+
       <DiamondCuts />
       {/* <ShopByCategory /> */}
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
@@ -138,9 +142,6 @@ export default async function Home() {
 
       <ExploreCollectionSection initialData={exploreInitial} />
 
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <CuratedLooks />
-      </Suspense>
       {/* <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <StoreLocatorSection />
       </Suspense> */}
