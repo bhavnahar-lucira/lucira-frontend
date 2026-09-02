@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import dynamic from "next/dynamic";
 import {
   Breadcrumb,
@@ -2587,7 +2588,7 @@ export default function ProductPageClient({
                               onClick={() => handlePromoClick('Size guide video bar', null, { location_id: 'pdp' }, true)}
                             >
                               <div className="bg-white rounded shadow-sm">
-                                <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Sizing_A_ring_thumb_fead0dba-6cb0-4c0c-95d1-e0b673d42401.jpg" alt="Video Icon" aspect-ratio="3/4" width={60} height={25} />
+                                <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Sizing_A_ring_thumb_fead0dba-6cb0-4c0c-95d1-e0b673d42401.jpg" alt="Video Icon" aspect-ratio="3/4" width={60} height={25} />
                                 {/* <Video size={16} fill="black" /> */}
                               </div>
                               <span className="text-base text-black">
@@ -2887,7 +2888,7 @@ export default function ProductPageClient({
             <div className="flex gap-2 mb-6">
               <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
                 <a href={`https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
-                  <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
+                  <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
                   <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                 </a>
               </Button>
@@ -3142,7 +3143,7 @@ export default function ProductPageClient({
                 <div className="border border-gray-200 rounded-xl p-2.5 sm:p-4 flex gap-2 sm:gap-4 bg-white">
                   {/* Left Side: Image */}
                   <div className="w-[72px] sm:w-[110px] aspect-square shrink-0 self-center rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
-                    <Image
+                    <Image loader={shopifyLoader}
                       src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Available_Store_1.png?v=1784981054"
                       alt="Nearest Store"
                       fill
@@ -3388,7 +3389,7 @@ export default function ProductPageClient({
                 {/* Metal Card */}
                 <div className="bg-[#F9F9F9] rounded p-5 space-y-4">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal" width={18} height={18} />
+                    <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal" width={18} height={18} />
                     Metal <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("metal")} />
                   </div>
                   <div className="space-y-2">
@@ -3416,7 +3417,7 @@ export default function ProductPageClient({
                 {/* Dimensions Card */}
                 <div className="bg-[#F9F9F9] rounded p-5 space-y-4">
                   <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                    <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_dimension.svg" alt="Dimensions" width={18} height={18} />
+                    <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_dimension.svg" alt="Dimensions" width={18} height={18} />
                     Dimension <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("dimension")} />
                   </div>
                   <div className="space-y-2">
@@ -3445,7 +3446,7 @@ export default function ProductPageClient({
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1 && (
                   <div className={`bg-[#F9F9F9] rounded p-5 space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
+                      <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
                     </div>
                     <div className="space-y-2.5">
@@ -3477,7 +3478,7 @@ export default function ProductPageClient({
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length > 1 && (
                   <div className="bg-[#F9F9F9] rounded p-5 space-y-5 col-span-2">
                     <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
-                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
+                      <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
                     </div>
 
@@ -3704,7 +3705,7 @@ export default function ProductPageClient({
                         <SwiperSlide key={`promo-${i}`}>
                           <div className="bg-[#F9F9F9] border border-gray-100 rounded p-2 md:p-5 flex items-stretch gap-2.5 md:gap-5 h-full">
                             <div className="relative w-18 h-18 rounded overflow-hidden shrink-0">
-                              <Image
+                              <Image loader={shopifyLoader}
                                 src={item.img}
                                 alt={item.title}
                                 fill
@@ -3754,13 +3755,13 @@ export default function ProductPageClient({
                   </div>
                   <div className="flex items-center justify-start gap-7 flex-wrap">
                     <div className="w-14 h-14 relative">
-                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
+                      <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/IGI.png" alt="IGI" fill className="object-contain" />
                     </div>
                     <div className="w-14 h-14 relative">
-                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/SGL_528e2e93-e563-40b6-a8a6-c098475a6de9.png" alt="SGL" fill className="object-contain" />
+                      <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/SGL_528e2e93-e563-40b6-a8a6-c098475a6de9.png" alt="SGL" fill className="object-contain" />
                     </div>
                     <div className="w-14 h-14 relative">
-                      <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BIS.png" alt="BIS Hallmark" fill className="object-contain" />
+                      <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BIS.png" alt="BIS Hallmark" fill className="object-contain" />
                     </div>
                   </div>
                   <div className="mt-4">
@@ -3968,7 +3969,7 @@ export default function ProductPageClient({
                             className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
                           >
                             <div className="relative w-7 h-7">
-                              <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
+                              <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
@@ -4076,7 +4077,7 @@ export default function ProductPageClient({
                           className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
                         >
                           <div className="relative w-7 h-7">
-                            <Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
+                            <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_white.png" alt="WhatsApp" fill className="object-contain" />
                           </div>
                         </a>
                         <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
@@ -4141,7 +4142,7 @@ function DiamondDetail({ img, shape, pcs, carat, quality }) {
     <div className="flex-1 ps-6 pe-6 first:ps-0 last:pe-0 flex flex-col items-start">
       <div className="flex justify-start w-full mb-5">
         <div className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center overflow-hidden bg-white">
-          <Image src={getValidSrc(img)} alt={`${shape} diamond shape`} width={40} height={40} className="object-cover" />
+          <Image loader={shopifyLoader} src={getValidSrc(img)} alt={`${shape} diamond shape`} width={40} height={40} className="object-cover" />
         </div>
       </div>
       <div className="space-y-2 text-12px w-full">
@@ -4158,7 +4159,7 @@ function ExploreCard({ title, description, action, img, url, onClick }) {
   return (
     <div className="bg-[#F9F9F9] border border-gray-100 rounded-lg p-3 md:p-4 flex items-start gap-3 md:gap-4">
       <div className="w-20 sm:w-24 md:w-24 shrink-0 self-stretch rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
-        {img && (<Image src={getValidSrc(img)} alt={title} fill className="object-cover" />)}
+        {img && (<Image loader={shopifyLoader} src={getValidSrc(img)} alt={title} fill className="object-cover" />)}
       </div>
       <div className="flex-1 min-w-0 flex flex-col gap-2">
         <p className="text-sm md:text-base font-semibold leading-tight"> {title} </p>

@@ -11,6 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { setEnrollment } from "@/redux/slices/enrollmentSlice";
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 
 const PRESETS = [3000, 5000, 10000, 19000];
@@ -347,7 +348,7 @@ const DesktpSavingCalculator = () => {
 
                 {giftValue > 0 && (
                 <div className="w-full my-4">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={giftValue >= 10000 
                       ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_10k.jpg?v=1781241879" 
                       : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Web_Banner_5k.jpg?v=1781241879"

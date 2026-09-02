@@ -12,6 +12,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
@@ -262,7 +263,7 @@ export default function ShareIntentSheet({
               {/* What they're about to send */}
               <div className="flex items-center gap-3 rounded-[10px] border border-[#EFE7E5] bg-[#FDFBFA] p-2.5">
                 {image ? (
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={image}
                     alt={productTitle || "Product"}
                     width={64}

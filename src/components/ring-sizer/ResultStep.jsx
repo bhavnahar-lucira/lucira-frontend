@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { StepHeader, Footer, PrimaryButton } from "./chrome";
 import { RingProductGlyph } from "./illustrations";
@@ -104,7 +105,7 @@ function ProductCarousel({ products, size }) {
             style={{ height: `${CAROUSEL_SIZE_PX}px`, width: `${CAROUSEL_SIZE_PX}px` }}
           >
             {product.image ? (
-              <Image
+              <Image loader={shopifyLoader}
                 src={product.image}
                 alt={product.alt || product.title}
                 width={CAROUSEL_SIZE_PX}

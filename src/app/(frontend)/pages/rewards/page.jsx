@@ -1,6 +1,7 @@
 'use client'
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Suspense, useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { AuthDialog } from "@/components/auth/AuthDialog";
@@ -224,7 +225,7 @@ export default function RewardsPage() {
                                 key={i}
                                 className="border border-gray-800 rounded-xl p-6 flex flex-col"
                             >
-                                <Image src={item.img} className="w-14 h-14 mb-4" width={14} height={14} alt={item.title} />
+                                <Image loader={shopifyLoader} src={item.img} className="w-14 h-14 mb-4" width={14} height={14} alt={item.title} />
                                 <h3 className="text-lg uppercase font-bold mb-4">{item.title}</h3>
                                 <p className="text-sm text-gray-800">{item.desc}</p>
                             </div>
@@ -246,7 +247,7 @@ export default function RewardsPage() {
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {waysToEarn.map((item, i) => (
                             <div key={i} className="relative">
-                                <Image width={400} height={400} alt={item.title}
+                                <Image loader={shopifyLoader} width={400} height={400} alt={item.title}
                                     src={item.img}
                                     className="w-full h-auto rounded-md object-cover"
                                 />
@@ -297,7 +298,7 @@ export default function RewardsPage() {
                         </div>
 
                         <div className="relative bg-[#F3E0CF] rounded-md p-5 md:p-6 min-h-[160px] md:min-h-[180px] flex flex-col justify-center text-right overflow-hidden">
-                            <Image
+                            <Image loader={shopifyLoader}
                                 alt="They Get"
                                 width={300}
                                 height={300}
@@ -316,7 +317,7 @@ export default function RewardsPage() {
                         </div>
 
                         <div className="relative bg-[#F3E0CF] rounded-md p-5 md:p-6 min-h-[160px] md:min-h-[180px] flex flex-col justify-center text-left overflow-hidden">
-                            <Image
+                            <Image loader={shopifyLoader}
                                 alt="You Get"
                                 width={300}
                                 height={300}

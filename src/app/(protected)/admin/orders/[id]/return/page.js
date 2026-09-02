@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import {
@@ -273,7 +274,7 @@ export default function RequestReturnPage() {
 
                     <div className="size-20 md:size-24 bg-[#FBFBFB] rounded-2xl overflow-hidden shrink-0 border border-zinc-50 flex items-center justify-center p-2">
                       {item.image ? (
-                        <Image src={item.image} alt={item.title} width={110} height={110} className="object-contain w-full h-full" />
+                        <Image loader={shopifyLoader} src={item.image} alt={item.title} width={110} height={110} className="object-contain w-full h-full" />
                       ) : (
                         <RefreshCcw className="text-zinc-200" size={28} />
                       )}
@@ -344,7 +345,7 @@ export default function RequestReturnPage() {
               <div key={item.fulfillmentLineItemId} className="bg-zinc-50/60 rounded-[1.75rem] border border-zinc-100 p-5 md:p-6 flex gap-4 md:gap-5 opacity-80">
                 <div className="size-20 md:size-24 bg-white rounded-2xl overflow-hidden shrink-0 border border-zinc-100 flex items-center justify-center p-2 grayscale">
                   {item.image ? (
-                    <Image src={item.image} alt={item.title} width={110} height={110} className="object-contain w-full h-full" />
+                    <Image loader={shopifyLoader} src={item.image} alt={item.title} width={110} height={110} className="object-contain w-full h-full" />
                   ) : (
                     <RefreshCcw className="text-zinc-200" size={28} />
                   )}
@@ -390,7 +391,7 @@ export default function RequestReturnPage() {
                   <div key={item.fulfillmentLineItemId} className="py-4 first:pt-0 last:pb-0 flex gap-4">
                     <div className="size-16 bg-[#FBFBFB] rounded-xl overflow-hidden shrink-0 border border-zinc-50 flex items-center justify-center p-1.5">
                       {item.image ? (
-                        <Image src={item.image} alt={item.title} width={80} height={80} className="object-contain w-full h-full" />
+                        <Image loader={shopifyLoader} src={item.image} alt={item.title} width={80} height={80} className="object-contain w-full h-full" />
                       ) : (
                         <RefreshCcw className="text-zinc-200" size={22} />
                       )}

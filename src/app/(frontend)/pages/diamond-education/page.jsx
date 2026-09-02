@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { useState } from "react";
 import {
   Gem,
@@ -55,7 +56,7 @@ export default function DiamondEducation() {
             </div>
 
             <div className="lg:w-1/2">
-            <Image
+            <Image loader={shopifyLoader}
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond_image.png?v=1743589351"
                 alt="Diamond"
                 width={600}
@@ -96,7 +97,7 @@ export default function DiamondEducation() {
         </div>
 
         <div className="lg:w-1/2">
-          <Image
+          <Image loader={shopifyLoader}
             src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond_image_1.jpg?v=1743515231"
             alt="Cut"
             width={500}
@@ -112,7 +113,7 @@ export default function DiamondEducation() {
         {/* Content */}
         <div className="grid lg:grid-cols-2 gap-8 items-center">
             <div className="relative w-full h-75 md:h-112.5">
-            <Image
+            <Image loader={shopifyLoader}
                 key={activeTab} // 🔥 forces rerender for smooth swap
                 src={colorImages[activeTab]}
                 alt={`Diamond ${activeTab}`}
@@ -176,7 +177,7 @@ export default function DiamondEducation() {
         </div>
 
         <div className="lg:w-1/2">
-          <Image
+          <Image loader={shopifyLoader}
             src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond_image_6.png?v=1743599059"
             alt="Clarity"
             width={500}
@@ -189,7 +190,7 @@ export default function DiamondEducation() {
       {/* CARAT */}
       <section className="flex flex-col lg:flex-row items-center gap-8 px-4 md:px-16 py-8 md:py-12">
         <div className="lg:w-1/2 lg:order-0 order-1">
-          <Image
+          <Image loader={shopifyLoader}
             src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond_image_4_739efea4-71fb-42e1-bb1f-cf6ba09466ac.jpg?v=1743516234"
             alt="Carat"
             width={500}

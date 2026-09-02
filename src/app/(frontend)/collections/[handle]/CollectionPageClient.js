@@ -1046,7 +1046,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               className="flex items-center justify-between gap-3 w-full bg-[#5A413F] rounded-[10px] px-4 py-3.5 lg:px-5 lg:py-4 cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <Image
+                <Image loader={shopifyLoader}
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494.png?v=1784099419"
                   alt="Reward coin"
                   width={28}
@@ -1302,9 +1302,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               <div className="flex-1">
                 <h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px] capitalize">{displayTitle}</h1>
                 <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
-                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
-                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
-                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
+                  <div className="flex items-center gap-2"><Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
+                  <div className="flex items-center gap-2"><Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
+                  <div className="flex items-center gap-2"><Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
                 </div>
               </div>
               <div className="flex-1 w-full h-auto">

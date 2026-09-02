@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { usePathname } from "next/navigation";
 import TrustBadges from "./TrustBadges";
 
@@ -32,7 +33,7 @@ export default function CheckoutFooter() {
         {/* Right: Payment Icons */}
         <div className="flex items-center gap-5 transition-all duration-300 flex-wrap justify-center pt-2 lg:pt-0 pb-[35px] lg:pb-0">
           {paymentIcons.map((icon) => (
-            <Image 
+            <Image loader={shopifyLoader} 
               key={icon.name} 
               src={icon.src} 
               alt={icon.name} 

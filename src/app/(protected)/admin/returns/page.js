@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { RefreshCcw, Loader2, ChevronRight, PackageX } from "lucide-react";
@@ -116,7 +117,7 @@ export default function MyReturnsPage() {
               <div className="p-5 md:p-7 flex items-center gap-4 md:gap-6">
                 <div className="size-20 md:size-24 bg-[#FBFBFB] rounded-2xl overflow-hidden shrink-0 border border-zinc-50 flex items-center justify-center p-2 md:p-3">
                   {r.firstItem?.image ? (
-                    <Image src={r.firstItem.image} alt={r.firstItem?.title || "Return item"} width={110} height={110} className="object-contain w-full h-full group-hover:scale-110 transition-transform duration-700" />
+                    <Image loader={shopifyLoader} src={r.firstItem.image} alt={r.firstItem?.title || "Return item"} width={110} height={110} className="object-contain w-full h-full group-hover:scale-110 transition-transform duration-700" />
                   ) : (
                     <RefreshCcw className="text-zinc-200" size={30} />
                   )}

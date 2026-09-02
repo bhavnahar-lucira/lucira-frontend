@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Link from "next/link";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import CartItem from "@/components/cart/CartItem";
 import CartViewLiveBanner from "@/components/cart/CartViewLiveBanner";
 import CartSummary from "@/components/cart/CartSummary";
@@ -234,7 +235,7 @@ const filteredItems = items.filter(
               {/* Trust Badges */}
               <div className="flex items-center justify-center gap-10 mt-8">
                 <div className="flex items-center gap-3">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/igi-certified.png?v=1786168166"
                     alt="IGI Certified"
                     width={64}
@@ -244,7 +245,7 @@ const filteredItems = items.filter(
                   <span className="font-figtree text-[13px] font-semibold text-black leading-tight">IGI Certified</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bsi-hallmarked.png?v=1786168167"
                     alt="BSI Hallmarked"
                     width={64}
@@ -273,7 +274,7 @@ const filteredItems = items.filter(
             {/* Trust Badges (Mobile) */}
             <div className="lg:hidden flex items-center justify-center gap-10 pt-0 pb-[6px] border-b border-zinc-100 mb-4">
               <div className="flex items-center gap-3">
-                <Image
+                <Image loader={shopifyLoader}
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/igi-certified.png?v=1786168166"
                   alt="IGI Certified"
                   width={64}
@@ -283,7 +284,7 @@ const filteredItems = items.filter(
                 <span className="font-figtree text-[14px] font-semibold text-black leading-tight">IGI Certified</span>
               </div>
               <div className="flex items-center gap-3">
-                <Image
+                <Image loader={shopifyLoader}
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bsi-hallmarked.png?v=1786168167"
                   alt="BSI Hallmarked"
                   width={64}

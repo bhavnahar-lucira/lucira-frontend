@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { HandCoins, Calendar, Wallet, ShieldCheck, Star, ArrowRight, Loader2 } from "lucide-react";
 import { useWindowSize } from "@/hooks/useWindowSize";
@@ -57,7 +58,7 @@ export default function Page() {
       >
         {width > 1024 ? (
           <AspectRatio ratio={1920 / 420}>
-            <Image
+            <Image loader={shopifyLoader}
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop_VOD_Banner_jpg.jpg?v=1781522210"
               alt="Savings Scheme Banner"
               fill
@@ -67,7 +68,7 @@ export default function Page() {
           </AspectRatio>
         ) : (
           <AspectRatio ratio={428 / 380}>
-            <Image
+            <Image loader={shopifyLoader}
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mobile_Banner_VOD_jpg_061377a3-58c7-4571-808e-0e0f28dd0919.jpg?v=1781521955"
               alt="Savings Scheme Banner"
               fill

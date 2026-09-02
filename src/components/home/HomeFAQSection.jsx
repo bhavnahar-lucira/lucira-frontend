@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 
 const FAQ_ITEMS = [
   {
@@ -129,7 +130,7 @@ export default function HomeFAQSection() {
 
         <div className="relative w-full min-h-132 hidden lg:block rounded-lg overflow-hidden bg-gray-200">
 
-          <Image
+          <Image loader={shopifyLoader}
             src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/FAQ_side_img_1.png"
             alt="FAQ"
             fill

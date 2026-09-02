@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Heart, ShoppingCart, Trash2, Star, ChevronRight, Video, Play, Copy, X, Loader2, ShieldCheck, Eye, ArrowRight, MapPin, Phone, Package, Coins, Check } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { getValidSrc } from "@/lib/utils";
@@ -299,7 +300,7 @@ export default function WishlistPage() {
                 <div className="relative aspect-square w-full bg-[#fafafa] overflow-hidden rounded-2xl border border-zinc-100 transition-all duration-300 group-hover:shadow-md">
                   <Link prefetch={false} href={`/products/${item.productHandle || item.productId}${item.variantId ? `?variant=${item.variantId}` : ""}`} className="block w-full h-full mix-blend-multiply relative">
                     {item.image ? (
-                      <Image
+                      <Image loader={shopifyLoader}
                         src={getValidSrc(item.image)}
                         alt={item.title}
                         fill
@@ -446,7 +447,7 @@ export default function WishlistPage() {
                     <div key={item.shopifyId || item._id || item.id} className="space-y-4">
                       <Link prefetch={false} href={`/products/${item.handle}`} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
                         <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden transition-all duration-300 group-hover:bg-[#f3f3f3]">
-                          <Image
+                          <Image loader={shopifyLoader}
                             src={getValidSrc(item.image)}
                             alt={item.title}
                             fill
