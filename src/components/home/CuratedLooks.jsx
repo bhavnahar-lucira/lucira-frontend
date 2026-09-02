@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import LazyImage from "../common/LazyImage";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import { apiFetch } from "@/lib/api";
@@ -134,7 +135,7 @@ function LookImage({ look, activeIndex, onHotspotClick, priority }) {
             style={{ left: spot.x, top: spot.y }}
           >
             {!isActive && <span className="absolute h-7 w-7 animate-ping rounded-full bg-white/30" />}
-            <Image src={HOTSPOT_ICON} alt="" width={20} height={20} />
+            <Image loader={shopifyLoader} src={HOTSPOT_ICON} alt="" width={20} height={20} />
           </button>
         );
       })}
