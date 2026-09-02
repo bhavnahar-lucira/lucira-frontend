@@ -165,6 +165,22 @@
   }
 }
 
+/* Section-based (scraped) articles wrap every block in a nested
+   .article-content-block whose bottom margin the live Shopify theme hard-codes
+   inline on some blocks (28px) and leaves off others (so they fall through to
+   the 48px above). That made the gap ABOVE a heading (previous body section,
+   48px) unequal to the gap BELOW it (heading's own section, 28px). Normalise
+   every nested section wrapper to one value — !important to beat the inline
+   style — so heading spacing is even. Only matches scraped articles; flat
+   rich-text articles keep the h2/h3 margin rhythm below. */
+.lucira-blogs .article-content-block .article-content-block {
+  margin-bottom: 28px !important;
+}
+
+.lucira-blogs .article-content-block .main-content {
+  margin: 0 !important;
+}
+
 /* Neutralise Shopify's inline text colours, but leave component accents
    (product-card CTA, price, arrow) free to use the brand palette. */
 .lucira-blogs .article-content-block *:not(.image-text-product-cta):not(.view-details-text):not(.arrow-icon):not(.current-price):not(.compare-price):not(.star):not(.rating-text):not(a) {
@@ -225,10 +241,11 @@
   margin-bottom: 14px;
 }
 
+/* Equal space above and below every heading */
 .lucira-blogs .article-content-block h2 {
   font-size: 22px;
-  margin-top: 18px;
-  margin-bottom: 8px;
+  margin-top: 24px;
+  margin-bottom: 24px;
   padding-bottom: 10px;
   border-bottom: 1px solid #ebebeb;
 }
@@ -236,28 +253,30 @@
 @media (min-width: 1024px) {
   .lucira-blogs .article-content-block h2 {
     font-size: 26px;
-    margin-top: 24px;
+    margin-top: 28px;
+    margin-bottom: 28px;
   }
 }
 
 .lucira-blogs .article-content-block h3 {
   font-size: 19px;
-  margin-top: 16px;
-  margin-bottom: 6px;
+  margin-top: 20px;
+  margin-bottom: 20px;
   font-weight: 600;
 }
 
 @media (min-width: 1024px) {
   .lucira-blogs .article-content-block h3 {
     font-size: 21px;
-    margin-top: 20px;
+    margin-top: 22px;
+    margin-bottom: 22px;
   }
 }
 
 .lucira-blogs .article-content-block h4 {
   font-size: 17px;
-  margin-top: 14px;
-  margin-bottom: 4px;
+  margin-top: 16px;
+  margin-bottom: 16px;
   font-weight: 600;
   color: #333;
 }
