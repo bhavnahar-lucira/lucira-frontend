@@ -52,48 +52,47 @@ const STORE_IMAGES = {
   "lajpat-nagar-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
 };
 
-// Define custom collection banners here (e.g. to bypass the default pink layout with full-width images)
-// You can easily add other collections here by adding their handle and desktop/mobile image URLs
-const CUSTOM_COLLECTION_BANNERS = {
-  "eterna": {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Desktop_PLP_jpg.jpg?v=1783673522",
-    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Mobile_PLP_jpg.jpg?v=1783673523"
-  },
-  "hexa": {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Desktop.jpg?v=1783767788",
-    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Mobile.jpg?v=1783767788"
-  },
-  "cotton-candy": {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Desktop.jpg?v=1783767788",
-    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Mobile.jpg?v=1783767788"
-  },
-  "sports-collection": {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Desktop.jpg?v=1783767788",
-    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Mobile.jpg?v=1783767788"
-  }
+// PLP banners (top banner + in-grid promo banners) are managed from the admin
+// dashboard and delivered via /api/settings/plp-banners (see initialData.plpBanners,
+// fetched in collections/[handle]/page.js). These fallbacks only apply if that
+// endpoint is unreachable at build/render time — they mirror the dashboard's
+// own PLP_BANNER_DEFAULTS so there's no visual regression either way.
+const FALLBACK_TOP_DEFAULT = {
+  desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg?v=1787998995",
+  mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg?v=1787998995",
+  alt: "Offers",
 };
 
-// Plain Gold sub-collections (see "Plain Gold" menu group in menu-data.json) use a
-// dedicated hero image in place of the generic collection banner's default image.
-const PLAIN_GOLD_HANDLES = ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"];
-const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg_44047036-a66f-4e34-8332-f226a6d24073.jpg";
+const FALLBACK_TOP_OVERRIDES = [
+  { handles: ["eterna"], layout: "fullwidth", alt: "Embrace",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Desktop_PLP_jpg.jpg?v=1783673522",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Mobile_PLP_jpg.jpg?v=1783673523" },
+  { handles: ["hexa"], layout: "fullwidth", alt: "Hexa",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Desktop.jpg?v=1783767788",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Mobile.jpg?v=1783767788" },
+  { handles: ["cotton-candy"], layout: "fullwidth", alt: "Cotton Candy",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Desktop.jpg?v=1783767788",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Mobile.jpg?v=1783767788" },
+  { handles: ["sports-collection"], layout: "fullwidth", alt: "On The Move",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Desktop.jpg?v=1783767788",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Mobile.jpg?v=1783767788" },
+  { handles: ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"], layout: "strip", alt: "Gold Jewellery Offer",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg_44047036-a66f-4e34-8332-f226a6d24073.jpg",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg_44047036-a66f-4e34-8332-f226a6d24073.jpg" },
+  { handles: ["earrings"], layout: "strip", alt: "Earrings Offer",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product-3_f6e49a5f-f9a3-4af7-9fca-c9bce18aa4c4.jpg",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product-3_f6e49a5f-f9a3-4af7-9fca-c9bce18aa4c4.jpg" },
+  { handles: ["all-earrings"], layout: "strip", alt: "Earrings Offer",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product1_jpg.jpg?v=1787210650",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product1_jpg.jpg?v=1787210650" },
+  { handles: ["bestsellers"], layout: "strip", alt: "Bestsellers Offer",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg" },
+];
 
-// In-page promo banners injected into the product grid. They alternate in order
-// (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
-// then every 10 products after that.
-// TODO(banner): replace creative B's `src` with the second (right) banner image URL.
-const INPAGE_BANNERS = [
-  {
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
-    alt: "Promo",
-    href: "/collections/rakhi",
-  },
-  {
-    // Placeholder — falls back to creative A until the second image is provided.
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
-    alt: "Promo",
-    href: "/collections/rakhi",
-  },
+const FALLBACK_INPAGE_BANNERS = [
+  { src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", alt: "Promo", href: "/collections/rakhi" },
+  { src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", alt: "Promo", href: "/collections/rakhi" },
 ];
 
 const SORT_OPTIONS = [
@@ -328,6 +327,18 @@ function RecentlyViewedRow({ products }) {
 export default function CollectionPage({ params: paramsPromise, initialData }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
+
+  // Dashboard-managed PLP banners (falls back to the constants above if the
+  // settings endpoint was unreachable when this page was rendered).
+  const plpBanners = initialData?.plpBanners || {};
+  const topBannerDefault = plpBanners.topBanner?.default || FALLBACK_TOP_DEFAULT;
+  const topBannerOverrides = plpBanners.topBanner?.overrides?.length
+    ? plpBanners.topBanner.overrides
+    : FALLBACK_TOP_OVERRIDES;
+  const topBannerOverride = topBannerOverrides.find((o) => o.handles?.includes(handle)) || null;
+  const inpageBanners = plpBanners.inpageBanners?.length
+    ? plpBanners.inpageBanners
+    : FALLBACK_INPAGE_BANNERS;
 
   const router = useRouter();
   const pathname = usePathname();
@@ -989,8 +1000,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       if (!prod) return;
       // First banner after 6 products, the second 10 later (6, 16). Each creative shows
       // once and then stops — the row is not repeated further down the grid.
-      if (bannerCount < INPAGE_BANNERS.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
-        const banner = INPAGE_BANNERS[bannerCount];
+      if (bannerCount < inpageBanners.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
+        const banner = inpageBanners[bannerCount];
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
             <Link prefetch={false} className="cursor-default" href={banner.href} onClick={(e) => e.preventDefault()}>
@@ -1136,7 +1147,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     isFetchingNextPage,
     handle,
     selectedColor,
-    dispatch
+    dispatch,
+    inpageBanners
   ]);
 
   const displayTitle = isMobile
@@ -1200,8 +1212,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      {CUSTOM_COLLECTION_BANNERS[handle] ? (
+      {/* Hero Section — top banner is dashboard-managed (see plpBanners above) */}
+      {topBannerOverride?.layout === "fullwidth" ? (
         <div className="w-full bg-white">
           {/* Mobile Breadcrumbs */}
           <div className="block lg:hidden">
@@ -1223,8 +1235,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             <div className="hidden lg:block w-full">
               <Image
                 loader={shopifyLoader}
-                src={CUSTOM_COLLECTION_BANNERS[handle].desktop}
-                alt={displayTitle}
+                src={topBannerOverride.desktopImage}
+                alt={topBannerOverride.alt || displayTitle}
                 width={1920}
                 height={800}
                 priority
@@ -1239,8 +1251,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             <div className="block lg:hidden w-full">
               <Image
                 loader={shopifyLoader}
-                src={CUSTOM_COLLECTION_BANNERS[handle].mobile}
-                alt={displayTitle}
+                src={topBannerOverride.mobileImage}
+                alt={topBannerOverride.alt || displayTitle}
                 width={768}
                 height={960}
                 priority
@@ -1255,15 +1267,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       ) : STORE_HANDLES.includes(handle) ? (
         <StoreCollectionBanner collectionHandle={handle} bannerImages={STORE_IMAGES[handle] || []} />
       ) : (() => {
-        const heroBannerSrc = PLAIN_GOLD_HANDLES.includes(handle)
-          ? PLAIN_GOLD_BANNER_IMAGE
-          : handle === "earrings"
-            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product-3_f6e49a5f-f9a3-4af7-9fca-c9bce18aa4c4.jpg"
-            : handle === "all-earrings"
-              ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product1_jpg.jpg?v=1787210650"
-              : handle === "bestsellers"
-                ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg"
-                : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg?v=1787998995";
+        const stripAlt = topBannerOverride?.alt || displayTitle;
+        const stripDesktop = topBannerOverride?.desktopImage || topBannerDefault.desktopImage;
+        const stripMobile = topBannerOverride?.mobileImage || topBannerDefault.mobileImage;
 
         return isMobile ? (
           <div className="w-full">
@@ -1281,8 +1287,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             <div className="w-full relative">
               <Image
                 loader={shopifyLoader}
-                src={heroBannerSrc}
-                alt={displayTitle}
+                src={stripMobile}
+                alt={stripAlt}
                 width={768}
                 height={480}
                 className="w-full h-auto object-contain"
@@ -1304,8 +1310,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               <div className="flex-1 w-full h-auto">
                 <Image
                   loader={shopifyLoader}
-                  src={heroBannerSrc}
-                  alt={displayTitle}
+                  src={stripDesktop}
+                  alt={stripAlt}
                   width={640}
                   height={223}
                   className="w-full h-auto object-contain"

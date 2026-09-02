@@ -104,10 +104,15 @@ export default async function Page({ params }) {
   
   let initialData = null;
   try {
-    const [collRes, filterRes] = await Promise.all([
+    const [collRes, filterRes, plpBannersRes] = await Promise.all([
       fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=manual`, { cache: 'force-cache' }),
-      fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' })
+      fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' }),
+      fetch(`${base}/api/settings/plp-banners`, { cache: 'force-cache' })
     ]);
+    let plpBanners = null;
+    if (plpBannersRes.ok) {
+      plpBanners = await plpBannersRes.json().catch(() => null);
+    }
     if (collRes.ok && filterRes.ok) {
       const collData = await collRes.json();
       const filterDataObj = await filterRes.json();
@@ -129,7 +134,7 @@ export default async function Page({ params }) {
         });
       }
 
-      initialData = { collData, filterData: filterDataObj || {} };
+      initialData = { collData, filterData: filterDataObj || {}, plpBanners };
     }
   } catch(e) {
     console.error("Failed to fetch initial data for SSG", e);
