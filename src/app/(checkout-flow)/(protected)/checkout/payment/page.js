@@ -531,7 +531,8 @@ export default function PaymentPage() {
 
       pushAddPaymentInfo({
         payment_type: selectedPaymentGateway === "partial_cod" ? "Partial COD" : "Razorpay",
-        value: paymentMethodDetails.prepaidAmount,
+        // Full order revenue, not the amount charged now - matches purchase.value.
+        value: grandTotalValue,
         currency: "INR",
         coupon: couponDetails?.code || "NA",
         loyalty_points: loyaltyPoints,
@@ -667,14 +668,12 @@ export default function PaymentPage() {
 
             const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
             const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
-            const purchaseValue = selectedPaymentGateway === "partial_cod"
-              ? partialCodDetails.prepaidAmount
-              : grandTotalValue;
-
+            // purchase.value is the full order revenue, never the amount charged
+            // now: partial COD collects 20% up front and the rest on delivery.
             const purchaseData = {
               currency: "INR",
-              value: purchaseValue,
-              tax: Number((purchaseValue * 0.03).toFixed(2)),
+              value: grandTotalValue,
+              tax: Number((grandTotalValue * 0.03).toFixed(2)),
               shipping: 0,
               affiliation: "Lucira Jewelry",
               transaction_id: response.razorpay_payment_id,

@@ -63,7 +63,7 @@ export const useAnalytics = () => {
 
   const sendEvent = useCallback((eventData, useBeacon = false) => {
     // Analytics only run in production. In `next dev` the collector isn't
-    // reachable (localhost:3010) and these events would never reach live
+    // available (localhost:3010) and these events would never reach live
     // anyway, so skip the fetch entirely to keep the dev console clean.
     if (process.env.NODE_ENV !== "production") return;
 
