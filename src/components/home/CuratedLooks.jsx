@@ -32,21 +32,22 @@ const COLUMN_MAX = "max-w-[860px]";
  */
 const GUTTER = "px-9 sm:px-12";
 
-/**
- * Product shots are framed with wide margins — sampled across the catalogue the
- * subject fills only ~40-60% of a 1600x1600 frame, which is what leaves a band of
- * white between the piece and the title rather than any gap in the layout.
- * Zooming crops that dead margin; the slide clips the overflow.
+/*
+ * No zoom here on purpose. Product shots are framed inconsistently — measured
+ * across one look's six products the subject filled anywhere from 21% to 87% of
+ * a 1600x1600 frame:
  *
- * 1.35x trims (1 - 1/1.35) / 2 = 13% off each edge. The tightest margin measured
- * across a sample of product images was 17.6%, so nothing gets clipped. Raise it
- * with care — 1.54x is the point where the tightest of those starts to lose metal.
- * Re-cropping the source assets is the real fix, and this can then go.
+ *   ring            43% x 50%   margin 22.9%   safe up to 1.84x
+ *   earrings        30% x 37%   margin 27.7%   safe up to 2.24x
+ *   bracelet        66% x 21%   margin 17.2%   safe up to 1.52x
+ *   pendant         47% x 63%   margin  0.0%   safe up to 1.00x
+ *   necklace        87% x 87%   margin  5.0%   safe up to 1.11x
+ *   men's bracelet  70% x 26%   margin 15.0%   safe up to 1.43x
  *
- * Inline rather than a Tailwind arbitrary value so the exact factor is visible
- * next to the reasoning and doesn't depend on the utility being generated.
+ * The pendant already touches its frame edge, so any uniform scale clips
+ * something. Tightening the framing has to happen per product — either in the
+ * source assets or as a stored per-product value — not as one CSS factor.
  */
-const PRODUCT_ZOOM = { transform: "scale(1.35)" };
 
 function OfferBadge({ label }) {
   return (
@@ -250,7 +251,6 @@ export default function CuratedLooks() {
                     alt={product.name}
                     fill
                     className="object-contain"
-                    style={PRODUCT_ZOOM}
                   />
                 </Link>
               </SwiperSlide>
@@ -271,9 +271,11 @@ export default function CuratedLooks() {
   );
 
   return (
-    // Spacing matches the neighbouring full-bleed sections (store locator,
-    // diamond cuts) so the vertical rhythm down the homepage stays even.
-    <section className="mt-12 w-full overflow-hidden bg-white py-12 md:mt-15 md:py-14">
+    // Padding only, no top margin. The neighbouring sections are pink, so their
+    // margin reads as a separator and their padding sits inside the colour. This
+    // one is white on a white page, where a margin is indistinguishable from the
+    // padding and the two just stack into one oversized gap.
+    <section className="w-full overflow-hidden bg-white py-12 md:py-14">
       <div className="container-main">
         {heading}
 

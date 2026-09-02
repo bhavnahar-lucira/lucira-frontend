@@ -28,7 +28,9 @@ export default function DiamondShapes() {
   };
 
   return (
-    <section className="w-full bg-[#FEF5F1] py-12 md:py-14 mt-12 md:mt-15 overflow-hidden">
+    // No top margin: the white Curated Looks section above already ends in its
+    // own padding, and a margin here would stack onto it.
+    <section className="w-full bg-[#FEF5F1] py-12 md:py-14 overflow-hidden">
       <div className="container-main">
         <div className="text-left lg:text-center mb-10 px-1 lg:px-0">
           <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
