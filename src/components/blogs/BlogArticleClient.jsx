@@ -66,7 +66,7 @@ export default function BlogArticleClient({
               </div>
               <div className="meta-item">
                 <span className="meta-label">Read Time</span>
-                <span className="meta-value">{article.read_time?.value || readTime || "N/A"}</span>
+                <span className="meta-value">{readTime || "5 min read"}</span>
               </div>
               <div className="meta-item">
                 <span className="meta-label">Views</span>

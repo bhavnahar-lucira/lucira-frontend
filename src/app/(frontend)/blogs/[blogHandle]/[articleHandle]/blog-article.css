@@ -44,19 +44,33 @@
     overflow-y: auto;
   }
 
-  .lucira-blogs .right-sidebar::-webkit-scrollbar-track {
-    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
-    background-color: #F5F5F5;
-  }
-
   .lucira-blogs .right-sidebar::-webkit-scrollbar {
     width: 2px;
-    background-color: #F5F5F5;
+    background-color: transparent;
+  }
+
+  .lucira-blogs .right-sidebar::-webkit-scrollbar-track {
+    background-color: transparent;
   }
 
   .lucira-blogs .right-sidebar::-webkit-scrollbar-thumb {
-    background-color: #c1c1c1;
+    background-color: transparent;
     border-radius: 10px;
+    transition: background-color 0.3s ease;
+  }
+
+  .lucira-blogs .right-sidebar:hover::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+  }
+
+  /* Firefox */
+  .lucira-blogs .right-sidebar {
+    scrollbar-width: none;
+  }
+
+  .lucira-blogs .right-sidebar:hover {
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 transparent;
   }
 }
 
@@ -137,28 +151,51 @@
 
 .lucira-blogs .article-content-block {
   font-family: var(--font-figtree), sans-serif;
-  font-size: 14px;
-  /* Mobile description */
+  font-size: 15px;
   letter-spacing: 0.01em;
-  line-height: 1.8;
-  color: #333;
-  margin-bottom: 40px;
+  line-height: 1.85;
+  color: #2e2e2e;
+  margin-bottom: 48px;
 }
 
 @media (min-width: 1024px) {
   .lucira-blogs .article-content-block {
-    font-size: 16px;
-    /* Desktop description */
-    line-height: 1.85;
+    font-size: 16.5px;
+    line-height: 1.9;
   }
 }
 
-.lucira-blogs .article-content-block * {
+/* Neutralise Shopify's inline text colours, but leave component accents
+   (product-card CTA, price, arrow) free to use the brand palette. */
+.lucira-blogs .article-content-block *:not(.image-text-product-cta):not(.view-details-text):not(.arrow-icon):not(.current-price):not(.compare-price):not(.star):not(.rating-text):not(a) {
   color: inherit !important;
 }
 
+/* Article inline links */
+.lucira-blogs .article-content-block a {
+  color: var(--blog-primary);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.lucira-blogs .article-content-block a:hover {
+  color: #8a4a54;
+  text-decoration-color: currentColor;
+}
+
 .lucira-blogs .article-content-block p {
-  margin-bottom: 24px;
+  margin-top: 0;
+  margin-bottom: 14px;
+}
+
+/* First paragraph after a heading sits closer to it */
+.lucira-blogs .article-content-block h2 + p,
+.lucira-blogs .article-content-block h3 + p,
+.lucira-blogs .article-content-block h4 + p {
+  margin-top: 0;
 }
 
 .lucira-blogs .article-content-block img {
@@ -179,48 +216,94 @@
 .lucira-blogs .article-content-block h2,
 .lucira-blogs .article-content-block h3,
 .lucira-blogs .article-content-block h4 {
-  font-family: var(--font-figtree), serif;
+  font-family: var(--font-figtree), sans-serif;
   font-weight: 600;
   text-transform: none;
-  /* Removed uppercase for a more elegant look */
-  margin-top: 6px;
-  margin-bottom: 6px;
-  color: var(--blog-text-dark);
+  color: #1a1a1a;
   line-height: 1.3;
-  letter-spacing: 0.1px;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
 }
 
 .lucira-blogs .article-content-block h2 {
-  font-size: 24px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 12px;
+  font-size: 22px;
+  margin-top: 18px;
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ebebeb;
+}
+
+@media (min-width: 1024px) {
+  .lucira-blogs .article-content-block h2 {
+    font-size: 26px;
+    margin-top: 24px;
+  }
 }
 
 .lucira-blogs .article-content-block h3 {
-  font-size: 24px;
+  font-size: 19px;
+  margin-top: 16px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  .lucira-blogs .article-content-block h3 {
+    font-size: 21px;
+    margin-top: 20px;
+  }
 }
 
 .lucira-blogs .article-content-block h4 {
-  font-size: 20px;
+  font-size: 17px;
+  margin-top: 14px;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: #333;
+}
+
+@media (min-width: 1024px) {
+  .lucira-blogs .article-content-block h4 {
+    font-size: 18px;
+  }
+}
+
+/* First heading in the article doesn't need extra top margin */
+.lucira-blogs .article-content-block > h2:first-child,
+.lucira-blogs .article-content-block > h3:first-child {
+  margin-top: 0;
 }
 
 .lucira-blogs .article-content-block ul,
 .lucira-blogs .article-content-block ol {
+  margin-top: 4px;
   margin-bottom: 24px;
-  padding-left: 20px;
+  padding-left: 22px;
 }
 
 .lucira-blogs .article-content-block li {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  line-height: 1.75;
+}
+
+.lucira-blogs .article-content-block li:last-child {
+  margin-bottom: 0;
+}
+
+.lucira-blogs .article-content-block ul li::marker {
+  color: var(--blog-primary);
 }
 
 .lucira-blogs .article-content-block blockquote {
-  border-left: 4px solid var(--blog-primary);
-  padding: 16px 24px;
-  background-color: #f9f4f4;
-  margin: 32px 0;
+  border-left: 3px solid var(--blog-primary);
+  padding: 14px 22px;
+  background-color: #fdf8f8;
+  margin: 36px 0;
   font-style: italic;
-  border-radius: 0 6px 6px 0;
+  color: #555;
+  border-radius: 0 8px 8px 0;
+  font-size: 15.5px;
+  line-height: 1.75;
 }
 
 .lucira-blogs .hero-image-container {
@@ -432,32 +515,104 @@
   display: block;
 }
 
-/* Comparison Table (Responsive) */
-.lucira-blogs .comparison-table-container {
+/* ============================================================
+   Article tables — universal for every blog.
+   prepareArticleHtml() wraps every <table> in .blog-table-wrap and tags it
+   .blog-data-table, so both the themed comparison tables and the bare Shopify
+   tables (no class, sometimes no <thead>) get the same full-width, responsive,
+   horizontally-scrollable treatment.
+   ============================================================ */
+.lucira-blogs .blog-table-wrap {
+  display: block;
+  width: 100%;
+  margin: 28px 0;
   overflow-x: auto;
-  margin: 30px 0;
   border: 1px solid var(--blog-border);
   border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--blog-primary) #f1e8ea;
 }
 
-.lucira-blogs .comparison-table {
+.lucira-blogs .blog-table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.lucira-blogs .blog-table-wrap::-webkit-scrollbar-track {
+  background: #f1e8ea;
+  border-radius: 999px;
+}
+
+.lucira-blogs .blog-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--blog-primary);
+  border-radius: 999px;
+}
+
+/* Shopify's original wrapper is now just a pass-through. */
+.lucira-blogs .comparison-table-container {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.lucira-blogs .article-content-block .blog-data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 600px;
+  min-width: 540px;
+  /* forces a real horizontal scroll on phones; 100% wins on desktop */
+  font-size: 15px;
+  background: #fff;
+  margin: 0;
 }
 
-.lucira-blogs .comparison-table th,
-.lucira-blogs .comparison-table td {
-  padding: 16px;
+.lucira-blogs .article-content-block .blog-data-table th,
+.lucira-blogs .article-content-block .blog-data-table td {
+  padding: 13px 16px;
   border: 1px solid var(--blog-border);
   text-align: left;
+  vertical-align: top;
+  line-height: 1.6;
 }
 
-.lucira-blogs .comparison-table th {
-  background-color: #f9f9f9;
+.lucira-blogs .article-content-block .blog-data-table td p,
+.lucira-blogs .article-content-block .blog-data-table th p {
+  margin: 0;
+}
+
+/* Header row — a real <thead>/<th scope=col>, or the first row of a table that
+   ships without a header. */
+.lucira-blogs .article-content-block .blog-data-table thead th,
+.lucira-blogs .article-content-block .blog-data-table thead td,
+.lucira-blogs .article-content-block .blog-data-table th[scope="col"],
+.lucira-blogs .article-content-block .blog-data-table tr:first-child td {
+  background-color: #f6eef0;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 12px;
   text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* When a real <thead> exists, the first BODY row is ordinary data — undo the
+   header styling the rule above would otherwise give it (the "bold Princess"
+   bug). */
+.lucira-blogs .article-content-block .blog-data-table thead ~ tbody tr:first-child td {
+  background-color: #fff;
+  font-weight: 400;
+  font-size: 15px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.lucira-blogs .article-content-block .blog-data-table th[scope="row"] {
+  background-color: #faf8f8;
+  font-weight: 600;
+  color: var(--blog-text-dark);
+}
+
+.lucira-blogs .article-content-block .blog-data-table tbody tr:nth-child(even) td {
+  background-color: #fcfbfb;
 }
 
 /* Featured Products in Sidebar */
@@ -503,74 +658,89 @@
   font-weight: 700;
 }
 
-/* Horizontal Product Cards in Content */
-.lucira-blogs .image-text-products-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  /* Tight gap as per screenshot */
-  margin: 20px 0;
-}
-
-@media (min-width: 768px) {
-  .lucira-blogs .image-text-products-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+/* ============================================================
+   In-content product cards  (universal for every blog)
+   Real markup:
+   .image-text-products-section
+     .image-text-products-grid
+       .image-text-product-card
+         a.image-text-product-link           <- the flex row/column
+           .image-text-product-image > img
+           .image-text-product-info
+             .image-text-product-rating > .star-rating > .star(.filled) + .rating-text
+             h3.image-text-product-title
+             .image-text-product-price > .current-price + .compare-price
+             .image-text-product-cta > .view-details-text + .arrow-icon
+   ============================================================ */
+.lucira-blogs .image-text-products-section {
+  margin: 32px 0;
 }
 
 .lucira-blogs .image-text-products-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  margin: 24px 0;
+  margin: 0;
 }
 
-/* Mobile Vertical Layout (2-column) */
 .lucira-blogs .image-text-product-card {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  gap: 8px !important;
-  padding: 10px !important;
   background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 6px;
-  text-decoration: none !important;
-  color: inherit !important;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  border: 1px solid #f0e8e8;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
   height: 100%;
+  box-shadow: 0 2px 10px rgba(160, 90, 100, 0.06);
 }
 
 .lucira-blogs .image-text-product-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border-color: #e5e5e5;
-  transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(160, 90, 100, 0.13);
+  border-color: #dfc9cb;
+  transform: translateY(-4px);
+}
+
+/* the <a> is the actual layout element */
+.lucira-blogs .image-text-product-link,
+.lucira-blogs .image-text-product-card > a {
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
+  height: 100%;
+  text-decoration: none !important;
+  color: inherit !important;
 }
 
 .lucira-blogs .image-text-product-image {
   width: 100%;
-  aspect-ratio: 1/1;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 4px;
-  background-color: #fcfcfc;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fdf5f5 0%, #f7eff0 100%);
   flex-shrink: 0;
 }
 
 .lucira-blogs .image-text-product-image img {
-  max-width: 90%;
-  max-height: 90%;
+  max-width: 82%;
+  max-height: 82%;
   object-fit: contain;
+  mix-blend-mode: multiply;
+  transition: transform 0.3s ease;
+}
+
+.lucira-blogs .image-text-product-card:hover .image-text-product-image img {
+  transform: scale(1.05);
 }
 
 .lucira-blogs .image-text-product-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
   text-align: left;
 }
@@ -578,146 +748,133 @@
 .lucira-blogs .image-text-product-rating {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
+  gap: 5px;
+  min-height: 13px;
 }
 
 .lucira-blogs .star-rating {
-  display: flex;
+  display: inline-flex;
   gap: 1px;
 }
 
 .lucira-blogs .star {
-  color: #ffb400;
-  font-size: 9px;
+  color: #e0d6d0;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.lucira-blogs .star.filled {
+  color: #e2a93c;
 }
 
 .lucira-blogs .rating-text {
   font-family: var(--font-figtree), sans-serif;
-  font-size: 9px;
-  color: #777;
+  font-size: 10px;
+  color: #8a8078;
   font-weight: 500;
 }
 
 .lucira-blogs .image-text-product-title {
   font-family: var(--font-figtree), sans-serif !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  color: #1a1a1a;
-  line-height: 1.3;
-  margin: 0;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #1a1a1a !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-decoration: none !important;
 }
 
-.lucira-blogs .image-text-product-price-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  margin-top: auto;
-  padding-top: 4px;
-}
-
 .lucira-blogs .image-text-product-price {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .lucira-blogs .current-price {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: #1a1a1a;
   font-family: var(--font-figtree), sans-serif;
 }
 
 .lucira-blogs .compare-price {
-  font-size: 10px;
-  color: #999;
+  font-size: 11px;
+  color: #9a9a9a;
   text-decoration: line-through;
   font-family: var(--font-figtree), sans-serif;
 }
 
-.lucira-blogs .view-details-text {
-  font-family: var(--font-figtree), sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  color: #a68380;
-  text-decoration: none !important;
-  border-bottom: none !important;
+.lucira-blogs .image-text-product-cta {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 8px;
+  color: var(--blog-primary);
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.lucira-blogs .image-text-product-card:hover .image-text-product-cta {
+  border-color: var(--blog-primary);
+}
+
+.lucira-blogs .view-details-text {
+  color: inherit;
+  text-decoration: none !important;
+  border-bottom: none !important;
   white-space: nowrap;
 }
 
-.lucira-blogs .image-text-product-card,
-.lucira-blogs .image-text-product-card *,
-.lucira-blogs .view-details-text,
-.lucira-blogs .view-details-text * {
+.lucira-blogs .arrow-icon {
+  color: var(--blog-primary);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.lucira-blogs .image-text-product-card a,
+.lucira-blogs .image-text-product-card a * {
   text-decoration: none !important;
-  /* border-bottom: none !important; */
   box-shadow: none !important;
 }
 
-.lucira-blogs .view-details-text::after,
-.lucira-blogs .view-details-text span,
-.lucira-blogs .view-details-text i {
-  display: none !important;
-}
-
-/* Desktop Horizontal Restoration */
+/* Desktop: horizontal card */
 @media (min-width: 768px) {
-  .lucira-blogs .image-text-product-card {
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 16px !important;
-    padding: 16px !important;
+  .lucira-blogs .image-text-product-link,
+  .lucira-blogs .image-text-product-card > a {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding: 18px;
   }
 
   .lucira-blogs .image-text-product-image {
-    flex: 0 0 100px;
-    width: 100px;
-    height: 100px;
+    flex: 0 0 110px;
+    width: 110px;
+    height: 110px;
     aspect-ratio: auto;
   }
 
-  .lucira-blogs .image-text-product-info {
-    text-align: left;
-    gap: 6px;
-  }
-
-  .lucira-blogs .image-text-product-rating {
-    justify-content: flex-start;
-  }
-
   .lucira-blogs .image-text-product-title {
-    font-size: 16px !important;
-    -webkit-line-clamp: 2;
-  }
-
-  .lucira-blogs .image-text-product-price-row {
-    flex-direction: row;
-    justify-content: space-between;
-    margin-top: 4px;
+    font-size: 15px !important;
+    font-weight: 500 !important;
   }
 
   .lucira-blogs .current-price {
-    font-size: 16px;
+    font-size: 17px;
   }
-
-  .lucira-blogs .view-details-text {
-    font-size: 12px;
-    margin-top: 0;
-  }
-}
-
-.lucira-blogs .view-details-text:hover {
-  opacity: 1;
 }
 
 /* Author Testimonial Card */

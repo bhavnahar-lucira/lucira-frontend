@@ -6,6 +6,7 @@ import {
   getAllArticleHandles
 } from "@/lib/blogs";
 import BlogArticleClient from "@/components/blogs/BlogArticleClient";
+import { getReadingTimeLabel } from "@/lib/readingTime";
 import "./blog-article.css";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 
@@ -35,13 +36,6 @@ function formatDate(value) {
   });
 }
 
-function readingTime(article) {
-  const text = article.content || stripHtml(article.contentHtml);
-  const words = text.split(/\s+/).filter(Boolean).length;
-  if (!words) return null;
-  return `${Math.max(1, Math.ceil(words / 220))} Mins`;
-}
-
 function slugify(value) {
   return value
     .toLowerCase()
@@ -59,13 +53,33 @@ function prepareArticleHtml(html) {
     .replace(/href="https:\/\/www\.lucirajewelry\.com\//g, 'href="/')
     .replace(/href="\/(products|collections|blogs)\//g, 'href="/$1/');
 
+  // Normalise every table (themed comparison tables + bare Shopify tables that
+  // ship with no class): tag it and wrap it in a horizontal-scroll shell so the
+  // stylesheet can render it full-width on desktop and scrollable on mobile,
+  // consistently across every blog.
+  processedHtml = processedHtml
+    .replace(/<table\b([^>]*)>/gi, (match, attrs) => {
+      const tagged = /class=/i.test(attrs)
+        ? attrs.replace(/class=(["'])(.*?)\1/i, 'class=$1$2 blog-data-table$1')
+        : `${attrs} class="blog-data-table"`;
+      return `<div class="blog-table-wrap"><table${tagged}>`;
+    })
+    .replace(/<\/table>/gi, "</table></div>");
+
   const toc = [];
   const usedIds = new Set();
   const finalHtml = processedHtml.replace(/<h([2-3])([^>]*)>(.*?)<\/h\1>/gi, (match, level, attrs, content) => {
     const label = stripHtml(content);
     if (!label) return match;
 
-    const existingId = attrs.match(/\sid=["']([^"']+)["']/i)?.[1];
+    // Product-card titles ship as <h3 class="image-text-product-title">; they
+    // are not article sections and must not pollute the Table of Content.
+    if (/image-text-product-title|image-text-product/i.test(attrs)) return match;
+
+    // Strip Shopify inline styles so CSS classes take full control
+    let cleanAttrs = attrs.replace(/\s*style=["'][^"']*["']/gi, "");
+
+    const existingId = cleanAttrs.match(/\sid=["']([^"']+)["']/i)?.[1];
     let id = existingId || slugify(label);
     let count = 2;
 
@@ -77,7 +91,7 @@ function prepareArticleHtml(html) {
     usedIds.add(id);
     toc.push({ id, label, level: Number(level) });
 
-    const nextAttrs = existingId ? attrs : `${attrs} id="${id}"`;
+    const nextAttrs = existingId ? cleanAttrs : `${cleanAttrs} id="${id}"`;
     return `<h${level}${nextAttrs}>${content}</h${level}>`;
   });
 
@@ -148,7 +162,7 @@ export default async function ArticlePage({ params }) {
   const displayTitle = article.seo?.title || article.title || contentTitle || article.blogTitle || blogHandle.charAt(0).toUpperCase() + blogHandle.slice(1);
   
   const publishedDate = formatDate(article.publishedAt || article.created_at || new Date().toISOString());
-  const readTime = readingTime(article);
+  const readTime = getReadingTimeLabel(article);
   const { html: bodyHtml, toc } = prepareArticleHtml(article.contentHtml || article.content);
 
   // If the body is empty, Shopify 2.0 sections scraping likely failed (e.g. rate

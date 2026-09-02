@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LazyImage from "../common/LazyImage";
+import { getReadingTimeLabel } from "@/lib/readingTime";
 
 export default function BlogCard({ article, blogHandle }) {
   // Helper to format date
@@ -19,7 +20,7 @@ export default function BlogCard({ article, blogHandle }) {
     return body.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim().substring(0, 160) + "...";
   };
 
-  const readTime = article.read_time?.value || "5 min read";
+  const readTime = getReadingTimeLabel(article) || "5 min read";
   const date = formatDate(article.publishedAt);
   const excerpt = getExcerpt(article);
   const href = `/blogs/${blogHandle}/${article.handle}`;
