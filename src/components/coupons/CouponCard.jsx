@@ -3,8 +3,13 @@
 import React from "react";
 import { CheckCircle, Copy, Loader2, Tag } from "lucide-react";
 import { useSelector } from "react-redux";
-import OfferCategoryIcon, { getOfferTheme } from "./offerCategoryTheme";
+import OfferCategoryIcon from "./offerCategoryTheme";
 import { getOfferCategory, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
+
+// Bank-offer tickets share the ₹-ladder's house palette — the metal only
+// shows through the icon and the "On Diamond/Plain Gold Products" line, so the
+// drawer reads as one set of coupons rather than three colour schemes.
+const BANK_PRIMARY = "#5C3E35";
 
 /**
  * Ticket-style coupon card shared by the PDP unlock strip and the cart's
@@ -45,12 +50,25 @@ export default function CouponCard({
 }) {
   const user = useSelector((state) => state.user?.user);
   const category = isBankOffer ? getOfferCategory(coupon) : null;
-  const theme = isBankOffer ? getOfferTheme(category) : null;
 
   const bankAmountLabel = isBankOffer
     ? coupon.discountType === "percentage" || coupon.valueType === "PERCENTAGE"
       ? `${coupon.discountValue ?? coupon.value}%`
       : `₹${Number(coupon.discountValue ?? coupon.value ?? 0).toLocaleString("en-IN")}`
+    : null;
+  // Bank offer sub-line: once the cart qualifies, lead with what the shopper
+  // stands to save; until then, the metal scope plus the dashboard minimum
+  // spend (the "On Purchase above ₹…" qualifier the ₹-ladder coupons carry).
+  // The minimum is dropped on the space-tight PDP mini strip.
+  const bankMinAmount = isBankOffer ? Number(coupon.minAmount || 0) : 0;
+  const bankSavings = isBankOffer ? Math.round(Number(coupon.savings || 0)) : 0;
+  const bankCategoryLabel = isBankOffer ? OFFER_CATEGORY_LABEL[category] : "";
+  const bankConditionLabel = isBankOffer
+    ? isApplicable && bankSavings > 0
+      ? `You can save ₹${bankSavings.toLocaleString("en-IN")} on ${bankCategoryLabel.toLowerCase()}`
+      : bankMinAmount > 0 && !isMini
+        ? `On ${bankCategoryLabel} · above ₹${bankMinAmount.toLocaleString("en-IN")}/-`
+        : `On ${bankCategoryLabel}`
     : null;
   const isCopied = copiedCode === coupon.code;
   const liveCodes = (appliedCodes && appliedCodes.length
@@ -72,8 +90,7 @@ export default function CouponCard({
     <div className={`flex ${isMini ? 'h-24 md:h-28' : 'h-30 sm:h-30 min-[1500px]:h-30'} rounded-sm overflow-hidden relative shrink-0 shadow-xs bg-transparent ${className}`}>
       {/* Left Discount Vertical Tab (No border around it) */}
       <div
-        className={`${isMini ? 'w-[32px] md:w-[38px]' : 'w-[40px]'} ${isBankOffer ? '' : 'bg-[#5C3E35]'} flex items-center justify-center relative shrink-0 rounded-l-sm`}
-        style={isBankOffer ? { background: theme.accent } : undefined}
+        className={`${isMini ? 'w-[32px] md:w-[38px]' : 'w-[40px]'} bg-[#5C3E35] flex items-center justify-center relative shrink-0 rounded-l-sm`}
       >
         {/* Left Ticket Cutout/Notch (clean bite, no border) */}
         <div className={`absolute ${isMini ? '-left-[5px] w-2.5 h-2.5 md:-left-[6px] md:w-3.5 md:h-3.5' : '-left-[7px] w-3.5 h-3.5'} bg-[#FFF8F6] rounded-full z-20 top-1/2 -translate-y-1/2`} />
@@ -86,24 +103,20 @@ export default function CouponCard({
       </div>
 
       {/* Vertical Dashed Divider */}
-      <div
-        className="border-l border-dashed border-[#FBE3DC] h-full z-10"
-        style={isBankOffer ? { borderColor: theme.tileBorder } : undefined}
-      />
+      <div className="border-l border-dashed border-[#FBE3DC] h-full z-10" />
 
       {/* Right Content Area (With border on top, right, bottom) */}
       <div
-        className={`flex-1 ${isMini ? 'p-2 md:p-3' : 'p-3'} flex flex-col justify-between min-w-0 ${isBankOffer ? '' : 'bg-white'} rounded-r-sm border-y border-r border-[#FBE3DC] relative ${isDimmed ? 'opacity-55' : ''}`}
-        style={isBankOffer ? { background: theme.background, borderColor: theme.border } : undefined}
+        className={`flex-1 ${isMini ? 'p-2 md:p-3' : 'p-3'} flex flex-col justify-between min-w-0 bg-white rounded-r-sm border-y border-r border-[#FBE3DC] relative ${isDimmed ? 'opacity-55' : ''}`}
       >
         {/* Top Info & Vertical Capsule Logo */}
         <div className="flex justify-between items-start gap-1">
           <div className="min-w-0">
             <h4
-              className={`${isMini ? 'text-[0.8rem] md:text-[0.95rem] font-semibold' : 'text-[1rem] sm:text-[1.1rem] font-semibold'} text-[#4E3629] tracking-normal mt-0.5 leading-[1.4] font-figtree`}
+              className={`${isMini ? 'text-[0.8rem] md:text-[0.95rem] font-semibold' : 'text-[1rem] sm:text-[1.1rem] font-semibold'} text-[#4E3629] tracking-normal mt-0 mb-1 leading-[1.4] font-figtree`}
             >
               {isBankOffer ? (
-                <>Additional <span style={{ color: theme.accent }}>{bankAmountLabel}</span> Off</>
+                <>Additional <span style={{ color: BANK_PRIMARY }}>{bankAmountLabel}</span> Off</>
               ) : (
                 coupon.title
               )}
@@ -111,7 +124,7 @@ export default function CouponCard({
             <span
               className={`${isMini ? 'text-[0.625rem] md:text-[0.725rem] font-normal md:font-medium' : 'text-[0.7rem] sm:text-[0.75rem] font-medium'} text-black block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal`}
             >
-              {isBankOffer ? `On ${OFFER_CATEGORY_LABEL[category]}` : coupon.condition}
+              {isBankOffer ? bankConditionLabel : coupon.condition}
             </span>
           </div>
 
@@ -119,10 +132,9 @@ export default function CouponCard({
               so the card says which half of the cart it covers at a glance. */}
           {isBankOffer ? (
             <span
-              className={`${isMini ? 'w-[24px] h-[24px] md:w-[28px] md:h-[28px]' : 'w-[30px] h-[30px]'} shrink-0 mt-0.5 flex items-center justify-center rounded-[5px]`}
-              style={{ background: theme.tileBg, border: `1px solid ${theme.tileBorder}` }}
+              className={`${isMini ? 'w-[24px] h-[24px] md:w-[28px] md:h-[28px]' : 'w-[30px] h-[30px]'} shrink-0 mt-0.5 flex items-center justify-center rounded-[5px] bg-[#FEF9F6] border border-[#EADFD8]`}
             >
-              <OfferCategoryIcon category={category} className={isMini ? "w-3.5 h-3.5 md:w-4 md:h-4" : "w-[18px] h-[18px]"} />
+              <OfferCategoryIcon category={category} color={BANK_PRIMARY} className={isMini ? "w-3.5 h-3.5 md:w-4 md:h-4" : "w-[18px] h-[18px]"} />
             </span>
           ) : (
             <img

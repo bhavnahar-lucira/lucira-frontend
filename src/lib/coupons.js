@@ -322,6 +322,35 @@ export const getCategoryBase = (category, { diamondTotal = 0, goldTotal = 0, pro
 };
 
 /**
+ * The value of the cart a featured/bank offer is actually measured against:
+ * its category slice (diamond rule → diamond lines, etc.), minus whatever that
+ * rule's dashboard "Exclusions" carve out. Never negative.
+ */
+export const getFeaturedOfferBase = (coupon, totals, excludedTotalsByRule = {}) =>
+  Math.max(
+    0,
+    getCategoryBase(getOfferCategory(coupon), totals) - Number(excludedTotalsByRule[coupon?.id] || 0)
+  );
+
+/**
+ * Whether a featured/bank offer qualifies for this cart — the cart holds
+ * something its metal covers AND that slice clears the rule's dashboard
+ * minimum spend.
+ *
+ * This is the single source of truth for that decision. The Shopify code
+ * behind a "code" featured offer only knows the whole-cart subtotal, so a
+ * metal-specific minimum ("₹25,000 of plain gold") is enforced nowhere but
+ * here — the banner uses it to decide what to show, and CartSummary uses it to
+ * strip an applied offer the moment the cart drops back under the bar (e.g. the
+ * shopper lowers a quantity). If those two ever disagree the banner advertises
+ * a saving the order won't get.
+ */
+export const isFeaturedOfferEligible = (coupon, totals, excludedTotalsByRule = {}) => {
+  const base = getFeaturedOfferBase(coupon, totals, excludedTotalsByRule);
+  return base > 0 && base >= Number(coupon?.minAmount || 0);
+};
+
+/**
  * How an applied offer is named in the price breakdown — "Additional 5% Off",
  * the same wording the featured banner uses, so the row the customer ends up
  * paying by is recognisably the offer they clicked.

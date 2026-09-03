@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -18,7 +18,7 @@ import CartContact from "./CartContact";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import CouponCard from "@/components/coupons/CouponCard";
 import OfferCategoryIcon from "@/components/coupons/offerCategoryTheme";
-import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount, getOfferCategory, getCategoryBase, getItemOfferCategory, getAppliedOfferLabel, canCombineOffers, OFFER_CATEGORY, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
+import { COUPONS, COUPON_DISCLAIMER, getApplicableCouponCode, getApplicableCouponCodes, calculateCouponDiscount, getOfferCategory, getItemOfferCategory, getAppliedOfferLabel, canCombineOffers, getFeaturedOfferBase, isFeaturedOfferEligible, OFFER_CATEGORY, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
 import { apiFetch } from "@/lib/api";
 import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
@@ -39,6 +39,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const [isApplying, setIsApplying] = useState(false);
   const [applyingCode, setApplyingCode] = useState(null);
   const [dynamicCoupons, setDynamicCoupons] = useState(null);
+  // Drawer filter: "all" | "bank" | "coupons".
+  const [couponTab, setCouponTab] = useState("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -523,11 +525,36 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const featuredBankOffers = (dynamicCoupons || [])
     .filter((c) => c.isFeatured)
     .map((c) => {
-      const category = getOfferCategory(c);
-      const base = Math.max(0, getCategoryBase(category, { diamondTotal, goldTotal, productTotal }) - (excludedTotalsByRule[c.id] || 0));
-      return { ...c, category, isApplicable: base > 0 && base >= Number(c.minAmount || 0) };
+      const base = getFeaturedOfferBase(c, offerTotals, excludedTotalsByRule);
+      // Estimated saving for the card copy — a percentage rule against its
+      // metal slice, or the flat value. The exact figure is whatever Shopify
+      // returns on apply.
+      const savings = c.discountType === "percentage"
+        ? base * (Number(c.discountValue || 0) / 100)
+        : Number(c.discountValue || 0);
+      return {
+        ...c,
+        category: getOfferCategory(c),
+        isApplicable: isFeaturedOfferEligible(c, offerTotals, excludedTotalsByRule),
+        savings,
+      };
     })
     .sort((a, b) => Number(b.isApplicable) - Number(a.isApplicable));
+
+  // Drawer filter tabs — "All / Bank Offers / Coupons". Bank offers and the
+  // ₹-ladder are two different things a shopper filters between; the counts
+  // come straight off the two lists the drawer already builds. A category with
+  // nothing in it drops its tab, and "All" always stays.
+  const bankOfferCount = featuredBankOffers.length;
+  const ladderCount = couponsList.length;
+  const couponTabs = [
+    { key: "all", label: "All", count: bankOfferCount + ladderCount },
+    { key: "bank", label: "Bank Offers", count: bankOfferCount },
+    { key: "coupons", label: "Coupons", count: ladderCount },
+  ].filter((t) => t.key === "all" || t.count > 0);
+  // A cart edit can empty the tab that's selected — fall back to "All" so the
+  // list never goes blank under a still-highlighted tab.
+  const activeCouponTab = couponTabs.some((t) => t.key === couponTab) ? couponTab : "all";
 
   // A featured offer is claimed from its banner, never typed, so its code is
   // never shown to the customer — printing it here would be the one place it
@@ -572,6 +599,59 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     const pct = c?.valueType === "PERCENTAGE" ? Number(c.value) : Number(c?.discountValue) || 0;
     return acc + (Number.isFinite(pct) ? pct : 0);
   }, 0);
+
+  // A featured/bank offer carries a dashboard minimum spend, checked against
+  // its own metal's slice of the cart (see isFeaturedOfferEligible — the same
+  // gate the drawer's "Not Applicable" badge and the banner already use).
+  // Nothing re-checks that minimum once the offer is on the cart: /coupon/
+  // validate only knows the whole-cart subtotal, and an automatic rule is
+  // backend-vetted at claim time only — so lowering a quantity back under the
+  // bar leaves the discount applied on a cart that no longer qualifies. Drop
+  // it the same way the coupon re-validation above drops an ineligible code.
+  //
+  // Every applied code is checked, not just appliedCoupons[0] (all the
+  // re-validation effect sees), so a combined diamond + gold pair can't carry
+  // a stale half. A short debounce rides out the item/total desync while a
+  // quantity edit round-trips.
+  const featuredMinFiredRef = useRef(new Set());
+  useEffect(() => {
+    if (!isDynamicCouponsList) return;
+
+    const totals = { diamondTotal, goldTotal, productTotal };
+    const fired = featuredMinFiredRef.current;
+
+    const stale = allAppliedCodes
+      .map((code) => (dynamicCoupons || []).find(
+        (c) => c.isFeatured && String(c.code).toUpperCase() === code
+      ))
+      .find((rule) => rule && !isFeaturedOfferEligible(rule, totals, excludedTotalsByRule));
+
+    // Nothing under its minimum — clear the "already handled" marks so a later
+    // dip is acted on afresh.
+    if (!stale) {
+      fired.clear();
+      return;
+    }
+    const key = String(stale.code).toUpperCase();
+    if (fired.has(key)) return;
+
+    const timer = setTimeout(() => {
+      fired.add(key);
+      const min = Number(stale.minAmount || 0);
+      if (stale.method === "automatic") {
+        unclaimDiscount(stale.id).catch(() => {});
+      } else {
+        dispatch(removeCoupon(stale.code || key));
+      }
+      toast.error(
+        min > 0
+          ? `Offer removed — your cart is below the ₹${min.toLocaleString("en-IN")} minimum for it.`
+          : "Offer removed — your cart no longer qualifies for it.",
+        { icon: <Check className="w-4 h-4" />, toastId: `featured-offer-stale-${key}` }
+      );
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [isDynamicCouponsList, allAppliedCodes, dynamicCoupons, diamondTotal, goldTotal, productTotal, excludedTotalsByRule, dispatch, unclaimDiscount]);
 
   // The featured offer the banner isn't leading with, if there is exactly one
   // — surfaced as the "also available" line under the Apply Coupon card. Both
@@ -674,7 +754,6 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           row below is flush (margin 0) so it stays clipped to the Apply
           Coupon card. */}
       <div className="flex flex-col mb-[20px]">
-        <h3 className="font-figtree text-sm font-semibold text-[#3D2B28] uppercase tracking-[0.4px] ml-0 mb-[14px] lg:hidden">Offer Zone</h3>
         <FeaturedOfferBanner
           dynamicCoupons={dynamicCoupons}
           activeDiscounts={activeDiscounts}
@@ -754,7 +833,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           </div>
         )}
         <div className="flex justify-between items-center font-figtree text-base">
-          <span className={appliedCoupon ? "text-[#189351] font-semibold uppercase tracking-wide" : "text-[#000000]"}>
+          <span className={appliedCoupon ? "text-[#189351] font-semibold capitalize tracking-wide" : "text-[#000000]"}>
             {appliedCoupon ? appliedCouponLabel : "Coupon Discount"}
           </span>
           {appliedCoupon ? (
@@ -832,7 +911,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
             )}
 
             <div className="flex justify-between font-figtree text-[0.75rem] items-center mb-2 leading-[1.4]">
-              <span className={appliedCoupon ? "font-semibold uppercase tracking-wide text-[#189351]" : "text-black"}>
+              <span className={appliedCoupon ? "font-semibold capitalize tracking-wide text-[#189351]" : "text-black"}>
                 {appliedCoupon ? appliedCouponLabel : "Coupon Discount"}
               </span>
               {appliedCoupon ? (
@@ -919,12 +998,13 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
       {/* Contact Section */}
       <CartContact productName={firstProductName} />
 
-      {/* Saving Zone — one drawer for both breakpoints, rendered once at the
-          root so the mobile/desktop trigger groups share a single instance. */}
+      {/* Coupons & Bank Offers — one drawer for both breakpoints, rendered once
+          at the root so the mobile/desktop trigger groups share a single
+          instance. */}
       <CouponDrawer
         open={isCouponDrawerOpen}
         onClose={() => setIsCouponDrawerOpen(false)}
-        title="Saving Zone"
+        title="Coupons & Bank Offers"
       >
         {/* Manual code entry — locked while a coupon is live, since a cart can
             only carry one at a time. */}
@@ -978,7 +1058,29 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           </div>
         )}
 
-
+        {/* Filter tabs — All / Bank Offers / Coupons. Only once there's a
+            logged-in shopper with something to filter. */}
+        {user && couponTabs.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+            {couponTabs.map((t) => {
+              const active = activeCouponTab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setCouponTab(t.key)}
+                  className={`shrink-0 rounded-full border px-3.5 py-1.5 font-figtree text-[12px] font-semibold transition-colors cursor-pointer ${
+                    active
+                      ? "border-[#5C3E35] bg-[#5C3E35] text-white"
+                      : "border-[#EADFD8] bg-white text-[#5C3E35] hover:border-[#5C3E35]/40"
+                  }`}
+                >
+                  {t.label} ({t.count})
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {!user ? (
           <div className="rounded-sm border border-[#EADFD8] bg-[#FFF8F6] px-5 py-6 flex flex-col items-center justify-center text-center mt-2">
@@ -1016,39 +1118,57 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
           </div>
         ) : (
           <>
-            {/* Bank discounts lead the list — same ticket as every other
-                coupon, highlighted in its metal so it reads as the headline
-                offer rather than another rung on the ₹-ladder. */}
-            {featuredBankOffers.map((offer) => (
-              <div key={offer.code} className="w-full">
-                <CouponCard
-                  coupon={offer}
-                  className="w-full"
-                  mode="apply"
-                  isBankOffer
-                  onApply={handleApplyCoupon}
-                  onRemove={handleRemoveCoupon}
-                  applyingCode={applyingCode}
-                  appliedCodes={allAppliedCodes}
-                  allowCombine={canCombineOffers([...hydratedAppliedCoupons, offer], offerTotals)}
-                  appliedCode={effectiveAppliedCode}
-                  isApplicable={offer.isApplicable}
-                  disabled={!!appliedGiftItem}
-                />
-              </div>
-            ))}
-
-            {/* Every card is disabled — say why rather than leaving a dead list */}
-            {!appliedCoupon && couponsList.length > 0 && applicableCoupons.length === 0 && items.length > 0 && (
-              <div className="rounded-sm border border-[#EADFD8] bg-white px-3.5 py-2.5">
-                <p className="font-figtree text-xs font-medium leading-[1.4] text-[#000000]">
-                  These coupons apply to diamond products only. Add a diamond product to unlock them.
-                </p>
-              </div>
+            {/* Bank discounts — same ticket as every other coupon, highlighted
+                in its metal so it reads as the headline offer rather than
+                another rung on the ₹-ladder. Hidden when the "Coupons" tab is
+                active. */}
+            {activeCouponTab !== "coupons" && bankOfferCount > 0 && (
+              <>
+                {activeCouponTab === "all" && (
+                  <h4 className="font-figtree text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[#5C3E35]">
+                    Bank Offers
+                  </h4>
+                )}
+                {featuredBankOffers.map((offer) => (
+                  <div key={offer.code} className="w-full">
+                    <CouponCard
+                      coupon={offer}
+                      className="w-full"
+                      mode="apply"
+                      isBankOffer
+                      onApply={handleApplyCoupon}
+                      onRemove={handleRemoveCoupon}
+                      applyingCode={applyingCode}
+                      appliedCodes={allAppliedCodes}
+                      allowCombine={canCombineOffers([...hydratedAppliedCoupons, offer], offerTotals)}
+                      appliedCode={effectiveAppliedCode}
+                      isApplicable={offer.isApplicable}
+                      disabled={!!appliedGiftItem}
+                    />
+                  </div>
+                ))}
+              </>
             )}
 
-            {/* The dashboard-driven coupon ladder, in the same card design */}
-            {(() => {
+            {activeCouponTab !== "bank" && (
+              <>
+                {activeCouponTab === "all" && bankOfferCount > 0 && ladderCount > 0 && (
+                  <h4 className="font-figtree text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[#5C3E35] pt-1">
+                    Coupons
+                  </h4>
+                )}
+
+                {/* Every card is disabled — say why rather than leaving a dead list */}
+                {!appliedCoupon && couponsList.length > 0 && applicableCoupons.length === 0 && items.length > 0 && (
+                  <div className="rounded-sm border border-[#EADFD8] bg-white px-3.5 py-2.5">
+                    <p className="font-figtree text-xs font-medium leading-[1.4] text-[#000000]">
+                      These coupons apply to diamond products only. Add a diamond product to unlock them.
+                    </p>
+                  </div>
+                )}
+
+                {/* The dashboard-driven coupon ladder, in the same card design */}
+                {(() => {
               const baseCoupons = [...couponsList];
               const allApplicable = applicableCoupons.map((c) => c.code);
 
@@ -1088,6 +1208,8 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                   </div>
                 ));
             })()}
+              </>
+            )}
           </>
         )}
 
