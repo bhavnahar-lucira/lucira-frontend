@@ -13,14 +13,14 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 const CATEGORIES = [
-  { name: "Rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Rings.jpg", href: "/collections/rings" },
-  { name: "Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Earrings.jpg", href: "/collections/earrings" },
-  { name: "Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Bracelets.jpg", href: "/collections/bracelets" },
-  { name: "Necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Necklaces.jpg", href: "/collections/necklaces" },
-  { name: "Nosepins", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/homepage_nosepin.jpg?v=1780380197", href: "/collections/nosepins" },
-  { name: "Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Mangalsutra.jpg", href: "/collections/mangalsutra" },
-  { name: "Men's Ring", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensRing.jpg", href: "/collections/mens-rings" },
-  { name: "Men's Stud", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensStud.jpg", href: "/collections/mens-stud" },
+  { name: "Rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Rings_cdcd476d-83ad-4bc8-9463-0a13217a051c.jpg?v=1788436552", href: "/collections/rings" },
+  { name: "Earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Earrings_15f534ee-2965-489d-bb83-f5293775d792.jpg?v=1788436551", href: "/collections/earrings" },
+  { name: "Bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Tennis-Bracelet.jpg?v=1788436552", href: "/collections/bracelets" },
+  { name: "Necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Necklaces_c3067ae6-14cc-45c4-9d7b-6a66ae6d5f69.jpg?v=1788436552", href: "/collections/necklaces" },
+  { name: "Nosepins", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Nosepins.jpg?v=1788436551", href: "/collections/nosepins" },
+  { name: "Mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mangalsutras.jpg?v=1788436552", href: "/collections/mangalsutra" },
+  { name: "Men's Ring", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Men_27s-Ring.jpg?v=1788436552", href: "/collections/mens-rings" },
+  { name: "Men's Stud", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Men_27s-Stud.jpg?v=1788436552", href: "/collections/mens-stud" },
 ];
 
 export default function ExploreRange({ bgClass = "bg-white", paddingClass = "pt-5 pb-5 lg:pb-10" }) {
