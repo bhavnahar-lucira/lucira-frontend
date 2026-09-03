@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useSelector } from "react-redux";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, Zap, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import OfferCategoryIcon, { getOfferTheme } from "@/components/coupons/offerCategoryTheme";
-import { getOfferCategory, getCategoryBase, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
+import { getOfferCategory, getFeaturedOfferBase, isFeaturedOfferEligible, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
 
 /**
  * "Featured Offer" banner — sits above the Apply Coupon block, promoting
@@ -87,56 +87,66 @@ export function selectFeaturedOffers({
     .map((c) => {
       const isApplied = liveCodes.includes(String(c.code).toUpperCase());
       const category = getOfferCategory(c);
-      // Lines this rule excludes are not a base it can discount, so they come
-      // off before eligibility is judged — an all-excluded cart lands on
-      // base 0 and the offer drops out of the banner entirely.
-      const base = Math.max(0, getCategoryBase(category, totals) - Number(excludedTotalsByRule[c.id] || 0));
 
       if (c.method === "automatic") {
         // An automatic rule absent from activeDiscounts has no claimable id to
         // send, so there is nothing a banner could do with it — that one really
-        // does have to drop out rather than render a dead button.
+        // does have to drop out rather than render a dead button. Anything the
+        // backend DID return there it already vetted (collection match + real
+        // aggregate subtotal), so its presence is the eligibility signal.
         const live = (activeDiscounts || []).find((d) => d.id === c.id);
         if (!live && !isApplied) return null;
         return { ...c, category, claimed: live?.claimed ?? isApplied, savings: live?.cartSavings ?? 0, isApplicable: true };
       }
+
       // Code discounts have no live per-cart eligibility signal until
-      // submitted — approximate with "the cart holds something this offer can
-      // discount, and clears the rule's own minimum". Savings is an estimate
-      // for ranking only (the real figure is whatever Shopify returns on
-      // submit).
+      // submitted — lean on the one shared gate: the cart holds something this
+      // offer's metal covers AND that slice clears the rule's dashboard
+      // minimum. Being applied does NOT make a below-minimum offer eligible —
+      // the shopper may have just lowered a quantity under the bar, and
+      // CartSummary strips it on the same render this reports it.
       //
-      // An offer the cart can't take is scored here but filtered out at the
-      // end — neither the banner nor the "also available" teaser advertises
-      // a discount this cart wouldn't actually get.
-      const isApplicable = base > 0 && base >= Number(c.minAmount || 0);
+      // Savings is an estimate for ranking only (the real figure is whatever
+      // Shopify returns on submit).
+      const base = getFeaturedOfferBase(c, totals, excludedTotalsByRule);
+      const isApplicable = isFeaturedOfferEligible(c, totals, excludedTotalsByRule);
+      // "Almost there": the cart holds this metal but hasn't cleared the
+      // minimum. Not claimable, but worth showing as an "add ₹X more" nudge
+      // rather than staying invisible.
+      const isTeaser = !isApplied && !isApplicable && base > 0;
       const savings = c.discountType === "percentage" ? base * (c.discountValue / 100) : c.discountValue;
-      return { ...c, category, claimed: isApplied, savings, isApplicable };
+      return { ...c, category, claimed: isApplied, savings, isApplicable, isTeaser };
     })
     .filter(Boolean);
 
   // At most ONE banner out here. A mixed diamond + plain gold cart qualifies
   // for both offers, but they never stack — showing both side by side reads
-  // as if they add up. So the applied one leads (it has to stay removable),
-  // otherwise the highest-value offer wins.
+  // as if they add up. So an applied+eligible offer leads (it has to stay
+  // removable), otherwise the highest-value eligible offer wins, and failing
+  // that the closest "almost there" teaser.
   const offers = [...withEligibility].sort((a, b) => {
     if (a.claimed !== b.claimed) return a.claimed ? -1 : 1;
     if (a.isApplicable !== b.isApplicable) return a.isApplicable ? -1 : 1;
     return b.savings - a.savings;
   });
 
-  // Nothing in the cart qualifies for any featured offer — there's no banner
-  // to lead with, so nothing renders at all.
-  const primary = offers.find((o) => o.claimed || o.isApplicable) || null;
+  // Lead with a claimable/claimed offer; an applied one that has fallen back
+  // under its minimum is mid-removal (CartSummary strips it) so it is skipped
+  // here too. If nothing is claimable, fall back to an "add ₹X more" teaser so
+  // a cart that's close still sees what a little more unlocks. Nothing in
+  // either bucket means no banner at all.
+  const primary =
+    offers.find((o) => o.isApplicable) ||
+    offers.find((o) => o.isTeaser) ||
+    null;
   if (!primary) return { primary: null, others: [] };
 
-  // Only what this cart can actually take. `others` feeds the "also
-  // available" teaser under Apply Coupon, and an offer the cart doesn't
-  // qualify for reads there as a claimable deal that then refuses — so it is
-  // dropped rather than advertised.
+  // The "also available" line under Apply Coupon only ever names a second
+  // offer this cart can take right now — a teaser there would read as a
+  // claimable deal that then refuses.
   return {
     primary,
-    others: offers.filter((o) => o.code !== primary.code && (o.claimed || o.isApplicable)),
+    others: offers.filter((o) => o.code !== primary.code && o.isApplicable),
   };
 }
 
@@ -210,41 +220,72 @@ export default function FeaturedOfferBanner({
         const needsLogin = !best.claimed && !user;
         // The other offer is live — this one can't be claimed on top of it.
         const isBlockedByOther = !!claimedOffer && !best.claimed;
-        // Nothing in the cart this offer's metal applies to. It still shows,
-        // so the customer sees the whole offer structure, but Claim would only
-        // come back from Shopify as "not applicable to the items in your cart".
-        const isOutOfCategory = !best.claimed && !best.isApplicable;
-        const isDimmed = isBlockedByOther || isOutOfCategory;
+
+        // How much of the cart this offer's metal covers, and how far that is
+        // from the dashboard minimum spend — so a cart that is close gets a
+        // "you're almost there" nudge rather than a dead "not applicable".
+        const base = getFeaturedOfferBase(best, { diamondTotal, goldTotal, productTotal }, excludedTotalsByRule);
+        const minAmount = Number(best.minAmount || 0);
+        const minLabel = minAmount > 0 ? `₹${minAmount.toLocaleString("en-IN")}` : null;
+        const shortfall = minAmount > 0 ? Math.max(0, minAmount - base) : 0;
+        const hasNothingEligible = !best.claimed && base <= 0;
+        const isBelowMinimum = !best.claimed && base > 0 && !best.isApplicable;
+        // CLAIM can't win in either case; but only a genuinely empty category
+        // dims the tile — an "almost there" cart stays bright so it still pulls.
+        const isOutOfCategory = hasNothingEligible || isBelowMinimum;
+        const isDimmed = isBlockedByOther || hasNothingEligible;
+        const accent = best.claimed ? "#189351" : theme.accent;
+        // The CLAIM button only earns the shimmer + glow when tapping it would
+        // actually do something.
+        const claimIsLive = !best.claimed && !isBusy && !loading && !isBlockedByOther && !isOutOfCategory;
 
         return (
-    /* A flat tile in the metal's palest tint — no gradient, no border, no
-       shadow, in every state. The claimed state reads from the copy and the
-       Remove button, not from an outline. */
+    /* Reframed as an "Instant Bank Discount" callout — a white label strip over
+       the theme's tinted gradient body, so it reads as a bank perk worth
+       grabbing rather than one more coupon row. */
     <div
       key={best.code}
-      className={`relative w-full overflow-hidden border-0 shadow-none transition-colors ${isDimmed ? "opacity-60" : ""}`}
-      style={{ borderRadius: "8px", background: theme.flatBg }}
+      className={`relative w-full overflow-hidden transition-colors ${isDimmed ? "opacity-70" : ""}`}
+      style={{ background: theme.background }}
     >
+      {/* Eyebrow — a white strip that labels the tile an instant bank discount,
+          floating above the tinted body on a small gap. */}
+      <div
+        className="flex items-center gap-1.5 px-[10px] pt-[7px] pb-[8px] lg:px-[12px] lg:pt-[9px]"
+        style={{ background: "#ffffff", marginBottom: "10px" }}
+      >
+        {best.claimed ? (
+          <CheckCircle className="h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" style={{ color: accent }} />
+        ) : (
+          <Zap className="h-3 w-3 shrink-0 lg:h-3.5 lg:w-3.5" fill={accent} style={{ color: accent }} />
+        )}
+        <span
+          className="font-figtree text-[0.7rem] font-semibold uppercase leading-none tracking-[0.7px]"
+          style={{ color: accent }}
+        >
+          {best.claimed ? "Instant Bank Discount · Applied" : "Instant Bank Discount"}
+        </span>
+      </div>
 
       {/* Literal px, not p-2 — the site's root font-size varies by breakpoint,
           so rem padding drifts off the spec (p-2 lands at 6.5px in places). */}
-      <div className="relative flex items-center gap-2.5 p-[8px] sm:gap-3 lg:p-[10px]">
+      <div className="relative flex items-center gap-2.5 px-[10px] pb-[8px] sm:gap-3 lg:px-[12px] lg:pb-[10px]">
         <span
-          className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-[6px]"
+          className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[6px] lg:h-[42px] lg:w-[42px]"
           style={{ background: theme.tileSolid, border: `1px solid ${theme.tileBorder}` }}
         >
-          <OfferCategoryIcon category={best.category} className="h-[22px] w-[22px]" />
+          <OfferCategoryIcon category={best.category} className="h-[21px] w-[21px] lg:h-[23px] lg:w-[23px]" />
         </span>
 
         <div className="min-w-0 flex-1 text-left">
-          <p className="truncate font-figtree text-[0.85rem] font-semibold capitalize leading-[1.25] tracking-[0.01em] lg:text-[1rem]" style={{ color: theme.accent }}>
+          <p className="truncate font-figtree text-[0.75rem] font-semibold capitalize leading-[1.2] tracking-[0.01em] lg:text-[1.05rem]" style={{ color: theme.accent }}>
             Additional {amountLabel} Off
           </p>
 
-          {/* No code anywhere on a featured offer — Claim submits it for the
-              customer, so the code is never something they need to see or
-              share. The cart trigger hides it for the same reason. */}
-          <p className="mt-[3px] truncate font-figtree text-[0.68rem] leading-[1.3] text-black lg:mt-[6px] lg:text-[0.875rem]">
+          {/* One sub-line, never two. Claimable → what the shopper stands to
+              save; below the minimum → the "add ₹X more" nudge; empty category
+              → "add {metal}". No code anywhere — Claim submits it for them. */}
+          <p className="mt-[4px] truncate font-figtree text-[0.68rem] leading-[1.3] text-black lg:text-[0.82rem]">
             {best.claimed ? (
               best.savings > 0 ? (
                 <>
@@ -257,8 +298,29 @@ export default function FeaturedOfferBanner({
               ) : (
                 <>Applied to {categoryLabel} in your cart.</>
               )
+            ) : hasNothingEligible ? (
+              <>Add {categoryLabel.toLowerCase()} to grab this deal.</>
+            ) : isBelowMinimum ? (
+              <>
+                On {categoryLabel} &middot; add{" "}
+                <span className="font-semibold" style={{ color: theme.accent }}>
+                  &#8377;{shortfall.toLocaleString("en-IN")}
+                </span>{" "}
+                more
+              </>
+            ) : best.savings > 0 ? (
+              <>
+                You can save{" "}
+                <span className="font-semibold" style={{ color: theme.accent }}>
+                  &#8377;{Math.round(best.savings).toLocaleString("en-IN")}
+                </span>{" "}
+                on {categoryLabel.toLowerCase()}
+              </>
             ) : (
-              <>On {categoryLabel}</>
+              <>
+                On {categoryLabel}
+                {minLabel && <> &middot; above {minLabel}</>}
+              </>
             )}
           </p>
         </div>
@@ -267,7 +329,7 @@ export default function FeaturedOfferBanner({
           <button
             type="button"
             onClick={() => openLogin()}
-            className="ml-0 flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-[4px] px-3 font-figtree text-[12px] font-medium uppercase tracking-wide text-white transition hover:brightness-95 sm:h-9 sm:gap-1.5 sm:px-4 lg:ml-[20px] lg:h-10 lg:gap-2 lg:px-6 lg:text-[14px]"
+            className="ml-0 flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-[4px] px-3 font-figtree text-[12px] font-semibold uppercase tracking-wide text-white transition hover:brightness-95 sm:h-9 sm:gap-1.5 sm:px-4 lg:ml-[16px] lg:h-10 lg:gap-2 lg:px-6 lg:text-[14px]"
             style={{ background: theme.accent }}
           >
             <Lock className="hidden h-3.5 w-3.5 lg:block" />
@@ -281,17 +343,20 @@ export default function FeaturedOfferBanner({
           title={
             isBlockedByOther
               ? `Remove the ${claimedOffer.code} offer to use this one`
-              : isOutOfCategory
+              : hasNothingEligible
                 ? `Add ${categoryLabel.toLowerCase()} to your cart to use this offer`
-                : undefined
+                : isBelowMinimum
+                  ? `Add ₹${shortfall.toLocaleString("en-IN")} more in ${categoryLabel.toLowerCase()} to use this offer`
+                  : undefined
           }
           className={
             best.claimed
-              ? "ml-0 flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-[4px] px-2.5 font-figtree text-[10px] font-medium uppercase tracking-wide transition hover:bg-[#e7000b]/10 disabled:opacity-50 sm:h-9 sm:gap-1.5 sm:px-4 sm:text-[11px] lg:ml-[20px] lg:h-10 lg:gap-2 lg:px-6 lg:text-[13px]"
+              ? "ml-0 flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-[4px] px-2.5 font-figtree text-[10px] font-medium uppercase tracking-wide transition hover:bg-[#e7000b]/10 disabled:opacity-50 sm:h-9 sm:gap-1.5 sm:px-4 sm:text-[11px] lg:ml-[16px] lg:h-10 lg:gap-2 lg:px-6 lg:text-[13px]"
               // Claim carries the metal rather than the house brown, so the
               // whole banner reads as one offer instead of a tinted panel with
-              // an unrelated button dropped on it.
-              : "ml-0 flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-[4px] px-3 font-figtree text-[12px] font-medium uppercase tracking-wide text-white transition hover:brightness-95 disabled:opacity-50 sm:h-9 sm:gap-1.5 sm:px-4 lg:ml-[20px] lg:h-10 lg:gap-2 lg:px-6 lg:text-[14px]"
+              // an unrelated button dropped on it. shimmer-btn adds the slow
+              // sweep that says "act on this" — but only when it's live.
+              : `${claimIsLive ? "shimmer-btn " : ""}ml-0 flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-[4px] px-4 font-figtree text-[12px] font-semibold uppercase tracking-wide text-white transition hover:brightness-95 disabled:opacity-50 sm:h-9 sm:gap-1.5 sm:px-5 lg:ml-[16px] lg:h-10 lg:gap-2 lg:px-7 lg:text-[14px]`
           }
           style={
             best.claimed

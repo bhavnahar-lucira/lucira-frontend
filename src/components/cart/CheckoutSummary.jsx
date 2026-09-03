@@ -208,6 +208,19 @@ export default function CheckoutSummary({
       .filter(Boolean),
     dynamicCoupons
   );
+  // Whether the applied code is one of the metal-split bank offers (the ones
+  // that carry the "BANK OFFER" spine and the "Instant Bank Discount" banner) —
+  // so the generic summary rows can call it "Bank Discount" rather than
+  // "Coupon Discount". Needs the live coupon list, so it's false until that
+  // fetch lands (same as the cart's own featured-offer checks).
+  const isAppliedBankOffer =
+    Boolean(appliedCoupon) &&
+    (appliedCoupons?.length ? appliedCoupons : [appliedCoupon]).some((c) => {
+      const code = String((typeof c === "object" ? c?.code : c) || "").toUpperCase();
+      const rule = (dynamicCoupons || []).find((d) => String(d.code).toUpperCase() === code);
+      return rule?.isFeatured && rule?.offerLabel !== "discount";
+    });
+  const genericDiscountLabel = isAppliedBankOffer ? "Bank Discount" : "Coupon Discount";
   const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
   const discountValue = couponDiscountAmount;
@@ -522,7 +535,7 @@ export default function CheckoutSummary({
               )}
               {Boolean(appliedCoupon) && (
                 <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
-                  <span>Coupon Discount</span>
+                  <span>{genericDiscountLabel}</span>
                   <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                 </div>
               )}
@@ -538,7 +551,7 @@ export default function CheckoutSummary({
               {Boolean(appliedCoupon) && (
                 <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
                   <span className="text-[#000000]">
-                    {compactBreakdown ? "Cart Discount" : appliedCouponLabel}
+                    {compactBreakdown ? genericDiscountLabel : appliedCouponLabel}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {couponDiscountAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>

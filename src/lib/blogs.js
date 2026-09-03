@@ -519,6 +519,7 @@ export async function getArticlesByBlogHandleStorefront(blogHandle) {
               authorV2 {
                 name
               }
+              read_time: metafield(namespace: "custom", key: "read_time") { value }
             }
           }
         }
