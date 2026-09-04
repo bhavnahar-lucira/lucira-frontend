@@ -19,7 +19,7 @@ import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushPromoClick } from "@/lib/gtm";
 
-function ProductAudioButton({ src, className = "" }) {
+function ProductAudioButton({ src, className = "", productTitle = "", sku = "" }) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -49,6 +49,13 @@ function ProductAudioButton({ src, className = "" }) {
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
+      pushPromoClick({
+        creative_name: "Product Audio",
+        promo_id: sku || productTitle,
+        promo_name: productTitle,
+        promo_position: "Above Media Gallery",
+        location_id: "pdp",
+      });
       audio.play().catch(() => setIsPlaying(false));
     } else {
       audio.pause();
@@ -579,6 +586,8 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                {mounted && !isDesktop && product?.audioUrl && (
                  <ProductAudioButton
                    src={product.audioUrl}
+                   productTitle={product?.title}
+                   sku={activeVariant?.sku || product?.variants?.[0]?.sku}
                    className="flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 p-2.5 z-30"
                  />
                )}
