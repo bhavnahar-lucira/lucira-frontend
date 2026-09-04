@@ -325,6 +325,11 @@ export default function ProductPageClient({
     setIsMounted(true);
   }, []);
 
+  useLayoutEffect(() => {
+    // Force scroll to top synchronously before paint to avoid visual jumping on iOS
+    window.scrollTo(0, 0);
+  }, []);
+
   const mainAtcRef = useRef(null);
   const productDetailsRef = useRef(null);
   const reviewsRef = useRef(null);
@@ -1825,18 +1830,11 @@ export default function ProductPageClient({
     }
   }, [activeVariant, product, user]);
 
-  // Scroll to top on mount/refresh
-  useEffect(() => {
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
-    window.scrollTo(0, 0);
-    return () => {
-      if ('scrollRestoration' in window.history) {
-        window.history.scrollRestoration = 'auto';
-      }
-    };
-  }, []);
+  // Scroll positioning on navigation is handled app-wide by <ScrollRestoration>
+  // in the root layout. A local scrollTo(0, 0) here fired only once, post-paint,
+  // and its cleanup flipped scrollRestoration back to "auto" on every PDP exit —
+  // which let iOS Safari re-apply its own remembered offset while the page
+  // streamed in content, opening the PDP mid-scroll.
 
   const fetchSimilar = async () => {
     if (similarProducts.length > 0) {

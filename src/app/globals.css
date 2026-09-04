@@ -248,6 +248,14 @@
   }
 }
 
+/* PLP product grid: 3-up on desktop, only going 4-up past 1920px.
+   Unlayered so it wins over Tailwind's lg:grid-cols-3 (@layer utilities). */
+@media (min-width: 1920px) {
+  .plp-product-grid:not(.grid-cols-2) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .btn-shimmer-container {
   --speed: 1.2s;
   --cut: 1px;
