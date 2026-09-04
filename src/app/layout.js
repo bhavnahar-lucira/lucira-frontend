@@ -39,8 +39,7 @@ export const viewport = {
 };
 
 export default function RootLayout({ children }) {
-  //const isProd = process.env.NODE_ENV === "production";
-  const isProd = true; // For testing purposes, set to true. Change to false for development.
+  const isProd = process.env.NODE_ENV === "production";
 
   return (
     <html lang="en" suppressHydrationWarning>
