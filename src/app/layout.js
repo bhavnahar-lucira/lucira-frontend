@@ -12,6 +12,7 @@ import { organizationSchema, websiteSchema, storesSchema } from "@/lib/seo";
 import WebEngageRegistration from "@/components/common/WebEngageRegistration";
 import TabTitleAnimator from "@/components/common/TabTitleAnimator";
 import BodyClassManager from "@/components/common/BodyClassManager";
+import ScrollRestoration from "@/components/common/ScrollRestoration";
 import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
@@ -77,6 +78,7 @@ export default function RootLayout({ children }) {
             />
           </noscript>
         )}
+        <ScrollRestoration />
         <ReduxProvider>
           <Suspense fallback={null}>
             <AnalyticsProvider>
