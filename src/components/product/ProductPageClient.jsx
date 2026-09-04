@@ -11,7 +11,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { useAnalytics } from "@/hooks/useAnalytics";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -299,17 +299,12 @@ export default function ProductPageClient({
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
   const dispatch = useDispatch();
-  const { trackProductView, trackAddToCart } = useAnalytics();
-
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
-    if (product) {
-      trackProductView(product);
-    }
     return () => {
       delete window.__LUCIRA_PRODUCT__;
     };
-  }, [product, trackProductView]);
+  }, [product]);
 
   const user = useSelector(selectUser);
   const isMobile = useMediaQuery("(max-width: 1023px)");
@@ -697,6 +692,29 @@ export default function ProductPageClient({
 
   const [activeColor, setActiveColor] = useState(initialColor);
   const [activeKarat, setActiveKarat] = useState(initialKarat);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
+
+  // Track product_view for Postgres DB
+  useEffect(() => {
+    if (product?.title && activeVariant?.id) {
+      let sessionId = localStorage.getItem("cart_session_id");
+      if (!sessionId) {
+        sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
+        localStorage.setItem("cart_session_id", sessionId);
+      }
+      fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: "product_view",
+          page: window.location.href,
+          sessionId: sessionId,
+          productId: product.title,
+          variantId: activeVariant.id,
+        })
+      }).catch(e => console.error("Product view tracking failed:", e));
+    }
+  }, [product?.title, activeVariant?.id]);
   const [selectedSize, setSelectedSize] = useState(initialSize);
   const [activeVariant, setActiveVariant] = useState(initialVariant);
   const [priceBreakup, setPriceBreakup] = useState(null);
@@ -1423,7 +1441,6 @@ export default function ProductPageClient({
         ctaLocation: atcCtaLocation
       });
 
-      trackAddToCart(productData, 1);
 
       //gtm
 
@@ -2912,7 +2929,29 @@ export default function ProductPageClient({
                     variant="outline"
                     onClick={(e) => {
                       e.preventDefault();
-                      setIsSchemeOpen((prev) => !prev);
+                      setIsSchemeOpen((prev) => {
+                        const next = !prev;
+                        if (next) {
+                          // 🔥 Dual-write to Postgres via Internal Sync API
+                          let sessionId = localStorage.getItem("cart_session_id");
+                          if (!sessionId) {
+                            sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
+                            localStorage.setItem("cart_session_id", sessionId);
+                          }
+                          fetch('/api/track', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              event: "scheme_view",
+                              page: window.location.href,
+                              sessionId: sessionId,
+                              productId: product.title,
+                              variantId: activeVariant?.id,
+                            })
+                          }).catch(e => console.error("Scheme tracking failed:", e));
+                        }
+                        return next;
+                      });
                     }}
                     className={`w-full h-12 md:h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded relative overflow-hidden ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-[#5A413F] text-[#5A413F] hover:border-tertiary'}`}
                   >
