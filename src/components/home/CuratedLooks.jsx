@@ -9,6 +9,7 @@ import shopifyLoader from "@/utils/shopifyLoader";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 import { apiFetch } from "@/lib/api";
+import { pushPromoClick, getNumericId } from "@/lib/gtm";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -50,6 +51,57 @@ const GUTTER = "px-9 sm:px-12";
  * source assets or as a stored per-product value — not as one CSS factor.
  */
 
+/** promoClick push for any product click inside the section. */
+function trackCuratedPromoClick(product) {
+  pushPromoClick({
+    creative_name: "Curated looks",
+    location_id: "homepage",
+    promo_id: product?.variantId ? String(getNumericId(product.variantId)) : "",
+    promo_name: product?.name || "",
+  });
+}
+
+/**
+ * Skeleton mirror of the rendered section — heading, look photo and product
+ * column hold their real footprint, so the swap to content doesn't shift the
+ * page. Same bg-gray-100 / animate-pulse idiom as CollectionSlider's cards.
+ */
+function CuratedLooksSkeleton() {
+  return (
+    <section className="w-full overflow-hidden bg-white pt-12 md:pt-14">
+      <div className="container-main animate-pulse">
+        <div className="mb-6 flex flex-col items-center gap-2">
+          <div className="h-8 w-64 rounded bg-gray-100 lg:h-10 lg:w-80" />
+          <div className="h-4 w-56 rounded bg-gray-100 md:w-72" />
+        </div>
+
+        <div className="flex flex-col items-center gap-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-12">
+          <div className={`w-full lg:order-2 lg:justify-self-start ${COLUMN_MAX}`}>
+            <div className={`w-full ${LOOK_ASPECT} rounded-xl bg-gray-100`} />
+          </div>
+
+          <div className="flex w-full justify-center lg:order-1 lg:justify-self-end">
+            <div className={`flex w-full flex-col lg:aspect-square ${COLUMN_MAX}`}>
+              <div className={`min-h-0 flex-1 ${GUTTER}`}>
+                <div className="aspect-square w-full rounded-lg bg-gray-100 lg:aspect-auto lg:h-full" />
+              </div>
+              <div className={`mt-4 flex shrink-0 flex-col items-center gap-2 ${GUTTER}`}>
+                <div className="h-4 w-3/5 rounded bg-gray-100" />
+                <div className="h-6 w-2/5 rounded bg-gray-100" />
+              </div>
+              <div className="mt-4 flex shrink-0 justify-center gap-2">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="h-2 w-2 rounded-full bg-gray-100" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function OfferBadge({ label }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-2 lg:px-3 py-1 w-fit">
@@ -74,6 +126,7 @@ function ProductDetails({ product }) {
       <Link
         prefetch={false}
         href={product.href || "#"}
+        onClick={() => trackCuratedPromoClick(product)}
         className="max-w-full text-[14px] lg:text-base font-[450] leading-[1.6] hover:underline underline-offset-4 line-clamp-1"
       >
         {product.name}
@@ -169,13 +222,7 @@ export default function CuratedLooks() {
     swiper.slideTo(index);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="py-20 text-center">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-black border-t-transparent" />
-      </div>
-    );
-  }
+  if (loading) return <CuratedLooksSkeleton />;
 
   if (!look?.image || !look.products?.length) return null;
 
@@ -245,6 +292,7 @@ export default function CuratedLooks() {
                 <Link
                   prefetch={false}
                   href={product.href || "#"}
+                  onClick={() => trackCuratedPromoClick(product)}
                   className="relative block aspect-square w-full overflow-hidden rounded-lg bg-white lg:aspect-auto lg:h-full"
                 >
                   <LazyImage
