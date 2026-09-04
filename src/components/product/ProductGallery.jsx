@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import LazyImage from "../common/LazyImage";
-import { Play, Copy, X, ChevronLeft, ChevronRight, Maximize2, Share2, ZoomIn, ZoomOut, Eye, BookCopy, Info } from "lucide-react";
+import { Play, Pause, Volume2, Copy, X, ChevronLeft, ChevronRight, Maximize2, Share2, ZoomIn, ZoomOut, Eye, BookCopy, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductGallerySkeleton from "./ProductGallerySkeleton";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -18,6 +18,60 @@ import "swiper/css/thumbs";
 import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushPromoClick } from "@/lib/gtm";
+
+function ProductAudioButton({ src, className = "" }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!src) return;
+    const audio = new Audio(src);
+    audio.preload = "none";
+    audioRef.current = audio;
+    const onEnded = () => setIsPlaying(false);
+    const onPause = () => setIsPlaying(false);
+    const onPlay = () => setIsPlaying(true);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
+    return () => {
+      audio.pause();
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
+      audioRef.current = null;
+    };
+  }, [src]);
+
+  const toggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      audio.play().catch(() => setIsPlaying(false));
+    } else {
+      audio.pause();
+    }
+  };
+
+  if (!src) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={isPlaying ? "Pause product audio" : "Play product audio"}
+      aria-pressed={isPlaying}
+      className={className}
+    >
+      <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center pointer-events-none">
+        <Pause size={16} strokeWidth={1.8} className={isPlaying ? "" : "hidden"} />
+        <Volume2 size={16} strokeWidth={1.8} className={isPlaying ? "hidden" : ""} />
+      </span>
+    </button>
+  );
+}
 
 function formatCdnUrl(url) {
   if (!url || typeof url !== 'string') return url;
@@ -520,10 +574,16 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
           )}
 
           {/* Action Buttons Overlay */}
-          <div className="absolute bottom-4 left-2 right-2 flex justify-between items-center z-10">
-             <div onClick={(e) => e.stopPropagation()} className="data-no-swiping">
+          <div className="absolute bottom-4 left-2 right-2 flex justify-between items-end z-10">
+             <div onClick={(e) => e.stopPropagation()} className="data-no-swiping flex flex-col items-start gap-2">
+               {mounted && !isDesktop && product?.audioUrl && (
+                 <ProductAudioButton
+                   src={product.audioUrl}
+                   className="flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 p-2.5 z-30"
+                 />
+               )}
                {mounted && !isDesktop && (
-                 <TryOnButton 
+                 <TryOnButton
                    sku={activeVariant?.sku || product?.variants?.[0]?.sku}
                    productTitle={product?.title}
                    isAvailable={activeVariant ? activeVariant.inStock : product?.available}

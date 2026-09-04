@@ -948,6 +948,14 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   }
                   if (parts.length === 0) {
                     let metalPurity = variantMeta?.metal_purity;
+                    // Fallback: some collections (e.g. Nosepins) don't get metal_purity
+                    // mapped onto the variant, but the karat is in the variant/colour
+                    // label ("14KT Yellow Gold"). Derive it so the card matches others.
+                    if (!metalPurity) {
+                      const km = String(currentVariant?.color || currentVariant?.title || "")
+                        .match(/\b(9|10|14|18|22|24)\s*K(?:T)?\b/i);
+                      if (km) metalPurity = `${km[1]}KT`;
+                    }
                     if (metalPurity) {
                       const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
                       if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
