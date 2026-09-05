@@ -694,6 +694,10 @@ export default function ProductPageClient({
   const [activeKarat, setActiveKarat] = useState(initialKarat);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
 
+  const [selectedSize, setSelectedSize] = useState(initialSize);
+  const [activeVariant, setActiveVariant] = useState(initialVariant);
+  const [priceBreakup, setPriceBreakup] = useState(null);
+
   // Track product_view for Postgres DB
   useEffect(() => {
     if (product?.title && activeVariant?.id) {
@@ -702,7 +706,7 @@ export default function ProductPageClient({
         sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
         localStorage.setItem("cart_session_id", sessionId);
       }
-      fetch('/api/track', {
+      apiFetch('/api/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -715,9 +719,6 @@ export default function ProductPageClient({
       }).catch(e => console.error("Product view tracking failed:", e));
     }
   }, [product?.title, activeVariant?.id]);
-  const [selectedSize, setSelectedSize] = useState(initialSize);
-  const [activeVariant, setActiveVariant] = useState(initialVariant);
-  const [priceBreakup, setPriceBreakup] = useState(null);
   // Live Shopify price for SKUs with no dynamic gold/diamond config, fetched as a
   // fallback so the PDP doesn't show a price stale by up to 24h (page.js
   // revalidate: 86400) when the static ISR-cached price has drifted from Shopify.
@@ -4237,3 +4238,4 @@ function GoldOption({ metal, karat, color, active, onClick, inStock }) {
     </div>
   );
 }
+
