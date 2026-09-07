@@ -1,85 +1,23 @@
 import { shopifyStorefrontFetch, toCacheInit } from "./shopify";
 import { isNextControlFlowError } from "@/utils/helpers";
+import { richTextToHtml, toGenericAnchorId, citySlugFromPageHandle } from "./goldRate";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Gold Rate City metaobject fetch (Shopify Storefront API)
+// Platinum Rate City metaobject fetch (Shopify Storefront API)
 //
-// The Shopify Liquid theme renders city gold-rate pages from a `gold_rate_city`
-// metaobject (linked via the page's custom.gold_rate_city metafield) plus its
-// referenced content blocks, tables and FAQs. This module fetches that same data
-// so the headless Next.js site can render identical, city-specific content —
-// making Shopify the single source of truth.
+// Mirror of lib/goldRate.js for the platinum_rate_city pipeline: the page's
+// custom.platinum_rate_city metafield links a platinum_rate_city metaobject
+// whose referenced content blocks, tables and FAQs carry the authored city
+// content. Same normalized return shape as getGoldRateCityMeta so
+// PlatinumRatePage and PlatinumMetaContent render exactly the way gold does.
 //
-// All six gold metaobject definitions are PUBLIC_READ on the Storefront API, so
-// the existing Storefront token can read them. If anything is missing the
-// function returns null and the caller falls back to the hardcoded template.
+// All platinum metaobject definitions are PUBLIC_READ on the Storefront API
+// (verified). If anything is missing the function returns null and the caller
+// falls back to the hardcoded template. There is no platinum_rate_state
+// metaobject — state pages exist for gold only.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function esc(s) {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function renderInline(node) {
-  if (!node) return "";
-  if (node.type === "text") {
-    let t = esc(node.value || "");
-    if (node.bold) t = `<strong>${t}</strong>`;
-    if (node.italic) t = `<em>${t}</em>`;
-    return t;
-  }
-  if (node.type === "link") {
-    const inner = (node.children || []).map(renderInline).join("");
-    const url = esc(node.url || "#");
-    return `<a href="${url}" target="${node.target || "_self"}">${inner}</a>`;
-  }
-  return (node.children || []).map(renderInline).join("");
-}
-
-function renderBlock(node) {
-  if (!node) return "";
-  switch (node.type) {
-    case "paragraph":
-      return `<p>${(node.children || []).map(renderInline).join("")}</p>`;
-    case "heading": {
-      const level = Math.min(Math.max(parseInt(node.level, 10) || 2, 1), 6);
-      return `<h${level}>${(node.children || []).map(renderInline).join("")}</h${level}>`;
-    }
-    case "list": {
-      const tag = node.listType === "ordered" ? "ol" : "ul";
-      const items = (node.children || [])
-        .map((li) => `<li>${(li.children || []).map(renderInline).join("")}</li>`)
-        .join("");
-      return `<${tag}>${items}</${tag}>`;
-    }
-    case "list-item":
-      return `<li>${(node.children || []).map(renderInline).join("")}</li>`;
-    default:
-      return (node.children || []).map(renderBlock).join("");
-  }
-}
-
-// Convert a Shopify rich_text_field JSON string into HTML.
-export function richTextToHtml(value) {
-  if (!value) return "";
-  let root;
-  try {
-    root = typeof value === "string" ? JSON.parse(value) : value;
-  } catch {
-    return `<p>${esc(value)}</p>`;
-  }
-  if (!root || !Array.isArray(root.children)) return "";
-  return root.children.map(renderBlock).join("");
-}
-
-const GOLD_CITY_META_QUERY = `
-  query goldRateCityMeta($handle: String!) {
-    page(handle: $handle) {
-      metafield(namespace: "custom", key: "gold_rate_city") {
-        reference {
-          ... on Metaobject {
+const PLATINUM_CITY_FIELDS = `
             type
             city_name: field(key: "city_name") { value }
             state: field(key: "state") { value }
@@ -124,6 +62,15 @@ const GOLD_CITY_META_QUERY = `
                 }
               }
             }
+`;
+
+const PLATINUM_CITY_META_QUERY = `
+  query platinumRateCityMeta($handle: String!) {
+    page(handle: $handle) {
+      metafield(namespace: "custom", key: "platinum_rate_city") {
+        reference {
+          ... on Metaobject {
+${PLATINUM_CITY_FIELDS}
           }
         }
       }
@@ -131,42 +78,38 @@ const GOLD_CITY_META_QUERY = `
   }
 `;
 
-// Content block slugs are authored per city with a city prefix
-// (mumbai-todays-rate, delhi-todays-rate, …) while the generic suffix is
-// identical everywhere. Anchor ids are built from that suffix so a jump link
-// like #todays-rate resolves on every city page and the SEO signal for a
-// section is the same URL fragment across the whole set.
-export function toGenericAnchorId(slug, citySlug) {
-  let s = String(slug || "").trim().toLowerCase();
-  if (!s) return "";
-  const prefix = String(citySlug || "").trim().toLowerCase();
-  if (prefix && s.startsWith(prefix + "-")) s = s.slice(prefix.length + 1);
-  return s;
+// Fallback lookup when the page has no custom.platinum_rate_city metafield yet:
+// resolve the metaobject directly by its handle (which matches the city slug
+// for every city except spelling variants). New city metaobjects therefore
+// work the moment they're created, before anyone links the page — the same
+// resilience the Liquid gold section had via its slug lookup.
+const PLATINUM_CITY_BY_HANDLE_QUERY = `
+  query platinumRateCityByHandle($handle: String!) {
+    metaobject(handle: { type: "platinum_rate_city", handle: $handle }) {
+${PLATINUM_CITY_FIELDS}
+    }
+  }
+`;
+
+// Same convention as silver: strip an optional state disambiguator the page
+// handle doesn't carry, so anchors stay uniform across the whole city set.
+function toPlatinumAnchorId(slug, citySlug) {
+  return toGenericAnchorId(slug, citySlug).replace(/^[a-z]{2}-(?=platinum-)/, "");
 }
 
-// "mumbai-gold-rate-today" → "mumbai"; used to strip the prefix above.
-export function citySlugFromPageHandle(handle) {
-  return String(handle || "")
-    .trim()
-    .toLowerCase()
-    .replace(/-(gold|silver|platinum)-rate-today$/, "");
-}
-
-// The authored "On This Page" block is superseded by the OnThisPage component,
-// which derives its links from the sections actually rendered. Skip it so the
-// page doesn't carry two jump-link lists (the authored one's hardcoded,
-// city-prefixed hrefs never matched any id and were dead links).
-const SKIPPED_BLOCK_IDS = new Set(["on-this-page"]);
+// The authored "On This Page" block is superseded by the OnThisPage component
+// (same reasoning as gold — its hardcoded jump links were dead).
+const SKIPPED_BLOCK_IDS = new Set(["on-this-page", "platinum-on-this-page"]);
 
 /**
- * Fetch normalized Gold Rate City metaobject content for a page handle.
+ * Fetch normalized Platinum Rate City metaobject content for a page handle.
  * Returns null when the page has no linked metaobject (→ caller uses template fallback).
  */
-export async function getGoldRateCityMeta(handle, cacheOption = "no-store") {
+export async function getPlatinumRateCityMeta(handle, cacheOption = "no-store") {
   let data;
   try {
     data = await shopifyStorefrontFetch(
-      GOLD_CITY_META_QUERY,
+      PLATINUM_CITY_META_QUERY,
       { handle },
       { ...toCacheInit(cacheOption), useRwToken: true }
     );
@@ -174,23 +117,38 @@ export async function getGoldRateCityMeta(handle, cacheOption = "no-store") {
     // Next's static-generation bailout is expected on the no-store rate pages —
     // rethrow so Next handles it; only log genuine fetch failures.
     if (isNextControlFlowError(e)) throw e;
-    console.warn("Gold city metaobject fetch failed:", e?.message);
+    console.warn("Platinum city metaobject fetch failed:", e?.message);
     return null;
   }
 
-  const ref = data?.page?.metafield?.reference;
+  const citySlug = citySlugFromPageHandle(handle);
+
+  let ref = data?.page?.metafield?.reference;
+  if (!ref) {
+    // Page not linked (or page record missing entirely) — try the metaobject
+    // by handle before giving up.
+    try {
+      const byHandle = await shopifyStorefrontFetch(
+        PLATINUM_CITY_BY_HANDLE_QUERY,
+        { handle: citySlug },
+        { ...toCacheInit(cacheOption), useRwToken: true }
+      );
+      ref = byHandle?.metaobject || null;
+    } catch (e) {
+      if (isNextControlFlowError(e)) throw e;
+      console.warn("Platinum city metaobject handle lookup failed:", e?.message);
+    }
+  }
   if (!ref) return null;
 
   const val = (node) => (node && node.value != null ? node.value : null);
-
-  const citySlug = citySlugFromPageHandle(handle);
 
   const blocks = (ref.content_blocks?.references?.nodes || [])
     .map((n) => {
       const slug = val(n.slug) || "";
       return {
         slug,
-        anchorId: toGenericAnchorId(slug, citySlug),
+        anchorId: toPlatinumAnchorId(slug, citySlug),
         heading: val(n.heading) || "",
         html: richTextToHtml(val(n.content)),
         sort: parseInt(val(n.sort_order) || "0", 10),
@@ -234,20 +192,17 @@ export async function getGoldRateCityMeta(handle, cacheOption = "no-store") {
   };
 }
 
-// ─── Gold Rate State metaobject ──────────────────────────────────────────────
-// State pages (maharashtra-gold-rate-today) mirror the city pipeline exactly:
-// page → custom.gold_rate_state metafield → gold_rate_state metaobject, which
-// reuses the same gold_rate_content_block / gold_rate_faq / gold_rate_table
-// definitions the city pages use. The normalizer returns the SAME shape as
-// getGoldRateCityMeta (state_name lands in cityName, state_intro in introHtml,
-// major_city_* in nearbyCity*) so GoldRatePage and GoldMetaContent render both
-// without knowing which kind of page they're on.
-const GOLD_STATE_META_QUERY = `
-  query goldRateStateMeta($handle: String!) {
-    page(handle: $handle) {
-      metafield(namespace: "custom", key: "gold_rate_state") {
-        reference {
-          ... on Metaobject {
+// ─── Platinum Rate State metaobject ──────────────────────────────────────────
+// State pages (maharashtra-platinum-rate-today) mirror the city pipeline
+// exactly, the same way gold_rate_state mirrors gold_rate_city: page →
+// custom.platinum_rate_state metafield → platinum_rate_state metaobject, which
+// reuses the same platinum_rate_content_block / platinum_rate_faq /
+// platinum_rate_table definitions the city pages use. The normalizer returns
+// the SAME shape as getPlatinumRateCityMeta (state_name lands in cityName,
+// state_intro in introHtml, major_city_* in nearbyCity*) so PlatinumRatePage
+// and PlatinumMetaContent render both without knowing which kind of page
+// they're on.
+const PLATINUM_STATE_FIELDS = `
             type
             state_name: field(key: "state_name") { value }
             hero_title: field(key: "hero_title") { value }
@@ -291,6 +246,15 @@ const GOLD_STATE_META_QUERY = `
                 }
               }
             }
+`;
+
+const PLATINUM_STATE_META_QUERY = `
+  query platinumRateStateMeta($handle: String!) {
+    page(handle: $handle) {
+      metafield(namespace: "custom", key: "platinum_rate_state") {
+        reference {
+          ... on Metaobject {
+${PLATINUM_STATE_FIELDS}
           }
         }
       }
@@ -298,39 +262,63 @@ const GOLD_STATE_META_QUERY = `
   }
 `;
 
+// Fallback: resolve the state metaobject by its handle (state slug) when the
+// page metafield isn't linked — new platinum_rate_state entries then go live
+// the moment they're created, exactly like the city fallback above.
+const PLATINUM_STATE_BY_HANDLE_QUERY = `
+  query platinumRateStateByHandle($handle: String!) {
+    metaobject(handle: { type: "platinum_rate_state", handle: $handle }) {
+${PLATINUM_STATE_FIELDS}
+    }
+  }
+`;
+
 /**
- * Fetch normalized Gold Rate State metaobject content for a page handle
- * ("maharashtra-gold-rate-today"). Same return shape as getGoldRateCityMeta —
- * cityName carries the state's display name. Returns null when the page has no
- * linked metaobject (→ caller uses template fallback).
+ * Fetch normalized Platinum Rate State metaobject content for a page handle
+ * ("maharashtra-platinum-rate-today"). Same return shape as
+ * getPlatinumRateCityMeta — cityName carries the state's display name. Returns
+ * null when no metaobject exists (→ caller uses template fallback).
  */
-export async function getGoldRateStateMeta(handle, cacheOption = "no-store") {
+export async function getPlatinumRateStateMeta(handle, cacheOption = "no-store") {
   let data;
   try {
     data = await shopifyStorefrontFetch(
-      GOLD_STATE_META_QUERY,
+      PLATINUM_STATE_META_QUERY,
       { handle },
       { ...toCacheInit(cacheOption), useRwToken: true }
     );
   } catch (e) {
     if (isNextControlFlowError(e)) throw e;
-    console.warn("Gold state metaobject fetch failed:", e?.message);
+    console.warn("Platinum state metaobject fetch failed:", e?.message);
     return null;
   }
 
-  const ref = data?.page?.metafield?.reference;
+  const stateSlug = citySlugFromPageHandle(handle);
+
+  let ref = data?.page?.metafield?.reference;
+  if (!ref) {
+    try {
+      const byHandle = await shopifyStorefrontFetch(
+        PLATINUM_STATE_BY_HANDLE_QUERY,
+        { handle: stateSlug },
+        { ...toCacheInit(cacheOption), useRwToken: true }
+      );
+      ref = byHandle?.metaobject || null;
+    } catch (e) {
+      if (isNextControlFlowError(e)) throw e;
+      console.warn("Platinum state metaobject handle lookup failed:", e?.message);
+    }
+  }
   if (!ref) return null;
 
   const val = (node) => (node && node.value != null ? node.value : null);
-
-  const stateSlug = citySlugFromPageHandle(handle);
 
   const blocks = (ref.content_blocks?.references?.nodes || [])
     .map((n) => {
       const slug = val(n.slug) || "";
       return {
         slug,
-        anchorId: toGenericAnchorId(slug, stateSlug),
+        anchorId: toPlatinumAnchorId(slug, stateSlug),
         heading: val(n.heading) || "",
         html: richTextToHtml(val(n.content)),
         sort: parseInt(val(n.sort_order) || "0", 10),
@@ -374,16 +362,13 @@ export async function getGoldRateStateMeta(handle, cacheOption = "no-store") {
   };
 }
 
-// ─── Gold Rate Union Territory metaobject ────────────────────────────────────
-// UT pages (jammu-and-kashmir-gold-rate-today, ladakh-gold-rate-today, …)
-// mirror the state pipeline exactly: page → custom.gold_rate_union_territory
-// metafield → gold_rate_union_territory metaobject, which reuses the same
-// gold_rate_content_block / gold_rate_faq / gold_rate_table definitions. The
-// normalizer returns the SAME shape as getGoldRateCityMeta (ut_name lands in
-// cityName, ut_intro in introHtml, major_city_* in nearbyCity*). The caller
-// falls back to getGoldRateStateMeta for UTs whose content still lives in the
-// older gold_rate_state entries.
-const GOLD_UT_FIELDS = `
+// ─── Platinum Rate Union Territory metaobject ────────────────────────────────
+// UT pages mirror the state pipeline exactly: page →
+// custom.platinum_rate_union_territory metafield →
+// platinum_rate_union_territory metaobject (ut_name lands in cityName,
+// ut_intro in introHtml). The caller falls back to getPlatinumRateStateMeta
+// for UTs whose content lives in platinum_rate_state entries.
+const PLATINUM_UT_FIELDS = `
             type
             ut_name: field(key: "ut_name") { value }
             hero_title: field(key: "hero_title") { value }
@@ -429,13 +414,13 @@ const GOLD_UT_FIELDS = `
             }
 `;
 
-const GOLD_UT_META_QUERY = `
-  query goldRateUtMeta($handle: String!) {
+const PLATINUM_UT_META_QUERY = `
+  query platinumRateUtMeta($handle: String!) {
     page(handle: $handle) {
-      metafield(namespace: "custom", key: "gold_rate_union_territory") {
+      metafield(namespace: "custom", key: "platinum_rate_union_territory") {
         reference {
           ... on Metaobject {
-${GOLD_UT_FIELDS}
+${PLATINUM_UT_FIELDS}
           }
         }
       }
@@ -443,34 +428,32 @@ ${GOLD_UT_FIELDS}
   }
 `;
 
-// Fallback: resolve the UT metaobject by its handle (the UT slug) when the
-// page metafield isn't linked — new gold_rate_union_territory entries then go
-// live the moment they're created.
-const GOLD_UT_BY_HANDLE_QUERY = `
-  query goldRateUtByHandle($handle: String!) {
-    metaobject(handle: { type: "gold_rate_union_territory", handle: $handle }) {
-${GOLD_UT_FIELDS}
+const PLATINUM_UT_BY_HANDLE_QUERY = `
+  query platinumRateUtByHandle($handle: String!) {
+    metaobject(handle: { type: "platinum_rate_union_territory", handle: $handle }) {
+${PLATINUM_UT_FIELDS}
     }
   }
 `;
 
 /**
- * Fetch normalized Gold Rate Union Territory metaobject content for a page
- * handle ("ladakh-gold-rate-today"). Same return shape as getGoldRateCityMeta —
- * cityName carries the UT's display name. Returns null when no metaobject
- * exists (→ caller falls back to the state metaobject, then the template).
+ * Fetch normalized Platinum Rate Union Territory metaobject content for a page
+ * handle ("ladakh-platinum-rate-today"). Same return shape as
+ * getPlatinumRateCityMeta — cityName carries the UT's display name. Returns
+ * null when no metaobject exists (→ caller falls back to the state metaobject,
+ * then the template).
  */
-export async function getGoldRateUtMeta(handle, cacheOption = "no-store") {
+export async function getPlatinumRateUtMeta(handle, cacheOption = "no-store") {
   let data;
   try {
     data = await shopifyStorefrontFetch(
-      GOLD_UT_META_QUERY,
+      PLATINUM_UT_META_QUERY,
       { handle },
       { ...toCacheInit(cacheOption), useRwToken: true }
     );
   } catch (e) {
     if (isNextControlFlowError(e)) throw e;
-    console.warn("Gold UT metaobject fetch failed:", e?.message);
+    console.warn("Platinum UT metaobject fetch failed:", e?.message);
     return null;
   }
 
@@ -480,14 +463,14 @@ export async function getGoldRateUtMeta(handle, cacheOption = "no-store") {
   if (!ref) {
     try {
       const byHandle = await shopifyStorefrontFetch(
-        GOLD_UT_BY_HANDLE_QUERY,
+        PLATINUM_UT_BY_HANDLE_QUERY,
         { handle: utSlug },
         { ...toCacheInit(cacheOption), useRwToken: true }
       );
       ref = byHandle?.metaobject || null;
     } catch (e) {
       if (isNextControlFlowError(e)) throw e;
-      console.warn("Gold UT metaobject handle lookup failed:", e?.message);
+      console.warn("Platinum UT metaobject handle lookup failed:", e?.message);
     }
   }
   if (!ref) return null;
@@ -499,7 +482,7 @@ export async function getGoldRateUtMeta(handle, cacheOption = "no-store") {
       const slug = val(n.slug) || "";
       return {
         slug,
-        anchorId: toGenericAnchorId(slug, utSlug),
+        anchorId: toPlatinumAnchorId(slug, utSlug),
         heading: val(n.heading) || "",
         html: richTextToHtml(val(n.content)),
         sort: parseInt(val(n.sort_order) || "0", 10),
@@ -544,15 +527,13 @@ export async function getGoldRateUtMeta(handle, cacheOption = "no-store") {
   };
 }
 
-const GOLD_HISTORY_QUERY = `
-  query goldRateHistory {
-    metaobjects(type: "gold_rate_history", first: 250) {
+const PLATINUM_HISTORY_QUERY = `
+  query platinumRateHistory {
+    metaobjects(type: "platinum_rate_history", first: 250) {
       nodes {
         rate_date: field(key: "rate_date") { value }
-        rate_24k: field(key: "rate_24k") { value }
-        rate_22k: field(key: "rate_22k") { value }
-        rate_18k: field(key: "rate_18k") { value }
-        rate_14k: field(key: "rate_14k") { value }
+        rate_950: field(key: "rate_950") { value }
+        rate_900: field(key: "rate_900") { value }
         market_note: field(key: "market_note") { value }
         is_current: field(key: "is_current_rate") { value }
       }
@@ -561,16 +542,16 @@ const GOLD_HISTORY_QUERY = `
 `;
 
 /**
- * Fetch the global gold_rate_history entries (shared across all cities) for the
- * weekly / monthly trend tables. Returns [] on any error.
+ * Fetch the global platinum_rate_history entries (shared across all cities) for
+ * the weekly / monthly trend tables. Rates are per gram. Returns [] on any error.
  */
-export async function getGoldRateHistory(cacheOption = "no-store") {
+export async function getPlatinumRateHistory(cacheOption = "no-store") {
   let data;
   try {
-    data = await shopifyStorefrontFetch(GOLD_HISTORY_QUERY, {}, { ...toCacheInit(cacheOption), useRwToken: true });
+    data = await shopifyStorefrontFetch(PLATINUM_HISTORY_QUERY, {}, { ...toCacheInit(cacheOption), useRwToken: true });
   } catch (e) {
     if (isNextControlFlowError(e)) throw e;
-    console.warn("Gold rate history fetch failed:", e?.message);
+    console.warn("Platinum rate history fetch failed:", e?.message);
     return [];
   }
   const nodes = data?.metaobjects?.nodes || [];
@@ -578,10 +559,8 @@ export async function getGoldRateHistory(cacheOption = "no-store") {
   return nodes
     .map((n) => ({
       date: val(n.rate_date),
-      r24: parseFloat(val(n.rate_24k)) || 0,
-      r22: parseFloat(val(n.rate_22k)) || 0,
-      r18: parseFloat(val(n.rate_18k)) || 0,
-      r14: parseFloat(val(n.rate_14k)) || 0,
+      r950: parseFloat(val(n.rate_950)) || 0,
+      r900: parseFloat(val(n.rate_900)) || 0,
       cur: val(n.is_current),
       note: val(n.market_note) || "",
     }))
