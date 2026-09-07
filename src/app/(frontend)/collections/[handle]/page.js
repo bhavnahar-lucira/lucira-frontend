@@ -1,4 +1,4 @@
-import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
+import { shopifyStorefrontFetch } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { notFound } from "next/navigation";
@@ -57,29 +57,19 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  // Pre-render ALL collection pages at build time as static HTML.
-  // These are served from Vercel CDN (FREE — no function invocations on first visit).
-  // ISR (revalidate=86400) + webhook revalidation still applies to all of these pages.
-  try {
-    const handles = await getAllCollectionHandles();
-    return [
-      { handle: "all" },
-      ...handles.map(handle => ({ handle }))
-    ];
-  } catch (error) {
-    console.warn("[generateStaticParams/collections] Failed to fetch all handles, falling back to basic set.", error.message);
-    return [
-      { handle: "all" },
-      { handle: "jewelry" },
-      { handle: "rings" },
-      { handle: "earrings" },
-      { handle: "necklaces" },
-      { handle: "bracelets" },
-      { handle: "pendants" },
-      { handle: "bangles" },
-      { handle: "bestsellers" },
-    ];
-  }
+  return [
+    { handle: "rings" },
+    { handle: "bestsellers" },
+    { handle: "gemstone-jewelry" },
+    { handle: "sports-collection" },
+    { handle: "cotton-candy" },
+    { handle: "hexa" },
+    { handle: "9kt-collection" },
+    { handle: "lucira-express" },
+    { handle: "necklaces" },
+    { handle: "bracelets" },
+    { handle: "pendants" }
+  ];
 }
 
 export default async function Page({ params }) {
