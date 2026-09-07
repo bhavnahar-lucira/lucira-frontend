@@ -458,10 +458,9 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 <div className="inline-flex items-center gap-1.5 bg-[#f9f9f9] border border-[#eaeaea] rounded px-2 py-1 my-1 text-[#2d2d2d] w-fit max-w-full">
                   <Info size={12} className="shrink-0 text-[#2d2d2d]" />
                   <span
-                    className="text-[0.65rem] lg:text-[0.7rem] font-semibold tracking-wider text-[#2d2d2d] leading-tight"
-                    style={{ textTransform: "math-auto" }}
+                    className="text-[0.65rem] lg:text-[0.7rem] font-semibold uppercase tracking-wider text-[#2d2d2d] leading-tight"
                   >
-                    Chain is not included in the purchase
+                    Only Pendant
                   </span>
                 </div>
               )}
