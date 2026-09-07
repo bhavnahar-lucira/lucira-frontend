@@ -137,7 +137,7 @@ export default function VideoCallPage() {
       setSubmitted(true);
 
       const message = encodeURIComponent(`Hi Lucira, I would like to schedule a video call. \nName: ${formData.firstName}\nEmail: ${formData.email}\nPhone: ${formData.phone}`);
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=+919004435760&text=${message}`;
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=+917208934782&text=${message}`;
       
       window.open(whatsappUrl, "_blank");
 
