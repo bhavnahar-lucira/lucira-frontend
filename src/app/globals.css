@@ -885,89 +885,149 @@
     @apply py-3.5 px-3 border border-[#ddd]
   }
 
+  /* Peek button — the circular icon buttons floating over the PDP gallery
+     (virtual try-on, similar items, the "chain not included" note). Collapsed
+     it is a circle; on hover / focus / .is-open it grows into a pill and slides
+     its label out — rightwards by default, leftwards with .peek-left.
+
+     This class owns the whole shape: size, padding, ring, shadow and glyph
+     size. Call sites should only position it (absolute / inset / z-index) and
+     may resize it with --peek-size. Two rules keep the collapsed state a real
+     circle no matter what the label does:
+       - the icon slot stretches to the content height and is held square with
+         aspect-ratio, so the button's collapsed width IS its height (an earlier
+         version capped max-width instead, and the 1px border made it 44x46);
+       - the ring is a box-shadow, not a border, so it adds no layout at all.
+     The label collapses to max-width:0 with its own padding animated to 0 —
+     that is what keeps it from widening the circle while still being in the
+     DOM for screen readers. */
   .btn-peek-animation {
-    @apply flex items-center overflow-hidden whitespace-nowrap cursor-pointer relative;
-    max-width: 44px;
+    --peek-size: 42px;
+    --peek-glyph: 18px;
+    --peek-label-max: 288px;
+
+    /* Label padding: --peek-lead is padding-left, --peek-trail padding-right.
+       With the label to the right of the glyph that reads gap / closing inset;
+       .peek-left puts the label on the other side, so it swaps the two. */
+    --peek-lead: 2px;
+    --peek-trail: 14px;
+
+    @apply relative inline-flex items-center overflow-hidden whitespace-nowrap cursor-pointer rounded-full;
+
+    height: var(--peek-size);
+    padding: 0;
+    border: 0;
+    color: #1B1B1B;
+    background-color: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+
+    box-shadow: none;
+
     transition:
-      max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-      background-color 0.3s ease;
-    will-change: max-width;
+      box-shadow 0.3s ease,
+      background-color 0.3s ease,
+      transform 0.18s ease;
   }
 
-  .btn-peek-animation::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    animation: peek-pulse 4s ease-in-out forwards;
+  .btn-peek-animation .btn-icon {
+    @apply grid place-items-center;
+
+    align-self: stretch;
+    aspect-ratio: 1;
+    flex: none;
   }
 
-  .btn-peek-animation:hover {
-    max-width: 360px;
+  .btn-peek-animation .btn-icon svg {
+    width: var(--peek-glyph);
+    height: var(--peek-glyph);
+    display: block;
   }
 
+  /* Labels are short by design: the pill has to fit inside a gallery cell,
+     which is only ~220px wide on a 1024px screen. Font size is px, not text-xs,
+     because the root font-size drops to 13/14px on desktop (see @layer base) —
+     with rem the same label renders wider on a phone than on a laptop, which is
+     exactly backwards for the space available. */
   .btn-peek-animation .btn-text {
-    @apply ml-2 whitespace-nowrap;
+    @apply overflow-hidden whitespace-nowrap font-bold uppercase;
 
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.07em;
+    max-width: 0;
+    padding-left: 0;
+    padding-right: 0;
     opacity: 0;
-    transform: translateX(-6px);
+    transform: translateX(-4px);
 
     transition:
-      opacity 0.25s ease,
-      transform 0.35s ease;
+      max-width 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+      padding 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.2s ease,
+      transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  .btn-peek-animation:hover .btn-text {
+  /* Buttons pinned to the right edge grow leftwards, so reverse the row: the
+     circle stays put under the cursor and the label unfurls to its left
+     instead of running off the right of a phone screen. */
+  .btn-peek-animation.peek-left {
+    --peek-lead: 14px;
+    --peek-trail: 2px;
+
+    flex-direction: row-reverse;
+  }
+
+  .btn-peek-animation.peek-left .btn-text {
+    transform: translateX(4px);
+  }
+
+  /* Expanded state. Hover is gated on real pointers so a tap on a touch device
+     cannot leave a pill stuck open — touch surfaces toggle .is-open instead. */
+  .btn-peek-animation.is-open,
+  .btn-peek-animation:focus-visible {
+    background-color: #FFFFFF;
+    box-shadow: none;
+  }
+
+  .btn-peek-animation.is-open .btn-text,
+  .btn-peek-animation:focus-visible .btn-text {
+    max-width: var(--peek-label-max);
+    padding-left: var(--peek-lead);
+    padding-right: var(--peek-trail);
     opacity: 1;
     transform: translateX(0);
   }
 
-  .btn-peek-animation.auto-peek {
-    animation: auto-expand 8s ease-in-out forwards;
+  .btn-peek-animation:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 
-  .btn-peek-animation.auto-peek .btn-text {
-    animation: auto-text 8s ease-in-out forwards;
-  }
-
-  @keyframes auto-expand {
-
-    0%,
-    15% {
-      max-width: 360px;
+  @media (hover: hover) and (pointer: fine) {
+    .btn-peek-animation:hover {
+      background-color: #FFFFFF;
+      box-shadow: none;
     }
 
-    25%,
-    100% {
-      max-width: 44px;
-    }
-  }
-
-  @keyframes auto-text {
-
-    0%,
-    15% {
+    .btn-peek-animation:hover .btn-text {
+      max-width: var(--peek-label-max);
+      padding-left: var(--peek-lead);
+      padding-right: var(--peek-trail);
       opacity: 1;
       transform: translateX(0);
     }
-
-    20%,
-    100% {
-      opacity: 0;
-      transform: translateX(-6px);
-    }
   }
 
-  @keyframes peek-pulse {
+  .btn-peek-animation:active {
+    transform: scale(0.96);
+  }
 
-    0%,
-    100% {
-      transform: scale(1);
-    }
+  @media (prefers-reduced-motion: reduce) {
 
-    50% {
-      transform: scale(1.02);
+    .btn-peek-animation,
+    .btn-peek-animation .btn-text {
+      transition-duration: 0.01ms;
     }
   }
 }

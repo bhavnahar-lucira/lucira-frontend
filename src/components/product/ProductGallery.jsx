@@ -463,7 +463,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                         productTitle={product?.title}
                         isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                         id="tryonbutton-desktop"
-                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30"
+                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30 h-[42px]"
                       />
                     )}
                   </div>
@@ -487,7 +487,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     });
                     onViewSimilar();
                   }}
-                  className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
+                  className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]"
                 >
                   <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
                     <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -500,7 +500,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                 </button>
               )}
               {index === 1 && product.tags?.includes("Only Pendant") && (
-                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation">
+                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation h-[42px]">
                   <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
                     <Info size={16} />
                   </span>
@@ -571,14 +571,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               );
             })}
           </div>
-          {product.tags?.includes("Only Pendant") && (
-            <div className="absolute top-4 right-2 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation">
-              <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-                <Info size={16} />
-              </span>
-              <span className="btn-text text-xs font-bold uppercase tracking-wider">Chain is not included in the purchase</span>
-            </div>
-          )}
+
 
           {/* Action Buttons Overlay */}
           <div className="absolute bottom-4 left-2 right-2 flex justify-between items-end z-10">
@@ -597,7 +590,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                    productTitle={product?.title}
                    isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                    id="tryonbutton-mobile"
-                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30"
+                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30 h-[42px]"
                  />
                )}
              </div>
@@ -613,7 +606,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   });
                   onViewSimilar();
                 }}
-                className="bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
+                className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]"
               >
                 <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center pointer-events-none">
                   <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">

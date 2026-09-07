@@ -144,23 +144,11 @@ export default function TryOnButton({
     <button
       id={id}
       style={{ visibility: "hidden" }}
-      className={
-        className ||
-        `
-        bg-[#EDEDED]
-        text-black
-        hover:bg-[#E0E0E0]
-        cursor-pointer
-        btn-peek-animation
-      `
-      }
+      className={className || "btn-peek-animation"}
     >
-      <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
+      <span className="btn-icon">
         <svg
-          width="34"
-          height="34"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-4 h-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -174,7 +162,7 @@ export default function TryOnButton({
           <circle cx="12" cy="12" r="3" />
         </svg>
       </span>
-      <span className="btn-text text-xs font-bold uppercase tracking-wider">
+      <span className="btn-text">
         Virtual try on
       </span>
     </button>

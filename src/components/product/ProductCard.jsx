@@ -956,9 +956,16 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                         .match(/\b(9|10|14|18|22|24)\s*K(?:T)?\b/i);
                       if (km) metalPurity = `${km[1]}KT`;
                     }
+                    const isPlatinum = activeBase === "plt" || String(product.title).toLowerCase().includes("platinum");
                     if (metalPurity) {
                       const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
                       if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
+                      else if (mp === "pt950" || mp === "plt" || mp === "platinum") metalPurity = "PLT";
+                    } else if (isPlatinum) {
+                      metalPurity = "PLT";
+                    }
+                    
+                    if (metalPurity) {
                       parts.push(metalPurity);
                     }
                   }
