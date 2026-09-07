@@ -1,4 +1,4 @@
-import { getPageByHandle, getAllPages } from "@/lib/pages";
+import { getPageByHandle } from "@/lib/pages";
 import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateHistory } from "@/lib/goldRate";
 import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
 import { notFound } from "next/navigation";
@@ -155,10 +155,7 @@ function goldRateCityMeta(city) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateStaticParams() {
-  const pages = await getAllPages();
-  return pages.map((page) => ({
-    handle: page.handle,
-  }));
+  return [];
 }
 
 export async function generateMetadata({ params }) {

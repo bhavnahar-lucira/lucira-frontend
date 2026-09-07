@@ -42,6 +42,7 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { toast } from 'react-toastify';
 import { apiFetch, fetchVariantPricing } from "@/lib/api";
+import { sendBackendTracking } from "@/lib/gtm";
 import { motion } from "framer-motion";
 import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
 import 'react-toastify/dist/ReactToastify.css';
@@ -701,21 +702,15 @@ export default function ProductPageClient({
   // Track product_view for Postgres DB
   useEffect(() => {
     if (product?.title && activeVariant?.id) {
-      let sessionId = localStorage.getItem("cart_session_id");
-      if (!sessionId) {
-        sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
-        localStorage.setItem("cart_session_id", sessionId);
-      }
-      apiFetch('/api/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: "product_view",
-          page: window.location.href,
-          sessionId: sessionId,
-          productId: product.title,
-          variantId: activeVariant.id,
-        })
+      sendBackendTracking("product_view", {
+        productId: product.title,
+        productTitle: product.title,
+        variantId: activeVariant.id,
+        price: activeVariant.price,
+        image: activeVariant?.image?.url || product?.featuredImage?.url || null,
+        handle: product?.handle || null,
+        category: product?.productType || null,
+        deviceType: isMobile ? 'Mobile' : 'Desktop'
       }).catch(e => console.error("Product view tracking failed:", e));
     }
   }, [product?.title, activeVariant?.id]);
@@ -2962,21 +2957,9 @@ export default function ProductPageClient({
                         const next = !prev;
                         if (next) {
                           // 🔥 Dual-write to Postgres via Internal Sync API
-                          let sessionId = localStorage.getItem("cart_session_id");
-                          if (!sessionId) {
-                            sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
-                            localStorage.setItem("cart_session_id", sessionId);
-                          }
-                          fetch('/api/track', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              event: "scheme_view",
-                              page: window.location.href,
-                              sessionId: sessionId,
-                              productId: product.title,
-                              variantId: activeVariant?.id,
-                            })
+                          sendBackendTracking("scheme_view", {
+                            productId: product.title,
+                            variantId: activeVariant?.id,
                           }).catch(e => console.error("Scheme tracking failed:", e));
                         }
                         return next;
@@ -3382,15 +3365,21 @@ export default function ProductPageClient({
                   action="BOOK HOME TRIAL"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
                   url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
-                  onClick={() => pushToDataLayer({
-                    event: 'promoClick',
-                    promoClick: {
-                      promo_id: activeVariant?.sku || product.id,
-                      promo_name: product.title,
-                      creative_name: 'Try at Home Section',
-                      location_id: 'PDP',
-                    }
-                  })}
+                  onClick={() => {
+                    pushToDataLayer({
+                      event: 'promoClick',
+                      promoClick: {
+                        promo_id: activeVariant?.sku || product.id,
+                        promo_name: product.title,
+                        creative_name: 'Try at Home Section',
+                        location_id: 'PDP',
+                      }
+                    });
+                    sendBackendTracking("try_at_home_click", {
+                      productId: activeVariant?.sku || product.id,
+                      productTitle: product.title,
+                    });
+                  }}
                 />
                 <Separator />
               </div>
