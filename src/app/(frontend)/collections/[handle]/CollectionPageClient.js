@@ -1004,7 +1004,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const banner = inpageBanners[bannerCount];
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
-            <Link prefetch={false} className="cursor-default" href={banner.href} onClick={(e) => e.preventDefault()}>
+            <Link prefetch={false} className="cursor-pointer block w-full h-full" href={banner.href || banner.linkUrl || "#"}>
               <Image
                 loader={shopifyLoader}
                 src={banner.src}
