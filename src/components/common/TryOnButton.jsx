@@ -125,6 +125,25 @@ export default function TryOnButton({
             location_id: "pdp",
           },
         });
+
+        // 🔥 Dual-write to Postgres via Internal Sync API
+        let sessionId = localStorage.getItem("cart_session_id");
+        if (!sessionId) {
+          sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
+          localStorage.setItem("cart_session_id", sessionId);
+        }
+
+        fetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: "try_at_home_click",
+            page: window.location.href,
+            sessionId: sessionId,
+            productId: productName, // Usually product title is stored in tracking
+            variantId: productSku,
+          })
+        }).catch(e => console.error("Try at home tracking failed:", e));
       }
     };
 

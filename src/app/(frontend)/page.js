@@ -123,6 +123,9 @@ export default async function Home() {
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <ShopByOccasion />
       </Suspense>
+
+      <GemstoneSection initialProducts={gemstoneInitial} initialCategories={gemstoneCategoriesInitial} />
+
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <BuildYourJewelry />
       </Suspense>
@@ -132,8 +135,6 @@ export default async function Home() {
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <WaysToExplore />
       </Suspense>
-
-      <GemstoneSection initialProducts={gemstoneInitial} initialCategories={gemstoneCategoriesInitial} />
 
       {/* For Everyone You Love - hidden on the homepage */}
       {/* <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>

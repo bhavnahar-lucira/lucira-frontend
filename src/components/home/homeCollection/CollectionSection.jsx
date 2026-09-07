@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 
-export default function CollectionSection ({ title, subtitle, tabs = [], children, page, colCat, colLink, onTabChange, loading }) {
+export default function CollectionSection ({ title, subtitle, tabs = [], children, page, colCat, colLink, onTabChange, loading, spacingClassName = "pt-6 md:pt-15" }) {
   const [activeTab, setActiveTab] = useState(tabs[0] || "");
 
   const handleTabClick = (tab) => {
@@ -16,7 +16,7 @@ export default function CollectionSection ({ title, subtitle, tabs = [], childre
   };
 
   return (
-    <section className="w-full bg-white overflow-hidden pt-6 md:pt-15">
+    <section className={`w-full bg-white overflow-hidden ${spacingClassName}`}>
       <div className="container-main">
         {(title || subtitle) && (
           <div className="mb-1">
