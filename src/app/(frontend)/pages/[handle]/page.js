@@ -25,7 +25,7 @@ import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage"
 // empty-body silver/platinum page crawl those tiers on each build/regeneration).
 // The DynamicServerError this throws during `next build` is expected control flow;
 // fetchWithRetry/shopifyStorefrontFetch recognize and rethrow it silently.
-export const revalidate = 3600;
+
 const RATE_PAGE_CACHE = 'no-store';
 export const dynamicParams = true;
 

@@ -4,7 +4,9 @@ import { searchContent } from "@/lib/contentSearch";
 
 /* ================= GENERIC API FETCH ================= */
 
-const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
+const BACKEND_URL = (process.env.PROD_BACKEND_URL && process.env.PROD_BACKEND_URL.trim() !== "") 
+  ? process.env.PROD_BACKEND_URL 
+  : (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
   ? process.env.NEXT_PUBLIC_BACKEND_URL 
   : "http://localhost:8080";
 
