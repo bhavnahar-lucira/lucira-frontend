@@ -1,5 +1,7 @@
 import { getPageByHandle, getAllPages } from "@/lib/pages";
 import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateHistory } from "@/lib/goldRate";
+import { getSilverRateCityMeta, getSilverRateHistory } from "@/lib/silverRate";
+import { getPlatinumRateCityMeta, getPlatinumRateHistory } from "@/lib/platinumRate";
 import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
 import { notFound } from "next/navigation";
 import "@/styles/gold-rate.css";
@@ -152,6 +154,27 @@ function goldRateCityMeta(city) {
     description: `Gold Rate Today in ${city} - ${fullDate}, ${time} IST. Get live gold rates for 14K, 18K, 22K & 24K in ${city} and yesterday's gold rate per gram.`,
   };
 }
+
+// Silver / platinum equivalents of goldRateCityMeta — identical format with the
+// purity grades in place of the karat list, so the whole rate-page set carries
+// the same freshness-stamped competitor-style titles.
+function silverRateCityMeta(city) {
+  const { fullDate, time } = istRateStamp();
+
+  return {
+    title: `Todays Silver Rate in ${city} for 999 & 925 Silver - ${fullDate}, ${time}`,
+    description: `Silver Rate Today in ${city} - ${fullDate}, ${time} IST. Get live silver rates for 999 fine & 925 sterling silver per gram and per kg in ${city}, plus yesterday's silver rate.`,
+  };
+}
+
+function platinumRateCityMeta(city) {
+  const { fullDate, time } = istRateStamp();
+
+  return {
+    title: `Todays Platinum Rate in ${city} for 950 & 900 Platinum - ${fullDate}, ${time}`,
+    description: `Platinum Rate Today in ${city} - ${fullDate}, ${time} IST. Get live platinum rates for Pt 950 & Pt 900 per gram in ${city} and yesterday's platinum rate per gram.`,
+  };
+}
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateStaticParams() {
@@ -210,6 +233,43 @@ export async function generateMetadata({ params }) {
           const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
           if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
           if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
+        } catch {
+          // fall back to page SEO fields
+        }
+        title = withRateDate(title);
+      }
+    }
+
+    // Silver rate pages: same generated competitor-style meta as gold, with
+    // purity grades in place of the karat list. No state pages exist for
+    // silver, so unknown slugs go straight to the curated metaobject SEO
+    // fields with the date stamp.
+    if (isSilverRatePage) {
+      const { cityCapitalized, matched } = resolveCityState(handle, "-silver-rate-today");
+      if (matched) {
+        ({ title, description } = silverRateCityMeta(cityCapitalized));
+      } else {
+        try {
+          const silverMeta = await getSilverRateCityMeta(handle, RATE_PAGE_CACHE);
+          if (silverMeta?.seoTitle) title = silverMeta.seoTitle;
+          if (silverMeta?.seoDescription) description = silverMeta.seoDescription;
+        } catch {
+          // fall back to page SEO fields
+        }
+        title = withRateDate(title);
+      }
+    }
+
+    // Platinum rate pages: same pattern as silver.
+    if (isPlatinumRatePage) {
+      const { cityCapitalized, matched } = resolveCityState(handle, "-platinum-rate-today");
+      if (matched) {
+        ({ title, description } = platinumRateCityMeta(cityCapitalized));
+      } else {
+        try {
+          const platinumMeta = await getPlatinumRateCityMeta(handle, RATE_PAGE_CACHE);
+          if (platinumMeta?.seoTitle) title = platinumMeta.seoTitle;
+          if (platinumMeta?.seoDescription) description = platinumMeta.seoDescription;
         } catch {
           // fall back to page SEO fields
         }
@@ -337,6 +397,52 @@ export default async function Page({ params }) {
       }
     } catch (e) {
       console.warn("gold metaobject fetch failed:", e?.message);
+    }
+  }
+
+  // ── Silver rate pages: identical pipeline to gold — page metafield →
+  // silver_rate_city metaobject via the Storefront API, plus the shared
+  // silver_rate_history for the trend tables. Fail-safe: if the metaobject is
+  // missing, SilverRatePage keeps rendering its hardcoded template fallback.
+  if (isSilverRatePage) {
+    try {
+      const silverMeta = await getSilverRateCityMeta(handle, RATE_PAGE_CACHE);
+      if (silverMeta) {
+        try {
+          silverMeta.history = await getSilverRateHistory(RATE_PAGE_CACHE);
+        } catch {
+          silverMeta.history = [];
+        }
+        // Freshness stamp for the H1 — same IST date + time the <title> carries,
+        // computed on the server so hydration can't mismatch across an hour
+        // boundary (same reasoning as gold).
+        if (!ALREADY_DATED.test(silverMeta.heroTitle || "")) {
+          silverMeta.heroStamp = istRateStamp().stamp;
+        }
+        page.silverMeta = silverMeta;
+      }
+    } catch (e) {
+      console.warn("silver metaobject fetch failed:", e?.message);
+    }
+  }
+
+  // ── Platinum rate pages: same pipeline as silver.
+  if (isPlatinumRatePage) {
+    try {
+      const platinumMeta = await getPlatinumRateCityMeta(handle, RATE_PAGE_CACHE);
+      if (platinumMeta) {
+        try {
+          platinumMeta.history = await getPlatinumRateHistory(RATE_PAGE_CACHE);
+        } catch {
+          platinumMeta.history = [];
+        }
+        if (!ALREADY_DATED.test(platinumMeta.heroTitle || "")) {
+          platinumMeta.heroStamp = istRateStamp().stamp;
+        }
+        page.platinumMeta = platinumMeta;
+      }
+    } catch (e) {
+      console.warn("platinum metaobject fetch failed:", e?.message);
     }
   }
 
