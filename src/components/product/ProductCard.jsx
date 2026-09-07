@@ -948,9 +948,17 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   }
                   if (parts.length === 0) {
                     let metalPurity = variantMeta?.metal_purity;
+                    const isPlatinum = activeBase === "plt" || String(product.title).toLowerCase().includes("platinum");
+                    
                     if (metalPurity) {
                       const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
                       if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
+                      else if (mp === "pt950" || mp === "plt" || mp === "platinum") metalPurity = "PLT";
+                    } else if (isPlatinum) {
+                      metalPurity = "PLT";
+                    }
+                    
+                    if (metalPurity) {
                       parts.push(metalPurity);
                     }
                   }

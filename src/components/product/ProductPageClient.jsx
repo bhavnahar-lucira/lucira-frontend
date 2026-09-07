@@ -1356,6 +1356,7 @@ export default function ProductPageClient({
         shopifyId: product.shopifyId,
         handle: product.handle,
         title: product.title,
+        tags: product.tags || [],
         variantId: activeVariant.id,
         variantTitle: activeVariant.title,
         sku: activeVariant.sku || "",
@@ -2225,25 +2226,42 @@ export default function ProductPageClient({
           }}
         />
       )}
-      <div className="w-[91%] lg:w-full lg:max-w-480 mx-auto lg:px-17">
+      <div className="w-[100%] lg:w-full lg:max-w-480 mx-auto lg:px-17">
         {/* Breadcrumb */}
-        <Breadcrumb className="py-5">
+        <Breadcrumb className="py-2 px-5 bg-[#f9f9f9] lg:bg-transparent lg:px-0 lg:py-5">
           <BreadcrumbList className="flex-nowrap">
             <BreadcrumbItem>
-              <BreadcrumbLink href="/collections" className="text-sm font-medium text-black">Collections</BreadcrumbLink>
+              <BreadcrumbLink href="/collections" className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-black">Collections</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator><ChevronRight size={14} /></BreadcrumbSeparator>
+            <BreadcrumbSeparator><ChevronRight className="w-[10px] h-[10px] lg:w-[14px] lg:h-[14px]" /></BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/collections/${slugify(product.type)}`} className="text-sm font-medium text-black whitespace-nowrap">{product.type}</BreadcrumbLink>
+              <BreadcrumbLink href={`/collections/${slugify(product.type)}`} className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-black whitespace-nowrap">{product.type}</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator><ChevronRight size={14} /></BreadcrumbSeparator>
-            <BreadcrumbItem className="text-sm font-medium text-gray-400 truncate line-clamp-1">
+            <BreadcrumbSeparator><ChevronRight className="w-[10px] h-[10px] lg:w-[14px] lg:h-[14px]" /></BreadcrumbSeparator>
+            <BreadcrumbItem className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-[#5a413f] lg:text-gray-400 truncate line-clamp-1">
               {product.title}
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start">
+        {/* Mobile Chain Note Badge */}
+        {product.tags?.includes("Only Pendant") && (
+          <div className="lg:hidden bg-white border-b border-[#eaeaea] py-[10px] px-5 flex items-center justify-start gap-2">
+            <Info size={14} className="shrink-0 text-[#2d2d2d]" />
+            <span
+              className="text-[0.65rem] sm:text-xs font-semibold tracking-wider text-[#2d2d2d] leading-tight"
+              style={{
+                textTransform: "math-auto",
+                fontSize: "0.65rem",
+                color: "#2d2d2d",
+              }}
+            >
+              Chain is not included in the purchase
+            </span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start px-5 lg:px-0">
           {/* Left: Product Gallery */}
           <ProductGallery
             media={product.media || []}
@@ -2300,7 +2318,17 @@ export default function ProductPageClient({
 
                         // If no diamond parts were added, or it's not a diamond product, show metal purity
                         if (parts.length === 0) {
-                          const metalPurity = variantMeta?.metal_purity || activeKarat;
+                          let metalPurity = variantMeta?.metal_purity || activeKarat;
+                          const isPlatinum = activeBase === "plt" || String(product.title).toLowerCase().includes("platinum");
+
+                          if (metalPurity) {
+                            const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
+                            if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
+                            else if (mp === "pt950" || mp === "plt" || mp === "platinum") metalPurity = "PLT";
+                          } else if (isPlatinum) {
+                            metalPurity = "PLT";
+                          }
+
                           if (metalPurity) parts.push(metalPurity);
                         }
 
