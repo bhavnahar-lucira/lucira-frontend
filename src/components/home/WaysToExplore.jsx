@@ -11,7 +11,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import VideoCallPopup from "./VideoCallPopup";
 import TryAtHomePopup from "./TryAtHomePopup";
 import BookAppointmentPopup from "./BookAppointmentPopup";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, sendBackendTracking } from "@/lib/gtm";
 
 import "swiper/css";
 import "swiper/css/navigation";
@@ -58,6 +58,13 @@ export default function WaysToExplore() {
       promo_id: way.title,
       promo_name: way.title,
     });
+    
+    if (way.title === "Try At Home") {
+      sendBackendTracking("try_at_home_click", {
+        productId: "Try At Home (Homepage)",
+        productTitle: "Try At Home (Homepage)",
+      }).catch(e => console.error("Try at home tracking failed:", e));
+    }
   };
 
   const handleAction = (buttonText) => {
