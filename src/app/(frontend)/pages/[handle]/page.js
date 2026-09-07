@@ -1,4 +1,4 @@
-import { getPageByHandle } from "@/lib/pages";
+import { getPageByHandle, getAllPages } from "@/lib/pages";
 import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateHistory } from "@/lib/goldRate";
 import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
 import { notFound } from "next/navigation";
@@ -23,7 +23,7 @@ import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage"
 // empty-body silver/platinum page crawl those tiers on each build/regeneration).
 // The DynamicServerError this throws during `next build` is expected control flow;
 // fetchWithRetry/shopifyStorefrontFetch recognize and rethrow it silently.
-
+export const revalidate = 3600;
 const RATE_PAGE_CACHE = 'no-store';
 export const dynamicParams = true;
 
@@ -155,7 +155,10 @@ function goldRateCityMeta(city) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateStaticParams() {
-  return [];
+  const pages = await getAllPages();
+  return pages.map((page) => ({
+    handle: page.handle,
+  }));
 }
 
 export async function generateMetadata({ params }) {
