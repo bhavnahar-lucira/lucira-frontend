@@ -48,7 +48,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
-import { getEstimatedDispatchDate } from "@/lib/utils";
+import { formatDispatchMessage } from "@/lib/utils";
+import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import { formatSizeLabel } from "@/lib/metal";
 import {
   Drawer,
@@ -308,6 +309,8 @@ export default function ProductPageClient({
 
   const user = useSelector(selectUser);
   const isMobile = useMediaQuery("(max-width: 1023px)");
+  // Dispatch copy, cutoff and countdown all come from the dashboard's Dispatch Settings.
+  const { config: dispatchConfig, getDispatch } = useDispatchInfo();
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -796,12 +799,16 @@ export default function ProductPageClient({
     fetchStores();
   }, []);
 
+  // Plain-date wording only (allowTimer: false). This feeds the pincode result,
+  // the analytics payload and Redux, none of which can re-render a ticking
+  // countdown — and a per-second identity change here would restart the
+  // dispatch-message effect below every tick.
   const calculateDispatchDate = useCallback(() => {
     // 1. Check if product is in stock or made to order
     const isInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
     const leadTime = product.productMetafields?.lead_time;
-    return getEstimatedDispatchDate(isInStock, leadTime);
-  }, [activeVariant, product.productMetafields]);
+    return formatDispatchMessage(dispatchConfig, { inStock: isInStock, leadTime, allowTimer: false }).text;
+  }, [activeVariant, product.productMetafields, dispatchConfig]);
 
   const handlePincodeCheck = useCallback(async (val, isAutomatic = false) => {
     // If val is a string (like from useEffect), use it. 
@@ -1117,6 +1124,14 @@ export default function ProductPageClient({
     : defaultDispatchMessage;
   const leadDays = parseInt(product?.productMetafields?.lead_time) || 12;
 
+  // The in-stock / made-to-order line under the size picker. Read live (not via
+  // calculateDispatchDate) so a configured countdown ticks; `isCentralInStock`
+  // drives it so the coloured branch and the wording can never disagree.
+  const dispatchLine = getDispatch({
+    inStock: isCentralInStock,
+    leadTime: product?.productMetafields?.lead_time,
+  });
+
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
     const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
@@ -1374,14 +1389,19 @@ export default function ProductPageClient({
         engravingFont: savedEngraving.font,
         giftText: giftText,
         shippingDate: (() => {
+          // Same date the shopper just read on the page, so the cart line and
+          // the order record can't drift from it. Fixed DD/MM/YYYY here —
+          // this is a data field, not display copy, so the dashboard's
+          // dateFormat deliberately doesn't apply.
           const isInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
-          const leadTime = parseInt(product?.productMetafields?.lead_time) || 12;
-          const totalDays = isInStock ? 2 : leadTime + 3;
-          const date = new Date();
-          date.setDate(date.getDate() + totalDays);
-          const d = String(date.getDate()).padStart(2, "0");
-          const m = String(date.getMonth() + 1).padStart(2, "0");
-          const y = date.getFullYear();
+          const { date } = formatDispatchMessage(dispatchConfig, {
+            inStock: isInStock,
+            leadTime: product?.productMetafields?.lead_time,
+            allowTimer: false,
+          });
+          const d = String(date.getUTCDate()).padStart(2, "0");
+          const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+          const y = date.getUTCFullYear();
           return `${d}/${m}/${y}`;
         })(),
         goldPricePerGram: raw?.raw_breakup?.metal?.rate_per_gram || 0,
@@ -2655,15 +2675,21 @@ export default function ProductPageClient({
                       <p className="text-sm text-black font-medium">Didn&apos;t get the size right? We&apos;ll exchange it.</p>
                     </>
                   )}
-                  {activeVariant?.inStock ? (
+                  {isCentralInStock ? (
                     <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap rounded">
                       <span className="w-2.5 h-2.5 bg-[#189351] rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">In stock. {calculateDispatchDate()}</span>
+                      <span className="font-semibold xl:basis-auto lg:basis-full">
+                        {/* Stock status always shows; the estimate/countdown is
+                            what the dashboard's master toggle hides. */}
+                        {dispatchLine.enabled ? dispatchLine.sentence : `${dispatchLine.label}.`}
+                      </span>
                     </div>
                   ) : (
                     <div className="bg-amber-50 border border-amber-200 text-black rounded px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap">
                       <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">Made to order. {calculateDispatchDate()}</span>
+                      <span className="font-semibold xl:basis-auto lg:basis-full">
+                        {dispatchLine.enabled ? dispatchLine.sentence : `${dispatchLine.label}.`}
+                      </span>
                     </div>
                   )}
                 </div>

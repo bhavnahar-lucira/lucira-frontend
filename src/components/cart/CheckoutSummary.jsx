@@ -12,7 +12,7 @@ import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
-import { getEstimatedDispatchDate } from "@/lib/utils";
+import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import { calculateCouponDiscount, getAppliedOfferLabel } from "@/lib/coupons";
 import { pushPromoClick } from "@/lib/gtm";
 import { isFreeGiftVariant } from "@/lib/freeGifts";
@@ -36,6 +36,7 @@ export default function CheckoutSummary({
   const dispatch = useDispatch();
   const { items, totalAmount, appliedCoupon: rawAppliedCoupon, appliedCoupons, removeCoupon, nectorPoints, activeDiscounts, unclaimDiscount } = useCart();
   const user = useSelector((state) => state.user.user);
+  const { getDispatch } = useDispatchInfo();
 
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
@@ -90,12 +91,14 @@ export default function CheckoutSummary({
   // Actually, we'll fetch the one we're eligible for after calculating diamondTotalForOffer.
   // Let's do it after we define eligibleBraceletId.
   // Dispatch Calculation
+  // The whole order ships together, so the summary quotes the slowest line.
   const overallDispatchMessage = useMemo(() => {
     if (!items || items.length === 0) return "";
     const maxLeadTime = items.reduce((max, item) => Math.max(max, Number(item.leadTime || 12)), 0);
     const anyMadeToOrder = items.some(item => !item.inStock && item.variantId !== INSURANCE_VARIANT_ID && !item.isFreeGift);
-    return getEstimatedDispatchDate(!anyMadeToOrder, maxLeadTime);
-  }, [items]);
+    const info = getDispatch({ inStock: !anyMadeToOrder, leadTime: maxLeadTime });
+    return info.enabled ? info.text : "";
+  }, [items, getDispatch]);
 
   // Calculate Diamond Total for Offers (Bracelet)
   const diamondTotalForOffer = useMemo(() => {
@@ -442,12 +445,19 @@ export default function CheckoutSummary({
                     </div>
                   )}
 
-                  <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
-                    <Truck size={14} className="text-black" />
-                    <span className="text-[0.625rem] font-medium text-black tracking-tight">
-                      {getEstimatedDispatchDate(item.inStock, item.leadTime)}
-                    </span>
-                  </div>
+                  {/* Same rule as the cart line: build-your-own is made to order. */}
+                  {(() => {
+                    const lineDispatch = getDispatch({ inStock: item.inStock && !isBYJ, leadTime: item.leadTime });
+                    if (!lineDispatch.enabled || !lineDispatch.text) return null;
+                    return (
+                      <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
+                        <Truck size={14} className="text-black" />
+                        <span className="text-[0.625rem] font-medium text-black tracking-tight">
+                          {lineDispatch.text}
+                        </span>
+                      </div>
+                    );
+                  })()}
 
                   {index < displayItems.length - 1 && <div className="border-b border-zinc-50 pt-2" />}
                 </div>
