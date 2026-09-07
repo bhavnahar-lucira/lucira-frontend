@@ -2,8 +2,6 @@ import { getPageByHandle, getAllPages } from "@/lib/pages";
 import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateUtMeta, getGoldRateHistory } from "@/lib/goldRate";
 import { getSilverRateCityMeta, getSilverRateStateMeta, getSilverRateUtMeta, getSilverRateHistory } from "@/lib/silverRate";
 import { getPlatinumRateCityMeta, getPlatinumRateStateMeta, getPlatinumRateUtMeta, getPlatinumRateHistory } from "@/lib/platinumRate";
-import { getPageByHandle } from "@/lib/pages";
-import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateHistory } from "@/lib/goldRate";
 import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
 import { notFound } from "next/navigation";
 import "@/styles/gold-rate.css";
