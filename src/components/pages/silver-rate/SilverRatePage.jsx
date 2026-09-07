@@ -34,6 +34,7 @@ const stateCityMap = {
     jharkhand: ['Dhanbad', 'Jamshedpur', 'Ranchi', 'Jorapokhar'],
     karnataka: ['Belgaum', 'Bellary', 'Bengaluru', 'Bidar', 'Bijapur', 'Chikka Mandya', 'Davangere', 'Gulbarga', 'Hospet', 'Hubli', 'Kolar', 'Mangalore', 'Mysore', 'Raichur', 'Shimoga'],
     kerala: ['Alappuzha', 'Calicut', 'Kochi', 'Kollam', 'Thiruvananthapuram'],
+    ladakh: ['Leh', 'Kargil'],
     lakshadweep: ['Kavaratti'],
     'madhya-pradesh': ['Bhopal', 'Gwalior', 'Indore', 'Jabalpur', 'Ratlam', 'Saugor', 'Ujjain'],
     maharashtra: ['Ahmadnagar', 'Akola', 'Amaravati', 'Aurangabad', 'Bhiwandi', 'Bhusaval', 'Chanda', 'Kalyan', 'Khanapur', 'Kolhapur', 'Latur', 'Malegaon Camp', 'Mumbai', 'Nanded', 'Nasik', 'Parbhani', 'Pune', 'Sangli'],
@@ -53,6 +54,9 @@ const stateCityMap = {
     uttarakhand: ['DehraDun'],
     'west-bengal': ['Alipurduar', 'Asansol', 'Barddhaman', 'Bhatpara', 'Haldia', 'Haora', 'Kolkata', 'Krishnanagar', 'Shiliguri'],
 };
+
+// Union territories get their own optgroup in the state selector.
+const UT_SLUGS = new Set(['andaman-and-nicobar-islands', 'chandigarh', 'dadra-and-nagar-haveli', 'daman-and-diu', 'delhi', 'jammu-and-kashmir', 'ladakh', 'lakshadweep', 'puducherry']);
 
 // "new-delhi" → "New Delhi". Lowercased first so a Caps-Lock URL that reached us
 // without a redirect can't leak "MYSORE" into the headings.
@@ -242,9 +246,16 @@ export default function SilverRatePage({ page }) {
                                 className="w-full h-11 border border-[#E8D5B5] bg-white rounded-lg px-3 pr-8 text-zinc-800 text-[13px] font-figtree font-medium uppercase appearance-none focus:outline-none focus:ring-1 focus:ring-[#D4B392] transition-all cursor-pointer"
                             >
                                 <option value="">Select State</option>
-                                {Object.keys(stateCityMap).map(state => (
-                                    <option key={state} value={state}>{state.replace(/-/g, " ")}</option>
-                                ))}
+                                <optgroup label="States">
+                                    {Object.keys(stateCityMap).filter(s => !UT_SLUGS.has(s)).map(state => (
+                                        <option key={state} value={state}>{state.replace(/-/g, " ")}</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="Union Territories">
+                                    {Object.keys(stateCityMap).filter(s => UT_SLUGS.has(s)).map(state => (
+                                        <option key={state} value={state}>{state.replace(/-/g, " ")}</option>
+                                    ))}
+                                </optgroup>
                             </select>
                             <ChevronDown className="absolute right-3 bottom-3.5 text-zinc-400 pointer-events-none" size={15} />
                         </div>
@@ -275,7 +286,7 @@ export default function SilverRatePage({ page }) {
 
             {/* Calculator Section — prefer server-fetched history rate over the
                 client-fetched widget rate so the calculator is correct on first paint */}
-            <SilverCalculator cityName={cityNameDisplay} baseRate={heroR999 || todayRateNum} />
+            <SilverCalculator cityName={cityNameDisplay} stateName={stateName} isStatePage={!!page?.isStatePage} baseRate={heroR999 || todayRateNum} />
 
             {/* Jump links, directly under the calculator. Ids are city-independent,
                 so #silver-todays-rate is the same fragment on every city page. */}

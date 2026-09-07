@@ -1,7 +1,7 @@
 import { getPageByHandle, getAllPages } from "@/lib/pages";
-import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateHistory } from "@/lib/goldRate";
-import { getSilverRateCityMeta, getSilverRateHistory } from "@/lib/silverRate";
-import { getPlatinumRateCityMeta, getPlatinumRateHistory } from "@/lib/platinumRate";
+import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateUtMeta, getGoldRateHistory } from "@/lib/goldRate";
+import { getSilverRateCityMeta, getSilverRateStateMeta, getSilverRateUtMeta, getSilverRateHistory } from "@/lib/silverRate";
+import { getPlatinumRateCityMeta, getPlatinumRateStateMeta, getPlatinumRateUtMeta, getPlatinumRateHistory } from "@/lib/platinumRate";
 import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
 import { notFound } from "next/navigation";
 import "@/styles/gold-rate.css";
@@ -63,6 +63,7 @@ const STATE_CITY_MAP = {
   'jharkhand': ['Dhanbad', 'Jamshedpur', 'Ranchi', 'Jorapokhar'],
   'karnataka': ['Belgaum', 'Bellary', 'Bengaluru', 'Bidar', 'Bijapur', 'Chikka Mandya', 'Davangere', 'Gulbarga', 'Hospet', 'Hubli', 'Kolar', 'Mangalore', 'Mysore', 'Raichur', 'Shimoga'],
   'kerala': ['Alappuzha', 'Calicut', 'Kochi', 'Kollam', 'Thiruvananthapuram'],
+  'ladakh': ['Leh', 'Kargil'],
   'lakshadweep': ['Kavaratti'],
   'madhya-pradesh': ['Bhopal', 'Gwalior', 'Indore', 'Jabalpur', 'Ratlam', 'Saugor', 'Ujjain'],
   'maharashtra': ['Ahmadnagar', 'Akola', 'Amaravati', 'Aurangabad', 'Bhiwandi', 'Bhusaval', 'Chanda', 'Kalyan', 'Khanapur', 'Kolhapur', 'Latur', 'Malegaon Camp', 'Mumbai', 'Nanded', 'Nasik', 'Parbhani', 'Pune', 'Sangli'],
@@ -102,6 +103,23 @@ function resolveCityState(handle, rateType) {
   // instead of fabricating a page for it (e.g. "/pages/hyde-gold-rate-today").
   return { cityCapitalized, resolvedState: null, matched: false };
 }
+
+// India's union territories. Their slugs live in STATE_CITY_MAP like states
+// (so city lists, dropdowns and page resolution work unchanged), but their
+// authored content lives in the *_rate_union_territory metaobjects. delhi,
+// chandigarh and puducherry resolve as cities first (dual slugs), so only the
+// remaining six reach the UT fetch path.
+const UT_SLUGS = new Set([
+  'andaman-and-nicobar-islands',
+  'chandigarh',
+  'dadra-and-nagar-haveli',
+  'daman-and-diu',
+  'delhi',
+  'jammu-and-kashmir',
+  'ladakh',
+  'lakshadweep',
+  'puducherry',
+]);
 
 // State pages: "maharashtra-gold-rate-today" → the slug is a STATE_CITY_MAP key
 // rather than a city. Checked only AFTER resolveCityState fails to match, so a
@@ -246,8 +264,13 @@ export async function generateMetadata({ params }) {
     // fields with the date stamp.
     if (isSilverRatePage) {
       const { cityCapitalized, matched } = resolveCityState(handle, "-silver-rate-today");
+      const statePage = !matched ? resolveStatePage(handle, "-silver-rate-today") : { matchedState: false };
       if (matched) {
         ({ title, description } = silverRateCityMeta(cityCapitalized));
+      } else if (statePage.matchedState) {
+        // State pages get the same generated competitor-style title, with the
+        // state name in the city slot.
+        ({ title, description } = silverRateCityMeta(statePage.stateCapitalized));
       } else {
         try {
           const silverMeta = await getSilverRateCityMeta(handle, RATE_PAGE_CACHE);
@@ -263,8 +286,13 @@ export async function generateMetadata({ params }) {
     // Platinum rate pages: same pattern as silver.
     if (isPlatinumRatePage) {
       const { cityCapitalized, matched } = resolveCityState(handle, "-platinum-rate-today");
+      const statePage = !matched ? resolveStatePage(handle, "-platinum-rate-today") : { matchedState: false };
       if (matched) {
         ({ title, description } = platinumRateCityMeta(cityCapitalized));
+      } else if (statePage.matchedState) {
+        // State pages get the same generated competitor-style title, with the
+        // state name in the city slot.
+        ({ title, description } = platinumRateCityMeta(statePage.stateCapitalized));
       } else {
         try {
           const platinumMeta = await getPlatinumRateCityMeta(handle, RATE_PAGE_CACHE);
@@ -334,9 +362,10 @@ export default async function Page({ params }) {
 
     const { cityCapitalized, resolvedState, matched } = resolveCityState(handle, rateType);
 
-    // State pages exist for gold only (gold_rate_state metaobject); the city
-    // check above runs first so dual slugs (delhi, chandigarh, …) stay cities.
-    const statePage = !matched && isGoldRatePage
+    // State pages exist for all three metals (gold_rate_state /
+    // silver_rate_state / platinum_rate_state metaobjects); the city check
+    // above runs first so dual slugs (delhi, chandigarh, …) stay cities.
+    const statePage = !matched
       ? resolveStatePage(handle, rateType)
       : { matchedState: false };
 
@@ -359,6 +388,11 @@ export default async function Page({ params }) {
       page.city = { value: statePage.stateCapitalized };
       page.state = { value: statePage.stateCapitalized };
       page.isStatePage = true;
+      // Union territories resolve through the same path; the flag makes the
+      // metaobject fetch below try the *_rate_union_territory type first.
+      if (UT_SLUGS.has(handle.replace(rateType, ''))) {
+        page.isUtPage = true;
+      }
     } else {
       // Always stamp city/state from the URL — Shopify page has no city metafield.
       // If the page is real but the city isn't in our map (unmatched), fall back
@@ -375,11 +409,16 @@ export default async function Page({ params }) {
   // metaobject is missing the page falls back to page.body below.
   if (isGoldRatePage) {
     try {
-      // State pages read the gold_rate_state metaobject; city pages keep the
-      // gold_rate_city one. Both return the same normalized shape.
-      const goldMeta = page.isStatePage
-        ? await getGoldRateStateMeta(handle, RATE_PAGE_CACHE)
-        : await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
+      // UT pages read gold_rate_union_territory (falling back to
+      // gold_rate_state, where older UT content lives); state pages read
+      // gold_rate_state; city pages keep gold_rate_city. All return the same
+      // normalized shape.
+      const goldMeta = page.isUtPage
+        ? (await getGoldRateUtMeta(handle, RATE_PAGE_CACHE)) ||
+          (await getGoldRateStateMeta(handle, RATE_PAGE_CACHE))
+        : page.isStatePage
+          ? await getGoldRateStateMeta(handle, RATE_PAGE_CACHE)
+          : await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
       if (goldMeta) {
         try {
           goldMeta.history = await getGoldRateHistory(RATE_PAGE_CACHE);
@@ -406,7 +445,15 @@ export default async function Page({ params }) {
   // missing, SilverRatePage keeps rendering its hardcoded template fallback.
   if (isSilverRatePage) {
     try {
-      const silverMeta = await getSilverRateCityMeta(handle, RATE_PAGE_CACHE);
+      // UT pages read silver_rate_union_territory (falling back to
+      // silver_rate_state); state pages read silver_rate_state; city pages
+      // keep silver_rate_city. All return the same normalized shape.
+      const silverMeta = page.isUtPage
+        ? (await getSilverRateUtMeta(handle, RATE_PAGE_CACHE)) ||
+          (await getSilverRateStateMeta(handle, RATE_PAGE_CACHE))
+        : page.isStatePage
+          ? await getSilverRateStateMeta(handle, RATE_PAGE_CACHE)
+          : await getSilverRateCityMeta(handle, RATE_PAGE_CACHE);
       if (silverMeta) {
         try {
           silverMeta.history = await getSilverRateHistory(RATE_PAGE_CACHE);
@@ -429,7 +476,15 @@ export default async function Page({ params }) {
   // ── Platinum rate pages: same pipeline as silver.
   if (isPlatinumRatePage) {
     try {
-      const platinumMeta = await getPlatinumRateCityMeta(handle, RATE_PAGE_CACHE);
+      // UT pages read platinum_rate_union_territory (falling back to
+      // platinum_rate_state); state pages read platinum_rate_state; city pages
+      // keep platinum_rate_city. All return the same normalized shape.
+      const platinumMeta = page.isUtPage
+        ? (await getPlatinumRateUtMeta(handle, RATE_PAGE_CACHE)) ||
+          (await getPlatinumRateStateMeta(handle, RATE_PAGE_CACHE))
+        : page.isStatePage
+          ? await getPlatinumRateStateMeta(handle, RATE_PAGE_CACHE)
+          : await getPlatinumRateCityMeta(handle, RATE_PAGE_CACHE);
       if (platinumMeta) {
         try {
           platinumMeta.history = await getPlatinumRateHistory(RATE_PAGE_CACHE);
