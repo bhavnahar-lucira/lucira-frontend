@@ -1,633 +1,272 @@
-import { getPageByHandle, getAllPages } from "@/lib/pages";
-import { getGoldRateCityMeta, getGoldRateStateMeta, getGoldRateUtMeta, getGoldRateHistory } from "@/lib/goldRate";
-import { getSilverRateCityMeta, getSilverRateStateMeta, getSilverRateUtMeta, getSilverRateHistory } from "@/lib/silverRate";
-import { getPlatinumRateCityMeta, getPlatinumRateStateMeta, getPlatinumRateUtMeta, getPlatinumRateHistory } from "@/lib/platinumRate";
-import { istRateStamp, ALREADY_DATED } from "@/lib/rateStamp";
-import { notFound } from "next/navigation";
-import "@/styles/gold-rate.css";
+import { shopifyStorefrontFetch, shopifyAdminRestFetch, toCacheInit } from "./shopify";
+import { fetchWithRetry, isNextControlFlowError } from "@/utils/helpers";
 
-import ContactSection from "@/components/common/ContactSection";
-import SitemapPage from "@/components/sitemap/SitemapPage";
-import FooterPageContent from "@/components/FooterPageContent";
-import GoldRatePage from "@/components/pages/gold-rate/GoldRatePage";
-import SilverRatePage from "@/components/pages/silver-rate/SilverRatePage";
-import PlatinumRatePage from "@/components/pages/platinum-rate/PlatinumRatePage";
-
-// Static pages (About, Careers, T&C, etc.) stay fully static — force-cache at the fetch
-// level means they never re-render after build.
-//
-// Metal rate pages stay 'no-store': the rates team updates the gold_rate_history
-// metaobject every morning and the pages must show the new rate the moment it is
-// written — an ISR window would keep serving yesterday's rate for up to an hour.
-// no-store also makes the rate routes bail out of static generation at the FIRST
-// Storefront fetch, so the Admin-REST and live-site-scrape fallback tiers in
-// getPageByHandle never run for the ~637 city pages (switching to ISR made every
-// empty-body silver/platinum page crawl those tiers on each build/regeneration).
-// The DynamicServerError this throws during `next build` is expected control flow;
-// fetchWithRetry/shopifyStorefrontFetch recognize and rethrow it silently.
-
-const RATE_PAGE_CACHE = 'no-store';
-export const dynamicParams = true;
-
-// ─── Locally-rendered pages ──────────────────────────────────────────────────
-// These handles render a local component instead of the Shopify page body (see
-// Page below). Their metadata has to be authored here too: falling through to the
-// Shopify record produced a description sliced out of raw body text, which mixed
-// Title Case prose with the ALL-CAPS field labels ("CALL US", "MAIL US") and cut
-// off mid-value. Title Case title, sentence-case description, no shouting.
-const LOCAL_PAGE_META = {
-  "contact-us": {
-    title: "Contact Us - Lucira Jewelry",
-    description:
-      "Get in touch with Lucira Jewelry for bespoke assistance and jewelry consultations. Call, email or visit our Mumbai head office — our concierge will reply soon.",
-  },
-};
-
-// ─── City / State lookup (shared by all rate-page types) ─────────────────────
-const STATE_CITY_MAP = {
-  'andaman-and-nicobar-islands': ['Port Blair'],
-  'andhra-pradesh': ['Chirala', 'Guntur', 'Hindupur', 'Kagaznagar', 'Kakinada', 'Kurnool', 'Machilipatnam', 'Nandyal', 'Nellore', 'Ongole', 'Proddatur', 'Rajahmundry', 'Tirupati', 'Vishakhapatnam', 'Vizianagaram'],
-  'arunachal-pradesh': ['Itanagar'],
-  'assam': ['Dibrugarh', 'Dispur', 'Guwahati', 'Jorhat', 'Silchar', 'Tezpur'],
-  'bihar': ['Aurangabad', 'Bhagalpur', 'Gaya', 'Muzaffarpur', 'Patna', 'Purnea'],
-  'chandigarh': ['Chandigarh'],
-  'chhattisgarh': ['Bhilai', 'Bilaspur', 'Raipur'],
-  'dadra-and-nagar-haveli': ['Silvassa'],
-  'daman-and-diu': ['Daman', 'Diu'],
-  'delhi': ['Delhi', 'New Delhi'],
-  'goa': ['Panaji'],
-  'gujarat': ['Ahmedabad', 'Bhavnagar', 'Bhuj', 'Ghandinagar', 'Navsari', 'Porbandar', 'Rajkot', 'Surat', 'Vadodara'],
-  'haryana': ['Ambala', 'Bhiwani', 'Faridabad', 'Gurugram', 'Hisar', 'Karnal', 'Panchkula', 'Panipat', 'Rohtak', 'Sirsa', 'Sonipat'],
-  'himachal-pradesh': ['Shimla'],
-  'jammu-and-kashmir': ['Baramula', 'Jammu', 'Saidpur', 'Srinagar'],
-  'jharkhand': ['Dhanbad', 'Jamshedpur', 'Ranchi', 'Jorapokhar'],
-  'karnataka': ['Belgaum', 'Bellary', 'Bengaluru', 'Bidar', 'Bijapur', 'Chikka Mandya', 'Davangere', 'Gulbarga', 'Hospet', 'Hubli', 'Kolar', 'Mangalore', 'Mysore', 'Raichur', 'Shimoga'],
-  'kerala': ['Alappuzha', 'Calicut', 'Kochi', 'Kollam', 'Thiruvananthapuram'],
-  'ladakh': ['Leh', 'Kargil'],
-  'lakshadweep': ['Kavaratti'],
-  'madhya-pradesh': ['Bhopal', 'Gwalior', 'Indore', 'Jabalpur', 'Ratlam', 'Saugor', 'Ujjain'],
-  'maharashtra': ['Ahmadnagar', 'Akola', 'Amaravati', 'Aurangabad', 'Bhiwandi', 'Bhusaval', 'Chanda', 'Kalyan', 'Khanapur', 'Kolhapur', 'Latur', 'Malegaon Camp', 'Mumbai', 'Nanded', 'Nasik', 'Parbhani', 'Pune', 'Sangli'],
-  'manipur': ['Imphal'],
-  'meghalaya': ['Shillong'],
-  'mizoram': ['Aizawl'],
-  'nagaland': ['Kohima'],
-  'odisha': ['Bhubaneshwar', 'Brahmapur', 'Cuttack', 'Puri', 'Raurkela', 'Samlaipadar', 'Brajrajnagar', 'Talcher'],
-  'puducherry': ['Puducherry'],
-  'punjab': ['Abohar', 'Amritsar', 'Haripur', 'Ludhiana', 'Pathankot', 'Patiala'],
-  'rajasthan': ['Ajmer', 'Alwar', 'Bharatpur', 'Bhilwara', 'Bikaner', 'Jaipur', 'Jodhpur', 'Kota', 'Pali', 'Rampura', 'Sikar', 'Tonk', 'Udaipur'],
-  'sikkim': ['Gangtok'],
-  'tamil-nadu': ['Chennai', 'Coimbatore', 'Cuddalore', 'Dindigul', 'Karur', 'Krishnapuram', 'Kumbakonam', 'Madurai', 'Nagercoil', 'Rajapalaiyam', 'Salem', 'Thanjavur', 'Tiruchchirappalli', 'Tirunelveli', 'Tiruvannamalai', 'Tuticorin', 'Valparai', 'Vellore'],
-  'telangana': ['Adilabad', 'Hyderabad', 'Karimnagar', 'Khammam', 'Mahabubnagar', 'Nalgonda', 'Nizamabad', 'Ramagundam', 'Warangal'],
-  'tripura': ['Agartala'],
-  'uttar-pradesh': ['Agra', 'Aligarh', 'Allahabad', 'Bakshpur', 'Bamanpuri', 'Bareilly', 'Bharauri', 'Budaun', 'Bulandshahr', 'Firozabad', 'Fyzabad', 'Ghaziabad', 'Gopalpur', 'Hapur', 'Hata', 'Jhansi', 'Lucknow', 'Mathura', 'Meerut', 'Mirzapur', 'Moradabad', 'Muzaffarnagar', 'Pilibhit', 'Saharanpur', 'Saidapur', 'Shahbazpur', 'Tharati Etawah', 'Varanasi'],
-  'uttarakhand': ['DehraDun'],
-  'west-bengal': ['Alipurduar', 'Asansol', 'Barddhaman', 'Bhatpara', 'Haldia', 'Haora', 'Kolkata', 'Krishnanagar', 'Shiliguri'],
-};
-
-function resolveCityState(handle, rateType) {
-  // Fold the case before matching: middleware redirects Caps-Lock URLs, but this
-  // also runs for direct/internal calls it never sees, and an unfolded "MYSORE"
-  // misses STATE_CITY_MAP silently (→ wrong state, city echoed back in caps).
-  const citySlug = handle.toLowerCase().replace(rateType, '');
-  const cityCapitalized = citySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-  for (const [stateKey, cities] of Object.entries(STATE_CITY_MAP)) {
-    const match = cities.find(c => c.toLowerCase().replace(/\s+/g, '-') === citySlug);
-    if (match) {
-      const resolvedState = stateKey.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      return { cityCapitalized, resolvedState, matched: true };
-    }
-  }
-
-  // citySlug isn't a real city we know about — caller decides whether to 404
-  // instead of fabricating a page for it (e.g. "/pages/hyde-gold-rate-today").
-  return { cityCapitalized, resolvedState: null, matched: false };
-}
-
-// India's union territories. Their slugs live in STATE_CITY_MAP like states
-// (so city lists, dropdowns and page resolution work unchanged), but their
-// authored content lives in the *_rate_union_territory metaobjects. delhi,
-// chandigarh and puducherry resolve as cities first (dual slugs), so only the
-// remaining six reach the UT fetch path.
-const UT_SLUGS = new Set([
-  'andaman-and-nicobar-islands',
-  'chandigarh',
-  'dadra-and-nagar-haveli',
-  'daman-and-diu',
-  'delhi',
-  'jammu-and-kashmir',
-  'ladakh',
-  'lakshadweep',
-  'puducherry',
-]);
-
-// State pages: "maharashtra-gold-rate-today" → the slug is a STATE_CITY_MAP key
-// rather than a city. Checked only AFTER resolveCityState fails to match, so a
-// slug that is both (delhi, chandigarh, puducherry) keeps resolving as the city
-// page it always was.
-function resolveStatePage(handle, rateType) {
-  const slug = handle.toLowerCase().replace(rateType, '');
-  if (!STATE_CITY_MAP[slug]) return { matchedState: false };
-  const stateCapitalized = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  return { matchedState: true, stateCapitalized };
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ─── Gold rate title date stamp ──────────────────────────────────────────────
-// Gold rate pages carry the current day + date in the title tag as a freshness
-// signal. Asia/Kolkata is pinned deliberately: the production server clock runs
-// in UTC, so without it the title would show the previous day's date until
-// 05:30 IST every morning.
-const GOLD_TITLE_DATE_FORMAT = {
-  timeZone: "Asia/Kolkata",
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-};
-
-function withRateDate(title) {
-  if (!title || ALREADY_DATED.test(title)) return title;
-
-  const stamp = new Intl.DateTimeFormat("en-IN", GOLD_TITLE_DATE_FORMAT).format(new Date());
-
-  // Insert ahead of the trailing brand segment so "| Lucira" stays last.
-  const lastPipe = title.lastIndexOf("|");
-  if (lastPipe > 0) {
-    return `${title.slice(0, lastPipe).trim()} (${stamp}) ${title.slice(lastPipe)}`;
-  }
-  return `${title} (${stamp})`;
+function serialize(value) {
+  return value ? JSON.parse(JSON.stringify(value)) : null;
 }
 
-// ─── Gold rate city meta (competitor-style) ──────────────────────────────────
-// "Todays Gold Rate in Mumbai for 14, 18, 22 & 24 Carat - 18 Aug 2026, 11 AM"
-// Short month keeps the title near the SERP character limit while still
-// carrying the date + current IST time as a freshness signal. Rate pages
-// render with no-store, so the stamp is the actual request time.
-function goldRateCityMeta(city) {
-  const { fullDate, time } = istRateStamp();
-
-  return {
-    title: `Todays Gold Rate in ${city} for 14, 18, 22 & 24 Carat - ${fullDate}, ${time}`,
-    description: `Gold Rate Today in ${city} - ${fullDate}, ${time} IST. Get live gold rates for 14K, 18K, 22K & 24K in ${city} and yesterday's gold rate per gram.`,
-  };
+function stripHtml(value) {
+  return value?.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim() || "";
 }
 
-// Silver / platinum equivalents of goldRateCityMeta — identical format with the
-// purity grades in place of the karat list, so the whole rate-page set carries
-// the same freshness-stamped competitor-style titles.
-function silverRateCityMeta(city) {
-  const { fullDate, time } = istRateStamp();
-
-  return {
-    title: `Todays Silver Rate in ${city} for 999 & 925 Silver - ${fullDate}, ${time}`,
-    description: `Silver Rate Today in ${city} - ${fullDate}, ${time} IST. Get live silver rates for 999 fine & 925 sterling silver per gram and per kg in ${city}, plus yesterday's silver rate.`,
-  };
+function parseNextPageInfo(linkHeader) {
+  if (!linkHeader) return null;
+  const nextLink = linkHeader
+    .split(",")
+    .find((part) => part.includes('rel="next"'));
+  if (!nextLink) return null;
+  const url = nextLink.match(/<([^>]+)>/)?.[1];
+  if (!url) return null;
+  return new URL(url).searchParams.get("page_info");
 }
 
-function platinumRateCityMeta(city) {
-  const { fullDate, time } = istRateStamp();
-
-  return {
-    title: `Todays Platinum Rate in ${city} for 950 & 900 Platinum - ${fullDate}, ${time}`,
-    description: `Platinum Rate Today in ${city} - ${fullDate}, ${time} IST. Get live platinum rates for Pt 950 & Pt 900 per gram in ${city} and yesterday's platinum rate per gram.`,
-  };
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// getAllPages — used only at build time for generateStaticParams; always force-cache
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function generateStaticParams() {
-  return [];
-}
-
-export async function generateMetadata({ params }) {
-  const { handle: rawHandle } = await params;
-  // Shopify handles are always lowercase, and so is every link we emit — fold the
-  // param so a Caps-Lock URL resolves the same page instead of falling through
-  // the rate-page detection below and 404ing.
-  const handle = rawHandle.toLowerCase();
-
-  const isSilverRatePage = handle.includes("silver-rate-today");
-  const isPlatinumRatePage = handle.includes("platinum-rate-today");
-  const isGoldRatePage = handle.includes("gold-rate-today");
-  const isRatePage = isSilverRatePage || isPlatinumRatePage || isGoldRatePage;
-  const cacheStrategy = isRatePage ? RATE_PAGE_CACHE : 'force-cache';
-
-  let title;
-  let description;
-
-  const localMeta = LOCAL_PAGE_META[handle];
-  if (localMeta) {
-    // Body comes from a local component, so the Shopify record is not the source
-    // of truth here — skip the fetch entirely.
-    ({ title, description } = localMeta);
-  } else {
-    const page = await getPageByHandle(handle, cacheStrategy);
-    // Rate pages can exist without a Shopify Page record (city/state stubs are
-    // fabricated in Page below) — fall through so the generated title still
-    // lands. Everything else keeps the early return.
-    if (!page && !isRatePage) return {};
-
-    title = page?.seo?.title || page?.title || "Lucira Jewelry";
-    description = page?.seo?.description || page?.bodySummary || page?.body?.replace(/<[^>]*>?/gm, "").slice(0, 160);
-
-    // Gold rate pages: known city pages get the generated competitor-style
-    // title/description (uniform format, fresh date + IST time). Anything else
-    // ("gold-rate-today" itself, cities missing from STATE_CITY_MAP) keeps the
-    // curated metaobject seo_title / seo_description with the date stamp.
-    if (isGoldRatePage) {
-      const { cityCapitalized, matched } = resolveCityState(handle, "-gold-rate-today");
-      const statePage = !matched ? resolveStatePage(handle, "-gold-rate-today") : { matchedState: false };
-      if (matched) {
-        ({ title, description } = goldRateCityMeta(cityCapitalized));
-      } else if (statePage.matchedState) {
-        // State pages get the same generated competitor-style title, with the
-        // state name in the city slot.
-        ({ title, description } = goldRateCityMeta(statePage.stateCapitalized));
-      } else {
-        try {
-          const goldMeta = await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
-          if (goldMeta?.seoTitle) title = goldMeta.seoTitle;
-          if (goldMeta?.seoDescription) description = goldMeta.seoDescription;
-        } catch {
-          // fall back to page SEO fields
+export async function getAllPages() {
+  const query = `
+      query getAllPages($cursor: String) {
+        pages(first: 250, after: $cursor) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          edges {
+            node {
+              id
+              title
+              handle
+            }
+          }
         }
-        title = withRateDate(title);
       }
+    `;
+
+  // The store has ~700 pages (most of them the city gold/silver/platinum rate pages),
+  // so a single unpaginated `first: 250` silently dropped ~450 of them from the sitemap
+  // and from generateStaticParams. Walk every page of results.
+  //
+  // useRwToken is required: the default STOREFRONT_TOKEN lacks the
+  // `unauthenticated_read_content` scope and gets ACCESS_DENIED on `pages`.
+  let nodes = [];
+  let cursor = null;
+  let hasNextPage = true;
+
+  while (hasNextPage) {
+    const data = await shopifyStorefrontFetch(query, { cursor }, {
+      cache: 'force-cache',
+      useRwToken: true
+    });
+
+    // Never `break` on a mid-pagination failure — that publishes a partial page list
+    // that looks complete. Throw so the caller (sitemap / generateStaticParams) sees it.
+    if (!data?.pages) {
+      throw new Error(`Failed to fetch pages at cursor ${cursor}. Halting to prevent a partial page list.`);
     }
 
-    // Silver rate pages: same generated competitor-style meta as gold, with
-    // purity grades in place of the karat list. No state pages exist for
-    // silver, so unknown slugs go straight to the curated metaobject SEO
-    // fields with the date stamp.
-    if (isSilverRatePage) {
-      const { cityCapitalized, matched } = resolveCityState(handle, "-silver-rate-today");
-      const statePage = !matched ? resolveStatePage(handle, "-silver-rate-today") : { matchedState: false };
-      if (matched) {
-        ({ title, description } = silverRateCityMeta(cityCapitalized));
-      } else if (statePage.matchedState) {
-        // State pages get the same generated competitor-style title, with the
-        // state name in the city slot.
-        ({ title, description } = silverRateCityMeta(statePage.stateCapitalized));
-      } else {
-        try {
-          const silverMeta = await getSilverRateCityMeta(handle, RATE_PAGE_CACHE);
-          if (silverMeta?.seoTitle) title = silverMeta.seoTitle;
-          if (silverMeta?.seoDescription) description = silverMeta.seoDescription;
-        } catch {
-          // fall back to page SEO fields
-        }
-        title = withRateDate(title);
-      }
-    }
-
-    // Platinum rate pages: same pattern as silver.
-    if (isPlatinumRatePage) {
-      const { cityCapitalized, matched } = resolveCityState(handle, "-platinum-rate-today");
-      const statePage = !matched ? resolveStatePage(handle, "-platinum-rate-today") : { matchedState: false };
-      if (matched) {
-        ({ title, description } = platinumRateCityMeta(cityCapitalized));
-      } else if (statePage.matchedState) {
-        // State pages get the same generated competitor-style title, with the
-        // state name in the city slot.
-        ({ title, description } = platinumRateCityMeta(statePage.stateCapitalized));
-      } else {
-        try {
-          const platinumMeta = await getPlatinumRateCityMeta(handle, RATE_PAGE_CACHE);
-          if (platinumMeta?.seoTitle) title = platinumMeta.seoTitle;
-          if (platinumMeta?.seoDescription) description = platinumMeta.seoDescription;
-        } catch {
-          // fall back to page SEO fields
-        }
-        title = withRateDate(title);
-      }
-    }
+    nodes = [...nodes, ...data.pages.edges.map(e => e.node)];
+    hasNextPage = data.pages.pageInfo.hasNextPage;
+    cursor = data.pages.pageInfo.endCursor;
   }
 
+  return nodes;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIER 1: Shopify Storefront API
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getPageByHandleStorefront(handle, cacheOption = 'force-cache') {
+  const query = `
+      query getPage($handle: String!) {
+        page(handle: $handle) {
+          id
+          title
+          handle
+          body
+          bodySummary
+          seo { title description }
+        }
+      }
+    `;
+  const data = await shopifyStorefrontFetch(query, { handle }, {
+    ...toCacheInit(cacheOption),
+    useRwToken: true
+  });
+  return data?.page || null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIER 2: Shopify Admin REST API
+// Fetches raw body_html — bypasses Shopify 2.0 section restrictions.
+// Mirrors the same approach used in blogs.js for article content.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getPageByHandleAdminRest(handle) {
+  try {
+    let pageInfo = null;
+
+    do {
+      const params = pageInfo
+        ? { limit: 250, page_info: pageInfo }
+        : { limit: 250 };
+
+      const { data, linkHeader } = await shopifyAdminRestFetch(
+        "pages.json",
+        params
+      );
+
+      const page = data.pages?.find((p) => p.handle === handle);
+
+      if (page) {
+        return {
+          id: `gid://shopify/Page/${page.id}`,
+          title: page.title,
+          handle: page.handle,
+          body: page.body_html || "",
+          bodySummary: stripHtml(page.body_html || "").slice(0, 160),
+          seo: {
+            title: page.title,
+            description: stripHtml(page.body_html || "").slice(0, 160),
+          },
+        };
+      }
+
+      pageInfo = parseNextPageInfo(linkHeader);
+    } while (pageInfo);
+
+    return null;
+  } catch (e) {
+    console.warn("Admin REST page fetch failed:", e.message);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TIER 3: Live Shopify store scraping (last resort)
+// Mirrors getArticleRenderedFromLiveSite() in blogs.js
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getPageFromLiveSite(handle) {
+  let res;
+  try {
+    res = await fetchWithRetry(
+      `https://luciraonline.myshopify.com/pages/${handle}?_fd=0`,
+      {
+        cache: 'no-store',
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      }
+    );
+  } catch (error) {
+    // During `next build`, this tier's no-store fetch makes Next throw its
+    // static-bailout signal — not a scraping failure. Rethrow so Next handles
+    // it (the route goes dynamic either way) instead of logging it as one.
+    if (isNextControlFlowError(error)) throw error;
+    console.error(`Live site scraping failed for page ${handle}:`, error.message);
+    return null;
+  }
+
+  if (!res || !res.ok) return null;
+
+  const pageHtml = await res.text();
+
+  // Extract main content — Shopify stores page content inside main or article tags
+  let contentHtml = "";
+  const mainMatch = pageHtml.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  if (mainMatch) {
+    contentHtml = mainMatch[1]
+      .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+      .replace(/<style\b[\s\S]*?<\/style>/gi, "")
+      .replace(/href="https:\/\/luciraonline\.myshopify\.com\//g, 'href="/')
+      .replace(/href="https:\/\/www\.lucirajewelry\.com\//g, 'href="/')
+      .replace(/src="\/\//g, 'src="https://');
+  }
+
+  const title =
+    pageHtml.match(/<h1[^>]*>(.*?)<\/h1>/i)?.[1]?.replace(/<[^>]*>?/gm, "").trim() ||
+    pageHtml.match(/<title[^>]*>(.*?)<\/title>/i)?.[1]?.split("|")[0]?.trim() ||
+    handle;
+
+  if (!contentHtml && !title) return null;
+
   return {
+    id: null,
     title,
-    description,
-    alternates: {
-      canonical: `/pages/${handle}`,
-    },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: `/pages/${handle}`,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
+    handle,
+    body: contentHtml,
+    bodySummary: stripHtml(contentHtml).slice(0, 160),
+    seo: { title, description: stripHtml(contentHtml).slice(0, 160) },
   };
 }
 
-export default async function Page({ params }) {
-  const { handle: rawHandle } = await params;
-  const handle = rawHandle.toLowerCase();
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN: getPageByHandle — 3-tier fetch, same strategy as blogs.js
+//
+//  Tier 1: Shopify Storefront API   (fastest, CDN-cached)
+//  Tier 2: Shopify Admin REST API   (bypasses Shopify 2.0 section hiding)
+//  Tier 3: Live site HTML scraping  (last resort)
+//
+// cacheOption: 'force-cache' for static pages, { revalidate: N } for rate pages
+// (a plain 'no-store' string still works and forces the route dynamic)
+// ─────────────────────────────────────────────────────────────────────────────
 
-  if (handle === "contact-us") {
-    return <ContactSection />;
+export async function getPageByHandle(handle, cacheOption = 'force-cache') {
+  // Tier 1: Storefront API
+  const storefrontPage = await getPageByHandleStorefront(handle, cacheOption);
+
+  // If Storefront returned a page with content, use it directly
+  if (storefrontPage?.body) {
+    return serialize(storefrontPage);
   }
 
-  if (handle === "sitemap") {
-    return <SitemapPage />;
+  // Tier 2: Admin REST API — bypasses Shopify 2.0 section restrictions
+  // (same reason blogs.js uses it: Shopify 2.0 pages can hide body from Storefront API)
+  let adminPage = null;
+  try {
+    adminPage = await getPageByHandleAdminRest(handle);
+  } catch (e) {
+    if (isNextControlFlowError(e)) throw e;
+    console.warn("Admin REST page fallback failed:", e.message);
   }
 
-  // ── Rate page detection ──────────────────────────────────────────────────
-  const isSilverRatePage = handle.includes("silver-rate-today");
-  const isPlatinumRatePage = handle.includes("platinum-rate-today");
-  const isGoldRatePage = handle.includes("gold-rate-today");
-  const isRatePage = isSilverRatePage || isPlatinumRatePage || isGoldRatePage;
-
-  // Rate pages: ISR so Shopify body edits appear after the revalidate window (1 hour).
-  // All other pages: force-cache (permanent SSG, never re-fetched after build).
-  // This mirrors exactly how blogs.js handles article content.
-  const cacheStrategy = isRatePage ? RATE_PAGE_CACHE : 'force-cache';
-
-  // 3-tier fetch: Storefront API → Admin REST API → Live site scraping
-  // (same strategy as getArticleByBlogAndHandle in blogs.js)
-  let page = await getPageByHandle(handle, cacheStrategy);
-
-  // ── For rate pages, always attach city/state derived from the URL handle ──
-  if (isRatePage) {
-    let rateType = '';
-    if (isGoldRatePage) rateType = '-gold-rate-today';
-    else if (isSilverRatePage) rateType = '-silver-rate-today';
-    else if (isPlatinumRatePage) rateType = '-platinum-rate-today';
-
-    const { cityCapitalized, resolvedState, matched } = resolveCityState(handle, rateType);
-
-    // State pages exist for all three metals (gold_rate_state /
-    // silver_rate_state / platinum_rate_state metaobjects); the city check
-    // above runs first so dual slugs (delhi, chandigarh, …) stay cities.
-    const statePage = !matched
-      ? resolveStatePage(handle, rateType)
-      : { matchedState: false };
-
-    if (!page) {
-      // No real Shopify page for this handle. Only fabricate a stub for cities
-      // (or, on gold, states) we actually recognize (STATE_CITY_MAP) — otherwise
-      // any random slug like "hyde-gold-rate-today" or "mum-gold-rate-today"
-      // would silently render a fake city page instead of 404ing.
-      if (!matched && !statePage.matchedState) return notFound();
-
-      page = {
-        title: handle.replace(/-/g, ' ').toUpperCase(),
-        body: "",
-      };
-    }
-
-    if (statePage.matchedState) {
-      // The state name rides in the city slot so GoldRatePage's headings and
-      // copy read "Gold Rate in Maharashtra Today" without a second code path.
-      page.city = { value: statePage.stateCapitalized };
-      page.state = { value: statePage.stateCapitalized };
-      page.isStatePage = true;
-      // Union territories resolve through the same path; the flag makes the
-      // metaobject fetch below try the *_rate_union_territory type first.
-      if (UT_SLUGS.has(handle.replace(rateType, ''))) {
-        page.isUtPage = true;
-      }
-    } else {
-      // Always stamp city/state from the URL — Shopify page has no city metafield.
-      // If the page is real but the city isn't in our map (unmatched), fall back
-      // to Maharashtra rather than leaving state blank.
-      page.city = { value: cityCapitalized };
-      page.state = { value: resolvedState || 'Maharashtra' };
-    }
+  if (adminPage?.body) {
+    // Merge: prefer Storefront metadata (id, seo) but use Admin body content
+    return serialize({
+      ...storefrontPage,
+      ...adminPage,
+      body: adminPage.body || storefrontPage?.body || "",
+    });
   }
 
-  if (!page) return notFound();
-
-  // ── Gold rate pages: pull content straight from the Shopify metaobject via the
-  // Storefront API (same pattern as blogs) — no Liquid scraping. Fail-safe: if the
-  // metaobject is missing the page falls back to page.body below.
-  if (isGoldRatePage) {
-    try {
-      // UT pages read gold_rate_union_territory (falling back to
-      // gold_rate_state, where older UT content lives); state pages read
-      // gold_rate_state; city pages keep gold_rate_city. All return the same
-      // normalized shape.
-      const goldMeta = page.isUtPage
-        ? (await getGoldRateUtMeta(handle, RATE_PAGE_CACHE)) ||
-          (await getGoldRateStateMeta(handle, RATE_PAGE_CACHE))
-        : page.isStatePage
-          ? await getGoldRateStateMeta(handle, RATE_PAGE_CACHE)
-          : await getGoldRateCityMeta(handle, RATE_PAGE_CACHE);
-      if (goldMeta) {
-        try {
-          goldMeta.history = await getGoldRateHistory(RATE_PAGE_CACHE);
-        } catch {
-          goldMeta.history = [];
-        }
-        // Freshness stamp for the H1 — the same IST date + time the <title>
-        // carries. Computed here on the server so the client component hydrates
-        // with an identical string instead of tripping a mismatch when the
-        // browser renders on the other side of an hour boundary.
-        if (!ALREADY_DATED.test(goldMeta.heroTitle || "")) {
-          goldMeta.heroStamp = istRateStamp().stamp;
-        }
-        page.goldMeta = goldMeta;
-      }
-    } catch (e) {
-      console.warn("gold metaobject fetch failed:", e?.message);
-    }
+  // Tier 3: Live site scraping — last resort
+  let livePage = null;
+  try {
+    livePage = await getPageFromLiveSite(handle);
+  } catch (e) {
+    if (isNextControlFlowError(e)) throw e;
+    console.warn("Live site scraping fallback failed:", e.message);
   }
 
-  // ── Silver rate pages: identical pipeline to gold — page metafield →
-  // silver_rate_city metaobject via the Storefront API, plus the shared
-  // silver_rate_history for the trend tables. Fail-safe: if the metaobject is
-  // missing, SilverRatePage keeps rendering its hardcoded template fallback.
-  if (isSilverRatePage) {
-    try {
-      // UT pages read silver_rate_union_territory (falling back to
-      // silver_rate_state); state pages read silver_rate_state; city pages
-      // keep silver_rate_city. All return the same normalized shape.
-      const silverMeta = page.isUtPage
-        ? (await getSilverRateUtMeta(handle, RATE_PAGE_CACHE)) ||
-          (await getSilverRateStateMeta(handle, RATE_PAGE_CACHE))
-        : page.isStatePage
-          ? await getSilverRateStateMeta(handle, RATE_PAGE_CACHE)
-          : await getSilverRateCityMeta(handle, RATE_PAGE_CACHE);
-      if (silverMeta) {
-        try {
-          silverMeta.history = await getSilverRateHistory(RATE_PAGE_CACHE);
-        } catch {
-          silverMeta.history = [];
-        }
-        // Freshness stamp for the H1 — same IST date + time the <title> carries,
-        // computed on the server so hydration can't mismatch across an hour
-        // boundary (same reasoning as gold).
-        if (!ALREADY_DATED.test(silverMeta.heroTitle || "")) {
-          silverMeta.heroStamp = istRateStamp().stamp;
-        }
-        page.silverMeta = silverMeta;
-      }
-    } catch (e) {
-      console.warn("silver metaobject fetch failed:", e?.message);
-    }
+  if (livePage) {
+    return serialize({
+      ...storefrontPage,
+      ...livePage,
+      body: livePage.body || storefrontPage?.body || "",
+    });
   }
 
-  // ── Platinum rate pages: same pipeline as silver.
-  if (isPlatinumRatePage) {
-    try {
-      // UT pages read platinum_rate_union_territory (falling back to
-      // platinum_rate_state); state pages read platinum_rate_state; city pages
-      // keep platinum_rate_city. All return the same normalized shape.
-      const platinumMeta = page.isUtPage
-        ? (await getPlatinumRateUtMeta(handle, RATE_PAGE_CACHE)) ||
-          (await getPlatinumRateStateMeta(handle, RATE_PAGE_CACHE))
-        : page.isStatePage
-          ? await getPlatinumRateStateMeta(handle, RATE_PAGE_CACHE)
-          : await getPlatinumRateCityMeta(handle, RATE_PAGE_CACHE);
-      if (platinumMeta) {
-        try {
-          platinumMeta.history = await getPlatinumRateHistory(RATE_PAGE_CACHE);
-        } catch {
-          platinumMeta.history = [];
-        }
-        if (!ALREADY_DATED.test(platinumMeta.heroTitle || "")) {
-          platinumMeta.heroStamp = istRateStamp().stamp;
-        }
-        page.platinumMeta = platinumMeta;
-      }
-    } catch (e) {
-      console.warn("platinum metaobject fetch failed:", e?.message);
-    }
+  // Return the storefront page even if body is empty (page exists but has no body)
+  if (storefrontPage) {
+    return serialize(storefrontPage);
   }
 
-  // Serialize for Client Components (removes BSON ObjectId, etc.)
-  page = JSON.parse(JSON.stringify(page));
-
-  // ── Route to the correct rate page component ─────────────────────────────
-  if (isSilverRatePage) {
-    return <SilverRatePage page={page} />;
-  }
-
-  if (isPlatinumRatePage) {
-    return <PlatinumRatePage page={page} />;
-  }
-
-  if (isGoldRatePage) {
-    return <GoldRatePage page={page} />;
-  }
-
-  // ── Legacy city/state gold-rate pages (no "-gold-rate-today" in handle) ──
-  if (page.city && page.state) {
-    return <GoldRatePage page={page} />;
-  }
-
-  // ── Generic page rendering ───────────────────────────────────────────────
-  const hasBody = typeof page.body === "string" && page.body.trim() !== "";
-
-  if (handle === "exclusive-promotions-page") {
-    return (
-      <div className="w-full bg-white min-h-screen">
-        <section
-          id="promo-banner"
-          className="relative flex items-center justify-center w-full"
-          style={{
-            backgroundImage: `url('https://luciraonline.myshopify.com/cdn/shop/files/Offer-T-_-C-Desktop.jpg?v=1754045882&width=2000')`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            minHeight: "400px",
-          }}
-        >
-          <style>{`
-            @media screen and (max-width: 749px) {
-                #promo-banner {
-                    background-image: url('https://luciraonline.myshopify.com/cdn/shop/files/Offer-T-_-C-Mobile.jpg?v=1754045881&width=1000') !important;
-                    min-height: 400px !important;
-                }
-            }
-          `}</style>
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ backgroundColor: "rgba(0,0,0,0.8)", opacity: 0.7 }}
-          />
-          <div className="relative z-10 text-center max-w-5xl mx-auto px-8 py-8">
-            <h1 className="font-figtree font-medium text-[32px] md:text-[42px] text-white tracking-tight leading-tight mb-3">
-              OFFERS T&C
-            </h1>
-          </div>
-        </section>
-
-        <section className="container-main py-10">
-          <div
-            className="footer-pages max-w-none font-figtree text-zinc-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: page.body }}
-          />
-        </section>
-      </div>
-    );
-  }
-
-  if (handle === "accessibility-statement") {
-    return (
-      <div className="w-full bg-white min-h-screen">
-        <section
-          id="accessibility-banner"
-          className="relative flex items-center justify-center w-full"
-          style={{
-            backgroundImage: `url('https://luciraonline.myshopify.com/cdn/shop/files/Accesiblity_20Page_20Banner_201920_20600.png?v=1768908054&width=2000')`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-            minHeight: "400px",
-          }}
-        >
-          <style>{`
-            @media screen and (max-width: 749px) {
-              #accessibility-banner {
-                background-image: url('https://luciraonline.myshopify.com/cdn/shop/files/Accesiblity_20Page_20Banner_201920_20600.png?v=1768908054&width=1000') !important;
-                min-height: 400px !important;
-              }
-            }
-          `}</style>
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ backgroundColor: "rgba(0,0,0,0.8)", opacity: 0.6 }}
-          />
-          <div className="relative z-10 text-center max-w-5xl mx-auto px-8 py-8">
-            <h1 className="font-figtree font-medium text-[32px] md:text-[42px] text-white tracking-tight leading-tight mb-3">
-              ACCESSIBILITY STATEMENT
-            </h1>
-          </div>
-        </section>
-
-        <section className="container-main py-10">
-          <div
-            className="footer-pages max-w-none font-figtree text-zinc-700 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: page.body }}
-          />
-        </section>
-      </div>
-    );
-  }
-
-  const isAccordionPage = hasBody && page.body.includes("data-toggle");
-
-  return (
-    <>
-      <h1 className="hidden">{page.title}</h1>
-      <div className="container mx-auto py-7 px-4">
-        {hasBody ? (
-          isAccordionPage ? (
-            <FooterPageContent html={page.body} />
-          ) : (
-            <div
-              className="footer-pages"
-              suppressHydrationWarning
-              dangerouslySetInnerHTML={{ __html: page.body }}
-            />
-          )
-        ) : (
-          <p className="text-center text-zinc-500 py-20">No Content Available</p>
-        )}
-      </div>
-    </>
-  );
+  return null;
 }
