@@ -3,7 +3,7 @@ import {
   getArticleByBlogAndHandle,
   getArticlesByBlogHandle,
   getMostViewedArticles,
-  getArticlesByBlogHandleStorefront
+  getAllArticleHandles
 } from "@/lib/blogs";
 import BlogArticleClient from "@/components/blogs/BlogArticleClient";
 import { getReadingTimeLabel } from "@/lib/readingTime";
@@ -20,17 +20,7 @@ export const dynamicParams = true;
 export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  try {
-    const articles = await getArticlesByBlogHandleStorefront("stories");
-    const latestArticles = articles.slice(0, 4);
-    return latestArticles.map(article => ({
-      blogHandle: "stories",
-      articleHandle: article.handle
-    }));
-  } catch (error) {
-    console.error("Failed to fetch stories for SSG:", error);
-    return [];
-  }
+  return await getAllArticleHandles();
 }
 
 function stripHtml(value) {
