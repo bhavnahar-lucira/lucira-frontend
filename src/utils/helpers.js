@@ -36,9 +36,9 @@ export function isNextControlFlowError(err) {
 /**
  * Fetch with basic retry logic for network errors and an explicit timeout
  */
-export async function fetchWithRetry(url, options = {}, retries = 2, backoff = 500) {
+export async function fetchWithRetry(url, options = {}, retries = 5, backoff = 1000) {
   const timeoutMs = Number(process.env.UPSTREAM_FETCH_TIMEOUT_MS || 12000);
-  const maxBackoffMs = Number(process.env.UPSTREAM_FETCH_MAX_BACKOFF_MS || 5000);
+  const maxBackoffMs = Number(process.env.UPSTREAM_FETCH_MAX_BACKOFF_MS || 10000);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -53,7 +53,7 @@ export async function fetchWithRetry(url, options = {}, retries = 2, backoff = 5
     // If it's a 5xx error or 429 (Too Many Requests), we might want to retry as well
     if (!res.ok && (res.status >= 500 || res.status === 429) && retries > 0) {
       console.warn(`Fetch failed with ${res.status} for ${url}. Retrying... (${retries} left)`);
-      
+
       let currentBackoff = backoff;
       if (res.status === 429) {
         const retryAfter = res.headers.get('Retry-After');
@@ -64,7 +64,9 @@ export async function fetchWithRetry(url, options = {}, retries = 2, backoff = 5
         }
       }
 
-      await new Promise(resolve => setTimeout(resolve, Math.min(currentBackoff, maxBackoffMs)));
+      // Add jitter to avoid thundering herd problem
+      const jitter = Math.random() * 500;
+      await new Promise(resolve => setTimeout(resolve, Math.min(currentBackoff, maxBackoffMs) + jitter));
       return fetchWithRetry(url, options, retries - 1, currentBackoff * 2);
     }
     return res;
@@ -80,8 +82,12 @@ export async function fetchWithRetry(url, options = {}, retries = 2, backoff = 5
     }
 
     if (retries > 0) {
-      if (!isTimeout) console.warn(`Fetch error for ${url}: ${err.message}. Retrying... (${retries} left)`);
-      await new Promise(resolve => setTimeout(resolve, Math.min(backoff, maxBackoffMs)));
+      const causeMsg = err.cause?.message ? ` (Cause: ${err.cause.message})` : '';
+      if (!isTimeout) console.warn(`Fetch error for ${url}: ${err.message}${causeMsg}. Retrying... (${retries} left)`);
+
+      // Add jitter
+      const jitter = Math.random() * 500;
+      await new Promise(resolve => setTimeout(resolve, Math.min(backoff, maxBackoffMs) + jitter));
       return fetchWithRetry(url, options, retries - 1, backoff * 2);
     }
     throw err;
