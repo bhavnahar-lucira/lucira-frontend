@@ -2,6 +2,7 @@ import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { notFound } from "next/navigation";
+import { getStorePages } from "@/lib/storeContent";
 
 export const revalidate = 86400; // 24 hours
 
@@ -102,6 +103,10 @@ export default async function Page({ params }) {
     : "http://127.0.0.1:8080";
   const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
   
+  // Dashboard-managed store content — decides whether this collection renders
+  // the store hero, and supplies everything in it.
+  const storePages = await getStorePages();
+
   let initialData = null;
   try {
     const [collRes, filterRes, plpBannersRes] = await Promise.all([
@@ -160,7 +165,7 @@ export default async function Page({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <CollectionPageClient params={params} initialData={initialData} />
+      <CollectionPageClient params={params} initialData={initialData} storePages={storePages} />
     </>
   );
 }

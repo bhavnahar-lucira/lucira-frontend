@@ -3,16 +3,17 @@
 import React from 'react';
 import { Phone, Mail, MapPin } from 'lucide-react';
 import { informationContentData } from '@/data/informationContent';
-import { isStoreActive, handleFromStoreName } from '@/data/stores';
+import { isStoreActive } from '@/data/stores';
+import { experienceStores } from '@/lib/storeContent';
 import '@/styles/gold-rate.css';
 
-const InformationContent = () => {
+const InformationContent = ({ storePages = null }) => {
   const { settings, blocks, block_order } = informationContentData;
 
-  // Filter blocks by type (and hide stores switched off in the central registry)
-  const storeLocations = block_order
-    .map(id => blocks[id])
-    .filter(block => block && block.type === 'store_location' && isStoreActive(handleFromStoreName(block.settings?.store_name)));
+  // The store cards come from Dashboard → Stores; only the heading and the rich
+  // text below it still live in src/data/informationContent.js. `isStoreActive`
+  // is the older site-wide kill switch in src/data/stores.js.
+  const storeLocations = experienceStores(storePages).filter(s => isStoreActive(s.handle));
 
   const contentBlocks = block_order
     .map(id => blocks[id])
@@ -28,43 +29,47 @@ const InformationContent = () => {
               {settings.stores_heading}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-12 lg:gap-y-10 lg:gap-x-0">
-              {storeLocations.map((block, index) => (
+              {storeLocations.map((store, index) => (
                 <div
-                  key={index}
+                  key={store.handle || index}
                   className={`store-location-item lg:px-8 ${index % 4 !== 3 && index !== storeLocations.length - 1
                     ? 'lg:border-r lg:border-zinc-100'
                     : ''
                     } ${index % 4 === 0 ? 'lg:pl-0' : ''}`}
                 >
                   <h4 className="text-sm lg:text-base font-bold font-figtree text-zinc-800 mb-4 lg:mb-5 leading-tight tracking-tight uppercase">
-                    {block.settings.store_name}
+                    {store.label}
                   </h4>
                   <ul className="space-y-4 lg:space-y-4">
-                    <li className="flex items-start gap-3 text-xs lg:text-sm text-zinc-600">
-                      <Phone size={14} className="mt-1 shrink-0 text-[#5A413F] opacity-80" />
-                      <a href={`tel:${block.settings.phone}`} className="hover:text-[#5A413F] transition-colors leading-normal font-medium">
-                        {block.settings.phone}
-                      </a>
-                    </li>
-                    <li className="flex items-start gap-3 text-xs lg:text-sm text-zinc-600">
-                      <Mail size={14} className="mt-1 shrink-0 text-[#5A413F] opacity-80" />
-                      <a href={`mailto:${block.settings.email}`} className="hover:text-[#5A413F] transition-colors leading-normal font-medium break-all">
-                        {block.settings.email}
-                      </a>
-                    </li>
+                    {store.phone && (
+                      <li className="flex items-start gap-3 text-xs lg:text-sm text-zinc-600">
+                        <Phone size={14} className="mt-1 shrink-0 text-[#5A413F] opacity-80" />
+                        <a href={store.phoneHref} className="hover:text-[#5A413F] transition-colors leading-normal font-medium">
+                          {store.phone}
+                        </a>
+                      </li>
+                    )}
+                    {store.email && (
+                      <li className="flex items-start gap-3 text-xs lg:text-sm text-zinc-600">
+                        <Mail size={14} className="mt-1 shrink-0 text-[#5A413F] opacity-80" />
+                        <a href={`mailto:${store.email}`} className="hover:text-[#5A413F] transition-colors leading-normal font-medium break-all">
+                          {store.email}
+                        </a>
+                      </li>
+                    )}
                     <li className="flex items-start gap-3 text-xs lg:text-sm text-zinc-600 font-medium">
                       <MapPin size={14} className="mt-1 shrink-0 text-[#5A413F] opacity-80" />
-                      {block.settings.map_url ? (
+                      {store.mapUrl ? (
                         <a
-                          href={block.settings.map_url}
+                          href={store.mapUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="hover:text-[#5A413F] transition-colors leading-relaxed"
                         >
-                          {block.settings.address}
+                          {store.address}
                         </a>
                       ) : (
-                        <span className="leading-relaxed">{block.settings.address}</span>
+                        <span className="leading-relaxed">{store.address}</span>
                       )}
                     </li>
                   </ul>

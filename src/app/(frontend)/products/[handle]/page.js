@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import ProductPageClient from "@/components/product/ProductPageClient";
+import { getStorePages } from "@/lib/storeContent";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { shopifyStorefrontFetch, getAllProductHandles } from "@/lib/shopify";
 import "./product-page.css";
@@ -494,6 +495,10 @@ export default async function ProductPage({ params }) {
     notFound();
   }
 
+  // Dashboard-managed store content for the "Visit Lucira Store Near You"
+  // section (Dashboard → Stores). Cached alongside the page's own ISR window.
+  const storePages = await getStorePages();
+
   const jsonLd = getProductSchema(rawProduct);
   const breadcrumbs = [
     { name: "Home", url: "/" },
@@ -512,8 +517,9 @@ export default async function ProductPage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <ProductPageClient 
-        product={rawProduct} 
+      <ProductPageClient
+        product={rawProduct}
+        storePages={storePages}
       />
     </>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,20 +10,18 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { footerStoreLinks } from "@/lib/storeContent";
+
+const STORE_LINKS_TITLE = "Visit our stores:";
+
+// Not a store page — a city landing collection that has always sat fifth in the
+// store list. Everything else in that group is generated from the stores
+// configured in Dashboard → Stores.
+const EXTRA_STORE_LINKS = [
+  { position: 4, label: "Lab Grown Diamond Jewelry in Mumbai", href: "https://www.lucirajewelry.com/collections/lab-grown-diamonds-in-mumbai" },
+];
 
 const SEARCH_DATA = [
-  {
-    title: "Visit our stores:",
-    links: [
-      { label: "Lab Grown Diamond Jewelry in Pune", href: "https://www.lucirajewelry.com/collections/pune-store" },
-      { label: "Lab Grown Diamond Jewelry in Noida", href: "https://www.lucirajewelry.com/collections/noida-store" },
-      { label: "Lab Grown Diamond Jewelry in Borivali", href: "https://www.lucirajewelry.com/collections/sky-city-borivali-store" },
-      { label: "Lab Grown Diamond Jewelry in Chembur", href: "https://www.lucirajewelry.com/collections/chembur-store" },
-      { label: "Lab Grown Diamond Jewelry in Mumbai", href: "https://www.lucirajewelry.com/collections/lab-grown-diamonds-in-mumbai" },
-      { label: "Lab Grown Diamond Jewelry in Paschim Vihar", href: "https://www.lucirajewelry.com/collections/paschim-vihar" },
-      { label: "Lab Grown Diamond Jewelry in Lajpat Nagar", href: "https://www.lucirajewelry.com/collections/lajpat-nagar-store" },
-    ],
-  },
   {
     title: "Rings",
     links: [
@@ -117,9 +115,23 @@ const SEARCH_DATA = [
   },
 ];
 
-export default function PopularSearches() {
+/**
+ * Build the "Visit our stores:" group from the dashboard-managed stores, then
+ * splice the fixed city-landing links back into the positions they've always
+ * held. A store added in the dashboard shows up here with no code change.
+ */
+function buildSections(storePages) {
+  const links = footerStoreLinks(storePages).map(({ label, href }) => ({ label, href }));
+  EXTRA_STORE_LINKS.forEach(({ position, label, href }) => {
+    links.splice(Math.min(position, links.length), 0, { label, href });
+  });
+  return [{ title: STORE_LINKS_TITLE, links }, ...SEARCH_DATA];
+}
+
+export default function PopularSearches({ storePages = null }) {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
+  const sections = useMemo(() => buildSections(storePages), [storePages]);
 
   if (pathname?.startsWith("/build-your-jewelry") || pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway")) {
     return null;
@@ -134,7 +146,7 @@ export default function PopularSearches() {
 
         {isMobile ? (
           <Accordion type="single" collapsible defaultValue="item-0" className="w-full">
-            {SEARCH_DATA.map((section, idx) => (
+            {sections.map((section, idx) => (
               <AccordionItem key={idx} value={`item-${idx}`} className="border-b border-gray-200">
                 <AccordionTrigger className="font-abhaya text-sm font-bold py-4 hover:no-underline text-primary">
                   {section.title}
@@ -161,7 +173,7 @@ export default function PopularSearches() {
           </Accordion>
         ) : (
           <div className="flex flex-col gap-6 lg:gap-8">
-            {SEARCH_DATA.map((section, idx) => (
+            {sections.map((section, idx) => (
               <div key={idx} className="search-section">
                 <h3 className="font-abhaya text-base font-bold text-primary mb-2">
                   {section.title}

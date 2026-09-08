@@ -293,6 +293,9 @@ export default function ProductPageClient({
   product,
   complementaryProducts: initialComplementaryProducts = [],
   matchingProducts: initialMatchingProducts = [],
+  // Dashboard-managed store content for the "Visit Lucira Store Near You"
+  // section below the product. Falls back to the baked-in defaults when absent.
+  storePages = null,
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -3850,7 +3853,7 @@ export default function ProductPageClient({
         />
       ) : (
         <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-          <StoreLocatorSection locationId="product page" />
+          <StoreLocatorSection locationId="product page" storePages={storePages} surface="productPage" />
         </Suspense>
       )}
 

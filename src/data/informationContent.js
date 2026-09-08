@@ -7,96 +7,11 @@ export const informationContentData = {
     "stores_heading": "Lucira's Experience Stores"
   },
   "blocks": {
-    "store_location_PTIUB3": {
-      "type": "store_location",
-      "settings": {
-        "store_name": "Head Office",
-        "phone": "+919004436052",
-        "email": "care@lucirajewelry.com",
-        "address": "Office: 1402-2, Dlh Park, 14th Floor, Swami Vivekanand Rd, Mumbai, Maharashtra 400062",
-        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Mumbai/data=!4m2!3m1!1s0x0:0x268fe0bb8a89f9bb?sa=X&ved=1t:2428&hl=en-GB&ictx=111"
-      }
-    },
-    "store_location_PT9AJb": {
-      "type": "store_location",
-      "settings": {
-        "store_name": "Borivali Store",
-        "phone": "+918433667238",
-        "email": "lcmbombor@lucirajewelry.com",
-        "address": "Sky City Mall, S-40, 2nd Floor, Western Express Hwy, Borivali East, Mumbai - 400066",
-        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewelry+Store+in+Borivali+Mumbai/@19.2226624,72.8617494,621m/data=!3m2!1e3!4b1!4m6!3m5!1s0x3be7b13efc944429:0x8e0b915ac78ac1!8m2!3d19.2226574!4d72.8643243!16s%2Fg%2F11ytqp4xsk?hl=en&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D"
-      }
-    },
-    "store_location_JXxGWf": {
-      "type": "store_location",
-      "settings": {
-        "store_name": "Chembur Store",
-        "phone": "+91 9004402038",
-        "email": "lcsbomchb@lucirajewelry.com",
-        "address": "Shop No. 3 Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd, Chembur, Mumbai, Maharashtra - 400071",
-        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Chembur+Mumbai/@19.0576005,72.898121,17z/data=!3m1!4b1!4m6!3m5!1s0x3be7c782f7511b79:0xaa877f3bbd754bfc!8m2!3d19.0575954!4d72.9006959!16s%2Fg%2F11xtgz09vw?coh=277534&entry=tts&g_ep=EgoyMDI1MTIwOS4wIPu8ASoKLDEwMDc5MjA3MUgBUAM%3D&skid=24407d76-c38a-4e0f-9635-b44cee4c4b31"
-      }
-    },
-    "store_location_eMddbh": {
-      "type": "store_location",
-      "settings": {
-        "store_name": "Pune Store",
-        "phone": "+91 8433667236",
-        "email": "lcspnqjmr@lucirajewelry.com",
-        "address": "Shop no. 3,4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd, Pune, Maharashtra - 411005",
-        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+JM+Road+Pune/@18.5233058,73.8452878,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc2c1929b1639f7:0x7d0f5ff74de52a8d!8m2!3d18.5233007!4d73.8478627!16s%2Fg%2F11ylpdz9dm?coh=277534&entry=tts&g_ep=EgoyMDI1MTIwOS4wIPu8ASoKLDEwMDc5MjA3MUgBUAM%3D&skid=daaa869f-0b7a-43cd-bcdf-3c35f206de47"
-      }
-    },
-    "store_location_aAA3ty": {
-      "type": "store_location",
-      "settings": {
-        "store_name": "Noida Store",
-        "phone": "+91 8657392887",
-        "email": "lcnois18@lucirajewelry.com",
-        "address": "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",
-        "map_url": ""
-      }
-    },
-    "store_location_eMddbh": {
-      "type": "store_location",
-      "settings": {
-        "store_name": "Pune Store",
-        "phone": "+91 8433667236",
-        "email": "lcspnqjmr@lucirajewelry.com",
-        "address": "Shop no. 3,4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd, Pune, Maharashtra - 411005",
-        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+JM+Road+Pune/@18.5233058,73.8452878,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc2c1929b1639f7:0x7d0f5ff74de52a8d!8m2!3d18.5233007!4d73.8478627!16s%2Fg%2F11ylpdz9dm?coh=277534&entry=tts&g_ep=EgoyMDI1MTIwOS4wIPu8ASoKLDEwMDc5MjA3MUgBUAM%3D&skid=daaa869f-0b7a-43cd-bcdf-3c35f206de47"
-      }
-    },
-    // "store_location_eMddbh": {
-    //   "type": "store_location",
-    //   "settings": {
-    //     "store_name": "Paschim Vihar Store",
-    //     "phone": "+91 7208007494",
-    //     "email": "lcsdelpvh@lucirajewelry.com",
-    //     "address": "B-8, Shubham Enclave, Reserve Bank Enclave, Paschim Vihar, New Delhi, Delhi, 110063",
-    //     "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D"
-    //   }
-    // },
-    "store_location_eMfdbh": {
-      "type": "store_location",
-      "settings": {
-        "store_name": "Paschim Vihar Store",
-        "phone": "+91 7208007494",
-        "email": " lcsdelpvh@lucirajewelry.com",
-        "address": "B-8, Shubham Enclave, Paschim Vihar, New Delhi -110063.",
-        "map_url": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D"
-      }
-    },
-    "store_location_LJN001": {
-      "type": "store_location",
-      "settings": {
-        "store_name": "Lajpat Nagar Store",
-        "phone": "+91 7208007495",
-        "email": "LCSDELLJN@lucirajewelry.com",
-        "address": "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
-        "map_url": "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi"
-      }
-    },
+    // The store cards that used to live here (store_location blocks) are now
+    // managed in Dashboard -> Stores and delivered via
+    // /api/settings/store-pages. InformationContent.jsx reads them from its
+    // `storePages` prop; only the heading above and the rich text below are
+    // still content in this file.
     "richtext_b9DWKE": {
       "type": "richtext",
       "settings": {
@@ -105,13 +20,6 @@ export const informationContentData = {
     }
   },
   "block_order": [
-    "store_location_PTIUB3",
-    "store_location_PT9AJb",
-    "store_location_JXxGWf",
-    "store_location_eMddbh",
-    "store_location_aAA3ty",
-    "store_location_eMfdbh",
-    "store_location_LJN001",
     "richtext_b9DWKE"
   ]
 };

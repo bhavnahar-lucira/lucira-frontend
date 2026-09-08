@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import LazyImage from "@/components/common/LazyImage";
 import Image from "next/image";
 import {
@@ -15,7 +15,9 @@ import {
 
 import { Button } from "@/components/ui/button";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
-import { isStoreActive, handleFromDesignLink } from "@/data/stores";
+import { isStoreActive } from "@/data/stores";
+import { locatorStores } from "@/lib/storeContent";
+import { STORE_PAGE_DEFAULTS } from "@/data/storePageDefaults";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   Accordion,
@@ -26,116 +28,15 @@ import {
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 
-export const ALL_STORES = [
-  {
-    city: "Malad",
-    name: "Head Office",
-    rating: 5.0,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Lucira_contact_us_grid_900x.png?v=1757660196",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Mumbai/data=!4m2!3m1!1s0x0:0x268fe0bb8a89f9bb?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send?phone=918976740895&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Head%20Office%20and%20explore%20the%20designs.",
-    callLink: "tel:+919004436052",
-    designLink: "/collections/malad",
-    directionsLink: "/collections/malad",
-    lat: 19.1743,
-    lng: 72.8445,
-    address: "Office 1402-2, DLH Park, 14th Floor, SV Rd, Mumbai, Maharashtra 400062",
-  },
-  {
-    city: "Borivali",
-    name: "Borivali Lucira Store",
-    rating: 4.9,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-Collection-Banner3_jpg_900x.jpg?v=1769237134",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Borivali+Mumbai/data=!4m2!3m1!1s0x0:0x8e0b915ac78ac1?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
-    callLink: "tel:+918433667238",
-    designLink: "/collections/sky-city-borivali-store",
-    directionsLink: "/collections/sky-city-borivali-store",
-    lat: 19.2307,
-    lng: 72.8567,
-    address: "Sky City Mall, S-40, 2nd Floor, Western Express Hwy, Borivali East, Mumbai - 400066",
-  },
-  {
-    city: "Chembur",
-    name: "Chembur Lucira Store",
-    rating: 4.7,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-Collection-Banner-2_900x.jpg?v=1760699342",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Chembur+Mumbai/@19.0576005,72.898121,17z/data=!3m1!4b1!4m6!3m5!1s0x3be7c782f7511b79:0xaa877f3bbd754bfc!8m2!3d19.0575954!4d72.9006959!16s%2Fg%2F11xtgz09vw",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
-    callLink: "tel:+919004402038",
-    designLink: "/collections/chembur-store",
-    directionsLink: "/collections/chembur-store",
-    lat: 19.0576,
-    lng: 72.9007,
-    address: "Shop No. 3 Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd, Chembur, Mumbai, Maharashtra 400071",
-  },
-  {
-    city: "Pune",
-    name: "Pune Lucira Store",
-    rating: 4.8,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Store-PLP-2_900x.jpg?v=1765807125",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+JM+Road+Pune/@18.5233058,73.8452878,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc2c1929b1639f7:0x7d0f5ff74de52a8d!8m2!3d18.5233007!4d73.8478627",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
-    callLink: "tel:+918433667236",
-    designLink: "/collections/pune-store",
-    directionsLink: "https://www.lucirajewelry.com/collections/pune-store",
-    lat: 18.5233,
-    lng: 73.8478,
-    address: "Shop no. 3,4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd, Pune, Maharashtra 411005",
-  },
-  {
-    city: "Noida",
-    name: "Noida Lucira Store",
-    rating: 4.9,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Wave+One+Mall,+Noida/data=!4m2!3m1!1s0x0:0xbdc183588be81689?sa=X&ved=1t:2428&ictx=111",
-    whatsappLink: "https://api.whatsapp.com/send?phone=918976740895&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Noida%20Store%20and%20explore%20the%20designs.",
-    callLink: "tel:+918657392887",
-    designLink: "/collections/noida-store",
-    directionsLink: "https://www.lucirajewelry.com/collections/noida-store",
-    lat: 28.5708,
-    lng: 77.3261,
-    address: "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh 201301",
-  },
-  {
-    city: "Paschim Vihar",
-    name: "Paschim Vihar Lucira Store",
-    rating: 4.9,
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Paschim+Vihar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
-    callLink: "tel:+917208007494",
-    designLink: "/collections/paschim-vihar",
-    directionsLink: "https://www.lucirajewelry.com/collections/paschim-vihar",
-    lat: 28.6698,
-    lng: 77.0984,
-    address: "B-8, Shubham Enclave, Reserve Bank Enclave, Paschim Vihar, New Delhi, Delhi, 110063",
-  },
-  {
-    city: "Lajpat Nagar",
-    name: "Lajpat Nagar Lucira Store",
-    openingSoon: false,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
-    timings: "Monday - Sunday | 10:30 am - 10:00 pm",
-    mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi",
-    whatsappLink: "https://api.whatsapp.com/send/?phone=918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Lajpat+Nagar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
-    callLink: "tel:+917208007495",
-    designLink: "/collections/lajpat-nagar-store",
-    directionsLink: "https://www.lucirajewelry.com/collections/lajpat-nagar-store",
-    lat: 28.5665,
-    lng: 77.2431,
-    address: "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
-  },
-];
-
-// Only stores marked active in the central registry (src/data/stores.js) are shown.
-const allStores = ALL_STORES.filter((s) => isStoreActive(handleFromDesignLink(s.designLink)));
+// Store content is managed in Dashboard -> Stores and delivered via
+// /api/settings/store-pages; this page receives it as the `storePages` prop
+// from its server component. Adding a store needs no change here.
+//
+// ALL_STORES stays exported in the locator card shape because the checkout
+// pickup hook (src/hooks/checkout/useStorePickup.js) cross-references it for
+// store phone numbers. It is built from the baked-in defaults, which is what
+// that hook already treated it as: a static fallback behind /api/stores.
+export const ALL_STORES = locatorStores(STORE_PAGE_DEFAULTS);
 
 const services = [
   {
@@ -232,7 +133,14 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-export default function StoreLocatorPage() {
+export default function StoreLocatorPage({ storePages = null }) {
+  // `isStoreActive` is the older site-wide kill switch in src/data/stores.js;
+  // the dashboard's `published` flag and per-surface toggle are applied first.
+  const allStores = useMemo(
+    () => locatorStores(storePages).filter((s) => isStoreActive(s.handle)),
+    [storePages]
+  );
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredStores, setFilteredStores] = useState(allStores);
   const [userLocation, setUserLocation] = useState(null);
