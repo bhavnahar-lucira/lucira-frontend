@@ -24,7 +24,7 @@ function buildVideoCallUrl(selectedItems) {
     const list = selectedItems.map((item) => `- ${item.title}`).join("\n");
     message += ` for these products:\n${list}`;
   }
-  return `https://api.whatsapp.com/send/?phone=919004435760&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+  return `https://api.whatsapp.com/send/?phone=917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
 }
 
 const itemKey = (item) => item.id || item.variantId;

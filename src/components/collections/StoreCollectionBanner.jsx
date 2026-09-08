@@ -38,7 +38,7 @@ const STORES_DATA = {
     mapLink: "https://maps.google.com/?q=Pune+Lucira+Store",
     callLink: "tel:+918433667236",
     designLink: "/collections/pune-store",
-    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Pune%20Store",
+    appointmentLink: "https://wa.me/917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Pune%20Store",
     facilities: [
       "Kids Area",
       "Design Your Ring",
@@ -68,7 +68,7 @@ const STORES_DATA = {
     mapLink: "https://maps.google.com/?q=Chembur+Lucira+Store",
     callLink: "tel:+919004402038",
     designLink: "/collections/chembur-store",
-    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Chembur%20Store",
+    appointmentLink: "https://wa.me/917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Chembur%20Store",
     facilities: [
       "Open on Weekends",
       "Banks Nearby",
@@ -97,7 +97,7 @@ const STORES_DATA = {
     mapLink: "https://maps.google.com/?q=Borivali+Lucira+Store",
     callLink: "tel:+918433667238",
     designLink: "/collections/sky-city-borivali-store",
-    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Borivali%20Store",
+    appointmentLink: "https://wa.me/917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Borivali%20Store",
     facilities: [
       "Design Your Ring",
       "Open Weekends",
@@ -125,7 +125,7 @@ const STORES_DATA = {
     mapLink: "https://maps.google.com/?q=Noida+Lucira+Store",
     callLink: "tel:+918657392887",
     designLink: "/collections/noida-store",
-    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Noida%20Store",
+    appointmentLink: "https://wa.me/917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Noida%20Store",
     facilities: [
       "Kids Area",
       "Design Your Ring",
