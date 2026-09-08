@@ -91,7 +91,7 @@ export default function FloatingActionButton() {
       return `https://wa.me/918976740895?text=${encodeURIComponent(message)}`;
     }
 
-    return `https://wa.me/917208934782?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/919004435760?text=${encodeURIComponent(message)}`;
   };
 
   const pushPromoClick = (creativeName) => {
