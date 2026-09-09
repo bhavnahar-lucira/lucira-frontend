@@ -25,7 +25,7 @@ async function getCollectionData(handle) {
       }
     }
   `;
-  
+
   // Use force-cache so the fetch is cached and inherits the page-level revalidate=86400
   const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'force-cache' });
   return data?.collectionByHandle;
@@ -58,29 +58,19 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  // Pre-render ALL collection pages at build time as static HTML.
-  // These are served from Vercel CDN (FREE — no function invocations on first visit).
-  // ISR (revalidate=86400) + webhook revalidation still applies to all of these pages.
-  try {
-    const handles = await getAllCollectionHandles();
-    return [
-      { handle: "all" },
-      ...handles.map(handle => ({ handle }))
-    ];
-  } catch (error) {
-    console.warn("[generateStaticParams/collections] Failed to fetch all handles, falling back to basic set.", error.message);
-    return [
-      { handle: "all" },
-      { handle: "jewelry" },
-      { handle: "rings" },
-      { handle: "earrings" },
-      { handle: "necklaces" },
-      { handle: "bracelets" },
-      { handle: "pendants" },
-      { handle: "bangles" },
-      { handle: "bestsellers" },
-    ];
-  }
+  return [
+    { handle: "rings" },
+    { handle: "bestsellers" },
+    { handle: "gemstone-jewelry" },
+    { handle: "sports-collection" },
+    { handle: "cotton-candy" },
+    { handle: "hexa" },
+    { handle: "9kt-collection" },
+    { handle: "lucira-express" },
+    { handle: "necklaces" },
+    { handle: "bracelets" },
+    { handle: "pendants" }
+  ];
 }
 
 export default async function Page({ params }) {
@@ -98,11 +88,11 @@ export default async function Page({ params }) {
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
 
-  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
-    ? process.env.NEXT_PUBLIC_BACKEND_URL 
+  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "")
+    ? process.env.NEXT_PUBLIC_BACKEND_URL
     : "http://127.0.0.1:8080";
   const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
-  
+
   // Dashboard-managed store content — decides whether this collection renders
   // the store hero, and supplies everything in it.
   const storePages = await getStorePages();
@@ -141,7 +131,7 @@ export default async function Page({ params }) {
 
       initialData = { collData, filterData: filterDataObj || {}, plpBanners };
     }
-  } catch(e) {
+  } catch (e) {
     console.error("Failed to fetch initial data for SSG", e);
   }
 
