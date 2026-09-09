@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, Truck } from "lucide-react";
+import { Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, Truck, Info } from "lucide-react";
 import SocialProofBand from "@/components/common/SocialProofBand";
 import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
@@ -365,6 +365,24 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
     );
   }, [item.title, item.type, item.karat, item.color]);
 
+  const isOnlyPendant = useMemo(() => {
+    const tags = Array.isArray(item.tags)
+      ? item.tags
+      : (typeof item.tags === "string" ? item.tags.split(",").map(t => t.trim()) : []);
+
+    const hasTag = tags.some(t => {
+      const s = String(t).trim().toLowerCase();
+      return s === "only pendant" || s === "only-pendant" || s === "pendant only";
+    });
+
+    if (hasTag) return true;
+
+    // Fallback: If tags weren't persisted on an older backend cart item, check title and category
+    const lowerTitle = (item.title || "").toLowerCase();
+    const lowerCategory = String(item.category || item.type || "").toLowerCase();
+    return (!tags || tags.length === 0) && (lowerTitle.includes("pendant") || lowerCategory.includes("pendant"));
+  }, [item.tags, item.title, item.category, item.type]);
+
   return (
     <>
       {/* SINGLE RESPONSIVE DESIGN */}
@@ -435,6 +453,17 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                   {item.goldWeight ? <span className="hidden lg:inline">, {item.goldWeight} gram</span> : ''}
                 </span>
               </p>
+
+              {isOnlyPendant && (
+                <div className="inline-flex items-center gap-1.5 bg-[#f9f9f9] border border-[#eaeaea] rounded px-2 py-1 my-1 text-[#2d2d2d] w-fit max-w-full">
+                  <Info size={12} className="shrink-0 text-[#2d2d2d]" />
+                  <span
+                    className="text-[0.65rem] lg:text-[0.7rem] font-semibold uppercase tracking-wider text-[#2d2d2d] leading-tight"
+                  >
+                    Only Pendant
+                  </span>
+                </div>
+              )}
 
               {/* Selectors */}
               <div className="flex items-center gap-3 lg:gap-5 pt-1 lg:pt-2 flex-wrap">
