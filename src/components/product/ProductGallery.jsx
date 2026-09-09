@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import LazyImage from "../common/LazyImage";
-import { Play, Copy, X, ChevronLeft, ChevronRight, Maximize2, Share2, ZoomIn, ZoomOut, Eye, BookCopy, Info } from "lucide-react";
+import { Play, Pause, Volume2, Copy, X, ChevronLeft, ChevronRight, Maximize2, Share2, ZoomIn, ZoomOut, Eye, BookCopy, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductGallerySkeleton from "./ProductGallerySkeleton";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -18,6 +18,67 @@ import "swiper/css/thumbs";
 import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushPromoClick } from "@/lib/gtm";
+
+function ProductAudioButton({ src, className = "", productTitle = "", sku = "" }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!src) return;
+    const audio = new Audio(src);
+    audio.preload = "none";
+    audioRef.current = audio;
+    const onEnded = () => setIsPlaying(false);
+    const onPause = () => setIsPlaying(false);
+    const onPlay = () => setIsPlaying(true);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
+    return () => {
+      audio.pause();
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
+      audioRef.current = null;
+    };
+  }, [src]);
+
+  const toggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      pushPromoClick({
+        creative_name: "Product Audio",
+        promo_id: sku || productTitle,
+        promo_name: productTitle,
+        promo_position: "Above Media Gallery",
+        location_id: "pdp",
+      });
+      audio.play().catch(() => setIsPlaying(false));
+    } else {
+      audio.pause();
+    }
+  };
+
+  if (!src) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={isPlaying ? "Pause product audio" : "Play product audio"}
+      aria-pressed={isPlaying}
+      className={className}
+    >
+      <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center pointer-events-none">
+        <Pause size={16} strokeWidth={1.8} className={isPlaying ? "" : "hidden"} />
+        <Volume2 size={16} strokeWidth={1.8} className={isPlaying ? "hidden" : ""} />
+      </span>
+    </button>
+  );
+}
 
 function formatCdnUrl(url) {
   if (!url || typeof url !== 'string') return url;
@@ -402,7 +463,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                         productTitle={product?.title}
                         isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                         id="tryonbutton-desktop"
-                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30"
+                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30 h-[42px]"
                       />
                     )}
                   </div>
@@ -426,7 +487,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     });
                     onViewSimilar();
                   }}
-                  className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
+                  className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]"
                 >
                   <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
                     <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -439,7 +500,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                 </button>
               )}
               {index === 1 && product.tags?.includes("Only Pendant") && (
-                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation">
+                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation h-[42px]">
                   <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
                     <Info size={16} />
                   </span>
@@ -510,25 +571,26 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               );
             })}
           </div>
-          {product.tags?.includes("Only Pendant") && (
-            <div className="absolute top-4 right-2 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation">
-              <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-                <Info size={16} />
-              </span>
-              <span className="btn-text text-xs font-bold uppercase tracking-wider">Chain is not included in the purchase</span>
-            </div>
-          )}
+
 
           {/* Action Buttons Overlay */}
-          <div className="absolute bottom-4 left-2 right-2 flex justify-between items-center z-10">
-             <div onClick={(e) => e.stopPropagation()} className="data-no-swiping">
+          <div className="absolute bottom-4 left-2 right-2 flex justify-between items-end z-10">
+             <div onClick={(e) => e.stopPropagation()} className="data-no-swiping flex flex-col items-start gap-2">
+               {mounted && !isDesktop && product?.audioUrl && (
+                 <ProductAudioButton
+                   src={product.audioUrl}
+                   productTitle={product?.title}
+                   sku={activeVariant?.sku || product?.variants?.[0]?.sku}
+                   className="flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 px-2.5 py-2.5 z-30 h-[42px]"
+                 />
+               )}
                {mounted && !isDesktop && (
-                 <TryOnButton 
+                 <TryOnButton
                    sku={activeVariant?.sku || product?.variants?.[0]?.sku}
                    productTitle={product?.title}
                    isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                    id="tryonbutton-mobile"
-                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30"
+                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30 h-[42px]"
                  />
                )}
              </div>
@@ -544,7 +606,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   });
                   onViewSimilar();
                 }}
-                className="bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
+                className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]"
               >
                 <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center pointer-events-none">
                   <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">

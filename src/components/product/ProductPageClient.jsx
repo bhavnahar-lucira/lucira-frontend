@@ -324,6 +324,11 @@ export default function ProductPageClient({
     setIsMounted(true);
   }, []);
 
+  useLayoutEffect(() => {
+    // Force scroll to top synchronously before paint to avoid visual jumping on iOS
+    window.scrollTo(0, 0);
+  }, []);
+
   const mainAtcRef = useRef(null);
   const productDetailsRef = useRef(null);
   const reviewsRef = useRef(null);
@@ -1372,6 +1377,7 @@ export default function ProductPageClient({
         shopifyId: product.shopifyId,
         handle: product.handle,
         title: product.title,
+        tags: product.tags || [],
         variantId: activeVariant.id,
         variantTitle: activeVariant.title,
         sku: activeVariant.sku || "",
@@ -1864,18 +1870,11 @@ export default function ProductPageClient({
     }
   }, [activeVariant, product, user]);
 
-  // Scroll to top on mount/refresh
-  useEffect(() => {
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
-    window.scrollTo(0, 0);
-    return () => {
-      if ('scrollRestoration' in window.history) {
-        window.history.scrollRestoration = 'auto';
-      }
-    };
-  }, []);
+  // Scroll positioning on navigation is handled app-wide by <ScrollRestoration>
+  // in the root layout. A local scrollTo(0, 0) here fired only once, post-paint,
+  // and its cleanup flipped scrollRestoration back to "auto" on every PDP exit —
+  // which let iOS Safari re-apply its own remembered offset while the page
+  // streamed in content, opening the PDP mid-scroll.
 
   const fetchSimilar = async () => {
     if (similarProducts.length > 0) {
@@ -2246,25 +2245,42 @@ export default function ProductPageClient({
           }}
         />
       )}
-      <div className="w-[91%] lg:w-full lg:max-w-480 mx-auto lg:px-17">
+      <div className="w-[100%] lg:w-full lg:max-w-480 mx-auto lg:px-17">
         {/* Breadcrumb */}
-        <Breadcrumb className="py-5">
+        <Breadcrumb className="py-2 px-5 bg-[#f9f9f9] lg:bg-transparent lg:px-0 lg:py-5">
           <BreadcrumbList className="flex-nowrap">
             <BreadcrumbItem>
-              <BreadcrumbLink href="/collections" className="text-sm font-medium text-black">Collections</BreadcrumbLink>
+              <BreadcrumbLink href="/collections" className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-black">Collections</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator><ChevronRight size={14} /></BreadcrumbSeparator>
+            <BreadcrumbSeparator><ChevronRight className="w-[10px] h-[10px] lg:w-[14px] lg:h-[14px]" /></BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/collections/${slugify(product.type)}`} className="text-sm font-medium text-black whitespace-nowrap">{product.type}</BreadcrumbLink>
+              <BreadcrumbLink href={`/collections/${slugify(product.type)}`} className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-black whitespace-nowrap">{product.type}</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator><ChevronRight size={14} /></BreadcrumbSeparator>
-            <BreadcrumbItem className="text-sm font-medium text-gray-400 truncate line-clamp-1">
+            <BreadcrumbSeparator><ChevronRight className="w-[10px] h-[10px] lg:w-[14px] lg:h-[14px]" /></BreadcrumbSeparator>
+            <BreadcrumbItem className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-[#5a413f] lg:text-gray-400 truncate line-clamp-1">
               {product.title}
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start">
+        {/* Mobile Chain Note Badge */}
+        {product.tags?.includes("Only Pendant") && (
+          <div className="lg:hidden bg-white border-b border-[#eaeaea] py-[10px] px-5 flex items-center justify-start gap-2">
+            <Info size={14} className="shrink-0 text-[#2d2d2d]" />
+            <span
+              className="text-[0.65rem] sm:text-xs font-semibold tracking-wider text-[#2d2d2d] leading-tight"
+              style={{
+                textTransform: "math-auto",
+                fontSize: "0.65rem",
+                color: "#2d2d2d",
+              }}
+            >
+              Chain is not included in the purchase
+            </span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start px-5 lg:px-0">
           {/* Left: Product Gallery */}
           <ProductGallery
             media={product.media || []}
@@ -2321,7 +2337,18 @@ export default function ProductPageClient({
 
                         // If no diamond parts were added, or it's not a diamond product, show metal purity
                         if (parts.length === 0) {
-                          const metalPurity = variantMeta?.metal_purity || activeKarat;
+                          let metalPurity = variantMeta?.metal_purity || activeKarat;
+                          const karatKey = String(activeKarat || "").replace(/s+/g, "").toLowerCase();
+                          const isPlatinum = karatKey === "plt" || karatKey === "pt950" || karatKey === "platinum" || String(product.title).toLowerCase().includes("platinum");
+
+                          if (metalPurity) {
+                            const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
+                            if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
+                            else if (mp === "pt950" || mp === "plt" || mp === "platinum") metalPurity = "PLT";
+                          } else if (isPlatinum) {
+                            metalPurity = "PLT";
+                          }
+
                           if (metalPurity) parts.push(metalPurity);
                         }
 
@@ -2948,7 +2975,7 @@ export default function ProductPageClient({
 
             <div className="flex gap-2 mb-6">
               <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
-                <a href={`https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
+                <a href={`https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
                   <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
                   <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                 </a>
@@ -3307,7 +3334,7 @@ export default function ProductPageClient({
                                   product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
                                 }
                               });
-                              window.open("https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
+                              window.open("https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
                             }}
                             className="w-full h-10 font-bold rounded text-xs bg-tertiary uppercase tracking-wide"
                           >
@@ -3380,7 +3407,7 @@ export default function ProductPageClient({
                   description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                   action="BOOK APPOINTMENT"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
-                  url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
+                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -3396,7 +3423,7 @@ export default function ProductPageClient({
                   description="Try your selected pieces from the comfort of your home. Available in all major cities"
                   action="BOOK HOME TRIAL"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
-                  url="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
+                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -4044,7 +4071,7 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/919004435760?text=${encodeURIComponent(
+                            href={`https://wa.me/+917208934782?text=${encodeURIComponent(
                               `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
@@ -4056,7 +4083,7 @@ export default function ProductPageClient({
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                            <a href={`tel:${store.phone || "+919004435760"}`}>CALL STORE</a>
+                            <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
@@ -4152,7 +4179,7 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/919004435760?text=${encodeURIComponent(
+                          href={`https://wa.me/+917208934782?text=${encodeURIComponent(
                             `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"

@@ -150,6 +150,13 @@ const PRODUCT_QUERY = `
         value
       }
       category: metafield(namespace: "ornaverse", key: "category") { value }
+      products_audio: metafield(namespace: "custom", key: "products_audio") {
+        reference {
+          ... on GenericFile { url mimeType }
+          ... on Video { sources { url mimeType } }
+          ... on MediaImage { image { url } }
+        }
+      }
     }
   }
 `;
@@ -463,12 +470,23 @@ async function getProduct(handle) {
     alt: img.altText || ""
   }));
 
+  // Product audio (custom.products_audio - "One file" metafield)
+  const audioRef = product.products_audio?.reference;
+  const audioUrl =
+    audioRef?.url ||
+    audioRef?.sources?.find(s => s.mimeType?.startsWith("audio"))?.url ||
+    audioRef?.sources?.[0]?.url ||
+    audioRef?.image?.url ||
+    null;
+
   // Strip heavy unused fields to save Vercel bandwidth
   delete product.descriptionHtml;
   delete product.seo;
+  delete product.products_audio;
 
   return {
     ...product,
+    audioUrl,
     id: product.id.split("/").pop(),
     shopifyId: product.id,
     type: product.productType, // Alias for component compatibility

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
-import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check } from "lucide-react";
+import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check, Info } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
@@ -407,6 +407,25 @@ export default function CheckoutSummary({
                           Metal: <span className="text-zinc-800">{formatMetal(item.karat, item.color)}</span>
                         </p>
                         <p className="text-xs text-zinc-500">Quantity: {item.quantity}</p>
+                        {(() => {
+                          const tags = Array.isArray(item.tags) ? item.tags : (typeof item.tags === "string" ? item.tags.split(",").map(t => t.trim()) : []);
+                          const hasTag = tags.some(t => {
+                            const s = String(t).trim().toLowerCase();
+                            return s === "only pendant" || s === "only-pendant" || s === "pendant only";
+                          });
+                          const lowerTitle = (item.title || "").toLowerCase();
+                          const lowerCategory = String(item.category || item.type || "").toLowerCase();
+                          const isPendantItem = hasTag || ((!tags || tags.length === 0) && (lowerTitle.includes("pendant") || lowerCategory.includes("pendant")));
+                          if (!isPendantItem) return null;
+                          return (
+                            <div className="inline-flex items-center gap-1 bg-[#f9f9f9] border border-[#eaeaea] rounded px-1.5 py-0.5 my-1 text-black w-fit max-w-full">
+                              <Info size={11} className="shrink-0 text-black" />
+                              <span className="text-[0.5625rem] font-semibold uppercase tracking-wider text-black leading-tight">
+                                Chain is not included in the purchase
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-2 pt-1">
                         <span className="text-sm font-bold text-zinc-900">₹{(displayPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>

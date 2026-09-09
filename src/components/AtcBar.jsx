@@ -332,7 +332,7 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
 
                           <div className="flex items-center gap-2 pt-0.5">
                             <a
-                              href={`https://wa.me/919004435760?text=${encodeURIComponent(`Hi, I would like to check the availability of ${product?.title || "a design"} at the ${displayName} store.`)}`}
+                              href={`https://wa.me/+917208934782?text=${encodeURIComponent(`Hi, I would like to check the availability of ${product?.title || "a design"} at the ${displayName} store.`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="h-9 aspect-square bg-[#29a319] rounded-sm flex items-center justify-center shrink-0"
@@ -342,7 +342,7 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
                               </div>
                             </a>
                             <a
-                              href={`tel:${store.phone || "+919004435760"}`}
+                              href={`tel:${store.phone || "+917208934782"}`}
                               className="h-9 flex-1 border border-gray-200 bg-white text-black font-figtree font-bold text-[11px] uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-colors"
                             >
                               <Phone size={12} />
@@ -760,7 +760,7 @@ export default function AtcBar({
 
                 <div className="hidden xl:flex items-center gap-2">
                   <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
-                    <a href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20home%20trial%20" target="_blank">
+                    <a href="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20book%20home%20trial%20" target="_blank">
                       <Home size={20} />
                     </a>
                   </Button>
@@ -808,7 +808,7 @@ export default function AtcBar({
           <div className="lg:hidden pointer-events-auto bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] -mx-4 px-4 py-3 flex items-center gap-2 w-screen">
             {/* WhatsApp */}
             <a
-              href={`https://api.whatsapp.com/send/?phone=919004435760&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`}
+              href={`https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`}
               target="_blank"
               rel="noopener noreferrer"
               className="h-14 aspect-square bg-white shadow-md border border-zinc-100 rounded-sm flex items-center justify-center shrink-0"
