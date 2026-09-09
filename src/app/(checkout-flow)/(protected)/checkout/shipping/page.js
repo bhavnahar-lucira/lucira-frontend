@@ -555,7 +555,6 @@ export default function ShippingPage() {
                           submitLabel={dialogMode === "edit" ? "Save Changes" : "Save Address"}
                           onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
                           saving={dialogSaving}
-                          hideEmail={addresses.length > 0}
                         />
                       </div>
                     ) : shippingView === "list" ? (
@@ -584,7 +583,6 @@ export default function ShippingPage() {
                                   setDialogMode(""); // Close inline form on success
                                 }}
                                 saving={dialogSaving}
-                                hideEmail={addresses.length > 0}
                               >
                                 <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
                                   Cancel
@@ -609,7 +607,6 @@ export default function ShippingPage() {
                                   setDialogMode(""); // Close inline form on success
                                 }}
                                 saving={dialogSaving}
-                                hideEmail={addresses.length > 0}
                               >
                                 <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
                                   Cancel

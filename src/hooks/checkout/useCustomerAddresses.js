@@ -72,14 +72,24 @@ export function useCustomerAddresses({ accessToken, user }) {
   // obvious "the" address to mirror onto the profile.
   const syncProfile = useCallback(
     async (form) => {
-      if (!accessToken || accessToken.startsWith("simulated_") || addresses.length > 1) return;
+      if (!accessToken || accessToken.startsWith("simulated_")) return;
       try {
-        const profileUpdate = {
-          firstName: form.firstName,
-          lastName: form.lastName,
-          phone: form.phone,
-          email: form.email,
-        };
+        const profileUpdate = {};
+
+        // Sync full profile (name, phone) only if they have 0-1 addresses
+        if (addresses.length <= 1) {
+          profileUpdate.firstName = form.firstName;
+          profileUpdate.lastName = form.lastName;
+          profileUpdate.phone = form.phone;
+        }
+
+        // Always sync email if provided and valid
+        if (form.email && form.email.trim() !== "") {
+          profileUpdate.email = form.email.trim();
+        }
+
+        if (Object.keys(profileUpdate).length === 0) return;
+
         await Promise.all([
           apiFetch("/api/customer/profile", {
             method: "PATCH",
