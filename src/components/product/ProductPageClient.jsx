@@ -50,6 +50,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
 import { formatDispatchMessage } from "@/lib/utils";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
+import DispatchTooltip from "@/components/common/DispatchTooltip";
 import { formatSizeLabel } from "@/lib/metal";
 import {
   Drawer,
@@ -2675,24 +2676,30 @@ export default function ProductPageClient({
                     </>
                   )}
                   {isCentralInStock ? (
-                    <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap rounded">
-                      <span className="w-2.5 h-2.5 bg-[#189351] rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full" style={{ fontWeight: 500 }}>
-                        {/* Stock status always shows; the estimate/countdown is
-                            what the dashboard's master toggle hides. */}
-                        {dispatchLine.enabled ? (
-                          dispatchLine.textBoldDay ? (
-                            <>
-                              <strong style={{ fontWeight: 700, color: "#189351" }}>{dispatchLine.label}.</strong> {dispatchLine.textPre}
-                              <strong style={{ fontWeight: 600 }}>{dispatchLine.textBoldDay}</strong> at <strong style={{ fontWeight: 600 }}>{dispatchLine.textBoldTime}</strong>
-                            </>
+                    <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center justify-between gap-2.5 rounded">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-2.5 h-2.5 bg-[#189351] rounded-full shrink-0"></span>
+                        <span className="font-semibold text-black" style={{ fontWeight: 500 }}>
+                          {/* Stock status always shows; the estimate/countdown is
+                              what the dashboard's master toggle hides. */}
+                          {dispatchLine.enabled && dispatchLine.pdpHeadline ? (
+                            dispatchLine.isWeekend ? (
+                              <>
+                                <strong style={{ fontWeight: 700, color: "#189351" }}>In Stock</strong> • <strong style={{ fontWeight: 600 }}>Dispatches on Monday</strong>
+                              </>
+                            ) : (
+                              <>
+                                <strong style={{ fontWeight: 700, color: "#189351" }}>In stock.</strong> <strong style={{ fontWeight: 600 }}>{dispatchLine.headline}</strong>
+                              </>
+                            )
                           ) : (
-                            dispatchLine.sentence
-                          )
-                        ) : (
-                          `${dispatchLine.label}.`
-                        )}
-                      </span>
+                            `${dispatchLine.label}.`
+                          )}
+                        </span>
+                      </div>
+                      {dispatchLine.enabled && dispatchLine.tooltipText && (
+                        <DispatchTooltip text={dispatchLine.tooltipText} align="right" className="shrink-0" />
+                      )}
                     </div>
                   ) : (
                     <div className="bg-amber-50 border border-amber-200 text-black rounded px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap">

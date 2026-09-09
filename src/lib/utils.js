@@ -351,8 +351,14 @@ export function formatDispatchMessage(config, options = {}) {
   let textPre = "";
   let textBoldDay = "";
   let textBoldTime = "";
+  let headline = "";
+  let pdpHeadline = "";
+  let cartHeadline = "";
+  let tooltipText = "";
+  let supportingText = "";
+  let isWeekend = false;
 
-  if (inStock && showTimer) {
+  if (inStock) {
     const todayUTC = Date.UTC(parts.year, parts.month, parts.day);
     const targetUTC = dispatchDate.getTime();
     const daysDiff = Math.round((targetUTC - todayUTC) / 86400000);
@@ -368,7 +374,32 @@ export function formatDispatchMessage(config, options = {}) {
     textPre = "Orders will be dispatched ";
     textBoldDay = relativeDay;
     textBoldTime = "7:30 PM.";
-    text = `${textPre}${textBoldDay} at ${textBoldTime}`;
+
+    const dayOfWeek = new Date(todayUTC).getUTCDay();
+    isWeekend = dayOfWeek === 0 || (dayOfWeek === 6 && cutoffDayOffset === 1);
+
+    if (isWeekend) {
+      headline = "Dispatches on Monday";
+      pdpHeadline = "In Stock • Dispatches on Monday";
+      cartHeadline = "In Stock • Dispatches on Monday";
+      tooltipText = "Your order will be dispatched on Monday by 7:30 PM";
+      supportingText = tooltipText;
+      text = "In Stock • Dispatches on Monday";
+    } else if (cutoffDayOffset === 0) {
+      headline = "Ready to Dispatch Today";
+      pdpHeadline = "In stock. Ready to Dispatch Today";
+      cartHeadline = "Ready to Dispatch Today";
+      tooltipText = "Your order will be dispatched today by 7:30 PM";
+      supportingText = tooltipText;
+      text = "Ready to Dispatch Today";
+    } else {
+      headline = "Ready to Dispatch Tomorrow";
+      pdpHeadline = "In stock. Ready to Dispatch Tomorrow";
+      cartHeadline = "Ready to Dispatch Tomorrow";
+      tooltipText = "Your order will be dispatched tomorrow by 7:30 PM";
+      supportingText = tooltipText;
+      text = "Ready to Dispatch Tomorrow";
+    }
   }
 
   return {
@@ -377,13 +408,19 @@ export function formatDispatchMessage(config, options = {}) {
     date: dispatchDate,
     dateText,
     text,
-    sentence: text ? `${section.label}. ${text}` : section.label,
+    sentence: text ? (isWeekend ? text : `${section.label}. ${text}`) : section.label,
     showTimer,
     countdown,
     secondsToCutoff,
     textPre,
     textBoldDay,
     textBoldTime,
+    headline,
+    pdpHeadline,
+    cartHeadline,
+    tooltipText,
+    supportingText,
+    isWeekend,
   };
 }
 

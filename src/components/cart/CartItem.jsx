@@ -26,6 +26,7 @@ import SocialProofBand from "@/components/common/SocialProofBand";
 import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
+import DispatchTooltip from "@/components/common/DispatchTooltip";
 
 
 // Rotation, icons, colours and labels live in the shared band
@@ -520,6 +521,9 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               <span className={`font-figtree font-medium text-[0.75rem] lg:text-[1rem] leading-none tracking-[0px] ${statusClass}`}>
                 {dispatchMessage}
               </span>
+              {dispatchInfo.tooltipText && (
+                <DispatchTooltip text={dispatchInfo.tooltipText} className="ml-0.5" />
+              )}
             </div>
           )}
 
