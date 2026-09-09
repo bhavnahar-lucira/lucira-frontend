@@ -3,7 +3,7 @@ import {
   getArticleByBlogAndHandle,
   getArticlesByBlogHandle,
   getMostViewedArticles,
-  getAllArticleHandles
+  getArticlesByBlogHandleStorefront
 } from "@/lib/blogs";
 import BlogArticleClient from "@/components/blogs/BlogArticleClient";
 import { getReadingTimeLabel } from "@/lib/readingTime";
@@ -20,7 +20,15 @@ export const dynamicParams = true;
 export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return await getAllArticleHandles();
+  try {
+    const articles = await getArticlesByBlogHandleStorefront("stories");
+    return articles.slice(0, 4).map((article) => ({
+      blogHandle: "stories",
+      articleHandle: article.handle,
+    }));
+  } catch (e) {
+    return [];
+  }
 }
 
 function stripHtml(value) {
