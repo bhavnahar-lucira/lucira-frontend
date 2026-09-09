@@ -141,7 +141,8 @@ export function AddressForm({
         {!hideEmail && (
           <div className="col-span-2">
             <Input
-              placeholder="Mail Id"
+              type="email"
+              placeholder="Email"
               value={form.email}
               onChange={(e) => onChange("email", e.target.value)}
               className={inputClasses}
