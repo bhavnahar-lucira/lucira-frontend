@@ -1138,6 +1138,43 @@ export default function ProductPageClient({
     leadTime: product?.productMetafields?.lead_time,
   });
 
+  const renderDispatchBanner = () => {
+    return isCentralInStock ? (
+      <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center justify-between gap-2.5 rounded text-[0.85rem] lg:text-base">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-2.5 h-2.5 bg-[#189351] rounded-full shrink-0"></span>
+          <span className="font-semibold text-black" style={{ fontWeight: 500 }}>
+            {/* Stock status always shows; the estimate/countdown is
+                what the dashboard's master toggle hides. */}
+            {dispatchLine.enabled && dispatchLine.pdpHeadline ? (
+              dispatchLine.isWeekend ? (
+                <>
+                  <strong style={{ fontWeight: 700, color: "#189351" }}>In Stock</strong> • <strong style={{ fontWeight: 600 }}>Dispatches on Monday</strong>
+                </>
+              ) : (
+                <>
+                  <strong style={{ fontWeight: 700, color: "#189351" }}>In stock.</strong> <strong style={{ fontWeight: 600 }}>{dispatchLine.headline}</strong>
+                </>
+              )
+            ) : (
+              `${dispatchLine.label}.`
+            )}
+          </span>
+        </div>
+        {dispatchLine.enabled && dispatchLine.tooltipText && (
+          <DispatchTooltip text={dispatchLine.tooltipText} align="right" className="shrink-0" />
+        )}
+      </div>
+    ) : (
+      <div className="bg-amber-50 border border-amber-200 text-black rounded px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap text-[0.85rem] lg:text-base">
+        <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+        <span className="font-semibold xl:basis-auto lg:basis-full" style={{ fontWeight: 500 }}>
+          {dispatchLine.enabled ? dispatchLine.sentence : `${dispatchLine.label}.`}
+        </span>
+      </div>
+    );
+  };
+
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
     const findFn = (item) => String(getNumericId(item.productId)) === normProductId;
@@ -2520,7 +2557,7 @@ export default function ProductPageClient({
 
             <div className="space-y-6 mt-4">
               {/* Mobile Customizer */}
-              <div ref={customizeRef} className="lg:hidden">
+              <div ref={customizeRef} className="lg:hidden space-y-4 mb-4">
                 <ProductCustomizerMobile
                   activeColor={activeColor}
                   activeKarat={activeKarat}
@@ -2539,6 +2576,12 @@ export default function ProductPageClient({
                   currentPrice={formatPrice(currentPrice)}
                   currentComparePrice={formatPrice(currentComparePrice)}
                 />
+
+                {availableSizes.length > 0 && availableSizes[0] !== null && availableSizes[0] !== undefined && (
+                  <p className="text-sm text-black font-medium">Didn&apos;t get the size right? We&apos;ll exchange it.</p>
+                )}
+
+                {renderDispatchBanner()}
               </div>
 
               {/* Desktop Selection Blocks */}
@@ -2702,40 +2745,7 @@ export default function ProductPageClient({
                       <p className="text-sm text-black font-medium">Didn&apos;t get the size right? We&apos;ll exchange it.</p>
                     </>
                   )}
-                  {isCentralInStock ? (
-                    <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center justify-between gap-2.5 rounded">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-2.5 h-2.5 bg-[#189351] rounded-full shrink-0"></span>
-                        <span className="font-semibold text-black" style={{ fontWeight: 500 }}>
-                          {/* Stock status always shows; the estimate/countdown is
-                              what the dashboard's master toggle hides. */}
-                          {dispatchLine.enabled && dispatchLine.pdpHeadline ? (
-                            dispatchLine.isWeekend ? (
-                              <>
-                                <strong style={{ fontWeight: 700, color: "#189351" }}>In Stock</strong> • <strong style={{ fontWeight: 600 }}>Dispatches on Monday</strong>
-                              </>
-                            ) : (
-                              <>
-                                <strong style={{ fontWeight: 700, color: "#189351" }}>In stock.</strong> <strong style={{ fontWeight: 600 }}>{dispatchLine.headline}</strong>
-                              </>
-                            )
-                          ) : (
-                            `${dispatchLine.label}.`
-                          )}
-                        </span>
-                      </div>
-                      {dispatchLine.enabled && dispatchLine.tooltipText && (
-                        <DispatchTooltip text={dispatchLine.tooltipText} align="right" className="shrink-0" />
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 border border-amber-200 text-black rounded px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap">
-                      <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full" style={{ fontWeight: 500 }}>
-                        {dispatchLine.enabled ? dispatchLine.sentence : `${dispatchLine.label}.`}
-                      </span>
-                    </div>
-                  )}
+                  {renderDispatchBanner()}
                 </div>
               </div>
 

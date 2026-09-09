@@ -234,6 +234,7 @@ export function ProductCustomizerMobile({
                             );
                           })}
                         </div>
+                        <p className="text-sm text-black font-medium mt-3">Didn&apos;t get the size right? We&apos;ll exchange it.</p>
                       </div>
                     )}
                 </div>
