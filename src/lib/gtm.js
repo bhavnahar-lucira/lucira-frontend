@@ -56,8 +56,6 @@ export const pushPromoClick = (promoClickData) => {
     event: 'promoClick',
     promoClick: sanitizedData
   });
-
-
 };
 
 export const pushPromoView = (promoViewData) => {
@@ -74,54 +72,6 @@ export const pushProductImpression = (products) => {
   });
 };
 
-export const sendBackendTracking = async (event, data) => {
-  if (typeof window === "undefined") return;
-  try {
-    const { apiFetch } = await import("@/lib/api");
-    
-    // Attempt to extract shopify ID from the persisted user state
-    let customerId = undefined;
-    let userEmail = undefined;
-    let userPhone = undefined;
-    
-    const persistRoot = window.localStorage.getItem("persist:root");
-    if (persistRoot) {
-      const rootState = JSON.parse(persistRoot);
-      const userState = rootState.user ? JSON.parse(rootState.user) : null;
-      if (userState?.user) {
-        if (userState.user.shopifyId) customerId = userState.user.shopifyId;
-        else if (userState.user.id) customerId = userState.user.id;
-        
-        if (userState.user.email) userEmail = userState.user.email;
-        if (userState.user.phone) userPhone = userState.user.phone;
-      }
-    }
-
-    let sessionId = window.localStorage.getItem('session_id');
-    if (!sessionId) {
-      sessionId = "anon_" + Date.now();
-      window.localStorage.setItem('session_id', sessionId);
-    }
-
-    const payload = {
-      event: event,
-      sessionId: sessionId,
-      customerId: customerId,
-      email: userEmail,
-      mobile: userPhone,
-      page: window.location.href,
-      ...data
-    };
-
-    await apiFetch("/api/track", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-  } catch (err) {
-    console.error("Backend tracking error:", err);
-  }
-};
-
 export const pushProductClick = (data) => {
   pushToDataLayer({
     event: "productClick",
@@ -134,8 +84,6 @@ export const pushProductView = (productData) => {
     event: "productView",
     products: productData
   });
-  
-
 };
 
 export const pushAddToCart = (data) => {

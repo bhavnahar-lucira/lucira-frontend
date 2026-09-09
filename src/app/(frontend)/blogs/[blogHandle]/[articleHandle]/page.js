@@ -22,13 +22,11 @@ export const revalidate = 86400;
 export async function generateStaticParams() {
   try {
     const articles = await getArticlesByBlogHandleStorefront("stories");
-    const latestArticles = articles.slice(0, 4);
-    return latestArticles.map(article => ({
+    return articles.slice(0, 4).map((article) => ({
       blogHandle: "stories",
-      articleHandle: article.handle
+      articleHandle: article.handle,
     }));
-  } catch (error) {
-    console.error("Failed to fetch stories for SSG:", error);
+  } catch (e) {
     return [];
   }
 }

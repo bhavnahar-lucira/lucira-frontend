@@ -1,4 +1,4 @@
-import { shopifyStorefrontFetch } from "@/lib/shopify";
+import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { notFound } from "next/navigation";
@@ -24,7 +24,7 @@ async function getCollectionData(handle) {
       }
     }
   `;
-  
+
   // Use force-cache so the fetch is cached and inherits the page-level revalidate=86400
   const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'force-cache' });
   return data?.collectionByHandle;
@@ -87,11 +87,11 @@ export default async function Page({ params }) {
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
 
-  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
-    ? process.env.NEXT_PUBLIC_BACKEND_URL 
+  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "")
+    ? process.env.NEXT_PUBLIC_BACKEND_URL
     : "http://127.0.0.1:8080";
   const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
-  
+
   let initialData = null;
   try {
     const [collRes, filterRes, plpBannersRes] = await Promise.all([
@@ -126,7 +126,7 @@ export default async function Page({ params }) {
 
       initialData = { collData, filterData: filterDataObj || {}, plpBanners };
     }
-  } catch(e) {
+  } catch (e) {
     console.error("Failed to fetch initial data for SSG", e);
   }
 

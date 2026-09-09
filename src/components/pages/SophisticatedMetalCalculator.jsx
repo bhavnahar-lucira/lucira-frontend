@@ -24,7 +24,6 @@ const stateCityMap = {
     jharkhand: ['Dhanbad', 'Jamshedpur', 'Ranchi', 'Jorapokhar'],
     karnataka: ['Belgaum', 'Bellary', 'Bengaluru', 'Bidar', 'Bijapur', 'Chikka Mandya', 'Davangere', 'Gulbarga', 'Hospet', 'Hubli', 'Kolar', 'Mangalore', 'Mysore', 'Raichur', 'Shimoga'],
     kerala: ['Alappuzha', 'Calicut', 'Kochi', 'Kollam', 'Thiruvananthapuram'],
-    ladakh: ['Leh', 'Kargil'],
     lakshadweep: ['Kavaratti'],
     'madhya-pradesh': ['Bhopal', 'Gwalior', 'Indore', 'Jabalpur', 'Ratlam', 'Saugor', 'Ujjain'],
     maharashtra: ['Ahmadnagar', 'Akola', 'Amaravati', 'Aurangabad', 'Bhiwandi', 'Bhusaval', 'Chanda', 'Kalyan', 'Khanapur', 'Kolhapur', 'Latur', 'Malegaon Camp', 'Mumbai', 'Nanded', 'Nasik', 'Parbhani', 'Pune', 'Sangli'],
@@ -44,21 +43,6 @@ const stateCityMap = {
     uttarakhand: ['DehraDun'],
     'west-bengal': ['Alipurduar', 'Asansol', 'Barddhaman', 'Bhatpara', 'Haldia', 'Haora', 'Kolkata', 'Krishnanagar', 'Shiliguri'],
 };
-
-// India's union territories — shown in their own group in the state picker.
-// Their slugs live in stateCityMap like states, so navigation and city lists
-// work unchanged (delhi, chandigarh and puducherry resolve as city pages).
-const UT_SLUGS = new Set([
-  'andaman-and-nicobar-islands',
-  'chandigarh',
-  'dadra-and-nagar-haveli',
-  'daman-and-diu',
-  'delhi',
-  'jammu-and-kashmir',
-  'ladakh',
-  'lakshadweep',
-  'puducherry',
-]);
 
 const defaultRates = {
   gold_price_24k: 155169,
@@ -82,10 +66,9 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
   const [isCityModalOpen, setIsCityModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // State picker (all metals — gold, silver and platinum each have state
-  // pages backed by their *_rate_state metaobject). Preselected from the
-  // page's own state; picking a different one navigates to that state's rate
-  // page for the active metal. Same modal UX as the city picker.
+  // State picker (gold only — state pages exist just for gold). Preselected
+  // from the page's own state; picking a different one navigates to that
+  // state's gold rate page. Same modal UX as the city picker.
   const [currentStateSlug, setCurrentStateSlug] = useState(
     (initialState || "").toLowerCase().replace(/\s+/g, '-')
   );
@@ -156,28 +139,19 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
     return allCitiesList.filter(c => c.name.toLowerCase().includes(query));
   }, [searchQuery, allCitiesList]);
 
-  // List of all states and union territories, title-cased for display. UTs
-  // sit in their own group in the picker but share the same slugs and
-  // navigation as states.
+  // List of all states, title-cased for display
   const allStatesList = useMemo(() => {
     return Object.keys(stateCityMap).map((slug) => ({
       slug,
       name: slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-      isUt: UT_SLUGS.has(slug),
     }));
   }, []);
 
-  // Filtered states / union territories based on search
+  // Filtered states based on search
   const filteredStates = useMemo(() => {
+    if (!stateSearchQuery.trim()) return allStatesList;
     const query = stateSearchQuery.toLowerCase().trim();
-    const list = query ? allStatesList.filter(s => s.name.toLowerCase().includes(query)) : allStatesList;
-    return list.filter(s => !s.isUt);
-  }, [stateSearchQuery, allStatesList]);
-
-  const filteredUts = useMemo(() => {
-    const query = stateSearchQuery.toLowerCase().trim();
-    const list = query ? allStatesList.filter(s => s.name.toLowerCase().includes(query)) : allStatesList;
-    return list.filter(s => s.isUt);
+    return allStatesList.filter(s => s.name.toLowerCase().includes(query));
   }, [stateSearchQuery, allStatesList]);
 
   // Current display state name
@@ -269,13 +243,12 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
   }, [rates]);
 
   // Navigate when active metal or city changes. On a state page no city is
-  // selected: every metal stays on the state page itself (state pages exist
-  // for gold, silver and platinum alike); without a state either, fall back
-  // to the state's first city.
+  // selected: gold stays on the state page itself; silver/platinum (which have
+  // no state pages) fall back to the state's first city.
   const navigateToPage = (metal, citySlug) => {
     let slug = citySlug;
     if (!slug) {
-      if (currentStateSlug) {
+      if (metal === "gold" && currentStateSlug) {
         slug = currentStateSlug;
       } else {
         const cities = stateCityMap[currentStateSlug] || [];
@@ -411,13 +384,15 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
 
           {/* State + City Selection */}
           <div className="flex items-stretch gap-3">
-            <button
-              onClick={() => setIsStateModalOpen(true)}
-              className="flex-1 md:flex-none flex items-center justify-between gap-2 border border-[#F2E3C6] bg-[#FAF3EC]/50 px-5 py-2.5 rounded-xl text-zinc-900 text-sm font-medium hover:bg-white transition-all text-left"
-            >
-              <span>{currentStateName}</span>
-              <ChevronDown className="text-[#B77767] w-4 h-4" />
-            </button>
+            {activeMetal === "gold" && (
+              <button
+                onClick={() => setIsStateModalOpen(true)}
+                className="flex-1 md:flex-none flex items-center justify-between gap-2 border border-[#F2E3C6] bg-[#FAF3EC]/50 px-5 py-2.5 rounded-xl text-zinc-900 text-sm font-medium hover:bg-white transition-all text-left"
+              >
+                <span>{currentStateName}</span>
+                <ChevronDown className="text-[#B77767] w-4 h-4" />
+              </button>
+            )}
 
             {/* City Selection Trigger */}
             <button
@@ -876,7 +851,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
           >
             {/* Modal Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-[#F2E3C6]">
-              <h3 className="text-zinc-900 text-lg font-bold">Select Your State or Union Territory</h3>
+              <h3 className="text-zinc-900 text-lg font-bold">Select Your State</h3>
               <button
                 onClick={() => setIsStateModalOpen(false)}
                 className="text-zinc-500 hover:text-zinc-900 transition-colors"
@@ -899,59 +874,31 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
               </div>
             </div>
 
-            {/* Scrollable list of states and union territories, grouped */}
+            {/* Scrollable list of states */}
             <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-1 custom-scrollbar">
-              {filteredStates.length === 0 && filteredUts.length === 0 ? (
-                <div className="text-center text-zinc-500 py-10">No states matching search</div>
+              {filteredStates.length > 0 ? (
+                filteredStates.map((state) => (
+                  <button
+                    key={state.slug}
+                    onClick={() => {
+                      setIsStateModalOpen(false);
+                      setCurrentStateSlug(state.slug);
+                      window.location.href = `/pages/${state.slug}-gold-rate-today`;
+                    }}
+                    className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${
+                      currentStateSlug === state.slug
+                        ? "bg-[#FAF3EC]/50 border border-[#F2E3C6] text-zinc-900 font-bold"
+                        : "text-zinc-500 hover:text-zinc-900 hover:bg-[#FAF3EC]/50/50 border border-transparent"
+                    }`}
+                  >
+                    <span className="text-sm font-medium">{state.name}</span>
+                    {currentStateSlug === state.slug && (
+                      <Check className="w-4 h-4 text-[#B77767]" />
+                    )}
+                  </button>
+                ))
               ) : (
-                <>
-                  {filteredStates.length > 0 && (
-                    <p className="px-4 pt-2 pb-1 text-[11px] font-bold uppercase tracking-widest text-zinc-400">States</p>
-                  )}
-                  {filteredStates.map((state) => (
-                    <button
-                      key={state.slug}
-                      onClick={() => {
-                        setIsStateModalOpen(false);
-                        setCurrentStateSlug(state.slug);
-                        window.location.href = `/pages/${state.slug}-${activeMetal}-rate-today`;
-                      }}
-                      className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${
-                        currentStateSlug === state.slug
-                          ? "bg-[#FAF3EC]/50 border border-[#F2E3C6] text-zinc-900 font-bold"
-                          : "text-zinc-500 hover:text-zinc-900 hover:bg-[#FAF3EC]/50/50 border border-transparent"
-                      }`}
-                    >
-                      <span className="text-sm font-medium">{state.name}</span>
-                      {currentStateSlug === state.slug && (
-                        <Check className="w-4 h-4 text-[#B77767]" />
-                      )}
-                    </button>
-                  ))}
-                  {filteredUts.length > 0 && (
-                    <p className="px-4 pt-4 pb-1 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Union Territories</p>
-                  )}
-                  {filteredUts.map((state) => (
-                    <button
-                      key={state.slug}
-                      onClick={() => {
-                        setIsStateModalOpen(false);
-                        setCurrentStateSlug(state.slug);
-                        window.location.href = `/pages/${state.slug}-${activeMetal}-rate-today`;
-                      }}
-                      className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${
-                        currentStateSlug === state.slug
-                          ? "bg-[#FAF3EC]/50 border border-[#F2E3C6] text-zinc-900 font-bold"
-                          : "text-zinc-500 hover:text-zinc-900 hover:bg-[#FAF3EC]/50/50 border border-transparent"
-                      }`}
-                    >
-                      <span className="text-sm font-medium">{state.name}</span>
-                      {currentStateSlug === state.slug && (
-                        <Check className="w-4 h-4 text-[#B77767]" />
-                      )}
-                    </button>
-                  ))}
-                </>
+                <div className="text-center text-zinc-500 py-10">No states matching search</div>
               )}
             </div>
           </div>

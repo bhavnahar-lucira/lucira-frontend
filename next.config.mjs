@@ -9,10 +9,6 @@ const nextConfig = {
   turbopack: {
     root: __dirname,
   },
-  env: {
-    PROD_BACKEND_URL: process.env.PROD_BACKEND_URL,
-  },
-
   experimental: {
     workerThreads: false,
     cpus: 1,
