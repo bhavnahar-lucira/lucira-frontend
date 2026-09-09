@@ -306,38 +306,70 @@ export function formatDispatchMessage(config, options = {}) {
     secondsToCutoff += 86400;
     cutoffDayOffset = 1;
   }
-  const countdown = `${pad2(Math.floor(secondsToCutoff / 3600))}:${pad2(Math.floor((secondsToCutoff % 3600) / 60))}:${pad2(secondsToCutoff % 60)}`;
 
   let showTimer = false;
   let dispatchDate;
+  let secondsToDispatch = 0;
+
+  // Enforce excluding Sundays since the courier partner does not work
+  const excludeSundays = true;
 
   if (inStock) {
-    // A countdown only means something when beating the cutoff changes the date.
     showTimer =
       allowTimer &&
       cfg.inStock.timerEnabled &&
       Boolean(cfg.inStock.timerTemplate) &&
       cfg.inStock.beforeCutoffDays !== cfg.inStock.afterCutoffDays;
-    const offset = showTimer
-      // The timer counts down to the *next* cutoff, so the date shown is the one
-      // the shopper gets by beating it — tomorrow's once today's has passed.
-      ? cutoffDayOffset + cfg.inStock.beforeCutoffDays
-      : cutoffDayOffset === 0
-        ? cfg.inStock.beforeCutoffDays
-        : cfg.inStock.afterCutoffDays;
-    dispatchDate = dispatchAddDays(parts, offset, cfg.excludeSundays);
+      
+    // Determine the base day offset based on whether the cutoff has passed
+    const baseOffset = cutoffDayOffset === 0 ? cfg.inStock.beforeCutoffDays : cfg.inStock.afterCutoffDays;
+    
+    // Calculate the actual dispatch date, bumping Sundays to Monday
+    dispatchDate = dispatchAddDays(parts, baseOffset, excludeSundays);
+
+    // Calculate time remaining until the 7:30 PM dispatch on the actual dispatchDate
+    const todayUTC = Date.UTC(parts.year, parts.month, parts.day);
+    const targetUTC = dispatchDate.getTime();
+    const actualDaysOffset = Math.round((targetUTC - todayUTC) / 86400000);
+
+    const dispatchHourSeconds = (19 * 3600) + (30 * 60); // 19:30:00 (7:30 PM)
+    secondsToDispatch = (actualDaysOffset * 86400) + dispatchHourSeconds - nowSeconds;
+    if (secondsToDispatch < 0) secondsToDispatch = 0;
   } else {
     const parsedLead = parseInt(leadTime, 10);
     const leadDays = Number.isNaN(parsedLead) || parsedLead <= 0 ? cfg.madeToOrder.leadDays : parsedLead;
-    dispatchDate = dispatchAddDays(parts, leadDays + cfg.madeToOrder.bufferDays, cfg.excludeSundays);
-    // Made-to-order has no cutoff of its own; if its copy asks for a countdown
-    // it gets the in-stock one, so {countdown} never renders literally.
+    dispatchDate = dispatchAddDays(parts, leadDays + cfg.madeToOrder.bufferDays, excludeSundays);
     showTimer = allowTimer && cfg.madeToOrder.timerEnabled && Boolean(cfg.madeToOrder.timerTemplate);
   }
 
+  const countdown = `${pad2(Math.floor(secondsToDispatch / 3600))}:${pad2(Math.floor((secondsToDispatch % 3600) / 60))}:${pad2(secondsToDispatch % 60)}`;
+
   const dateText = formatDispatchDate(dispatchDate, section.dateFormat);
   const tokens = { date: dateText, countdown, label: section.label };
-  const text = fillDispatchTokens(showTimer ? section.timerTemplate : section.template, tokens);
+  let text = fillDispatchTokens(showTimer ? section.timerTemplate : section.template, tokens);
+
+  let textPre = "";
+  let textBoldDay = "";
+  let textBoldTime = "";
+
+  if (inStock && showTimer) {
+    const todayUTC = Date.UTC(parts.year, parts.month, parts.day);
+    const targetUTC = dispatchDate.getTime();
+    const daysDiff = Math.round((targetUTC - todayUTC) / 86400000);
+
+    const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dispatchDayName = daysOfWeek[dispatchDate.getUTCDay()];
+    
+    let relativeDay = "";
+    if (daysDiff === 0) relativeDay = "today";
+    else if (daysDiff === 1) relativeDay = "tomorrow";
+    else relativeDay = `on ${dispatchDayName}`;
+
+    textPre = "Orders will be dispatched ";
+    textBoldDay = relativeDay;
+    textBoldTime = "7:30 PM.";
+    text = `${textPre}${textBoldDay} at ${textBoldTime}`;
+  }
 
   return {
     enabled: cfg.enabled,
@@ -349,6 +381,9 @@ export function formatDispatchMessage(config, options = {}) {
     showTimer,
     countdown,
     secondsToCutoff,
+    textPre,
+    textBoldDay,
+    textBoldTime,
   };
 }
 

@@ -453,7 +453,7 @@ export default function CheckoutSummary({
                       <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
                         <Truck size={14} className="text-black" />
                         <span className="text-[0.625rem] font-medium text-black tracking-tight">
-                          {lineDispatch.text}
+                          {lineDispatch.text?.replace(/^Orders will be\s*/i, "").replace(/^([a-z])/, (c) => c.toUpperCase())}
                         </span>
                       </div>
                     );

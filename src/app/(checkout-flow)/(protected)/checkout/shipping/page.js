@@ -777,7 +777,7 @@ export default function ShippingPage() {
                                   come from the dashboard instead. */}
                               <p className="text-[0.8125rem] lg:text-[0.875rem] font-figtree text-black mb-1">{lineDispatch.label}</p>
                               <p className="text-[14px] lg:text-[1rem] font-figtree font-semibold leading-none lg:leading-normal tracking-normal text-black align-middle lg:align-baseline">
-                                {lineDispatch.text}
+                                {lineDispatch.text?.replace(/^Orders will be\s*/i, "").replace(/^([a-z])/, (c) => c.toUpperCase())}
                               </p>
                             </div>
                           </div>

@@ -2470,12 +2470,11 @@ export default function ProductPageClient({
                   </div>
                 );
               })()}
-              <Separator />
             </div>
 
             {/* Unlock Free Coupons Box */}
             {!(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold" || tag.toLowerCase() === "byj")) && !String(product?.handle || "").toLowerCase().includes("byj") && (
-              <div className="mb-6">
+              <div className="my-3">
                 <UnlockCoupon
                   user={user}
                   dispatch={dispatch}
@@ -2678,16 +2677,27 @@ export default function ProductPageClient({
                   {isCentralInStock ? (
                     <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap rounded">
                       <span className="w-2.5 h-2.5 bg-[#189351] rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">
+                      <span className="font-semibold xl:basis-auto lg:basis-full" style={{ fontWeight: 500 }}>
                         {/* Stock status always shows; the estimate/countdown is
                             what the dashboard's master toggle hides. */}
-                        {dispatchLine.enabled ? dispatchLine.sentence : `${dispatchLine.label}.`}
+                        {dispatchLine.enabled ? (
+                          dispatchLine.textBoldDay ? (
+                            <>
+                              <strong style={{ fontWeight: 700, color: "#189351" }}>{dispatchLine.label}.</strong> {dispatchLine.textPre}
+                              <strong style={{ fontWeight: 600 }}>{dispatchLine.textBoldDay}</strong> at <strong style={{ fontWeight: 600 }}>{dispatchLine.textBoldTime}</strong>
+                            </>
+                          ) : (
+                            dispatchLine.sentence
+                          )
+                        ) : (
+                          `${dispatchLine.label}.`
+                        )}
                       </span>
                     </div>
                   ) : (
                     <div className="bg-amber-50 border border-amber-200 text-black rounded px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap">
                       <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">
+                      <span className="font-semibold xl:basis-auto lg:basis-full" style={{ fontWeight: 500 }}>
                         {dispatchLine.enabled ? dispatchLine.sentence : `${dispatchLine.label}.`}
                       </span>
                     </div>
