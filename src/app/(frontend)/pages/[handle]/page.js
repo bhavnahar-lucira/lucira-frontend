@@ -196,7 +196,10 @@ function platinumRateCityMeta(city) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateStaticParams() {
-  return [];
+  const pages = await getAllPages();
+  return pages.map((page) => ({
+    handle: page.handle,
+  }));
 }
 
 export async function generateMetadata({ params }) {
