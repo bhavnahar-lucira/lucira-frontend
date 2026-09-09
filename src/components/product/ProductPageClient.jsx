@@ -2317,7 +2317,8 @@ export default function ProductPageClient({
                         // If no diamond parts were added, or it's not a diamond product, show metal purity
                         if (parts.length === 0) {
                           let metalPurity = variantMeta?.metal_purity || activeKarat;
-                          const isPlatinum = activeBase === "plt" || String(product.title).toLowerCase().includes("platinum");
+                          const karatKey = String(activeKarat || "").replace(/s+/g, "").toLowerCase();
+                          const isPlatinum = karatKey === "plt" || karatKey === "pt950" || karatKey === "platinum" || String(product.title).toLowerCase().includes("platinum");
 
                           if (metalPurity) {
                             const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
