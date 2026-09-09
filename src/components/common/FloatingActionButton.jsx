@@ -82,16 +82,16 @@ export default function FloatingActionButton() {
       message = `Tell me more about ${getRateCity(ctx.slug, 'silver')} silver rate`;
     } else if (ctx.type === "schemes") {
       // Scheme enquiries go to a dedicated line, not the main store number.
-      return `https://wa.me/918976740895?text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}`;
+      return `https://wa.me/+918976740895?text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}`;
     } else if (ctx.type === "old-gold-exchange") {
       // Old Gold Exchange enquiries share the same dedicated line.
-      return `https://wa.me/918976740895?text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}`;
+      return `https://wa.me/+918976740895?text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}`;
     } else if (ctx.type === "store-locator") {
       // Store-locator enquiries also go to the dedicated line (default message).
-      return `https://wa.me/918976740895?text=${encodeURIComponent(message)}`;
+      return `https://wa.me/+918976740895?text=${encodeURIComponent(message)}`;
     }
 
-    return `https://wa.me/918976740895?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/+918976740895?text=${encodeURIComponent(message)}`;
   };
 
   const pushPromoClick = (creativeName) => {

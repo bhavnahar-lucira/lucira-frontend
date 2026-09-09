@@ -3337,7 +3337,7 @@ export default function ProductPageClient({
                   description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                   action="BOOK APPOINTMENT"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
-                  url="https://wa.me/918976740895?text=Hi,%20I%20want%20to%20book%20an%20appointment"
+                  url="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -3353,7 +3353,7 @@ export default function ProductPageClient({
                   description="Try your selected pieces from the comfort of your home. Available in all major cities"
                   action="BOOK HOME TRIAL"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
-                  url="https://wa.me/918976740895?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
+                  url="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -4001,7 +4001,7 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/918976740895?text=${encodeURIComponent(
+                            href={`https://wa.me/+918976740895?text=${encodeURIComponent(
                               `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
@@ -4109,7 +4109,7 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/918976740895?text=${encodeURIComponent(
+                          href={`https://wa.me/+918976740895?text=${encodeURIComponent(
                             `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"

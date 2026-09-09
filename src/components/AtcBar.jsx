@@ -332,7 +332,7 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
 
                           <div className="flex items-center gap-2 pt-0.5">
                             <a
-                              href={`https://wa.me/918976740895?text=${encodeURIComponent(`Hi, I would like to check the availability of ${product?.title || "a design"} at the ${displayName} store.`)}`}
+                              href={`https://wa.me/+918976740895?text=${encodeURIComponent(`Hi, I would like to check the availability of ${product?.title || "a design"} at the ${displayName} store.`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="h-9 aspect-square bg-[#29a319] rounded-sm flex items-center justify-center shrink-0"
@@ -760,7 +760,7 @@ export default function AtcBar({
 
                 <div className="hidden xl:flex items-center gap-2">
                   <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
-                    <a href="https://wa.me/918976740895?text=Hi,%20I%20want%20to%20book%20home%20trial%20" target="_blank">
+                    <a href="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20book%20home%20trial%20" target="_blank">
                       <Home size={20} />
                     </a>
                   </Button>
