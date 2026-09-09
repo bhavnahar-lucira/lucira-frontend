@@ -517,7 +517,7 @@ export default function OrderDetailsPage() {
                   </div>
                   <ChevronLeft className="rotate-180 size-6" />
                 </button>
-                <a href="https://wa.me/919004435760" target="_blank" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
+                <a href="https://wa.me/+918976740895" target="_blank" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
                   <span className="text-base font-bold">Chat with Support</span>
                   <ChevronLeft className="rotate-180 size-6" />
                 </a>
