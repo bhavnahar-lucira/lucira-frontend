@@ -581,7 +581,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                    src={product.audioUrl}
                    productTitle={product?.title}
                    sku={activeVariant?.sku || product?.variants?.[0]?.sku}
-                   className="flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 p-2.5 z-30"
+                   className="flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 px-2.5 py-2.5 z-30 h-[42px]"
                  />
                )}
                {mounted && !isDesktop && (
