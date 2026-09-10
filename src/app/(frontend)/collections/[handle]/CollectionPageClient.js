@@ -394,6 +394,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [optimisticParams, setOptimisticParams] = useState(searchParams);
+
+  useEffect(() => {
+    setOptimisticParams(searchParams);
+  }, [searchParams]);
+
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
   const recentlyViewed = useSelector(selectRecentlyViewed);
@@ -763,8 +769,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   }, [searchParams]);
 
   const isOptionSelected = useCallback(
-    (groupKey, opt) => searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value)),
-    [searchParams]
+    (groupKey, opt) => optimisticParams.getAll(opt.urlKey || groupKey).includes(String(opt.value)),
+    [optimisticParams]
   );
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -802,7 +808,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           const isChecked = isOptionSelected(groupKey, opt);
           // If the option is checked, keep its base count to prevent the count from unexpectedly dropping
           // or disappearing due to Shopify's active filter facet logic.
-          const currentCount = isChecked ? opt.count : (narrowed ? (liveCounts.get(String(opt.value)) ?? 0) : (opt.count || 0));
+          let currentCount = isChecked ? opt.count : (narrowed ? (liveCounts.get(String(opt.value)) ?? 0) : (opt.count || 0));
+          
+          // Cap the facet count to the total products in the view to hide 
+          // discrepancies caused by frontend-hidden products (Shopify facets don't exclude them)
+          if (totalCount > 0 && currentCount > totalCount) {
+            currentCount = totalCount;
+          }
           
           return {
             ...opt,
@@ -815,7 +827,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     });
 
     return out;
-  }, [baseFilters, availableFilters, isOptionSelected]);
+  }, [baseFilters, availableFilters, isOptionSelected, totalCount]);
 
   // A group whose every option has been narrowed away is no longer rendered, so the
   // mobile sheet would show an empty right-hand pane if it was the one open.
@@ -830,7 +842,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     let count = 0;
     Object.entries(displayFilters).forEach(([groupKey, options]) => {
       if (groupKey === "Price") {
-        if (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) count++;
+        if (optimisticParams.get("filter.v.price.gte") || optimisticParams.get("filter.v.price.lte")) count++;
       } else if (Array.isArray(options)) {
         options.forEach((opt) => {
           if (isOptionSelected(groupKey, opt)) count++;
@@ -838,10 +850,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       }
     });
     return count;
-  }, [displayFilters, searchParams, isOptionSelected]);
+  }, [displayFilters, optimisticParams, isOptionSelected]);
 
   const applyPriceFilter = useCallback((committedValues) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     const minVal = committedValues && Array.isArray(committedValues) ? String(committedValues[0]) : localPriceRange.min;
     const maxVal = committedValues && Array.isArray(committedValues) ? String(committedValues[1]) : localPriceRange.max;
 
@@ -859,11 +871,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     });
 
     params.delete("cursor");
+    setOptimisticParams(params);
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     });
     scrollToTop();
-  }, [localPriceRange, searchParams, pathname, router]);
+  }, [localPriceRange, optimisticParams, pathname, router]);
 
   // Live-drag: apply after a short pause so results update while dragging,
   // not only on release, without firing a fetch on every pixel of movement.
@@ -892,18 +905,19 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   const resetPriceFilter = useCallback(() => {
     setLocalPriceRange({ min: "", max: "" });
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     params.delete("filter.v.price.gte");
     params.delete("filter.v.price.lte");
     params.delete("cursor");
+    setOptimisticParams(params);
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     });
     scrollToTop();
-  }, [searchParams, pathname, router]);
+  }, [optimisticParams, pathname, router]);
 
   const toggleFilter = (urlKey, value, groupKey, optLabel) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     const currentValues = params.getAll(urlKey);
     const isRemoving = currentValues.includes(value);
     if (isRemoving) {
@@ -921,6 +935,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       });
     }
     params.delete("cursor");
+    setOptimisticParams(params);
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     });
@@ -1079,6 +1094,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         // Update UI with narrowed filters
         const narrowedSortedData = processFilters(collData.filters || {});
         setAvailableFilters(narrowedSortedData);
+        if (activeFilters.length === 0) {
+          BASE_FILTER_CACHE.set(handle, narrowedSortedData);
+          setBaseFilters(narrowedSortedData);
+        }
         // Seeded from the base list, not the narrowed one, so the mobile sheet's
         // opening group is the same every time rather than whatever the current
         // selection happens to leave first.
@@ -1205,6 +1224,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   }, [products]);
 
   const clearAllFilters = () => {
+    setOptimisticParams(new URLSearchParams());
     startTransition(() => {
       router.push(pathname, { scroll: false });
     });
@@ -1216,10 +1236,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   };
 
   const handleSort = (value) => {
-    const p = new URLSearchParams(searchParams.toString());
+    const p = new URLSearchParams(optimisticParams.toString());
     if (value === "manual") p.delete("sort");
     else p.set("sort", value);
     p.delete("cursor");
+    setOptimisticParams(p);
     startTransition(() => {
       router.push(`${pathname}?${p.toString()}`, { scroll: false });
     });
@@ -1627,9 +1648,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         {isExpanded && (
                           <div className="space-y-4 mt-2 mb-4 pb-5">
                             {Array.isArray(options) && options.map((opt) => {
-                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
+                              const isChecked = optimisticParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
                               return (
-                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onMouseEnter={() => prefetchFilter(opt.urlKey || groupKey, opt.value)} onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onMouseEnter={() => prefetchFilter(opt.urlKey || groupKey, opt.value)} onPointerDown={() => prefetchFilter(opt.urlKey || groupKey, opt.value)} onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
                                   <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
                                     {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
                                   </span>
@@ -2149,9 +2170,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         </div>
                       ) : (
                         displayFilters[activeMobileGroup].map((option) => {
-                          const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
+                          const isSelected = optimisticParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
                           return (
-                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onMouseEnter={() => prefetchFilter(option.urlKey || activeMobileGroup, option.value)} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
+                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onMouseEnter={() => prefetchFilter(option.urlKey || activeMobileGroup, option.value)} onPointerDown={() => prefetchFilter(option.urlKey || activeMobileGroup, option.value)} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
                               <div className="flex items-center gap-3 min-w-0">
                                 {isSelected ? <div className="w-[19px] h-[19px] shrink-0 bg-[#5a413f] rounded-[5px] flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[19px] h-[19px] shrink-0 border border-gray-300 rounded-[5px] group-hover:border-[#5a413f] transition-colors" />}
                                 <span className={`font-figtree text-sm leading-snug truncate ${isSelected ? "text-[#5a413f] font-semibold" : "text-gray-600"}`}>{option.label}</span>
