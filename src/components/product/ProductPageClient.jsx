@@ -234,16 +234,25 @@ const getColorSpecificImage = (product, colorName) => {
   });
 };
 
+const standardizeKarat = (purity) => {
+  if (!purity) return "14KT";
+  const mp = String(purity).replace(/\s+/g, "").toLowerCase();
+  if (mp === "pt950" || mp === "plt" || mp === "platinum") return "PLT";
+  const km = mp.match(/^(\d+)(k|kt|ct)$/);
+  if (km) return `${km[1]}KT`;
+  return purity;
+};
+
 const getVariantSelection = (variant) => {
   if (variant?.metafields?.metal_purity && variant?.metafields?.metal_color) {
     return {
-      karat: variant.metafields.metal_purity,
+      karat: standardizeKarat(variant.metafields.metal_purity),
       color: variant.metafields.metal_color,
     };
   }
 
   const fallback = {
-    karat: variant?.metafields?.metal_purity || "14KT",
+    karat: standardizeKarat(variant?.metafields?.metal_purity),
     color: "Yellow Gold",
   };
 
@@ -260,7 +269,7 @@ const getVariantSelection = (variant) => {
   }
 
   return {
-    karat: parts[0] || fallback.karat,
+    karat: standardizeKarat(parts[0]) || fallback.karat,
     color: parts.slice(1).join(" ") || fallback.color,
   };
 };

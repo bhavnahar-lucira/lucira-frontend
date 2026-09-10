@@ -68,6 +68,21 @@ export default function Footer() {
                 </AccordionContent>
               </AccordionItem>
 
+              {/* CUSTOMER CARE */}
+              <AccordionItem value="customer-care" className="border-b border-white/10">
+                <AccordionTrigger className="py-5 font-abhaya text-lg font-bold hover:no-underline">
+                  Customer Care
+                </AccordionTrigger>
+                <AccordionContent className="pb-6">
+                  <div className="space-y-4 font-figtree">
+                    <div className="flex items-center gap-3">
+                      <Phone size={18} className="text-white/70" />
+                      <a href="tel:+917208934784" className="text-sm">+91 7208934784</a>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
               {/* SHOP ALL */}
               <AccordionItem value="shop" className="border-b border-white/10">
                 <AccordionTrigger className="py-5 font-abhaya text-lg font-bold hover:no-underline">
@@ -322,7 +337,17 @@ export default function Footer() {
                 </div>
               </div>
 
-              <div className="mt-15">
+              <div className="mt-8">
+                <h4 className="mb-4 text-lg font-extrabold font-abhaya">Customer Care</h4>
+                <div className="space-y-2.5 text-sm text-white font-figtree">
+                  <div className="flex items-center gap-2">
+                    <Phone size={16} />
+                    <a href="tel:+917208934784" target="_blank">+91 7208934784</a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8">
                 <h5 className="mb-3 text-lg font-extrabold font-abhaya">
                   Experience Lucira
                 </h5>

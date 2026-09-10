@@ -100,7 +100,7 @@ export default async function Page({ params }) {
   let initialData = null;
   try {
     const [collRes, filterRes, plpBannersRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=manual`, { cache: 'force-cache' }),
+      fetch(`${base}/api/collection?handle=${handle}&limit=16&sort=manual`, { cache: 'force-cache' }),
       fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' }),
       fetch(`${base}/api/settings/plp-banners`, { cache: 'force-cache' })
     ]);
