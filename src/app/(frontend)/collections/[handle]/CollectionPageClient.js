@@ -39,18 +39,12 @@ import StoreCollectionBanner from "@/components/collections/StoreCollectionBanne
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
 import { apiFetch } from "@/lib/api";
+import { storeCollectionHandles } from "@/lib/storeContent";
 
-const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar", "lajpat-nagar-store"];
-
-const STORE_IMAGES = {
-  "pune-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg"],
-  "chembur-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chembur_73ce3ac6-7515-473d-a2dd-2385fd065eaa.jpg"],
-  "noida-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Noida.jpg"],
-  "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
-  "malad": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg"],
-  "paschim-vihar": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982", "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982"],
-  "lajpat-nagar-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
-};
+// Which collections show the store hero instead of the usual PLP banner, and
+// the hero's content, are both managed in Dashboard → Stores and delivered via
+// /api/settings/store-pages (see initialData.storePages, fetched in
+// collections/[handle]/page.js). A new store needs no change here.
 
 // PLP banners (top banner + in-grid promo banners) are managed from the admin
 // dashboard and delivered via /api/settings/plp-banners (see initialData.plpBanners,
@@ -374,7 +368,7 @@ function RecentlyViewedRow({ products }) {
   );
 }
 
-export default function CollectionPage({ params: paramsPromise, initialData }) {
+export default function CollectionPage({ params: paramsPromise, initialData, storePages = null }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
 
@@ -389,6 +383,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const inpageBanners = plpBanners.inpageBanners?.length
     ? plpBanners.inpageBanners
     : FALLBACK_INPAGE_BANNERS;
+
+  // Dashboard-managed store pages. `storeHandles` covers every store, including
+  // ones whose hero is switched off — those collections then render no top
+  // banner at all, which is what the old hard-coded STORE_HANDLES list did.
+  const storeHandles = storeCollectionHandles(storePages);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -1553,8 +1552,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
           </div>
         </div>
-      ) : STORE_HANDLES.includes(handle) ? (
-        <StoreCollectionBanner collectionHandle={handle} bannerImages={STORE_IMAGES[handle] || []} />
+      ) : storeHandles.includes(handle) ? (
+        <StoreCollectionBanner collectionHandle={handle} storePages={storePages} />
       ) : (() => {
         const stripAlt = topBannerOverride?.alt || displayTitle;
         const stripDesktop = topBannerOverride?.desktopImage || topBannerDefault.desktopImage;
