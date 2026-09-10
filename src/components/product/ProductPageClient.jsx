@@ -1140,7 +1140,7 @@ export default function ProductPageClient({
 
   const renderDispatchBanner = () => {
     return isCentralInStock ? (
-      <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center justify-between gap-2.5 rounded text-[0.85rem] lg:text-base">
+      <div className="bg-[#ECF7F2] border border-[#189351] text-black p-2 lg:px-4 lg:py-3 flex items-center justify-between gap-2.5 rounded text-[0.85rem] lg:text-base">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-2.5 h-2.5 bg-[#189351] rounded-full shrink-0"></span>
           <span className="font-semibold text-black" style={{ fontWeight: 500 }}>
@@ -1166,7 +1166,7 @@ export default function ProductPageClient({
         )}
       </div>
     ) : (
-      <div className="bg-amber-50 border border-amber-200 text-black rounded px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap text-[0.85rem] lg:text-base">
+      <div className="bg-amber-50 border border-amber-200 text-black rounded p-2 lg:px-4 lg:py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap text-[0.85rem] lg:text-base">
         <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
         <span className="font-semibold xl:basis-auto lg:basis-full" style={{ fontWeight: 500 }}>
           {dispatchLine.enabled ? dispatchLine.sentence : `${dispatchLine.label}.`}
