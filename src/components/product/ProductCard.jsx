@@ -910,8 +910,12 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                     const isPlatinum = activeBase === "plt" || String(product.title).toLowerCase().includes("platinum");
                     if (metalPurity) {
                       const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
-                      if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
-                      else if (mp === "pt950" || mp === "plt" || mp === "platinum") metalPurity = "PLT";
+                      if (mp === "pt950" || mp === "plt" || mp === "platinum") {
+                        metalPurity = "PLT";
+                      } else {
+                        const km = mp.match(/^(\d+)(k|kt|ct)$/);
+                        if (km) metalPurity = `${km[1]}KT`;
+                      }
                     } else if (isPlatinum) {
                       metalPurity = "PLT";
                     }
@@ -920,8 +924,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                       parts.push(metalPurity);
                     }
                   }
-                  const weightVal = variantMeta?.metal_weight || prodMeta?.weight;
-                  const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
+                  const weightVal = variantMeta?.metal_weight || variantMeta?.gross_weight || prodMeta?.weight || prodMeta?.gross_weight || currentVariant?.weight;
+                  const weight = (weightVal && parseFloat(weightVal) > 0) ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
                   if (weight) parts.push(weight);
                   if (parts.length === 0) return null;
                   return <p className="font-figtree text-[12px] lg:text-sm font-light lg:font-medium text-black lg:text-gray-500 leading-[1.4] tracking-normal mt-0.5">{parts.join(" · ")}</p>;
