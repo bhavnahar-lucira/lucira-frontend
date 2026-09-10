@@ -348,7 +348,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
   return (
     <div
-      className="relative bg-[#FFF8F6] rounded flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 p-[12px]"
+      className="relative bg-[#FFF8F6] rounded flex flex-col sm:flex-row gap-4 items-center select-none w-full mt-0 py-[10px] px-3"
     >
 
       {/* Right Column: Dynamic Steps */}
@@ -356,7 +356,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         <div className="flex-1 min-w-0 w-full space-y-3">
           <div className="flex items-center justify-between w-full">
             <h3
-              className="text-[#4E3629] font-figtree font-semibold text-[13px] sm:text-[var(--text-lg)] leading-[1.4] tracking-normal uppercase"
+              className="text-black font-figtree font-medium text-[0.85rem] leading-[1.4] tracking-[0.3px] uppercase"
             >
               HURRAY! OFFERS ARE UNLOCKED
             </h3>
