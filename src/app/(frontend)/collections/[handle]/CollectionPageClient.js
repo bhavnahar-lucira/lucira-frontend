@@ -164,6 +164,10 @@ const scrollToTop = () => {
 const ORDERED_VIEW_CACHE = new Map();
 const MAX_CACHED_VIEWS = 8;
 
+// How long the first paint may wait for a known pincode's store ranking before
+// giving up and showing the default order anyway (see awaitingPincodeOrder below).
+const PINCODE_ORDER_WAIT_TIMEOUT_MS = 900;
+
 function rememberView(key, value) {
   if (!key) return;
   ORDERED_VIEW_CACHE.delete(key); // re-insert so iteration order is LRU-ish
@@ -546,7 +550,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   // store in range — in which case every request below is byte-for-byte what it
   // was before this feature existed. Resolved BEFORE the product state below so
   // the memo key is known while that state is still initialising.
-  const { storesParam, storesReady } = useStoreOrdering();
+  const { storesParam, storesReady, pincode } = useStoreOrdering();
   // Only the default sort is reordered; an explicit Price/Newest choice must win
   // outright. The backend enforces this too, but not sending the parameter keeps
   // sorted views on the same server cache entries they already had.
@@ -559,19 +563,55 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   const viewCacheKey = `${handle}|${searchParams.toString()}|${limit}|${storeOrderParam}`;
   const cachedView = ORDERED_VIEW_CACHE.get(viewCacheKey);
 
+  // True only in the narrow window this component cares about: the shopper
+  // already has a saved pincode (so their grid WILL be reordered by store
+  // proximity) but this tab has not resolved it into a store ranking yet, and
+  // nothing is cached for this exact view. Left unguarded, the first paint would
+  // show `initialData`'s build-time (un-ordered) products and then visibly
+  // reshuffle a moment later once the store-ordered fetch lands — that flash is
+  // the UX bug this flag exists to avoid. Read only at mount (via the lazy
+  // initializers below and the ref that freezes it), because it describes a
+  // FIRST-PAINT decision, not a live one — once we've chosen to wait or not, later
+  // renders (sort/filter changes, storesReady flipping) are handled by the
+  // existing fetch effect and its own SWR/reshuffle-avoidance logic.
+  const awaitingPincodeOrder = pincode.length === 6 && !storesReady && !cachedView;
+
   const [products, setProducts] = useState(() =>
     cachedView
       ? cachedView.products
-      : (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'))
+      : awaitingPincodeOrder
+        ? []
+        : (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'))
   );
   const [pagination, setPagination] = useState(() =>
     cachedView?.pagination || initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null }
   );
-  const [productsLoading, setProductsLoading] = useState(!initialData && !cachedView);
+  const [productsLoading, setProductsLoading] = useState((!initialData && !cachedView) || awaitingPincodeOrder);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(() =>
     cachedView?.totalCount || initialData?.collData?.totalProducts || 0
   );
+
+  // Safety valve: if the pincode -> store ranking lookup is unusually slow (flaky
+  // network, backend hiccup — resolution is normally a ~40ms memoised lookup),
+  // don't leave the shopper looking at skeletons forever. After the timeout, fall
+  // back to painting `initialData`'s default order — exactly what happens today
+  // when no wait is applied — and let the store-ordered fetch swap it in silently
+  // whenever it does land. Mirrors the backend's own STORE_ORDER_BUDGET_MS
+  // fallback: past the budget, serve the un-personalised order rather than block.
+  const awaitingPincodeOrderAtMount = useRef(awaitingPincodeOrder).current;
+  useEffect(() => {
+    if (!awaitingPincodeOrderAtMount) return;
+    const timer = setTimeout(() => {
+      setProducts((prev) =>
+        prev.length > 0
+          ? prev
+          : (initialData?.collData?.products || []).filter((p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden"))
+      );
+      setProductsLoading((prev) => (prev ? false : prev));
+    }, PINCODE_ORDER_WAIT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [awaitingPincodeOrderAtMount, initialData]);
 
   // Set initial active mobile group if needed
   useEffect(() => {
@@ -1436,6 +1476,9 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
             </div>
           )}
 
+          {awaitingPincodeOrderAtMount && productsLoading && products.length === 0 && (
+            <p className="mt-4 font-figtree text-xs text-[#696969]">Sorting products by your nearest store…</p>
+          )}
           <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : gridItems}
           </div>
