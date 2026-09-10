@@ -551,7 +551,7 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 {dispatchMessage}
               </span>
               {dispatchInfo.tooltipText && (
-                <DispatchTooltip text={dispatchInfo.tooltipText} className="ml-0.5" />
+                <DispatchTooltip text={dispatchInfo.tooltipText} align="center" className={`ml-0.5 ${statusClass}`} />
               )}
             </div>
           )}
