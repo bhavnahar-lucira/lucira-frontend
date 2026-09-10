@@ -806,16 +806,22 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       const rows = options
         .map((opt) => {
           const isChecked = isOptionSelected(groupKey, opt);
-          // If the option is checked, keep its base count to prevent the count from unexpectedly dropping
-          // or disappearing due to Shopify's active filter facet logic.
-          let currentCount = isChecked ? opt.count : (narrowed ? (liveCounts.get(String(opt.value)) ?? 0) : (opt.count || 0));
-          
-          // Cap the facet count to the total products in the view to hide 
-          // discrepancies caused by frontend-hidden products (Shopify facets don't exclude them)
-          if (totalCount > 0 && currentCount > totalCount) {
-            currentCount = totalCount;
-          }
-          
+          // Shopify already reports the right number for a checked row. Inside a group
+          // that has a selection it counts as if only THIS value were ticked, narrowed by
+          // every OTHER group — the convention for an OR group, which this is (Chembur 8 +
+          // Malad 10 returns 15 items, the union). Two consequences: the response's count
+          // beats the base count even when the row is checked, because the base one ignores
+          // every other active group (Chembur+18KT shows 52 items; the API says 52, the base
+          // list says 216); and a count above the view total is CORRECT, so capping it is
+          // wrong — that flattened distinct rows onto one number (Chembur+Round gives 5
+          // items with true counts 6/5/6/6/9/7/4, all but one printed as 5).
+          //
+          // The base count survives only as the fallback for a checked option this response
+          // omitted, so its row keeps a number instead of dropping to 0 and being filtered
+          // out below, which would leave an applied filter with no checkbox to switch off.
+          const liveCount = narrowed ? liveCounts.get(String(opt.value)) : (opt.count || 0);
+          const currentCount = liveCount ?? (isChecked ? (opt.count || 0) : 0);
+
           return {
             ...opt,
             count: currentCount,
@@ -827,7 +833,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     });
 
     return out;
-  }, [baseFilters, availableFilters, isOptionSelected, totalCount]);
+  }, [baseFilters, availableFilters, isOptionSelected]);
 
   // A group whose every option has been narrowed away is no longer rendered, so the
   // mobile sheet would show an empty right-hand pane if it was the one open.
