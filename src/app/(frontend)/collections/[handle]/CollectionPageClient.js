@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, use, useRef, Fragment } from "react";
+import { useState, useEffect, useCallback, useMemo, use, useRef, Fragment, useTransition } from "react";
 import { useStoreOrdering } from "@/hooks/useStoreOrdering";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -193,6 +193,9 @@ const MAX_CACHED_VIEWS = 8;
 // the same unfiltered facet list in initialData.collData.filters.
 // ─────────────────────────────────────────────────────────────────────────────
 const BASE_FILTER_CACHE = new Map();
+
+// Predictive cache to store in-flight API requests when the user hovers over a filter
+const PREFETCH_CACHE = new Map();
 
 // Does the URL actually select any facet? Matched against the collection's own
 // facet list rather than "has any query param", so UTM/gclid/fbclid landings are
@@ -390,12 +393,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
   const recentlyViewed = useSelector(selectRecentlyViewed);
   const recentlyViewedProducts = recentlyViewed?.products || [];
 
-  const limit = 25;
+  const limit = 16;
 
   const [expandedFilters, setExpandedFilters] = useState({ "In Store Available": true });
   const loadMoreRef = useRef(null);
@@ -794,10 +798,17 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       if (narrowed) narrowed.forEach((o) => liveCounts.set(String(o.value), o.count || 0));
 
       const rows = options
-        .map((opt) => ({
-          ...opt,
-          count: narrowed ? (liveCounts.get(String(opt.value)) ?? 0) : (opt.count || 0),
-        }))
+        .map((opt) => {
+          const isChecked = isOptionSelected(groupKey, opt);
+          // If the option is checked, keep its base count to prevent the count from unexpectedly dropping
+          // or disappearing due to Shopify's active filter facet logic.
+          const currentCount = isChecked ? opt.count : (narrowed ? (liveCounts.get(String(opt.value)) ?? 0) : (opt.count || 0));
+          
+          return {
+            ...opt,
+            count: currentCount,
+          };
+        })
         .filter((opt) => opt.count > 0 || isOptionSelected(groupKey, opt));
 
       if (rows.length > 0) out[groupKey] = rows;
@@ -848,9 +859,36 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     });
 
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToTop();
   }, [localPriceRange, searchParams, pathname, router]);
+
+  // Live-drag: apply after a short pause so results update while dragging,
+  // not only on release, without firing a fetch on every pixel of movement.
+  const priceDebounceRef = useRef(null);
+
+  const handlePriceDrag = useCallback(([min, max]) => {
+    setLocalPriceRange({ min: String(min), max: String(max) });
+    if (priceDebounceRef.current) clearTimeout(priceDebounceRef.current);
+    priceDebounceRef.current = setTimeout(() => {
+      priceDebounceRef.current = null;
+      applyPriceFilter([min, max]);
+    }, 400);
+  }, [applyPriceFilter]);
+
+  const handlePriceCommit = useCallback((values) => {
+    if (priceDebounceRef.current) {
+      clearTimeout(priceDebounceRef.current);
+      priceDebounceRef.current = null;
+    }
+    applyPriceFilter(values);
+  }, [applyPriceFilter]);
+
+  useEffect(() => () => {
+    if (priceDebounceRef.current) clearTimeout(priceDebounceRef.current);
+  }, []);
 
   const resetPriceFilter = useCallback(() => {
     setLocalPriceRange({ min: "", max: "" });
@@ -858,7 +896,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     params.delete("filter.v.price.gte");
     params.delete("filter.v.price.lte");
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToTop();
   }, [searchParams, pathname, router]);
 
@@ -881,7 +921,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       });
     }
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToProductsTop();
   };
 
@@ -936,9 +978,32 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return filters;
   }, []);
 
+  const prefetchFilter = useCallback((urlKey, value) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const currentValues = params.getAll(urlKey);
+    if (currentValues.includes(value)) return;
+
+    params.append(urlKey, value);
+    params.delete("cursor");
+
+    const sort = params.get("sort") || "manual";
+    const baseSortedData = BASE_FILTER_CACHE.get(handle) || baseFilters || availableFilters;
+    const activeFilters = getActiveFiltersForShopify(params, baseSortedData);
+    const filterParams = activeFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+
+    const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}${storeOrderParam}`;
+
+    if (!PREFETCH_CACHE.has(apiUrl)) {
+      const promise = apiFetch(apiUrl).catch(() => null);
+      PREFETCH_CACHE.set(apiUrl, promise);
+      setTimeout(() => PREFETCH_CACHE.delete(apiUrl), 10000);
+    }
+  }, [searchParams, handle, baseFilters, availableFilters, limit, storeOrderParam, getActiveFiltersForShopify]);
+
   // Initial Fetch & Filter Changes
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     async function fetchData() {
       // A real pincode whose ordering has not resolved yet. Firing now would
       // fetch the un-ordered page, paint it, and then immediately refetch and
@@ -982,7 +1047,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         // Shopify filter inputs.
         let baseSortedData = BASE_FILTER_CACHE.get(handle);
         if (!baseSortedData) {
-          const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`);
+          const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`, { signal: controller.signal });
           if (cancelled) return;
           baseSortedData = processFilters(baseData.filters || {});
           BASE_FILTER_CACHE.set(handle, baseSortedData);
@@ -996,7 +1061,19 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         // 3. Fetch products and narrowed filters from Shopify
         const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}${storeOrderParam}`;
 
-        const collData = await apiFetch(apiUrl);
+        let collData;
+        if (PREFETCH_CACHE.has(apiUrl)) {
+          const promise = PREFETCH_CACHE.get(apiUrl);
+          PREFETCH_CACHE.delete(apiUrl);
+          try {
+            collData = await promise;
+          } catch (e) {
+            collData = await apiFetch(apiUrl, { signal: controller.signal });
+          }
+        } else {
+          collData = await apiFetch(apiUrl, { signal: controller.signal });
+        }
+        
         if (cancelled) return;
 
         // Update UI with narrowed filters
@@ -1030,17 +1107,18 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         });
 
         try {
-          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
+          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`, { signal: controller.signal });
           if (dbData.success) setDbCollection(dbData.collection);
         } catch (e) { }
       } catch (err) {
+        if (err?.name === "AbortError") return;
         console.error("Failed to fetch initial data:", err);
       } finally {
         if (!cancelled) setProductsLoading(false);
       }
     }
     fetchData();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
 
   // Fetch Next Page
@@ -1127,7 +1205,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   }, [products]);
 
   const clearAllFilters = () => {
-    router.push(pathname, { scroll: false });
+    startTransition(() => {
+      router.push(pathname, { scroll: false });
+    });
     scrollToTop();
   };
 
@@ -1140,7 +1220,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     if (value === "manual") p.delete("sort");
     else p.set("sort", value);
     p.delete("cursor");
-    router.push(`${pathname}?${p.toString()}`, { scroll: false });
+    startTransition(() => {
+      router.push(`${pathname}?${p.toString()}`, { scroll: false });
+    });
     scrollToTop();
     // Fire promoClick datalayer for sort-by
     const sortLabel = SORT_OPTIONS.find((o) => o.value === value)?.label || value;
@@ -1299,12 +1381,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         cellCount += 2;
       }
 
-      // Trigger pagination when 10 products are scrolled
-      // For a batch of 25, this is the 11th product (index 10, or length - 15)
-      const isTrigger = pagination.hasNextPage && idx === products.length - 15;
-
       items.push(
-        <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
+        <div key={prod.id || `idx-${idx}`}>
           <ProductCard
             product={selectedColor ? { ...prod, selectedColor } : prod}
             collectionHandle={handle}
@@ -1532,8 +1610,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                                   localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
                                   localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
                                 ]}
-                                onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
-                                onValueCommit={applyPriceFilter}
+                                onValueChange={handlePriceDrag}
+                                onValueCommit={handlePriceCommit}
                               />
                               <div className="text-sm font-semibold text-gray-900 text-center">
                                 ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
@@ -1551,7 +1629,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                             {Array.isArray(options) && options.map((opt) => {
                               const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
                               return (
-                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onMouseEnter={() => prefetchFilter(opt.urlKey || groupKey, opt.value)} onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
                                   <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
                                     {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
                                   </span>
@@ -2060,8 +2138,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                               localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
                               localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
                             ]}
-                            onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
-                            onValueCommit={applyPriceFilter}
+                            onValueChange={handlePriceDrag}
+                            onValueCommit={handlePriceCommit}
                           />
                           <div className="rounded-xl bg-[#FBF3EF] py-3 px-4 text-center">
                             <span className="font-figtree text-[0.9375rem] font-semibold text-[#5a413f]">
@@ -2073,7 +2151,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         displayFilters[activeMobileGroup].map((option) => {
                           const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
                           return (
-                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
+                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onMouseEnter={() => prefetchFilter(option.urlKey || activeMobileGroup, option.value)} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
                               <div className="flex items-center gap-3 min-w-0">
                                 {isSelected ? <div className="w-[19px] h-[19px] shrink-0 bg-[#5a413f] rounded-[5px] flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[19px] h-[19px] shrink-0 border border-gray-300 rounded-[5px] group-hover:border-[#5a413f] transition-colors" />}
                                 <span className={`font-figtree text-sm leading-snug truncate ${isSelected ? "text-[#5a413f] font-semibold" : "text-gray-600"}`}>{option.label}</span>

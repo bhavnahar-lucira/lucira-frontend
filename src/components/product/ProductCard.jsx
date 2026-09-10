@@ -38,15 +38,14 @@ import {
 import { pushProductClick, pushPromoClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
-import { apiFetch, fetchVariantPricing, fetchProductMedia } from "@/lib/api";
+import { apiFetch, fetchProductMedia } from "@/lib/api";
 import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
 import { trackProductClick as trackSearchProductClick } from "@/lib/searchAnalytics";
 
 const clientReviewStatsCache = new Map();
-const clientPriceCache = new Map();
-// Cache for the live Shopify price check (see the "Live Shopify Price Fetch"
-// effect below) — keyed by variant only, since it's a direct Shopify read with
-// no dependency on the backend's per-product pricing config.
+// Keyed by variant only, since it's a direct Shopify read. Stores the in-flight
+// promise rather than the resolved value so a grid of cards sharing a variant
+// issues one request instead of one per card.
 const clientShopifyPriceCache = new Map();
 
 const colorMap = {
@@ -240,13 +239,8 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   const [videoLoading, setVideoLoading] = useState(false);
   const [fetchedVideoMedia, setFetchedVideoMedia] = useState(null);
   const [reviewStats, setReviewStats] = useState(product.reviews || product.reviewStats || { count: 0, average: 0 });
-  const [livePrice, setLivePrice] = useState(null);
-  const [liveComparePrice, setLiveComparePrice] = useState(null);
-  // Despite the name, `livePrice` above is the backend's dynamic gold/diamond
-  // breakup total (fetchVariantPricing), not a live Shopify read — and that
-  // backend cache can go stale independently of Shopify (see the PDP fix for
-  // the same class of bug). These two hold the actual live Shopify variant
-  // price, fetched below, which wins over the backend's figure once resolved.
+  // Holds the actual live Shopify variant price — the same source cart/checkout
+  // read — which wins over the price carried in the listing payload.
   const [shopifyLivePrice, setShopifyLivePrice] = useState(null);
   const [shopifyLiveComparePrice, setShopifyLiveComparePrice] = useState(null);
 
@@ -260,84 +254,42 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const pricingVariant = prioritizedVariant || currentVariant;
 
-  // Live Pricing Fetch
+  // Live Shopify Price Fetch — cross-checks the listing payload's price against
+  // Shopify's actual current price (the same source cart/checkout use), so a
+  // stale cached figure can never be the one the shopper acts on. Skipped
+  // wherever the caller opted out (e.g. search results) or set a fixed price.
   useEffect(() => {
     if (disableLivePricing || fixedPrice || !pricingVariant?.id) return;
 
     const variantId = String(pricingVariant.id);
-    const productId = String(product.shopifyId || product.id);
-    const cacheKey = `${productId}-${variantId}`;
+    let ignore = false;
 
-    if (clientPriceCache.has(cacheKey)) {
-      const cached = clientPriceCache.get(cacheKey);
-      setLivePrice(cached.price);
-      setLiveComparePrice(cached.comparePrice);
-      return;
+    let pending = clientShopifyPriceCache.get(variantId);
+    if (!pending) {
+      const vid = getNumericId(variantId);
+      pending = shopifyStorefrontFetch(VARIANT_PRICE_QUERY, { id: toShopifyGid(vid, "ProductVariant") })
+        .then((data) => {
+          const node = data?.node;
+          if (!node) return null;
+          return {
+            price: node.price?.amount != null ? Number(node.price.amount) : null,
+            comparePrice: node.compareAtPrice?.amount != null ? Number(node.compareAtPrice.amount) : null,
+          };
+        })
+        .catch((err) => {
+          // Drop the rejected promise so a later mount can retry.
+          clientShopifyPriceCache.delete(variantId);
+          console.warn("[ProductCard] Live Shopify price fetch failed:", err.message);
+          return null;
+        });
+      clientShopifyPriceCache.set(variantId, pending);
     }
 
-    let ignore = false;
-    const vid = getNumericId(variantId);
-    const pid = getNumericId(productId);
-
-    fetchVariantPricing(vid, pid)
-      .then((data) => {
-        if (ignore) return;
-        if (data?.raw_breakup?.total) {
-          const p = data.raw_breakup.total;
-          const cp = data.raw_breakup.original_total > p ? data.raw_breakup.original_total : null;
-          clientPriceCache.set(cacheKey, { price: p, comparePrice: cp });
-          setLivePrice(p);
-          setLiveComparePrice(cp);
-        } else {
-          // If response is valid but no breakup, cache as null to prevent re-fetch
-          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
-        }
-      })
-      .catch((err) => {
-        // Silently handle "Variant config not found" or other 404s
-        // These are expected for items not yet configured in the backend
-        if (err.message?.includes("not found")) {
-          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
-        } else {
-          console.warn("[ProductCard] Pricing fetch failed:", err.message);
-        }
-      });
-
-    return () => { ignore = true; };
-  }, [pricingVariant?.id, product.shopifyId, product.id, fixedPrice]);
-
-  // Live Shopify Price Fetch — cross-checks the backend's dynamic breakup total
-  // above against Shopify's actual current price (same source cart/checkout use),
-  // gated the same way as that fetch so it's skipped wherever the caller already
-  // opted out of live pricing (e.g. search results) or supplied a fixed price.
-  useEffect(() => {
-    if (disableLivePricing || fixedPrice || !pricingVariant?.id) return;
-
-    const variantId = String(pricingVariant.id);
-    const cacheKey = variantId;
-
-    if (clientShopifyPriceCache.has(cacheKey)) {
-      const cached = clientShopifyPriceCache.get(cacheKey);
-      setShopifyLivePrice(cached.price);
-      setShopifyLiveComparePrice(cached.comparePrice);
-      return;
-    }
-
-    let ignore = false;
-    const vid = getNumericId(variantId);
-
-    shopifyStorefrontFetch(VARIANT_PRICE_QUERY, { id: toShopifyGid(vid, "ProductVariant") })
-      .then((data) => {
-        if (ignore) return;
-        const node = data?.node;
-        if (!node) return;
-        const p = node.price?.amount != null ? Number(node.price.amount) : null;
-        const cp = node.compareAtPrice?.amount != null ? Number(node.compareAtPrice.amount) : null;
-        clientShopifyPriceCache.set(cacheKey, { price: p, comparePrice: cp });
-        setShopifyLivePrice(p);
-        setShopifyLiveComparePrice(cp);
-      })
-      .catch((err) => console.warn("[ProductCard] Live Shopify price fetch failed:", err.message));
+    pending.then((res) => {
+      if (ignore || !res) return;
+      setShopifyLivePrice(res.price);
+      setShopifyLiveComparePrice(res.comparePrice);
+    });
 
     return () => { ignore = true; };
   }, [pricingVariant?.id, fixedPrice, disableLivePricing]);
@@ -420,11 +372,10 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const showVideoIcon = Boolean(videoMedia);
 
-  // shopifyLivePrice (Shopify's actual current price) takes priority over the
-  // backend's dynamic breakup total (livePrice) once it resolves — see the
-  // "Live Shopify Price Fetch" effect above for why the breakup can be stale.
-  const displayPrice = fixedPrice || shopifyLivePrice || livePrice || pricingVariant?.price_breakup?.total || pricingVariant?.price || product.price_breakup?.total || product.price;
-  const displayComparePrice = fixedComparePrice || shopifyLiveComparePrice || liveComparePrice || pricingVariant?.compare_price || pricingVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
+  // shopifyLivePrice (Shopify's actual current price) takes priority once it
+  // resolves; until then the listing payload's own price renders immediately.
+  const displayPrice = fixedPrice || shopifyLivePrice || pricingVariant?.price_breakup?.total || pricingVariant?.price || product.price_breakup?.total || product.price;
+  const displayComparePrice = fixedComparePrice || shopifyLiveComparePrice || pricingVariant?.compare_price || pricingVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
   const discountPercent = useMemo(() => {
     if (!displayComparePrice || displayComparePrice <= displayPrice) return 0;
     return Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100);
