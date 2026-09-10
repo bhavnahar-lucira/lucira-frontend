@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import LazyImage from "@/components/common/LazyImage";
 import {
   MapPinned,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
 import { isStoreActive } from "@/data/stores";
+import { storeByHandle, formatTimings, storeStatus } from "@/lib/storeContent";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay, EffectFade } from "swiper/modules";
 
@@ -23,228 +24,6 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
-
-// ─── Data ────────────────────────────────────────────────────────────────────
-const STORES_DATA = {
-  "pune-store": {
-    city: "Pune",
-    name: "Pune Lucira Store",
-    rating: 4.8,
-    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg"],
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://maps.google.com/?q=Pune+Lucira+Store",
-    callLink: "tel:+918433667236",
-    designLink: "/collections/pune-store",
-    appointmentLink: "https://wa.me/+917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Pune%20Store",
-    facilities: [
-      "Kids Area",
-      "Design Your Ring",
-      "Open Weekends",
-      "Banks Nearby",
-      "Parking Available",
-      "Exclusive Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
-    ],
-    address: "Shop no. 3,4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd, Pune, Maharashtra 411005",
-  },
-  "chembur-store": {
-    city: "Chembur",
-    name: "Chembur Lucira Store",
-    rating: 4.7,
-    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chembur_73ce3ac6-7515-473d-a2dd-2385fd065eaa.jpg"],
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://maps.google.com/?q=Chembur+Lucira+Store",
-    callLink: "tel:+919004402038",
-    designLink: "/collections/chembur-store",
-    appointmentLink: "https://wa.me/+917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Chembur%20Store",
-    facilities: [
-      "Open on Weekends",
-      "Banks Nearby",
-      "Parking Availability",
-      "Daily Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
-    ],
-    address: "Shop No. 3 Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd, Chembur, Mumbai, Maharashtra 400071",
-  },
-  "sky-city-borivali-store": {
-    city: "Borivali",
-    name: "Borivali Lucira Store",
-    rating: 4.9,
-    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Noida.jpg"],
-    "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
-    storeHours: {
-      weekday: { open: "10:30", close: "21:30" },
-      weekend: { open: "10:30", close: "21:30" },
-    },
-    mapLink: "https://maps.google.com/?q=Borivali+Lucira+Store",
-    callLink: "tel:+918433667238",
-    designLink: "/collections/sky-city-borivali-store",
-    appointmentLink: "https://wa.me/+917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Borivali%20Store",
-    facilities: [
-      "Design Your Ring",
-      "Open Weekends",
-      "Parking Available",
-      "Exclusive Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
-    ],
-    address: "Sky City Mall, S-40, 2nd Floor, Western Express Hwy, Borivali East, Mumbai - 400066",
-  },
-  "noida-store": {
-    city: "Noida",
-    name: "Noida Lucira Store",
-    rating: 4.9,
-    images: ["/images/store/Noida.jpg"],
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://maps.google.com/?q=Noida+Lucira+Store",
-    callLink: "tel:+918657392887",
-    designLink: "/collections/noida-store",
-    appointmentLink: "https://wa.me/+917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Noida%20Store",
-    facilities: [
-      "Kids Area",
-      "Design Your Ring",
-      "Open Weekends",
-      "Banks Nearby",
-      "Parking Available",
-      "Exclusive Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
-    ],
-    address: "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",
-  },
-  "paschim-vihar": {
-    city: "Paschim Vihar",
-    name: "Paschim Vihar Lucira Store",
-    rating: 4.7,
-    // openingSoon: true,
-    images: [
-      "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
-      "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
-    ],
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D",
-    callLink: "tel:+917208007494",
-    designLink: "/collections/paschim-vihar",
-    appointmentLink: "https://wa.me/917208007494?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Paschim%20Vihar%20Store",
-    facilities: [
-      "Open on Weekends",
-      "Banks Nearby",
-      "Parking Availability",
-      "Daily Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
-    ],
-    address: "B-8, Shubham Enclave, Paschim Vihar, New Delhi -110063.",
-  },
-  "lajpat-nagar-store": {
-    city: "Lajpat Nagar",
-    name: "Lajpat Nagar Lucira Store",
-    openingSoon: false,
-    images: ["https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892"],
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi",
-    callLink: "tel:+917208007495",
-    designLink: "/collections/lajpat-nagar-store",
-    appointmentLink: "https://wa.me/917208007495?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Lajpat%20Nagar%20Store",
-    facilities: [
-      "Open on Weekends",
-      "Banks Nearby",
-      "Parking Availability",
-      "Daily Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "/images/store/gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "/images/store/vault.svg" },
-      { title: "Carat Tester", icon: "/images/store/carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "/images/store/jewelry-cleaning.svg" },
-    ],
-    address: "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
-  },
-};
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function isStoreOpenIST(store) {
-  const indiaNow = new Date(
-    new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Kolkata",
-    })
-  );
-
-  const day = indiaNow.getDay();
-  const isWeekend = day === 0 || day === 6;
-  const hours = isWeekend ? store.storeHours.weekend : store.storeHours.weekday;
-
-  const [openHour, openMinute] = hours.open.split(":").map(Number);
-  const [closeHour, closeMinute] = hours.close.split(":").map(Number);
-
-  const currentMinutes = indiaNow.getHours() * 60 + indiaNow.getMinutes();
-  const openMinutes = openHour * 60 + openMinute;
-  const closeMinutes = closeHour * 60 + closeMinute;
-
-  if (closeMinutes < openMinutes) {
-    return currentMinutes >= openMinutes || currentMinutes <= closeMinutes;
-  }
-  return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
-}
-
-function formatTimings(store) {
-  const { weekday, weekend } = store.storeHours;
-  const formatTime = (time) => {
-    let [h, m] = time.split(":").map(Number);
-    const ampm = h >= 12 ? "pm" : "am";
-    h = h % 12 || 12;
-    return `${h}:${m.toString().padStart(2, "0")} ${ampm}`;
-  };
-
-  const same = weekday.open === weekend.open && weekday.close === weekend.close;
-  if (same) {
-    return `Monday - Sunday | ${formatTime(weekday.open)} - ${formatTime(weekday.close)}`;
-  }
-  return `Mon-Fri | ${formatTime(weekday.open)} - ${formatTime(weekday.close)}  •  Sat-Sun | ${formatTime(weekend.open)} - ${formatTime(weekend.close)}`;
-}
 
 // ─── Sub-Components ──────────────────────────────────────────────────────────
 function ServiceCard({ item }) {
@@ -261,14 +40,30 @@ function ServiceCard({ item }) {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export default function StoreCollectionBanner({ collectionHandle, bannerImages = [] }) {
+/**
+ * The store hero at the top of /collections/<handle>.
+ *
+ * Content comes from `storePages` (Dashboard → Stores, served by
+ * /api/settings/store-pages and threaded down from the collection page's server
+ * component). `bannerImages` still wins when the caller passes one, so a
+ * campaign can override the carousel for a single render.
+ */
+export default function StoreCollectionBanner({ collectionHandle, bannerImages = [], storePages = null }) {
   const isMobile = useMediaQuery("(max-width: 1023px)");
-  const store = STORES_DATA[collectionHandle];
+  const store = storeByHandle(storePages, collectionHandle);
 
-  if (!store || !isStoreActive(collectionHandle)) return null;
+  // `isStoreActive` is the older site-wide kill switch in src/data/stores.js and
+  // still applies; `published` and the per-surface toggle are the dashboard's.
+  if (!store || store.published === false || store.surfaces?.collectionBanner === false) return null;
+  if (!isStoreActive(collectionHandle)) return null;
 
-  const storeIsOpen = isStoreOpenIST(store);
-  const displayImages = bannerImages.length > 0 ? bannerImages : store.images;
+  const status = storeStatus(store);
+  const isOpenTone = status.tone === "open";
+  const timings = formatTimings(store);
+  const facilities = store.facilities || [];
+  const services = store.services || [];
+  const links = store.links || {};
+  const displayImages = bannerImages.length > 0 ? bannerImages : (store.images?.collection || []);
 
   if (isMobile) {
     return (
@@ -297,12 +92,12 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                   className="absolute inset-0 pointer-events-none z-[1]"
                   style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }}
                 />
-                {store.openingSoon && <OpeningSoonOverlay label={null} />}
+                {status.openingSoon && <OpeningSoonOverlay label={null} />}
               </div>
 
               <div className="absolute left-5 right-5 top-5 flex items-start justify-between z-[4]">
                 <h1 className="font-figtree text-xl italic font-bold text-white drop-shadow-md">{store.name}</h1>
-                {store.openingSoon ? (
+                {status.openingSoon ? (
                   <span className="rounded-full border border-white/60 bg-white/70 px-3 py-1.5 text-[10px] font-extrabold uppercase leading-none tracking-[0.7px] text-[#5A413F] shadow-sm backdrop-blur-sm">
                     Opening Soon
                   </span>
@@ -315,42 +110,46 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
               </div>
 
               <div className="absolute right-4 bottom-18 z-[2]">
-                <div className={`inline-flex items-center gap-2 rounded-full ${(store.openingSoon || storeIsOpen) ? "border-success bg-[#E8F5E9] text-[#28a745]" : "border-danger bg-[#f5e8e8] text-[#dc2626]"} border px-4 py-1.5 text-xs font-bold shadow-lg`}>
-                  <Circle size={8} className={(store.openingSoon || storeIsOpen) ? "fill-[#28a745]" : "fill-[#dc2626]"} />
-                  {store.openingSoon ? "Opening Soon" : (storeIsOpen ? "Open Now" : "Closed")}
+                <div className={`inline-flex items-center gap-2 rounded-full ${isOpenTone ? "border-success bg-[#E8F5E9] text-[#28a745]" : "border-danger bg-[#f5e8e8] text-[#dc2626]"} border px-4 py-1.5 text-xs font-bold shadow-lg`}>
+                  <Circle size={8} className={isOpenTone ? "fill-[#28a745]" : "fill-[#dc2626]"} />
+                  {status.label}
                 </div>
               </div>
 
               <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-5 py-3 flex items-center gap-3 z-[2]">
                 <Clock3 size={18} className="text-[#5B4740]" />
                 <div className="text-[11px] font-bold text-zinc-800 uppercase tracking-tighter leading-tight">
-                  <span className="text-zinc-500 mr-1">Timings:</span> {formatTimings(store)}
+                  <span className="text-zinc-500 mr-1">Timings:</span> {timings}
                 </div>
               </div>
             </div>
 
-            <div>
-              <h4 className="mb-3 text-base font-semibold text-black">Facilities at Store:</h4>
-              <div className="flex flex-wrap gap-2.5">
-                {store.facilities.map((item) => (
-                  <span key={item} className="inline-block rounded-full bg-white py-1.25 px-[13.5px] text-black text-sm font-normal border border-gray-100 shadow-sm">{item}</span>
-                ))}
+            {facilities.length > 0 && (
+              <div>
+                <h4 className="mb-3 text-base font-semibold text-black">Facilities at Store:</h4>
+                <div className="flex flex-wrap gap-2.5">
+                  {facilities.map((item) => (
+                    <span key={item} className="inline-block rounded-full bg-white py-1.25 px-[13.5px] text-black text-sm font-normal border border-gray-100 shadow-sm">{item}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <h4 className="mb-3 text-base font-semibold text-black">Services Offered at Store:</h4>
-              <div className="grid grid-cols-2 gap-4">
-                {store.services.map((item) => (
-                  <div key={item.title} className="flex flex-col items-center justify-center rounded-lg bg-white py-2.5 px-9 text-center border border-gray-50 shadow-sm">
-                    <div className="relative mb-3 h-10 w-10">
-                      <LazyImage src={item.icon} alt={item.title} fill className="object-contain" />
+            {services.length > 0 && (
+              <div>
+                <h4 className="mb-3 text-base font-semibold text-black">Services Offered at Store:</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {services.map((item) => (
+                    <div key={item.title} className="flex flex-col items-center justify-center rounded-lg bg-white py-2.5 px-9 text-center border border-gray-50 shadow-sm">
+                      <div className="relative mb-3 h-10 w-10">
+                        <LazyImage src={item.icon} alt={item.title} fill className="object-contain" />
+                      </div>
+                      <p className="text-sm text-primary">{item.title}</p>
                     </div>
-                    <p className="text-sm text-primary">{item.title}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <h4 className="mb-3 text-base font-semibold text-black">Address:</h4>
@@ -359,16 +158,22 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
 
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm">
-                  <a href={store.mapLink} target="_blank" rel="noopener noreferrer"><MapPinned className="mr-2 h-4 w-4" /> DIRECT ME</a>
-                </Button>
-                <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm">
-                  <a href={store.callLink}><Phone className="mr-2 h-4 w-4" /> CALL US</a>
-                </Button>
+                {links.map && (
+                  <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm">
+                    <a href={links.map} target="_blank" rel="noopener noreferrer"><MapPinned className="mr-2 h-4 w-4" /> DIRECT ME</a>
+                  </Button>
+                )}
+                {links.call && (
+                  <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm">
+                    <a href={links.call}><Phone className="mr-2 h-4 w-4" /> CALL US</a>
+                  </Button>
+                )}
               </div>
-              <Button asChild className="h-12 w-full rounded-sm bg-primary text-white font-medium text-sm uppercase shadow-lg">
-                <a href={store.appointmentLink} target="_blank"><CalendarDays className="mr-2 h-4 w-4" />BOOK APPOINTMENT</a>
-              </Button>
+              {links.appointment && (
+                <Button asChild className="h-12 w-full rounded-sm bg-primary text-white font-medium text-sm uppercase shadow-lg">
+                  <a href={links.appointment} target="_blank"><CalendarDays className="mr-2 h-4 w-4" />BOOK APPOINTMENT</a>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -421,12 +226,12 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
                   </button>
                 </>
               )}
-              {store.openingSoon && <OpeningSoonOverlay label={null} />}
+              {status.openingSoon && <OpeningSoonOverlay label={null} />}
             </div>
 
             <div className="absolute left-4 right-4 top-4 flex items-start justify-between gap-4 z-[4]">
               <h2 className="font-figtree text-2xl italic leading-none font-semibold text-white drop-shadow-md">{store.name}</h2>
-              {store.openingSoon ? (
+              {status.openingSoon ? (
                 <span className="shrink-0 rounded-full border border-white/60 bg-white/70 px-4 py-1.5 text-xs font-extrabold uppercase leading-none tracking-[0.7px] text-[#5A413F] shadow-sm backdrop-blur-sm">
                   Opening Soon
                 </span>
@@ -446,36 +251,40 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
               <div className="flex items-center gap-2 xl:text-sm lg:text-xs uppercase">
                 <Clock3 size={16} className="text-primary" />
                 <span className="font-medium text-zinc-800">
-                  <span className="font-bold text-zinc-500">Timings:</span> {formatTimings(store)}
+                  <span className="font-bold text-zinc-500">Timings:</span> {timings}
                 </span>
               </div>
 
-              <div className={`inline-flex items-center gap-2 rounded-full border ${(store.openingSoon || storeIsOpen) ? "border-success bg-success/10 text-[#28a745]" : "border-danger bg-danger/10 text-[#dc2626]"} px-3 py-1 text-sm font-bold`}>
-                <Circle size={8} className={(store.openingSoon || storeIsOpen) ? "fill-[#28a745]" : "fill-[#dc2626]"} />
-                {store.openingSoon ? "Opening Soon" : (storeIsOpen ? "Open Now" : "Closed")}
+              <div className={`inline-flex items-center gap-2 rounded-full border ${isOpenTone ? "border-success bg-success/10 text-[#28a745]" : "border-danger bg-danger/10 text-[#dc2626]"} px-3 py-1 text-sm font-bold`}>
+                <Circle size={8} className={isOpenTone ? "fill-[#28a745]" : "fill-[#dc2626]"} />
+                {status.label}
               </div>
             </div>
           </div>
 
           {/* RIGHT: Store Details */}
           <div className="min-w-0 flex flex-col justify-center">
-            <div className="mb-6">
-              <h4 className="mb-3 text-base font-semibold text-black tracking-tight">Facilities at Store:</h4>
-              <div className="flex flex-wrap gap-3">
-                {store.facilities.map((item) => (
-                  <span key={item} className="rounded-full bg-white px-4 py-2 text-sm text-black border border-gray-100 shadow-sm transition-all hover:bg-primary hover:text-white cursor-default">{item}</span>
-                ))}
+            {facilities.length > 0 && (
+              <div className="mb-6">
+                <h4 className="mb-3 text-base font-semibold text-black tracking-tight">Facilities at Store:</h4>
+                <div className="flex flex-wrap gap-3">
+                  {facilities.map((item) => (
+                    <span key={item} className="rounded-full bg-white px-4 py-2 text-sm text-black border border-gray-100 shadow-sm transition-all hover:bg-primary hover:text-white cursor-default">{item}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mb-6">
-              <h4 className="mb-3 text-base font-semibold text-black tracking-tight">Services Offered at Store:</h4>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {store.services.map((item) => (
-                  <ServiceCard key={item.title} item={item} />
-                ))}
+            {services.length > 0 && (
+              <div className="mb-6">
+                <h4 className="mb-3 text-base font-semibold text-black tracking-tight">Services Offered at Store:</h4>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {services.map((item) => (
+                    <ServiceCard key={item.title} item={item} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="mb-6">
               <h4 className="mb-3 text-base font-semibold text-black tracking-tight">Address:</h4>
@@ -483,19 +292,25 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm hover:bg-primary hover:text-white transition-all">
-                <a href={store.mapLink} target="_blank" rel="noopener noreferrer"><MapPinned className="mr-2 h-5 w-5" /> DIRECT ME</a>
-              </Button>
-              <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm hover:bg-primary hover:text-white transition-all">
-                <a href={store.callLink}><Phone className="mr-2 h-5 w-5" /> CALL US</a>
-              </Button>
+              {links.map && (
+                <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm hover:bg-primary hover:text-white transition-all">
+                  <a href={links.map} target="_blank" rel="noopener noreferrer"><MapPinned className="mr-2 h-5 w-5" /> DIRECT ME</a>
+                </Button>
+              )}
+              {links.call && (
+                <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm uppercase shadow-sm hover:bg-primary hover:text-white transition-all">
+                  <a href={links.call}><Phone className="mr-2 h-5 w-5" /> CALL US</a>
+                </Button>
+              )}
             </div>
 
-            <div className="mt-4">
-              <Button asChild className="h-14 w-full text-white font-bold text-base uppercase tracking-wider shadow-lg bg-primary hover:opacity-90 transition-all active:scale-95">
-                <a href={store.appointmentLink} target="_blank"><CalendarDays className="mr-3 h-6 w-6" /> BOOK APPOINTMENT</a>
-              </Button>
-            </div>
+            {links.appointment && (
+              <div className="mt-4">
+                <Button asChild className="h-14 w-full text-white font-bold text-base uppercase tracking-wider shadow-lg bg-primary hover:opacity-90 transition-all active:scale-95">
+                  <a href={links.appointment} target="_blank"><CalendarDays className="mr-3 h-6 w-6" /> BOOK APPOINTMENT</a>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
