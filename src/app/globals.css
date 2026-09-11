@@ -1399,16 +1399,12 @@ img.marquee-img {
 }
 
 .thumbnails-swiper {
-  width: fit-content !important;
-  max-width: 100% !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
+  width: 100% !important;
 }
 
 .thumbnails-swiper .swiper-wrapper {
   display: flex !important;
-  justify-content: center !important;
-  justify-content: safe center !important;
+  justify-content: flex-start !important;
   width: 100% !important;
 }
 

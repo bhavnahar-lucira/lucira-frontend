@@ -540,7 +540,12 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
             spaceBetween={0}
             thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
             modules={[FreeMode, Thumbs]}
-            onSlideChange={(swiper) => setCurrentIndex(swiper.activeIndex)}
+            onSlideChange={(swiper) => {
+              setCurrentIndex(swiper.activeIndex);
+              if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                thumbsSwiper.slideTo(swiper.activeIndex);
+              }
+            }}
             className="w-full h-full"
           >
             {sortedMedia.map((item, index) => {
@@ -650,48 +655,77 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
         </div>
 
         {/* Thumbnail Slider */}
-        <div className="px-5 w-full flex justify-center">
+        <div className="w-full px-2 sm:px-4 flex items-center gap-1.5 sm:gap-2">
           <style>{`
             .thumbnails-swiper {
-              width: fit-content !important;
-              max-width: 100% !important;
-              margin-left: auto !important;
-              margin-right: auto !important;
+              width: 100% !important;
             }
             .thumbnails-swiper .swiper-wrapper {
               display: flex !important;
-              justify-content: center !important;
-              justify-content: safe center !important;
-              width: 100% !important;
+              justify-content: flex-start !important;
             }
           `}</style>
-          <Swiper
-            onSwiper={setThumbsSwiper}
-            spaceBetween={8}
-            slidesPerView="auto"
-            freeMode={true}
-            watchSlidesProgress={true}
-            modules={[FreeMode, Thumbs]}
-            className="thumbnails-swiper py-1 !w-fit !max-w-full !mx-auto [&_.swiper-wrapper]:!justify-center"
-          >
-            {sortedMedia.map((item, index) => {
-               const isVideo = item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
-               const isActive = currentIndex === index;
-               return (
-                 <SwiperSlide key={index} className="!w-[66px] sm:!w-[72px]">
-                   <div
-                     onClick={() => {
-                       setCurrentIndex(index);
-                       if (mainSwiper && !mainSwiper.destroyed) {
-                         mainSwiper.slideTo(index);
-                       }
-                     }}
-                     className={`group aspect-square relative rounded-[6px] overflow-hidden cursor-pointer transition-all duration-200 ${
-                       isActive
-                         ? 'border-[1.5px] border-[#5a413f] shadow-none opacity-100 bg-white'
-                         : 'border border-[#eaeaea] hover:border-zinc-300 opacity-60 hover:opacity-100 bg-[#FAFAFA]'
-                     }`}
-                   >
+          {sortedMedia.length > 1 && (
+            <button
+              type="button"
+              aria-label="Previous thumbnail"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentIndex > 0) {
+                  const prevIdx = currentIndex - 1;
+                  setCurrentIndex(prevIdx);
+                  if (mainSwiper && !mainSwiper.destroyed) {
+                    mainSwiper.slideTo(prevIdx);
+                  }
+                  if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                    thumbsSwiper.slideTo(prevIdx);
+                  }
+                } else if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                  thumbsSwiper.slidePrev();
+                }
+              }}
+              disabled={currentIndex === 0}
+              className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white border border-[#eaeaea] shadow-xs text-[#5a413f] transition-all ${
+                currentIndex === 0
+                  ? "opacity-25 cursor-not-allowed pointer-events-none"
+                  : "opacity-100 hover:bg-zinc-50 active:scale-95 cursor-pointer hover:border-zinc-300"
+              }`}
+            >
+              <ChevronLeft size={16} strokeWidth={2} />
+            </button>
+          )}
+
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <Swiper
+              onSwiper={setThumbsSwiper}
+              spaceBetween={8}
+              slidesPerView="auto"
+              freeMode={true}
+              watchSlidesProgress={true}
+              modules={[FreeMode, Thumbs]}
+              className="thumbnails-swiper py-1 w-full"
+            >
+              {sortedMedia.map((item, index) => {
+                const isVideo = item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
+                const isActive = currentIndex === index;
+                return (
+                  <SwiperSlide key={index} className="!w-[66px] sm:!w-[72px]">
+                    <div
+                      onClick={() => {
+                        setCurrentIndex(index);
+                        if (mainSwiper && !mainSwiper.destroyed) {
+                          mainSwiper.slideTo(index);
+                        }
+                        if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                          thumbsSwiper.slideTo(index);
+                        }
+                      }}
+                      className={`group aspect-square relative rounded-[6px] overflow-hidden cursor-pointer transition-all duration-200 ${
+                        isActive
+                          ? 'border-[1.5px] border-[#5a413f] shadow-none bg-white'
+                          : 'border border-[#eaeaea] hover:border-zinc-300 bg-[#FAFAFA]'
+                      }`}
+                    >
                       {isVideo ? (
                         <div className="w-full h-full relative rounded-[6px] overflow-hidden">
                           <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
@@ -704,11 +738,42 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                       ) : (
                         <LazyImage src={item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
                       )}
-                   </div>
-                 </SwiperSlide>
-               );
-            })}
-          </Swiper>
+                    </div>
+                  </SwiperSlide>
+                );
+              })}
+            </Swiper>
+          </div>
+
+          {sortedMedia.length > 1 && (
+            <button
+              type="button"
+              aria-label="Next thumbnail"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentIndex < sortedMedia.length - 1) {
+                  const nextIdx = currentIndex + 1;
+                  setCurrentIndex(nextIdx);
+                  if (mainSwiper && !mainSwiper.destroyed) {
+                    mainSwiper.slideTo(nextIdx);
+                  }
+                  if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                    thumbsSwiper.slideTo(nextIdx);
+                  }
+                } else if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                  thumbsSwiper.slideNext();
+                }
+              }}
+              disabled={currentIndex === sortedMedia.length - 1}
+              className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white border border-[#eaeaea] shadow-xs text-[#5a413f] transition-all ${
+                currentIndex === sortedMedia.length - 1
+                  ? "opacity-25 cursor-not-allowed pointer-events-none"
+                  : "opacity-100 hover:bg-zinc-50 active:scale-95 cursor-pointer hover:border-zinc-300"
+              }`}
+            >
+              <ChevronRight size={16} strokeWidth={2} />
+            </button>
+          )}
         </div>
       </div>
 

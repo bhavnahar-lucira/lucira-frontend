@@ -2313,7 +2313,7 @@ export default function ProductPageClient({
         </Breadcrumb>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-5 lg:gap-10 items-start">
           {/* Left: Product Gallery */}
           <ProductGallery
             media={product.media || []}
