@@ -1397,3 +1397,18 @@ img.marquee-img {
 .swiper-pagination-clickable .swiper-pagination-bullet {
   margin: 2px !important;
 }
+
+.thumbnails-swiper {
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.thumbnails-swiper .swiper-wrapper {
+  display: flex !important;
+  justify-content: center !important;
+  justify-content: safe center !important;
+  width: 100% !important;
+}
+

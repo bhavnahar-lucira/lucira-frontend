@@ -92,6 +92,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
+  const [mainSwiper, setMainSwiper] = useState(null);
   const galleryRef = React.useRef(null);
   const [stickyTop, setStickyTop] = useState("5rem");
   
@@ -464,14 +465,14 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               
               {isFirst && (
                 <>
-                  <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none w-full">
+                  <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none">
                     {isOnlyPendant && (
-                      <div className="bg-[#B77767] text-white pl-3.5 pr-5 py-2 lg:pl-4 lg:pr-5 rounded-br-[18px] lg:rounded-br-[22px] font-figtree font-semibold text-xs lg:text-sm uppercase tracking-wider whitespace-nowrap">
+                      <div className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3.5 lg:px-4 text-center flex items-center justify-center font-figtree font-semibold text-xs lg:text-sm uppercase tracking-wider">
                         Chain is not included in the purchase
                       </div>
                     )}
                     {displayLabels.length > 0 && (
-                      <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-2.5 pl-3 lg:pt-3 lg:pl-4" : "pt-3 pl-3 lg:pt-4 lg:pl-4"}`}>
+                      <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-3 pl-3 lg:pt-3.5 lg:pl-4" : "pt-3 pl-3 lg:pt-4 lg:pl-4"}`}>
                         {displayLabels.map((label, index) => {
                           const isBrandBadge = label === "Eterna";
                           return (
@@ -533,8 +534,9 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       {/* data-pdp-gallery-mobile scopes the share-intent long-press listener to
           this gallery only (see hooks/useShareIntent.js). */}
       <div data-pdp-gallery-mobile className="lg:hidden flex flex-col gap-3">
-        <div className="relative aspect-square rounded-xl overflow-hidden bg-[#F7F7F7]">
+        <div className="relative aspect-square rounded-none overflow-hidden bg-[#F7F7F7]">
           <Swiper
+            onSwiper={setMainSwiper}
             spaceBetween={0}
             thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
             modules={[FreeMode, Thumbs]}
@@ -579,15 +581,15 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
             })}
           </Swiper>
 
-          {/* Badges & Ribbon Overlay */}
-          <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none w-full">
+          {/* Badges & Chain Note Banner Overlay */}
+          <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none">
             {isOnlyPendant && (
-              <div className="bg-[#B77767] text-white pl-3 pr-5 py-2 sm:pl-3.5 rounded-br-[16px] sm:rounded-br-[20px] font-figtree font-semibold text-[9.5px] sm:text-[11px] uppercase tracking-wider whitespace-nowrap">
+              <div className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3 text-center flex items-center justify-center font-figtree font-semibold text-[10px] sm:text-xs uppercase tracking-wider">
                 Chain is not included in the purchase
               </div>
             )}
             {displayLabels.length > 0 && (
-              <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-2 pl-3" : "pt-3 pl-3"}`}>
+              <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-2.5 pl-3" : "pt-3 pl-3"}`}>
                 {displayLabels.map((label, index) => {
                   const isBrandBadge = label === "Eterna";
                   return (
@@ -648,35 +650,66 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
         </div>
 
         {/* Thumbnail Slider */}
-        <Swiper
-          onSwiper={setThumbsSwiper}
-          spaceBetween={10}
-          slidesPerView="auto"
-          freeMode={true}
-          watchSlidesProgress={true}
-          modules={[FreeMode, Thumbs]}
-          className="w-full thumbnails-swiper"
-        >
-          {sortedMedia.map((item, index) => {
-             const isVideo = item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
-             return (
-               <SwiperSlide key={index} className="!w-[70px]">
-                 <div className={`aspect-square relative rounded-lg overflow-hidden bg-[#F7F7F7] border-2 transition-colors ${currentIndex === index ? 'border-black' : 'border-transparent'}`}>
-                    {isVideo ? (
-                      <div className="w-full h-full relative">
-                        <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Play size={12} fill="black" className="opacity-70" />
+        <div className="px-5 w-full flex justify-center">
+          <style>{`
+            .thumbnails-swiper {
+              width: fit-content !important;
+              max-width: 100% !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+            }
+            .thumbnails-swiper .swiper-wrapper {
+              display: flex !important;
+              justify-content: center !important;
+              justify-content: safe center !important;
+              width: 100% !important;
+            }
+          `}</style>
+          <Swiper
+            onSwiper={setThumbsSwiper}
+            spaceBetween={8}
+            slidesPerView="auto"
+            freeMode={true}
+            watchSlidesProgress={true}
+            modules={[FreeMode, Thumbs]}
+            className="thumbnails-swiper py-1 !w-fit !max-w-full !mx-auto [&_.swiper-wrapper]:!justify-center"
+          >
+            {sortedMedia.map((item, index) => {
+               const isVideo = item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
+               const isActive = currentIndex === index;
+               return (
+                 <SwiperSlide key={index} className="!w-[66px] sm:!w-[72px]">
+                   <div
+                     onClick={() => {
+                       setCurrentIndex(index);
+                       if (mainSwiper && !mainSwiper.destroyed) {
+                         mainSwiper.slideTo(index);
+                       }
+                     }}
+                      className={`group aspect-square relative rounded-sm overflow-hidden cursor-pointer transition-all duration-200 ${
+                        isActive
+                          ? 'border border-[#B77767] shadow-sm opacity-100 bg-white ring-1 ring-[#B77767]/30'
+                          : 'border border-[#eaeaea] hover:border-zinc-300 opacity-60 hover:opacity-100 bg-[#FAFAFA]'
+                      }`}
+                   >
+                      {isVideo ? (
+                        <div className="w-full h-full relative rounded-sm overflow-hidden">
+                          <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-sm" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                            <div className="w-6 h-6 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center shadow-sm">
+                              <Play size={10} className="fill-zinc-900 text-zinc-900 ml-0.5" />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <LazyImage src={item.url} alt={item.alt} fill className="object-cover" />
-                    )}
-                 </div>
-               </SwiperSlide>
-             );
-          })}
-        </Swiper>
+                      ) : (
+                        <LazyImage src={item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-sm" />
+                      )}
+                   </div>
+                 </SwiperSlide>
+               );
+            })}
+          </Swiper>
+        </div>
       </div>
 
       {/* Lightbox */}

@@ -2313,7 +2313,7 @@ export default function ProductPageClient({
         </Breadcrumb>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start px-5 lg:px-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start">
           {/* Left: Product Gallery */}
           <ProductGallery
             media={product.media || []}
@@ -2325,7 +2325,7 @@ export default function ProductPageClient({
             activeVariant={activeVariant}
           />
           {/* Right: Product Info */}
-          <div className="w-full">
+          <div className="w-full px-5 lg:px-0">
             <div className="space-y-4">
               {/* Title */}
               <div className="w-full">
