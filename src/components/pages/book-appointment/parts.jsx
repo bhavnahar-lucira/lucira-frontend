@@ -15,16 +15,26 @@ import LazyImage from "@/components/common/LazyImage";
 
 /* ─── Card shell ──────────────────────────────────────────────────────────── */
 
-export function CardShell({ title, desc, image, children, expanded }) {
+export function CardShell({ title, desc, image, children, expanded, fillHeight = true }) {
   return (
     // No `overflow-hidden` here: the image below clips its own hover-scale, so
     // the only thing clipping at this level would cut off is the category
     // popover that opens inside the card. No z-index either — that would make
     // each card its own stacking context and drop an open popover behind the
     // card to its right.
+    //
+    // `h-full` only while every card is collapsed. A percentage height on a grid
+    // item resolves against the grid AREA, not the aligned size, so it overrides
+    // the grid's `items-start` and stretches each card to the tallest row —
+    // which, once one card expands into a form, padded the other two out with
+    // dead space above their buttons.
+    // The expanded card is the one thing that stays sharp above the focus
+    // scrim, so it takes a z-index above it — and only then, which is why the
+    // collapsed cards stay in the root stacking context where their popovers
+    // can still escape sideways.
     <div
-      className={`flex flex-col h-full bg-white rounded-sm p-5 md:p-4 lg:p-5 shadow-sm transition-shadow ${
-        expanded ? "shadow-md ring-1 ring-primary/15" : ""
+      className={`flex flex-col ${fillHeight ? "h-full" : ""} bg-white rounded-sm p-5 md:p-4 lg:p-5 shadow-sm transition-shadow ${
+        expanded ? "relative z-[120] shadow-xl ring-1 ring-primary/15" : ""
       }`}
     >
       <div className="relative aspect-395/295 overflow-hidden rounded-sm mb-3 group">

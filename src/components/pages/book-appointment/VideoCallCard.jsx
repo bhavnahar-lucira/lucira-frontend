@@ -12,7 +12,7 @@ import { useBookingFlow } from "./useBookingFlow";
 import { APPOINTMENT_TYPES } from "@/lib/bookAppointment";
 import { pushPromoClick } from "@/lib/gtm";
 
-export default function VideoCallCard({ card, open, onOpen, onClose }) {
+export default function VideoCallCard({ card, open, fillHeight, onOpen, onClose }) {
   const [step, setStep] = React.useState("idle");
   const [phone, setPhone] = React.useState("");
   const [phoneError, setPhoneError] = React.useState("");
@@ -76,7 +76,7 @@ export default function VideoCallCard({ card, open, onOpen, onClose }) {
   };
 
   return (
-    <CardShell title={card.title} desc={card.desc} image={card.image} expanded={open && step !== "idle"}>
+    <CardShell title={card.title} desc={card.desc} image={card.image} fillHeight={fillHeight} expanded={open && step !== "idle"}>
       {step === "idle" && <PrimaryButton onClick={start}>{card.cta}</PrimaryButton>}
 
       {step === "phone" && (

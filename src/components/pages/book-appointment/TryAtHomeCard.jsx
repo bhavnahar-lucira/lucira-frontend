@@ -33,7 +33,7 @@ import {
 } from "@/lib/bookAppointment";
 import { pushPromoClick } from "@/lib/gtm";
 
-export default function TryAtHomeCard({ card, open, onOpen, onClose, onBookVideoCall }) {
+export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall }) {
   const [step, setStep] = React.useState("idle");
   const [pincode, setPincode] = React.useState("");
   const [pincodeError, setPincodeError] = React.useState("");
@@ -141,7 +141,7 @@ export default function TryAtHomeCard({ card, open, onOpen, onClose, onBookVideo
   };
 
   return (
-    <CardShell title={card.title} desc={card.desc} image={card.image} expanded={open && step !== "idle"}>
+    <CardShell title={card.title} desc={card.desc} image={card.image} fillHeight={fillHeight} expanded={open && step !== "idle"}>
       {step === "idle" && <PrimaryButton onClick={start}>{card.cta}</PrimaryButton>}
 
       {step === "pincode" && (

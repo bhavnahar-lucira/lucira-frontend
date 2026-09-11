@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import VideoCallCard from "./VideoCallCard";
 import VisitStoreCard from "./VisitStoreCard";
 import TryAtHomeCard from "./TryAtHomeCard";
@@ -50,8 +51,38 @@ export default function BookAppointmentClient() {
   // rather than duplicating the phone/OTP steps in two more places.
   const switchToVideoCall = () => setActive("video");
 
+  // With everything collapsed the cards share a height so their CTAs line up,
+  // the way the homepage section reads. The moment one expands into a form that
+  // stops being worth it: matching its height would leave the other two with a
+  // block of empty space above their buttons, so they drop to their own height.
+  const anyOpen = active !== null;
+
   return (
     <main className="w-full bg-[#FEF5F1] py-10 md:py-16">
+      {/*
+        Focus scrim. While a card is mid-flow everything else on the page —
+        the other two cards, the header, the footer — goes soft behind it, so
+        the form the shopper is filling is the only sharp thing on screen.
+        Sits above the site header (z-100) on purpose: a crisp, clickable nav
+        floating over a blurred page reads as a rendering bug rather than a
+        deliberate focus state. Clicking it backs out of the flow.
+        The booking drawers live at z-[999], so they still open over the top.
+      */}
+      <AnimatePresence>
+        {anyOpen && (
+          <motion.div
+            key="focus-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={close}
+            aria-hidden="true"
+            className="fixed inset-0 z-[110] bg-black/20 backdrop-blur-[3px]"
+          />
+        )}
+      </AnimatePresence>
+
       <div className="container-main mx-auto">
         <header className="text-left lg:text-center mb-8">
           <h1 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
@@ -66,12 +97,14 @@ export default function BookAppointmentClient() {
           <VideoCallCard
             card={CARDS.video}
             open={active === "video"}
+            fillHeight={!anyOpen}
             onOpen={() => setActive("video")}
             onClose={close}
           />
           <VisitStoreCard
             card={CARDS.store}
             open={active === "store"}
+            fillHeight={!anyOpen}
             onOpen={() => setActive("store")}
             onClose={close}
             onBookVideoCall={switchToVideoCall}
@@ -79,6 +112,7 @@ export default function BookAppointmentClient() {
           <TryAtHomeCard
             card={CARDS.home}
             open={active === "home"}
+            fillHeight={!anyOpen}
             onOpen={() => setActive("home")}
             onClose={close}
             onBookVideoCall={switchToVideoCall}
