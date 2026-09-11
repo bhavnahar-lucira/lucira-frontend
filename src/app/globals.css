@@ -256,6 +256,34 @@
   }
 }
 
+/* PLP store-ordered grid, pending state (CollectionPageClient sets the class
+   while a pincode shopper's store-ordered products are still on their way).
+   The real cards stay in the DOM at their real size (no layout shift) but are
+   hidden and covered by a shimmering skeleton, and nothing in the grid can be
+   clicked, so a shopper never reads or taps a grid that is about to reorder.
+   Unlayered so it wins over Tailwind. */
+.plp-product-grid.plp-store-order-pending {
+  pointer-events: none;
+}
+.plp-product-grid.plp-store-order-pending > * {
+  position: relative;
+  visibility: hidden;
+}
+.plp-product-grid.plp-store-order-pending > *::after {
+  content: "";
+  visibility: visible;
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f1eeec 25%, #e6e1de 50%, #f1eeec 75%);
+  background-size: 200% 100%;
+  animation: plp-store-order-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes plp-store-order-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
 .btn-shimmer-container {
   --speed: 1.2s;
   --cut: 1px;

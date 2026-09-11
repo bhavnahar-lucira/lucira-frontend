@@ -164,9 +164,25 @@ const scrollToTop = () => {
 const ORDERED_VIEW_CACHE = new Map();
 const MAX_CACHED_VIEWS = 8;
 
-// How long the first paint may wait for a known pincode's store ranking before
-// giving up and showing the default order anyway (see awaitingPincodeOrder below).
-const PINCODE_ORDER_WAIT_TIMEOUT_MS = 900;
+// How long a pincode shopper's first paint may wait for the STORE-ORDERED grid —
+// pincode resolution AND the ordered products request — before this visit gives
+// up on the ordering and shows the default order (see storeOrderPending below).
+// A warm backend answers the ordered request in tens of milliseconds; a cold one
+// can take seconds. Generous on purpose: a few seconds of skeletons is a far
+// better experience than a grid that reshuffles under a shopper who has already
+// started reading it.
+const STORE_ORDER_WAIT_TIMEOUT_MS = 4000;
+
+// URL keys that are NOT filters (mirrors the exclusion list in
+// getActiveFiltersForShopify). With none of the other keys present there is
+// nothing to translate, so the base-mappings request can be skipped.
+const NON_FILTER_PARAMS = new Set(["sort", "cursor", "limit", "q", "page"]);
+function hasFilterParams(params) {
+  for (const key of params.keys()) {
+    if (!NON_FILTER_PARAMS.has(key)) return true;
+  }
+  return false;
+}
 
 function rememberView(key, value) {
   if (!key) return;
@@ -551,67 +567,103 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   // was before this feature existed. Resolved BEFORE the product state below so
   // the memo key is known while that state is still initialising.
   const { storesParam, storesReady, pincode } = useStoreOrdering();
+  // Identifies "the same view" — handle, filters, sort, page size.
+  const viewKey = `${handle}|${searchParams.toString()}|${limit}`;
+  // The UN-ordered, build-time version of the current view — what `initialData`
+  // holds, and the only thing this page can paint before the ordering is known.
+  const unorderedViewKey = `${viewKey}|`;
+
+  // Set by the safety valve below: the (view, pincode) whose wait for the
+  // store-ordered grid ran out. For that visit the ordering is ABANDONED, not
+  // deferred — see storeOrderPending for why.
+  const [storeOrderAbandonedFor, setStoreOrderAbandonedFor] = useState("");
+  const storeOrderWaitKey = `${unorderedViewKey}|${pincode}`;
+  const storeOrderAbandoned = storeOrderAbandonedFor === storeOrderWaitKey;
+
   // Only the default sort is reordered; an explicit Price/Newest choice must win
   // outright. The backend enforces this too, but not sending the parameter keeps
   // sorted views on the same server cache entries they already had.
   const storeOrderParam =
-    storesParam && (searchParams.get("sort") || "manual") === "manual"
+    storesParam && !storeOrderAbandoned && (searchParams.get("sort") || "manual") === "manual"
       ? `&stores=${encodeURIComponent(storesParam)}`
       : "";
 
-  // Identifies one exact rendered result: the view AND the ordering applied to it.
-  const viewCacheKey = `${handle}|${searchParams.toString()}|${limit}|${storeOrderParam}`;
+  // One exact rendered result: the view AND the ordering applied to it.
+  const viewCacheKey = `${viewKey}|${storeOrderParam}`;
   const cachedView = ORDERED_VIEW_CACHE.get(viewCacheKey);
-
-  // True only in the narrow window this component cares about: the shopper
-  // already has a saved pincode (so their grid WILL be reordered by store
-  // proximity) but this tab has not resolved it into a store ranking yet, and
-  // nothing is cached for this exact view. Left unguarded, the first paint would
-  // show `initialData`'s build-time (un-ordered) products and then visibly
-  // reshuffle a moment later once the store-ordered fetch lands — that flash is
-  // the UX bug this flag exists to avoid. Read only at mount (via the lazy
-  // initializers below and the ref that freezes it), because it describes a
-  // FIRST-PAINT decision, not a live one — once we've chosen to wait or not, later
-  // renders (sort/filter changes, storesReady flipping) are handled by the
-  // existing fetch effect and its own SWR/reshuffle-avoidance logic.
-  const awaitingPincodeOrder = pincode.length === 6 && !storesReady && !cachedView;
 
   const [products, setProducts] = useState(() =>
     cachedView
       ? cachedView.products
-      : awaitingPincodeOrder
-        ? []
-        : (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'))
+      : (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'))
   );
   const [pagination, setPagination] = useState(() =>
     cachedView?.pagination || initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null }
   );
-  const [productsLoading, setProductsLoading] = useState((!initialData && !cachedView) || awaitingPincodeOrder);
+  const [productsLoading, setProductsLoading] = useState(!initialData && !cachedView);
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(() =>
     cachedView?.totalCount || initialData?.collData?.totalProducts || 0
   );
 
-  // Safety valve: if the pincode -> store ranking lookup is unusually slow (flaky
-  // network, backend hiccup — resolution is normally a ~40ms memoised lookup),
-  // don't leave the shopper looking at skeletons forever. After the timeout, fall
-  // back to painting `initialData`'s default order — exactly what happens today
-  // when no wait is applied — and let the store-ordered fetch swap it in silently
-  // whenever it does land. Mirrors the backend's own STORE_ORDER_BUDGET_MS
-  // fallback: past the budget, serve the un-personalised order rather than block.
-  const awaitingPincodeOrderAtMount = useRef(awaitingPincodeOrder).current;
+  // Which (view + ordering) the products in state actually belong to. Starts as
+  // the cached ordered view when there is one, otherwise the un-ordered SSG
+  // payload; advanced by the fetch effect every time a response is painted.
+  const [paintedKey, setPaintedKey] = useState(() =>
+    cachedView ? viewCacheKey : initialData ? unorderedViewKey : ""
+  );
+
+  // ── The reshuffle guard ────────────────────────────────────────────────────
+  // True while the grid on screen is THIS view under a DIFFERENT ordering than
+  // the one about to be applied — i.e. the products are certain to move. Three
+  // situations reach it, and they are the same situation seen from three sides:
+  //   • first paint for a pincode shopper — what's on screen is the un-ordered
+  //     build-time grid and the store-ordered one is still resolving/fetching;
+  //   • the header's Change — the grid is still ordered for the OLD pincode;
+  //   • the header's Clear — the grid is still store-ordered and the default
+  //     order is on its way back.
+  //
+  // While true the cards on screen are covered by a skeleton overlay (with the
+  // notice above it) and cannot be clicked, so the shopper never reads or taps
+  // a grid that is about to reshuffle under them. Two things make it hold where
+  // the earlier mount-time "wait for resolution" flag did not:
+  //   • It does not care whether resolution is already done. The header resolves
+  //     the same pincode on every page, so by the time this grid mounts on a
+  //     client-side navigation `storesReady` is usually already true — the old
+  //     flag saw "nothing to wait for" and painted the un-ordered grid anyway.
+  //     What matters is whether the ORDERED PRODUCTS are on screen, which is
+  //     what `paintedKey` tracks.
+  //   • It stays true until the ordered response is painted, not just until the
+  //     pincode resolves. The old 900ms budget covered resolution only, so the
+  //     default order was painted and then the ordered fetch reshuffled it.
+  //
+  // Sort and filter changes never trip it: they move `viewKey`, so the painted
+  // grid is not this view at all and the ordinary skeleton path owns that wait.
+  // Nor does a pincode that resolves to no ordering (out of range, unknown,
+  // failed lookup) on a grid that is already un-ordered — target and painted
+  // key match, so the grid is shown immediately.
+  const paintedIsThisView = paintedKey.startsWith(`${viewKey}|`);
+  const storeOrderPending =
+    !storeOrderAbandoned &&
+    (searchParams.get("sort") || "manual") === "manual" &&
+    paintedIsThisView &&
+    (!storesReady || paintedKey !== viewCacheKey);
+
+  // Safety valve: if resolution or the ordered fetch is unusually slow (cold
+  // backend cache, flaky network), don't leave the shopper on skeletons forever.
+  // Past the budget this visit gives up on the ordering altogether: the default
+  // order is shown and `storeOrderParam` drops to "", so the in-flight ordered
+  // request is cancelled, paging continues in the same (default) order, and a
+  // late ordered response can never reshuffle a grid the shopper has started
+  // reading — the one outcome this whole guard exists to rule out. The trade is
+  // explicit: on a slow load the shopper gets the un-personalised order, exactly
+  // what they got before this feature existed. Mirrors the backend's own
+  // STORE_ORDER_BUDGET_MS fallback, which serves Shopify's order past its budget.
   useEffect(() => {
-    if (!awaitingPincodeOrderAtMount) return;
-    const timer = setTimeout(() => {
-      setProducts((prev) =>
-        prev.length > 0
-          ? prev
-          : (initialData?.collData?.products || []).filter((p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden"))
-      );
-      setProductsLoading((prev) => (prev ? false : prev));
-    }, PINCODE_ORDER_WAIT_TIMEOUT_MS);
+    if (!storeOrderPending) return;
+    const timer = setTimeout(() => setStoreOrderAbandonedFor(storeOrderWaitKey), STORE_ORDER_WAIT_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [awaitingPincodeOrderAtMount, initialData]);
+  }, [storeOrderPending, storeOrderWaitKey]);
 
   // Set initial active mobile group if needed
   useEffect(() => {
@@ -842,7 +894,6 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       // The products on screen are still the right products, so keep them visible
       // and swap the order in when it lands — blanking a populated grid to
       // skeletons would be a worse experience than a brief stale order.
-      const viewKey = `${handle}|${searchParams.toString()}|${limit}`;
       const storeOrderOnly = viewKeyRef.current === viewKey;
       viewKeyRef.current = viewKey;
 
@@ -858,12 +909,20 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
         // 1. Fetch base mappings directly from Shopify GraphQL via /api/collection
         // This avoids the EXPO proxy at /api/products/filters which returns incompatible Location GIDs
-        const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`);
-        const baseSortedData = processFilters(baseData.filters || {});
-        if (cancelled) return;
+        //
+        // Only needed to translate filter params into Shopify inputs. A filter-less
+        // arrival — the common landing case, and the one a pincode shopper is
+        // waiting on skeletons for — goes straight to the products request and
+        // paints one round trip sooner.
+        let activeFilters = [];
+        if (hasFilterParams(searchParams)) {
+          const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`);
+          const baseSortedData = processFilters(baseData.filters || {});
+          if (cancelled) return;
 
-        // 2. Map the URL parameters to native Shopify input payloads using the base mappings
-        const activeFilters = getActiveFiltersForShopify(searchParams, baseSortedData);
+          // 2. Map the URL parameters to native Shopify input payloads using the base mappings
+          activeFilters = getActiveFiltersForShopify(searchParams, baseSortedData);
+        }
         const filterParams = activeFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
 
         // 3. Fetch products and narrowed filters from Shopify
@@ -887,6 +946,8 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         setProducts(freshProducts);
         setPagination(freshPagination);
         setTotalCount(freshTotal);
+        // The grid now shows THIS view in THIS ordering — clears storeOrderPending.
+        setPaintedKey(viewCacheKey);
 
         // Remember this exact (view + ordering) so coming back to it repaints
         // the same grid instead of the un-ordered build-time one.
@@ -908,11 +969,14 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     }
     fetchData();
     return () => { cancelled = true; };
-  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
+  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewKey, viewCacheKey]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
-    if (!pagination.hasNextPage || isFetchingNextPage) return;
+    // Never page the un-ordered list while the ordered first page is still on
+    // its way: page two of the wrong order would race the ordered response and
+    // could be appended onto it.
+    if (!pagination.hasNextPage || isFetchingNextPage || storeOrderPending) return;
     setIsFetchingNextPage(true);
     try {
       const sort = searchParams.get("sort") || "manual";
@@ -951,7 +1015,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     } finally {
       setIsFetchingNextPage(false);
     }
-  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify, storeOrderParam, viewCacheKey]);
+  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify, storeOrderParam, viewCacheKey, storeOrderPending]);
 
   // Infinite scroll trigger
   useEffect(() => {
@@ -973,13 +1037,14 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   // Track product impressions when products are loaded
   const impressionSentRef = useRef(false);
   useEffect(() => {
-    if (products.length > 0 && !impressionSentRef.current) {
-      impressionSentRef.current = true;
-      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
-      const impressionProducts = getStandardImpressionProducts(products, currentOrigin);
-      pushProductImpression(impressionProducts);
-    }
-  }, [products]);
+    if (products.length === 0 || impressionSentRef.current) return;
+    // Report the grid the shopper actually sees, not the covered un-ordered one.
+    if (storeOrderPending) return;
+    impressionSentRef.current = true;
+    const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+    const impressionProducts = getStandardImpressionProducts(products, currentOrigin);
+    pushProductImpression(impressionProducts);
+  }, [products, storeOrderPending]);
 
   const clearAllFilters = () => {
     router.push(pathname, { scroll: false });
@@ -1476,10 +1541,17 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
             </div>
           )}
 
-          {awaitingPincodeOrderAtMount && productsLoading && products.length === 0 && (
-            <p className="mt-4 font-figtree text-xs text-[#696969]">Sorting products by your nearest store…</p>
+          {storeOrderPending && (
+            <p className="mt-4 font-figtree text-xs text-[#696969]">
+              {pincode.length === 6
+                ? "Sorting products by your nearest store…"
+                : "Restoring the default order…"}
+            </p>
           )}
-          <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"}`}>
+          {/* While storeOrderPending the real cards stay mounted at their real size
+              but are hidden under a skeleton overlay (globals.css), so nothing
+              shifts when the ordered grid replaces them and nothing can be clicked. */}
+          <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${storeOrderPending ? "plp-store-order-pending" : ""} ${productsLoading && !storeOrderPending ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"}`} aria-busy={storeOrderPending || productsLoading ? "true" : undefined}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : gridItems}
           </div>
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
