@@ -467,7 +467,10 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                 <>
                   <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none">
                     {isOnlyPendant && (
-                      <div className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3.5 lg:px-4 text-center flex items-center justify-center font-figtree font-semibold text-xs lg:text-sm uppercase tracking-wider">
+                      <div 
+                        className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3.5 lg:px-4 text-center flex items-center justify-center font-figtree font-semibold text-xs lg:text-sm uppercase tracking-wider"
+                        style={{ fontSize: "0.75rem" }}
+                      >
                         Chain is not included in the purchase
                       </div>
                     )}
@@ -589,7 +592,10 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
           {/* Badges & Chain Note Banner Overlay */}
           <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none">
             {isOnlyPendant && (
-              <div className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3 text-center flex items-center justify-center font-figtree font-semibold text-[10px] sm:text-xs uppercase tracking-wider">
+              <div 
+                className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3 text-center flex items-center justify-center font-figtree font-semibold text-[10px] sm:text-xs uppercase tracking-wider"
+                style={{ fontSize: "0.65rem" }}
+              >
                 Chain is not included in the purchase
               </div>
             )}
