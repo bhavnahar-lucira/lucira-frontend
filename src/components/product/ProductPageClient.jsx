@@ -3501,10 +3501,10 @@ export default function ProductPageClient({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-2 gap-4 [&>*:last-child:nth-child(odd)]:col-span-2">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-3.5 xl:gap-4 [&>*:last-child:nth-child(odd)]:col-span-2">
                 {/* Metal Card */}
-                <div className="bg-[#F9F9F9] rounded p-5 space-y-4">
-                  <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                <div className="bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-4">
+                  <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                     <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal" width={18} height={18} />
                     Metal <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("metal")} />
                   </div>
@@ -3589,15 +3589,15 @@ export default function ProductPageClient({
                     return (
                       <div className="space-y-2">
                         {displayPurity && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Purity</span>
-                            <span className="font-medium">{displayPurity}</span>
+                          <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                            <span className="text-gray-500 shrink-0">Purity</span>
+                            <span className="font-medium text-right whitespace-nowrap">{displayPurity}</span>
                           </div>
                         )}
                         {displayColor && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Color</span>
-                            <span className="font-medium">{displayColor}</span>
+                          <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                            <span className="text-gray-500 shrink-0">Color</span>
+                            <span className="font-medium text-right whitespace-nowrap">{displayColor}</span>
                           </div>
                         )}
                         {isMultiMetal ? (
@@ -3615,24 +3615,24 @@ export default function ProductPageClient({
                                 label = `${m.item_group_name} Wt`;
                               }
                               return (
-                                <div key={`multi-metal-${idx}`} className="flex justify-between text-sm">
-                                  <span className="text-gray-500">{label}</span>
-                                  <span className="font-medium">{m.weight} g</span>
+                                <div key={`multi-metal-${idx}`} className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                                  <span className="text-gray-500 shrink-0">{label}</span>
+                                  <span className="font-medium text-right whitespace-nowrap">{m.weight} g</span>
                                 </div>
                               );
                             })}
                             {displayNetWeight && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Net Wt</span>
-                                <span className="font-medium">{displayNetWeight} g</span>
+                              <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                                <span className="text-gray-500 shrink-0">Net Wt</span>
+                                <span className="font-medium text-right whitespace-nowrap">{displayNetWeight} g</span>
                               </div>
                             )}
                           </>
                         ) : (
                           displayNetWeight && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Net Wt</span>
-                              <span className="font-medium">{displayNetWeight} g</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Net Wt</span>
+                              <span className="font-medium text-right whitespace-nowrap">{displayNetWeight} g</span>
                             </div>
                           )
                         )}
@@ -3642,28 +3642,28 @@ export default function ProductPageClient({
                 </div>
 
                 {/* Dimensions Card */}
-                <div className="bg-[#F9F9F9] rounded p-5 space-y-4">
-                  <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                <div className="bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-4">
+                  <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                     <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_dimension.svg" alt="Dimensions" width={18} height={18} />
                     Dimension <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("dimension")} />
                   </div>
                   <div className="space-y-2">
                     {activeVariant?.metafields?.top_height && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Height</span>
-                        <span className="font-medium">{activeVariant.metafields.top_height} mm</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Height</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.top_height} mm</span>
                       </div>
                     )}
                     {activeVariant?.metafields?.top_width && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Width</span>
-                        <span className="font-medium">{activeVariant.metafields.top_width} mm</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Width</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.top_width} mm</span>
                       </div>
                     )}
                     {activeVariant?.metafields?.gross_weight && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Gross Wt</span>
-                        <span className="font-medium">{activeVariant.metafields.gross_weight} g</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Gross Wt</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gross_weight} g</span>
                       </div>
                     )}
                   </div>
@@ -3671,31 +3671,31 @@ export default function ProductPageClient({
 
                 {/* Single Diamond Card */}
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1 && (
-                  <div className={`bg-[#F9F9F9] rounded p-5 space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
-                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                  <div className={`bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
+                    <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                       <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {activeVariant.metafields.diamonds[0].quality && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Quality</span>
-                          <span className="font-medium">{activeVariant.metafields.diamonds[0].quality}</span>
+                        <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                          <span className="text-gray-500 shrink-0">Quality</span>
+                          <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.diamonds[0].quality}</span>
                         </div>
                       )}
                       {activeVariant.metafields.diamonds[0].shape && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Shape</span>
-                          <span className="font-medium">{mapShapeCode(activeVariant.metafields.diamonds[0].shape) || activeVariant.metafields.diamonds[0].shape}</span>
+                        <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                          <span className="text-gray-500 shrink-0">Shape</span>
+                          <span className="font-medium text-right whitespace-nowrap">{mapShapeCode(activeVariant.metafields.diamonds[0].shape) || activeVariant.metafields.diamonds[0].shape}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Quantity</span>
-                        <span className="font-medium">{activeVariant.metafields.diamonds[0].pieces || "1"}pcs</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Quantity</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.diamonds[0].pieces || "1"}pcs</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Carat</span>
-                        <span className="font-medium">{activeVariant.metafields.diamonds[0].weight}ct</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Carat</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.diamonds[0].weight}ct</span>
                       </div>
                     </div>
                   </div>
@@ -3733,31 +3733,31 @@ export default function ProductPageClient({
 
                 {/* Single Gemstone Card */}
                 {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1 && (
-                  <div className={`bg-[#F9F9F9] rounded p-5 space-y-4 ${(activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1) ? "" : "col-span-2"}`}>
-                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                  <div className={`bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-4 ${(activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1) ? "" : "col-span-2"}`}>
+                    <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                       <Image src="/images/icons/gemstone.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
                       Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("gemstone")} />
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {activeVariant.metafields.gemstones[0].color && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Color</span>
-                          <span className="font-medium">{activeVariant.metafields.gemstones[0].color}</span>
+                        <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                          <span className="text-gray-500 shrink-0">Color</span>
+                          <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gemstones[0].color}</span>
                         </div>
                       )}
                       {activeVariant.metafields.gemstones[0].shape && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Shape</span>
-                          <span className="font-medium">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
+                        <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                          <span className="text-gray-500 shrink-0">Shape</span>
+                          <span className="font-medium text-right whitespace-nowrap">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Quantity</span>
-                        <span className="font-medium">{activeVariant.metafields.gemstones[0].pieces || "1"}pcs</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Quantity</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gemstones[0].pieces || "1"}pcs</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Carat</span>
-                        <span className="font-medium">{activeVariant.metafields.gemstones[0].weight || "0"}ct</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Carat</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gemstones[0].weight || "0"}ct</span>
                       </div>
                     </div>
                   </div>
@@ -3810,8 +3810,8 @@ export default function ProductPageClient({
                   if (!hasOtherMaterials && !hasVariantConfigMaterial) return null;
 
                   return (
-                    <div className="bg-[#F9F9F9] rounded p-5 space-y-5 col-span-2">
-                      <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                    <div className="bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-5 col-span-2">
+                      <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                         <svg width="18" height="18" viewBox="-2 -2 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M9.61794 18.625L11.4269 9.62529M11.4269 9.62529L18.4666 12.4908M11.4269 9.62529L6.44997 0.897371M8.96454 0.810074C8.14227 0.535717 7.24861 0.567263 6.44773 0.898916C5.64685 1.23057 4.99254 1.84006 4.60499 2.61542L1.00502 9.81518C0.612643 10.6 0.520397 11.5011 0.745622 12.3491C0.970847 13.1971 1.49804 13.9336 2.22811 14.4203L7.62806 18.0202C8.21945 18.4145 8.91434 18.6249 9.62514 18.6249C10.3359 18.6249 11.0308 18.4145 11.6222 18.0202L17.0222 14.4203C17.6791 13.9823 18.1737 13.3405 18.43 12.5938C18.6863 11.847 18.69 11.0367 18.4405 10.2877L16.6406 4.88784C16.4638 4.35761 16.1661 3.87581 15.7709 3.4806C15.3756 3.0854 14.8938 2.78764 14.3636 2.61092L8.96454 0.810074Z" stroke="#785754" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -3821,21 +3821,21 @@ export default function ProductPageClient({
                       <div className="space-y-2">
                         {hasOtherMaterials && filteredOtherMaterials.map((m, i) => (
                           <div key={`other-mat-${i}`} className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Material</span>
-                              <span className="font-medium">{m.material || "-"}</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Material</span>
+                              <span className="font-medium text-right whitespace-nowrap">{m.material || "-"}</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Color</span>
-                              <span className="font-medium">{m.color || "-"}</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Color</span>
+                              <span className="font-medium text-right whitespace-nowrap">{m.color || "-"}</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Quantity</span>
-                              <span className="font-medium">{m.pieces || "1"}pcs</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Quantity</span>
+                              <span className="font-medium text-right whitespace-nowrap">{m.pieces || "1"}pcs</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Weight</span>
-                              <span className="font-medium">{m.weight || "0"}g</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Weight</span>
+                              <span className="font-medium text-right whitespace-nowrap">{m.weight || "0"}g</span>
                             </div>
                             {i < filteredOtherMaterials.length - 1 && (
                               <div className="h-px bg-gray-200 my-3" />
