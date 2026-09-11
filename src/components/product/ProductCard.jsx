@@ -56,7 +56,6 @@ const colorMap = {
 
 const parseOrnaverseComponent = (val) => {
   if (!val) return null;
-  if (typeof val === "object") return val;
   try {
     return JSON.parse(val);
   } catch (e) {
@@ -925,47 +924,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                       parts.push(metalPurity);
                     }
                   }
-                  const metalComps = ornaverseComp?.components?.filter(c => {
-                    const g = String(c?.item_group_name || '').toLowerCase();
-                    return g.includes('gold') || g.includes('platin') || g.includes('silver');
-                  }) || [];
-                  const compMetalTotal = metalComps.length > 0 
-                    ? metalComps.reduce((sum, m) => sum + (parseFloat(m.weight) || 0), 0)
-                    : null;
-                  const compMetalWeight = compMetalTotal > 0 ? Number(compMetalTotal.toFixed(3)) : null;
-
-                  const fallbackVariant = product.variants?.find(v => 
-                    (v?.metafields?.metal_weight && parseFloat(v.metafields.metal_weight) > 0) || 
-                    (v?.weight && parseFloat(v.weight) > 0)
-                  );
-                  let anyCompWeight = null;
-                  if (!compMetalWeight && product.variants?.length > 0) {
-                    for (const v of product.variants) {
-                      const vComp = parseOrnaverseComponent(v?.metafields?.components);
-                      const mComps = vComp?.components?.filter(c => {
-                        const g = String(c?.item_group_name || '').toLowerCase();
-                        return g.includes('gold') || g.includes('platin') || g.includes('silver');
-                      }) || [];
-                      const tot = mComps.reduce((sum, m) => sum + (parseFloat(m.weight) || 0), 0);
-                      if (tot > 0) {
-                        anyCompWeight = Number(tot.toFixed(3));
-                        break;
-                      }
-                    }
-                  }
-
-                  const weightVal = variantMeta?.metal_weight || 
-                    variantMeta?.gross_weight || 
-                    compMetalWeight || 
-                    anyCompWeight ||
-                    currentVariant?.weight || 
-                    currentVariant?.metal_weight || 
-                    prodMeta?.weight || 
-                    prodMeta?.gross_weight || 
-                    prodMeta?.metal_weight || 
-                    fallbackVariant?.metafields?.metal_weight || 
-                    fallbackVariant?.weight ||
-                    product?.weight;
+                  const weightVal = variantMeta?.metal_weight || variantMeta?.gross_weight || prodMeta?.weight || prodMeta?.gross_weight || currentVariant?.weight;
                   const weight = (weightVal && parseFloat(weightVal) > 0) ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
                   if (weight) parts.push(weight);
                   if (parts.length === 0) return null;
