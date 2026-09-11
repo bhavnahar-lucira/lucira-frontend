@@ -463,10 +463,10 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
               </p>
 
               {isOnlyPendant && (
-                <div className="inline-flex items-center gap-1.5 bg-[#f9f9f9] border border-[#eaeaea] rounded px-2 py-1 my-1 text-[#2d2d2d] w-fit max-w-full">
-                  <Info size={12} className="shrink-0 text-[#2d2d2d]" />
+                <div className="inline-flex items-center gap-1.5 bg-[#B77767] border border-[#B77767] rounded px-2 py-1 my-1 text-white w-fit max-w-full">
+                  <Info size={12} className="shrink-0 text-white" />
                   <span
-                    className="text-[0.65rem] lg:text-[0.7rem] font-semibold uppercase tracking-wider text-[#2d2d2d] leading-tight"
+                    className="text-[0.65rem] lg:text-[0.7rem] font-semibold uppercase tracking-wider text-white leading-tight"
                   >
                     Only Pendant
                   </span>
