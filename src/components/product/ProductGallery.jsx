@@ -113,6 +113,22 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     return [...new Set(labels)].slice(0, 2);
   }, [product.label, product.tags]);
 
+  const isOnlyPendant = useMemo(() => {
+    const tags = Array.isArray(product?.tags)
+      ? product.tags
+      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
+
+    const hasTag = tags.some(t => {
+      const s = String(t).trim().toLowerCase();
+      return s === "only pendant" || s === "only-pendant" || s === "pendant only";
+    });
+
+    if (hasTag) return true;
+    if (product?.tags?.includes?.("Only Pendant")) return true;
+
+    return false;
+  }, [product?.tags]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -448,13 +464,22 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               
               {isFirst && (
                 <>
-                  <div className="absolute top-4 left-4 flex flex-row gap-2 z-10">
-                    {displayLabels.map((label, index) => {
-                      const isBrandBadge = label === "Eterna";
-                      return (
-                        <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
-                      );
-                    })}
+                  <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none w-full">
+                    {isOnlyPendant && (
+                      <div className="bg-[#B77767] text-white pl-3.5 pr-5 py-2 lg:pl-4 lg:pr-5 rounded-br-[18px] lg:rounded-br-[22px] font-figtree font-semibold text-xs lg:text-sm uppercase tracking-wider whitespace-nowrap">
+                        Chain is not included in the purchase
+                      </div>
+                    )}
+                    {displayLabels.length > 0 && (
+                      <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-2.5 pl-3 lg:pt-3 lg:pl-4" : "pt-3 pl-3 lg:pt-4 lg:pl-4"}`}>
+                        {displayLabels.map((label, index) => {
+                          const isBrandBadge = label === "Eterna";
+                          return (
+                            <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div onClick={(e) => e.stopPropagation()}>
                     {mounted && isDesktop && (
@@ -498,14 +523,6 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   </span>
                   <span className="btn-text text-xs font-bold uppercase tracking-wider">Similar Items</span>
                 </button>
-              )}
-              {index === 1 && product.tags?.includes("Only Pendant") && (
-                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation h-[42px]">
-                  <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-                    <Info size={16} />
-                  </span>
-                  <span className="btn-text text-xs font-bold uppercase tracking-wider">Chain is not included in the purchase</span>
-                </div>
               )}
             </div>
           );
@@ -562,14 +579,23 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
             })}
           </Swiper>
 
-          {/* Badges Overlay */}
-          <div className="absolute top-3 left-3 flex flex-row gap-2 z-10 pointer-events-none">
-            {displayLabels.map((label, index) => {
-              const isBrandBadge = label === "Eterna";
-              return (
-                <span key={index} className={`w-fit px-2 py-0.5 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
-              );
-            })}
+          {/* Badges & Ribbon Overlay */}
+          <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none w-full">
+            {isOnlyPendant && (
+              <div className="bg-[#B77767] text-white pl-3 pr-5 py-2 sm:pl-3.5 rounded-br-[16px] sm:rounded-br-[20px] font-figtree font-semibold text-[9.5px] sm:text-[11px] uppercase tracking-wider whitespace-nowrap">
+                Chain is not included in the purchase
+              </div>
+            )}
+            {displayLabels.length > 0 && (
+              <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-2 pl-3" : "pt-3 pl-3"}`}>
+                {displayLabels.map((label, index) => {
+                  const isBrandBadge = label === "Eterna";
+                  return (
+                    <span key={index} className={`w-fit px-2 py-0.5 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
 
