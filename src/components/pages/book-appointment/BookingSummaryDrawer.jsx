@@ -19,6 +19,7 @@ import {
   SelectField,
   CategoryPicker,
   SecureNote,
+  VerifiedNote,
 } from "./parts";
 import {
   storeLabel,
@@ -41,7 +42,17 @@ function SectionLabel({ icon: Icon, children }) {
   );
 }
 
-export default function BookingSummaryDrawer({ open, onClose, store, onChangeStore, onSubmit, submitting }) {
+export default function BookingSummaryDrawer({
+  open,
+  onClose,
+  store,
+  account,
+  isVerifiedNumber,
+  onChangeStore,
+  onSubmit,
+  submitting,
+  error,
+}) {
   const days = React.useMemo(() => upcomingDays(7), []);
   const slots = React.useMemo(() => timeSlots(), []);
 
@@ -59,7 +70,9 @@ export default function BookingSummaryDrawer({ open, onClose, store, onChangeSto
 
   // Today is pre-selected, unless every slot today has already gone — then the
   // first day that still has one is, so the shopper never opens onto a dead grid.
-  // Derived during render rather than in an effect (see VideoCallCard).
+  // A signed-in shopper also gets their own details back rather than retyping
+  // what the account already holds. Derived during render rather than in an
+  // effect (see VideoCallCard).
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -69,8 +82,13 @@ export default function BookingSummaryDrawer({ open, onClose, store, onChangeSto
       setDayKey(firstBookableDay(days, fresh)?.key || days[0].key);
       setSlotHour(null);
       setErrors({});
+      setName(account?.name || "");
+      setPhone(account?.phone || "");
+      setEmail(account?.email || "");
     }
   }
+
+  const skipsOtp = !!isVerifiedNumber?.(phone);
 
   const selectedDay = days.find((d) => d.key === dayKey) || days[0];
 
@@ -105,7 +123,8 @@ export default function BookingSummaryDrawer({ open, onClose, store, onChangeSto
       title="Booking Summary"
       footer={
         <div className="flex flex-col gap-2.5">
-          <SecureNote />
+          {error && <p className="text-[11px] text-red-500 font-figtree">{error}</p>}
+          {skipsOtp ? <VerifiedNote name={account?.name} /> : <SecureNote />}
           <PrimaryButton onClick={handleSubmit} loading={submitting}>
             Book Now
           </PrimaryButton>

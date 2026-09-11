@@ -19,8 +19,9 @@ import {
   CategoryPicker,
   OtpStep,
   SuccessStep,
+  VerifiedNote,
 } from "./parts";
-import { useOtpGate } from "./useOtpGate";
+import { useBookingFlow } from "./useBookingFlow";
 import {
   fetchStoresForPincode,
   nearestStoreWithin,
@@ -42,25 +43,25 @@ export default function TryAtHomeCard({ card, open, onOpen, onClose, onBookVideo
   const [phone, setPhone] = React.useState("");
   const [phoneError, setPhoneError] = React.useState("");
   const [categories, setCategories] = React.useState([]);
-  const otp = useOtpGate();
+  const flow = useBookingFlow();
 
   // Derived from the `open` prop during render — see the note in VideoCallCard.
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
     setStep(open ? "pincode" : "idle");
-    if (open) {
-      setPincode(savedPincode());
-    } else {
-      setPincode("");
-      setPincodeError("");
+    setPincodeError("");
+    setPhoneError("");
+    setPincode(open ? savedPincode() : "");
+    setPhone(open ? flow.account.phone : "");
+    if (!open) {
       setStore(null);
-      setPhone("");
-      setPhoneError("");
       setCategories([]);
-      otp.setError("");
+      flow.setError("");
     }
   }
+
+  const skipsOtp = flow.isVerifiedNumber(phone);
 
   const start = () => {
     pushPromoClick({
@@ -99,24 +100,17 @@ export default function TryAtHomeCard({ card, open, onOpen, onClose, onBookVideo
     }
   };
 
-  const sendOtp = async () => {
-    if (phone.length !== 10) {
-      setPhoneError("Enter a valid 10-digit mobile number.");
-      return;
-    }
-    setPhoneError("");
-    if (await otp.send(phone)) setStep("otp");
-  };
+  const payload = () => ({
+    appointmentType: APPOINTMENT_TYPES.tryAtHome,
+    phone,
+    pincode,
+    categories,
+    name: flow.account.name,
+    email: flow.account.email,
+    storeName: store ? storeLabel(store) : "",
+  });
 
-  const verify = async (code) => {
-    const ok = await otp.verify(phone, code, {
-      appointmentType: APPOINTMENT_TYPES.tryAtHome,
-      phone,
-      pincode,
-      categories,
-      storeName: store ? storeLabel(store) : "",
-    });
-    if (!ok) return;
+  const booked = () => {
     pushPromoClick({
       creative_name: "book appointment try at home booked",
       location_id: "book-an-appointment",
@@ -124,6 +118,21 @@ export default function TryAtHomeCard({ card, open, onOpen, onClose, onBookVideo
       promo_name: store ? storeLabel(store) : "",
     });
     setStep("success");
+  };
+
+  const submit = async () => {
+    if (phone.length !== 10) {
+      setPhoneError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+    setPhoneError("");
+    const next = await flow.begin(phone, payload());
+    if (next === "otp") setStep("otp");
+    else if (next === "booked") booked();
+  };
+
+  const verify = async (code) => {
+    if (await flow.confirm(phone, code, payload())) booked();
   };
 
   const backToPincode = () => {
@@ -167,10 +176,11 @@ export default function TryAtHomeCard({ card, open, onOpen, onClose, onBookVideo
             </p>
           </div>
           <PincodeChip pincode={pincode} onChange={backToPincode} />
-          <PhoneField value={phone} onChange={setPhone} error={phoneError || otp.error} />
+          <PhoneField value={phone} onChange={setPhone} error={phoneError || flow.error} />
           <CategoryPicker selected={categories} onChange={setCategories} options={PRODUCT_CATEGORIES} />
-          <PrimaryButton onClick={sendOtp} loading={otp.sending} disabled={phone.length !== 10}>
-            Continue
+          {skipsOtp && <VerifiedNote name={flow.account.name} />}
+          <PrimaryButton onClick={submit} loading={flow.sending} disabled={phone.length !== 10}>
+            {skipsOtp ? "Confirm Booking" : "Continue"}
           </PrimaryButton>
         </div>
       )}
@@ -180,9 +190,9 @@ export default function TryAtHomeCard({ card, open, onOpen, onClose, onBookVideo
           idPrefix="tryhome"
           phone={phone}
           onVerify={verify}
-          onResend={() => otp.send(phone)}
-          verifying={otp.verifying}
-          error={otp.error}
+          onResend={() => flow.resend(phone)}
+          verifying={flow.verifying}
+          error={flow.error}
         />
       )}
 

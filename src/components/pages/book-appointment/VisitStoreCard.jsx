@@ -6,6 +6,9 @@
 // summary drawer (day, slot, details) → OTP → booked. When no store falls inside
 // the nearby radius the shopper gets three honest exits instead of a dead end:
 // try another pincode, browse the full store list anyway, or take a video call.
+//
+// A signed-in shopper has their name, number and email waiting in the summary
+// form, and booking on their own registered number skips the OTP.
 
 import React from "react";
 import { Store as StoreIcon } from "lucide-react";
@@ -20,7 +23,7 @@ import {
 } from "./parts";
 import StoresDrawer from "./StoresDrawer";
 import BookingSummaryDrawer from "./BookingSummaryDrawer";
-import { useOtpGate } from "./useOtpGate";
+import { useBookingFlow } from "./useBookingFlow";
 import {
   fetchStoresForPincode,
   nearestStoreWithin,
@@ -48,24 +51,22 @@ export default function VisitStoreCard({ card, open, onOpen, onClose, onBookVide
   // Details captured in the summary drawer, held here so the OTP step (which
   // renders back in the card) still has them when the webhook fires.
   const [details, setDetails] = React.useState(null);
-  const otp = useOtpGate();
+  const flow = useBookingFlow();
 
   // Derived from the `open` prop during render — see the note in VideoCallCard.
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
     setStep(open ? "pincode" : "idle");
-    if (open) {
-      setPincode(savedPincode());
-    } else {
-      setPincode("");
-      setPincodeError("");
+    setPincodeError("");
+    setPincode(open ? savedPincode() : "");
+    if (!open) {
       setStores([]);
       setStore(null);
       setStoresOpen(false);
       setSummaryOpen(false);
       setDetails(null);
-      otp.setError("");
+      flow.setError("");
     }
   }
 
@@ -119,40 +120,48 @@ export default function VisitStoreCard({ card, open, onOpen, onClose, onBookVide
     setStep("store");
   };
 
-  // The summary drawer collects the booking, then hands off to the OTP step in
-  // the card — the flow doc draws "Almost Done" in the card, not the drawer.
-  const handleBookNow = (formValues) => {
-    setDetails(formValues);
-    (async () => {
-      if (await otp.send(formValues.phone)) {
-        setSummaryOpen(false);
-        setStep("otp");
-      }
-    })();
-  };
+  const payloadFor = (values) => ({
+    appointmentType: APPOINTMENT_TYPES.visitStore,
+    name: values.name,
+    phone: values.phone,
+    email: values.email,
+    pincode,
+    purpose: values.purpose,
+    categories: values.categories,
+    storeName: storeLabel(store),
+    storeAddress: storeAddress(store),
+    appointmentDate: values.appointmentDate,
+    appointmentTime: values.appointmentTime,
+  });
 
-  const verify = async (code) => {
-    const ok = await otp.verify(details.phone, code, {
-      appointmentType: APPOINTMENT_TYPES.visitStore,
-      name: details.name,
-      phone: details.phone,
-      email: details.email,
-      pincode,
-      purpose: details.purpose,
-      categories: details.categories,
-      storeName: storeLabel(store),
-      storeAddress: storeAddress(store),
-      appointmentDate: details.appointmentDate,
-      appointmentTime: details.appointmentTime,
-    });
-    if (!ok) return;
+  const booked = () => {
     pushPromoClick({
       creative_name: "book appointment store visit booked",
       location_id: "book-an-appointment",
       promo_id: pincode,
       promo_name: storeLabel(store),
     });
+    setSummaryOpen(false);
     setStep("success");
+  };
+
+  // The summary drawer collects the booking, then hands off to the OTP step in
+  // the card — the flow doc draws "Almost Done" in the card, not the drawer.
+  const handleBookNow = (values) => {
+    setDetails(values);
+    (async () => {
+      const next = await flow.begin(values.phone, payloadFor(values));
+      if (next === "otp") {
+        setSummaryOpen(false);
+        setStep("otp");
+      } else if (next === "booked") {
+        booked();
+      }
+    })();
+  };
+
+  const verify = async (code) => {
+    if (await flow.confirm(details.phone, code, payloadFor(details))) booked();
   };
 
   return (
@@ -211,9 +220,9 @@ export default function VisitStoreCard({ card, open, onOpen, onClose, onBookVide
             idPrefix="visit"
             phone={details?.phone}
             onVerify={verify}
-            onResend={() => otp.send(details.phone)}
-            verifying={otp.verifying}
-            error={otp.error}
+            onResend={() => flow.resend(details.phone)}
+            verifying={flow.verifying}
+            error={flow.error}
           />
         )}
 
@@ -240,12 +249,15 @@ export default function VisitStoreCard({ card, open, onOpen, onClose, onBookVide
         open={summaryOpen}
         onClose={() => setSummaryOpen(false)}
         store={store}
+        account={flow.account}
+        isVerifiedNumber={flow.isVerifiedNumber}
         onChangeStore={() => {
           setSummaryOpen(false);
           setStoresOpen(true);
         }}
         onSubmit={handleBookNow}
-        submitting={otp.sending}
+        submitting={flow.sending}
+        error={flow.error}
       />
     </>
   );

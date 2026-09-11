@@ -3,11 +3,12 @@
 // Virtual Shop → video call.
 //
 // The shortest of the three journeys: no pincode gate, because a video call
-// does not depend on a store being near the shopper. Number → OTP → booked.
+// does not depend on a store being near the shopper. Number → OTP → booked, and
+// a signed-in shopper on their own number skips straight past the OTP.
 
 import React from "react";
-import { CardShell, PrimaryButton, PhoneField, OtpStep, SuccessStep } from "./parts";
-import { useOtpGate } from "./useOtpGate";
+import { CardShell, PrimaryButton, PhoneField, OtpStep, SuccessStep, VerifiedNote } from "./parts";
+import { useBookingFlow } from "./useBookingFlow";
 import { APPOINTMENT_TYPES } from "@/lib/bookAppointment";
 import { pushPromoClick } from "@/lib/gtm";
 
@@ -15,7 +16,7 @@ export default function VideoCallCard({ card, open, onOpen, onClose }) {
   const [step, setStep] = React.useState("idle");
   const [phone, setPhone] = React.useState("");
   const [phoneError, setPhoneError] = React.useState("");
-  const otp = useOtpGate();
+  const flow = useBookingFlow();
 
   // The page keeps one card open at a time; a card that gets closed from the
   // outside has to forget whatever the shopper had half-typed. Adjusting state
@@ -25,12 +26,12 @@ export default function VideoCallCard({ card, open, onOpen, onClose }) {
   if (open !== prevOpen) {
     setPrevOpen(open);
     setStep(open ? "phone" : "idle");
-    if (!open) {
-      setPhone("");
-      setPhoneError("");
-      otp.setError("");
-    }
+    setPhoneError("");
+    setPhone(open ? flow.account.phone : "");
+    if (!open) flow.setError("");
   }
+
+  const skipsOtp = flow.isVerifiedNumber(phone);
 
   const start = () => {
     pushPromoClick({
@@ -42,21 +43,7 @@ export default function VideoCallCard({ card, open, onOpen, onClose }) {
     onOpen();
   };
 
-  const sendOtp = async () => {
-    if (phone.length !== 10) {
-      setPhoneError("Enter a valid 10-digit mobile number.");
-      return;
-    }
-    setPhoneError("");
-    if (await otp.send(phone)) setStep("otp");
-  };
-
-  const verify = async (code) => {
-    const ok = await otp.verify(phone, code, {
-      appointmentType: APPOINTMENT_TYPES.videoCall,
-      phone,
-    });
-    if (!ok) return;
+  const booked = () => {
     pushPromoClick({
       creative_name: "book appointment video call booked",
       location_id: "book-an-appointment",
@@ -66,15 +53,38 @@ export default function VideoCallCard({ card, open, onOpen, onClose }) {
     setStep("success");
   };
 
+  const payload = () => ({
+    appointmentType: APPOINTMENT_TYPES.videoCall,
+    phone,
+    name: flow.account.name,
+    email: flow.account.email,
+  });
+
+  const submit = async () => {
+    if (phone.length !== 10) {
+      setPhoneError("Enter a valid 10-digit mobile number.");
+      return;
+    }
+    setPhoneError("");
+    const next = await flow.begin(phone, payload());
+    if (next === "otp") setStep("otp");
+    else if (next === "booked") booked();
+  };
+
+  const verify = async (code) => {
+    if (await flow.confirm(phone, code, payload())) booked();
+  };
+
   return (
     <CardShell title={card.title} desc={card.desc} image={card.image} expanded={open && step !== "idle"}>
       {step === "idle" && <PrimaryButton onClick={start}>{card.cta}</PrimaryButton>}
 
       {step === "phone" && (
         <div className="flex flex-col gap-2.5">
-          <PhoneField value={phone} onChange={setPhone} error={phoneError || otp.error} />
-          <PrimaryButton onClick={sendOtp} loading={otp.sending} disabled={phone.length !== 10}>
-            Continue
+          <PhoneField value={phone} onChange={setPhone} error={phoneError || flow.error} />
+          {skipsOtp && <VerifiedNote name={flow.account.name} />}
+          <PrimaryButton onClick={submit} loading={flow.sending} disabled={phone.length !== 10}>
+            {skipsOtp ? "Confirm Booking" : "Continue"}
           </PrimaryButton>
           <button
             type="button"
@@ -91,9 +101,9 @@ export default function VideoCallCard({ card, open, onOpen, onClose }) {
           idPrefix="video"
           phone={phone}
           onVerify={verify}
-          onResend={() => otp.send(phone)}
-          verifying={otp.verifying}
-          error={otp.error}
+          onResend={() => flow.resend(phone)}
+          verifying={flow.verifying}
+          error={flow.error}
         />
       )}
 

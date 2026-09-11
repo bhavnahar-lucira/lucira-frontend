@@ -467,3 +467,19 @@ export function SecureNote() {
     </p>
   );
 }
+
+/**
+ * Shown when the signed-in shopper is booking on their own registered number —
+ * the one case that skips the OTP. Saying so up front means the missing step
+ * reads as a shortcut they earned rather than a form that forgot to verify.
+ */
+export function VerifiedNote({ name }) {
+  return (
+    <p className="flex items-center gap-1.5 text-[11px] text-[#2DB36F] font-figtree">
+      <ShieldCheck size={12} />
+      <span className="text-zinc-500">
+        {name ? `Signed in as ${name} — ` : "Number already verified — "}no OTP needed.
+      </span>
+    </p>
+  );
+}

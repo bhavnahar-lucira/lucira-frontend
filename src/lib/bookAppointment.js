@@ -271,7 +271,11 @@ export async function submitAppointmentLead(payload) {
     appointment_time: payload.appointmentTime || "",
     purpose_of_visit: payload.purpose || "",
     product_categories: (payload.categories || []).join(", "),
+    // Every lead reaching the webhook has a verified number behind it; this says
+    // how — a fresh OTP, or an already signed-in account that proved the same
+    // number at login.
     otp_verified: true,
+    verified_via: payload.verifiedVia || "otp",
   };
 
   const res = await fetch(APPOINTMENT_WEBHOOK, {
