@@ -92,6 +92,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
+  const [mainSwiper, setMainSwiper] = useState(null);
   const galleryRef = React.useRef(null);
   const [stickyTop, setStickyTop] = useState("5rem");
   
@@ -112,6 +113,22 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
     return [...new Set(labels)].slice(0, 2);
   }, [product.label, product.tags]);
+
+  const isOnlyPendant = useMemo(() => {
+    const tags = Array.isArray(product?.tags)
+      ? product.tags
+      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
+
+    const hasTag = tags.some(t => {
+      const s = String(t).trim().toLowerCase();
+      return s === "only pendant" || s === "only-pendant" || s === "pendant only";
+    });
+
+    if (hasTag) return true;
+    if (product?.tags?.includes?.("Only Pendant")) return true;
+
+    return false;
+  }, [product?.tags]);
 
   useEffect(() => {
     setMounted(true);
@@ -448,13 +465,22 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
               
               {isFirst && (
                 <>
-                  <div className="absolute top-4 left-4 flex flex-row gap-2 z-10">
-                    {displayLabels.map((label, index) => {
-                      const isBrandBadge = label === "Eterna";
-                      return (
-                        <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
-                      );
-                    })}
+                  <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none">
+                    {isOnlyPendant && (
+                      <div className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3.5 lg:px-4 text-center flex items-center justify-center font-figtree font-semibold text-xs lg:text-sm uppercase tracking-wider">
+                        Chain is not included in the purchase
+                      </div>
+                    )}
+                    {displayLabels.length > 0 && (
+                      <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-3 pl-3 lg:pt-3.5 lg:pl-4" : "pt-3 pl-3 lg:pt-4 lg:pl-4"}`}>
+                        {displayLabels.map((label, index) => {
+                          const isBrandBadge = label === "Eterna";
+                          return (
+                            <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div onClick={(e) => e.stopPropagation()}>
                     {mounted && isDesktop && (
@@ -499,14 +525,6 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   <span className="btn-text text-xs font-bold uppercase tracking-wider">Similar Items</span>
                 </button>
               )}
-              {index === 1 && product.tags?.includes("Only Pendant") && (
-                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation h-[42px]">
-                  <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-                    <Info size={16} />
-                  </span>
-                  <span className="btn-text text-xs font-bold uppercase tracking-wider">Chain is not included in the purchase</span>
-                </div>
-              )}
             </div>
           );
         })}
@@ -516,12 +534,18 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       {/* data-pdp-gallery-mobile scopes the share-intent long-press listener to
           this gallery only (see hooks/useShareIntent.js). */}
       <div data-pdp-gallery-mobile className="lg:hidden flex flex-col gap-3">
-        <div className="relative aspect-square rounded-xl overflow-hidden bg-[#F7F7F7]">
+        <div className="relative aspect-square rounded-none overflow-hidden bg-[#F7F7F7]">
           <Swiper
+            onSwiper={setMainSwiper}
             spaceBetween={0}
             thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
             modules={[FreeMode, Thumbs]}
-            onSlideChange={(swiper) => setCurrentIndex(swiper.activeIndex)}
+            onSlideChange={(swiper) => {
+              setCurrentIndex(swiper.activeIndex);
+              if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                thumbsSwiper.slideTo(swiper.activeIndex);
+              }
+            }}
             className="w-full h-full"
           >
             {sortedMedia.map((item, index) => {
@@ -562,14 +586,23 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
             })}
           </Swiper>
 
-          {/* Badges Overlay */}
-          <div className="absolute top-3 left-3 flex flex-row gap-2 z-10 pointer-events-none">
-            {displayLabels.map((label, index) => {
-              const isBrandBadge = label === "Eterna";
-              return (
-                <span key={index} className={`w-fit px-2 py-0.5 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
-              );
-            })}
+          {/* Badges & Chain Note Banner Overlay */}
+          <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none">
+            {isOnlyPendant && (
+              <div className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3 text-center flex items-center justify-center font-figtree font-semibold text-[10px] sm:text-xs uppercase tracking-wider">
+                Chain is not included in the purchase
+              </div>
+            )}
+            {displayLabels.length > 0 && (
+              <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-2.5 pl-3" : "pt-3 pl-3"}`}>
+                {displayLabels.map((label, index) => {
+                  const isBrandBadge = label === "Eterna";
+                  return (
+                    <span key={index} className={`w-fit px-2 py-0.5 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
 
@@ -622,35 +655,126 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
         </div>
 
         {/* Thumbnail Slider */}
-        <Swiper
-          onSwiper={setThumbsSwiper}
-          spaceBetween={10}
-          slidesPerView="auto"
-          freeMode={true}
-          watchSlidesProgress={true}
-          modules={[FreeMode, Thumbs]}
-          className="w-full thumbnails-swiper"
-        >
-          {sortedMedia.map((item, index) => {
-             const isVideo = item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
-             return (
-               <SwiperSlide key={index} className="!w-[70px]">
-                 <div className={`aspect-square relative rounded-lg overflow-hidden bg-[#F7F7F7] border-2 transition-colors ${currentIndex === index ? 'border-black' : 'border-transparent'}`}>
-                    {isVideo ? (
-                      <div className="w-full h-full relative">
-                        <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Play size={12} fill="black" className="opacity-70" />
+        <div className="w-full px-2 sm:px-4 flex items-center gap-1.5 sm:gap-2">
+          <style>{`
+            .thumbnails-swiper {
+              width: 100% !important;
+            }
+            .thumbnails-swiper .swiper-wrapper {
+              display: flex !important;
+              justify-content: flex-start !important;
+            }
+          `}</style>
+          {sortedMedia.length > 1 && (
+            <button
+              type="button"
+              aria-label="Previous thumbnail"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentIndex > 0) {
+                  const prevIdx = currentIndex - 1;
+                  setCurrentIndex(prevIdx);
+                  if (mainSwiper && !mainSwiper.destroyed) {
+                    mainSwiper.slideTo(prevIdx);
+                  }
+                  if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                    thumbsSwiper.slideTo(prevIdx);
+                  }
+                } else if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                  thumbsSwiper.slidePrev();
+                }
+              }}
+              disabled={currentIndex === 0}
+              className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white border border-[#eaeaea] shadow-xs text-[#5a413f] transition-all ${
+                currentIndex === 0
+                  ? "opacity-25 cursor-not-allowed pointer-events-none"
+                  : "opacity-100 hover:bg-zinc-50 active:scale-95 cursor-pointer hover:border-zinc-300"
+              }`}
+            >
+              <ChevronLeft size={16} strokeWidth={2} />
+            </button>
+          )}
+
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <Swiper
+              onSwiper={setThumbsSwiper}
+              spaceBetween={8}
+              slidesPerView="auto"
+              freeMode={true}
+              watchSlidesProgress={true}
+              modules={[FreeMode, Thumbs]}
+              className="thumbnails-swiper py-1 w-full"
+            >
+              {sortedMedia.map((item, index) => {
+                const isVideo = item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
+                const isActive = currentIndex === index;
+                return (
+                  <SwiperSlide key={index} className="!w-[66px] sm:!w-[72px]">
+                    <div
+                      onClick={() => {
+                        setCurrentIndex(index);
+                        if (mainSwiper && !mainSwiper.destroyed) {
+                          mainSwiper.slideTo(index);
+                        }
+                        if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                          thumbsSwiper.slideTo(index);
+                        }
+                      }}
+                      className={`group aspect-square relative rounded-[6px] overflow-hidden cursor-pointer transition-all duration-200 ${
+                        isActive
+                          ? 'border-[1.5px] border-[#5a413f] shadow-none bg-white'
+                          : 'border border-[#eaeaea] hover:border-zinc-300 bg-[#FAFAFA]'
+                      }`}
+                    >
+                      {isVideo ? (
+                        <div className="w-full h-full relative rounded-[6px] overflow-hidden">
+                          <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                            <div className="w-6 h-6 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center shadow-sm">
+                              <Play size={10} className="fill-zinc-900 text-zinc-900 ml-0.5" />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <LazyImage src={item.url} alt={item.alt} fill className="object-cover" />
-                    )}
-                 </div>
-               </SwiperSlide>
-             );
-          })}
-        </Swiper>
+                      ) : (
+                        <LazyImage src={item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
+                      )}
+                    </div>
+                  </SwiperSlide>
+                );
+              })}
+            </Swiper>
+          </div>
+
+          {sortedMedia.length > 1 && (
+            <button
+              type="button"
+              aria-label="Next thumbnail"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentIndex < sortedMedia.length - 1) {
+                  const nextIdx = currentIndex + 1;
+                  setCurrentIndex(nextIdx);
+                  if (mainSwiper && !mainSwiper.destroyed) {
+                    mainSwiper.slideTo(nextIdx);
+                  }
+                  if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                    thumbsSwiper.slideTo(nextIdx);
+                  }
+                } else if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                  thumbsSwiper.slideNext();
+                }
+              }}
+              disabled={currentIndex === sortedMedia.length - 1}
+              className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white border border-[#eaeaea] shadow-xs text-[#5a413f] transition-all ${
+                currentIndex === sortedMedia.length - 1
+                  ? "opacity-25 cursor-not-allowed pointer-events-none"
+                  : "opacity-100 hover:bg-zinc-50 active:scale-95 cursor-pointer hover:border-zinc-300"
+              }`}
+            >
+              <ChevronRight size={16} strokeWidth={2} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Lightbox */}

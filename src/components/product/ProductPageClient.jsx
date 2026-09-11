@@ -2312,24 +2312,8 @@ export default function ProductPageClient({
           </BreadcrumbList>
         </Breadcrumb>
 
-        {/* Mobile Chain Note Badge */}
-        {product.tags?.includes("Only Pendant") && (
-          <div className="lg:hidden bg-white border-b border-[#eaeaea] py-[10px] px-5 flex items-center justify-start gap-2">
-            <Info size={14} className="shrink-0 text-[#2d2d2d]" />
-            <span
-              className="text-[0.65rem] sm:text-xs font-semibold tracking-wider text-[#2d2d2d] leading-tight"
-              style={{
-                textTransform: "math-auto",
-                fontSize: "0.65rem",
-                color: "#2d2d2d",
-              }}
-            >
-              Chain is not included in the purchase
-            </span>
-          </div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start px-5 lg:px-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-5 lg:gap-10 items-start">
           {/* Left: Product Gallery */}
           <ProductGallery
             media={product.media || []}
@@ -2341,7 +2325,7 @@ export default function ProductPageClient({
             activeVariant={activeVariant}
           />
           {/* Right: Product Info */}
-          <div className="w-full">
+          <div className="w-full px-5 lg:px-0">
             <div className="space-y-4">
               {/* Title */}
               <div className="w-full">
