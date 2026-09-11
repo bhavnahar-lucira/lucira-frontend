@@ -247,13 +247,27 @@ async function getProduct(handle) {
     const comps = v.components?.value ? JSON.parse(v.components.value) : null;
     const variantConfig = v.variant_config?.value ? JSON.parse(v.variant_config.value) : null;
 
-    const metalComp = comps?.components?.find(c => c.item_group_name === "Gold");
-    const diamondComps = comps?.components?.filter(c => c.item_group_name === "Diamond") || [];
-    const gemstoneComps = comps?.components?.filter(c => c.item_group_name === "Gemstone" || c.item_group_name === "Color Stone") || [];
-    // Any component that isn't gold/diamond/gemstone (beads, evil eye, steel, etc.) is
-    // surfaced as a generic "Other Material" - one column per component, grouped by name.
-    const KNOWN_GROUPS = ["Gold", "Diamond", "Gemstone", "Color Stone"];
-    const otherComps = comps?.components?.filter(c => c.item_group_name && !KNOWN_GROUPS.includes(c.item_group_name)) || [];
+    const isMetalGroup = (name) => {
+      const g = String(name || '').trim().toLowerCase();
+      return g.includes('gold') || g.includes('platin') || g.includes('silver');
+    };
+    const isStoneGroup = (name) => {
+      const g = String(name || '').trim().toLowerCase();
+      return g.includes('diamond') || g.includes('gemstone') || g.includes('color stone');
+    };
+
+    const metalComps = comps?.components?.filter(c => isMetalGroup(c.item_group_name)) || [];
+    const goldComp = metalComps.find(c => String(c.item_group_name).toLowerCase().includes('gold'));
+    const platinumComp = metalComps.find(c => String(c.item_group_name).toLowerCase().includes('platin'));
+    const silverComp = metalComps.find(c => String(c.item_group_name).toLowerCase().includes('silver'));
+    const diamondComps = comps?.components?.filter(c => String(c.item_group_name).toLowerCase().includes('diamond')) || [];
+    const gemstoneComps = comps?.components?.filter(c => {
+      const g = String(c.item_group_name || '').toLowerCase();
+      return g.includes('gemstone') || g.includes('color stone');
+    }) || [];
+
+    // Any component that isn't precious metal / diamond / gemstone (beads, evil eye, steel, etc.)
+    const otherComps = comps?.components?.filter(c => c.item_group_name && !isMetalGroup(c.item_group_name) && !isStoneGroup(c.item_group_name)) || [];
     const otherMaterials = otherComps.map(c => ({
       material: c.item_group_name,
       color: c.stone_color_code && c.stone_color_code !== "NA" ? c.stone_color_code : "",
@@ -263,18 +277,57 @@ async function getProduct(handle) {
     const rawStoreData = v.in_store_available?.value || v.custom_in_store_available?.value;
     const in_store_available = rawStoreData ? JSON.parse(rawStoreData) : [];
 
-    let metal_purity = metalComp?.karat_code ? `${metalComp.karat_code}K` : (v.custom_metal_purity?.value || variantConfig?.purity || getOpt(options, ["metal purity", "purity"]));
-    let metal_color = metalComp?.stone_color_code && metalComp.stone_color_code !== "NA" ? metalComp.stone_color_code : (v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]));
-    
-    if (!metal_color) {
-      const lowerTitle = v.title.toLowerCase();
-      if (lowerTitle.includes('yellow') && lowerTitle.includes('white')) metal_color = 'Yellow-White Gold';
-      else if (lowerTitle.includes('rose') && lowerTitle.includes('white')) metal_color = 'Rose-White Gold';
-      else if (lowerTitle.includes('rose')) metal_color = 'Rose Gold';
-      else if (lowerTitle.includes('white')) metal_color = 'White Gold';
-      else if (lowerTitle.includes('yellow')) metal_color = 'Yellow Gold';
-      else if (lowerTitle.includes('platinum')) metal_color = 'Platinum';
+    let metal_purity = "";
+    if (metalComps.length > 1) {
+      const purities = [];
+      if (goldComp?.karat_code) purities.push(`${goldComp.karat_code}KT`);
+      if (platinumComp) purities.push(platinumComp.karat_code ? `${platinumComp.karat_code} PLT` : "950 PLT");
+      if (silverComp) purities.push(silverComp.karat_code ? `${silverComp.karat_code} Silver` : "Silver");
+      metal_purity = purities.join(" & ");
+    } else if (goldComp?.karat_code) {
+      metal_purity = `${goldComp.karat_code}KT`;
+    } else if (platinumComp) {
+      metal_purity = platinumComp.karat_code ? `${platinumComp.karat_code} PLT` : "950 PLT";
+    } else if (silverComp) {
+      metal_purity = silverComp.karat_code ? `${silverComp.karat_code} Silver` : "Silver";
     }
+    if (!metal_purity) {
+      metal_purity = v.custom_metal_purity?.value || variantConfig?.purity || getOpt(options, ["metal purity", "purity"]);
+    }
+    if (metal_purity) {
+      metal_purity = String(metal_purity)
+        .replace(/\bplatinum\b/gi, "PLT")
+        .replace(/\bplt\b/gi, "PLT")
+        .replace(/(\d+)\s*kt\b/gi, "$1KT")
+        .replace(/(\d+)\s*k\b/gi, "$1KT");
+    }
+
+    const textContext = `${v.title || ""} ${product.title || ""} ${v.sku || ""} ${Object.values(options).join(" ")}`.toLowerCase();
+    let detectedGoldTone = "";
+    if (textContext.includes('rose')) detectedGoldTone = 'Rose Gold';
+    else if (textContext.includes('yellow')) detectedGoldTone = 'Yellow Gold';
+    else if (textContext.includes('white')) detectedGoldTone = 'White Gold';
+
+    let metal_color = (goldComp?.stone_color_code && goldComp.stone_color_code !== "NA")
+      ? goldComp.stone_color_code
+      : (v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]));
+
+    if (platinumComp && goldComp) {
+      const goldTone = detectedGoldTone || (metal_color && !metal_color.toLowerCase().includes('platin') && !metal_color.toLowerCase().includes('plt') ? metal_color : 'Rose Gold');
+      metal_color = `Platinum & ${goldTone}`;
+    } else if (!metal_color) {
+      if (textContext.includes('yellow') && textContext.includes('white')) metal_color = 'Yellow-White Gold';
+      else if (textContext.includes('rose') && textContext.includes('white')) metal_color = 'Rose-White Gold';
+      else if (textContext.includes('rose')) metal_color = 'Rose Gold';
+      else if (textContext.includes('white')) metal_color = 'White Gold';
+      else if (textContext.includes('yellow')) metal_color = 'Yellow Gold';
+      else if (textContext.includes('platinum')) metal_color = 'Platinum';
+    }
+    if (metal_color) {
+      metal_color = String(metal_color).replace(/\bplt\b/gi, "Platinum");
+    }
+
+    const totalMetalWeight = metalComps.reduce((sum, m) => sum + (Number(m.weight) || 0), 0);
 
     let diamonds = [];
     if (diamondComps && diamondComps.length > 0) {
@@ -424,7 +477,7 @@ async function getProduct(handle) {
       metafields: {
         metal_purity,
         metal_color,
-        metal_weight: v.metal_weight?.value || v.custom_metal_weight?.value || metalComp?.weight || variantConfig?.metal_weight,
+        metal_weight: v.metal_weight?.value || v.custom_metal_weight?.value || (totalMetalWeight > 0 ? Number(totalMetalWeight.toFixed(3)) : null) || variantConfig?.metal_weight,
         gross_weight: v.gross_weight?.value || v.custom_gross_weight?.value,
         top_width: v.top_width?.value || v.custom_top_width?.value,
         top_height: v.top_height?.value || v.custom_top_height?.value,
