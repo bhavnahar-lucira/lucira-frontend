@@ -2329,7 +2329,7 @@ export default function ProductPageClient({
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-5 lg:gap-10 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start px-5 lg:px-0">
           {/* Left: Product Gallery */}
           <ProductGallery
             media={product.media || []}
@@ -2341,7 +2341,7 @@ export default function ProductPageClient({
             activeVariant={activeVariant}
           />
           {/* Right: Product Info */}
-          <div className="w-full px-5 lg:px-0">
+          <div className="w-full">
             <div className="space-y-4">
               {/* Title */}
               <div className="w-full">
@@ -3524,137 +3524,26 @@ export default function ProductPageClient({
                     <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal" width={18} height={18} />
                     Metal <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("metal")} />
                   </div>
-                  {(() => {
-                    let compsList = [];
-                    try {
-                      const raw = activeVariant?.metafields?.components;
-                      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-                      compsList = parsed?.components || (Array.isArray(parsed) ? parsed : []);
-                    } catch (e) {}
-
-                    const isMetal = (name) => {
-                      const g = String(name || "").trim().toLowerCase();
-                      return g.includes("gold") || g.includes("platin") || g.includes("silver");
-                    };
-
-                    const metalComps = compsList.filter(c => isMetal(c?.item_group_name));
-                    const isMultiMetal = metalComps.length > 1;
-
-                    // Context to determine gold tone (Rose, Yellow, White)
-                    const allContext = [
-                      activeColor,
-                      activeVariant?.color,
-                      activeVariant?.metafields?.metal_color,
-                      activeVariant?.title,
-                      product?.title,
-                      ...(activeVariant?.selectedOptions || []).map(o => o?.value),
-                      ...Object.values(activeVariant?.options || {})
-                    ].filter(Boolean).join(" ").toLowerCase();
-
-                    let goldTone = "Rose Gold";
-                    if (allContext.includes("rose")) goldTone = "Rose Gold";
-                    else if (allContext.includes("yellow")) goldTone = "Yellow Gold";
-                    else if (allContext.includes("white")) goldTone = "White Gold";
-
-                    let displayPurity = activeVariant?.metafields?.metal_purity;
-                    let displayColor = activeVariant?.metafields?.metal_color;
-                    let displayNetWeight = activeVariant?.metafields?.metal_weight;
-
-                    if (isMultiMetal) {
-                      const hasPt = metalComps.some(m => String(m.item_group_name).toLowerCase().includes("platin"));
-                      const hasAu = metalComps.some(m => String(m.item_group_name).toLowerCase().includes("gold"));
-
-                      const purities = [];
-                      metalComps.forEach(m => {
-                        const g = String(m.item_group_name || "").toLowerCase();
-                        if (g.includes("gold") && m.karat_code) {
-                          purities.push(`${m.karat_code}KT`);
-                        } else if (g.includes("platin")) {
-                          purities.push(m.karat_code ? `${m.karat_code} PLT` : "950 PLT");
-                        } else if (g.includes("silver")) {
-                          purities.push(m.karat_code ? `${m.karat_code} Silver` : "Silver");
-                        }
-                      });
-                      if (purities.length > 0) {
-                        displayPurity = purities.join(" & ");
-                      }
-
-                      if (hasPt && hasAu) {
-                        displayColor = `Platinum & ${goldTone}`;
-                      }
-
-                      const totalWt = metalComps.reduce((sum, m) => sum + (Number(m.weight) || 0), 0);
-                      if (totalWt > 0) {
-                        displayNetWeight = Number(totalWt.toFixed(3));
-                      }
-                    }
-
-                    if (displayPurity) {
-                      displayPurity = String(displayPurity)
-                        .replace(/\bplatinum\b/gi, "PLT")
-                        .replace(/\bplt\b/gi, "PLT")
-                        .replace(/(\d+)\s*kt\b/gi, "$1KT")
-                        .replace(/(\d+)\s*k\b/gi, "$1KT");
-                    }
-
-                    if (displayColor) {
-                      displayColor = String(displayColor)
-                        .replace(/\bplt\b/gi, "Platinum");
-                    }
-
-                    return (
-                      <div className="space-y-2">
-                        {displayPurity && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Purity</span>
-                            <span className="font-medium">{displayPurity}</span>
-                          </div>
-                        )}
-                        {displayColor && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Color</span>
-                            <span className="font-medium">{displayColor}</span>
-                          </div>
-                        )}
-                        {isMultiMetal ? (
-                          <>
-                            {metalComps.map((m, idx) => {
-                              const g = String(m.item_group_name || "").toLowerCase();
-                              let label = "Metal Wt";
-                              if (g.includes("platin")) {
-                                label = "PLT Wt";
-                              } else if (g.includes("gold")) {
-                                label = `${goldTone} Wt`;
-                              } else if (g.includes("silver")) {
-                                label = "Silver Wt";
-                              } else if (m.item_group_name) {
-                                label = `${m.item_group_name} Wt`;
-                              }
-                              return (
-                                <div key={`multi-metal-${idx}`} className="flex justify-between text-sm">
-                                  <span className="text-gray-500">{label}</span>
-                                  <span className="font-medium">{m.weight} g</span>
-                                </div>
-                              );
-                            })}
-                            {displayNetWeight && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Net Wt</span>
-                                <span className="font-medium">{displayNetWeight} g</span>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          displayNetWeight && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Net Wt</span>
-                              <span className="font-medium">{displayNetWeight} g</span>
-                            </div>
-                          )
-                        )}
+                  <div className="space-y-2">
+                    {activeVariant?.metafields?.metal_purity && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Purity</span>
+                        <span className="font-medium">{activeVariant.metafields.metal_purity}</span>
                       </div>
-                    );
-                  })()}
+                    )}
+                    {activeVariant?.metafields?.metal_color && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Color</span>
+                        <span className="font-medium">{activeVariant.metafields.metal_color}</span>
+                      </div>
+                    )}
+                    {activeVariant?.metafields?.metal_weight && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Net Wt</span>
+                        <span className="font-medium">{activeVariant.metafields.metal_weight} g</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Dimensions Card */}
@@ -3816,11 +3705,7 @@ export default function ProductPageClient({
                     config = JSON.parse(activeVariant?.metafields?.variant_config || "{}");
                   } catch (e) { }
 
-                  const filteredOtherMaterials = (activeVariant?.metafields?.otherMaterials || []).filter(m => {
-                    const mat = String(m?.material || "").toLowerCase();
-                    return !mat.includes("platin") && !mat.includes("gold") && !mat.includes("silver");
-                  });
-                  const hasOtherMaterials = filteredOtherMaterials.length > 0;
+                  const hasOtherMaterials = activeVariant?.metafields?.otherMaterials?.length > 0;
                   const hasVariantConfigMaterial = config.additional_item_charges && Number(config.additional_item_charges) > 0;
 
                   if (!hasOtherMaterials && !hasVariantConfigMaterial) return null;
@@ -3835,7 +3720,7 @@ export default function ProductPageClient({
                       </div>
 
                       <div className="space-y-2">
-                        {hasOtherMaterials && filteredOtherMaterials.map((m, i) => (
+                        {hasOtherMaterials && activeVariant.metafields.otherMaterials.map((m, i) => (
                           <div key={`other-mat-${i}`} className="space-y-2">
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-500">Material</span>
@@ -3853,7 +3738,7 @@ export default function ProductPageClient({
                               <span className="text-gray-500">Weight</span>
                               <span className="font-medium">{m.weight || "0"}g</span>
                             </div>
-                            {i < filteredOtherMaterials.length - 1 && (
+                            {i < activeVariant.metafields.otherMaterials.length - 1 && (
                               <div className="h-px bg-gray-200 my-3" />
                             )}
                           </div>
