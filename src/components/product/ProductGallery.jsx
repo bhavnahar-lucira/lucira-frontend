@@ -686,15 +686,15 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                          mainSwiper.slideTo(index);
                        }
                      }}
-                      className={`group aspect-square relative rounded-sm overflow-hidden cursor-pointer transition-all duration-200 ${
-                        isActive
-                          ? 'border border-[#B77767] shadow-sm opacity-100 bg-white ring-1 ring-[#B77767]/30'
-                          : 'border border-[#eaeaea] hover:border-zinc-300 opacity-60 hover:opacity-100 bg-[#FAFAFA]'
-                      }`}
+                     className={`group aspect-square relative rounded-[6px] overflow-hidden cursor-pointer transition-all duration-200 ${
+                       isActive
+                         ? 'border-[1.5px] border-[#5a413f] shadow-none opacity-100 bg-white'
+                         : 'border border-[#eaeaea] hover:border-zinc-300 opacity-60 hover:opacity-100 bg-[#FAFAFA]'
+                     }`}
                    >
                       {isVideo ? (
-                        <div className="w-full h-full relative rounded-sm overflow-hidden">
-                          <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-sm" />
+                        <div className="w-full h-full relative rounded-[6px] overflow-hidden">
+                          <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/15">
                             <div className="w-6 h-6 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center shadow-sm">
                               <Play size={10} className="fill-zinc-900 text-zinc-900 ml-0.5" />
@@ -702,7 +702,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                           </div>
                         </div>
                       ) : (
-                        <LazyImage src={item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-sm" />
+                        <LazyImage src={item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
                       )}
                    </div>
                  </SwiperSlide>
