@@ -227,7 +227,7 @@ export function FindLuciraStore({
                         <Button 
                           variant="outline" 
                           className="h-10 md:h-12 px-4 md:px-6 w-full sm:w-auto hover:cursor-pointer rounded-sm border-primary text-xs md:text-sm font-medium tracking-wider hover:bg-primary hover:text-white transition-colors flex items-center justify-center gap-2"
-                          onClick={() => window.open(`tel:${store.phone || "+917208934782"}`, '_self')}
+                          onClick={() => window.open(`tel:${store.phone || "+918976740895"}`, '_self')}
                         >
                           <Phone size={16} />
                           CALL US
@@ -235,7 +235,7 @@ export function FindLuciraStore({
 
                         <Button 
                           className="h-10 md:h-12 px-4 md:px-6 w-full sm:w-auto hover:cursor-pointer rounded-sm text-white text-xs md:text-sm font-medium tracking-wider flex items-center justify-center gap-2"
-                          onClick={() => window.open(`https://wa.me/+917208934782?text=I'd like to book an appointment at ${getStoreDisplayName(store.name)} store for ${product?.title}`, '_blank')}
+                          onClick={() => window.open(`https://wa.me/+918976740895?text=I'd like to book an appointment at ${getStoreDisplayName(store.name)} store for ${product?.title}`, '_blank')}
                         >
                           <Calendar size={16} />
                           BOOK APPOINTMENT

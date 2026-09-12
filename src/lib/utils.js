@@ -437,3 +437,17 @@ export function getEstimatedDispatchDate(isInStock, leadTime = 12, config = null
   });
   return info.enabled ? info.text : "";
 }
+
+/**
+ * The `_Shipping Date` value that lands on the Shopify order, as DD/MM/YYYY —
+ * a data field, so the dashboard's dateFormat deliberately doesn't apply.
+ *
+ * Call it as late as possible: the answer changes the moment the in-stock
+ * cutoff passes, so a value stamped at add-to-cart is wrong for any shopper
+ * who pays after noon (or on a later day). The payment page re-stamps every
+ * line right before the order is created for exactly that reason.
+ */
+export function getShippingDateValue(config, options = {}) {
+  const { date } = formatDispatchMessage(config, { ...options, allowTimer: false });
+  return formatDispatchDate(date, "DD/MM/YYYY");
+}

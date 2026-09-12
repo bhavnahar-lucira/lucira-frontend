@@ -48,7 +48,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
-import { formatDispatchMessage } from "@/lib/utils";
+import { formatDispatchMessage, getShippingDateValue } from "@/lib/utils";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import DispatchTooltip from "@/components/common/DispatchTooltip";
 import { formatSizeLabel } from "@/lib/metal";
@@ -1444,22 +1444,13 @@ export default function ProductPageClient({
         engravingText: savedEngraving.text,
         engravingFont: savedEngraving.font,
         giftText: giftText,
-        shippingDate: (() => {
-          // Same date the shopper just read on the page, so the cart line and
-          // the order record can't drift from it. Fixed DD/MM/YYYY here —
-          // this is a data field, not display copy, so the dashboard's
-          // dateFormat deliberately doesn't apply.
-          const isInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
-          const { date } = formatDispatchMessage(dispatchConfig, {
-            inStock: isInStock,
-            leadTime: product?.productMetafields?.lead_time,
-            allowTimer: false,
-          });
-          const d = String(date.getUTCDate()).padStart(2, "0");
-          const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-          const y = date.getUTCFullYear();
-          return `${d}/${m}/${y}`;
-        })(),
+        // Same date the shopper just read on the page. Only a placeholder for
+        // the order record though — the payment page re-stamps it, because by
+        // the time this cart is paid for the cutoff may long have passed.
+        shippingDate: getShippingDateValue(dispatchConfig, {
+          inStock: activeVariant?.inStock === true || activeVariant?.inStock === "true",
+          leadTime: product?.productMetafields?.lead_time,
+        }),
         goldPricePerGram: raw?.raw_breakup?.metal?.rate_per_gram || 0,
         goldWeight: raw?.raw_breakup?.metal?.weight || parseFloat(fallbackWeight),
         goldPrice: raw?.raw_breakup?.metal?.cost || 0,
@@ -2981,7 +2972,7 @@ export default function ProductPageClient({
 
             <div className="flex gap-2 mb-6">
               <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
-                <a href={`https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
+                <a href={`https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
                   <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
                   <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                 </a>
@@ -3340,7 +3331,7 @@ export default function ProductPageClient({
                                   product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
                                 }
                               });
-                              window.open("https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
+                              window.open("https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
                             }}
                             className="w-full h-10 font-bold rounded text-xs bg-tertiary uppercase tracking-wide"
                           >
@@ -3413,7 +3404,7 @@ export default function ProductPageClient({
                   description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                   action="BOOK APPOINTMENT"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
-                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20book%20an%20appointment"
+                  url="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -3429,7 +3420,7 @@ export default function ProductPageClient({
                   description="Try your selected pieces from the comfort of your home. Available in all major cities"
                   action="BOOK HOME TRIAL"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
-                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
+                  url="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -4192,7 +4183,7 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/+917208934782?text=${encodeURIComponent(
+                            href={`https://wa.me/+918976740895?text=${encodeURIComponent(
                               `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
@@ -4204,7 +4195,7 @@ export default function ProductPageClient({
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                            <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
+                            <a href={`tel:${store.phone || "+918976740895"}`}>CALL STORE</a>
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
@@ -4300,7 +4291,7 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/+917208934782?text=${encodeURIComponent(
+                          href={`https://wa.me/+918976740895?text=${encodeURIComponent(
                             `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"

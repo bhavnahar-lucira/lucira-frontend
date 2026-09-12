@@ -1471,7 +1471,7 @@ export default function MobileHeader({ menuData }) {
           </div>
 
           <div className="px-4 space-y-1">
-            <a href="https://api.whatsapp.com/send/?phone=%2B917208934782&text=I+want+to+know+more+about+Lucira+Jewelry" target="_blank" className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
+            <a href="https://api.whatsapp.com/send/?phone=%2B918976740895&text=I+want+to+know+more+about+Lucira+Jewelry" target="_blank" className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
               <div className="flex items-center gap-4">
                 <div className="flex items-center justify-center">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">

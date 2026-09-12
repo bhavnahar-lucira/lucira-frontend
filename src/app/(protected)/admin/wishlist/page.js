@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { fetchWishlist, removeWishlistItem } from "@/redux/features/wishlist/wishlistSlice";
 import { addToCart, openCart } from "@/redux/features/cart/cartSlice";
-import { getEstimatedDispatchDate } from "@/lib/utils";
+import { getEstimatedDispatchDate, getShippingDateValue } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { formatSizeLabel } from "@/lib/metal";
 
@@ -193,17 +193,13 @@ export default function WishlistPage() {
         gst: selectedVariant.price_breakup?.gst?.amount || 0,
         finalPrice: selectedVariant.price_breakup?.total || selectedVariant.price,
         diamondTotalPcs: selectedVariant.price_breakup?.diamond?.pcs || 0,
-         shippingDate: (() => {
-           const isInStock = Boolean(selectedVariant?.inStock);
-           const leadTime = parseInt(product?.productMetafields?.lead_time) || 12;
-           const totalDays = isInStock ? 2 : leadTime + 3;
-           const date = new Date();
-           date.setDate(date.getDate() + totalDays);
-           const d = String(date.getDate()).padStart(2, "0");
-           const m = String(date.getMonth() + 1).padStart(2, "0");
-           const y = date.getFullYear();
-           return `${d}/${m}/${y}`;
-         })(),
+         // Placeholder only — the payment page re-stamps this from the same
+         // dispatch config the storefront renders. The hardcoded "+2 days /
+         // lead+3" this replaced agreed with nothing the shopper ever saw.
+         shippingDate: getShippingDateValue(null, {
+           inStock: Boolean(selectedVariant?.inStock),
+           leadTime: product?.productMetafields?.lead_time,
+         }),
 
         hasVideo: Boolean(product.media?.some((m) => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO")),
         hasSimilar: Boolean(product.handle),
