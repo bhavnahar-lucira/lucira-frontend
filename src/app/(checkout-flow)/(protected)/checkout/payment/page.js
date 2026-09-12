@@ -38,7 +38,6 @@ import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
 import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 
-
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
 const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
