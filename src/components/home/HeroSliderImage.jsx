@@ -13,7 +13,9 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-export default function HeroBanner({ initialData = [] }) {
+// `surface` only tags the GA promo-click payload, so the same slider reused on
+// another page does not report itself as the homepage.
+export default function HeroBanner({ initialData = [], surface = "homepage" }) {
   const id = useId().replace(/:/g, "");
   const paginationElClass = `pagination-${id}`;
 
@@ -21,8 +23,8 @@ export default function HeroBanner({ initialData = [] }) {
 
   const handleBannerClick = (slide) => {
     pushPromoClick({
-      creative_name: "homepage banner images clicked",
-      location_id: "homepage",
+      creative_name: `${surface} banner images clicked`,
+      location_id: surface,
       promo_id: slide.alt || slide.name,
       promo_name: slide.name,
     });

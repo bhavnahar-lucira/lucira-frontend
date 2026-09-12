@@ -5,7 +5,9 @@ import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
 import { apiFetch } from "@/lib/api";
 
-export default function BestsellerSection({ initialData }) {
+// `surface` only tags the GA promo-click payload, so a rail reused on another
+// page does not report itself as the homepage. Everything else is unchanged.
+export default function BestsellerSection({ initialData, surface = "homepage" }) {
   const [products, setProducts] = useState(() => initialData?.products || []);
   const [activeTab, setActiveTab] = useState("All");
   const [loading, setLoading] = useState(!initialData);
@@ -70,8 +72,8 @@ export default function BestsellerSection({ initialData }) {
         loading={loading}
         priorityCount={4}
         promoClickMeta={{
-          creative_name: "shop bestseller section homepage",
-          location_id: "homepage",
+          creative_name: `shop bestseller section ${surface}`,
+          location_id: surface,
           promo_id: activeTab,
         }}
       />
