@@ -2,13 +2,14 @@
 // Book Appointment — shared data + pure helpers for /pages/book-an-appointment.
 //
 // Three journeys live on that page and all of them end the same way: verify the
-// shopper's number over OTP, then push one verified lead to the store-footfall
-// webhook. Everything they need that is not React lives here.
+// shopper's number over OTP, then push one verified lead to the book-an-
+// appointment webhook. Everything they need that is not React lives here.
 //
-// The webhook is the SAME endpoint the PDP "Stores Nearby" sticky CTA posts to
-// (see src/components/AtcBar.jsx), so the `name` / `pincode` / `phone` keys are
-// spelled exactly as that form spells them — the sheet behind it already has
-// those columns. Appointment-only fields are added alongside, never renamed.
+// That webhook is this page's own endpoint. It started out sharing the PDP
+// "Stores Nearby" store-footfall endpoint (see src/components/AtcBar.jsx, which
+// still posts there), so the `name` / `pincode` / `phone` keys are still spelled
+// exactly as that form spells them — the sheet behind it has those columns.
+// Appointment-only fields are added alongside, never renamed.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { apiFetch } from "@/lib/api";
@@ -16,7 +17,7 @@ import { calculateDistance } from "@/utils/distance";
 import { handleFromStoreName } from "@/data/stores";
 
 export const APPOINTMENT_WEBHOOK =
-  "https://store-footfall-pdp-forn-385594025448.asia-south1.run.app";
+  "https://book-an-appointment-webhook-385594025448.asia-south1.run.app";
 
 // A store only counts as "nearby" within this radius. Beyond it both the store
 // visit and the try-at-home journeys fall back to the video-call offer, which is
@@ -248,14 +249,14 @@ export function firstBookableDay(days, now = new Date()) {
 /* ─── Lead submission ─────────────────────────────────────────────────────── */
 
 /**
- * Push one OTP-verified appointment to the store-footfall webhook.
+ * Push one OTP-verified appointment to the book-an-appointment webhook.
  *
  * Called only after verify-otp succeeds: the flow doc is explicit that the OTP
  * step exists to keep unverified leads away from the store teams.
  */
 export async function submitAppointmentLead(payload) {
   const body = {
-    // Keys shared with the PDP store-footfall form — do not rename.
+    // Key spelling inherited from the PDP store-footfall form — do not rename.
     name: (payload.name || "").trim(),
     pincode: payload.pincode || "",
     phone: payload.phone || "",
