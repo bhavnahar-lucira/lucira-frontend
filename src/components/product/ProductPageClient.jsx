@@ -48,7 +48,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
-import { formatDispatchMessage } from "@/lib/utils";
+import { cn, formatDispatchMessage } from "@/lib/utils";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import DispatchTooltip from "@/components/common/DispatchTooltip";
 import { formatSizeLabel } from "@/lib/metal";
@@ -169,27 +169,39 @@ function getCookieValue(name) {
 }
 
 const handleSafeScroll = (elementRef) => {
-  if (!elementRef.current) return;
-  const isDesktop = window.innerWidth >= 768;
-  const bodyRect = document.body.getBoundingClientRect().top;
-  const elementRect = elementRef.current.getBoundingClientRect().top;
-  const absoluteElementTop = elementRect - bodyRect;
-  const offset = isDesktop ? 80 : 20;
-  const targetPosition = absoluteElementTop - offset;
+  const el = elementRef?.current;
+  if (!el) return;
+
+  const isDesktop = window.innerWidth >= 1024;
+  let offset = 90;
+
+  if (!isDesktop) {
+    const header = document.querySelector("header");
+    const subHeader = document.getElementById("pdp-sub-header");
+
+    // On mobile PDP, the TopBar (40px) hides when scrolled, so pinned header bottom is ~64px.
+    // If already scrolled past 40px, header.getBoundingClientRect().bottom is the pinned bottom.
+    // Otherwise, subtract 40px (the TopBar height that will scroll away once the page scrolls).
+    const headerBottom = header
+      ? (window.scrollY > 40 ? header.getBoundingClientRect().bottom : Math.max(56, header.offsetHeight - 40))
+      : 64;
+
+    const subHeaderHeight = subHeader?.offsetHeight || 48;
+    // Generous breathing room so section headings are clearly visible below the tab bar
+    const scrollPadding = 28;
+    offset = headerBottom + subHeaderHeight + scrollPadding;
+  } else {
+    const header = document.querySelector("header");
+    const headerBottom = header ? header.getBoundingClientRect().bottom : 80;
+    offset = headerBottom + 24;
+  }
+
+  const targetPosition = el.getBoundingClientRect().top + window.scrollY - offset;
 
   window.scrollTo({
-    top: targetPosition,
+    top: Math.max(0, targetPosition),
     behavior: "smooth",
   });
-
-  if (isDesktop) {
-    setTimeout(() => {
-      window.scrollTo({
-        top: targetPosition,
-        behavior: "smooth",
-      });
-    }, 300);
-  }
 };
 
 // Force en-IN formatting to be consistent across environments
@@ -2180,8 +2192,8 @@ export default function ProductPageClient({
 
   const renderEngravingContent = () => (
     <div className="flex-1 overflow-y-auto">
-      {/* Ring Preview */}
-      <div className="relative w-full aspect-[16/9] bg-[#F9F9F9] flex items-center justify-center overflow-hidden">
+      {/* Ring Preview at the top with realistic metallic depth */}
+      <div className="relative w-full aspect-[16/9] bg-[#FAF8F5] border-b border-[#EBE0D8]/60 flex items-center justify-center overflow-hidden">
         <Image
           src="/images/engraving_bg.jpg"
           alt="Ring band preview"
@@ -2189,54 +2201,40 @@ export default function ProductPageClient({
           className="object-cover"
         />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {engraving && (
+          {engraving ? (
             <div
               style={{
                 fontFamily: `var(--font-${engravingFont.toLowerCase()})`,
-                textShadow: "1px 1px 1.5px rgba(255,255,255,0.8), -0.5px -0.5px 1px rgba(0,0,0,0.15)"
+                textShadow: "0.5px 0.5px 1.5px rgba(255,255,255,0.85), -0.5px -0.5px 1px rgba(0,0,0,0.2)"
               }}
-              className="text-gray-800 text-xl sm:text-2xl tracking-[0.15em] opacity-80 italic -translate-y-9 sm:-translate-y-9"
+              className="text-[#3D3130] text-xl sm:text-2xl tracking-[0.15em] opacity-90 italic -translate-y-9 sm:-translate-y-9 select-none"
             >
               {engraving}
+            </div>
+          ) : (
+            <div className="text-[#5A413F]/35 text-sm sm:text-base italic tracking-widest -translate-y-9 sm:-translate-y-9 select-none font-light">
+              Preview will appear here
             </div>
           )}
         </div>
       </div>
 
-      <div className="p-6 space-y-8">
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-black leading-relaxed">
-            <span className="font-bold text-gray-900">Note:</span> Text can only contain up to 8 English/alphanumeric characters (A-Z, a-z, 0-9) and special characters (heart and infinity).
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <h4 className="text-base font-bold text-gray-900">Choose a Font <span className="text-rose-500">*</span></h4>
-          <div className="grid grid-cols-2 gap-3">
-            {["Lobster", "Yellowtail", "Satisfy", "ABeeZee"].map((font) => (
-              <button
-                key={font}
-                onClick={() => setEngravingFont(font)}
-                className={`px-2 py-3 rounded-sm border text-lg transition-all duration-300 ${engravingFont === font
-                  ? "border-black bg-zinc-900 text-white shadow-md scale-[1.02]"
-                  : "border-gray-200 text-gray-600 hover:border-gray-400 bg-white"
-                  }`}
-              >
-                <span style={{ fontFamily: `var(--font-${font.toLowerCase()})` }} className="text-base">Aa - {font}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
+      <div className="p-5 md:p-6 space-y-6">
+        {/* Inner Engraving (Text Input directly under preview) */}
+        <div className="space-y-2.5">
           <div className="flex justify-between items-center">
-            <h4 className="text-base font-bold text-gray-900">Inner Engraving <span className="text-rose-500">*</span></h4>
-            <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+            <label className="text-sm font-semibold font-figtree text-[#1A1A1A]">
+              Inner Engraving <span className="text-[#5A413F]">*</span>
+            </label>
+            <span className={cn(
+              "text-[11px] font-figtree tracking-wide",
+              engraving.length >= 8 ? "text-amber-600 font-semibold" : "text-gray-400 font-medium"
+            )}>
               {engraving.length}/8 Characters
-            </div>
+            </span>
           </div>
 
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-2.5 items-center">
             <div className="relative flex-1">
               <Input
                 ref={engravingInputRef}
@@ -2244,27 +2242,63 @@ export default function ProductPageClient({
                 maxLength={8}
                 onChange={(e) => setEngraving(e.target.value)}
                 placeholder="Type your text here"
-                className="h-14 border-gray-300 pr-4 text-lg focus-visible:ring-2 rounded-sm"
+                className="h-12 border-zinc-200 focus-visible:border-[#5A413F] focus-visible:ring-1 focus-visible:ring-[#5A413F] pr-4 text-base font-figtree rounded-[6px] transition-colors"
                 style={{ fontFamily: `var(--font-${engravingFont.toLowerCase()})` }}
               />
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-1.5 shrink-0">
               <button
+                type="button"
                 onClick={() => insertSymbol("♥")}
-                className="w-12 h-12 flex items-center justify-center border-2 border-zinc-100 rounded-sm hover:border-black hover:bg-zinc-50 transition-all active:scale-95"
+                className="w-12 h-12 flex items-center justify-center border border-zinc-200 rounded-[6px] hover:border-[#5A413F] hover:bg-[#FAF7F5] text-[#5A413F] transition-all active:scale-95 text-xl font-medium shadow-2xs cursor-pointer"
                 title="Insert Heart"
               >
-                <span className="text-2xl text-black">♥</span>
+                ♥
               </button>
               <button
+                type="button"
                 onClick={() => insertSymbol("∞")}
-                className="w-12 h-12 flex items-center justify-center border-2 border-zinc-100 rounded-sm hover:border-black hover:bg-zinc-50 transition-all active:scale-95"
+                className="w-12 h-12 flex items-center justify-center border border-zinc-200 rounded-[6px] hover:border-[#5A413F] hover:bg-[#FAF7F5] text-[#5A413F] transition-all active:scale-95 text-xl font-medium shadow-2xs cursor-pointer"
                 title="Insert Infinity"
               >
-                <span className="text-2xl text-black">∞</span>
+                ∞
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Choose Font */}
+        <div className="space-y-2.5">
+          <label className="text-sm font-semibold font-figtree text-[#1A1A1A]">
+            Choose a Font <span className="text-[#5A413F]">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2.5">
+            {["Lobster", "Yellowtail", "Satisfy", "ABeeZee"].map((font) => (
+              <button
+                key={font}
+                type="button"
+                onClick={() => setEngravingFont(font)}
+                className={cn(
+                  "h-12 px-3 rounded-[6px] border text-center flex items-center justify-center transition-all duration-200 cursor-pointer",
+                  engravingFont === font
+                    ? "border-[#5A413F] bg-[#FAF7F5] text-[#5A413F] ring-1 ring-[#5A413F] font-semibold shadow-2xs"
+                    : "border-zinc-200 text-gray-700 bg-white hover:border-zinc-300 hover:bg-zinc-50/70"
+                )}
+              >
+                <span style={{ fontFamily: `var(--font-${font.toLowerCase()})` }} className="text-[15px]">
+                  Aa - {font}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Note (Cart & Checkout badge / nudge style) */}
+        <div className="bg-[#FAF7F5] border border-[#EBE0D8] rounded-[8px] p-3 flex items-start gap-2.5">
+          <Info size={15} className="text-[#5A413F] shrink-0 mt-0.5" />
+          <p className="text-[12px] text-[#5A413F]/85 leading-relaxed font-figtree">
+            <span className="font-semibold text-[#5A413F]">Note:</span> Text can only contain up to 8 English/alphanumeric characters (A-Z, a-z, 0-9) and special symbols (♥, ∞).
+          </p>
         </div>
       </div>
     </div>
@@ -2784,21 +2818,21 @@ export default function ProductPageClient({
                     onClose={() => setIsEngravingDrawerOpen(false)}
                     detents={[0.9]}
                   >
-                    <MobileSheet.Container className={`z-[499] ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
+                    <MobileSheet.Container className={`z-[499] bg-white ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
                       <MobileSheet.Header />
                       <MobileSheet.Content>
-                        <div className="flex flex-col h-full">
-                          <div className="flex items-center justify-between px-4 pb-4 border-b border-gray-100">
-                            <h2 className="text-lg font-bold">Engraving</h2>
-                            <button onClick={() => setIsEngravingDrawerOpen(false)} className="p-2">
-                              <X size={20} className="text-gray-400" />
+                        <div className="flex flex-col h-full bg-white">
+                          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                            <h2 className="text-base font-semibold font-figtree text-[#1A1A1A]">Engraving</h2>
+                            <button onClick={() => setIsEngravingDrawerOpen(false)} className="p-1.5 text-gray-400 hover:text-black rounded-full hover:bg-gray-100 transition-colors">
+                              <X size={20} />
                             </button>
                           </div>
                           {renderEngravingContent()}
-                          <div className="p-3 border-t border-gray-100">
+                          <div className="p-4 border-t border-gray-100 bg-white">
                             <Button
                               onClick={handleSaveEngraving}
-                              className="w-full h-12 font-bold rounded-sm bg-tertiary uppercase tracking-wider disabled:opacity-50"
+                              className="w-full h-12 font-figtree font-semibold rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white uppercase tracking-wider disabled:opacity-40 transition-all shadow-sm"
                               disabled={!engraving}
                             >
                               SAVE
@@ -2811,22 +2845,22 @@ export default function ProductPageClient({
                   </MobileSheet>
                 ) : (
                   <Sheet open={isEngravingDrawerOpen} onOpenChange={setIsEngravingDrawerOpen}>
-                    <SheetContent showCloseButton={false} side="right" className={`w-full sm:max-w-[450px] p-0 flex flex-col ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
-                      <SheetHeader className="p-6 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
-                        <SheetTitle className="text-lg font-bold">Engraving</SheetTitle>
+                    <SheetContent showCloseButton={false} side="right" className={`w-full sm:max-w-[450px] p-0 flex flex-col bg-white ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
+                      <SheetHeader className="px-6 py-5 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
+                        <SheetTitle className="text-base font-semibold font-figtree text-[#1A1A1A]">Engraving</SheetTitle>
                         <SheetClose asChild>
-                          <button className="text-zinc-400 hover:text-black transition-colors hover:cursor-pointer p-1">
-                            <X size={22} strokeWidth={1.5} />
+                          <button className="text-zinc-400 hover:text-black transition-colors hover:cursor-pointer p-1.5 rounded-full hover:bg-gray-100">
+                            <X size={20} />
                           </button>
                         </SheetClose>
                       </SheetHeader>
 
                       {renderEngravingContent()}
 
-                      <div className="p-6 border-t border-gray-100">
+                      <div className="p-6 border-t border-gray-100 bg-white">
                         <Button
                           onClick={handleSaveEngraving}
-                          className="w-full h-12 font-bold rounded-sm bg-tertiary uppercase tracking-wider disabled:opacity-50"
+                          className="w-full h-12 font-figtree font-semibold rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white uppercase tracking-wider disabled:opacity-40 transition-all shadow-sm"
                           disabled={!engraving}
                         >
                           SAVE
@@ -2837,8 +2871,8 @@ export default function ProductPageClient({
                 )}
 
                 {savedEngraving.text && (
-                  <div className="mt-3 flex items-center gap-2 text-primary font-semibold text-sm bg-primary/5 w-fit px-3 py-1.5 rounded-full border border-primary/10">
-                    <Check size={14} />
+                  <div className="mt-3 flex items-center gap-2 text-[#5A413F] font-semibold text-sm bg-[#FAF7F5] w-fit px-3.5 py-1.5 rounded-full border border-[#EBE0D8]">
+                    <Check size={14} className="text-[#5A413F]" />
                     Engraving Saved:
                     <span style={{ fontFamily: `var(--font-${savedEngraving.font.toLowerCase()})` }} className="ml-1 text-base underline decoration-dotted">
                       {savedEngraving.text}
@@ -2848,7 +2882,8 @@ export default function ProductPageClient({
                         setSavedEngraving({ text: "", font: "" });
                         setEngraving("");
                       }}
-                      className="ml-2 p-1 hover:bg-primary/10 rounded-sm transition-colors"
+                      className="ml-2 p-1 hover:bg-[#5A413F]/10 rounded-full transition-colors text-[#5A413F]/70 hover:text-[#5A413F]"
+                      title="Remove Engraving"
                     >
                       <X size={12} />
                     </button>
@@ -3860,9 +3895,8 @@ export default function ProductPageClient({
                 })()}
               </div>
 
-              <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
-
-              <div ref={productDetailsRef} className="mt-8">
+              <div ref={productDetailsRef} className="mt-6">
+                <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider">Price &amp; Savings Details:</h2>
                 <PriceSavingsDetails
                   priceBreakup={augmentedPriceBreakup}
                   onTabChange={(tab) => {

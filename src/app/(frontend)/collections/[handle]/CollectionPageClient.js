@@ -1135,13 +1135,29 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
           if (dbData.success) setDbCollection(dbData.collection);
         } catch (e) { }
       } catch (err) {
-        if (err?.name === "AbortError") return;
+        const isAbort =
+          err?.name === "AbortError" ||
+          err?.code === 20 ||
+          controller.signal.aborted ||
+          cancelled ||
+          String(err?.message || "").toLowerCase().includes("abort");
+        if (isAbort) return;
         console.error("Failed to fetch initial data:", err);
       } finally {
         if (!cancelled) setProductsLoading(false);
       }
     }
-    fetchData();
+    fetchData().catch((err) => {
+      const isAbort =
+        err?.name === "AbortError" ||
+        err?.code === 20 ||
+        controller.signal.aborted ||
+        cancelled ||
+        String(err?.message || "").toLowerCase().includes("abort");
+      if (!isAbort) {
+        console.error("Unhandled error in collection fetchData:", err);
+      }
+    });
     return () => { cancelled = true; controller.abort(); };
   }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
 
