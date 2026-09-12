@@ -26,7 +26,7 @@ import {
   completeRazorpayPayment,
   createRazorpayOrder,
 } from "@/lib/api";
-import { getCookie } from "@/lib/utils";
+import { getCookie, getShippingDateValue } from "@/lib/utils";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
@@ -36,6 +36,7 @@ import { calculateCouponDiscount } from "@/lib/coupons";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
 import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
+import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -279,6 +280,26 @@ export default function PaymentPage() {
   const checkoutItems = useMemo(() => {
     return items || [];
   }, [items]);
+
+  const { config: dispatchConfig } = useDispatchInfo();
+
+  /* The order's `_Shipping Date` is stamped here, not at add-to-cart: the cart
+     line the shopper is reading recomputes its date on every render, so a
+     snapshot taken hours (or days) earlier lands on the order as a dispatch
+     date the storefront never showed — same-day after the cutoff has passed,
+     or a date already in the past. Same inputs as CartItem, build-your-own
+     included: those are always made to order whatever the variant flag says. */
+  const stampShippingDates = useCallback(
+    (list) =>
+      list.map((item) => ({
+        ...item,
+        shippingDate: getShippingDateValue(dispatchConfig, {
+          inStock: Boolean(item.inStock) && !item.properties?.["_byj_preview"],
+          leadTime: item.leadTime,
+        }),
+      })),
+    [dispatchConfig]
+  );
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -578,7 +599,7 @@ export default function PaymentPage() {
         userId: user?.id || "",
         context: process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront',
         sessionId: getCartSessionId(),
-        items: checkoutItems,
+        items: stampShippingDates(checkoutItems),
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
@@ -745,7 +766,7 @@ export default function PaymentPage() {
               } : null,
               nectorPoints: nectorPoints, // Pass points for completion attributes
               paymentMethod: order.paymentMethod || paymentMethodDetails,
-              cartItems: checkoutItems, // Pass items explicitly as fallback for backend
+              cartItems: stampShippingDates(checkoutItems), // Pass items explicitly as fallback for backend
               gclid: getCookie("gclid") || "",
               utm: getStoredUtms(),
             }, accessToken);

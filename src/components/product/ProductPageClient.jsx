@@ -48,7 +48,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
-import { formatDispatchMessage } from "@/lib/utils";
+import { formatDispatchMessage, getShippingDateValue } from "@/lib/utils";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import DispatchTooltip from "@/components/common/DispatchTooltip";
 import { formatSizeLabel } from "@/lib/metal";
@@ -1444,22 +1444,13 @@ export default function ProductPageClient({
         engravingText: savedEngraving.text,
         engravingFont: savedEngraving.font,
         giftText: giftText,
-        shippingDate: (() => {
-          // Same date the shopper just read on the page, so the cart line and
-          // the order record can't drift from it. Fixed DD/MM/YYYY here —
-          // this is a data field, not display copy, so the dashboard's
-          // dateFormat deliberately doesn't apply.
-          const isInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
-          const { date } = formatDispatchMessage(dispatchConfig, {
-            inStock: isInStock,
-            leadTime: product?.productMetafields?.lead_time,
-            allowTimer: false,
-          });
-          const d = String(date.getUTCDate()).padStart(2, "0");
-          const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-          const y = date.getUTCFullYear();
-          return `${d}/${m}/${y}`;
-        })(),
+        // Same date the shopper just read on the page. Only a placeholder for
+        // the order record though — the payment page re-stamps it, because by
+        // the time this cart is paid for the cutoff may long have passed.
+        shippingDate: getShippingDateValue(dispatchConfig, {
+          inStock: activeVariant?.inStock === true || activeVariant?.inStock === "true",
+          leadTime: product?.productMetafields?.lead_time,
+        }),
         goldPricePerGram: raw?.raw_breakup?.metal?.rate_per_gram || 0,
         goldWeight: raw?.raw_breakup?.metal?.weight || parseFloat(fallbackWeight),
         goldPrice: raw?.raw_breakup?.metal?.cost || 0,
