@@ -68,7 +68,7 @@ export const STORE_PAGE_DEFAULTS = {
         "call": "tel:+919004436052",
         "appointment": "",
         "designs": "/collections/malad",
-        "whatsapp": "https://api.whatsapp.com/send?phone=+917208934782&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Head%20Office%20and%20explore%20the%20designs.",
+        "whatsapp": "https://api.whatsapp.com/send?phone=+918976740895&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Head%20Office%20and%20explore%20the%20designs.",
         "directions": "/collections/malad"
       },
       "facilities": [],
@@ -146,9 +146,9 @@ export const STORE_PAGE_DEFAULTS = {
       "links": {
         "map": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+JM+Road+Pune/@18.5233058,73.8452878,17z/data=!3m1!4b1!4m6!3m5!1s0x3bc2c1929b1639f7:0x7d0f5ff74de52a8d!8m2!3d18.5233007!4d73.8478627!16s%2Fg%2F11ylpdz9dm?coh=277534&entry=tts&g_ep=EgoyMDI1MTIwOS4wIPu8ASoKLDEwMDc5MjA3MUgBUAM%3D&skid=daaa869f-0b7a-43cd-bcdf-3c35f206de47",
         "call": "tel:+918433667236",
-        "appointment": "https://wa.me/+917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Pune%20Store",
+        "appointment": "https://wa.me/+918976740895?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Pune%20Store",
         "designs": "/collections/pune-store",
-        "whatsapp": "https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+        "whatsapp": "https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Pune+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
         "directions": "https://www.lucirajewelry.com/collections/pune-store"
       },
       "facilities": [
@@ -234,9 +234,9 @@ export const STORE_PAGE_DEFAULTS = {
       "links": {
         "map": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Chembur+Mumbai/@19.0576005,72.898121,17z/data=!3m1!4b1!4m6!3m5!1s0x3be7c782f7511b79:0xaa877f3bbd754bfc!8m2!3d19.0575954!4d72.9006959!16s%2Fg%2F11xtgz09vw?coh=277534&entry=tts&g_ep=EgoyMDI1MTIwOS4wIPu8ASoKLDEwMDc5MjA3MUgBUAM%3D&skid=24407d76-c38a-4e0f-9635-b44cee4c4b31",
         "call": "tel:+919004402038",
-        "appointment": "https://wa.me/+917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Chembur%20Store",
+        "appointment": "https://wa.me/+918976740895?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Chembur%20Store",
         "designs": "/collections/chembur-store",
-        "whatsapp": "https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+        "whatsapp": "https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Chembur+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
         "directions": "/collections/chembur-store"
       },
       "facilities": [
@@ -320,9 +320,9 @@ export const STORE_PAGE_DEFAULTS = {
       "links": {
         "map": "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewelry+Store+in+Borivali+Mumbai/@19.2226624,72.8617494,621m/data=!3m2!1e3!4b1!4m6!3m5!1s0x3be7b13efc944429:0x8e0b915ac78ac1!8m2!3d19.2226574!4d72.8643243!16s%2Fg%2F11ytqp4xsk?hl=en&entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D",
         "call": "tel:+918433667238",
-        "appointment": "https://wa.me/+917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Borivali%20Store",
+        "appointment": "https://wa.me/+918976740895?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Borivali%20Store",
         "designs": "/collections/sky-city-borivali-store",
-        "whatsapp": "https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+        "whatsapp": "https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Borivali+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
         "directions": "/collections/sky-city-borivali-store"
       },
       "facilities": [
@@ -406,9 +406,9 @@ export const STORE_PAGE_DEFAULTS = {
       "links": {
         "map": "https://maps.google.com/?q=Noida+Lucira+Store",
         "call": "tel:+918657392887",
-        "appointment": "https://wa.me/+917208934782?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Noida%20Store",
+        "appointment": "https://wa.me/+918976740895?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Noida%20Store",
         "designs": "/collections/noida-store",
-        "whatsapp": "https://api.whatsapp.com/send?phone=+917208934782&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Noida%20Store%20and%20explore%20the%20designs.",
+        "whatsapp": "https://api.whatsapp.com/send?phone=+918976740895&text=Hi%2C%20I%E2%80%99d%20like%20to%20visit%20the%20Noida%20Store%20and%20explore%20the%20designs.",
         "directions": "https://www.lucirajewelry.com/collections/noida-store"
       },
       "facilities": [
@@ -496,7 +496,7 @@ export const STORE_PAGE_DEFAULTS = {
         "call": "tel:+917208007494",
         "appointment": "https://wa.me/917208007494?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Paschim%20Vihar%20Store",
         "designs": "/collections/paschim-vihar",
-        "whatsapp": "https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Paschim+Vihar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+        "whatsapp": "https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Paschim+Vihar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
         "directions": "https://www.lucirajewelry.com/collections/paschim-vihar"
       },
       "facilities": [
@@ -583,7 +583,7 @@ export const STORE_PAGE_DEFAULTS = {
         "call": "tel:+917208007495",
         "appointment": "https://wa.me/917208007495?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Lajpat%20Nagar%20Store",
         "designs": "/collections/lajpat-nagar-store",
-        "whatsapp": "https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Lajpat+Nagar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
+        "whatsapp": "https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I%E2%80%99d+like+to+visit+the+Lajpat+Nagar+Lucira+store+and+explore+the+designs.&type=phone_number&app_absent=0",
         "directions": "https://www.lucirajewelry.com/collections/lajpat-nagar-store"
       },
       "facilities": [
