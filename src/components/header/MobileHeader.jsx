@@ -1150,13 +1150,26 @@ export default function MobileHeader({ menuData }) {
           </Link>
         )}
         <Accordion type="multiple" className="w-full" defaultValue={activeItem.columns?.map((_, i) => `item-${i}`)}>
-          {activeItem.columns?.map((col, idx) => (
+          {activeItem.columns?.map((col, idx) => {
+            // transformMenuData types any column it can't read as "text" as an
+            // icon grid. When none of the items actually carry an icon — the
+            // Solitaires > Education blog links, for instance — that grid
+            // renders a row of empty 80x80 tiles, so fall back to the text
+            // layout. Same reasoning as the `featured` block below, which only
+            // draws its thumbnail when there is one.
+            const hasAnyIcon = (col.items || []).some(
+              (i) => i.menuIcon || i.megaMenuImage || i.icon
+            );
+            const colType =
+              col.type === "icon" && !hasAnyIcon ? "text" : col.type;
+
+            return (
             <AccordionItem key={idx} value={`item-${idx}`} className="border-none">
               <AccordionTrigger className="text-sm font-semibold capitalize font-figtree tracking-widest hover:no-underline py-4">
                 {col.title}
               </AccordionTrigger>
               <AccordionContent>
-                {(col.type === "icon" || col.type === "metal") && (
+                {(colType === "icon" || colType === "metal") && (
                   <div className="grid grid-cols-3 gap-y-6 gap-x-2 pt-2">
                     {col.items.map((item, i) => {
                       const titleLower = col.title.toLowerCase();
@@ -1210,7 +1223,7 @@ export default function MobileHeader({ menuData }) {
                     })}
                   </div>
                 )}
-                {col.type === "text" && (
+                {colType === "text" && (
                   <div className="grid grid-cols-2 gap-2 pt-2">
                     {col.items.map((item, i) => (
                       <Link
@@ -1227,7 +1240,8 @@ export default function MobileHeader({ menuData }) {
                 )}
               </AccordionContent>
             </AccordionItem>
-          ))}
+            );
+          })}
 
           {activeItem.featured && (Array.isArray(activeItem.featured) ? activeItem.featured.length > 0 : activeItem.featured.items?.length > 0) && (
             <>
