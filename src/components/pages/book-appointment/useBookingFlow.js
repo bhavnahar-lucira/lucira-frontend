@@ -30,6 +30,7 @@ import { mergeCart } from "@/redux/features/cart/cartSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { apiFetch, sendOtpApi, verifyOtpApi, registerCustomer } from "@/lib/api";
 import { submitAppointmentLead } from "@/lib/bookAppointment";
+import { pushAppointmentConfirmed } from "@/lib/gtm";
 
 /**
  * Reduce any stored phone shape to the bare 10 digits the forms use.
@@ -44,6 +45,19 @@ export function localPhone(value) {
 }
 
 const newSessionId = () => `session_${Math.random().toString(36).substring(2, 15)}`;
+
+/** The booking, in the flat shape the GTM/Meta tags read. */
+const appointmentEventData = (payload = {}) => ({
+  appointment_type: payload.appointmentType || "",
+  store_name: payload.storeName || "",
+  appointment_date: payload.appointmentDate || "",
+  appointment_time: payload.appointmentTime || "",
+  purpose_of_visit: payload.purpose || "",
+  product_categories: (payload.categories || []).join(", "),
+  pincode: payload.pincode || "",
+  phone: payload.phone || "",
+  email: (payload.email || "").trim(),
+});
 
 export function useBookingFlow() {
   const dispatch = useDispatch();
@@ -113,6 +127,9 @@ export function useBookingFlow() {
   // A webhook that fails must not strand a shopper who did everything right:
   // the booking is confirmed either way and the failure is logged, not surfaced.
   const sendLead = React.useCallback(async (payload) => {
+    // Fired before the webhook, not after: the shopper's booking is confirmed
+    // whether or not the webhook answers, so the event must not hang on it.
+    pushAppointmentConfirmed(appointmentEventData(payload));
     try {
       await submitAppointmentLead(payload);
     } catch (err) {

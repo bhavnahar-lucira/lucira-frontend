@@ -34,7 +34,7 @@ import {
   savedPincode,
   APPOINTMENT_TYPES,
 } from "@/lib/bookAppointment";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, pushAppointmentInitiated } from "@/lib/gtm";
 
 export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall }) {
   const [step, setStep] = React.useState("idle");
@@ -71,6 +71,10 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
   }
 
   const start = () => {
+    pushAppointmentInitiated({
+      appointment_type: APPOINTMENT_TYPES.visitStore,
+      appointment_label: card.title,
+    });
     pushPromoClick({
       creative_name: "book appointment store visit started",
       location_id: "book-an-appointment",

@@ -31,7 +31,7 @@ import {
   APPOINTMENT_TYPES,
   PRODUCT_CATEGORIES,
 } from "@/lib/bookAppointment";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, pushAppointmentInitiated } from "@/lib/gtm";
 
 export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall }) {
   const [step, setStep] = React.useState("idle");
@@ -64,6 +64,10 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
   const skipsOtp = flow.isVerifiedNumber(phone);
 
   const start = () => {
+    pushAppointmentInitiated({
+      appointment_type: APPOINTMENT_TYPES.tryAtHome,
+      appointment_label: card.title,
+    });
     pushPromoClick({
       creative_name: "book appointment try at home started",
       location_id: "book-an-appointment",

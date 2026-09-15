@@ -10,7 +10,7 @@ import React from "react";
 import { CardShell, PrimaryButton, PhoneField, OtpStep, SuccessStep, VerifiedNote } from "./parts";
 import { useBookingFlow } from "./useBookingFlow";
 import { APPOINTMENT_TYPES } from "@/lib/bookAppointment";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, pushAppointmentInitiated } from "@/lib/gtm";
 
 export default function VideoCallCard({ card, open, fillHeight, onOpen, onClose }) {
   const [step, setStep] = React.useState("idle");
@@ -34,6 +34,10 @@ export default function VideoCallCard({ card, open, fillHeight, onOpen, onClose 
   const skipsOtp = flow.isVerifiedNumber(phone);
 
   const start = () => {
+    pushAppointmentInitiated({
+      appointment_type: APPOINTMENT_TYPES.videoCall,
+      appointment_label: card.title,
+    });
     pushPromoClick({
       creative_name: "book appointment video call started",
       location_id: "book-an-appointment",
