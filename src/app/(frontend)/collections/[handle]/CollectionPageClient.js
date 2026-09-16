@@ -170,9 +170,13 @@ const scrollToTop = () => {
 const ORDERED_VIEW_CACHE = new Map();
 const MAX_CACHED_VIEWS = 8;
 
-// How long the first paint may wait for a known pincode's store ranking before
-// giving up and showing the default order anyway (see awaitingPincodeOrder below).
-const PINCODE_ORDER_WAIT_TIMEOUT_MS = 900;
+// How long the first paint may wait for a known pincode's store-ordered page
+// before giving up and showing the default order anyway (see
+// awaitingPincodeOrder below). This is a last resort for a dead network or a
+// backend outage, NOT the expected path: a warm store-ordered response is a few
+// hundred ms and a cold one is well under this, so the shopper sees skeletons
+// and then the correct order — never the default order followed by a reshuffle.
+const PINCODE_ORDER_WAIT_TIMEOUT_MS = 4000;
 
 function rememberView(key, value) {
   if (!key) return;
@@ -631,7 +635,16 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const [trueMinPrice, setTrueMinPrice] = useState(null);
   const [trueMaxPrice, setTrueMaxPrice] = useState(null);
 
+  // Two extra collection requests just to learn the slider's min/max. They used
+  // to fire at mount, in parallel with the critical products request, competing
+  // with it for the same backend/Shopify budget. Nothing on screen needs them
+  // until the shopper opens the price filter, so they now wait for the grid to
+  // paint. Runs once per collection handle.
+  const trueBoundsHandleRef = useRef(null);
   useEffect(() => {
+    if (productsLoading) return;
+    if (trueBoundsHandleRef.current === handle) return;
+    trueBoundsHandleRef.current = handle;
     let isMounted = true;
     async function fetchTrueBounds() {
       try {
@@ -656,7 +669,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     }
     fetchTrueBounds();
     return () => { isMounted = false; };
-  }, [handle]);
+  }, [handle, productsLoading]);
 
   const [absolutePrice, setAbsolutePrice] = useState({ min: null, max: null });
 
@@ -859,9 +872,21 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
         // 1. Fetch base mappings directly from Shopify GraphQL via /api/collection
         // This avoids the EXPO proxy at /api/products/filters which returns incompatible Location GIDs
-        const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`);
-        const baseSortedData = processFilters(baseData.filters || {});
-        if (cancelled) return;
+        //
+        // Only needed when the URL carries a filter to translate. On a plain
+        // landing (the common case, and the store-ordered first paint) it was a
+        // full extra round trip — ~1.5s cold — serialised AHEAD of the products
+        // request, for a mapping that then went unused. The products response
+        // carries its own facets, so nothing else depends on this call.
+        const needsBaseMappings = Array.from(searchParams.keys()).some(
+          (k) => !["sort", "cursor", "limit", "q", "page"].includes(k)
+        );
+        let baseSortedData = {};
+        if (needsBaseMappings) {
+          const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`);
+          baseSortedData = processFilters(baseData.filters || {});
+          if (cancelled) return;
+        }
 
         // 2. Map the URL parameters to native Shopify input payloads using the base mappings
         const activeFilters = getActiveFiltersForShopify(searchParams, baseSortedData);
@@ -903,6 +928,16 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         } catch (e) { }
       } catch (err) {
         console.error("Failed to fetch initial data:", err);
+        // The store-ordered first paint starts from an EMPTY grid (see
+        // awaitingPincodeOrder). If that fetch fails, fall back to the build-time
+        // order rather than leaving the shopper with nothing.
+        if (!cancelled) {
+          setProducts((prev) =>
+            prev.length > 0
+              ? prev
+              : (initialData?.collData?.products || []).filter((p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden"))
+          );
+        }
       } finally {
         if (!cancelled) setProductsLoading(false);
       }
@@ -1477,9 +1512,6 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
           )}
 
-          {awaitingPincodeOrderAtMount && productsLoading && products.length === 0 && (
-            <p className="mt-4 font-figtree text-xs text-[#696969]">Sorting products by your nearest store…</p>
-          )}
           <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : gridItems}
           </div>
