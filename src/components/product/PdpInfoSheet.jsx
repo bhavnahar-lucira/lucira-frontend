@@ -390,7 +390,7 @@ const PdpInfoSheet = ({ type, isOpen, onOpenChange }) => {
                 </h2>
                 <button
                   onClick={() => onOpenChange(false)}
-                  className="rounded-full transition-colors bg-white/80 hover:bg-white text-zinc-700 shadow-2xs flex items-center justify-center"
+                  className="rounded-full transition-colors bg-white/80 hover:bg-white text-zinc-700 shadow-2xs flex items-center justify-center cursor-pointer"
                   style={{ padding: "4px" }}
                 >
                   <X size={18} />
@@ -426,7 +426,7 @@ const PdpInfoSheet = ({ type, isOpen, onOpenChange }) => {
               {getTitle()}
             </SheetTitle>
             <SheetClose
-              className="rounded-full transition-colors bg-white/80 hover:bg-white text-zinc-700 shadow-2xs flex items-center justify-center"
+              className="rounded-full transition-colors bg-white/80 hover:bg-white text-zinc-700 shadow-2xs flex items-center justify-center cursor-pointer"
               style={{ padding: "4px" }}
             >
               <X size={18} />
