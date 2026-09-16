@@ -136,7 +136,13 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [activeVariant?.id, activeVariant?.shopifyId, activeColor]);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(0, 0);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(0);
+    }
+  }, [activeVariant?.id, activeVariant?.shopifyId, activeColor, mainSwiper, thumbsSwiper]);
 
   const sortedMedia = useMemo(() => {
     if (!media || media.length === 0) return [];
@@ -294,11 +300,31 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
+      if (mainSwiper && !mainSwiper.destroyed) {
+        if (mainSwiper.activeIndex !== currentIndex) {
+          mainSwiper.slideTo(currentIndex, 0);
+        }
+        mainSwiper.update();
+      }
+      if (thumbsSwiper && !thumbsSwiper.destroyed) {
+        thumbsSwiper.slideTo(currentIndex);
+        thumbsSwiper.update();
+      }
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isLightboxOpen]);
+  }, [isLightboxOpen, currentIndex, mainSwiper, thumbsSwiper]);
+
+  // Keep mainSwiper and thumbsSwiper in sync with currentIndex (e.g. after lightbox navigation)
+  useEffect(() => {
+    if (mainSwiper && !mainSwiper.destroyed && mainSwiper.activeIndex !== currentIndex) {
+      mainSwiper.slideTo(currentIndex, isLightboxOpen ? 0 : 300);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(currentIndex);
+    }
+  }, [currentIndex, isLightboxOpen, mainSwiper, thumbsSwiper]);
 
   useEffect(() => {
     if (sortedMedia.length > 0) {
@@ -312,14 +338,40 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     setIsLightboxOpen(true);
   };
 
+  const closeLightbox = () => {
+    setIsLightboxOpen(false);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(currentIndex, 0);
+      mainSwiper.update();
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(currentIndex);
+      thumbsSwiper.update();
+    }
+  };
+
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % sortedMedia.length);
+    const nextIdx = (currentIndex + 1) % sortedMedia.length;
+    setCurrentIndex(nextIdx);
     setZoomLevel(1);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(nextIdx, 0);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(nextIdx);
+    }
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + sortedMedia.length) % sortedMedia.length);
+    const prevIdx = (currentIndex - 1 + sortedMedia.length) % sortedMedia.length;
+    setCurrentIndex(prevIdx);
     setZoomLevel(1);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(prevIdx, 0);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(prevIdx);
+    }
   };
 
   const initialPinchDistance = useRef(null);
@@ -403,7 +455,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isLightboxOpen) return;
-      if (e.key === "Escape") setIsLightboxOpen(false);
+      if (e.key === "Escape") closeLightbox();
       if (e.key === "ArrowRight") nextSlide();
       if (e.key === "ArrowLeft") prevSlide();
     };
@@ -817,7 +869,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   {zoomLevel === 1 ? <ZoomIn size={24} /> : <ZoomOut size={24} />}
                 </button>
                 <button 
-                  onClick={() => setIsLightboxOpen(false)}
+                  onClick={closeLightbox}
                   className="hover:text-gray-300 transition-colors p-1"
                 >
                   <X size={36} strokeWidth={1.5} />
