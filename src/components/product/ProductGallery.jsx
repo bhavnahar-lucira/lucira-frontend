@@ -558,7 +558,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   <div className="w-full h-full relative">
                     {isVideo ? (
                       <video 
-                        poster={item.preview || null}
+                        poster={item.previewImage?.url || item.preview || null}
                         autoPlay 
                         muted 
                         loop 
@@ -734,7 +734,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     >
                       {isVideo ? (
                         <div className="w-full h-full relative rounded-[6px] overflow-hidden">
-                          <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
+                          <LazyImage src={item.previewImage?.url || item.preview || item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/15">
                             <div className="w-6 h-6 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center shadow-sm">
                               <Play size={10} className="fill-zinc-900 text-zinc-900 ml-0.5" />
