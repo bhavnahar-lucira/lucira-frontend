@@ -161,7 +161,10 @@ export async function fetchStoresForPincode(pincode) {
     apiFetch(`/api/pincodes/check?pincode=${pincode}`, { suppressErrorLog: true }),
   ]);
 
-  const allStores = storesRes.status === "fulfilled" ? storesRes.value?.stores || [] : [];
+  // Head office is not a walk-in store — never offer it for visits or home trials.
+  const allStores = (storesRes.status === "fulfilled" ? storesRes.value?.stores || [] : []).filter(
+    (s) => !/divinecarat|head\s*office/i.test(s.name || ""),
+  );
   if (!allStores.length) return { stores: [], coords: null };
 
   const pinData = pinRes.status === "fulfilled" ? pinRes.value?.data : null;
