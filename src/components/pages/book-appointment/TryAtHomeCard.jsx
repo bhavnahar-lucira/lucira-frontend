@@ -5,9 +5,9 @@
 // Home trials are run out of a store, so this journey is pincode-gated: if no
 // store sits within the nearby radius the service simply is not available there
 // and the honest move is to offer the video call instead of taking a booking we
-// cannot honour. Where it IS available the form is deliberately short — phone
-// is the only required field, categories are optional — because an executive
-// calls back to collect the rest.
+// cannot honour. Where it IS available the form asks for the day and slot the
+// shopper wants the trial, plus their number; categories are optional because
+// an executive calls back to collect the rest.
 
 import React from "react";
 import {
@@ -21,7 +21,8 @@ import {
   SuccessStep,
   VerifiedNote,
 } from "./parts";
-import { useBookingFlow } from "./useBookingFlow";
+import DateTimePicker, { useSlotPicker } from "./DateTimePicker";
+import { useBookingFlow, appointmentPromoDetails } from "./useBookingFlow";
 import {
   fetchStoresForPincode,
   nearestStoreWithin,
@@ -42,7 +43,9 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
 
   const [phone, setPhone] = React.useState("");
   const [phoneError, setPhoneError] = React.useState("");
+  const [slotError, setSlotError] = React.useState("");
   const [categories, setCategories] = React.useState([]);
+  const picker = useSlotPicker();
   const flow = useBookingFlow();
 
   // Derived from the `open` prop during render — see the note in VideoCallCard.
@@ -52,8 +55,10 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
     setStep(open ? "pincode" : "idle");
     setPincodeError("");
     setPhoneError("");
+    setSlotError("");
     setPincode(open ? savedPincode() : "");
     setPhone(open ? flow.account.phone : "");
+    picker.reset();
     if (!open) {
       setStore(null);
       setCategories([]);
@@ -88,6 +93,9 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
       const { stores } = await fetchStoresForPincode(value);
       const nearest = nearestStoreWithin(stores);
       setStore(nearest);
+      // A fresh `now` for the picker: the shopper may have sat on the pincode
+      // step long enough for the earliest slot to have gone.
+      if (nearest) picker.reset();
       setStep(nearest ? "available" : "unavailable");
       pushPromoClick({
         creative_name: nearest
@@ -112,31 +120,35 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
     name: flow.account.name,
     email: flow.account.email,
     storeName: store ? storeLabel(store) : "",
+    ...picker.selection,
   });
 
-  const booked = () => {
+  const booked = (lead) => {
     pushPromoClick({
       creative_name: "book appointment try at home booked",
       location_id: "book-an-appointment",
       promo_id: pincode,
       promo_name: store ? storeLabel(store) : "",
+      ...appointmentPromoDetails(lead),
     });
     setStep("success");
   };
 
   const submit = async () => {
-    if (phone.length !== 10) {
-      setPhoneError("Enter a valid 10-digit mobile number.");
-      return;
-    }
-    setPhoneError("");
-    const next = await flow.begin(phone, payload());
+    const missingSlot = !picker.selection;
+    const badPhone = phone.length !== 10;
+    setSlotError(missingSlot ? "Please pick a time slot." : "");
+    setPhoneError(badPhone ? "Enter a valid 10-digit mobile number." : "");
+    if (missingSlot || badPhone) return;
+    const lead = payload();
+    const next = await flow.begin(phone, lead);
     if (next === "otp") setStep("otp");
-    else if (next === "booked") booked();
+    else if (next === "booked") booked(lead);
   };
 
   const verify = async (code) => {
-    if (await flow.confirm(phone, code, payload())) booked();
+    const lead = payload();
+    if (await flow.confirm(phone, code, lead)) booked(lead);
   };
 
   const backToPincode = () => {
@@ -180,6 +192,7 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
             </p>
           </div>
           <PincodeChip pincode={pincode} onChange={backToPincode} />
+          <DateTimePicker picker={picker} error={slotError} onChange={() => setSlotError("")} />
           <PhoneField value={phone} onChange={setPhone} error={phoneError || flow.error} />
           <CategoryPicker selected={categories} onChange={setCategories} options={PRODUCT_CATEGORIES} />
           {skipsOtp && <VerifiedNote name={flow.account.name} />}
@@ -202,7 +215,7 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
 
       {step === "success" && (
         <SuccessStep
-          message="Our executive will get in touch to get further details."
+          message={`Your home trial is scheduled for ${picker.selection?.appointmentDateLabel} at ${picker.selection?.appointmentTime}. Our executive will get in touch to confirm the details.`}
           ctaLabel="Browse Products"
           ctaHref={storeCollectionUrl(store)}
         />

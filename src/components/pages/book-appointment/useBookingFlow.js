@@ -59,6 +59,19 @@ const appointmentEventData = (payload = {}) => ({
   email: (payload.email || "").trim(),
 });
 
+/**
+ * The booking details every "… booked" promoClick carries alongside its
+ * creative/promo keys. Deliberately no phone or email: promoClick feeds GA4,
+ * which does not allow PII — those live on appointment_confirmed only.
+ */
+export const appointmentPromoDetails = (payload = {}) => ({
+  appointment_type: payload.appointmentType || "",
+  appointment_date: payload.appointmentDate || "",
+  appointment_time: payload.appointmentTime || "",
+  purpose_of_visit: payload.purpose || "",
+  product_categories: (payload.categories || []).join(", "),
+});
+
 export function useBookingFlow() {
   const dispatch = useDispatch();
   const { user, isAuthenticated } = useAuth();
