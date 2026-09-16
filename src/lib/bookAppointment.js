@@ -249,6 +249,37 @@ export function firstBookableDay(days, now = new Date()) {
   return days.find((d) => slots.some((s) => isSlotAvailable(d, s, now))) || days[0];
 }
 
+// Every slot is an IST wall-clock time — the stores, the executives and the
+// video-call desk all run on it — so the instant is pinned to IST rather than
+// to whatever timezone the shopper's browser happens to be in.
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/**
+ * The slot's start as an ISO-8601 instant (`YYYY-MM-DDTHH:MM:SS.000Z`), the
+ * shape the webhook and the dataLayer carry it in. 12:00 PM IST on 17 Sep 2026
+ * becomes `2026-09-17T06:30:00.000Z`.
+ */
+export function slotDateTime(day, slot) {
+  if (!day?.date || !slot) return "";
+  const d = day.date;
+  const utc = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), slot.hour, 0, 0, 0);
+  return new Date(utc - IST_OFFSET_MS).toISOString();
+}
+
+/**
+ * The chosen slot in the three spellings the flow needs: the ISO instant for
+ * the webhook/dataLayer, the slot label for humans, and the day label for the
+ * confirmation message.
+ */
+export function slotSelection(day, slot) {
+  if (!day || !slot) return null;
+  return {
+    appointmentDate: slotDateTime(day, slot),
+    appointmentTime: slot.label,
+    appointmentDateLabel: day.label,
+  };
+}
+
 /* ─── Lead submission ─────────────────────────────────────────────────────── */
 
 /**
@@ -271,6 +302,8 @@ export async function submitAppointmentLead(payload) {
     email: (payload.email || "").trim(),
     store_name: payload.storeName || "",
     store_address: payload.storeAddress || "",
+    // The slot start as an ISO instant (see slotDateTime) plus the IST label
+    // the shopper actually picked, so the sheet stays readable at a glance.
     appointment_date: payload.appointmentDate || "",
     appointment_time: payload.appointmentTime || "",
     purpose_of_visit: payload.purpose || "",

@@ -23,7 +23,7 @@ import {
 } from "./parts";
 import StoresDrawer from "./StoresDrawer";
 import BookingSummaryDrawer from "./BookingSummaryDrawer";
-import { useBookingFlow } from "./useBookingFlow";
+import { useBookingFlow, appointmentPromoDetails } from "./useBookingFlow";
 import {
   fetchStoresForPincode,
   nearestStoreWithin,
@@ -138,12 +138,16 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
     appointmentTime: values.appointmentTime,
   });
 
-  const booked = () => {
+  // Takes the submitted values rather than reading `details` state: this runs
+  // after an await, so the closure's `details` could still be the previous one.
+  const booked = (values) => {
     pushPromoClick({
       creative_name: "book appointment store visit booked",
       location_id: "book-an-appointment",
       promo_id: pincode,
       promo_name: storeLabel(store),
+      store_address: storeAddress(store),
+      ...appointmentPromoDetails(payloadFor(values)),
     });
     setSummaryOpen(false);
     setStep("success");
@@ -159,13 +163,13 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
         setSummaryOpen(false);
         setStep("otp");
       } else if (next === "booked") {
-        booked();
+        booked(values);
       }
     })();
   };
 
   const verify = async (code) => {
-    if (await flow.confirm(details.phone, code, payloadFor(details))) booked();
+    if (await flow.confirm(details.phone, code, payloadFor(details))) booked(details);
   };
 
   return (
@@ -232,7 +236,7 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
 
         {step === "success" && (
           <SuccessStep
-            message={`We are waiting to see you at our ${storeLabel(store)} on ${details?.appointmentDate} at ${details?.appointmentTime}. You can browse the products available in the store.`}
+            message={`We are waiting to see you at our ${storeLabel(store)} on ${details?.appointmentDateLabel} at ${details?.appointmentTime}. You can browse the products available in the store.`}
             ctaLabel="Browse Store Products"
             ctaHref={storeCollectionUrl(store)}
           />
