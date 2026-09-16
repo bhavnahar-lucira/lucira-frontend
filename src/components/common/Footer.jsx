@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   Mail,
   Phone,
+  Clock,
   Facebook,
   Instagram,
   Youtube,
@@ -57,27 +58,39 @@ export default function Footer() {
                 <AccordionContent className="pb-6">
                   <div className="space-y-4 font-figtree">
                     <div className="flex items-center gap-3">
-                      <Mail size={18} className="text-white/70" />
-                      <a href="mailto:care@lucirajewelry.com" className="text-sm">care@lucirajewelry.com</a>
+                      <Mail size={18} className="text-white/70 shrink-0" />
+                      <a href="mailto:sales@lucirajewelry.com" className="text-sm">sales@lucirajewelry.com</a>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Phone size={18} className="text-white/70" />
+                      <Phone size={18} className="text-white/70 shrink-0" />
                       <a href="tel:+919004436052" className="text-sm">+91 9004436052</a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock size={18} className="text-white/70 shrink-0" />
+                      <span className="text-sm text-white">10 AM - 9 PM</span>
                     </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
 
-              {/* CUSTOMER CARE */}
+              {/* CUSTOMER SERVICE */}
               <AccordionItem value="customer-care" className="border-b border-white/10">
                 <AccordionTrigger className="py-5 font-abhaya text-lg font-bold hover:no-underline">
-                  Customer Care
+                  Customer Service
                 </AccordionTrigger>
                 <AccordionContent className="pb-6">
                   <div className="space-y-4 font-figtree">
                     <div className="flex items-center gap-3">
-                      <Phone size={18} className="text-white/70" />
-                      <a href="tel:+917208934784" className="text-sm">+91 7208934784</a>
+                      <Mail size={18} className="text-white/70 shrink-0" />
+                      <a href="mailto:care@lucirajewelry.com" className="text-sm">care@lucirajewelry.com</a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Phone size={18} className="text-white/70 shrink-0" />
+                      <a href="tel:+917208934784" className="text-sm">+91 72089 34784</a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock size={18} className="text-white/70 shrink-0" />
+                      <span className="text-sm text-white">10 AM - 7 PM</span>
                     </div>
                   </div>
                 </AccordionContent>
@@ -327,22 +340,35 @@ export default function Footer() {
 
               <div className="space-y-2.5 text-sm text-white font-figtree">
                 <div className="flex items-center gap-2">
-                  <Mail size={16} />
-                  <a href="mailto:care@lucirajewelry.com" target="_blank">care@lucirajewelry.com</a>
+                  <Mail size={16} className="shrink-0" />
+                  <a href="mailto:sales@lucirajewelry.com" target="_blank">sales@lucirajewelry.com</a>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Phone size={16} />
-                  <a href="tel:+91 9004436052" target="_blank">+91 9004436052</a>
+                  <Phone size={16} className="shrink-0" />
+                  <a href="tel:+919004436052" target="_blank">+91 9004436052</a>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="shrink-0" />
+                  <span>10 AM - 9 PM</span>
                 </div>
               </div>
 
               <div className="mt-8">
-                <h4 className="mb-4 text-lg font-extrabold font-abhaya">Customer Care</h4>
+                <h4 className="mb-4 text-lg font-extrabold font-abhaya">Customer Service</h4>
                 <div className="space-y-2.5 text-sm text-white font-figtree">
                   <div className="flex items-center gap-2">
-                    <Phone size={16} />
-                    <a href="tel:+917208934784" target="_blank">+91 7208934784</a>
+                    <Mail size={16} className="shrink-0" />
+                    <a href="mailto:care@lucirajewelry.com" target="_blank">care@lucirajewelry.com</a>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone size={16} className="shrink-0" />
+                    <a href="tel:+917208934784" target="_blank">+91 72089 34784</a>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="shrink-0" />
+                    <span>10 AM - 7 PM</span>
                   </div>
                 </div>
               </div>

@@ -1088,8 +1088,12 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
           try {
             collData = await promise;
           } catch (e) {
-            collData = await apiFetch(apiUrl, { signal: controller.signal });
+            collData = null;
           }
+          // prefetchFilter swallows its own failures into null, so a failed
+          // prefetch lands here as a resolved null rather than a rejection —
+          // without this the null falls through to collData.filters and throws.
+          if (!collData) collData = await apiFetch(apiUrl, { signal: controller.signal });
         } else {
           collData = await apiFetch(apiUrl, { signal: controller.signal });
         }
@@ -1135,13 +1139,10 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
           if (dbData.success) setDbCollection(dbData.collection);
         } catch (e) { }
       } catch (err) {
-        const isAbort =
-          err?.name === "AbortError" ||
-          err?.code === 20 ||
-          controller.signal.aborted ||
-          cancelled ||
-          String(err?.message || "").toLowerCase().includes("abort");
-        if (isAbort) return;
+        // Ask the signal, not the error: an aborted fetch can surface as a
+        // DOMException, a wrapped Error, or the raw abort reason depending on
+        // the runtime, and name-matching misses the ones that are not "AbortError".
+        if (controller.signal.aborted || err?.name === "AbortError") return;
         console.error("Failed to fetch initial data:", err);
       } finally {
         if (!cancelled) setProductsLoading(false);

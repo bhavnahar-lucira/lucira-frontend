@@ -293,6 +293,18 @@ export const pushBeginCheckout = (checkoutData) => {
 export const pushAddShippingInfo = (shippingData) => pushEventModel("add_shipping_info", shippingData);
 export const pushAddPaymentInfo = (paymentData) => pushEventModel("add_payment_info", paymentData);
 
+// Book Appointment funnel. Two points only: the shopper opens one of the three
+// journeys (initiated) and the booking is locked in (confirmed). Both are one
+// event across all three cards — `appointment_type` (video_call / visit_store /
+// try_at_home) says which, so GTM needs one tag per event, not one per card.
+// The confirmed push sits on the shared lead path, so OTP and already-verified
+// journeys both fire it exactly once.
+// Map these to Meta's InitiateCheckout/Lead tags in GTM.
+export const pushAppointmentInitiated = (data) =>
+  pushToDataLayer({ event: "appointment_initiated", appointment: data });
+export const pushAppointmentConfirmed = (data) =>
+  pushToDataLayer({ event: "appointment_confirmed", appointment: data });
+
 export const pushPurchase = (purchaseData) => pushEventModel("purchase", purchaseData);
 export const pushPaymentFailure = (failureData) => pushEcommerceEvent("Payment failure", failureData);
 

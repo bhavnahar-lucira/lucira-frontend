@@ -53,7 +53,13 @@ const FAQ_ITEMS = [
   }
 ];
 
-export default function HomeFAQSection() {
+// `title` and `items` default to the homepage copy above, so another page can
+// reuse this exact section with its own questions — see
+// /pages/book-an-appointment.
+export default function HomeFAQSection({
+  title = "Your Questions Answered",
+  items = FAQ_ITEMS,
+}) {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
@@ -67,12 +73,12 @@ export default function HomeFAQSection() {
         <div>
 
           <h2 className="text-28px font-bold mb-6 text-black">
-            Your Questions Answered
+            {title}
           </h2>
 
           <div className="w-full">
 
-            {FAQ_ITEMS.map((faq, index) => {
+            {items.map((faq, index) => {
               const isOpen = openIndex === index;
 
               return (
