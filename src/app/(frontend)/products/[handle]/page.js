@@ -34,6 +34,10 @@ const PRODUCT_QUERY = `
         edges {
           node {
             mediaContentType
+            previewImage {
+              url
+              altText
+            }
             ... on MediaImage {
               image {
                 url
@@ -42,6 +46,10 @@ const PRODUCT_QUERY = `
             }
             ... on Video {
               alt
+              previewImage {
+                url
+                altText
+              }
               sources {
                 url
                 mimeType
@@ -50,6 +58,10 @@ const PRODUCT_QUERY = `
             }
             ... on ExternalVideo {
               alt
+              previewImage {
+                url
+                altText
+              }
               embedUrl
               host
             }
@@ -503,17 +515,19 @@ async function getProduct(handle) {
         type: "VIDEO",
         url: m.sources?.[0]?.url,
         mimeType: m.sources?.[0]?.mimeType,
-        preview: product.featuredImage?.url,
+        preview: m.previewImage?.url || product.featuredImage?.url,
+        previewImage: m.previewImage,
         sources: m.sources,
-        alt: m.alt || product.title
+        alt: m.alt || m.previewImage?.altText || product.title
       };
     } else if (m.mediaContentType === "EXTERNAL_VIDEO") {
         return {
           type: "EXTERNAL_VIDEO",
           url: m.embedUrl,
           host: m.host,
-          preview: product.featuredImage?.url,
-          alt: m.alt || product.title
+          preview: m.previewImage?.url || product.featuredImage?.url,
+          previewImage: m.previewImage,
+          alt: m.alt || m.previewImage?.altText || product.title
         };
     }
     return null;

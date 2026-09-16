@@ -1148,7 +1148,17 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         if (!cancelled) setProductsLoading(false);
       }
     }
-    fetchData();
+    fetchData().catch((err) => {
+      const isAbort =
+        err?.name === "AbortError" ||
+        err?.code === 20 ||
+        controller.signal.aborted ||
+        cancelled ||
+        String(err?.message || "").toLowerCase().includes("abort");
+      if (!isAbort) {
+        console.error("Unhandled error in collection fetchData:", err);
+      }
+    });
     return () => { cancelled = true; controller.abort(); };
   }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
 
