@@ -48,7 +48,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
-import { formatDispatchMessage, getShippingDateValue } from "@/lib/utils";
+import { cn, formatDispatchMessage, getShippingDateValue } from "@/lib/utils";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import DispatchTooltip from "@/components/common/DispatchTooltip";
 import { formatSizeLabel } from "@/lib/metal";
