@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { pushPurchase } from "@/lib/gtm";
@@ -18,17 +18,23 @@ export default function SuccessPage() {
 
   const orderName = searchParams.get("orderName");
   const [isVerifying, setIsVerifying] = useState(true);
+  const admittedRef = useRef(false);
 
   useEffect(() => {
     // 1. Read purchase data stored from Payment Page
     const storedData = window.localStorage.getItem("gtm_purchase_data");
 
-    // If we have neither the tracking data nor the order name parameter, redirect.
-    // If we have orderName, we allow the page to stay (for persistence).
-    if (!storedData && !orderName) {
+    // Direct-access guard. It deliberately does not re-run once a visit has been
+    // admitted: this effect deletes gtm_purchase_data below, so a second run
+    // (StrictMode double-invoke in dev, or any remount) finds nothing and would
+    // send a customer who just paid to the homepage. Arriving without an
+    // orderName is normal — the Razorpay webhook can finalize the order before
+    // the browser's /complete call has a name to return.
+    if (!admittedRef.current && !storedData && !orderName) {
       router.replace("/");
       return;
     }
+    admittedRef.current = true;
 
     if (storedData) {
       try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { pushPaymentFailure } from "@/lib/gtm";
@@ -9,14 +9,24 @@ import { trackPaymentFailed as trackSearchPaymentFailed } from "@/lib/searchAnal
 export default function FailurePage() {
   const router = useRouter();
   const [isVerifying, setIsVerifying] = useState(true);
+  const admittedRef = useRef(false);
 
   useEffect(() => {
     // 1. Read failure data stored from Payment Page
     const storedData = window.localStorage.getItem("gtm_payment_failure_data");
     
-    if (!storedData) {
-      // Prevent direct access - redirect to home
+    // Prevent direct access. Checked once per visit: the effect clears
+    // gtm_payment_failure_data below, so re-running it (StrictMode double-invoke
+    // in dev, or any remount) would find nothing and bounce the shopper to the
+    // homepage instead of telling them the payment failed.
+    if (!admittedRef.current && !storedData) {
       router.replace("/");
+      return;
+    }
+    admittedRef.current = true;
+
+    if (!storedData) {
+      setIsVerifying(false);
       return;
     }
 
