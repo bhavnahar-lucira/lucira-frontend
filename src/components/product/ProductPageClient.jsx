@@ -793,29 +793,7 @@ export default function ProductPageClient({
     message: "",
     coords: null
   });
-
-  useEffect(() => {
-    if (
-      globalPincode &&
-      !localPincode
-    ) {
-      setLocalPincode(globalPincode);
-    }
-  }, [globalPincode]);
-
-  useEffect(() => {
-    const savedPincode = String(
-      getCookieValue(USER_PINCODE_COOKIE) || ""
-    )
-      .replace(/\D/g, "")
-      .slice(0, 6);
-
-    if (savedPincode) {
-      setLocalPincode(savedPincode);
-
-      dispatch(setPincode(savedPincode));
-    }
-  }, [dispatch]);
+  const checkedPincodeRef = useRef("");
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -848,10 +826,12 @@ export default function ProductPageClient({
     ).trim();
 
     if (pincodeToCheck.length !== 6) {
-      if (pincodeToCheck) toast.error("Please enter a valid 6-digit pincode");
+      if (pincodeToCheck && !isAutomatic) toast.error("Please enter a valid 6-digit pincode");
       return;
     }
 
+    checkedPincodeRef.current = pincodeToCheck;
+    setLocalPincode(pincodeToCheck);
     setCheckingPincode(true);
     setDeliveryInfo({ status: "loading", message: "Checking..." });
 
@@ -892,14 +872,15 @@ export default function ProductPageClient({
     } catch (err) {
       console.error("Pincode check error:", err);
       setDeliveryInfo({ status: "idle", message: "" });
-      // Don't show toast on initial mount load
-      if (typeof val !== 'string') toast.error("Error checking pincode. Please try again.");
+      // Don't show toast on initial mount load or automatic checks
+      if (typeof val !== 'string' && !isAutomatic) toast.error("Error checking pincode. Please try again.");
     } finally {
       setCheckingPincode(false);
     }
   }, [localPincode, calculateDispatchDate, dispatch]);
 
   const resetPincodeState = useCallback(() => {
+    checkedPincodeRef.current = "";
     setLocalPincode("");
     setConfirmedPincode("");
     setDeliveryInfo({ status: "idle", message: "", coords: null });
@@ -927,6 +908,7 @@ export default function ProductPageClient({
 
           setLocalPincode(detectedPincode);
           dispatch(setPincode(detectedPincode));
+          checkedPincodeRef.current = detectedPincode;
 
           // GTM tracking — mirrors the Shopify "Locate Me Clicked" promoClick
           // event fired on a successful reverse-geocode lookup.
@@ -973,32 +955,44 @@ export default function ProductPageClient({
     );
   }, [dispatch, handlePincodeCheck]);
 
-  // Initial check for persisted pincode - ONLY ON MOUNT
+  // Auto-check persisted or initial pincode (from cookie or Redux store)
   useEffect(() => {
-    if (globalPincode && globalPincode.length === 6) {
-      handlePincodeCheck(globalPincode, true);
-    }
-    // We only want this to run once when the page loads
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const savedPincode = String(
+      getCookieValue(USER_PINCODE_COOKIE) || ""
+    )
+      .replace(/\D/g, "")
+      .slice(0, 6);
 
+    const autoPincode = savedPincode.length === 6
+      ? savedPincode
+      : (globalPincode && String(globalPincode).replace(/\D/g, "").slice(0, 6));
+
+    if (autoPincode && autoPincode.length === 6) {
+      setLocalPincode(autoPincode);
+      dispatch(setPincode(autoPincode));
+      if (checkedPincodeRef.current !== autoPincode) {
+        checkedPincodeRef.current = autoPincode;
+        handlePincodeCheck(autoPincode, true);
+      }
+    }
+  }, [dispatch, globalPincode, handlePincodeCheck]);
+
+  // Listen for live broadcast updates (e.g. Geolocation in VisitorTracking or header pincode changes)
   useEffect(() => {
-    const applyPincode = (value) => {
-      const cookiePincode = String(value || "")
+    const handleUserPincode = (event) => {
+      const eventPincode = String(event.detail?.pincode || "")
         .replace(/\D/g, "")
         .slice(0, 6);
 
-      if (cookiePincode === localPincode) return;
-
-      setLocalPincode(cookiePincode);
-
-      if (cookiePincode.length === 6) {
-        handlePincodeCheck(cookiePincode);
+      if (eventPincode.length === 6) {
+        setLocalPincode(eventPincode);
+        if (checkedPincodeRef.current !== eventPincode) {
+          checkedPincodeRef.current = eventPincode;
+          handlePincodeCheck(eventPincode, true);
+        }
+      } else if (!eventPincode) {
+        resetPincodeState();
       }
-    };
-
-    const handleUserPincode = (event) => {
-      applyPincode(event.detail?.pincode);
     };
 
     window.addEventListener(
@@ -1011,7 +1005,7 @@ export default function ProductPageClient({
         "lucira:user-pincode",
         handleUserPincode
       );
-  }, [handlePincodeCheck, localPincode]);
+  }, [handlePincodeCheck, resetPincodeState]);
 
   // Update dispatch message when variant changes (size/color)
   useEffect(() => {
@@ -4073,6 +4067,8 @@ export default function ProductPageClient({
           availableStores={availableStores}
           product={product}
           activeVariant={activeVariant}
+          hasConfirmedPincode={hasConfirmedPincode}
+          resetPincodeState={resetPincodeState}
         />
       ) : (
         <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
