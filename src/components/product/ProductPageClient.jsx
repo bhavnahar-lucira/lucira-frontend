@@ -2564,7 +2564,7 @@ export default function ProductPageClient({
                   currentComparePrice={formatPrice(currentComparePrice)}
                 />
 
-                {availableSizes.length > 0 && availableSizes[0] !== null && availableSizes[0] !== undefined && (
+                {availableSizes.length > 0 && availableSizes[0] !== null && availableSizes[0] !== undefined && availableSizes.some(s => s && s !== "Default Title" && s !== "NA" && s !== "-") && (
                   <p className="text-sm text-black font-medium">Didn&apos;t get the size right? We&apos;ll exchange it.</p>
                 )}
 

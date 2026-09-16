@@ -73,25 +73,33 @@ export function ProductCustomizerMobile({
     return (aMetalIdx === -1 ? 99 : aMetalIdx) - (bMetalIdx === -1 ? 99 : bMetalIdx);
   });
 
+  const hasSizeVariations = Boolean(
+    availableSizes &&
+    availableSizes.length > 0 &&
+    availableSizes[0] !== null &&
+    availableSizes[0] !== undefined &&
+    availableSizes.some((s) => s && s !== "Default Title" && s !== "NA" && s !== "-")
+  );
+
   // There is something to pick only when more than one metal combination or
   // more than one real size exists. Gates the header, the CTA and the box's
   // click area alike.
-  const canCustomize =
-    combinations.length > 1 ||
-    (availableSizes.length > 1 && availableSizes[0] !== null && availableSizes[0] !== undefined);
+  const canCustomize = combinations.length > 1 || hasSizeVariations;
 
   return (
     <div className="space-y-4 mt-4 lg:hidden">
       {canCustomize && (
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">
-            SIZE & CUSTOMIZATION
+            {hasSizeVariations ? "SIZE & CUSTOMIZATION" : "CUSTOMIZATION"}
           </h3>
-          <SizeGuideMobile product={product} nearestStore={nearestStore} availableStores={availableStores} availableStoreCount={availableStoreCount} deliveryInfo={deliveryInfo} getStoreDisplayName={getStoreDisplayName}>
-            <button className="text-sm font-medium text-[#A67C7C] hover:cursor-pointer">
-              Size Guide
-            </button>
-          </SizeGuideMobile>
+          {hasSizeVariations && (
+            <SizeGuideMobile product={product} nearestStore={nearestStore} availableStores={availableStores} availableStoreCount={availableStoreCount} deliveryInfo={deliveryInfo} getStoreDisplayName={getStoreDisplayName}>
+              <button className="text-sm font-medium text-[#A67C7C] hover:cursor-pointer">
+                Size Guide
+              </button>
+            </SizeGuideMobile>
+          )}
         </div>
       )}
 
@@ -118,7 +126,7 @@ export function ProductCustomizerMobile({
               {activeKarat} {activeColor?.includes("-") ? activeColor.replace(" Gold", "") : activeColor}
             </span>
           </div>
-          {selectedSize && (
+          {hasSizeVariations && selectedSize && (
             <>
               <div className="w-px h-4 bg-gray-300"></div>
               <div className="text-sm font-medium text-gray-900">
@@ -199,10 +207,8 @@ export function ProductCustomizerMobile({
                     </div>
                   )}
 
-                  {/* Ring Size */}
-                  {availableSizes.length > 0 &&
-                    availableSizes[0] !== null &&
-                    availableSizes[0] !== undefined && (
+                  {/* Size Selection */}
+                  {hasSizeVariations && (
                       <div className="space-y-4 pb-4">
                         <div className="flex justify-between items-center">
                           <h4 className="text-sm font-bold uppercase tracking-wider">
