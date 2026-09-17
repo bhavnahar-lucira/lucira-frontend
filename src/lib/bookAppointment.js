@@ -319,6 +319,10 @@ export async function submitAppointmentLead(payload) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    // The caller does not wait for this (see useBookingFlow's `complete`), so
+    // the request has to be allowed to outlive the page if the shopper closes
+    // the tab on the success screen.
+    keepalive: true,
   });
   return res.ok;
 }

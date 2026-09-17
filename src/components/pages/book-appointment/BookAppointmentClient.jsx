@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // /pages/book-an-appointment
 //
-// One landing page for all three ways to book: a video call, a store visit, or
+// One landing page for all three ways to book: a store visit, a video call, or
 // a home trial. The copy and card treatment come from the homepage "More Ways
 // To Explore" section (src/components/home/WaysToExplore.jsx) — the difference
 // here is that the CTAs open real, OTP-verified booking flows in place of the
@@ -16,22 +16,22 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import VideoCallCard from "./VideoCallCard";
 import VisitStoreCard from "./VisitStoreCard";
+import VideoCallCard from "./VideoCallCard";
 import TryAtHomeCard from "./TryAtHomeCard";
 
 const CARDS = {
-  video: {
-    title: "Virtual Shop",
-    desc: "Shop live over video call, view designs up close, compare pieces, and get expert guidance.",
-    cta: "Book Video Call",
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_VirtualTryOn.jpg",
-  },
   store: {
     title: "Visit Our Store",
     desc: "Explore and try your favorite designs in person, with expert guidance from our in-store team.",
     cta: "Book Store Visit",
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_LuciraStore.jpg",
+  },
+  video: {
+    title: "Virtual Shop",
+    desc: "Shop live over video call, view designs up close, compare pieces, and get expert guidance.",
+    cta: "Book Video Call",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_VirtualTryOn.jpg",
   },
   home: {
     title: "Try At Home",
@@ -94,13 +94,6 @@ export default function BookAppointmentClient() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
-          <VideoCallCard
-            card={CARDS.video}
-            open={active === "video"}
-            fillHeight={!anyOpen}
-            onOpen={() => setActive("video")}
-            onClose={close}
-          />
           <VisitStoreCard
             card={CARDS.store}
             open={active === "store"}
@@ -108,6 +101,13 @@ export default function BookAppointmentClient() {
             onOpen={() => setActive("store")}
             onClose={close}
             onBookVideoCall={switchToVideoCall}
+          />
+          <VideoCallCard
+            card={CARDS.video}
+            open={active === "video"}
+            fillHeight={!anyOpen}
+            onOpen={() => setActive("video")}
+            onClose={close}
           />
           <TryAtHomeCard
             card={CARDS.home}

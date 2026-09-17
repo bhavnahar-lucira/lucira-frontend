@@ -19,7 +19,8 @@
 //      PDP coupon unlock and checkout auth use, tagged so these leads are
 //      identifiable.
 //
-// The lead webhook fires once, at the end of whichever path was taken.
+// The lead webhook fires once, from `complete`, which the card calls when it is
+// about to show the success state — never from `begin` or `confirm`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from "react";
@@ -106,9 +107,12 @@ export function useBookingFlow() {
   );
 
   // Bring the newly verified customer into the session the same way every other
-  // OTP surface on the site does. None of it is allowed to fail the booking.
+  // OTP surface on the site does. None of it is allowed to fail the booking —
+  // or to delay it: only the login dispatch is awaited, because only it changes
+  // what the shopper sees next. The avatar, cart and wishlist round-trips run in
+  // the background, so a slow merge cannot hold the confirmation screen back.
   const establishSession = React.useCallback(
-    async (data) => {
+    (data) => {
       const customer = data?.user || data?.customer;
       if (!customer || !data?.accessToken) return;
       try {
@@ -117,45 +121,54 @@ export function useBookingFlow() {
         console.error("[book-appointment] session dispatch failed", err);
         return;
       }
-      try {
-        const av = await apiFetch("/api/customer/profile/avatar");
-        if (av?.avatar) dispatch(setAvatar(av.avatar));
-      } catch {
-        /* avatar is cosmetic */
-      }
-      try {
-        await dispatch(mergeCart({ userId: customer.id })).unwrap();
-      } catch (err) {
-        console.error("[book-appointment] cart merge failed", err);
-      }
-      try {
-        await dispatch(mergeGuestWishlist()).unwrap();
-      } catch (err) {
-        console.error("[book-appointment] wishlist merge failed", err);
-      }
+      apiFetch("/api/customer/profile/avatar")
+        .then((av) => {
+          if (av?.avatar) dispatch(setAvatar(av.avatar));
+        })
+        .catch(() => {
+          /* avatar is cosmetic */
+        });
+      dispatch(mergeCart({ userId: customer.id }))
+        .unwrap()
+        .catch((err) => console.error("[book-appointment] cart merge failed", err));
+      dispatch(mergeGuestWishlist())
+        .unwrap()
+        .catch((err) => console.error("[book-appointment] wishlist merge failed", err));
     },
     [dispatch]
   );
 
-  // A webhook that fails must not strand a shopper who did everything right:
-  // the booking is confirmed either way and the failure is logged, not surfaced.
-  const sendLead = React.useCallback(async (payload) => {
-    // Fired before the webhook, not after: the shopper's booking is confirmed
-    // whether or not the webhook answers, so the event must not hang on it.
+  /**
+   * Record the booking: fire the confirmation event, then the lead webhook.
+   *
+   * Deliberately NOT called from `begin` or `confirm`. Those two can resolve
+   * after the shopper has already backed out of the flow, and a booking that
+   * reaches the store team while the shopper is looking at a collapsed card —
+   * with no confirmation, no slot on screen and no promoClick — is worse than
+   * no booking at all. The card calls this once it knows it is still on screen
+   * and is about to show the success state.
+   *
+   * Returns synchronously, and deliberately does not await the webhook. The
+   * booking is settled the moment this is called — the shopper has verified,
+   * they are still on screen, and nothing about the confirmation depends on
+   * what the webhook answers, since a failure is logged rather than surfaced.
+   * Awaiting it only bought a frozen button for the length of the round-trip.
+   * `keepalive` on the request keeps it alive if the tab closes meanwhile.
+   */
+  const complete = React.useCallback((payload) => {
     pushAppointmentConfirmed(appointmentEventData(payload));
-    try {
-      await submitAppointmentLead(payload);
-    } catch (err) {
+    submitAppointmentLead(payload).catch((err) => {
       console.error("[book-appointment] lead webhook failed", err);
-    }
+    });
   }, []);
 
   /**
-   * Start the submit. Returns "booked" when the shopper was already verified and
-   * the lead has gone out, "otp" when a code is on its way, or "error".
+   * Start the submit. Returns "verified" when the number needs no OTP (the
+   * caller records the booking itself), "otp" when a code is on its way, or
+   * "error".
    */
   const begin = React.useCallback(
-    async (phone, payload) => {
+    async (phone) => {
       setError("");
       if (localPhone(phone).length !== 10) {
         setError("Enter a valid 10-digit mobile number.");
@@ -163,10 +176,7 @@ export function useBookingFlow() {
       }
       setSending(true);
       try {
-        if (isVerifiedNumber(phone)) {
-          await sendLead({ ...payload, verifiedVia: "session" });
-          return "booked";
-        }
+        if (isVerifiedNumber(phone)) return "verified";
         await sendOtpApi(phone);
         return "otp";
       } catch (err) {
@@ -176,10 +186,10 @@ export function useBookingFlow() {
         setSending(false);
       }
     },
-    [isVerifiedNumber, sendLead]
+    [isVerifiedNumber]
   );
 
-  /** Verify the code, register the customer if there is not one yet, send lead. */
+  /** Verify the code and register the customer if there is not one yet. */
   const confirm = React.useCallback(
     async (phone, code, payload) => {
       setError("");
@@ -215,20 +225,19 @@ export function useBookingFlow() {
             tags: "book-appointment-lead",
           });
           if (created?.status === "REGISTER_SUCCESS" || created?.status === "SUCCESS") {
-            await establishSession(created);
+            establishSession(created);
           }
         } else if (result?.status === "LOGIN" || result?.status === "SUCCESS") {
-          await establishSession(result);
+          establishSession(result);
         }
       } catch (err) {
         console.error("[book-appointment] customer create/sign-in failed", err);
       }
 
-      await sendLead({ ...payload, verifiedVia: "otp" });
       setVerifying(false);
       return true;
     },
-    [establishSession, sendLead]
+    [establishSession]
   );
 
   const resend = React.useCallback(async (phone) => {
@@ -242,5 +251,16 @@ export function useBookingFlow() {
     }
   }, []);
 
-  return { account, isVerifiedNumber, begin, confirm, resend, sending, verifying, error, setError };
+  return {
+    account,
+    isVerifiedNumber,
+    begin,
+    confirm,
+    complete,
+    resend,
+    sending,
+    verifying,
+    error,
+    setError,
+  };
 }
