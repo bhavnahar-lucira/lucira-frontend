@@ -96,23 +96,44 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const galleryRef = React.useRef(null);
   const [stickyTop, setStickyTop] = useState("5rem");
   
+  const isVariantInStock = useMemo(() => {
+    if (activeVariant) {
+      return (
+        activeVariant.inStock === true ||
+        activeVariant.inStock === "true" ||
+        (typeof activeVariant.inventoryQuantity === "number" && activeVariant.inventoryQuantity > 0)
+      );
+    }
+    const firstVariant = product?.variants?.[0];
+    if (firstVariant) {
+      return (
+        firstVariant.inStock === true ||
+        firstVariant.inStock === "true" ||
+        (typeof firstVariant.inventoryQuantity === "number" && firstVariant.inventoryQuantity > 0)
+      );
+    }
+    return Boolean(product?.inStock);
+  }, [activeVariant, product?.variants, product?.inStock]);
+
   const displayLabels = useMemo(() => {
-    const tags = Array.isArray(product.tags) ? product.tags : [];
+    const tags = Array.isArray(product?.tags)
+      ? product.tags
+      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
     const lowerTags = tags.map(t => String(t).toLowerCase());
 
-
-
     const labels = [];
-    if (product.label) labels.push(product.label);
+    if (product?.label) labels.push(product.label);
 
-    // Priority order: Fast Shipping > Best Seller > New Arrival > Trending
-    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Faster Delivery");
-    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller"))) labels.push("Best Seller");
+    const hasFastShipping = lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"));
+
+    // Priority order: Fast Shipping (only when in stock) > Best Seller > New Arrival > Trending
+    if (hasFastShipping && isVariantInStock) labels.push("Faster Delivery");
+    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || String(product?.productMetafields?.bestsellers || "").toLowerCase() === "bestseller") labels.push("Best Seller");
     if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product.label, product.tags]);
+  }, [product?.label, product?.tags, product?.productMetafields?.bestsellers, isVariantInStock]);
 
   const isOnlyPendant = useMemo(() => {
     const tags = Array.isArray(product?.tags)

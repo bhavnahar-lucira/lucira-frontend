@@ -381,21 +381,40 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     return Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100);
   }, [displayPrice, displayComparePrice]);
 
+  const isVariantInStock = useMemo(() => {
+    if (currentVariant) {
+      return (
+        currentVariant.inStock === true ||
+        currentVariant.inStock === "true" ||
+        (currentVariant.inventoryQuantity !== undefined && currentVariant.inventoryQuantity > 0)
+      );
+    }
+    if (product?.variants && product.variants.length > 0) {
+      return product.variants.some(
+        (v) => v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && v.inventoryQuantity > 0)
+      );
+    }
+    return Boolean(product?.inStock);
+  }, [currentVariant, product?.variants, product?.inStock]);
+
   const displayLabels = useMemo(() => {
-    const tags = Array.isArray(product.tags) ? product.tags : [];
+    const tags = Array.isArray(product?.tags)
+      ? product.tags
+      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
     const lowerTags = tags.map(t => String(t).toLowerCase());
 
     const labels = [];
-    if (product.label) labels.push(product.label);
-    const bestsellerMeta = String(product.productMetafields?.bestsellers || "").toLowerCase();
+    if (product?.label) labels.push(product.label);
+    const bestsellerMeta = String(product?.productMetafields?.bestsellers || "").toLowerCase();
 
-    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Faster Delivery");
+    const hasFastShipping = lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"));
+    if (hasFastShipping && isVariantInStock) labels.push("Faster Delivery");
     if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
-    if (lowerTags.some(t => t.includes("new arrival") || t === "new")) labels.push("New Arrival");
+    if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product.label, product.tags, product.productMetafields?.bestsellers]);
+  }, [product?.label, product?.tags, product?.productMetafields?.bestsellers, isVariantInStock]);
 
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
   // The label we just rotated away from — it lifts out while the next one rises in.
