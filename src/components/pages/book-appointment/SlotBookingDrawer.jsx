@@ -1,38 +1,37 @@
 "use client";
 
-// "Booking Summary" — the store visit drawer: which store, which day, which
-// slot, and who is coming. The day/slot picker itself is shared with the
-// video-call and try-at-home cards (see DateTimePicker).
+// The booking drawer behind Virtual Shop and Try At Home.
+//
+// Both journeys ask for the same thing — who is booking, a day, a slot and a
+// number (plus, for a home trial, the categories to bring) — so they share one
+// surface, and it is the same SideDrawer the store visit already uses: a
+// right-hand panel on desktop, a bottom sheet on mobile. The card behind it
+// stays on its own step; the OTP and success states still render there, the way
+// the flow doc draws it.
 
 import React from "react";
-import { Store as StoreIcon, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 import SideDrawer from "./SideDrawer";
 import DateTimePicker, { SectionLabel, useSlotPicker } from "./DateTimePicker";
 import {
   PrimaryButton,
   TextField,
   PhoneField,
-  SelectField,
   CategoryPicker,
   SecureNote,
   VerifiedNote,
 } from "./parts";
-import {
-  storeLabel,
-  storeAddress,
-  formatDistance,
-  PRODUCT_CATEGORIES,
-  VISIT_PURPOSES,
-} from "@/lib/bookAppointment";
+import { PRODUCT_CATEGORIES } from "@/lib/bookAppointment";
 
-export default function BookingSummaryDrawer({
+export default function SlotBookingDrawer({
   open,
   onClose,
-  store,
+  title,
+  intro,
   account,
   isVerifiedNumber,
+  showCategories = false,
   initial,
-  onChangeStore,
   onSubmit,
   submitting,
   error,
@@ -42,27 +41,25 @@ export default function BookingSummaryDrawer({
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
-  const [purpose, setPurpose] = React.useState("");
   const [categories, setCategories] = React.useState([]);
   const [errors, setErrors] = React.useState({});
 
-  // Every open starts on a fresh picker (today, or the first day that still has
-  // a slot). A signed-in shopper also gets their own details back rather than
-  // retyping what the account already holds, and `initial` — what they submitted
-  // last time — takes precedence, so stepping back from the OTP returns them to
-  // their own answers. Derived during render rather than in an effect (see
-  // VideoCallCard).
+  // Every open starts on a fresh picker — the shopper may have sat on the card
+  // long enough for the earliest slot to have gone — with a signed-in shopper's
+  // own details already filled. `initial` is what they submitted last time, so
+  // stepping back from the OTP returns them to their own answers rather than a
+  // blank form. Derived during render rather than in an effect, the same way
+  // BookingSummaryDrawer does it.
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
     if (open) {
       picker.reset(initial);
-      setErrors({});
       setName(initial?.name ?? account?.name ?? "");
       setPhone(initial?.phone ?? account?.phone ?? "");
       setEmail(initial?.email ?? account?.email ?? "");
-      setPurpose(initial?.purpose ?? "");
       setCategories(initial?.categories ?? []);
+      setErrors({});
     }
   }
 
@@ -84,7 +81,6 @@ export default function BookingSummaryDrawer({
       name: name.trim(),
       phone,
       email: email.trim(),
-      purpose,
       categories,
       // Carried so a shopper stepping back from the OTP finds this same slot
       // still selected — `appointmentDate` alone is an instant, not a choice.
@@ -97,38 +93,21 @@ export default function BookingSummaryDrawer({
     <SideDrawer
       open={open}
       onClose={onClose}
-      title="Booking Summary"
+      title={title}
       footer={
         <div className="flex flex-col gap-2.5">
           {error && <p className="text-[11px] text-red-500 font-figtree">{error}</p>}
           {skipsOtp ? <VerifiedNote name={account?.name} /> : <SecureNote />}
+          {/* Not disabled on an incomplete form: a dead button explains nothing,
+              and `validate` has a message for every field it is waiting on. */}
           <PrimaryButton onClick={handleSubmit} loading={submitting}>
-            Book Now
+            {skipsOtp ? "Confirm Booking" : "Continue"}
           </PrimaryButton>
         </div>
       }
     >
       <div className="flex flex-col gap-5">
-        {/* Store */}
-        <div className="border border-gray-100 bg-gray-50/50 rounded-sm p-3.5 flex flex-col gap-1.5">
-          <div className="flex items-start justify-between gap-2">
-            <span className="flex items-center gap-1.5 font-figtree font-bold text-sm text-black">
-              <StoreIcon size={14} className="text-primary" />
-              {storeLabel(store)}
-              {store?.distance !== null && store?.distance !== undefined && (
-                <span className="font-normal text-zinc-500">({formatDistance(store.distance)})</span>
-              )}
-            </span>
-            <button
-              type="button"
-              onClick={onChangeStore}
-              className="text-[11px] font-figtree font-bold text-primary uppercase tracking-wide hover:underline shrink-0 cursor-pointer"
-            >
-              Change
-            </button>
-          </div>
-          <p className="text-xs text-zinc-500 font-figtree leading-relaxed">{storeAddress(store)}</p>
-        </div>
+        {intro}
 
         <DateTimePicker
           picker={picker}
@@ -136,7 +115,6 @@ export default function BookingSummaryDrawer({
           onChange={() => setErrors((e) => ({ ...e, slot: undefined }))}
         />
 
-        {/* Details */}
         <div className="flex flex-col gap-2.5">
           <SectionLabel icon={UserRound}>Enter Details</SectionLabel>
           <TextField
@@ -156,13 +134,9 @@ export default function BookingSummaryDrawer({
             label="Email"
             error={errors.email}
           />
-          <SelectField
-            value={purpose}
-            onChange={setPurpose}
-            options={VISIT_PURPOSES}
-            placeholder="Purpose of Visit"
-          />
-          <CategoryPicker selected={categories} onChange={setCategories} options={PRODUCT_CATEGORIES} />
+          {showCategories && (
+            <CategoryPicker selected={categories} onChange={setCategories} options={PRODUCT_CATEGORIES} />
+          )}
         </div>
       </div>
     </SideDrawer>

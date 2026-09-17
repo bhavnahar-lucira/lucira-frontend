@@ -39,7 +39,10 @@ export function SectionLabel({ icon: Icon, children }) {
  * Today is pre-selected, unless every slot today has already gone — then the
  * first day that still has one is, so the shopper never opens onto a dead grid.
  * `now` is captured once per `reset()` so the disabled set cannot shift
- * mid-form. Callers `reset()` whenever the form (re)opens.
+ * mid-form. Callers `reset()` whenever the form (re)opens, optionally passing
+ * the `{ dayKey, slotHour }` from an earlier submit so a shopper stepping back
+ * from the OTP finds their slot still chosen — unless sitting on the OTP step
+ * has cost them it, in which case they land on the first one still bookable.
  */
 export function useSlotPicker() {
   const slots = React.useMemo(() => timeSlots(), []);
@@ -48,13 +51,21 @@ export function useSlotPicker() {
   const [dayKey, setDayKey] = React.useState(() => firstBookableDay(days, now)?.key || days[0].key);
   const [slotHour, setSlotHour] = React.useState(null);
 
-  const reset = React.useCallback(() => {
+  const reset = React.useCallback((preset) => {
     const fresh = new Date();
     const nextDays = upcomingDays(7, fresh);
     setNow(fresh);
     setDays(nextDays);
-    setDayKey(firstBookableDay(nextDays, fresh)?.key || nextDays[0].key);
-    setSlotHour(null);
+
+    const presetDay = preset?.dayKey ? nextDays.find((d) => d.key === preset.dayKey) : null;
+    const presetSlot = timeSlots().find((s) => s.hour === preset?.slotHour) || null;
+    const presetStillOpen =
+      !!presetDay && !!presetSlot && isSlotAvailable(presetDay, presetSlot, fresh);
+
+    setDayKey(
+      presetStillOpen ? presetDay.key : firstBookableDay(nextDays, fresh)?.key || nextDays[0].key
+    );
+    setSlotHour(presetStillOpen ? presetSlot.hour : null);
   }, []);
 
   const day = days.find((d) => d.key === dayKey) || days[0];
@@ -73,6 +84,8 @@ export function useSlotPicker() {
     reset,
     /** `{ appointmentDate, appointmentTime, appointmentDateLabel }`, or null until a slot is picked. */
     selection: slotSelection(day, slot),
+    /** The raw choice, in the shape `reset()` takes back. */
+    preset: { dayKey, slotHour },
   };
 }
 
