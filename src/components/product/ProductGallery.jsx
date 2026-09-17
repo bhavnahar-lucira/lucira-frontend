@@ -96,23 +96,44 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const galleryRef = React.useRef(null);
   const [stickyTop, setStickyTop] = useState("5rem");
   
+  const isVariantInStock = useMemo(() => {
+    if (activeVariant) {
+      return (
+        activeVariant.inStock === true ||
+        activeVariant.inStock === "true" ||
+        (typeof activeVariant.inventoryQuantity === "number" && activeVariant.inventoryQuantity > 0)
+      );
+    }
+    const firstVariant = product?.variants?.[0];
+    if (firstVariant) {
+      return (
+        firstVariant.inStock === true ||
+        firstVariant.inStock === "true" ||
+        (typeof firstVariant.inventoryQuantity === "number" && firstVariant.inventoryQuantity > 0)
+      );
+    }
+    return Boolean(product?.inStock);
+  }, [activeVariant, product?.variants, product?.inStock]);
+
   const displayLabels = useMemo(() => {
-    const tags = Array.isArray(product.tags) ? product.tags : [];
+    const tags = Array.isArray(product?.tags)
+      ? product.tags
+      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
     const lowerTags = tags.map(t => String(t).toLowerCase());
 
-
-
     const labels = [];
-    if (product.label) labels.push(product.label);
+    if (product?.label) labels.push(product.label);
 
-    // Priority order: Fast Shipping > Best Seller > New Arrival > Trending
-    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Faster Delivery");
-    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller"))) labels.push("Best Seller");
+    const hasFastShipping = lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"));
+
+    // Priority order: Fast Shipping (only when in stock) > Best Seller > New Arrival > Trending
+    if (hasFastShipping && isVariantInStock) labels.push("Faster Delivery");
+    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || String(product?.productMetafields?.bestsellers || "").toLowerCase() === "bestseller") labels.push("Best Seller");
     if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product.label, product.tags]);
+  }, [product?.label, product?.tags, product?.productMetafields?.bestsellers, isVariantInStock]);
 
   const isOnlyPendant = useMemo(() => {
     const tags = Array.isArray(product?.tags)
@@ -136,7 +157,13 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [activeVariant?.id, activeVariant?.shopifyId, activeColor]);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(0, 0);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(0);
+    }
+  }, [activeVariant?.id, activeVariant?.shopifyId, activeColor, mainSwiper, thumbsSwiper]);
 
   const sortedMedia = useMemo(() => {
     if (!media || media.length === 0) return [];
@@ -294,11 +321,31 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
+      if (mainSwiper && !mainSwiper.destroyed) {
+        if (mainSwiper.activeIndex !== currentIndex) {
+          mainSwiper.slideTo(currentIndex, 0);
+        }
+        mainSwiper.update();
+      }
+      if (thumbsSwiper && !thumbsSwiper.destroyed) {
+        thumbsSwiper.slideTo(currentIndex);
+        thumbsSwiper.update();
+      }
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isLightboxOpen]);
+  }, [isLightboxOpen, currentIndex, mainSwiper, thumbsSwiper]);
+
+  // Keep mainSwiper and thumbsSwiper in sync with currentIndex (e.g. after lightbox navigation)
+  useEffect(() => {
+    if (mainSwiper && !mainSwiper.destroyed && mainSwiper.activeIndex !== currentIndex) {
+      mainSwiper.slideTo(currentIndex, isLightboxOpen ? 0 : 300);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(currentIndex);
+    }
+  }, [currentIndex, isLightboxOpen, mainSwiper, thumbsSwiper]);
 
   useEffect(() => {
     if (sortedMedia.length > 0) {
@@ -312,14 +359,40 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     setIsLightboxOpen(true);
   };
 
+  const closeLightbox = () => {
+    setIsLightboxOpen(false);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(currentIndex, 0);
+      mainSwiper.update();
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(currentIndex);
+      thumbsSwiper.update();
+    }
+  };
+
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % sortedMedia.length);
+    const nextIdx = (currentIndex + 1) % sortedMedia.length;
+    setCurrentIndex(nextIdx);
     setZoomLevel(1);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(nextIdx, 0);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(nextIdx);
+    }
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + sortedMedia.length) % sortedMedia.length);
+    const prevIdx = (currentIndex - 1 + sortedMedia.length) % sortedMedia.length;
+    setCurrentIndex(prevIdx);
     setZoomLevel(1);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(prevIdx, 0);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(prevIdx);
+    }
   };
 
   const initialPinchDistance = useRef(null);
@@ -403,7 +476,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isLightboxOpen) return;
-      if (e.key === "Escape") setIsLightboxOpen(false);
+      if (e.key === "Escape") closeLightbox();
       if (e.key === "ArrowRight") nextSlide();
       if (e.key === "ArrowLeft") prevSlide();
     };
@@ -817,7 +890,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   {zoomLevel === 1 ? <ZoomIn size={24} /> : <ZoomOut size={24} />}
                 </button>
                 <button 
-                  onClick={() => setIsLightboxOpen(false)}
+                  onClick={closeLightbox}
                   className="hover:text-gray-300 transition-colors p-1"
                 >
                   <X size={36} strokeWidth={1.5} />
