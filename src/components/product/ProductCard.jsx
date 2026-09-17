@@ -395,7 +395,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
       );
     }
     return Boolean(product?.inStock);
-  }, [currentVariant, product?.variants, product?.inStock]);
+  }, [currentVariant, product.variants, product.inStock]);
 
   const displayLabels = useMemo(() => {
     const tags = Array.isArray(product?.tags)
@@ -414,7 +414,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product?.label, product?.tags, product?.productMetafields?.bestsellers, isVariantInStock]);
+  }, [product.label, product.tags, product.productMetafields?.bestsellers, isVariantInStock]);
 
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
   // The label we just rotated away from — it lifts out while the next one rises in.

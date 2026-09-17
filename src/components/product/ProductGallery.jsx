@@ -94,6 +94,8 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
   const [mainSwiper, setMainSwiper] = useState(null);
   const galleryRef = React.useRef(null);
+  const currentIndexRef = useRef(0);
+  const isSharingRef = useRef(false);
   const [stickyTop, setStickyTop] = useState("5rem");
   
   const isVariantInStock = useMemo(() => {
@@ -316,29 +318,21 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     return () => observer.disconnect();
   }, [isDesktop, sortedMedia]);
 
+  // Lock the background while the lightbox is open. Keyed on isLightboxOpen
+  // alone: including currentIndex here would tear this down and re-run it on
+  // every lightbox navigation, and that unlock/relock round-trip makes iOS
+  // Safari restore the background scroll position mid-session.
   useEffect(() => {
-    if (isLightboxOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-      if (mainSwiper && !mainSwiper.destroyed) {
-        if (mainSwiper.activeIndex !== currentIndex) {
-          mainSwiper.slideTo(currentIndex, 0);
-        }
-        mainSwiper.update();
-      }
-      if (thumbsSwiper && !thumbsSwiper.destroyed) {
-        thumbsSwiper.slideTo(currentIndex);
-        thumbsSwiper.update();
-      }
-    }
+    if (!isLightboxOpen) return;
+    document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isLightboxOpen, currentIndex, mainSwiper, thumbsSwiper]);
+  }, [isLightboxOpen]);
 
   // Keep mainSwiper and thumbsSwiper in sync with currentIndex (e.g. after lightbox navigation)
   useEffect(() => {
+    currentIndexRef.current = currentIndex;
     if (mainSwiper && !mainSwiper.destroyed && mainSwiper.activeIndex !== currentIndex) {
       mainSwiper.slideTo(currentIndex, isLightboxOpen ? 0 : 300);
     }
@@ -346,6 +340,24 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       thumbsSwiper.slideTo(currentIndex);
     }
   }, [currentIndex, isLightboxOpen, mainSwiper, thumbsSwiper]);
+
+  // On close, re-measure the inline swipers: they were behind the overlay, so
+  // their slide widths can be stale. Reads the index from a ref so that closing
+  // is the only thing that triggers this, not each navigation.
+  useEffect(() => {
+    if (isLightboxOpen) return;
+    const idx = currentIndexRef.current;
+    if (mainSwiper && !mainSwiper.destroyed) {
+      if (mainSwiper.activeIndex !== idx) {
+        mainSwiper.slideTo(idx, 0);
+      }
+      mainSwiper.update();
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(idx);
+      thumbsSwiper.update();
+    }
+  }, [isLightboxOpen, mainSwiper, thumbsSwiper]);
 
   useEffect(() => {
     if (sortedMedia.length > 0) {
@@ -457,6 +469,10 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   };
 
   const handleShare = async () => {
+    // navigator.share() throws InvalidStateError when called while an earlier
+    // sheet is still open, so swallow repeat taps until that one settles.
+    if (isSharingRef.current) return;
+
     const shareData = {
       title: title,
       text: `Check out this ${title}`,
@@ -464,12 +480,19 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     };
     try {
       if (navigator.share) {
+        isSharingRef.current = true;
         await navigator.share(shareData);
       } else {
         navigator.clipboard.writeText(window.location.href);
       }
     } catch (err) {
-      console.error("Error sharing:", err);
+      // Dismissing the OS share sheet rejects with AbortError - that is a
+      // cancellation, not a failure. Real share errors still surface.
+      if (err?.name !== "AbortError") {
+        console.error("Error sharing:", err);
+      }
+    } finally {
+      isSharingRef.current = false;
     }
   };
 
