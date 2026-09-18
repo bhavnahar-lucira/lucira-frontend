@@ -28,6 +28,8 @@ import CustomerReviews from "@/components/product/CustomerReviews";
 import FAQSection from "@/components/product/FAQSection";
 import DiamondComparison from "@/components/product/DiamondComparison";
 import { FindLuciraStore } from "@/components/product/FindLuciraStore";
+import { asStorePages, storeByHandle } from "@/lib/storeContent";
+import { handleFromStoreName } from "@/data/stores";
 const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { suspense: true });
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
@@ -1052,6 +1054,8 @@ export default function ProductPageClient({
     }).map(s => s.shopifyId);
 
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
+    const { stores: configuredStores = [] } = asStorePages(storePages);
+
     const storesWithData = allStores.map(store => {
       let distance = null;
       if (deliveryInfo.coords && (store.latitude || store.lat) && (store.longitude || store.lng)) {
@@ -1062,8 +1066,25 @@ export default function ProductPageClient({
           store.longitude || store.lng
         );
       }
+
+      const handle = store.handle || handleFromStoreName(store.name);
+      const storeConfig =
+        configuredStores.find(
+          (s) =>
+            (store.shopifyId && s.shopifyLocationId && (s.shopifyLocationId === store.shopifyId || store.shopifyId.includes(s.shopifyLocationId))) ||
+            (handle && s.handle === handle) ||
+            (s.city && (store.city || "").toLowerCase().includes(s.city.toLowerCase()))
+        ) || storeByHandle(storePages, handle);
+
       return {
         ...store,
+        handle: handle || storeConfig?.handle,
+        displayName: storeConfig?.name || (getStoreDisplayName(store.name) === "Head Office" ? "Head Office" : `${getStoreDisplayName(store.name)} Lucira Store`),
+        addressFormatted: storeConfig?.address || [store.address1 || store.address, store.city, store.province, store.zip].filter(Boolean).join(", "),
+        phone: storeConfig?.phone || store.phone,
+        mapLink: storeConfig?.links?.map || storeConfig?.links?.directions || store.mapLink,
+        image: storeConfig?.images?.homepage || storeConfig?.images?.locator || storeConfig?.images?.collection?.[0] || store.image,
+        storeConfig,
         distance,
         isInStock: stockStoreIds.includes(store.shopifyId)
       };
@@ -1095,7 +1116,7 @@ export default function ProductPageClient({
       nearestStore: storesWithData.length > 0 ? storesWithData[0] : null,
       availableStoreCount: stockStoreIds.length
     };
-  }, [allStores, activeVariant, deliveryInfo.coords]);
+  }, [allStores, activeVariant, deliveryInfo.coords, storePages]);
 
   const rawTags = product.tags || [];
   const tags = Array.isArray(rawTags) ? rawTags : (typeof rawTags === 'string' ? rawTags.split(',').map(t => t.trim()) : []);
@@ -4060,6 +4081,7 @@ export default function ProductPageClient({
           activeVariant={activeVariant}
           hasConfirmedPincode={hasConfirmedPincode}
           resetPincodeState={resetPincodeState}
+          storePages={storePages}
         />
       ) : (
         <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
@@ -4157,12 +4179,11 @@ export default function ProductPageClient({
                       <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
                             <h3 className="font-bold text-lg">
-                              {getStoreDisplayName(store.name) === "Head Office"
+                              {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
                                 ? "Head Office"
                                 : `${getStoreDisplayName(store.name)}`
-                              }
+                              )}
                             </h3>
                             {store.distance !== null && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
@@ -4192,7 +4213,7 @@ export default function ProductPageClient({
                         <div className="space-y-3 pt-2">
                           <div className="flex items-start gap-3 text-sm text-gray-600">
                             <MapPin size={18} className="shrink-0 text-gray-400 mt-0.5" />
-                            <p className="leading-relaxed font-medium">{store.address1 || store.address}, {store.city}</p>
+                            <p className="leading-relaxed font-medium">{store.addressFormatted || `${store.address1 || store.address}, ${store.city}`}</p>
                           </div>
                           <div className="flex items-center gap-3 text-sm text-gray-600">
                             <Phone size={18} className="shrink-0 text-gray-400" />
@@ -4215,7 +4236,7 @@ export default function ProductPageClient({
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
                             href={`https://wa.me/+917208934782?text=${encodeURIComponent(
-                              `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                              `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -4230,7 +4251,7 @@ export default function ProductPageClient({
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
-                              href={`${store.mapLink}`}
+                              href={store.mapLink || "#"}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -4271,7 +4292,12 @@ export default function ProductPageClient({
                     <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                          <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
+                          <h3 className="font-bold text-lg">
+                            {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
+                              ? "Head Office"
+                              : `${getStoreDisplayName(store.name)}`
+                            )}
+                          </h3>
                           {store.distance !== null && (
                             <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                               <MapPin size={14} />
@@ -4300,11 +4326,11 @@ export default function ProductPageClient({
                       <div className="space-y-3 pt-2">
                         <div className="flex items-start gap-3 text-sm text-gray-600">
                           <MapPin size={18} className="shrink-0 text-gray-400 mt-0.5" />
-                          <p className="leading-relaxed font-medium">{store.address1 || store.address}, {store.city}</p>
+                          <p className="leading-relaxed font-medium">{store.addressFormatted || `${store.address1 || store.address}, ${store.city}`}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Phone size={18} className="shrink-0 text-gray-400" />
-                          <p className="font-medium">{store.phone || "+91 91724 99912"}</p>
+                          <p className="font-medium">{store.phone || "+91 7208934782"}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Package size={18} className="shrink-0 text-gray-400" />
@@ -4323,7 +4349,7 @@ export default function ProductPageClient({
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
                           href={`https://wa.me/+917208934782?text=${encodeURIComponent(
-                            `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                            `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -4334,11 +4360,11 @@ export default function ProductPageClient({
                           </div>
                         </a>
                         <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                          <a href={`tel:${store.phone || "+919172499912"}`}>CALL STORE</a>
+                          <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
                         </Button>
                         <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                           <a
-                            href={`${store.mapLink}`}
+                            href={store.mapLink || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                           >

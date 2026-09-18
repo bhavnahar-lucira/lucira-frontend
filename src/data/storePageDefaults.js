@@ -94,7 +94,7 @@ export const STORE_PAGE_DEFAULTS = {
         "collection": [
           "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg"
         ],
-        "homepage": "",
+        "homepage": "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg",
         "locator": "https://luciraonline.myshopify.com/cdn/shop/files/Lucira_contact_us_grid_900x.png?v=1757660196"
       },
       "geo": {

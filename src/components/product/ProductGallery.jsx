@@ -171,7 +171,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     if (!media || media.length === 0) return [];
 
     const COLOR_TOKENS = ["white", "yellow", "rose", "plt", "platinum"];
-    const ALWAYS_SHOW_CODES = ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v", "360°"];
+    const ALWAYS_SHOW_CODES = ["mv-ai", "mv_ai", "mv", "mq-ai", "mq_ai", "mq", "mh-ai", "mh_ai", "mh", "ci-ai", "ci_ai", "ci", "360v", "360°"];
 
     const formattedMedia = media
       .filter(m => {
@@ -206,13 +206,14 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
     const buckets = {
       color: [],
-      codes: { mv: [], "mq-ai": [], mq: [], "mh-ai": [], mh: [], "ci-ai": [], ci: [], v360: [] },
+      codes: { "mv-ai": [], mv: [], "mq-ai": [], mq: [], "mh-ai": [], mh: [], "ci-ai": [], ci: [], v360: [] },
       cert: [],
       extras: []
     };
 
     formattedMedia.forEach(item => {
       const alt = (item.alt || "").toLowerCase();
+      const urlString = (item.url || item.sources?.[0]?.url || item.preview || item.previewImage?.url || "").toLowerCase();
       const itemColor = getColorFromAlt(alt);
       const isAnyColor = COLOR_TOKENS.some(c => alt.includes(c));
 
@@ -221,19 +222,39 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
         return;
       }
 
-      const isCodeMatch = ALWAYS_SHOW_CODES.some(code => alt.includes(code));
+      const isCodeMatch =
+        ALWAYS_SHOW_CODES.some(code => alt.includes(code)) ||
+        (alt.includes("mv") && (urlString.includes("mv_ai") || urlString.includes("mv-ai")));
       
       if (itemColor === targetColor || (!isAnyColor && isCodeMatch)) {
-        if (alt.includes("mv")) buckets.codes.mv.push(item);
-        else if (alt.includes("mq-ai")) buckets.codes["mq-ai"].push(item);
-        else if (alt.includes("mq")) buckets.codes.mq.push(item);
-        else if (alt.includes("mh-ai")) buckets.codes["mh-ai"].push(item);
-        else if (alt.includes("mh")) buckets.codes.mh.push(item);
-        else if (alt.includes("ci-ai")) buckets.codes["ci-ai"].push(item);
-        else if (alt.includes("ci")) buckets.codes.ci.push(item);
-        else if (alt.includes("360v") || alt.includes("360°")) buckets.codes.v360.push(item);
-        else if (itemColor === targetColor) buckets.color.push(item);
-        else buckets.extras.push(item);
+        if (
+          alt.includes("mv-ai") ||
+          alt.includes("mv_ai") ||
+          alt.includes("mv ai") ||
+          (alt.includes("mv") && (urlString.includes("mv_ai") || urlString.includes("mv-ai")))
+        ) {
+          buckets.codes["mv-ai"].push(item);
+        } else if (alt.includes("mv")) {
+          buckets.codes.mv.push(item);
+        } else if (alt.includes("mq-ai") || alt.includes("mq_ai") || alt.includes("mq ai")) {
+          buckets.codes["mq-ai"].push(item);
+        } else if (alt.includes("mq")) {
+          buckets.codes.mq.push(item);
+        } else if (alt.includes("mh-ai") || alt.includes("mh_ai") || alt.includes("mh ai")) {
+          buckets.codes["mh-ai"].push(item);
+        } else if (alt.includes("mh")) {
+          buckets.codes.mh.push(item);
+        } else if (alt.includes("ci-ai") || alt.includes("ci_ai") || alt.includes("ci ai")) {
+          buckets.codes["ci-ai"].push(item);
+        } else if (alt.includes("ci")) {
+          buckets.codes.ci.push(item);
+        } else if (alt.includes("360v") || alt.includes("360°")) {
+          buckets.codes.v360.push(item);
+        } else if (itemColor === targetColor) {
+          buckets.color.push(item);
+        } else {
+          buckets.extras.push(item);
+        }
       } else if (itemColor === "" && !isAnyColor) {
          // Fallback for items with no color tokens at all
          buckets.extras.push(item);
@@ -256,7 +277,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
     const takeColor = () => buckets.color.shift() || null;
     const takeCode = () => {
-      for (const key of ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v"]) {
+      for (const key of ["mv-ai", "mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v"]) {
         const k = key === "360v" ? "v360" : key;
         if (buckets.codes[k]?.length) return buckets.codes[k].shift();
       }
