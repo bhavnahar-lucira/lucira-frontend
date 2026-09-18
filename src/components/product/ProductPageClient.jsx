@@ -28,6 +28,8 @@ import CustomerReviews from "@/components/product/CustomerReviews";
 import FAQSection from "@/components/product/FAQSection";
 import DiamondComparison from "@/components/product/DiamondComparison";
 import { FindLuciraStore } from "@/components/product/FindLuciraStore";
+import { asStorePages, storeByHandle } from "@/lib/storeContent";
+import { handleFromStoreName } from "@/data/stores";
 const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { suspense: true });
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
@@ -168,40 +170,90 @@ function getCookieValue(name) {
   return value ? decodeURIComponent(value.split("=").slice(1).join("=")) : "";
 }
 
+let activeScrollRaf = null;
+let activeCancelCleanup = null;
+
 const handleSafeScroll = (elementRef) => {
   const el = elementRef?.current;
   if (!el) return;
 
-  const isDesktop = window.innerWidth >= 1024;
-  let offset = 90;
+  if (activeCancelCleanup) {
+    activeCancelCleanup();
+  }
+  if (activeScrollRaf) {
+    cancelAnimationFrame(activeScrollRaf);
+    activeScrollRaf = null;
+  }
+
+  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+  let offset = 80;
 
   if (!isDesktop) {
     const header = document.querySelector("header");
     const subHeader = document.getElementById("pdp-sub-header");
 
-    // On mobile PDP, the TopBar (40px) hides when scrolled, so pinned header bottom is ~64px.
-    // If already scrolled past 40px, header.getBoundingClientRect().bottom is the pinned bottom.
-    // Otherwise, subtract 40px (the TopBar height that will scroll away once the page scrolls).
     const headerBottom = header
       ? (window.scrollY > 40 ? header.getBoundingClientRect().bottom : Math.max(56, header.offsetHeight - 40))
       : 64;
 
     const subHeaderHeight = subHeader?.offsetHeight || 48;
-    // Generous breathing room so section headings are clearly visible below the tab bar
     const scrollPadding = 28;
     offset = headerBottom + subHeaderHeight + scrollPadding;
   } else {
-    const header = document.querySelector("header");
-    const headerBottom = header ? header.getBoundingClientRect().bottom : 80;
-    offset = headerBottom + 24;
+    // On Desktop, once scrolled past 120px, the header collapses to the compact sticky Navbar (~50px).
+    // Using a fixed 80px (56px navbar + 24px breathing room) avoids computing against the 186px expanded header.
+    offset = 80;
   }
 
-  const targetPosition = el.getBoundingClientRect().top + window.scrollY - offset;
+  const startY = window.scrollY;
+  const getTargetY = () => Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset);
+  let targetY = getTargetY();
 
-  window.scrollTo({
-    top: Math.max(0, targetPosition),
-    behavior: "smooth",
-  });
+  if (Math.abs(targetY - startY) < 5) return;
+
+  const duration = Math.min(800, Math.max(400, Math.abs(targetY - startY) * 0.45));
+  const startTime = performance.now();
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+  let isCancelled = false;
+  const cancelEvents = ["wheel", "touchmove"];
+  const onCancel = () => {
+    isCancelled = true;
+    cleanup();
+  };
+  const cleanup = () => {
+    cancelEvents.forEach((ev) => window.removeEventListener(ev, onCancel));
+    if (activeCancelCleanup === cleanup) activeCancelCleanup = null;
+    if (activeScrollRaf) {
+      cancelAnimationFrame(activeScrollRaf);
+      activeScrollRaf = null;
+    }
+  };
+  activeCancelCleanup = cleanup;
+  cancelEvents.forEach((ev) => window.addEventListener(ev, onCancel, { passive: true }));
+
+  const step = (now) => {
+    if (isCancelled) return;
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+
+    // Dynamically adapt to layout shifts / header collapse as the page scrolls
+    if (progress > 0.4) {
+      targetY = getTargetY();
+    }
+
+    const currentY = startY + (targetY - startY) * easeOutCubic(progress);
+    window.scrollTo(0, currentY);
+
+    if (progress < 1) {
+      activeScrollRaf = requestAnimationFrame(step);
+    } else {
+      window.scrollTo(0, getTargetY());
+      cleanup();
+    }
+  };
+
+  activeScrollRaf = requestAnimationFrame(step);
 };
 
 // Force en-IN formatting to be consistent across environments
@@ -1052,6 +1104,8 @@ export default function ProductPageClient({
     }).map(s => s.shopifyId);
 
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
+    const { stores: configuredStores = [] } = asStorePages(storePages);
+
     const storesWithData = allStores.map(store => {
       let distance = null;
       if (deliveryInfo.coords && (store.latitude || store.lat) && (store.longitude || store.lng)) {
@@ -1062,8 +1116,25 @@ export default function ProductPageClient({
           store.longitude || store.lng
         );
       }
+
+      const handle = store.handle || handleFromStoreName(store.name);
+      const storeConfig =
+        configuredStores.find(
+          (s) =>
+            (store.shopifyId && s.shopifyLocationId && (s.shopifyLocationId === store.shopifyId || store.shopifyId.includes(s.shopifyLocationId))) ||
+            (handle && s.handle === handle) ||
+            (s.city && (store.city || "").toLowerCase().includes(s.city.toLowerCase()))
+        ) || storeByHandle(storePages, handle);
+
       return {
         ...store,
+        handle: handle || storeConfig?.handle,
+        displayName: storeConfig?.name || (getStoreDisplayName(store.name) === "Head Office" ? "Head Office" : `${getStoreDisplayName(store.name)} Lucira Store`),
+        addressFormatted: storeConfig?.address || [store.address1 || store.address, store.city, store.province, store.zip].filter(Boolean).join(", "),
+        phone: storeConfig?.phone || store.phone,
+        mapLink: storeConfig?.links?.map || storeConfig?.links?.directions || store.mapLink,
+        image: storeConfig?.images?.homepage || storeConfig?.images?.locator || storeConfig?.images?.collection?.[0] || store.image,
+        storeConfig,
         distance,
         isInStock: stockStoreIds.includes(store.shopifyId)
       };
@@ -1095,7 +1166,7 @@ export default function ProductPageClient({
       nearestStore: storesWithData.length > 0 ? storesWithData[0] : null,
       availableStoreCount: stockStoreIds.length
     };
-  }, [allStores, activeVariant, deliveryInfo.coords]);
+  }, [allStores, activeVariant, deliveryInfo.coords, storePages]);
 
   const rawTags = product.tags || [];
   const tags = Array.isArray(rawTags) ? rawTags : (typeof rawTags === 'string' ? rawTags.split(',').map(t => t.trim()) : []);
@@ -3001,7 +3072,7 @@ export default function ProductPageClient({
 
             <div className="flex gap-2 mb-6">
               <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
-                <a href={`https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
+                <a href={`https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
                   <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
                   <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                 </a>
@@ -3360,7 +3431,7 @@ export default function ProductPageClient({
                                   product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
                                 }
                               });
-                              window.open("https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
+                              window.open("https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
                             }}
                             className="w-full h-10 font-bold rounded text-xs bg-tertiary uppercase tracking-wide"
                           >
@@ -3433,7 +3504,7 @@ export default function ProductPageClient({
                   description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                   action="BOOK APPOINTMENT"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
-                  url="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20book%20an%20appointment"
+                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -3449,7 +3520,7 @@ export default function ProductPageClient({
                   description="Try your selected pieces from the comfort of your home. Available in all major cities"
                   action="BOOK HOME TRIAL"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
-                  url="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
+                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -4060,6 +4131,7 @@ export default function ProductPageClient({
           activeVariant={activeVariant}
           hasConfirmedPincode={hasConfirmedPincode}
           resetPincodeState={resetPincodeState}
+          storePages={storePages}
         />
       ) : (
         <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
@@ -4085,7 +4157,6 @@ export default function ProductPageClient({
         </Suspense>
       )}
 
-      <OurProcess />
       {matchingProducts.length > 0 && (
         <ProductSlider
           title="From the Same Collection"
@@ -4099,14 +4170,8 @@ export default function ProductPageClient({
         />
       )}
 
-      <ProductSlider
-        title={recentlyViewedState?.title || "Recently Viewed"}
-        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
-        preservePriceOnColorChange={true}
-        disableLastViewed={true}
-      />
       {youMayAlsoLikeProducts.length > 0 && (
-        <section className="w-full bg-white mt-10 md:mt-15 overflow-hidden">
+        <section className="w-full bg-white my-10 md:my-16 overflow-hidden">
           <div className="max-w-480 mx-auto px-5 md:px-17">
             <div className="text-center mb-10 md:mb-12">
               <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">From the Same Collection</h2>
@@ -4128,6 +4193,15 @@ export default function ProductPageClient({
           </div>
         </section>
       )}
+
+      <OurProcess />
+
+      <ProductSlider
+        title={recentlyViewedState?.title || "Recently Viewed"}
+        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
+        preservePriceOnColorChange={true}
+        disableLastViewed={true}
+      />
       {!isGoldCoin && <DiamondComparison />}
       <FAQSection />
       {/* <ExploreOtherRings /> */}
@@ -4157,12 +4231,11 @@ export default function ProductPageClient({
                       <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
                             <h3 className="font-bold text-lg">
-                              {getStoreDisplayName(store.name) === "Head Office"
+                              {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
                                 ? "Head Office"
                                 : `${getStoreDisplayName(store.name)}`
-                              }
+                              )}
                             </h3>
                             {store.distance !== null && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
@@ -4192,7 +4265,7 @@ export default function ProductPageClient({
                         <div className="space-y-3 pt-2">
                           <div className="flex items-start gap-3 text-sm text-gray-600">
                             <MapPin size={18} className="shrink-0 text-gray-400 mt-0.5" />
-                            <p className="leading-relaxed font-medium">{store.address1 || store.address}, {store.city}</p>
+                            <p className="leading-relaxed font-medium">{store.addressFormatted || `${store.address1 || store.address}, ${store.city}`}</p>
                           </div>
                           <div className="flex items-center gap-3 text-sm text-gray-600">
                             <Phone size={18} className="shrink-0 text-gray-400" />
@@ -4214,8 +4287,8 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/+918976740895?text=${encodeURIComponent(
-                              `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                            href={`https://wa.me/+917208934782?text=${encodeURIComponent(
+                              `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -4226,11 +4299,11 @@ export default function ProductPageClient({
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                            <a href={`tel:${store.phone || "+918976740895"}`}>CALL STORE</a>
+                            <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
-                              href={`${store.mapLink}`}
+                              href={store.mapLink || "#"}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -4271,7 +4344,12 @@ export default function ProductPageClient({
                     <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                          <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
+                          <h3 className="font-bold text-lg">
+                            {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
+                              ? "Head Office"
+                              : `${getStoreDisplayName(store.name)}`
+                            )}
+                          </h3>
                           {store.distance !== null && (
                             <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                               <MapPin size={14} />
@@ -4300,11 +4378,11 @@ export default function ProductPageClient({
                       <div className="space-y-3 pt-2">
                         <div className="flex items-start gap-3 text-sm text-gray-600">
                           <MapPin size={18} className="shrink-0 text-gray-400 mt-0.5" />
-                          <p className="leading-relaxed font-medium">{store.address1 || store.address}, {store.city}</p>
+                          <p className="leading-relaxed font-medium">{store.addressFormatted || `${store.address1 || store.address}, ${store.city}`}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Phone size={18} className="shrink-0 text-gray-400" />
-                          <p className="font-medium">{store.phone || "+91 91724 99912"}</p>
+                          <p className="font-medium">{store.phone || "+91 7208934782"}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Package size={18} className="shrink-0 text-gray-400" />
@@ -4322,8 +4400,8 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/+918976740895?text=${encodeURIComponent(
-                            `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                          href={`https://wa.me/+917208934782?text=${encodeURIComponent(
+                            `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -4334,11 +4412,11 @@ export default function ProductPageClient({
                           </div>
                         </a>
                         <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                          <a href={`tel:${store.phone || "+919172499912"}`}>CALL STORE</a>
+                          <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
                         </Button>
                         <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                           <a
-                            href={`${store.mapLink}`}
+                            href={store.mapLink || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                           >

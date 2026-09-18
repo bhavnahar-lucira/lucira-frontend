@@ -103,55 +103,43 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       return (
         activeVariant.inStock === true ||
         activeVariant.inStock === "true" ||
-        (typeof activeVariant.inventoryQuantity === "number" && activeVariant.inventoryQuantity > 0)
+        (activeVariant.inventoryQuantity !== undefined && Number(activeVariant.inventoryQuantity) > 0)
       );
     }
-    const firstVariant = product?.variants?.[0];
-    if (firstVariant) {
-      return (
-        firstVariant.inStock === true ||
-        firstVariant.inStock === "true" ||
-        (typeof firstVariant.inventoryQuantity === "number" && firstVariant.inventoryQuantity > 0)
+    if (product?.variants && product.variants.length > 0) {
+      return product.variants.some(
+        (v) => v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && Number(v.inventoryQuantity) > 0)
       );
     }
     return Boolean(product?.inStock);
   }, [activeVariant, product?.variants, product?.inStock]);
 
-  const displayLabels = useMemo(() => {
-    const tags = Array.isArray(product?.tags)
-      ? product.tags
-      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
-    const lowerTags = tags.map(t => String(t).toLowerCase());
+  const normalizedTags = useMemo(() => {
+    if (!product?.tags) return [];
+    if (Array.isArray(product.tags)) return product.tags.map((t) => String(t).trim().toLowerCase());
+    if (typeof product.tags === "string") return product.tags.split(",").map((t) => t.trim().toLowerCase());
+    return [];
+  }, [product?.tags]);
 
+  const displayLabels = useMemo(() => {
     const labels = [];
     if (product?.label) labels.push(product.label);
+    const bestsellerMeta = String(product?.productMetafields?.bestsellers || "").toLowerCase();
 
-    const hasFastShipping = lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"));
+    const hasFastShipping = normalizedTags.some((t) => t.includes("fast shipping") || t.includes("fastshipping"));
 
     // Priority order: Fast Shipping (only when in stock) > Best Seller > New Arrival > Trending
     if (hasFastShipping && isVariantInStock) labels.push("Faster Delivery");
-    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || String(product?.productMetafields?.bestsellers || "").toLowerCase() === "bestseller") labels.push("Best Seller");
-    if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
-    if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
+    if (normalizedTags.some((t) => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
+    if (normalizedTags.some((t) => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
+    if (normalizedTags.some((t) => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product?.label, product?.tags, product?.productMetafields?.bestsellers, isVariantInStock]);
+  }, [product?.label, normalizedTags, product?.productMetafields?.bestsellers, isVariantInStock]);
 
   const isOnlyPendant = useMemo(() => {
-    const tags = Array.isArray(product?.tags)
-      ? product.tags
-      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
-
-    const hasTag = tags.some(t => {
-      const s = String(t).trim().toLowerCase();
-      return s === "only pendant" || s === "only-pendant" || s === "pendant only";
-    });
-
-    if (hasTag) return true;
-    if (product?.tags?.includes?.("Only Pendant")) return true;
-
-    return false;
-  }, [product?.tags]);
+    return normalizedTags.some((s) => s === "only pendant" || s === "only-pendant" || s === "pendant only");
+  }, [normalizedTags]);
 
   useEffect(() => {
     setMounted(true);
@@ -171,7 +159,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     if (!media || media.length === 0) return [];
 
     const COLOR_TOKENS = ["white", "yellow", "rose", "plt", "platinum"];
-    const ALWAYS_SHOW_CODES = ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v", "360°"];
+    const ALWAYS_SHOW_CODES = ["mv-ai", "mv_ai", "mv", "mq-ai", "mq_ai", "mq", "mh-ai", "mh_ai", "mh", "ci-ai", "ci_ai", "ci", "360v", "360°"];
 
     const formattedMedia = media
       .filter(m => {
@@ -206,13 +194,14 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
     const buckets = {
       color: [],
-      codes: { mv: [], "mq-ai": [], mq: [], "mh-ai": [], mh: [], "ci-ai": [], ci: [], v360: [] },
+      codes: { "mv-ai": [], mv: [], "mq-ai": [], mq: [], "mh-ai": [], mh: [], "ci-ai": [], ci: [], v360: [] },
       cert: [],
       extras: []
     };
 
     formattedMedia.forEach(item => {
       const alt = (item.alt || "").toLowerCase();
+      const urlString = (item.url || item.sources?.[0]?.url || item.preview || item.previewImage?.url || "").toLowerCase();
       const itemColor = getColorFromAlt(alt);
       const isAnyColor = COLOR_TOKENS.some(c => alt.includes(c));
 
@@ -221,19 +210,39 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
         return;
       }
 
-      const isCodeMatch = ALWAYS_SHOW_CODES.some(code => alt.includes(code));
+      const isCodeMatch =
+        ALWAYS_SHOW_CODES.some(code => alt.includes(code)) ||
+        (alt.includes("mv") && (urlString.includes("mv_ai") || urlString.includes("mv-ai")));
       
       if (itemColor === targetColor || (!isAnyColor && isCodeMatch)) {
-        if (alt.includes("mv")) buckets.codes.mv.push(item);
-        else if (alt.includes("mq-ai")) buckets.codes["mq-ai"].push(item);
-        else if (alt.includes("mq")) buckets.codes.mq.push(item);
-        else if (alt.includes("mh-ai")) buckets.codes["mh-ai"].push(item);
-        else if (alt.includes("mh")) buckets.codes.mh.push(item);
-        else if (alt.includes("ci-ai")) buckets.codes["ci-ai"].push(item);
-        else if (alt.includes("ci")) buckets.codes.ci.push(item);
-        else if (alt.includes("360v") || alt.includes("360°")) buckets.codes.v360.push(item);
-        else if (itemColor === targetColor) buckets.color.push(item);
-        else buckets.extras.push(item);
+        if (
+          alt.includes("mv-ai") ||
+          alt.includes("mv_ai") ||
+          alt.includes("mv ai") ||
+          (alt.includes("mv") && (urlString.includes("mv_ai") || urlString.includes("mv-ai")))
+        ) {
+          buckets.codes["mv-ai"].push(item);
+        } else if (alt.includes("mv")) {
+          buckets.codes.mv.push(item);
+        } else if (alt.includes("mq-ai") || alt.includes("mq_ai") || alt.includes("mq ai")) {
+          buckets.codes["mq-ai"].push(item);
+        } else if (alt.includes("mq")) {
+          buckets.codes.mq.push(item);
+        } else if (alt.includes("mh-ai") || alt.includes("mh_ai") || alt.includes("mh ai")) {
+          buckets.codes["mh-ai"].push(item);
+        } else if (alt.includes("mh")) {
+          buckets.codes.mh.push(item);
+        } else if (alt.includes("ci-ai") || alt.includes("ci_ai") || alt.includes("ci ai")) {
+          buckets.codes["ci-ai"].push(item);
+        } else if (alt.includes("ci")) {
+          buckets.codes.ci.push(item);
+        } else if (alt.includes("360v") || alt.includes("360°")) {
+          buckets.codes.v360.push(item);
+        } else if (itemColor === targetColor) {
+          buckets.color.push(item);
+        } else {
+          buckets.extras.push(item);
+        }
       } else if (itemColor === "" && !isAnyColor) {
          // Fallback for items with no color tokens at all
          buckets.extras.push(item);
@@ -256,7 +265,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
     const takeColor = () => buckets.color.shift() || null;
     const takeCode = () => {
-      for (const key of ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v"]) {
+      for (const key of ["mv-ai", "mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v"]) {
         const k = key === "360v" ? "v360" : key;
         if (buckets.codes[k]?.length) return buckets.codes[k].shift();
       }

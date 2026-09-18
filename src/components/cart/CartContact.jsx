@@ -4,7 +4,7 @@ export default function CartContact({ productName }) {
     const whatsappMessage = productName
       ? `Hi, I'm on the cart page and need help with the ${productName}`
       : "Hi, I want to get more information about Lucira";
-    const whatsappHref = `https://wa.me/+918976740895?text=${encodeURIComponent(whatsappMessage)}`;
+    const whatsappHref = `https://wa.me/+917208934782?text=${encodeURIComponent(whatsappMessage)}`;
 
     return (
       <div className="bg-[#ffffff] border border-[#ebebeb] rounded-[6px] p-3 sm:p-[20px] text-center space-y-3 lg:space-y-4">

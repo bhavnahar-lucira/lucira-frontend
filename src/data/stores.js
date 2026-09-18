@@ -36,6 +36,9 @@ const _byHandle = Object.fromEntries(STORES.map((s) => [s.handle, s]));
 // store surface can respect the same active flag.
 const _backendNameToHandle = [
   { match: "divinecarat", handle: "malad" },
+  { match: "head office", handle: "malad" },
+  { match: "malad", handle: "malad" },
+  { match: "goregaon", handle: "malad" },
   { match: "bo1", handle: "sky-city-borivali-store" },
   { match: "borivali", handle: "sky-city-borivali-store" },
   { match: "cs1", handle: "chembur-store" },
