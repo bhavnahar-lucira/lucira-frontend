@@ -20,10 +20,11 @@ export function AutoAuthPopup() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    // 15 seconds delay
-    const SHOW_DELAY = 15000;
-
     const cleanPath = pathname?.replace(/\/$/, "") || "";
+    const isPdp = cleanPath.startsWith("/products/");
+
+    // 10 seconds delay for PDP, 15 seconds for others
+    const SHOW_DELAY = isPdp ? 10000 : 15000;
 
     // Exclude account pages and specific paths
     if (
@@ -76,8 +77,8 @@ export function AutoAuthPopup() {
       }} 
       initialStep="login"
       forceShowWheel={true}
-      overrideHeading="Register to Win a Reward"
-      overrideSubtext="Try Your Luck! Win a Diamond Pendant"
+      overrideHeading="Your Lucira Reward Awaits!"
+      overrideSubtext="Sign Up To Get ₹500 Assured + Spin The Wheel!"
       overrideButtonText="Request OTP & Spin"
     />
   );
