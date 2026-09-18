@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import LazyImage from "../common/LazyImage";
 import {
   MapPinned,
@@ -9,13 +10,19 @@ import {
   Clock3,
   Star,
   Circle,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushPromoClick } from "@/lib/gtm";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
+import BookAppointmentPopup from "./BookAppointmentPopup";
 import { isStoreActive } from "@/data/stores";
 import { storesForSurface, formatTimings, storeStatus, designsLink } from "@/lib/storeContent";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, FreeMode } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/free-mode";
 
 function ServiceCard({ item }) {
   return (
@@ -31,22 +38,267 @@ function ServiceCard({ item }) {
 }
 
 /**
- * "Visit Lucira Store Near You" — the tabbed store section on the homepage and
- * the product page.
+ * "Visit Lucira Stores Near You"
  *
- * Stores, their order, and everything inside a tab come from Dashboard → Stores
- * via `storePages` (fetched server-side and passed down). `surface` picks which
- * per-store toggle applies, so a store can appear on the homepage but not the
- * PDP, or the other way round.
+ * Stores, their order, and images come directly from Dashboard → Stores via `storePages`.
+ * On the homepage (`surface === "homepage"`), it displays a modern carousel of experience stores
+ * with direct design links and a "BOOK A STORE VISIT" action.
+ * On other surfaces (like PDP), it retains the tabbed details view.
  */
 export default function StoreLocatorSection({ locationId = "homepage", storePages = null, surface = "homepage" }) {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isBookAppointmentOpen, setIsBookAppointmentOpen] = useState(false);
 
-  // `isStoreActive` is the older site-wide kill switch in src/data/stores.js;
+  // `isStoreActive` is the site-wide kill switch in src/data/stores.js;
   // the dashboard's own `published` flag is applied by `storesForSurface`.
   const stores = storesForSurface(storePages, surface).filter((s) => isStoreActive(s.handle));
 
+  const handleStoreCtaClick = (action, storeCity) => {
+    pushPromoClick({
+      creative_name: `visit store section ${locationId}`,
+      location_id: locationId,
+      promo_id: storeCity || "all",
+      promo_name: action,
+    });
+  };
+
+  const scrollRef = useRef(null);
+  const isHoveredRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+
+  // Marquee animation: continuous smooth gliding with instant pause on hover
+  useEffect(() => {
+    if (surface !== "homepage") return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    let animId;
+    let lastTime = performance.now();
+    const speed = 0.6; // smooth elegant luxury pace (~36px/sec)
+
+    const tick = (now) => {
+      const delta = Math.min(now - lastTime, 50);
+      lastTime = now;
+
+      if (!isHoveredRef.current && !isDraggingRef.current && el) {
+        el.scrollLeft += speed * (delta / 16.67);
+
+        // Infinite seamless loop wrap:
+        // Render 2 sets of items. When scroll reaches halfway, wrap back seamlessly
+        const half = el.scrollWidth / 2;
+        if (half > 0 && el.scrollLeft >= half) {
+          el.scrollLeft -= half;
+        } else if (el.scrollLeft <= 0) {
+          el.scrollLeft += half;
+        }
+      }
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, [surface, stores.length]);
+
+  const handleMouseDown = (e) => {
+    isDraggingRef.current = true;
+    hasDraggedRef.current = false;
+    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeftRef.current = scrollRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDraggingRef.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.2;
+    if (Math.abs(walk) > 5) {
+      hasDraggedRef.current = true;
+    }
+    scrollRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+  };
+
+  // HOMEPAGE: Modern visual slider view matching Figma mockup & continuous marquee
+  if (surface === "homepage") {
+    if (!stores.length) return null;
+
+    // Render 2 sets of stores so infinite loop is seamless
+    const displayStores = [...stores, ...stores];
+
+    return (
+      <section className="w-full bg-white pt-10 md:pt-16 pb-[30px] md:pb-[30px] overflow-hidden">
+        {/* Section Heading inside container-main */}
+        <div className="container-main">
+          <div className="text-center mb-6 sm:mb-8 lg:mb-10">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-abhaya text-black tracking-tight">
+              Visit Lucira Stores Near You
+            </h2>
+          </div>
+        </div>
+
+        {/* Stores Marquee Carousel: Full-width edge-to-edge */}
+        <div className="w-full relative overflow-hidden">
+          <div
+            ref={scrollRef}
+            onMouseEnter={() => {
+              isHoveredRef.current = true;
+            }}
+            onMouseLeave={() => {
+              isHoveredRef.current = false;
+              isDraggingRef.current = false;
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onTouchStart={() => {
+              isHoveredRef.current = true;
+            }}
+            onTouchEnd={() => {
+              setTimeout(() => {
+                isHoveredRef.current = false;
+              }, 1200);
+            }}
+            className="flex overflow-x-auto select-none no-scrollbar cursor-grab active:cursor-grabbing w-full pl-3.5 sm:pl-4 lg:pl-5"
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+              {displayStores.map((store, idx) => {
+                const storeStatusObj = storeStatus(store);
+                const storeImage = store.images?.homepage || store.images?.locator || store.images?.collection?.[0] || "";
+                const storeLabel = store.experienceLabel || (store.city ? `${store.city} Store` : store.name);
+                const targetHref = designsLink(store);
+
+                return (
+                  <div
+                    key={`${store.handle || store.id}-${idx}`}
+                    className="flex-shrink-0 w-[82vw] sm:w-[45vw] lg:w-[31vw] xl:w-[29vw] pr-3.5 sm:pr-4 lg:pr-5"
+                  >
+                    <Link
+                      href={targetHref}
+                      onClick={(e) => {
+                        if (hasDraggedRef.current) {
+                          e.preventDefault();
+                          return;
+                        }
+                        handleStoreCtaClick("Store Card", store.city);
+                      }}
+                      style={{
+                        borderRadius: "12px",
+                        boxShadow: "none",
+                        WebkitBoxShadow: "none",
+                        border: "0",
+                        outline: "none",
+                        transform: "translateZ(0)",
+                        WebkitMaskImage: "-webkit-radial-gradient(white, black)",
+                      }}
+                      className="group block relative w-full aspect-[16/10] overflow-hidden bg-white select-none cursor-pointer"
+                    >
+                      {/* Store Photo */}
+                      {storeImage ? (
+                        <LazyImage
+                          src={storeImage}
+                          alt={storeLabel}
+                          fill
+                          sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 30vw"
+                          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-neutral-200" />
+                      )}
+
+                      {/* Top dark gradient overlay for text readability */}
+                      <div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          background: "linear-gradient(145.07deg, rgba(0, 0, 0, 0.72) 15.93%, rgba(0, 0, 0, 0) 50%)",
+                        }}
+                      />
+
+                      {/* Opening Soon Overlay */}
+                      {storeStatusObj.openingSoon && <OpeningSoonOverlay />}
+
+                      {/* Top-Left: Store Name */}
+                      <div className="absolute top-5 left-[18px] z-10 pr-4">
+                        <h3 className="font-figtree font-semibold text-white text-[16px] leading-[100%] tracking-normal drop-shadow-sm">
+                          {storeLabel}
+                        </h3>
+                      </div>
+
+                      {/* Bottom-Right: Single-piece unified concave cutout (no seams, zero lines/shadows) */}
+                      <div
+                        className="absolute -bottom-[1px] -right-[1px] z-10 w-[78px] sm:w-[86px] h-[78px] sm:h-[86px] pointer-events-none select-none"
+                        style={{ boxShadow: "none", border: "none", outline: "none" }}
+                      >
+                        <svg
+                          className="w-full h-full fill-white"
+                          viewBox="0 0 88 88"
+                          preserveAspectRatio="none"
+                          aria-hidden="true"
+                          style={{ filter: "none", boxShadow: "none", border: "none" }}
+                        >
+                          <path d="M 88,0 C 88,12 80,20 68,20 C 41,20 20,41 20,68 C 20,80 12,88 0,88 L 90,90 L 90,0 Z" />
+                        </svg>
+
+                        {/* Circular Action Button */}
+                        <div
+                          className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full border border-black flex items-center justify-center text-black transition-all duration-300 group-hover:bg-[#5A413F] group-hover:border-[#5A413F] group-hover:text-white pointer-events-auto"
+                          style={{ boxShadow: "none", outline: "none" }}
+                        >
+                          <ArrowUpRight className="w-5 h-5 sm:w-5.5 sm:h-5.5 stroke-[1.8]" />
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Centered CTA - button style same as others */}
+          <div className="mt-8 sm:mt-10 flex justify-center">
+            <Button
+              type="button"
+              onClick={() => {
+                handleStoreCtaClick("Book A Store Visit");
+                setIsBookAppointmentOpen(true);
+              }}
+              className="w-fit md:w-auto px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors cursor-pointer"
+            >
+              BOOK A STORE VISIT
+            </Button>
+          </div>
+        </div>
+
+        {/* Global style to hide scrollbar */}
+        <style jsx global>{`
+          .no-scrollbar::-webkit-scrollbar {
+            display: none !important;
+          }
+          .no-scrollbar {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+        `}</style>
+
+        {/* Book Appointment Modal */}
+        <BookAppointmentPopup
+          isOpen={isBookAppointmentOpen}
+          onClose={() => setIsBookAppointmentOpen(false)}
+        />
+      </section>
+    );
+  }
+
+  // OTHER SURFACES (e.g. PDP): Detailed tabbed view remains intact
   const activeStore = stores[Math.min(activeIndex, stores.length - 1)];
   if (!activeStore) return null;
 
@@ -58,15 +310,6 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
   const links = activeStore.links || {};
   const image = activeStore.images?.homepage || "";
   const designs = designsLink(activeStore);
-
-  const handleStoreCtaClick = (action) => {
-    pushPromoClick({
-      creative_name: `visit store section ${locationId}`,
-      location_id: locationId,
-      promo_id: activeStore.city,
-      promo_name: action,
-    });
-  };
 
   if (isMobile) {
     return (
