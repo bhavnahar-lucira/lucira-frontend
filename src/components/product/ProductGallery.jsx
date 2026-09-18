@@ -103,55 +103,43 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       return (
         activeVariant.inStock === true ||
         activeVariant.inStock === "true" ||
-        (typeof activeVariant.inventoryQuantity === "number" && activeVariant.inventoryQuantity > 0)
+        (activeVariant.inventoryQuantity !== undefined && Number(activeVariant.inventoryQuantity) > 0)
       );
     }
-    const firstVariant = product?.variants?.[0];
-    if (firstVariant) {
-      return (
-        firstVariant.inStock === true ||
-        firstVariant.inStock === "true" ||
-        (typeof firstVariant.inventoryQuantity === "number" && firstVariant.inventoryQuantity > 0)
+    if (product?.variants && product.variants.length > 0) {
+      return product.variants.some(
+        (v) => v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && Number(v.inventoryQuantity) > 0)
       );
     }
     return Boolean(product?.inStock);
   }, [activeVariant, product?.variants, product?.inStock]);
 
-  const displayLabels = useMemo(() => {
-    const tags = Array.isArray(product?.tags)
-      ? product.tags
-      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
-    const lowerTags = tags.map(t => String(t).toLowerCase());
+  const normalizedTags = useMemo(() => {
+    if (!product?.tags) return [];
+    if (Array.isArray(product.tags)) return product.tags.map((t) => String(t).trim().toLowerCase());
+    if (typeof product.tags === "string") return product.tags.split(",").map((t) => t.trim().toLowerCase());
+    return [];
+  }, [product?.tags]);
 
+  const displayLabels = useMemo(() => {
     const labels = [];
     if (product?.label) labels.push(product.label);
+    const bestsellerMeta = String(product?.productMetafields?.bestsellers || "").toLowerCase();
 
-    const hasFastShipping = lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"));
+    const hasFastShipping = normalizedTags.some((t) => t.includes("fast shipping") || t.includes("fastshipping"));
 
     // Priority order: Fast Shipping (only when in stock) > Best Seller > New Arrival > Trending
     if (hasFastShipping && isVariantInStock) labels.push("Faster Delivery");
-    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || String(product?.productMetafields?.bestsellers || "").toLowerCase() === "bestseller") labels.push("Best Seller");
-    if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
-    if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
+    if (normalizedTags.some((t) => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
+    if (normalizedTags.some((t) => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
+    if (normalizedTags.some((t) => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product?.label, product?.tags, product?.productMetafields?.bestsellers, isVariantInStock]);
+  }, [product?.label, normalizedTags, product?.productMetafields?.bestsellers, isVariantInStock]);
 
   const isOnlyPendant = useMemo(() => {
-    const tags = Array.isArray(product?.tags)
-      ? product.tags
-      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
-
-    const hasTag = tags.some(t => {
-      const s = String(t).trim().toLowerCase();
-      return s === "only pendant" || s === "only-pendant" || s === "pendant only";
-    });
-
-    if (hasTag) return true;
-    if (product?.tags?.includes?.("Only Pendant")) return true;
-
-    return false;
-  }, [product?.tags]);
+    return normalizedTags.some((s) => s === "only pendant" || s === "only-pendant" || s === "pendant only");
+  }, [normalizedTags]);
 
   useEffect(() => {
     setMounted(true);

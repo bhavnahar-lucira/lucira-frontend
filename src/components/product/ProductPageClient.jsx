@@ -170,40 +170,90 @@ function getCookieValue(name) {
   return value ? decodeURIComponent(value.split("=").slice(1).join("=")) : "";
 }
 
+let activeScrollRaf = null;
+let activeCancelCleanup = null;
+
 const handleSafeScroll = (elementRef) => {
   const el = elementRef?.current;
   if (!el) return;
 
-  const isDesktop = window.innerWidth >= 1024;
-  let offset = 90;
+  if (activeCancelCleanup) {
+    activeCancelCleanup();
+  }
+  if (activeScrollRaf) {
+    cancelAnimationFrame(activeScrollRaf);
+    activeScrollRaf = null;
+  }
+
+  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+  let offset = 80;
 
   if (!isDesktop) {
     const header = document.querySelector("header");
     const subHeader = document.getElementById("pdp-sub-header");
 
-    // On mobile PDP, the TopBar (40px) hides when scrolled, so pinned header bottom is ~64px.
-    // If already scrolled past 40px, header.getBoundingClientRect().bottom is the pinned bottom.
-    // Otherwise, subtract 40px (the TopBar height that will scroll away once the page scrolls).
     const headerBottom = header
       ? (window.scrollY > 40 ? header.getBoundingClientRect().bottom : Math.max(56, header.offsetHeight - 40))
       : 64;
 
     const subHeaderHeight = subHeader?.offsetHeight || 48;
-    // Generous breathing room so section headings are clearly visible below the tab bar
     const scrollPadding = 28;
     offset = headerBottom + subHeaderHeight + scrollPadding;
   } else {
-    const header = document.querySelector("header");
-    const headerBottom = header ? header.getBoundingClientRect().bottom : 80;
-    offset = headerBottom + 24;
+    // On Desktop, once scrolled past 120px, the header collapses to the compact sticky Navbar (~50px).
+    // Using a fixed 80px (56px navbar + 24px breathing room) avoids computing against the 186px expanded header.
+    offset = 80;
   }
 
-  const targetPosition = el.getBoundingClientRect().top + window.scrollY - offset;
+  const startY = window.scrollY;
+  const getTargetY = () => Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset);
+  let targetY = getTargetY();
 
-  window.scrollTo({
-    top: Math.max(0, targetPosition),
-    behavior: "smooth",
-  });
+  if (Math.abs(targetY - startY) < 5) return;
+
+  const duration = Math.min(800, Math.max(400, Math.abs(targetY - startY) * 0.45));
+  const startTime = performance.now();
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+  let isCancelled = false;
+  const cancelEvents = ["wheel", "touchmove"];
+  const onCancel = () => {
+    isCancelled = true;
+    cleanup();
+  };
+  const cleanup = () => {
+    cancelEvents.forEach((ev) => window.removeEventListener(ev, onCancel));
+    if (activeCancelCleanup === cleanup) activeCancelCleanup = null;
+    if (activeScrollRaf) {
+      cancelAnimationFrame(activeScrollRaf);
+      activeScrollRaf = null;
+    }
+  };
+  activeCancelCleanup = cleanup;
+  cancelEvents.forEach((ev) => window.addEventListener(ev, onCancel, { passive: true }));
+
+  const step = (now) => {
+    if (isCancelled) return;
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+
+    // Dynamically adapt to layout shifts / header collapse as the page scrolls
+    if (progress > 0.4) {
+      targetY = getTargetY();
+    }
+
+    const currentY = startY + (targetY - startY) * easeOutCubic(progress);
+    window.scrollTo(0, currentY);
+
+    if (progress < 1) {
+      activeScrollRaf = requestAnimationFrame(step);
+    } else {
+      window.scrollTo(0, getTargetY());
+      cleanup();
+    }
+  };
+
+  activeScrollRaf = requestAnimationFrame(step);
 };
 
 // Force en-IN formatting to be consistent across environments
@@ -4107,7 +4157,6 @@ export default function ProductPageClient({
         </Suspense>
       )}
 
-      <OurProcess />
       {matchingProducts.length > 0 && (
         <ProductSlider
           title="From the Same Collection"
@@ -4121,14 +4170,8 @@ export default function ProductPageClient({
         />
       )}
 
-      <ProductSlider
-        title={recentlyViewedState?.title || "Recently Viewed"}
-        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
-        preservePriceOnColorChange={true}
-        disableLastViewed={true}
-      />
       {youMayAlsoLikeProducts.length > 0 && (
-        <section className="w-full bg-white mt-10 md:mt-15 overflow-hidden">
+        <section className="w-full bg-white my-10 md:my-16 overflow-hidden">
           <div className="max-w-480 mx-auto px-5 md:px-17">
             <div className="text-center mb-10 md:mb-12">
               <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">From the Same Collection</h2>
@@ -4150,6 +4193,15 @@ export default function ProductPageClient({
           </div>
         </section>
       )}
+
+      <OurProcess />
+
+      <ProductSlider
+        title={recentlyViewedState?.title || "Recently Viewed"}
+        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
+        preservePriceOnColorChange={true}
+        disableLastViewed={true}
+      />
       {!isGoldCoin && <DiamondComparison />}
       <FAQSection />
       {/* <ExploreOtherRings /> */}
