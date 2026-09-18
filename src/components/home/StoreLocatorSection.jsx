@@ -263,7 +263,8 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
             </div>
           </div>
 
-          {/* Centered CTA - button style same as others */}
+        {/* Centered CTA - button style same as others */}
+        <div className="container-main">
           <div className="mt-8 sm:mt-10 flex justify-center">
             <Button
               type="button"
