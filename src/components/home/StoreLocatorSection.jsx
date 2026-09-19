@@ -439,27 +439,31 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           </div>
         </div>
 
-        {/* Centered CTA - opens StoreFootfallModal matching PDP flow */}
+        {/* Centered CTA - opens StoreFootfallModal with appointment mode for homepage */}
         <div className="container-main relative z-10">
           <div className="mt-8 sm:mt-10 flex justify-center">
             <button
               type="button"
               onClick={() => {
-                handleStoreCtaClick("Book A Store Visit");
+                handleStoreCtaClick("Book An Appointment");
                 setIsStoreModalOpen(true);
               }}
               className="inline-flex items-center justify-center w-fit md:w-auto px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors cursor-pointer shadow-sm"
             >
-              BOOK A STORE VISIT
+              BOOK AN APPOINTMENT
             </button>
           </div>
         </div>
 
-        {/* Store Footfall / Visit Modal (same flow as PDP) */}
+        {/* Store Appointment Modal for Homepage */}
         <StoreFootfallModal
           open={isStoreModalOpen}
           onClose={() => setIsStoreModalOpen(false)}
           locationId={locationId}
+          isAppointment={true}
+          title="Book an Appointment"
+          subtitle="Select your preferred store to schedule a visit"
+          buttonLabel="Book an Appointment"
         />
 
         {/* Scoped and global styles for store section */}

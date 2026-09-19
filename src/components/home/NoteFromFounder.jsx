@@ -26,7 +26,7 @@ export default function NoteFromFounder() {
               A Note from Our Founder
             </h2>
 
-            <p className="font-figtree font-normal italic text-[1.125rem] leading-[160%] tracking-normal align-middle text-neutral-800 mb-0">
+            <p className="font-figtree font-normal italic text-[14px] leading-[160%] tracking-normal align-middle text-neutral-800 mb-[12px]" style={{ fontSize: "14px", marginBottom: "12px" }}>
               &ldquo;Jewelry runs in my blood, it&apos;s who I am. After building brands in India, I created Lucira to go beyond tradition and craft pieces that reflect elegance and meaning. For me, jewelry isn&apos;t just adornment, it&apos;s a celebration of moments, love, and legacy. Every piece we make is a promise.&rdquo;
             </p>
 
