@@ -459,7 +459,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           onClose={() => setIsBookAppointmentOpen(false)}
         />
 
-        {/* Global style to hide scrollbar */}
+        {/* Scoped and global styles for store section */}
         <style jsx global>{`
           .no-scrollbar::-webkit-scrollbar {
             display: none !important;
@@ -467,6 +467,35 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           .no-scrollbar {
             -ms-overflow-style: none !important;
             scrollbar-width: none !important;
+          }
+
+          /* Inverted Radius Cutout Mask */
+          .store-card-inverted-mask {
+            --r: 20px;
+            --s: 30px;
+            --x: 4px;
+            --y: 4px;
+
+            border-radius: var(--r);
+            --_m: /calc(2 * var(--r)) calc(2 * var(--r)) radial-gradient(#000 70%, #0000 72%);
+            --_g: conic-gradient(from 90deg at calc(100% - var(--r)) calc(100% - var(--r)), #0000 25%, #000 0);
+            --_d: (var(--s) + var(--r));
+            mask:
+              calc(100% - var(--_d) - var(--x)) 100% var(--_m),
+              100% calc(100% - var(--_d) - var(--y)) var(--_m),
+              radial-gradient(var(--s) at 100% 100%, #0000 99%, #000 calc(100% + 1px))
+                calc(-1 * var(--r) - var(--x)) calc(-1 * var(--r) - var(--y)),
+              var(--_g) calc(-1 * var(--_d) - var(--x)) 0,
+              var(--_g) 0 calc(-1 * var(--_d) - var(--y));
+            mask-repeat: no-repeat;
+            -webkit-mask:
+              calc(100% - var(--_d) - var(--x)) 100% var(--_m),
+              100% calc(100% - var(--_d) - var(--y)) var(--_m),
+              radial-gradient(var(--s) at 100% 100%, #0000 99%, #000 calc(100% + 1px))
+                calc(-1 * var(--r) - var(--x)) calc(-1 * var(--r) - var(--y)),
+              var(--_g) calc(-1 * var(--_d) - var(--x)) 0,
+              var(--_g) 0 calc(-1 * var(--_d) - var(--y));
+            -webkit-mask-repeat: no-repeat;
           }
         `}</style>
       </section>
