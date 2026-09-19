@@ -28,6 +28,8 @@ import CustomerReviews from "@/components/product/CustomerReviews";
 import FAQSection from "@/components/product/FAQSection";
 import DiamondComparison from "@/components/product/DiamondComparison";
 import { FindLuciraStore } from "@/components/product/FindLuciraStore";
+import { asStorePages, storeByHandle } from "@/lib/storeContent";
+import { handleFromStoreName } from "@/data/stores";
 const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { suspense: true });
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
@@ -48,7 +50,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
-import { formatDispatchMessage, getShippingDateValue } from "@/lib/utils";
+import { cn, formatDispatchMessage, getShippingDateValue } from "@/lib/utils";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import DispatchTooltip from "@/components/common/DispatchTooltip";
 import { formatSizeLabel } from "@/lib/metal";
@@ -168,28 +170,90 @@ function getCookieValue(name) {
   return value ? decodeURIComponent(value.split("=").slice(1).join("=")) : "";
 }
 
+let activeScrollRaf = null;
+let activeCancelCleanup = null;
+
 const handleSafeScroll = (elementRef) => {
-  if (!elementRef.current) return;
-  const isDesktop = window.innerWidth >= 768;
-  const bodyRect = document.body.getBoundingClientRect().top;
-  const elementRect = elementRef.current.getBoundingClientRect().top;
-  const absoluteElementTop = elementRect - bodyRect;
-  const offset = isDesktop ? 80 : 20;
-  const targetPosition = absoluteElementTop - offset;
+  const el = elementRef?.current;
+  if (!el) return;
 
-  window.scrollTo({
-    top: targetPosition,
-    behavior: "smooth",
-  });
-
-  if (isDesktop) {
-    setTimeout(() => {
-      window.scrollTo({
-        top: targetPosition,
-        behavior: "smooth",
-      });
-    }, 300);
+  if (activeCancelCleanup) {
+    activeCancelCleanup();
   }
+  if (activeScrollRaf) {
+    cancelAnimationFrame(activeScrollRaf);
+    activeScrollRaf = null;
+  }
+
+  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+  let offset = 80;
+
+  if (!isDesktop) {
+    const header = document.querySelector("header");
+    const subHeader = document.getElementById("pdp-sub-header");
+
+    const headerBottom = header
+      ? (window.scrollY > 40 ? header.getBoundingClientRect().bottom : Math.max(56, header.offsetHeight - 40))
+      : 64;
+
+    const subHeaderHeight = subHeader?.offsetHeight || 48;
+    const scrollPadding = 28;
+    offset = headerBottom + subHeaderHeight + scrollPadding;
+  } else {
+    // On Desktop, once scrolled past 120px, the header collapses to the compact sticky Navbar (~50px).
+    // Using a fixed 80px (56px navbar + 24px breathing room) avoids computing against the 186px expanded header.
+    offset = 80;
+  }
+
+  const startY = window.scrollY;
+  const getTargetY = () => Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset);
+  let targetY = getTargetY();
+
+  if (Math.abs(targetY - startY) < 5) return;
+
+  const duration = Math.min(800, Math.max(400, Math.abs(targetY - startY) * 0.45));
+  const startTime = performance.now();
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+  let isCancelled = false;
+  const cancelEvents = ["wheel", "touchmove"];
+  const onCancel = () => {
+    isCancelled = true;
+    cleanup();
+  };
+  const cleanup = () => {
+    cancelEvents.forEach((ev) => window.removeEventListener(ev, onCancel));
+    if (activeCancelCleanup === cleanup) activeCancelCleanup = null;
+    if (activeScrollRaf) {
+      cancelAnimationFrame(activeScrollRaf);
+      activeScrollRaf = null;
+    }
+  };
+  activeCancelCleanup = cleanup;
+  cancelEvents.forEach((ev) => window.addEventListener(ev, onCancel, { passive: true }));
+
+  const step = (now) => {
+    if (isCancelled) return;
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+
+    // Dynamically adapt to layout shifts / header collapse as the page scrolls
+    if (progress > 0.4) {
+      targetY = getTargetY();
+    }
+
+    const currentY = startY + (targetY - startY) * easeOutCubic(progress);
+    window.scrollTo(0, currentY);
+
+    if (progress < 1) {
+      activeScrollRaf = requestAnimationFrame(step);
+    } else {
+      window.scrollTo(0, getTargetY());
+      cleanup();
+    }
+  };
+
+  activeScrollRaf = requestAnimationFrame(step);
 };
 
 // Force en-IN formatting to be consistent across environments
@@ -781,29 +845,7 @@ export default function ProductPageClient({
     message: "",
     coords: null
   });
-
-  useEffect(() => {
-    if (
-      globalPincode &&
-      !localPincode
-    ) {
-      setLocalPincode(globalPincode);
-    }
-  }, [globalPincode]);
-
-  useEffect(() => {
-    const savedPincode = String(
-      getCookieValue(USER_PINCODE_COOKIE) || ""
-    )
-      .replace(/\D/g, "")
-      .slice(0, 6);
-
-    if (savedPincode) {
-      setLocalPincode(savedPincode);
-
-      dispatch(setPincode(savedPincode));
-    }
-  }, [dispatch]);
+  const checkedPincodeRef = useRef("");
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -836,10 +878,12 @@ export default function ProductPageClient({
     ).trim();
 
     if (pincodeToCheck.length !== 6) {
-      if (pincodeToCheck) toast.error("Please enter a valid 6-digit pincode");
+      if (pincodeToCheck && !isAutomatic) toast.error("Please enter a valid 6-digit pincode");
       return;
     }
 
+    checkedPincodeRef.current = pincodeToCheck;
+    setLocalPincode(pincodeToCheck);
     setCheckingPincode(true);
     setDeliveryInfo({ status: "loading", message: "Checking..." });
 
@@ -880,14 +924,15 @@ export default function ProductPageClient({
     } catch (err) {
       console.error("Pincode check error:", err);
       setDeliveryInfo({ status: "idle", message: "" });
-      // Don't show toast on initial mount load
-      if (typeof val !== 'string') toast.error("Error checking pincode. Please try again.");
+      // Don't show toast on initial mount load or automatic checks
+      if (typeof val !== 'string' && !isAutomatic) toast.error("Error checking pincode. Please try again.");
     } finally {
       setCheckingPincode(false);
     }
   }, [localPincode, calculateDispatchDate, dispatch]);
 
   const resetPincodeState = useCallback(() => {
+    checkedPincodeRef.current = "";
     setLocalPincode("");
     setConfirmedPincode("");
     setDeliveryInfo({ status: "idle", message: "", coords: null });
@@ -915,6 +960,7 @@ export default function ProductPageClient({
 
           setLocalPincode(detectedPincode);
           dispatch(setPincode(detectedPincode));
+          checkedPincodeRef.current = detectedPincode;
 
           // GTM tracking — mirrors the Shopify "Locate Me Clicked" promoClick
           // event fired on a successful reverse-geocode lookup.
@@ -961,32 +1007,44 @@ export default function ProductPageClient({
     );
   }, [dispatch, handlePincodeCheck]);
 
-  // Initial check for persisted pincode - ONLY ON MOUNT
+  // Auto-check persisted or initial pincode (from cookie or Redux store)
   useEffect(() => {
-    if (globalPincode && globalPincode.length === 6) {
-      handlePincodeCheck(globalPincode, true);
-    }
-    // We only want this to run once when the page loads
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const savedPincode = String(
+      getCookieValue(USER_PINCODE_COOKIE) || ""
+    )
+      .replace(/\D/g, "")
+      .slice(0, 6);
 
+    const autoPincode = savedPincode.length === 6
+      ? savedPincode
+      : (globalPincode && String(globalPincode).replace(/\D/g, "").slice(0, 6));
+
+    if (autoPincode && autoPincode.length === 6) {
+      setLocalPincode(autoPincode);
+      dispatch(setPincode(autoPincode));
+      if (checkedPincodeRef.current !== autoPincode) {
+        checkedPincodeRef.current = autoPincode;
+        handlePincodeCheck(autoPincode, true);
+      }
+    }
+  }, [dispatch, globalPincode, handlePincodeCheck]);
+
+  // Listen for live broadcast updates (e.g. Geolocation in VisitorTracking or header pincode changes)
   useEffect(() => {
-    const applyPincode = (value) => {
-      const cookiePincode = String(value || "")
+    const handleUserPincode = (event) => {
+      const eventPincode = String(event.detail?.pincode || "")
         .replace(/\D/g, "")
         .slice(0, 6);
 
-      if (cookiePincode === localPincode) return;
-
-      setLocalPincode(cookiePincode);
-
-      if (cookiePincode.length === 6) {
-        handlePincodeCheck(cookiePincode);
+      if (eventPincode.length === 6) {
+        setLocalPincode(eventPincode);
+        if (checkedPincodeRef.current !== eventPincode) {
+          checkedPincodeRef.current = eventPincode;
+          handlePincodeCheck(eventPincode, true);
+        }
+      } else if (!eventPincode) {
+        resetPincodeState();
       }
-    };
-
-    const handleUserPincode = (event) => {
-      applyPincode(event.detail?.pincode);
     };
 
     window.addEventListener(
@@ -999,7 +1057,7 @@ export default function ProductPageClient({
         "lucira:user-pincode",
         handleUserPincode
       );
-  }, [handlePincodeCheck, localPincode]);
+  }, [handlePincodeCheck, resetPincodeState]);
 
   // Update dispatch message when variant changes (size/color)
   useEffect(() => {
@@ -1046,6 +1104,8 @@ export default function ProductPageClient({
     }).map(s => s.shopifyId);
 
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
+    const { stores: configuredStores = [] } = asStorePages(storePages);
+
     const storesWithData = allStores.map(store => {
       let distance = null;
       if (deliveryInfo.coords && (store.latitude || store.lat) && (store.longitude || store.lng)) {
@@ -1056,8 +1116,25 @@ export default function ProductPageClient({
           store.longitude || store.lng
         );
       }
+
+      const handle = store.handle || handleFromStoreName(store.name);
+      const storeConfig =
+        configuredStores.find(
+          (s) =>
+            (store.shopifyId && s.shopifyLocationId && (s.shopifyLocationId === store.shopifyId || store.shopifyId.includes(s.shopifyLocationId))) ||
+            (handle && s.handle === handle) ||
+            (s.city && (store.city || "").toLowerCase().includes(s.city.toLowerCase()))
+        ) || storeByHandle(storePages, handle);
+
       return {
         ...store,
+        handle: handle || storeConfig?.handle,
+        displayName: storeConfig?.name || (getStoreDisplayName(store.name) === "Head Office" ? "Head Office" : `${getStoreDisplayName(store.name)} Lucira Store`),
+        addressFormatted: storeConfig?.address || [store.address1 || store.address, store.city, store.province, store.zip].filter(Boolean).join(", "),
+        phone: storeConfig?.phone || store.phone,
+        mapLink: storeConfig?.links?.map || storeConfig?.links?.directions || store.mapLink,
+        image: storeConfig?.images?.homepage || storeConfig?.images?.locator || storeConfig?.images?.collection?.[0] || store.image,
+        storeConfig,
         distance,
         isInStock: stockStoreIds.includes(store.shopifyId)
       };
@@ -1089,7 +1166,7 @@ export default function ProductPageClient({
       nearestStore: storesWithData.length > 0 ? storesWithData[0] : null,
       availableStoreCount: stockStoreIds.length
     };
-  }, [allStores, activeVariant, deliveryInfo.coords]);
+  }, [allStores, activeVariant, deliveryInfo.coords, storePages]);
 
   const rawTags = product.tags || [];
   const tags = Array.isArray(rawTags) ? rawTags : (typeof rawTags === 'string' ? rawTags.split(',').map(t => t.trim()) : []);
@@ -2171,8 +2248,8 @@ export default function ProductPageClient({
 
   const renderEngravingContent = () => (
     <div className="flex-1 overflow-y-auto">
-      {/* Ring Preview */}
-      <div className="relative w-full aspect-[16/9] bg-[#F9F9F9] flex items-center justify-center overflow-hidden">
+      {/* Ring Preview at the top with realistic metallic depth */}
+      <div className="relative w-full aspect-[16/9] bg-[#FAF8F5] border-b border-[#EBE0D8]/60 flex items-center justify-center overflow-hidden">
         <Image
           src="/images/engraving_bg.jpg"
           alt="Ring band preview"
@@ -2180,54 +2257,40 @@ export default function ProductPageClient({
           className="object-cover"
         />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {engraving && (
+          {engraving ? (
             <div
               style={{
                 fontFamily: `var(--font-${engravingFont.toLowerCase()})`,
-                textShadow: "1px 1px 1.5px rgba(255,255,255,0.8), -0.5px -0.5px 1px rgba(0,0,0,0.15)"
+                textShadow: "0.5px 0.5px 1.5px rgba(255,255,255,0.85), -0.5px -0.5px 1px rgba(0,0,0,0.2)"
               }}
-              className="text-gray-800 text-xl sm:text-2xl tracking-[0.15em] opacity-80 italic -translate-y-9 sm:-translate-y-9"
+              className="text-[#3D3130] text-xl sm:text-2xl tracking-[0.15em] opacity-90 italic -translate-y-9 sm:-translate-y-9 select-none"
             >
               {engraving}
+            </div>
+          ) : (
+            <div className="text-[#5A413F]/35 text-sm sm:text-base italic tracking-widest -translate-y-9 sm:-translate-y-9 select-none font-light">
+              Preview will appear here
             </div>
           )}
         </div>
       </div>
 
-      <div className="p-6 space-y-8">
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-black leading-relaxed">
-            <span className="font-bold text-gray-900">Note:</span> Text can only contain up to 8 English/alphanumeric characters (A-Z, a-z, 0-9) and special characters (heart and infinity).
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <h4 className="text-base font-bold text-gray-900">Choose a Font <span className="text-rose-500">*</span></h4>
-          <div className="grid grid-cols-2 gap-3">
-            {["Lobster", "Yellowtail", "Satisfy", "ABeeZee"].map((font) => (
-              <button
-                key={font}
-                onClick={() => setEngravingFont(font)}
-                className={`px-2 py-3 rounded-sm border text-lg transition-all duration-300 ${engravingFont === font
-                  ? "border-black bg-zinc-900 text-white shadow-md scale-[1.02]"
-                  : "border-gray-200 text-gray-600 hover:border-gray-400 bg-white"
-                  }`}
-              >
-                <span style={{ fontFamily: `var(--font-${font.toLowerCase()})` }} className="text-base">Aa - {font}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
+      <div className="p-5 md:p-6 space-y-6">
+        {/* Inner Engraving (Text Input directly under preview) */}
+        <div className="space-y-2.5">
           <div className="flex justify-between items-center">
-            <h4 className="text-base font-bold text-gray-900">Inner Engraving <span className="text-rose-500">*</span></h4>
-            <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+            <label className="text-sm font-semibold font-figtree text-[#1A1A1A]">
+              Inner Engraving <span className="text-[#5A413F]">*</span>
+            </label>
+            <span className={cn(
+              "text-[11px] font-figtree tracking-wide",
+              engraving.length >= 8 ? "text-amber-600 font-semibold" : "text-gray-400 font-medium"
+            )}>
               {engraving.length}/8 Characters
-            </div>
+            </span>
           </div>
 
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-2.5 items-center">
             <div className="relative flex-1">
               <Input
                 ref={engravingInputRef}
@@ -2235,27 +2298,63 @@ export default function ProductPageClient({
                 maxLength={8}
                 onChange={(e) => setEngraving(e.target.value)}
                 placeholder="Type your text here"
-                className="h-14 border-gray-300 pr-4 text-lg focus-visible:ring-2 rounded-sm"
+                className="h-12 border-zinc-200 focus-visible:border-[#5A413F] focus-visible:ring-1 focus-visible:ring-[#5A413F] pr-4 text-base font-figtree rounded-[6px] transition-colors"
                 style={{ fontFamily: `var(--font-${engravingFont.toLowerCase()})` }}
               />
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-1.5 shrink-0">
               <button
+                type="button"
                 onClick={() => insertSymbol("♥")}
-                className="w-12 h-12 flex items-center justify-center border-2 border-zinc-100 rounded-sm hover:border-black hover:bg-zinc-50 transition-all active:scale-95"
+                className="w-12 h-12 flex items-center justify-center border border-zinc-200 rounded-[6px] hover:border-[#5A413F] hover:bg-[#FAF7F5] text-[#5A413F] transition-all active:scale-95 text-xl font-medium shadow-2xs cursor-pointer"
                 title="Insert Heart"
               >
-                <span className="text-2xl text-black">♥</span>
+                ♥
               </button>
               <button
+                type="button"
                 onClick={() => insertSymbol("∞")}
-                className="w-12 h-12 flex items-center justify-center border-2 border-zinc-100 rounded-sm hover:border-black hover:bg-zinc-50 transition-all active:scale-95"
+                className="w-12 h-12 flex items-center justify-center border border-zinc-200 rounded-[6px] hover:border-[#5A413F] hover:bg-[#FAF7F5] text-[#5A413F] transition-all active:scale-95 text-xl font-medium shadow-2xs cursor-pointer"
                 title="Insert Infinity"
               >
-                <span className="text-2xl text-black">∞</span>
+                ∞
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Choose Font */}
+        <div className="space-y-2.5">
+          <label className="text-sm font-semibold font-figtree text-[#1A1A1A]">
+            Choose a Font <span className="text-[#5A413F]">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2.5">
+            {["Lobster", "Yellowtail", "Satisfy", "ABeeZee"].map((font) => (
+              <button
+                key={font}
+                type="button"
+                onClick={() => setEngravingFont(font)}
+                className={cn(
+                  "h-12 px-3 rounded-[6px] border text-center flex items-center justify-center transition-all duration-200 cursor-pointer",
+                  engravingFont === font
+                    ? "border-[#5A413F] bg-[#FAF7F5] text-[#5A413F] ring-1 ring-[#5A413F] font-semibold shadow-2xs"
+                    : "border-zinc-200 text-gray-700 bg-white hover:border-zinc-300 hover:bg-zinc-50/70"
+                )}
+              >
+                <span style={{ fontFamily: `var(--font-${font.toLowerCase()})` }} className="text-[15px]">
+                  Aa - {font}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Note (Cart & Checkout badge / nudge style) */}
+        <div className="bg-[#FAF7F5] border border-[#EBE0D8] rounded-[8px] p-3 flex items-start gap-2.5">
+          <Info size={15} className="text-[#5A413F] shrink-0 mt-0.5" />
+          <p className="text-[12px] text-[#5A413F]/85 leading-relaxed font-figtree">
+            <span className="font-semibold text-[#5A413F]">Note:</span> Text can only contain up to 8 English/alphanumeric characters (A-Z, a-z, 0-9) and special symbols (♥, ∞).
+          </p>
         </div>
       </div>
     </div>
@@ -2775,21 +2874,21 @@ export default function ProductPageClient({
                     onClose={() => setIsEngravingDrawerOpen(false)}
                     detents={[0.9]}
                   >
-                    <MobileSheet.Container className={`z-[499] ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
+                    <MobileSheet.Container className={`z-[499] bg-white ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
                       <MobileSheet.Header />
                       <MobileSheet.Content>
-                        <div className="flex flex-col h-full">
-                          <div className="flex items-center justify-between px-4 pb-4 border-b border-gray-100">
-                            <h2 className="text-lg font-bold">Engraving</h2>
-                            <button onClick={() => setIsEngravingDrawerOpen(false)} className="p-2">
-                              <X size={20} className="text-gray-400" />
+                        <div className="flex flex-col h-full bg-white">
+                          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                            <h2 className="text-base font-semibold font-figtree text-[#1A1A1A]">Engraving</h2>
+                            <button onClick={() => setIsEngravingDrawerOpen(false)} className="p-1.5 text-gray-400 hover:text-black rounded-full hover:bg-gray-100 transition-colors">
+                              <X size={20} />
                             </button>
                           </div>
                           {renderEngravingContent()}
-                          <div className="p-3 border-t border-gray-100">
+                          <div className="p-4 border-t border-gray-100 bg-white">
                             <Button
                               onClick={handleSaveEngraving}
-                              className="w-full h-12 font-bold rounded-sm bg-tertiary uppercase tracking-wider disabled:opacity-50"
+                              className="w-full h-12 font-figtree font-semibold rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white uppercase tracking-wider disabled:opacity-40 transition-all shadow-sm"
                               disabled={!engraving}
                             >
                               SAVE
@@ -2802,22 +2901,22 @@ export default function ProductPageClient({
                   </MobileSheet>
                 ) : (
                   <Sheet open={isEngravingDrawerOpen} onOpenChange={setIsEngravingDrawerOpen}>
-                    <SheetContent showCloseButton={false} side="right" className={`w-full sm:max-w-[450px] p-0 flex flex-col ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
-                      <SheetHeader className="p-6 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
-                        <SheetTitle className="text-lg font-bold">Engraving</SheetTitle>
+                    <SheetContent showCloseButton={false} side="right" className={`w-full sm:max-w-[450px] p-0 flex flex-col bg-white ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
+                      <SheetHeader className="px-6 py-5 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
+                        <SheetTitle className="text-base font-semibold font-figtree text-[#1A1A1A]">Engraving</SheetTitle>
                         <SheetClose asChild>
-                          <button className="text-zinc-400 hover:text-black transition-colors hover:cursor-pointer p-1">
-                            <X size={22} strokeWidth={1.5} />
+                          <button className="text-zinc-400 hover:text-black transition-colors hover:cursor-pointer p-1.5 rounded-full hover:bg-gray-100">
+                            <X size={20} />
                           </button>
                         </SheetClose>
                       </SheetHeader>
 
                       {renderEngravingContent()}
 
-                      <div className="p-6 border-t border-gray-100">
+                      <div className="p-6 border-t border-gray-100 bg-white">
                         <Button
                           onClick={handleSaveEngraving}
-                          className="w-full h-12 font-bold rounded-sm bg-tertiary uppercase tracking-wider disabled:opacity-50"
+                          className="w-full h-12 font-figtree font-semibold rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white uppercase tracking-wider disabled:opacity-40 transition-all shadow-sm"
                           disabled={!engraving}
                         >
                           SAVE
@@ -2828,8 +2927,8 @@ export default function ProductPageClient({
                 )}
 
                 {savedEngraving.text && (
-                  <div className="mt-3 flex items-center gap-2 text-primary font-semibold text-sm bg-primary/5 w-fit px-3 py-1.5 rounded-full border border-primary/10">
-                    <Check size={14} />
+                  <div className="mt-3 flex items-center gap-2 text-[#5A413F] font-semibold text-sm bg-[#FAF7F5] w-fit px-3.5 py-1.5 rounded-full border border-[#EBE0D8]">
+                    <Check size={14} className="text-[#5A413F]" />
                     Engraving Saved:
                     <span style={{ fontFamily: `var(--font-${savedEngraving.font.toLowerCase()})` }} className="ml-1 text-base underline decoration-dotted">
                       {savedEngraving.text}
@@ -2839,7 +2938,8 @@ export default function ProductPageClient({
                         setSavedEngraving({ text: "", font: "" });
                         setEngraving("");
                       }}
-                      className="ml-2 p-1 hover:bg-primary/10 rounded-sm transition-colors"
+                      className="ml-2 p-1 hover:bg-[#5A413F]/10 rounded-full transition-colors text-[#5A413F]/70 hover:text-[#5A413F]"
+                      title="Remove Engraving"
                     >
                       <X size={12} />
                     </button>
@@ -2972,7 +3072,7 @@ export default function ProductPageClient({
 
             <div className="flex gap-2 mb-6">
               <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
-                <a href={`https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
+                <a href={`https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
                   <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
                   <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                 </a>
@@ -3331,7 +3431,7 @@ export default function ProductPageClient({
                                   product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
                                 }
                               });
-                              window.open("https://api.whatsapp.com/send/?phone=+918976740895&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
+                              window.open("https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
                             }}
                             className="w-full h-10 font-bold rounded text-xs bg-tertiary uppercase tracking-wide"
                           >
@@ -3404,7 +3504,7 @@ export default function ProductPageClient({
                   description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                   action="BOOK APPOINTMENT"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
-                  url="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20book%20an%20appointment"
+                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20book%20an%20appointment"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -3420,7 +3520,7 @@ export default function ProductPageClient({
                   description="Try your selected pieces from the comfort of your home. Available in all major cities"
                   action="BOOK HOME TRIAL"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
-                  url="https://wa.me/+918976740895?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
+                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
@@ -3807,6 +3907,7 @@ export default function ProductPageClient({
                           <path d="M9.61794 18.625L11.4269 9.62529M11.4269 9.62529L18.4666 12.4908M11.4269 9.62529L6.44997 0.897371M8.96454 0.810074C8.14227 0.535717 7.24861 0.567263 6.44773 0.898916C5.64685 1.23057 4.99254 1.84006 4.60499 2.61542L1.00502 9.81518C0.612643 10.6 0.520397 11.5011 0.745622 12.3491C0.970847 13.1971 1.49804 13.9336 2.22811 14.4203L7.62806 18.0202C8.21945 18.4145 8.91434 18.6249 9.62514 18.6249C10.3359 18.6249 11.0308 18.4145 11.6222 18.0202L17.0222 14.4203C17.6791 13.9823 18.1737 13.3405 18.43 12.5938C18.6863 11.847 18.69 11.0367 18.4405 10.2877L16.6406 4.88784C16.4638 4.35761 16.1661 3.87581 15.7709 3.4806C15.3756 3.0854 14.8938 2.78764 14.3636 2.61092L8.96454 0.810074Z" stroke="#785754" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         Other Material
+                        <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("other_material")} />
                       </div>
 
                       <div className="space-y-2">
@@ -3851,9 +3952,8 @@ export default function ProductPageClient({
                 })()}
               </div>
 
-              <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
-
-              <div ref={productDetailsRef} className="mt-8">
+              <div ref={productDetailsRef} className="mt-6">
+                <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider">Price &amp; Savings Details:</h2>
                 <PriceSavingsDetails
                   priceBreakup={augmentedPriceBreakup}
                   onTabChange={(tab) => {
@@ -4029,6 +4129,9 @@ export default function ProductPageClient({
           availableStores={availableStores}
           product={product}
           activeVariant={activeVariant}
+          hasConfirmedPincode={hasConfirmedPincode}
+          resetPincodeState={resetPincodeState}
+          storePages={storePages}
         />
       ) : (
         <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
@@ -4054,7 +4157,6 @@ export default function ProductPageClient({
         </Suspense>
       )}
 
-      <OurProcess />
       {matchingProducts.length > 0 && (
         <ProductSlider
           title="From the Same Collection"
@@ -4068,14 +4170,8 @@ export default function ProductPageClient({
         />
       )}
 
-      <ProductSlider
-        title={recentlyViewedState?.title || "Recently Viewed"}
-        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
-        preservePriceOnColorChange={true}
-        disableLastViewed={true}
-      />
       {youMayAlsoLikeProducts.length > 0 && (
-        <section className="w-full bg-white mt-10 md:mt-15 overflow-hidden">
+        <section className="w-full bg-white my-10 md:my-16 overflow-hidden">
           <div className="max-w-480 mx-auto px-5 md:px-17">
             <div className="text-center mb-10 md:mb-12">
               <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">From the Same Collection</h2>
@@ -4097,6 +4193,15 @@ export default function ProductPageClient({
           </div>
         </section>
       )}
+
+      <OurProcess />
+
+      <ProductSlider
+        title={recentlyViewedState?.title || "Recently Viewed"}
+        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
+        preservePriceOnColorChange={true}
+        disableLastViewed={true}
+      />
       {!isGoldCoin && <DiamondComparison />}
       <FAQSection />
       {/* <ExploreOtherRings /> */}
@@ -4126,12 +4231,11 @@ export default function ProductPageClient({
                       <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
                             <h3 className="font-bold text-lg">
-                              {getStoreDisplayName(store.name) === "Head Office"
+                              {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
                                 ? "Head Office"
                                 : `${getStoreDisplayName(store.name)}`
-                              }
+                              )}
                             </h3>
                             {store.distance !== null && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
@@ -4161,7 +4265,7 @@ export default function ProductPageClient({
                         <div className="space-y-3 pt-2">
                           <div className="flex items-start gap-3 text-sm text-gray-600">
                             <MapPin size={18} className="shrink-0 text-gray-400 mt-0.5" />
-                            <p className="leading-relaxed font-medium">{store.address1 || store.address}, {store.city}</p>
+                            <p className="leading-relaxed font-medium">{store.addressFormatted || `${store.address1 || store.address}, ${store.city}`}</p>
                           </div>
                           <div className="flex items-center gap-3 text-sm text-gray-600">
                             <Phone size={18} className="shrink-0 text-gray-400" />
@@ -4183,8 +4287,8 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/+918976740895?text=${encodeURIComponent(
-                              `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                            href={`https://wa.me/+917208934782?text=${encodeURIComponent(
+                              `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -4195,11 +4299,11 @@ export default function ProductPageClient({
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                            <a href={`tel:${store.phone || "+918976740895"}`}>CALL STORE</a>
+                            <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
-                              href={`${store.mapLink}`}
+                              href={store.mapLink || "#"}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -4240,7 +4344,12 @@ export default function ProductPageClient({
                     <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                          <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
+                          <h3 className="font-bold text-lg">
+                            {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
+                              ? "Head Office"
+                              : `${getStoreDisplayName(store.name)}`
+                            )}
+                          </h3>
                           {store.distance !== null && (
                             <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                               <MapPin size={14} />
@@ -4269,11 +4378,11 @@ export default function ProductPageClient({
                       <div className="space-y-3 pt-2">
                         <div className="flex items-start gap-3 text-sm text-gray-600">
                           <MapPin size={18} className="shrink-0 text-gray-400 mt-0.5" />
-                          <p className="leading-relaxed font-medium">{store.address1 || store.address}, {store.city}</p>
+                          <p className="leading-relaxed font-medium">{store.addressFormatted || `${store.address1 || store.address}, ${store.city}`}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Phone size={18} className="shrink-0 text-gray-400" />
-                          <p className="font-medium">{store.phone || "+91 91724 99912"}</p>
+                          <p className="font-medium">{store.phone || "+91 7208934782"}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Package size={18} className="shrink-0 text-gray-400" />
@@ -4291,8 +4400,8 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/+918976740895?text=${encodeURIComponent(
-                            `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                          href={`https://wa.me/+917208934782?text=${encodeURIComponent(
+                            `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -4303,11 +4412,11 @@ export default function ProductPageClient({
                           </div>
                         </a>
                         <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                          <a href={`tel:${store.phone || "+919172499912"}`}>CALL STORE</a>
+                          <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
                         </Button>
                         <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                           <a
-                            href={`${store.mapLink}`}
+                            href={store.mapLink || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                           >

@@ -332,7 +332,7 @@ const OTP_LENGTH = 4;
  * "Almost Done" — the step that keeps unverified leads out of the store queue.
  * The parent owns verify/resend; this owns the digits and the countdown.
  */
-export function OtpStep({ idPrefix, phone, onVerify, onResend, verifying, error }) {
+export function OtpStep({ idPrefix, phone, onVerify, onResend, onBack, verifying, error }) {
   const [digits, setDigits] = React.useState(Array(OTP_LENGTH).fill(""));
   const [timer, setTimer] = React.useState(60);
 
@@ -430,14 +430,29 @@ export function OtpStep({ idPrefix, phone, onVerify, onResend, verifying, error 
         Verify &amp; Confirm
       </PrimaryButton>
 
-      <button
-        type="button"
-        onClick={resend}
-        disabled={timer > 0}
-        className="text-[11px] font-figtree text-zinc-500 hover:text-primary disabled:hover:text-zinc-500 disabled:cursor-not-allowed cursor-pointer"
-      >
-        {timer > 0 ? `Resend OTP in ${timer}s` : "Resend OTP"}
-      </button>
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={resend}
+          disabled={timer > 0}
+          className="text-[11px] font-figtree text-zinc-500 hover:text-primary disabled:hover:text-zinc-500 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {timer > 0 ? `Resend OTP in ${timer}s` : "Resend OTP"}
+        </button>
+
+        {/* The only way back to the form once the code is on its way — without
+            it a mistyped number or a slot the shopper changed their mind about
+            means collapsing the card and starting the whole journey again. */}
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-[11px] font-figtree font-bold text-primary hover:underline cursor-pointer"
+          >
+            Change Details
+          </button>
+        )}
+      </div>
     </div>
   );
 }

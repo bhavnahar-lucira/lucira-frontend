@@ -23,7 +23,7 @@ import {
 } from "./parts";
 import StoresDrawer from "./StoresDrawer";
 import BookingSummaryDrawer from "./BookingSummaryDrawer";
-import { useBookingFlow } from "./useBookingFlow";
+import { useBookingFlow, appointmentPromoDetails } from "./useBookingFlow";
 import {
   fetchStoresForPincode,
   nearestStoreWithin,
@@ -34,7 +34,7 @@ import {
   savedPincode,
   APPOINTMENT_TYPES,
 } from "@/lib/bookAppointment";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, pushAppointmentInitiated } from "@/lib/gtm";
 
 export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall }) {
   const [step, setStep] = React.useState("idle");
@@ -53,14 +53,21 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
   const [details, setDetails] = React.useState(null);
   const flow = useBookingFlow();
 
+  // See VideoCallCard: lets an in-flight OTP request tell that the shopper has
+  // already backed out of the flow.
+  const openRef = React.useRef(open);
+  React.useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
   // Derived from the `open` prop during render — see the note in VideoCallCard.
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
     setStep(open ? "pincode" : "idle");
     setPincodeError("");
-    setPincode(open ? savedPincode() : "");
     if (!open) {
+      setPincode("");
       setStores([]);
       setStore(null);
       setStoresOpen(false);
@@ -71,6 +78,15 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
   }
 
   const start = () => {
+    // Prefilled here rather than in the render-phase block below: `savedPincode`
+    // reads document.cookie, and render has to stay a pure function of props and
+    // state, browser globals included. `onOpen` is only ever called from here,
+    // so this runs exactly once per opening.
+    setPincode(savedPincode());
+    pushAppointmentInitiated({
+      appointment_type: APPOINTMENT_TYPES.visitStore,
+      appointment_label: card.title,
+    });
     pushPromoClick({
       creative_name: "book appointment store visit started",
       location_id: "book-an-appointment",
@@ -134,12 +150,17 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
     appointmentTime: values.appointmentTime,
   });
 
-  const booked = () => {
+  // Takes the submitted values rather than reading `details` state: this runs
+  // after an await, so the closure's `details` could still be the previous one.
+  const booked = (values, verifiedVia) => {
+    flow.complete({ ...payloadFor(values), verifiedVia });
     pushPromoClick({
       creative_name: "book appointment store visit booked",
       location_id: "book-an-appointment",
       promo_id: pincode,
       promo_name: storeLabel(store),
+      store_address: storeAddress(store),
+      ...appointmentPromoDetails(payloadFor(values)),
     });
     setSummaryOpen(false);
     setStep("success");
@@ -151,22 +172,24 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
     setDetails(values);
     (async () => {
       const next = await flow.begin(values.phone, payloadFor(values));
+      if (!openRef.current) return;
       if (next === "otp") {
         setSummaryOpen(false);
         setStep("otp");
-      } else if (next === "booked") {
-        booked();
+      } else if (next === "verified") {
+        booked(values, "session");
       }
     })();
   };
 
   const verify = async (code) => {
-    if (await flow.confirm(details.phone, code, payloadFor(details))) booked();
+    if (!details) return;
+    if (await flow.confirm(details.phone, code, payloadFor(details))) booked(details, "otp");
   };
 
   return (
     <>
-      <CardShell title={card.title} desc={card.desc} image={card.image} fillHeight={fillHeight} expanded={open && step !== "idle"}>
+      <CardShell title={card.title} desc={card.desc} image={card.image} fillHeight={fillHeight} expanded={open && step !== "idle" && !summaryOpen && !storesOpen}>
         {step === "idle" && <PrimaryButton onClick={start}>{card.cta}</PrimaryButton>}
 
         {step === "pincode" && (
@@ -220,7 +243,11 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
             idPrefix="visit"
             phone={details?.phone}
             onVerify={verify}
-            onResend={() => flow.resend(details.phone)}
+            onResend={() => flow.resend(details?.phone)}
+            onBack={() => {
+              setStep("store");
+              setSummaryOpen(true);
+            }}
             verifying={flow.verifying}
             error={flow.error}
           />
@@ -228,7 +255,7 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
 
         {step === "success" && (
           <SuccessStep
-            message={`We are waiting to see you at our ${storeLabel(store)} on ${details?.appointmentDate} at ${details?.appointmentTime}. You can browse the products available in the store.`}
+            message={`We are waiting to see you at our ${storeLabel(store)} on ${details?.appointmentDateLabel} at ${details?.appointmentTime}. You can browse the products available in the store.`}
             ctaLabel="Browse Store Products"
             ctaHref={storeCollectionUrl(store)}
           />
@@ -251,6 +278,7 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
         store={store}
         account={flow.account}
         isVerifiedNumber={flow.isVerifiedNumber}
+        initial={details}
         onChangeStore={() => {
           setSummaryOpen(false);
           setStoresOpen(true);

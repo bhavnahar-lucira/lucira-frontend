@@ -16,8 +16,8 @@ export const APPOINTMENT_BANNERS = [
     alt: "Book an Appointment Banner",
     url: "/pages/book-an-appointment",
     desktopImage:
-      "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Festive-Banner-Desktop_06c33352-510b-41d9-83b0-9c1e972c56e3.jpg?v=1788522932",
+      "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Book-an-Appoinment-Desktop_jpg.jpg?v=1789532622",
     mobileImage:
-      "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Festive-Banner-Mobile_27_208ace66-d913-4e6c-94a2-79d569b697c9.jpg?v=1788522932",
+      "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Book-an-Appoinment-Mobile_jpg.jpg?v=1789532622",
   },
 ];

@@ -5,9 +5,9 @@
 // Home trials are run out of a store, so this journey is pincode-gated: if no
 // store sits within the nearby radius the service simply is not available there
 // and the honest move is to offer the video call instead of taking a booking we
-// cannot honour. Where it IS available the form is deliberately short — phone
-// is the only required field, categories are optional — because an executive
-// calls back to collect the rest.
+// cannot honour. Where it IS available, "Continue" opens the same booking
+// drawer the store visit uses — day, slot, number and the categories to bring —
+// and the OTP and success states render back in the card.
 
 import React from "react";
 import {
@@ -15,13 +15,11 @@ import {
   PrimaryButton,
   PincodeStep,
   PincodeChip,
-  PhoneField,
-  CategoryPicker,
   OtpStep,
   SuccessStep,
-  VerifiedNote,
 } from "./parts";
-import { useBookingFlow } from "./useBookingFlow";
+import SlotBookingDrawer from "./SlotBookingDrawer";
+import { useBookingFlow, appointmentPromoDetails } from "./useBookingFlow";
 import {
   fetchStoresForPincode,
   nearestStoreWithin,
@@ -29,9 +27,18 @@ import {
   storeLabel,
   savedPincode,
   APPOINTMENT_TYPES,
-  PRODUCT_CATEGORIES,
 } from "@/lib/bookAppointment";
-import { pushPromoClick } from "@/lib/gtm";
+import { pushPromoClick, pushAppointmentInitiated } from "@/lib/gtm";
+
+/** The "we cover your area" panel, shown in the card and again in the drawer. */
+function AvailabilityNote({ store }) {
+  return (
+    <div className="bg-[#F1F9F1] border border-[#DBEFDB] rounded-sm p-3">
+      <p className="font-figtree font-bold text-sm text-black">Service is Available at your Location</p>
+      <p className="text-xs text-zinc-500 font-figtree mt-1">Served by our {storeLabel(store)}.</p>
+    </div>
+  );
+}
 
 export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall }) {
   const [step, setStep] = React.useState("idle");
@@ -40,10 +47,19 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
   const [looking, setLooking] = React.useState(false);
   const [store, setStore] = React.useState(null);
 
-  const [phone, setPhone] = React.useState("");
-  const [phoneError, setPhoneError] = React.useState("");
-  const [categories, setCategories] = React.useState([]);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+
+  // What the drawer collected, held here so the OTP step and the success
+  // message — which render back in the card — still have it once it closes.
+  const [details, setDetails] = React.useState(null);
   const flow = useBookingFlow();
+
+  // See VideoCallCard: lets an in-flight OTP request tell that the shopper has
+  // already backed out of the flow.
+  const openRef = React.useRef(open);
+  React.useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   // Derived from the `open` prop during render — see the note in VideoCallCard.
   const [prevOpen, setPrevOpen] = React.useState(open);
@@ -51,19 +67,25 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
     setPrevOpen(open);
     setStep(open ? "pincode" : "idle");
     setPincodeError("");
-    setPhoneError("");
-    setPincode(open ? savedPincode() : "");
-    setPhone(open ? flow.account.phone : "");
     if (!open) {
+      setPincode("");
       setStore(null);
-      setCategories([]);
+      setDrawerOpen(false);
+      setDetails(null);
       flow.setError("");
     }
   }
 
-  const skipsOtp = flow.isVerifiedNumber(phone);
-
   const start = () => {
+    // Prefilled here rather than in the render-phase block below: `savedPincode`
+    // reads document.cookie, and render has to stay a pure function of props and
+    // state, browser globals included. `onOpen` is only ever called from here,
+    // so this runs exactly once per opening.
+    setPincode(savedPincode());
+    pushAppointmentInitiated({
+      appointment_type: APPOINTMENT_TYPES.tryAtHome,
+      appointment_label: card.title,
+    });
     pushPromoClick({
       creative_name: "book appointment try at home started",
       location_id: "book-an-appointment",
@@ -100,109 +122,134 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
     }
   };
 
-  const payload = () => ({
+  const payloadFor = (values) => ({
     appointmentType: APPOINTMENT_TYPES.tryAtHome,
-    phone,
+    // Name and email come from the drawer, not the account: a signed-out
+    // shopper has neither on file, and a lead that is only a phone number
+    // leaves the store team with nothing to go on.
+    name: values.name,
+    phone: values.phone,
+    email: values.email,
     pincode,
-    categories,
-    name: flow.account.name,
-    email: flow.account.email,
+    categories: values.categories,
     storeName: store ? storeLabel(store) : "",
+    appointmentDate: values.appointmentDate,
+    appointmentTime: values.appointmentTime,
   });
 
-  const booked = () => {
+  // Takes the submitted values rather than reading `details` state: this runs
+  // after an await, so the closure's `details` could still be the previous one.
+  const booked = (values, verifiedVia) => {
+    flow.complete({ ...payloadFor(values), verifiedVia });
     pushPromoClick({
       creative_name: "book appointment try at home booked",
       location_id: "book-an-appointment",
       promo_id: pincode,
       promo_name: store ? storeLabel(store) : "",
+      ...appointmentPromoDetails(payloadFor(values)),
     });
+    setDrawerOpen(false);
     setStep("success");
   };
 
-  const submit = async () => {
-    if (phone.length !== 10) {
-      setPhoneError("Enter a valid 10-digit mobile number.");
-      return;
-    }
-    setPhoneError("");
-    const next = await flow.begin(phone, payload());
-    if (next === "otp") setStep("otp");
-    else if (next === "booked") booked();
+  const handleBookNow = (values) => {
+    setDetails(values);
+    (async () => {
+      const next = await flow.begin(values.phone, payloadFor(values));
+      if (!openRef.current) return;
+      if (next === "otp") {
+        setDrawerOpen(false);
+        setStep("otp");
+      } else if (next === "verified") {
+        booked(values, "session");
+      }
+    })();
   };
 
   const verify = async (code) => {
-    if (await flow.confirm(phone, code, payload())) booked();
+    if (!details) return;
+    if (await flow.confirm(details.phone, code, payloadFor(details))) booked(details, "otp");
   };
 
   const backToPincode = () => {
+    setDrawerOpen(false);
     setStep("pincode");
     setStore(null);
   };
 
   return (
-    <CardShell title={card.title} desc={card.desc} image={card.image} fillHeight={fillHeight} expanded={open && step !== "idle"}>
-      {step === "idle" && <PrimaryButton onClick={start}>{card.cta}</PrimaryButton>}
+    <>
+      <CardShell title={card.title} desc={card.desc} image={card.image} fillHeight={fillHeight} expanded={open && step !== "idle" && !drawerOpen}>
+        {step === "idle" && <PrimaryButton onClick={start}>{card.cta}</PrimaryButton>}
 
-      {step === "pincode" && (
-        <PincodeStep
-          value={pincode}
-          onChange={setPincode}
-          onSubmit={checkPincode}
-          loading={looking}
-          error={pincodeError}
-        />
-      )}
+        {step === "pincode" && (
+          <PincodeStep
+            value={pincode}
+            onChange={setPincode}
+            onSubmit={checkPincode}
+            loading={looking}
+            error={pincodeError}
+          />
+        )}
 
-      {step === "unavailable" && (
-        <div className="flex flex-col gap-2.5">
-          <div className="bg-[#FEF5F1] border border-[#F1E4D1] rounded-sm p-3">
-            <p className="font-figtree font-bold text-sm text-black">Service is Not Available at your Location</p>
-            <p className="text-xs text-zinc-500 font-figtree mt-1">
-              Do not worry — we can still connect virtually.
-            </p>
+        {step === "unavailable" && (
+          <div className="flex flex-col gap-2.5">
+            <div className="bg-[#FEF5F1] border border-[#F1E4D1] rounded-sm p-3">
+              <p className="font-figtree font-bold text-sm text-black">Service is Not Available at your Location</p>
+              <p className="text-xs text-zinc-500 font-figtree mt-1">
+                Do not worry — we can still connect virtually.
+              </p>
+            </div>
+            <PincodeChip pincode={pincode} onChange={backToPincode} />
+            <PrimaryButton onClick={onBookVideoCall}>Book Video Call</PrimaryButton>
           </div>
-          <PincodeChip pincode={pincode} onChange={backToPincode} />
-          <PrimaryButton onClick={onBookVideoCall}>Book Video Call</PrimaryButton>
-        </div>
-      )}
+        )}
 
-      {step === "available" && (
-        <div className="flex flex-col gap-2.5">
-          <div className="bg-[#F1F9F1] border border-[#DBEFDB] rounded-sm p-3">
-            <p className="font-figtree font-bold text-sm text-black">Service is Available at your Location</p>
-            <p className="text-xs text-zinc-500 font-figtree mt-1">
-              Served by our {storeLabel(store)}.
-            </p>
+        {step === "available" && (
+          <div className="flex flex-col gap-2.5">
+            <AvailabilityNote store={store} />
+            <PincodeChip pincode={pincode} onChange={backToPincode} />
+            <PrimaryButton onClick={() => setDrawerOpen(true)}>Continue</PrimaryButton>
           </div>
-          <PincodeChip pincode={pincode} onChange={backToPincode} />
-          <PhoneField value={phone} onChange={setPhone} error={phoneError || flow.error} />
-          <CategoryPicker selected={categories} onChange={setCategories} options={PRODUCT_CATEGORIES} />
-          {skipsOtp && <VerifiedNote name={flow.account.name} />}
-          <PrimaryButton onClick={submit} loading={flow.sending} disabled={phone.length !== 10}>
-            {skipsOtp ? "Confirm Booking" : "Continue"}
-          </PrimaryButton>
-        </div>
-      )}
+        )}
 
-      {step === "otp" && (
-        <OtpStep
-          idPrefix="tryhome"
-          phone={phone}
-          onVerify={verify}
-          onResend={() => flow.resend(phone)}
-          verifying={flow.verifying}
-          error={flow.error}
-        />
-      )}
+        {step === "otp" && (
+          <OtpStep
+            idPrefix="tryhome"
+            phone={details?.phone}
+            onVerify={verify}
+            onResend={() => flow.resend(details?.phone)}
+            onBack={() => {
+              setStep("available");
+              setDrawerOpen(true);
+            }}
+            verifying={flow.verifying}
+            error={flow.error}
+          />
+        )}
 
-      {step === "success" && (
-        <SuccessStep
-          message="Our executive will get in touch to get further details."
-          ctaLabel="Browse Products"
-          ctaHref={storeCollectionUrl(store)}
-        />
-      )}
-    </CardShell>
+        {step === "success" && (
+          <SuccessStep
+            message={`Your home trial is scheduled for ${details?.appointmentDateLabel} at ${details?.appointmentTime}. Our executive will get in touch to confirm the details.`}
+            ctaLabel="Browse Products"
+            ctaHref={storeCollectionUrl(store)}
+          />
+        )}
+      </CardShell>
+
+      <SlotBookingDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title="Book Home Trial"
+        intro={<AvailabilityNote store={store} />}
+        account={flow.account}
+        isVerifiedNumber={flow.isVerifiedNumber}
+        showCategories
+        initial={details}
+        onSubmit={handleBookNow}
+        submitting={flow.sending}
+        error={flow.error}
+      />
+    </>
   );
 }

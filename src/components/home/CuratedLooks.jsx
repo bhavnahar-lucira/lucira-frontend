@@ -68,7 +68,7 @@ function trackCuratedPromoClick(product) {
  */
 function CuratedLooksSkeleton() {
   return (
-    <section className="w-full overflow-hidden bg-white pt-12 md:pt-14">
+    <section className="w-full overflow-hidden bg-white pt-[20px] md:pt-14">
       <div className="container-main animate-pulse">
         <div className="mb-6 flex flex-col items-center gap-2">
           <div className="h-8 w-64 rounded bg-gray-100 lg:h-10 lg:w-80" />
@@ -332,7 +332,7 @@ export default function CuratedLooks() {
      * So: no top margin, and no bottom padding — the gap underneath is already
      * supplied by DiamondCuts. Adding padding-bottom here would double it.
      */
-    <section className="w-full overflow-hidden bg-white pt-12 md:pt-14">
+    <section className="w-full overflow-hidden bg-white pt-[20px] md:pt-14">
       <div className="container-main">
         {heading}
 
