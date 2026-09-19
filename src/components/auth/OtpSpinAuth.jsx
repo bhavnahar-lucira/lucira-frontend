@@ -648,7 +648,7 @@ export function OtpSpinAuth({
           }}
         >
           <div 
-            className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-0 max-md:left-1/2 max-md:-translate-x-1/2 ${(step === "login" || step === "otp" || step === "register") ? "cursor-pointer" : ""}`}
+            className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px] max-md:left-1/2 max-md:-translate-x-1/2 ${(step === "login" || step === "otp" || step === "register") ? "cursor-pointer" : ""}`}
             style={{
               WebkitBackfaceVisibility: "hidden",
               backfaceVisibility: "hidden",
