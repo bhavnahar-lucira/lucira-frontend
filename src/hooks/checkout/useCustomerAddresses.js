@@ -171,8 +171,13 @@ export function useCustomerAddresses({ accessToken, user }) {
               firstName: addressToSelect.firstName,
               lastName: addressToSelect.lastName,
               phone: addressToSelect.phone,
-              email: customer?.email || user?.email || "",
             };
+            // Only send an email we actually have. Shopify rejects a blank
+            // one on customerUpdate, which would fail the whole mutation and
+            // silently drop the name/phone sync for phone-only shoppers.
+            // Omitting the field leaves the stored address untouched.
+            const profileEmail = customer?.email || user?.email || "";
+            if (profileEmail) profileUpdate.email = profileEmail;
             await Promise.all([
               apiFetch("/api/customer/profile", {
                 method: "PATCH",

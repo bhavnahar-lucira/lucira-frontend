@@ -279,11 +279,11 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         const regData = await registerCustomer({
           firstName: "Unlock Coupon",
           lastName: "User",
-          // Placeholder only — `.internal` is not publicly routable, so it can
-          // never reach a real inbox. This used to be `@gmail.com`, which put
-          // a stranger's live address on the Shopify customer record and into
-          // email campaigns. Matches the convention in the scheme flows.
-          email: `${mobile}@lucira.internal`,
+          // No email: this lead only ever gave us a phone number. It used to
+          // register as `<mobile>@gmail.com`, a real deliverable inbox owned
+          // by someone else, which landed on the Shopify customer record and
+          // in email campaigns. Registering without an address is the same
+          // thing the cart auto-register flow already does (OtpSpinAuth).
           mobile: mobile,
           sessionId,
           tags: "pdp-offers-lead",
