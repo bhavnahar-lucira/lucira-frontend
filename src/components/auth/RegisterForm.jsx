@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { motion, useAnimation } from "framer-motion";
+import {
   apiFetch,
   registerCustomer,
   checkCustomerApi,
@@ -218,9 +219,13 @@ export function RegisterForm({ initialMobile = "" }) {
     const targetRotation = -segment.centerAngle;
     const finalRotation = -(extraSpins + Math.abs(targetRotation));
 
+    // Snappier spin on mobile (2.5s) with smooth iOS-friendly easing
+    const spinDuration = typeof window !== "undefined" && window.innerWidth < 768 ? 2.5 : 3.0;
+
     await controls.start({
       rotate: finalRotation,
-      transition: { duration: 4, ease: [0.17, 0.67, 0.12, 0.99] },
+      z: 0,
+      transition: { duration: spinDuration, ease: [0.2, 0.8, 0.2, 1] },
     });
 
     setTimeout(async () => {
@@ -253,18 +258,41 @@ export function RegisterForm({ initialMobile = "" }) {
   // ... (keep copyCoupon, getWeightedPrize)
 
   const SpinWheelContent = () => (
-    <div className="relative w-full max-w-[350px] aspect-square mx-auto">
+    <div 
+      className="relative w-full max-w-[350px] aspect-square mx-auto"
+      style={{
+        WebkitBackfaceVisibility: "hidden",
+        backfaceVisibility: "hidden",
+        WebkitPerspective: 1000,
+        perspective: 1000,
+      }}
+    >
       <motion.img
         src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Below_Banner_Trust_Icon_Strip_1_1.png?v=1770784760"
         alt="Spin the Wheel"
-        className="w-full h-full object-contain absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1]"
+        className="w-full h-full object-contain absolute inset-0 m-auto z-[1]"
+        style={{
+          transformOrigin: "50% 50%",
+          WebkitTransformOrigin: "50% 50%",
+          willChange: "transform",
+          WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
+          WebkitTransform: "translate3d(0, 0, 0)",
+          transform: "translate3d(0, 0, 0)",
+        }}
         animate={controls}
-        initial={{ rotate: 0 }}
+        initial={{ rotate: 0, z: 0 }}
       />
       <img
         src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Spin_The_Wheel_Spinner_1.png?v=1769229971"
         alt="Spin CTA"
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none w-full max-w-[400px] h-auto"
+        style={{
+          WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
+          WebkitTransform: "translate3d(-50%, -50%, 0)",
+          transform: "translate3d(-50%, -50%, 0)",
+        }}
       />
     </div>
   );

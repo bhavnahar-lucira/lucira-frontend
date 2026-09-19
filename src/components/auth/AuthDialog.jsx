@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Sheet } from "react-modal-sheet";
 import { OtpSpinAuth } from "./OtpSpinAuth";
+import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 import { useSelector } from "react-redux";
@@ -22,25 +23,55 @@ export function AuthDialog({
   forceShowWheel = false,
   overrideHeading = "",
   overrideSubtext = "",
-  overrideButtonText = ""
+  overrideButtonText = "",
+  useCheckoutAuth = false
 }) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const router = useRouter();
   const pathname = usePathname();
   const [currentStep, setCurrentStep] = useState(initialStep);
   const authRedirectPath = useSelector((state) => state.user.authRedirectPath);
+  const authModalOverrides = useSelector((state) => state.user.authModalOverrides);
   const hideRegisterLink = authRedirectPath === "/checkout/shipping" || pathname === "/checkout/cart";
 
-  useEffect(() => {
+  const isCartOrCheckout = 
+    useCheckoutAuth || 
+    authModalOverrides?.useCheckoutAuth ||
+    pathname === "/checkout/cart" || 
+    pathname?.startsWith("/checkout") ||
+    authRedirectPath === "/checkout/shipping" ||
+    authRedirectPath === "/checkout/cart";
+
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevInitialStep, setPrevInitialStep] = useState(initialStep);
+  if (open !== prevOpen || initialStep !== prevInitialStep) {
+    setPrevOpen(open);
+    setPrevInitialStep(initialStep);
     if (open) {
       setCurrentStep(initialStep);
     }
-  }, [open, initialStep]);
+  }
 
   // Registering dispatches `login`, which flips isAuthModalOpen to false in Redux
   // and would yank the modal away before the reward coupon is ever seen. Latch it
   // open on the success step until the user dismisses it themselves.
   const isOpen = open || currentStep === "success";
+
+  const defaultTitle = pathname === "/checkout/cart" ? "Sign Up To Get Assured Rewards" : "Checkout Securely";
+  const defaultSubtitle = pathname === "/checkout/cart" ? "" : "Login / Signup to proceed checkout";
+
+  const hasHeadingOverride = overrideHeading !== undefined && overrideHeading !== null && overrideHeading !== "";
+  const hasSubtextOverride = overrideSubtext !== undefined && overrideSubtext !== null;
+
+  const finalTitle = hasHeadingOverride 
+    ? overrideHeading 
+    : (authModalOverrides?.overrideHeading || defaultTitle);
+
+  const finalSubtitle = hasSubtextOverride
+    ? overrideSubtext
+    : (authModalOverrides?.overrideSubtext !== undefined && authModalOverrides.overrideSubtext !== null
+        ? authModalOverrides.overrideSubtext
+        : defaultSubtitle);
 
   const handleClose = () => {
     setCurrentStep(initialStep); // releases the success latch
@@ -76,26 +107,69 @@ export function AuthDialog({
         <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !max-h-[95dvh] !z-[2000]">
           <Sheet.Content className="!p-0">
             <div className="sr-only">
-              <h2>{currentStep === "register" ? "Registration" : "Authentication"}</h2>
-              <p>{currentStep === "register" ? "Join Lucira to win rewards." : "Login to your account."}</p>
+              <h2>{finalTitle || (currentStep === "register" ? "Registration" : "Authentication")}</h2>
+              <p>{finalSubtitle || (currentStep === "register" ? "Join Lucira to win rewards." : "Login to your account.")}</p>
             </div>
-            <div className="custom-scrollbar-hide overflow-y-auto">
-              <OtpSpinAuth
-                onSuccess={handleSuccess}
-                onClose={handleClose}
-                initialStep={currentStep}
-                onStepChange={handleStepChange}
-                forceShowWheel={forceShowWheel}
-                overrideHeading={overrideHeading}
-                overrideSubtext={overrideSubtext}
-                overrideButtonText={overrideButtonText}
-                hideRegisterLink={hideRegisterLink}
-              />
-            </div>
+            {isCartOrCheckout ? (
+              <div className="px-5 pt-5 pb-6 relative">
+                <CheckoutAuthForm
+                  onSuccess={handleSuccess}
+                  title={finalTitle}
+                  subtitle={finalSubtitle}
+                  buttonText={overrideButtonText || "CONTINUE"}
+                  onClose={handleClose}
+                />
+              </div>
+            ) : (
+              <div className="custom-scrollbar-hide overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+                <OtpSpinAuth
+                  onSuccess={handleSuccess}
+                  onClose={handleClose}
+                  initialStep={currentStep}
+                  onStepChange={handleStepChange}
+                  forceShowWheel={forceShowWheel}
+                  overrideHeading={overrideHeading}
+                  overrideSubtext={overrideSubtext}
+                  overrideButtonText={overrideButtonText}
+                  isPopup={true}
+                  hideRegisterLink={hideRegisterLink}
+                />
+              </div>
+            )}
           </Sheet.Content>
         </Sheet.Container>
         <Sheet.Backdrop onTap={handleClose} />
       </Sheet>
+    );
+  }
+
+  if (isCartOrCheckout) {
+    return (
+      <Dialog
+        open={isOpen}
+        onOpenChange={(val) => (val ? onOpenChange(true) : handleClose())}
+      >
+        <DialogContent 
+          className="w-full max-w-[420px] p-0 border-none bg-white shadow-2xl rounded-lg overflow-hidden" 
+          showCloseButton={false}
+        >
+          <div className="sr-only">
+            <DialogTitle>{finalTitle}</DialogTitle>
+            <DialogDescription>
+              {finalSubtitle}
+            </DialogDescription>
+          </div>
+          <div className="relative w-full">
+            <CheckoutAuthForm
+              onSuccess={handleSuccess}
+              title={finalTitle}
+              subtitle={finalSubtitle}
+              buttonText={overrideButtonText || "CONTINUE"}
+              onClose={handleClose}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 

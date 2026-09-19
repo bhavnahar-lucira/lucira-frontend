@@ -6,6 +6,7 @@ const initialState = {
   isAuthenticated: false,
   isAuthModalOpen: false,
   authRedirectPath: null,
+  authModalOverrides: null,
   pincode: "",
   collectionContext: null, // Track current browsing context (e.g., '9kt-collection')
   referralLink: "",
@@ -55,15 +56,28 @@ const userSlice = createSlice({
     },
     openAuthModal: (state, action) => {
       state.isAuthModalOpen = true;
-      state.authRedirectPath = action.payload || null;
+      if (typeof action.payload === "string") {
+        state.authRedirectPath = action.payload;
+        state.authModalOverrides = null;
+      } else if (action.payload && typeof action.payload === "object") {
+        state.authRedirectPath = action.payload.redirectPath || null;
+        state.authModalOverrides = action.payload;
+      } else {
+        state.authRedirectPath = null;
+        state.authModalOverrides = null;
+      }
     },
     closeAuthModal: (state) => {
       state.isAuthModalOpen = false;
       state.authRedirectPath = null;
+      state.authModalOverrides = null;
     },
     toggleAuthModal: (state) => {
       state.isAuthModalOpen = !state.isAuthModalOpen;
-      if (!state.isAuthModalOpen) state.authRedirectPath = null;
+      if (!state.isAuthModalOpen) {
+        state.authRedirectPath = null;
+        state.authModalOverrides = null;
+      }
     },
     setReferralLoading: (state, action) => {
       state.referralLoading = action.payload;

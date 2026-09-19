@@ -600,6 +600,29 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     return acc + (Number.isFinite(pct) ? pct : 0);
   }, 0);
 
+  const { primary: drawerFeaturedPrimary } = selectFeaturedOffers({
+    dynamicCoupons,
+    activeDiscounts,
+    diamondTotal,
+    goldTotal,
+    productTotal,
+    excludedTotalsByRule,
+    effectiveAppliedCode,
+    appliedCodes: allAppliedCodes,
+  });
+
+  const drawerSavings = drawerFeaturedPrimary?.savings > 0
+    ? Math.round(drawerFeaturedPrimary.savings)
+    : 0;
+
+  const drawerHeadingText = drawerSavings > 0
+    ? `Sign Up To Get Assured ₹${drawerSavings.toLocaleString("en-IN")}`
+    : drawerFeaturedPrimary?.discountType === "percentage" && drawerFeaturedPrimary?.discountValue
+      ? `Sign Up To Get Assured ${drawerFeaturedPrimary.discountValue}% Off`
+      : drawerFeaturedPrimary?.discountValue
+        ? `Sign Up To Get Assured ₹${Number(drawerFeaturedPrimary.discountValue).toLocaleString("en-IN")}`
+        : "Sign Up To Get Assured Rewards";
+
   // A featured/bank offer carries a dashboard minimum spend, checked against
   // its own metal's slice of the cart (see isFeaturedOfferEligible — the same
   // gate the drawer's "Not Applicable" badge and the banner already use).
@@ -1088,7 +1111,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
               <Gift className="w-6 h-6 text-[#5A413F]" />
             </div>
             <h4 className="font-figtree font-semibold text-[#3D2B28] text-sm md:text-base mb-1.5 uppercase tracking-wide">
-              Login to Unlock Coupons
+              {drawerHeadingText}
             </h4>
             <p className="font-figtree text-xs md:text-sm text-[#000000] mb-4" style={{ maxWidth: "270px" }}>
               Login or register to access members-only discounts and rewards.
@@ -1108,12 +1131,17 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                   console.error("promoClick push failed", e);
                 }
                 setIsCouponDrawerOpen(false);
-                openLogin();
+                openLogin({
+                  useCheckoutAuth: true,
+                  overrideHeading: drawerHeadingText,
+                  overrideSubtext: "",
+                  overrideButtonText: "CONTINUE",
+                });
               }}
               className="h-11 px-6 rounded-sm bg-[#5A413F] hover:bg-[#4A3533] font-figtree uppercase text-xs text-white transition-colors cursor-pointer"
               style={{ fontWeight: 400, letterSpacing: "0.6px", borderRadius: "4px" }}
             >
-              Login / Register
+              Unlock Now
             </Button>
           </div>
         ) : (
