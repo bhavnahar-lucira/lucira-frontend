@@ -478,10 +478,10 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
 
           /* Inverted Radius Cutout Mask */
           .store-card-inverted-mask {
-            --r: 20px;
+            --r: 12px;
             --s: 30px;
-            --x: 4px;
-            --y: 4px;
+            --x: 12px;
+            --y: 12px;
 
             border-radius: var(--r);
             --_m: /calc(2 * var(--r)) calc(2 * var(--r)) radial-gradient(#000 70%, #0000 72%);
