@@ -19,11 +19,6 @@ import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
 import BookAppointmentPopup from "./BookAppointmentPopup";
 import { isStoreActive } from "@/data/stores";
 import { storesForSurface, formatTimings, storeStatus, designsLink } from "@/lib/storeContent";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, FreeMode } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/free-mode";
-
 function ServiceCard({ item }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-md bg-white px-3 py-4 text-center">
@@ -49,6 +44,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isBookAppointmentOpen, setIsBookAppointmentOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // `isStoreActive` is the site-wide kill switch in src/data/stores.js;
   // the dashboard's own `published` flag is applied by `storesForSurface`.
@@ -64,13 +60,61 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
   };
 
   const scrollRef = useRef(null);
+  const set1Ref = useRef(null);
   const isHoveredRef = useRef(false);
   const isDraggingRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
   const hasDraggedRef = useRef(false);
+  const hasCapturedRef = useRef(false);
+  const isTouchRef = useRef(false);
 
-  // Marquee animation: continuous smooth gliding with instant pause on hover
+  const pointerDownXRef = useRef(0);
+  const pointerDownYRef = useRef(0);
+  const lastPointerXRef = useRef(0);
+  const lastPointerTimeRef = useRef(0);
+  const velocityRef = useRef(0);
+  const momentumVelocityRef = useRef(0);
+  const singleWidthRef = useRef(0);
+  const pauseUntilRef = useRef(0);
+
+  // Ensure each set has at least 5 stores so that 1 set is always > viewport width
+  const baseStores = stores.length > 0 && stores.length < 5 ? [...stores, ...stores] : stores;
+
+  // Initialize scroll position & measure widths on mount and resize
+  useEffect(() => {
+    if (surface !== "homepage") return;
+    const el = scrollRef.current;
+    const set1 = set1Ref.current;
+    if (!el || !set1) return;
+
+    const measureAndInit = () => {
+      if (!set1 || !el) return;
+      const w = set1.offsetWidth;
+      if (w > 0) {
+        singleWidthRef.current = w;
+        // Start in the center set (Set 2) if not already initialized
+        if (el.scrollLeft === 0 || el.scrollLeft < w * 0.4 || el.scrollLeft >= w * 2.6) {
+          el.scrollLeft = w;
+        }
+      }
+    };
+
+    measureAndInit();
+    const timer = setTimeout(measureAndInit, 120);
+
+    const ro = new ResizeObserver(() => {
+      measureAndInit();
+    });
+    ro.observe(set1);
+    window.addEventListener("resize", measureAndInit);
+
+    return () => {
+      clearTimeout(timer);
+      ro.disconnect();
+      window.removeEventListener("resize", measureAndInit);
+    };
+  }, [surface, stores.length]);
+
+  // Unified 60fps/120fps continuous marquee + momentum decay + wrap engine
   useEffect(() => {
     if (surface !== "homepage") return;
     const el = scrollRef.current;
@@ -78,24 +122,45 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
 
     let animId;
     let lastTime = performance.now();
-    const speed = 0.6; // smooth elegant luxury pace (~36px/sec)
+    const speed = 0.6; // elegant luxury pace (~36px/sec)
 
     const tick = (now) => {
-      const delta = Math.min(now - lastTime, 50);
+      const deltaMs = Math.min(now - lastTime, 50);
+      const deltaFactor = deltaMs / 16.67;
       lastTime = now;
 
-      if (!isHoveredRef.current && !isDraggingRef.current && el) {
-        el.scrollLeft += speed * (delta / 16.67);
+      const singleWidth = singleWidthRef.current || set1Ref.current?.offsetWidth || 0;
 
-        // Infinite seamless loop wrap:
-        // Render 2 sets of items. When scroll reaches halfway, wrap back seamlessly
-        const half = el.scrollWidth / 2;
-        if (half > 0 && el.scrollLeft >= half) {
-          el.scrollLeft -= half;
-        } else if (el.scrollLeft <= 0) {
-          el.scrollLeft += half;
+      if (singleWidth > 0 && el) {
+        // Seamless circular wrap across buffer sets
+        const wrap = () => {
+          while (el.scrollLeft >= singleWidth * 2) {
+            el.scrollLeft -= singleWidth;
+          }
+          while (el.scrollLeft < singleWidth) {
+            el.scrollLeft += singleWidth;
+          }
+        };
+
+        if (isDraggingRef.current) {
+          wrap();
+        } else {
+          // Momentum physics after swipe/drag flick
+          if (Math.abs(momentumVelocityRef.current) > 0.05) {
+            el.scrollLeft += momentumVelocityRef.current * deltaFactor;
+            wrap();
+            momentumVelocityRef.current *= Math.pow(0.93, deltaFactor);
+          } else {
+            momentumVelocityRef.current = 0;
+            const isPaused = isHoveredRef.current || performance.now() < pauseUntilRef.current;
+            if (!isPaused) {
+              el.scrollLeft += speed * deltaFactor;
+              wrap();
+            }
+          }
         }
       }
+
       animId = requestAnimationFrame(tick);
     };
 
@@ -103,34 +168,225 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
     return () => cancelAnimationFrame(animId);
   }, [surface, stores.length]);
 
-  const handleMouseDown = (e) => {
+  // Unified Pointer Handlers for Mouse (cursor) and Touch (hand)
+  const handlePointerDown = (e) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    if (set1Ref.current) {
+      singleWidthRef.current = set1Ref.current.offsetWidth;
+    }
+
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
-    startXRef.current = e.pageX - scrollRef.current.offsetLeft;
-    scrollLeftRef.current = scrollRef.current.scrollLeft;
-  };
+    hasCapturedRef.current = false;
+    isTouchRef.current = e.pointerType === "touch";
+    pointerDownXRef.current = e.clientX;
+    pointerDownYRef.current = e.clientY;
+    lastPointerXRef.current = e.clientX;
+    lastPointerTimeRef.current = performance.now();
+    velocityRef.current = 0;
+    momentumVelocityRef.current = 0; // stop any previous momentum instantly on contact
 
-  const handleMouseMove = (e) => {
-    if (!isDraggingRef.current || !scrollRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.2;
-    if (Math.abs(walk) > 5) {
-      hasDraggedRef.current = true;
+    // For mouse, immediately capture so dragging outside the carousel container works reliably
+    if (e.pointerType === "mouse") {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        hasCapturedRef.current = true;
+      } catch (_) {}
     }
-    scrollRef.current.scrollLeft = scrollLeftRef.current - walk;
   };
 
-  const handleMouseUp = () => {
+  const handlePointerMove = (e) => {
+    if (!isDraggingRef.current) return;
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const distX = Math.abs(e.clientX - pointerDownXRef.current);
+    const distY = Math.abs(e.clientY - pointerDownYRef.current);
+
+    // On touch devices, detect vertical page scroll vs horizontal carousel swipe
+    if (isTouchRef.current && !hasCapturedRef.current) {
+      if (distY > distX && distY > 6) {
+        // User is scrolling the page vertically: release drag to allow native page scroll
+        isDraggingRef.current = false;
+        return;
+      }
+      if (distX > 6 && distX >= distY) {
+        // User is swiping horizontally: capture pointer
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          hasCapturedRef.current = true;
+        } catch (_) {}
+      } else {
+        return;
+      }
+    }
+
+    if (distX > 4) {
+      hasDraggedRef.current = true;
+      if (!isDragging) {
+        setIsDragging(true);
+      }
+    }
+
+    const deltaX = e.clientX - lastPointerXRef.current;
+    el.scrollLeft -= deltaX;
+
+    // Instant wrap during drag
+    const singleWidth = singleWidthRef.current || set1Ref.current?.offsetWidth || 0;
+    if (singleWidth > 0) {
+      while (el.scrollLeft >= singleWidth * 2) {
+        el.scrollLeft -= singleWidth;
+      }
+      while (el.scrollLeft < singleWidth) {
+        el.scrollLeft += singleWidth;
+      }
+    }
+
+    // Measure velocity for momentum
+    const now = performance.now();
+    const dt = Math.max(now - lastPointerTimeRef.current, 8);
+    const instantVelocity = (deltaX / dt) * 16.67;
+    velocityRef.current = velocityRef.current * 0.3 + instantVelocity * 0.7;
+    lastPointerXRef.current = e.clientX;
+    lastPointerTimeRef.current = now;
+  };
+
+  const handlePointerUp = (e) => {
+    if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
+    setIsDragging(false);
+
+    if (hasCapturedRef.current) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+      hasCapturedRef.current = false;
+    }
+
+    const timeSinceLastMove = performance.now() - lastPointerTimeRef.current;
+    if (timeSinceLastMove < 100 && Math.abs(velocityRef.current) > 0.8) {
+      // Natural momentum flick in the swipe direction
+      const clampedV = Math.max(Math.min(-velocityRef.current, 24), -24);
+      momentumVelocityRef.current = clampedV;
+    } else {
+      momentumVelocityRef.current = 0;
+      pauseUntilRef.current = performance.now() + 800;
+    }
+
+    // Keep hasDraggedRef true briefly to suppress synthetic click on <Link>
+    if (hasDraggedRef.current) {
+      setTimeout(() => {
+        hasDraggedRef.current = false;
+      }, 150);
+    }
+  };
+
+  const handlePointerCancel = (e) => {
+    isDraggingRef.current = false;
+    setIsDragging(false);
+    momentumVelocityRef.current = 0;
+    if (hasCapturedRef.current) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+      hasCapturedRef.current = false;
+    }
+    setTimeout(() => {
+      hasDraggedRef.current = false;
+    }, 150);
+  };
+
+  const handlePointerEnter = (e) => {
+    if (e.pointerType === "mouse") {
+      isHoveredRef.current = true;
+    }
+  };
+
+  const handlePointerLeave = (e) => {
+    if (e.pointerType === "mouse" && !isDraggingRef.current) {
+      isHoveredRef.current = false;
+    }
+  };
+
+  const renderStoreCard = (store, key) => {
+    const storeStatusObj = storeStatus(store);
+    const storeImage = store.images?.homepage || store.images?.locator || store.images?.collection?.[0] || "";
+    const storeLabel = store.experienceLabel || (store.city ? `${store.city} Store` : store.name);
+    const targetHref = designsLink(store);
+
+    return (
+      <div
+        key={key}
+        className="flex-shrink-0 w-[82vw] sm:w-[45vw] lg:w-[31vw] xl:w-[29vw] pr-3.5 sm:pr-4 lg:pr-5 select-none"
+      >
+        <Link
+          href={targetHref}
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
+          onClick={(e) => {
+            if (hasDraggedRef.current) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            handleStoreCtaClick("Store Card", store.city);
+          }}
+          className="group block relative w-full aspect-[16/10] select-none cursor-inherit"
+        >
+          {/* Masked Card Visual (Image + Gradient + Store Name) */}
+          <div className="store-card-inverted-mask absolute inset-0 w-full h-full overflow-hidden bg-neutral-100">
+            {/* Store Photo */}
+            {storeImage ? (
+              <LazyImage
+                src={storeImage}
+                alt={storeLabel}
+                fill
+                sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 30vw"
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none select-none"
+                draggable={false}
+              />
+            ) : (
+              <div className="w-full h-full bg-neutral-200" />
+            )}
+
+            {/* Top dark gradient overlay for text readability */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: "linear-gradient(145.07deg, rgba(0, 0, 0, 0.72) 15.93%, rgba(0, 0, 0, 0) 50%)",
+              }}
+            />
+
+            {/* Opening Soon Overlay */}
+            {storeStatusObj.openingSoon && <OpeningSoonOverlay />}
+
+            {/* Top-Left: Store Name */}
+            <div className="absolute top-5 left-[18px] z-10 pr-4 pointer-events-none select-none">
+              <h3 className="font-figtree font-semibold text-white text-[16px] leading-[100%] tracking-normal drop-shadow-sm">
+                {storeLabel}
+              </h3>
+            </div>
+          </div>
+
+          {/* Bottom-Right Circular Action Button synced edge-to-edge */}
+          <div className="arrow-parent absolute right-[2px] bottom-[2px] z-20 pointer-events-auto">
+            <div className="w-[44px] h-[44px] rounded-full border border-primary flex items-center justify-center bg-white text-primary transition-colors duration-300 group-hover:bg-primary group-hover:border-primary group-hover:text-white shadow-sm box-border cursor-pointer">
+              <ArrowUpRight className="w-[18px] h-[18px] stroke-[1.8]" style={{ width: "18px", height: "18px" }} />
+            </div>
+          </div>
+        </Link>
+      </div>
+    );
   };
 
   // HOMEPAGE: Modern visual slider view matching Figma mockup & continuous marquee
   if (surface === "homepage") {
     if (!stores.length) return null;
-
-    // Render 2 sets of stores so infinite loop is seamless
-    const displayStores = [...stores, ...stores];
 
     return (
       <section className="w-full bg-white pt-10 md:pt-16 pb-[30px] md:pb-[30px] overflow-hidden">
@@ -147,121 +403,39 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
         <div className="w-full relative overflow-hidden">
           <div
             ref={scrollRef}
-            onMouseEnter={() => {
-              isHoveredRef.current = true;
-            }}
-            onMouseLeave={() => {
-              isHoveredRef.current = false;
-              isDraggingRef.current = false;
-            }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onTouchStart={() => {
-              isHoveredRef.current = true;
-            }}
-            onTouchEnd={() => {
-              setTimeout(() => {
-                isHoveredRef.current = false;
-              }, 1200);
-            }}
-            className="flex overflow-x-auto select-none no-scrollbar cursor-grab active:cursor-grabbing w-full pl-3.5 sm:pl-4 lg:pl-5"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            onPointerEnter={handlePointerEnter}
+            onPointerLeave={handlePointerLeave}
+            className={`flex overflow-x-hidden select-none no-scrollbar w-full ${
+              isDragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
             style={{
+              touchAction: "pan-y",
+              userSelect: "none",
+              WebkitUserSelect: "none",
               scrollbarWidth: "none",
               msOverflowStyle: "none",
             }}
           >
-              {displayStores.map((store, idx) => {
-                const storeStatusObj = storeStatus(store);
-                const storeImage = store.images?.homepage || store.images?.locator || store.images?.collection?.[0] || "";
-                const storeLabel = store.experienceLabel || (store.city ? `${store.city} Store` : store.name);
-                const targetHref = designsLink(store);
+            {/* Set 1 (Left Buffer) */}
+            <div ref={set1Ref} className="flex flex-shrink-0">
+              {baseStores.map((store, idx) => renderStoreCard(store, `s1-${store.handle || store.id}-${idx}`))}
+            </div>
 
-                return (
-                  <div
-                    key={`${store.handle || store.id}-${idx}`}
-                    className="flex-shrink-0 w-[82vw] sm:w-[45vw] lg:w-[31vw] xl:w-[29vw] pr-3.5 sm:pr-4 lg:pr-5"
-                  >
-                    <Link
-                      href={targetHref}
-                      onClick={(e) => {
-                        if (hasDraggedRef.current) {
-                          e.preventDefault();
-                          return;
-                        }
-                        handleStoreCtaClick("Store Card", store.city);
-                      }}
-                      style={{
-                        borderRadius: "12px",
-                        boxShadow: "none",
-                        WebkitBoxShadow: "none",
-                        border: "0",
-                        outline: "none",
-                        transform: "translateZ(0)",
-                        WebkitMaskImage: "-webkit-radial-gradient(white, black)",
-                      }}
-                      className="group block relative w-full aspect-[16/10] overflow-hidden bg-white select-none cursor-pointer"
-                    >
-                      {/* Store Photo */}
-                      {storeImage ? (
-                        <LazyImage
-                          src={storeImage}
-                          alt={storeLabel}
-                          fill
-                          sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 30vw"
-                          className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-neutral-200" />
-                      )}
+            {/* Set 2 (Active Center Set) */}
+            <div className="flex flex-shrink-0">
+              {baseStores.map((store, idx) => renderStoreCard(store, `s2-${store.handle || store.id}-${idx}`))}
+            </div>
 
-                      {/* Top dark gradient overlay for text readability */}
-                      <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                          background: "linear-gradient(145.07deg, rgba(0, 0, 0, 0.72) 15.93%, rgba(0, 0, 0, 0) 50%)",
-                        }}
-                      />
-
-                      {/* Opening Soon Overlay */}
-                      {storeStatusObj.openingSoon && <OpeningSoonOverlay />}
-
-                      {/* Top-Left: Store Name */}
-                      <div className="absolute top-5 left-[18px] z-10 pr-4">
-                        <h3 className="font-figtree font-semibold text-white text-[16px] leading-[100%] tracking-normal drop-shadow-sm">
-                          {storeLabel}
-                        </h3>
-                      </div>
-
-                      {/* Bottom-Right: Single-piece unified concave cutout (no seams, zero lines/shadows) */}
-                      <div
-                        className="absolute -bottom-[1px] -right-[1px] z-10 w-[78px] sm:w-[86px] h-[78px] sm:h-[86px] pointer-events-none select-none"
-                        style={{ boxShadow: "none", border: "none", outline: "none" }}
-                      >
-                        <svg
-                          className="w-full h-full fill-white"
-                          viewBox="0 0 88 88"
-                          preserveAspectRatio="none"
-                          aria-hidden="true"
-                          style={{ filter: "none", boxShadow: "none", border: "none" }}
-                        >
-                          <path d="M 88,0 C 88,12 80,20 68,20 C 41,20 20,41 20,68 C 20,80 12,88 0,88 L 90,90 L 90,0 Z" />
-                        </svg>
-
-                        {/* Circular Action Button */}
-                        <div
-                          className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-full border border-black flex items-center justify-center text-black transition-all duration-300 group-hover:bg-[#5A413F] group-hover:border-[#5A413F] group-hover:text-white pointer-events-auto"
-                          style={{ boxShadow: "none", outline: "none" }}
-                        >
-                          <ArrowUpRight className="w-5 h-5 sm:w-5.5 sm:h-5.5 stroke-[1.8]" />
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                );
-              })}
+            {/* Set 3 (Right Buffer) */}
+            <div className="flex flex-shrink-0">
+              {baseStores.map((store, idx) => renderStoreCard(store, `s3-${store.handle || store.id}-${idx}`))}
             </div>
           </div>
+        </div>
 
         {/* Centered CTA - button style same as others */}
         <div className="container-main">
@@ -279,6 +453,12 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           </div>
         </div>
 
+        {/* Book Appointment Modal */}
+        <BookAppointmentPopup
+          isOpen={isBookAppointmentOpen}
+          onClose={() => setIsBookAppointmentOpen(false)}
+        />
+
         {/* Global style to hide scrollbar */}
         <style jsx global>{`
           .no-scrollbar::-webkit-scrollbar {
@@ -289,12 +469,6 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
             scrollbar-width: none !important;
           }
         `}</style>
-
-        {/* Book Appointment Modal */}
-        <BookAppointmentPopup
-          isOpen={isBookAppointmentOpen}
-          onClose={() => setIsBookAppointmentOpen(false)}
-        />
       </section>
     );
   }
