@@ -346,26 +346,32 @@ export const pushNewsletterSubscription = (email) => {
 };
 
 /**
- * Attach the canonical WebEngage identifier to an identity event.
+ * Rewrite the phone on an identity event into the canonical `+91XXXXXXXXXX`.
  *
- * Derived here rather than at each call site so every caller gets the same
+ * Done here rather than at each call site so every caller emits the same
  * string: the four login/signup screens each passed their own spelling of the
  * number, which is how one shopper ended up with several WebEngage profiles.
  *
- * `cuid` is phone-only and never falls back to email. 37% of the WebEngage
- * database is keyed by email address despite phone being the primary
- * identifier, so an email fallback here would keep feeding that split. An
- * empty `cuid` means "do not identify" — the tag should skip, not guess.
+ * The existing `mobile` field is overwritten in place — no new field is
+ * introduced — so the WebEngage tag in GTM keeps reading `user.mobile` and
+ * needs no re-mapping to start receiving one consistent identifier.
+ *
+ * An unusable number is left exactly as it was rather than blanked, so no tag
+ * reading this object loses a value it has today.
  */
-const withCuid = (userData = {}) => ({
-  ...userData,
-  cuid: toE164(userData.mobile || userData.phone),
-});
+const withCanonicalPhone = (userData = {}) => {
+  const e164 = toE164(userData.mobile || userData.phone);
+  if (!e164) return { ...userData };
+
+  const normalised = { ...userData, mobile: e164 };
+  if (userData.phone !== undefined) normalised.phone = e164;
+  return normalised;
+};
 
 export const pushSignup = (userData) => {
   pushToDataLayer({
     event: "signup",
-    user: withCuid(userData)
+    user: withCanonicalPhone(userData)
   });
 };
 
@@ -379,7 +385,7 @@ export const pushLogout = (userData) => {
 export const pushLogin = (userData) => {
   pushToDataLayer({
     event: 'login',
-    user: withCuid(userData) // Standardized to lowercase 'user'
+    user: withCanonicalPhone(userData) // Standardized to lowercase 'user'
   });
 };
 
@@ -390,12 +396,12 @@ export const pushLogin = (userData) => {
  * an anonymous LUID until they happened to log in again. The WebEngage audit
  * counted 11,604 users whose events were stranded that way.
  */
-export const pushIdentify = (userData) => {
-  const user = withCuid(userData);
-  if (!user.cuid) return; // Nothing usable to key on; stay anonymous.
+export const pushIdentify = (userData = {}) => {
+  // Nothing usable to key on; stay anonymous rather than identify as junk.
+  if (!toE164(userData.mobile || userData.phone)) return;
   pushToDataLayer({
     event: 'identify',
-    user
+    user: withCanonicalPhone(userData)
   });
 };
 
