@@ -16,6 +16,7 @@ import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart, getSessionId } from "@/redux/features/cart/cartSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
+import { toE164, cleanPhoneInput } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 
 const NITRO_ORG_ID = process.env.NEXT_PUBLIC_NITRO_ORG_ID;
@@ -113,18 +114,21 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
   const loginSuccess = async (data, isSignup = false) => {
     const user = data.user || data.customer;
     const userId = user?.id;
+    const canonicalPhone = toE164(mobile || user?.mobile || user?.phone);
 
     if (isSignup) {
       pushSignup({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
         name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
       });
     } else {
       pushLogin({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
         name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
       });
@@ -134,7 +138,8 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
       login({
         user: {
           id: userId,
-          mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: user?.email,
           first_name: user?.first_name,
           last_name: user?.last_name,
@@ -146,7 +151,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
 
     nitroEnrich({
       email: email || user?.email || "",
-      phone: mobile,
+      phone: canonicalPhone || mobile,
       name: [user?.first_name || firstName, user?.last_name || lastName].filter(Boolean).join(" ").trim(),
       isConsented: true,
     });
@@ -311,7 +316,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
               maxLength="10"
               className="w-full h-full text-[14px] md:text-[15px] lg:text-[1rem] font-medium border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400 max-md:font-figtree max-md:leading-[140%] max-md:text-zinc-700 md:text-zinc-900"
               value={mobile}
-              onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
               onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
             />
           </div>

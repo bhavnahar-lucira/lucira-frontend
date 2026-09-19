@@ -13,6 +13,7 @@ import { motion, useAnimation } from "framer-motion";
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { pushSignup } from "@/lib/gtm";
+import { toE164, cleanPhoneInput } from "@/lib/phone";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 
@@ -112,11 +113,13 @@ export function RegisterForm({ initialMobile = "" }) {
   const loginSuccess = async (data) => {
     const user = data.user || data.customer;
     const userId = user?.id;
+    const canonicalPhone = toE164(mobile || user?.mobile || user?.phone);
 
     // Track Signup in GTM
     pushSignup({
       id: userId,
-      mobile: mobile,
+      mobile: canonicalPhone || mobile,
+      phone: canonicalPhone || mobile,
       email: email,
       name: `${firstName} ${lastName}`.trim()
     });
@@ -125,7 +128,8 @@ export function RegisterForm({ initialMobile = "" }) {
       login({
         user: {
           id: userId,
-          mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: user?.email || email,
           first_name: user?.first_name || firstName,
           last_name: user?.last_name || lastName,
@@ -341,7 +345,7 @@ export function RegisterForm({ initialMobile = "" }) {
                       maxLength="10"
                       className="w-full h-full text-sm outline-none bg-transparent disabled:opacity-50"
                       value={mobile}
-                      onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
                       disabled={isMobilePreFilled && mobile.length === 10}
                     />
                   </div>

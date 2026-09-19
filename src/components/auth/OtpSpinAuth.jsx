@@ -19,6 +19,7 @@ import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart, getSessionId } from "@/redux/features/cart/cartSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
+import { toE164, cleanPhoneInput } from "@/lib/phone";
 
 const SPIN_PRIZES = [
   { label: "₹1,500 OFF", value: "1500_off", chance: 33.33 },
@@ -195,18 +196,21 @@ export function OtpSpinAuth({
 
     const user = data.user || data.customer;
     const userId = user?.id;
+    const canonicalPhone = toE164(mobile || user?.mobile || user?.phone);
 
     if (isSignup) {
       pushSignup({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
         name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
       });
     } else {
       pushLogin({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
         name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
       });
@@ -216,7 +220,8 @@ export function OtpSpinAuth({
       login({
         user: {
           id: userId,
-          mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: user?.email,
           first_name: user?.first_name,
           last_name: user?.last_name,
@@ -699,7 +704,7 @@ export function OtpSpinAuth({
                 maxLength="10"
                 className="w-full h-full text-sm md:text-base border-none outline-none font-normal bg-transparent tracking-[0.3px]"
                 value={mobile}
-                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
               />
             </div>
             <div className="my-3 max-w-full hidden">
@@ -818,7 +823,7 @@ export function OtpSpinAuth({
                     maxLength="10"
                     className="w-full h-full text-sm md:text-base border-none outline-none font-normal bg-transparent tracking-[0.3px] disabled:opacity-50"
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
                     disabled={isMobileVerified && mobile.length === 10}
                   />
                 </div>

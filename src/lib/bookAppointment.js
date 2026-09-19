@@ -15,6 +15,7 @@
 import { apiFetch } from "@/lib/api";
 import { calculateDistance } from "@/utils/distance";
 import { handleFromStoreName } from "@/data/stores";
+import { toE164 } from "@/lib/phone";
 
 export const APPOINTMENT_WEBHOOK =
   "https://book-an-appointment-webhook-385594025448.asia-south1.run.app";
@@ -293,7 +294,7 @@ export async function submitAppointmentLead(payload) {
     // Key spelling inherited from the PDP store-footfall form — do not rename.
     name: (payload.name || "").trim(),
     pincode: payload.pincode || "",
-    phone: payload.phone || "",
+    phone: toE164(payload.phone) || payload.phone || "",
     page_url: typeof window !== "undefined" ? window.location.href : "",
     timestamp: new Date().toISOString(),
     // Appointment-specific fields.
