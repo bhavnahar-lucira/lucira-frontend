@@ -166,6 +166,14 @@ const scrollToTop = () => {
 const ORDERED_VIEW_CACHE = new Map();
 const MAX_CACHED_VIEWS = 8;
 
+// How long the first paint may wait for a known pincode's store-ordered page
+// before giving up and showing the default order anyway (see
+// awaitingPincodeOrder below). This is a last resort for a dead network or a
+// backend outage, NOT the expected path: a warm store-ordered response is a few
+// hundred ms and a cold one is well under this, so the shopper sees skeletons
+// and then the correct order — never the default order followed by a reshuffle.
+const PINCODE_ORDER_WAIT_TIMEOUT_MS = 4000;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // The collection's UNNARROWED facet list, per handle.
 //
@@ -636,7 +644,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   // store in range — in which case every request below is byte-for-byte what it
   // was before this feature existed. Resolved BEFORE the product state below so
   // the memo key is known while that state is still initialising.
-  const { storesParam, storesReady } = useStoreOrdering();
+  const { storesParam, storesReady, pincode } = useStoreOrdering();
   // Only the default sort is reordered; an explicit Price/Newest choice must win
   // outright. The backend enforces this too, but not sending the parameter keeps
   // sorted views on the same server cache entries they already had.
@@ -655,9 +663,27 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   // A cached view always wins: that one was fetched for this exact URL.
   const ssgIsStale = !cachedView && urlHasActiveFilters(searchParams, baseFilters);
 
+  // True whenever this mount WILL show a store-ordered grid but that ordering
+  // has not arrived yet, so `initialData` (build-time order) must not be painted:
+  //
+  //   - storeOrderParam !== "" — the ranking is already known and this view's
+  //     request carries it. This is the collection -> collection case: the
+  //     ranking resolved on the PREVIOUS page, so storesReady is already true on
+  //     arrival and the old `!storesReady` test missed it entirely. Measured on
+  //     earrings -> rings: 1.2s of build-time order on screen before the ordered
+  //     response replaced it, in full view of the shopper.
+  //   - pincode saved but not yet resolved — the first page load in a tab.
+  //
+  // A cached view always wins: that one was fetched for this exact key already.
+  // Read only at mount (via the lazy initializers below and the ref that freezes
+  // it), because it describes a FIRST-PAINT decision, not a live one — later
+  // renders are handled by the fetch effect's own reshuffle-avoidance logic.
+  const awaitingPincodeOrder =
+    !cachedView && (storeOrderParam !== "" || (pincode.length === 6 && !storesReady));
+
   const [products, setProducts] = useState(() => {
     if (cachedView) return cachedView.products;
-    if (ssgIsStale) return [];
+    if (ssgIsStale || awaitingPincodeOrder) return [];
     return (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
   });
   const [pagination, setPagination] = useState(() =>
@@ -665,11 +691,38 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     (ssgIsStale ? { hasNextPage: false, endCursor: null } : initialData?.collData?.pageInfo) ||
     { hasNextPage: false, endCursor: null }
   );
-  const [productsLoading, setProductsLoading] = useState((!initialData || ssgIsStale) && !cachedView);
+  const [productsLoading, setProductsLoading] = useState(
+    ((!initialData || ssgIsStale) && !cachedView) || awaitingPincodeOrder
+  );
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(() =>
     cachedView?.totalCount || (ssgIsStale ? 0 : initialData?.collData?.totalProducts) || 0
   );
+
+  // Safety valve: if the pincode -> store ranking lookup is unusually slow (flaky
+  // network, backend hiccup — resolution is normally a ~40ms memoised lookup),
+  // don't leave the shopper looking at skeletons forever. After the timeout, fall
+  // back to painting `initialData`'s default order — exactly what happens today
+  // when no wait is applied — and let the store-ordered fetch swap it in silently
+  // whenever it does land. Mirrors the backend's own STORE_ORDER_BUDGET_MS
+  // fallback: past the budget, serve the un-personalised order rather than block.
+  //
+  // Never paints a stale SSG payload though: on a filtered URL the whole
+  // collection is the wrong answer (see ssgIsStale), so there the skeletons stay
+  // until the real fetch settles.
+  const awaitingPincodeOrderAtMount = useRef(awaitingPincodeOrder && !ssgIsStale).current;
+  useEffect(() => {
+    if (!awaitingPincodeOrderAtMount) return;
+    const timer = setTimeout(() => {
+      setProducts((prev) =>
+        prev.length > 0
+          ? prev
+          : (initialData?.collData?.products || []).filter((p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden"))
+      );
+      setProductsLoading((prev) => (prev ? false : prev));
+    }, PINCODE_ORDER_WAIT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [awaitingPincodeOrderAtMount, initialData]);
 
   // Set initial active mobile group if needed. Seeded from the base list so the
   // sheet always opens on the same group, whatever the current selection is.
@@ -1144,6 +1197,17 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         // the runtime, and name-matching misses the ones that are not "AbortError".
         if (controller.signal.aborted || err?.name === "AbortError") return;
         console.error("Failed to fetch initial data:", err);
+        // The store-ordered first paint starts from an EMPTY grid (see
+        // awaitingPincodeOrder). If that fetch fails, fall back to the build-time
+        // order rather than leaving the shopper with nothing. Except on a filtered
+        // URL, where that payload is the wrong answer (see ssgIsStale).
+        if (!cancelled && !ssgIsStale) {
+          setProducts((prev) =>
+            prev.length > 0
+              ? prev
+              : (initialData?.collData?.products || []).filter((p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden"))
+          );
+        }
       } finally {
         if (!cancelled) setProductsLoading(false);
       }
@@ -1159,7 +1223,16 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         console.error("Unhandled error in collection fetchData:", err);
       }
     });
-    return () => { cancelled = true; controller.abort(); };
+    // Abort WITH a reason. Without one the browser mints an anonymous
+    // "signal is aborted without reason" DOMException whose only stack frame is
+    // this abort() call — the construction site, not whatever promise failed to
+    // handle it — which is why this error was untraceable in the dev overlay.
+    // Named, any future sighting says where it came from. `name` stays
+    // "AbortError" so every existing abort check below still matches.
+    return () => {
+      cancelled = true;
+      controller.abort(new DOMException("collection view changed", "AbortError"));
+    };
   }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
 
   // Fetch Next Page
