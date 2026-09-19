@@ -356,22 +356,22 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
               <div className="w-full h-full bg-neutral-200" />
             )}
 
-            {/* Top dark gradient overlay for text readability */}
+            {/* Localized dark shadow overlay only around the h2 heading */}
             <div
-              className="absolute inset-0 pointer-events-none"
+              className="absolute bottom-0 left-0 w-[75%] sm:w-[65%] h-[48%] pointer-events-none"
               style={{
-                background: "linear-gradient(145.07deg, rgba(0, 0, 0, 0.72) 15.93%, rgba(0, 0, 0, 0) 50%)",
+                background: "radial-gradient(ellipse at 0% 100%, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.38) 40%, rgba(0, 0, 0, 0.08) 70%, transparent 100%)",
               }}
             />
 
             {/* Opening Soon Overlay */}
             {storeStatusObj.openingSoon && <OpeningSoonOverlay />}
 
-            {/* Top-Left: Store Name */}
-            <div className="absolute top-5 left-[18px] z-10 pr-4 pointer-events-none select-none">
-              <h3 className="font-figtree font-semibold text-white text-[16px] leading-[100%] tracking-normal drop-shadow-sm">
+            {/* Bottom-Left: Store Name */}
+            <div className="absolute bottom-4 sm:bottom-5 left-4 sm:left-[18px] z-10 pr-16 pointer-events-none select-none">
+              <h2 className="font-figtree font-medium text-white text-[16px] leading-[100%] tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
                 {storeLabel}
-              </h3>
+              </h2>
             </div>
           </div>
 
@@ -395,7 +395,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
         {/* Section Heading inside container-main */}
         <div className="container-main">
           <div className="text-center mb-6 sm:mb-8 lg:mb-10">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-abhaya text-black tracking-tight">
+            <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
               Visit Lucira Stores Near You
             </h2>
           </div>
@@ -439,27 +439,31 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           </div>
         </div>
 
-        {/* Centered CTA - opens StoreFootfallModal matching PDP flow */}
+        {/* Centered CTA - opens StoreFootfallModal with appointment mode for homepage */}
         <div className="container-main relative z-10">
           <div className="mt-8 sm:mt-10 flex justify-center">
             <button
               type="button"
               onClick={() => {
-                handleStoreCtaClick("Book A Store Visit");
+                handleStoreCtaClick("Book An Appointment");
                 setIsStoreModalOpen(true);
               }}
               className="inline-flex items-center justify-center w-fit md:w-auto px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors cursor-pointer shadow-sm"
             >
-              BOOK A STORE VISIT
+              BOOK AN APPOINTMENT
             </button>
           </div>
         </div>
 
-        {/* Store Footfall / Visit Modal (same flow as PDP) */}
+        {/* Store Appointment Modal for Homepage */}
         <StoreFootfallModal
           open={isStoreModalOpen}
           onClose={() => setIsStoreModalOpen(false)}
           locationId={locationId}
+          isAppointment={true}
+          title="Book an Appointment"
+          subtitle="Select your preferred store to schedule a visit"
+          buttonLabel="Book an Appointment"
         />
 
         {/* Scoped and global styles for store section */}
@@ -474,10 +478,10 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
 
           /* Inverted Radius Cutout Mask */
           .store-card-inverted-mask {
-            --r: 20px;
+            --r: 12px;
             --s: 30px;
-            --x: 4px;
-            --y: 4px;
+            --x: 12px;
+            --y: 12px;
 
             border-radius: var(--r);
             --_m: /calc(2 * var(--r)) calc(2 * var(--r)) radial-gradient(#000 70%, #0000 72%);

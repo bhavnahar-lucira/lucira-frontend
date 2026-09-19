@@ -11,7 +11,7 @@ export default function NoteFromFounder() {
           <div className="md:col-span-5 flex justify-center md:justify-end">
             <div className="relative w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] aspect-[4/4.8] overflow-hidden bg-white/40">
               <LazyImage
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/founder-rupesh-jain.jpg?v=1789724657"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/rupesh-jain.jpg?v=1789814650"
                 alt="Rupesh Jain - Founder & CEO"
                 fill
                 sizes="(max-width: 768px) 90vw, 40vw"
@@ -26,7 +26,7 @@ export default function NoteFromFounder() {
               A Note from Our Founder
             </h2>
 
-            <p className="font-figtree font-normal italic text-[1.125rem] leading-[160%] tracking-normal align-middle text-neutral-800 mb-0">
+            <p className="font-figtree font-normal italic text-[14px] leading-[160%] tracking-normal align-middle text-neutral-800 mb-[12px]" style={{ fontSize: "14px", marginBottom: "12px" }}>
               &ldquo;Jewelry runs in my blood, it&apos;s who I am. After building brands in India, I created Lucira to go beyond tradition and craft pieces that reflect elegance and meaning. For me, jewelry isn&apos;t just adornment, it&apos;s a celebration of moments, love, and legacy. Every piece we make is a promise.&rdquo;
             </p>
 
