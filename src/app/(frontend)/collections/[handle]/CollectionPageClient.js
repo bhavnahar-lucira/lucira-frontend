@@ -663,18 +663,23 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   // A cached view always wins: that one was fetched for this exact URL.
   const ssgIsStale = !cachedView && urlHasActiveFilters(searchParams, baseFilters);
 
-  // True only in the narrow window this component cares about: the shopper
-  // already has a saved pincode (so their grid WILL be reordered by store
-  // proximity) but this tab has not resolved it into a store ranking yet, and
-  // nothing is cached for this exact view. Left unguarded, the first paint would
-  // show `initialData`'s build-time (un-ordered) products and then visibly
-  // reshuffle a moment later once the store-ordered fetch lands — that flash is
-  // the UX bug this flag exists to avoid. Read only at mount (via the lazy
-  // initializers below and the ref that freezes it), because it describes a
-  // FIRST-PAINT decision, not a live one — once we've chosen to wait or not, later
-  // renders (sort/filter changes, storesReady flipping) are handled by the
-  // existing fetch effect and its own SWR/reshuffle-avoidance logic.
-  const awaitingPincodeOrder = pincode.length === 6 && !storesReady && !cachedView;
+  // True whenever this mount WILL show a store-ordered grid but that ordering
+  // has not arrived yet, so `initialData` (build-time order) must not be painted:
+  //
+  //   - storeOrderParam !== "" — the ranking is already known and this view's
+  //     request carries it. This is the collection -> collection case: the
+  //     ranking resolved on the PREVIOUS page, so storesReady is already true on
+  //     arrival and the old `!storesReady` test missed it entirely. Measured on
+  //     earrings -> rings: 1.2s of build-time order on screen before the ordered
+  //     response replaced it, in full view of the shopper.
+  //   - pincode saved but not yet resolved — the first page load in a tab.
+  //
+  // A cached view always wins: that one was fetched for this exact key already.
+  // Read only at mount (via the lazy initializers below and the ref that freezes
+  // it), because it describes a FIRST-PAINT decision, not a live one — later
+  // renders are handled by the fetch effect's own reshuffle-avoidance logic.
+  const awaitingPincodeOrder =
+    !cachedView && (storeOrderParam !== "" || (pincode.length === 6 && !storesReady));
 
   const [products, setProducts] = useState(() => {
     if (cachedView) return cachedView.products;
@@ -1218,7 +1223,16 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         console.error("Unhandled error in collection fetchData:", err);
       }
     });
-    return () => { cancelled = true; controller.abort(); };
+    // Abort WITH a reason. Without one the browser mints an anonymous
+    // "signal is aborted without reason" DOMException whose only stack frame is
+    // this abort() call — the construction site, not whatever promise failed to
+    // handle it — which is why this error was untraceable in the dev overlay.
+    // Named, any future sighting says where it came from. `name` stays
+    // "AbortError" so every existing abort check below still matches.
+    return () => {
+      cancelled = true;
+      controller.abort(new DOMException("collection view changed", "AbortError"));
+    };
   }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
 
   // Fetch Next Page
