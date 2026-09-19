@@ -21,6 +21,7 @@ import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 import { fetchOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
+import { toLocal as get10DigitMobile } from "@/lib/phone";
 
 const PRESETS = [3000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
@@ -60,12 +61,6 @@ export default function MobileSavingCalculator() {
   const totalInstallment = amount * 9;
   const bonus = amount;
   const totalReturns = totalInstallment + bonus + giftValue;
-
-  const get10DigitMobile = (raw) => {
-    if (!raw) return "";
-    let cleaned = raw.replace(/\D/g, "");
-    return cleaned.length > 10 ? cleaned.slice(-10) : cleaned;
-  };
 
   const formatINR = (value) => new Intl.NumberFormat("en-IN").format(value);
 

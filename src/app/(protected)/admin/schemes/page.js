@@ -4,18 +4,11 @@ import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
 import { apiFetch } from "@/lib/api";
+import { toLocal as cleanPhone } from "@/lib/phone";
 import { Loader2, ArrowLeft, ExternalLink, TicketPercent, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 /* ─── helpers ─────────────────────────────────────────────────────────────── */
-function cleanPhone(raw) {
-  if (!raw) return "";
-  const digits = raw.replace(/[^\d]/g, "");
-  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-  if (digits.length === 10) return digits;
-  return digits;
-}
-
 function fmtAmount(val) {
   if (val === null || val === undefined) return "0";
   return Number(val).toLocaleString("en-IN");

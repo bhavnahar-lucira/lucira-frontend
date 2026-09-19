@@ -37,6 +37,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
 import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
+import { toLocal as normalizePhone } from "@/lib/phone";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
@@ -145,13 +146,6 @@ function formatAddressPreview(address) {
 function getCartSessionId() {
   if (typeof window === "undefined") return "";
   return window.localStorage.getItem("cart_session_id") || "";
-}
-
-function normalizePhone(value = "") {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (digits.length === 10) return digits;
-  if (digits.length > 10) return digits.slice(-10);
-  return digits;
 }
 
 function loadRazorpayScript() {

@@ -1,3 +1,5 @@
+import { toLocal } from "@/lib/phone";
+
 export const INDIAN_STATES = [
   "Andaman and Nicobar Islands",
   "Andhra Pradesh",
@@ -53,12 +55,10 @@ export const emptyAddressForm = {
 };
 
 export function normalizeAddressForm(address = {}, customer = {}) {
-  let phone = address.phone || customer.phone || customer.phoneNumber || customer.mobile || "";
-  if (phone.startsWith("+91")) {
-    phone = phone.replace("+91", "").trim();
-  } else if (phone.startsWith("91") && phone.length === 12) {
-    phone = phone.substring(2).trim();
-  }
+  const rawPhone = address.phone || customer.phone || customer.phoneNumber || customer.mobile || "";
+  // Fall back to the raw value so an unrecognised number still reaches the
+  // field for the shopper to correct, rather than silently emptying it.
+  const phone = toLocal(rawPhone) || rawPhone;
 
   // Extract GSTIN from company field if it was packed there
   let rawCompany = address.company || "";

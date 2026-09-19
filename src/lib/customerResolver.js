@@ -1,4 +1,5 @@
 import { shopifyAdminFetch } from "@/lib/shopify";
+import { toE164 } from "@/lib/phone";
 
 const VERIFY_CUSTOMER_QUERY = `
   query VerifyCustomer($id: ID!) {
@@ -19,8 +20,6 @@ const FIND_CUSTOMER_QUERY = `
 `;
 
 const noCache = { next: { revalidate: 0 } };
-
-const digitsOnly = (value) => String(value ?? "").replace(/\D/g, "");
 
 // The register response can hand us a gid, a numeric Shopify id, or (for
 // non-Shopify backends) an opaque id. Anything that is not clearly a Shopify
@@ -50,10 +49,13 @@ export async function resolveCustomerGid({ customerId, email, mobile }) {
   const cleanEmail = String(email ?? "").trim();
   if (cleanEmail) searches.push(`email:${JSON.stringify(cleanEmail)}`);
 
-  const phone = digitsOnly(mobile);
-  if (phone.length >= 10) {
-    const last10 = phone.slice(-10);
-    searches.push(`phone:+91${last10}`, `phone:${last10}`);
+  // Existing Shopify records predate the canonical format, so still search
+  // both spellings — but derive them from one normalised number.
+  const phone = toE164(mobile);
+  if (phone.startsWith("+91")) {
+    searches.push(`phone:${phone}`, `phone:${phone.slice(3)}`);
+  } else if (phone) {
+    searches.push(`phone:${phone}`);
   }
 
   for (const query of searches) {

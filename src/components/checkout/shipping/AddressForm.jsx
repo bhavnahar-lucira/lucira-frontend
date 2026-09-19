@@ -132,8 +132,15 @@ export function AddressForm({
             type="tel"
             placeholder="Phone (optional)"
             value={form.phone}
-            maxLength={10}
-            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, ""))}
+            maxLength={15}
+            onChange={(e) => {
+              // Keep the field at the 10-digit local number whatever the
+              // shopper pastes: a leading 0 or a "+91"/"91" prefix would
+              // otherwise be stored verbatim and become its own WebEngage
+              // profile downstream.
+              const digits = e.target.value.replace(/\D/g, "").replace(/^0+/, "");
+              onChange("phone", digits.length > 10 ? digits.slice(-10) : digits);
+            }}
             disabled={disablePhone}
             className="h-full grow bg-transparent outline-none text-[0.9375rem] lg:text-[1.0625rem] font-figtree text-zinc-900 placeholder:text-zinc-400 disabled:cursor-not-allowed"
           />

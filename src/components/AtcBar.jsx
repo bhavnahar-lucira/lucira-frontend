@@ -12,6 +12,7 @@ import { selectPincode } from "@/redux/features/user/userSlice";
 import { useAuth } from "@/hooks/useAuth";
 import { pushPromoClick, formatGtmPrice, getNumericId } from "@/lib/gtm";
 import { apiFetch } from "@/lib/api";
+import { toLocal } from "@/lib/phone";
 import { calculateDistance } from "@/utils/distance";
 
 const STORE_FOOTFALL_WEBHOOK = "https://store-footfall-pdp-forn-385594025448.asia-south1.run.app";
@@ -139,8 +140,7 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
       setShowFarStores(false);
       const cookiePincode = getCookieValue("user_pincode");
       setPincode(globalPincode || cookiePincode || "");
-      const rawPhone = (user?.phone || user?.mobile || "").replace(/^\+91/, "").replace(/^91/, "").slice(0, 10);
-      setPhone(rawPhone);
+      setPhone(toLocal(user?.phone || user?.mobile));
       const accountName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.name || "";
       setName(accountName.slice(0, 50));
     }

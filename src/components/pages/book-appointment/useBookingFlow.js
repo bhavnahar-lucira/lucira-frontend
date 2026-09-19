@@ -32,18 +32,13 @@ import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { apiFetch, sendOtpApi, verifyOtpApi, registerCustomer } from "@/lib/api";
 import { submitAppointmentLead } from "@/lib/bookAppointment";
 import { pushAppointmentConfirmed } from "@/lib/gtm";
+import { toLocal as localPhone } from "@/lib/phone";
 
 /**
  * Reduce any stored phone shape to the bare 10 digits the forms use.
- *
- * Take the LAST ten rather than stripping a leading "91": Indian mobiles can
- * legitimately begin with 91 (9123456789), and a prefix strip would eat the
- * first two digits of a perfectly good number.
+ * Re-exported under the old name so existing call sites read unchanged.
  */
-export function localPhone(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-  return digits.length > 10 ? digits.slice(-10) : digits;
-}
+export { localPhone };
 
 const newSessionId = () => `session_${Math.random().toString(36).substring(2, 15)}`;
 

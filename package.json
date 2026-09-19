@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:phone": "node src/lib/phone.test.mjs",
     "generate-menu": "node generate_menu_json.js"
   },
   "dependencies": {

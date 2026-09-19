@@ -5,6 +5,7 @@ import { CheckCircle, Copy, Loader2, Tag } from "lucide-react";
 import { useSelector } from "react-redux";
 import OfferCategoryIcon from "./offerCategoryTheme";
 import { getOfferCategory, OFFER_CATEGORY_LABEL } from "@/lib/coupons";
+import { toLocal } from "@/lib/phone";
 
 // Bank-offer tickets share the ₹-ladder's house palette — the metal only
 // shows through the icon and the "On Diamond/Plain Gold Products" line, so the
@@ -156,7 +157,7 @@ export default function CouponCard({
                     creative_name: `coupon applied - ${coupon.code}`,
                     location_id: "cart page",
                     promo_id: coupon.code,
-                    promo_name: (user?.mobile || user?.phone) ? String(user.mobile || user.phone).replace(/\D/g, "").slice(-10) : "",
+                    promo_name: toLocal(user?.mobile || user?.phone),
                   },
                 });
               }
