@@ -356,22 +356,22 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
               <div className="w-full h-full bg-neutral-200" />
             )}
 
-            {/* Top dark gradient overlay for text readability */}
+            {/* Bottom dark gradient shadow overlay */}
             <div
-              className="absolute inset-0 pointer-events-none"
+              className="absolute inset-x-0 bottom-0 h-[52%] pointer-events-none"
               style={{
-                background: "linear-gradient(145.07deg, rgba(0, 0, 0, 0.72) 15.93%, rgba(0, 0, 0, 0) 50%)",
+                background: "linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.08) 80%, transparent 100%)",
               }}
             />
 
             {/* Opening Soon Overlay */}
             {storeStatusObj.openingSoon && <OpeningSoonOverlay />}
 
-            {/* Top-Left: Store Name */}
-            <div className="absolute top-5 left-[18px] z-10 pr-4 pointer-events-none select-none">
-              <h3 className="font-figtree font-semibold text-white text-[16px] leading-[100%] tracking-normal drop-shadow-sm">
+            {/* Bottom-Left: Store Name */}
+            <div className="absolute bottom-4 sm:bottom-5 left-4 sm:left-[18px] z-10 pr-16 pointer-events-none select-none">
+              <h2 className="font-figtree font-normal text-white text-[16px] leading-[100%] tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
                 {storeLabel}
-              </h3>
+              </h2>
             </div>
           </div>
 
@@ -395,7 +395,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
         {/* Section Heading inside container-main */}
         <div className="container-main">
           <div className="text-center mb-6 sm:mb-8 lg:mb-10">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-abhaya text-black tracking-tight">
+            <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
               Visit Lucira Stores Near You
             </h2>
           </div>

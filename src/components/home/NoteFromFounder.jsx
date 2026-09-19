@@ -11,7 +11,7 @@ export default function NoteFromFounder() {
           <div className="md:col-span-5 flex justify-center md:justify-end">
             <div className="relative w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] aspect-[4/4.8] overflow-hidden bg-white/40">
               <LazyImage
-                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/founder-rupesh-jain.jpg?v=1789724657"
+                src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/rupesh-jain.jpg?v=1789814650"
                 alt="Rupesh Jain - Founder & CEO"
                 fill
                 sizes="(max-width: 768px) 90vw, 40vw"
