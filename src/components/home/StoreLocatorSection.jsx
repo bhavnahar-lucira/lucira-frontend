@@ -369,7 +369,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
 
             {/* Bottom-Left: Store Name */}
             <div className="absolute bottom-4 sm:bottom-5 left-4 sm:left-[18px] z-10 pr-16 pointer-events-none select-none">
-              <h2 className="font-figtree font-semibold text-white text-[16px] leading-[100%] tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
+              <h2 className="font-figtree font-medium text-white text-[16px] leading-[100%] tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
                 {storeLabel}
               </h2>
             </div>
