@@ -187,8 +187,11 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
       if (isSignup) {
         pushSignup({
           id: userId,
+          // Never synthesise an address here: `${mobile}@gmail.com` is a real,
+          // deliverable inbox belonging to someone else, and it fed both junk
+          // WebEngage profiles and live email campaigns.
+          email: customer?.email || "",
           mobile: mobile,
-          email: `${mobile}@gmail.com`,
           name: "Unlock Coupon User"
         });
       } else {
@@ -220,7 +223,10 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         user: {
           id: userId,
           mobile: mobile,
-          email: customer?.email || `${mobile}@gmail.com`,
+          // Left empty rather than synthesised: this session object is
+          // persisted and read by the CRM webhooks, so a placeholder here
+          // leaks into every downstream system as if it were real.
+          email: customer?.email || "",
           first_name: customer?.first_name || "Unlock Coupon",
           last_name: customer?.last_name || "User",
           party_id: null,
@@ -273,7 +279,11 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         const regData = await registerCustomer({
           firstName: "Unlock Coupon",
           lastName: "User",
-          email: `${mobile}@gmail.com`,
+          // Placeholder only — `.internal` is not publicly routable, so it can
+          // never reach a real inbox. This used to be `@gmail.com`, which put
+          // a stranger's live address on the Shopify customer record and into
+          // email campaigns. Matches the convention in the scheme flows.
+          email: `${mobile}@lucira.internal`,
           mobile: mobile,
           sessionId,
           tags: "pdp-offers-lead",

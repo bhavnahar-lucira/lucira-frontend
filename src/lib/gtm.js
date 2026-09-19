@@ -1,5 +1,7 @@
 // src/lib/gtm.js
 
+import { toE164 } from "./phone";
+
 // Cache for deduplicating rapid events
 const lastPushedEvents = new Map();
 const MIN_EVENT_INTERVAL_MS = 1000; // 1 second between identical events
@@ -343,10 +345,27 @@ export const pushNewsletterSubscription = (email) => {
   });
 };
 
+/**
+ * Attach the canonical WebEngage identifier to an identity event.
+ *
+ * Derived here rather than at each call site so every caller gets the same
+ * string: the four login/signup screens each passed their own spelling of the
+ * number, which is how one shopper ended up with several WebEngage profiles.
+ *
+ * `cuid` is phone-only and never falls back to email. 37% of the WebEngage
+ * database is keyed by email address despite phone being the primary
+ * identifier, so an email fallback here would keep feeding that split. An
+ * empty `cuid` means "do not identify" — the tag should skip, not guess.
+ */
+const withCuid = (userData = {}) => ({
+  ...userData,
+  cuid: toE164(userData.mobile || userData.phone),
+});
+
 export const pushSignup = (userData) => {
   pushToDataLayer({
     event: "signup",
-    user: userData
+    user: withCuid(userData)
   });
 };
 
@@ -360,7 +379,23 @@ export const pushLogout = (userData) => {
 export const pushLogin = (userData) => {
   pushToDataLayer({
     event: 'login',
-    user: userData // Standardized to lowercase 'user'
+    user: withCuid(userData) // Standardized to lowercase 'user'
+  });
+};
+
+/**
+ * Re-assert who the shopper is on a page load where they were already signed
+ * in. The `login` event only fires at the moment of logging in, but the Redux
+ * user slice is persisted to localStorage — so a returning shopper browsed as
+ * an anonymous LUID until they happened to log in again. The WebEngage audit
+ * counted 11,604 users whose events were stranded that way.
+ */
+export const pushIdentify = (userData) => {
+  const user = withCuid(userData);
+  if (!user.cuid) return; // Nothing usable to key on; stay anonymous.
+  pushToDataLayer({
+    event: 'identify',
+    user
   });
 };
 
