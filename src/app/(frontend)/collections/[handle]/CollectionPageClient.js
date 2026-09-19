@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, use, useRef, Fragment } from "react";
+import { useState, useEffect, useCallback, useMemo, use, useRef, Fragment, useTransition } from "react";
 import { useStoreOrdering } from "@/hooks/useStoreOrdering";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -39,18 +39,12 @@ import StoreCollectionBanner from "@/components/collections/StoreCollectionBanne
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
 import { apiFetch } from "@/lib/api";
+import { storeCollectionHandles } from "@/lib/storeContent";
 
-const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar", "lajpat-nagar-store"];
-
-const STORE_IMAGES = {
-  "pune-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg"],
-  "chembur-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chembur_73ce3ac6-7515-473d-a2dd-2385fd065eaa.jpg"],
-  "noida-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Noida.jpg"],
-  "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
-  "malad": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg"],
-  "paschim-vihar": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982", "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982"],
-  "lajpat-nagar-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
-};
+// Which collections show the store hero instead of the usual PLP banner, and
+// the hero's content, are both managed in Dashboard → Stores and delivered via
+// /api/settings/store-pages (see initialData.storePages, fetched in
+// collections/[handle]/page.js). A new store needs no change here.
 
 // PLP banners (top banner + in-grid promo banners) are managed from the admin
 // dashboard and delivered via /api/settings/plp-banners (see initialData.plpBanners,
@@ -147,8 +141,10 @@ const FilterSidebarSkeleton = () => (
   </div>
 );
 
+// Instant, for the same reason as scrollToProductsTop: sort, price and Clear All
+// all replace the grid, so an animated scroll would race the reflow.
 const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0 });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -177,6 +173,54 @@ const MAX_CACHED_VIEWS = 8;
 // hundred ms and a cold one is well under this, so the shopper sees skeletons
 // and then the correct order — never the default order followed by a reshuffle.
 const PINCODE_ORDER_WAIT_TIMEOUT_MS = 4000;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The collection's UNNARROWED facet list, per handle.
+//
+// Two different jobs need it, and neither can use the narrowed list a filtered
+// response comes back with:
+//
+//   1. Translating URL params back into Shopify filter inputs. A selected value
+//      the narrowed list no longer mentions used to translate to nothing, so the
+//      filter was silently dropped — visible on page 2 of infinite scroll, which
+//      rebuilt the payload from the narrowed list.
+//   2. Rendering the sidebar. Options are sorted by count, so every apply
+//      re-sorted every other group and rows moved under the shopper's cursor; an
+//      option that fell to zero disappeared even when it was ticked, leaving a
+//      filter that was applied but had no checkbox and no chip to remove it.
+//
+// Module scope so a second visit to the same collection reuses it, and the
+// blocking `limit=1` request that used to precede EVERY product fetch is gone.
+// On a statically rendered page it is never fetched at all: page.js already ships
+// the same unfiltered facet list in initialData.collData.filters.
+// ─────────────────────────────────────────────────────────────────────────────
+const BASE_FILTER_CACHE = new Map();
+
+// Predictive cache to store in-flight API requests when the user hovers over a filter
+const PREFETCH_CACHE = new Map();
+
+// Does the URL actually select any facet? Matched against the collection's own
+// facet list rather than "has any query param", so UTM/gclid/fbclid landings are
+// not mistaken for a filtered view.
+//
+// Needed because page.js builds initialData with NO filters, so on a filtered URL
+// the statically rendered grid is the whole collection while the checkbox already
+// reads as ticked. Painting that and correcting it seconds later is
+// indistinguishable from the filter returning the wrong products, so when this is
+// true the grid starts empty and shows skeletons.
+function urlHasActiveFilters(searchParams, baseFilters) {
+  for (const [key, value] of searchParams.entries()) {
+    if (key.startsWith("filter.")) return true;
+    if (["sort", "cursor", "limit", "q", "page"].includes(key)) continue;
+    const group = Object.entries(baseFilters || {}).find(
+      ([groupKey]) => groupKey.toLowerCase() === key.toLowerCase()
+    );
+    const options = group?.[1];
+    if (!Array.isArray(options)) continue;
+    if (options.some((opt) => String(opt.value) === value || opt.label === value)) return true;
+  }
+  return false;
+}
 
 function rememberView(key, value) {
   if (!key) return;
@@ -332,7 +376,7 @@ function RecentlyViewedRow({ products }) {
   );
 }
 
-export default function CollectionPage({ params: paramsPromise, initialData }) {
+export default function CollectionPage({ params: paramsPromise, initialData, storePages = null }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
 
@@ -348,15 +392,27 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     ? plpBanners.inpageBanners
     : FALLBACK_INPAGE_BANNERS;
 
+  // Dashboard-managed store pages. `storeHandles` covers every store, including
+  // ones whose hero is switched off — those collections then render no top
+  // banner at all, which is what the old hard-coded STORE_HANDLES list did.
+  const storeHandles = storeCollectionHandles(storePages);
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [optimisticParams, setOptimisticParams] = useState(searchParams);
+
+  useEffect(() => {
+    setOptimisticParams(searchParams);
+  }, [searchParams]);
+
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
   const recentlyViewed = useSelector(selectRecentlyViewed);
   const recentlyViewedProducts = recentlyViewed?.products || [];
 
-  const limit = 25;
+  const limit = 16;
 
   const [expandedFilters, setExpandedFilters] = useState({ "In Store Available": true });
   const loadMoreRef = useRef(null);
@@ -364,8 +420,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   // Scroll up to where the product grid starts (just below the header/banner),
   // instead of jumping all the way to the top of the page.
+  //
+  // Deliberately INSTANT. A smooth scroll here animates for about a second while
+  // the grid underneath it is being replaced — the result set changes length, the
+  // sidebar reflows, and infinite scroll drops from whatever depth the shopper had
+  // reached back to one page — so the animation spends its whole duration chasing a
+  // target that keeps moving. Landing at the top immediately also means the height
+  // changes that follow happen below the fold instead of shoving the viewport around.
   const scrollToProductsTop = useCallback(() => {
-    productsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    productsTopRef.current?.scrollIntoView({ block: "start" });
   }, []);
 
   const isMobile = useMediaQuery("(max-width: 1023px)");
@@ -492,9 +555,35 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   }, []);
 
   // Data State
+  // `availableFilters` is the NARROWED facet list from the last response — the live
+  // counts. `baseFilters` is the collection's full facet list, which never narrows;
+  // it is what URL params are translated against and what fixes the sidebar's
+  // option order. See BASE_FILTER_CACHE above.
   const [availableFilters, setAvailableFilters] = useState(() => {
+    // collData.filters FIRST. Both payloads are in initialData, but only this one is
+    // the same facet list every later response carries. initialData.filterData comes
+    // from the EXPO endpoint /api/products/filters, which names the same groups
+    // differently ("Weight Ranges" vs "Weight", "Carat Range" vs "Carat range",
+    // "Material" vs "Material Type", "Product Type" vs "Product Category"), reports
+    // different counts (Chembur 272 vs 282) and carries Location-GID inputs instead
+    // of native filter inputs. Seeding the sidebar from it meant every single page
+    // load rewrote the whole filter panel — headings renamed, rows re-sorted, counts
+    // jumping — the moment the real response landed. It stays only as a fallback.
+    if (initialData?.collData?.filters) {
+      return processFilters(initialData.collData.filters);
+    }
     if (initialData && initialData.filterData) {
       return processFilters(initialData.filterData);
+    }
+    return {};
+  });
+  const [baseFilters, setBaseFilters] = useState(() => {
+    const cached = BASE_FILTER_CACHE.get(handle);
+    if (cached) return cached;
+    if (initialData?.collData?.filters) {
+      const processed = processFilters(initialData.collData.filters);
+      BASE_FILTER_CACHE.set(handle, processed);
+      return processed;
     }
     return {};
   });
@@ -568,6 +657,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const viewCacheKey = `${handle}|${searchParams.toString()}|${limit}|${storeOrderParam}`;
   const cachedView = ORDERED_VIEW_CACHE.get(viewCacheKey);
 
+  // The SSG payload is the WHOLE collection (page.js sends no filters), so it is
+  // only a valid first paint for an unfiltered URL. On a filtered one it is the
+  // wrong answer to the question the URL asked — see urlHasActiveFilters above.
+  // A cached view always wins: that one was fetched for this exact URL.
+  const ssgIsStale = !cachedView && urlHasActiveFilters(searchParams, baseFilters);
+
   // True only in the narrow window this component cares about: the shopper
   // already has a saved pincode (so their grid WILL be reordered by store
   // proximity) but this tab has not resolved it into a store ranking yet, and
@@ -581,20 +676,22 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   // existing fetch effect and its own SWR/reshuffle-avoidance logic.
   const awaitingPincodeOrder = pincode.length === 6 && !storesReady && !cachedView;
 
-  const [products, setProducts] = useState(() =>
-    cachedView
-      ? cachedView.products
-      : awaitingPincodeOrder
-        ? []
-        : (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'))
-  );
+  const [products, setProducts] = useState(() => {
+    if (cachedView) return cachedView.products;
+    if (ssgIsStale || awaitingPincodeOrder) return [];
+    return (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
+  });
   const [pagination, setPagination] = useState(() =>
-    cachedView?.pagination || initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null }
+    cachedView?.pagination ||
+    (ssgIsStale ? { hasNextPage: false, endCursor: null } : initialData?.collData?.pageInfo) ||
+    { hasNextPage: false, endCursor: null }
   );
-  const [productsLoading, setProductsLoading] = useState((!initialData && !cachedView) || awaitingPincodeOrder);
+  const [productsLoading, setProductsLoading] = useState(
+    ((!initialData || ssgIsStale) && !cachedView) || awaitingPincodeOrder
+  );
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(() =>
-    cachedView?.totalCount || initialData?.collData?.totalProducts || 0
+    cachedView?.totalCount || (ssgIsStale ? 0 : initialData?.collData?.totalProducts) || 0
   );
 
   // Safety valve: if the pincode -> store ranking lookup is unusually slow (flaky
@@ -604,7 +701,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   // when no wait is applied — and let the store-ordered fetch swap it in silently
   // whenever it does land. Mirrors the backend's own STORE_ORDER_BUDGET_MS
   // fallback: past the budget, serve the un-personalised order rather than block.
-  const awaitingPincodeOrderAtMount = useRef(awaitingPincodeOrder).current;
+  //
+  // Never paints a stale SSG payload though: on a filtered URL the whole
+  // collection is the wrong answer (see ssgIsStale), so there the skeletons stay
+  // until the real fetch settles.
+  const awaitingPincodeOrderAtMount = useRef(awaitingPincodeOrder && !ssgIsStale).current;
   useEffect(() => {
     if (!awaitingPincodeOrderAtMount) return;
     const timer = setTimeout(() => {
@@ -618,10 +719,12 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return () => clearTimeout(timer);
   }, [awaitingPincodeOrderAtMount, initialData]);
 
-  // Set initial active mobile group if needed
+  // Set initial active mobile group if needed. Seeded from the base list so the
+  // sheet always opens on the same group, whatever the current selection is.
   useEffect(() => {
-    if (initialData && Object.keys(availableFilters).length > 0 && !activeMobileGroup) {
-      setActiveMobileGroup(Object.keys(availableFilters)[0]);
+    const seed = Object.keys(baseFilters).length > 0 ? baseFilters : availableFilters;
+    if (initialData && Object.keys(seed).length > 0 && !activeMobileGroup) {
+      setActiveMobileGroup(Object.keys(seed)[0]);
     }
   }, []);
 
@@ -635,16 +738,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const [trueMinPrice, setTrueMinPrice] = useState(null);
   const [trueMaxPrice, setTrueMaxPrice] = useState(null);
 
-  // Two extra collection requests just to learn the slider's min/max. They used
-  // to fire at mount, in parallel with the critical products request, competing
-  // with it for the same backend/Shopify budget. Nothing on screen needs them
-  // until the shopper opens the price filter, so they now wait for the grid to
-  // paint. Runs once per collection handle.
-  const trueBoundsHandleRef = useRef(null);
+  // These two only refine the price SLIDER's end stops — availableFilters.Price
+  // already carries usable bounds — yet they used to fire on every mount and take
+  // ~5s each on the live backend, holding two of the browser's six connections to
+  // that host while the product fetch queued behind them. Deferred until the shopper
+  // actually opens Price, which is the only moment the value is visible.
+  const priceBoundsWanted = !!expandedFilters?.Price || activeMobileGroup === "Price";
+
   useEffect(() => {
-    if (productsLoading) return;
-    if (trueBoundsHandleRef.current === handle) return;
-    trueBoundsHandleRef.current = handle;
+    if (!priceBoundsWanted) return;
     let isMounted = true;
     async function fetchTrueBounds() {
       try {
@@ -669,7 +771,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     }
     fetchTrueBounds();
     return () => { isMounted = false; };
-  }, [handle, productsLoading]);
+  }, [handle, priceBoundsWanted]);
 
   const [absolutePrice, setAbsolutePrice] = useState({ min: null, max: null });
 
@@ -713,22 +815,98 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     });
   }, [searchParams]);
 
+  const isOptionSelected = useCallback(
+    (groupKey, opt) => optimisticParams.getAll(opt.urlKey || groupKey).includes(String(opt.value)),
+    [optimisticParams]
+  );
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // What the sidebar, the chips and the filter count all read.
+  //
+  // Membership and ORDER come from `baseFilters`, so applying one filter can no
+  // longer re-sort the groups it did not touch — the rows a shopper is aiming at
+  // stay where they were. Counts come from `availableFilters`, so they still
+  // narrow live.
+  //
+  // A group is rendered only while its options are reachable: anything the current
+  // selection has driven to zero drops out, EXCEPT an option that is itself
+  // selected — that one always stays, otherwise the shopper is left with a filter
+  // that is applied but has no checkbox and no chip to switch it off.
+  // ───────────────────────────────────────────────────────────────────────────
+  const displayFilters = useMemo(() => {
+    const base = Object.keys(baseFilters).length > 0 ? baseFilters : availableFilters;
+    const out = {};
+
+    Object.entries(base).forEach(([groupKey, options]) => {
+      if (groupKey === "Price") {
+        out.Price = availableFilters.Price ?? options;
+        return;
+      }
+      if (!Array.isArray(options)) return;
+
+      // Absent group = this response carried no facet for it, so treat every option
+      // as unreachable rather than silently keeping stale counts.
+      const narrowed = Array.isArray(availableFilters[groupKey]) ? availableFilters[groupKey] : null;
+      const liveCounts = new Map();
+      if (narrowed) narrowed.forEach((o) => liveCounts.set(String(o.value), o.count || 0));
+
+      const rows = options
+        .map((opt) => {
+          const isChecked = isOptionSelected(groupKey, opt);
+          // Shopify already reports the right number for a checked row. Inside a group
+          // that has a selection it counts as if only THIS value were ticked, narrowed by
+          // every OTHER group — the convention for an OR group, which this is (Chembur 8 +
+          // Malad 10 returns 15 items, the union). Two consequences: the response's count
+          // beats the base count even when the row is checked, because the base one ignores
+          // every other active group (Chembur+18KT shows 52 items; the API says 52, the base
+          // list says 216); and a count above the view total is CORRECT, so capping it is
+          // wrong — that flattened distinct rows onto one number (Chembur+Round gives 5
+          // items with true counts 6/5/6/6/9/7/4, all but one printed as 5).
+          //
+          // The base count survives only as the fallback for a checked option this response
+          // omitted, so its row keeps a number instead of dropping to 0 and being filtered
+          // out below, which would leave an applied filter with no checkbox to switch off.
+          const liveCount = narrowed ? liveCounts.get(String(opt.value)) : (opt.count || 0);
+          const currentCount = liveCount ?? (isChecked ? (opt.count || 0) : 0);
+
+          return {
+            ...opt,
+            count: currentCount,
+          };
+        })
+        .filter((opt) => opt.count > 0 || isOptionSelected(groupKey, opt));
+
+      if (rows.length > 0) out[groupKey] = rows;
+    });
+
+    return out;
+  }, [baseFilters, availableFilters, isOptionSelected]);
+
+  // A group whose every option has been narrowed away is no longer rendered, so the
+  // mobile sheet would show an empty right-hand pane if it was the one open.
+  useEffect(() => {
+    const keys = Object.keys(displayFilters);
+    if (keys.length > 0 && activeMobileGroup && !keys.includes(activeMobileGroup)) {
+      setActiveMobileGroup(keys[0]);
+    }
+  }, [displayFilters, activeMobileGroup]);
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    Object.entries(availableFilters).forEach(([groupKey, options]) => {
+    Object.entries(displayFilters).forEach(([groupKey, options]) => {
       if (groupKey === "Price") {
-        if (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) count++;
+        if (optimisticParams.get("filter.v.price.gte") || optimisticParams.get("filter.v.price.lte")) count++;
       } else if (Array.isArray(options)) {
         options.forEach((opt) => {
-          if (searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))) count++;
+          if (isOptionSelected(groupKey, opt)) count++;
         });
       }
     });
     return count;
-  }, [availableFilters, searchParams]);
+  }, [displayFilters, optimisticParams, isOptionSelected]);
 
   const applyPriceFilter = useCallback((committedValues) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     const minVal = committedValues && Array.isArray(committedValues) ? String(committedValues[0]) : localPriceRange.min;
     const maxVal = committedValues && Array.isArray(committedValues) ? String(committedValues[1]) : localPriceRange.max;
 
@@ -746,22 +924,53 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     });
 
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    setOptimisticParams(params);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToTop();
-  }, [localPriceRange, searchParams, pathname, router]);
+  }, [localPriceRange, optimisticParams, pathname, router]);
+
+  // Live-drag: apply after a short pause so results update while dragging,
+  // not only on release, without firing a fetch on every pixel of movement.
+  const priceDebounceRef = useRef(null);
+
+  const handlePriceDrag = useCallback(([min, max]) => {
+    setLocalPriceRange({ min: String(min), max: String(max) });
+    if (priceDebounceRef.current) clearTimeout(priceDebounceRef.current);
+    priceDebounceRef.current = setTimeout(() => {
+      priceDebounceRef.current = null;
+      applyPriceFilter([min, max]);
+    }, 400);
+  }, [applyPriceFilter]);
+
+  const handlePriceCommit = useCallback((values) => {
+    if (priceDebounceRef.current) {
+      clearTimeout(priceDebounceRef.current);
+      priceDebounceRef.current = null;
+    }
+    applyPriceFilter(values);
+  }, [applyPriceFilter]);
+
+  useEffect(() => () => {
+    if (priceDebounceRef.current) clearTimeout(priceDebounceRef.current);
+  }, []);
 
   const resetPriceFilter = useCallback(() => {
     setLocalPriceRange({ min: "", max: "" });
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     params.delete("filter.v.price.gte");
     params.delete("filter.v.price.lte");
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    setOptimisticParams(params);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToTop();
-  }, [searchParams, pathname, router]);
+  }, [optimisticParams, pathname, router]);
 
   const toggleFilter = (urlKey, value, groupKey, optLabel) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     const currentValues = params.getAll(urlKey);
     const isRemoving = currentValues.includes(value);
     if (isRemoving) {
@@ -779,7 +988,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       });
     }
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    setOptimisticParams(params);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToProductsTop();
   };
 
@@ -834,9 +1046,32 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return filters;
   }, []);
 
+  const prefetchFilter = useCallback((urlKey, value) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const currentValues = params.getAll(urlKey);
+    if (currentValues.includes(value)) return;
+
+    params.append(urlKey, value);
+    params.delete("cursor");
+
+    const sort = params.get("sort") || "manual";
+    const baseSortedData = BASE_FILTER_CACHE.get(handle) || baseFilters || availableFilters;
+    const activeFilters = getActiveFiltersForShopify(params, baseSortedData);
+    const filterParams = activeFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+
+    const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}${storeOrderParam}`;
+
+    if (!PREFETCH_CACHE.has(apiUrl)) {
+      const promise = apiFetch(apiUrl).catch(() => null);
+      PREFETCH_CACHE.set(apiUrl, promise);
+      setTimeout(() => PREFETCH_CACHE.delete(apiUrl), 10000);
+    }
+  }, [searchParams, handle, baseFilters, availableFilters, limit, storeOrderParam, getActiveFiltersForShopify]);
+
   // Initial Fetch & Filter Changes
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     async function fetchData() {
       // A real pincode whose ordering has not resolved yet. Firing now would
       // fetch the un-ordered page, paint it, and then immediately refetch and
@@ -870,22 +1105,21 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       try {
         const sort = searchParams.get("sort") || "manual";
 
-        // 1. Fetch base mappings directly from Shopify GraphQL via /api/collection
-        // This avoids the EXPO proxy at /api/products/filters which returns incompatible Location GIDs
-        //
-        // Only needed when the URL carries a filter to translate. On a plain
-        // landing (the common case, and the store-ordered first paint) it was a
-        // full extra round trip — ~1.5s cold — serialised AHEAD of the products
-        // request, for a mapping that then went unused. The products response
-        // carries its own facets, so nothing else depends on this call.
-        const needsBaseMappings = Array.from(searchParams.keys()).some(
-          (k) => !["sort", "cursor", "limit", "q", "page"].includes(k)
-        );
-        let baseSortedData = {};
-        if (needsBaseMappings) {
-          const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`);
-          baseSortedData = processFilters(baseData.filters || {});
+        // 1. Base mappings. Taken from initialData / the module cache whenever we
+        // already have them, which is the normal case — the collection's facet list
+        // does not depend on the filters, so re-fetching it on every apply only added
+        // a serialised round-trip in front of the products (measured at 2-5s on the
+        // live backend) with nothing new to show for it. The request survives purely
+        // as the cold path: no SSG payload, first visit. It deliberately does NOT use
+        // /api/products/filters, whose Location GIDs are incompatible with the native
+        // Shopify filter inputs.
+        let baseSortedData = BASE_FILTER_CACHE.get(handle);
+        if (!baseSortedData) {
+          const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`, { signal: controller.signal });
           if (cancelled) return;
+          baseSortedData = processFilters(baseData.filters || {});
+          BASE_FILTER_CACHE.set(handle, baseSortedData);
+          setBaseFilters(baseSortedData);
         }
 
         // 2. Map the URL parameters to native Shopify input payloads using the base mappings
@@ -895,14 +1129,40 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         // 3. Fetch products and narrowed filters from Shopify
         const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}${storeOrderParam}`;
 
-        const collData = await apiFetch(apiUrl);
+        let collData;
+        if (PREFETCH_CACHE.has(apiUrl)) {
+          const promise = PREFETCH_CACHE.get(apiUrl);
+          PREFETCH_CACHE.delete(apiUrl);
+          try {
+            collData = await promise;
+          } catch (e) {
+            collData = null;
+          }
+          // prefetchFilter swallows its own failures into null, so a failed
+          // prefetch lands here as a resolved null rather than a rejection —
+          // without this the null falls through to collData.filters and throws.
+          if (!collData) collData = await apiFetch(apiUrl, { signal: controller.signal });
+        } else {
+          collData = await apiFetch(apiUrl, { signal: controller.signal });
+        }
+        
         if (cancelled) return;
 
         // Update UI with narrowed filters
         const narrowedSortedData = processFilters(collData.filters || {});
         setAvailableFilters(narrowedSortedData);
-        if (Object.keys(narrowedSortedData).length > 0 && !activeMobileGroup) {
-          setActiveMobileGroup(Object.keys(narrowedSortedData)[0]);
+        if (activeFilters.length === 0) {
+          BASE_FILTER_CACHE.set(handle, narrowedSortedData);
+          setBaseFilters(narrowedSortedData);
+        }
+        // Seeded from the base list, not the narrowed one, so the mobile sheet's
+        // opening group is the same every time rather than whatever the current
+        // selection happens to leave first.
+        const groupSeed = Object.keys(baseSortedData).length > 0
+          ? Object.keys(baseSortedData)
+          : Object.keys(narrowedSortedData);
+        if (groupSeed.length > 0 && !activeMobileGroup) {
+          setActiveMobileGroup(groupSeed[0]);
         }
         setFiltersLoading(false);
 
@@ -923,15 +1183,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         });
 
         try {
-          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
+          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`, { signal: controller.signal });
           if (dbData.success) setDbCollection(dbData.collection);
         } catch (e) { }
       } catch (err) {
+        // Ask the signal, not the error: an aborted fetch can surface as a
+        // DOMException, a wrapped Error, or the raw abort reason depending on
+        // the runtime, and name-matching misses the ones that are not "AbortError".
+        if (controller.signal.aborted || err?.name === "AbortError") return;
         console.error("Failed to fetch initial data:", err);
         // The store-ordered first paint starts from an EMPTY grid (see
         // awaitingPincodeOrder). If that fetch fails, fall back to the build-time
-        // order rather than leaving the shopper with nothing.
-        if (!cancelled) {
+        // order rather than leaving the shopper with nothing. Except on a filtered
+        // URL, where that payload is the wrong answer (see ssgIsStale).
+        if (!cancelled && !ssgIsStale) {
           setProducts((prev) =>
             prev.length > 0
               ? prev
@@ -942,17 +1207,39 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         if (!cancelled) setProductsLoading(false);
       }
     }
-    fetchData();
-    return () => { cancelled = true; };
+    fetchData().catch((err) => {
+      const isAbort =
+        err?.name === "AbortError" ||
+        err?.code === 20 ||
+        controller.signal.aborted ||
+        cancelled ||
+        String(err?.message || "").toLowerCase().includes("abort");
+      if (!isAbort) {
+        console.error("Unhandled error in collection fetchData:", err);
+      }
+    });
+    return () => { cancelled = true; controller.abort(); };
   }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
     if (!pagination.hasNextPage || isFetchingNextPage) return;
+    // `pagination` still describes the PREVIOUS view while a filter change is in
+    // flight, so paging here would append a slice of the old result set — or, in
+    // store-order mode where the cursor is an offset, an arbitrary slice of the new
+    // one — on top of products that are about to be replaced wholesale.
+    if (productsLoading) return;
     setIsFetchingNextPage(true);
     try {
       const sort = searchParams.get("sort") || "manual";
-      const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
+      // Mapped against the base facets, exactly as page one was. Using the narrowed
+      // list here dropped any selected option the current response no longer
+      // mentioned, so page two could arrive filtered more loosely than page one and
+      // mix in products the shopper had filtered out.
+      const activeFilters = getActiveFiltersForShopify(
+        searchParams,
+        BASE_FILTER_CACHE.get(handle) || baseFilters || availableFilters
+      );
       const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
 
       // `stores` must be carried on every page, not just the first: it is what
@@ -987,13 +1274,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     } finally {
       setIsFetchingNextPage(false);
     }
-  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify, storeOrderParam, viewCacheKey]);
+  }, [handle, searchParams, pagination, isFetchingNextPage, productsLoading, limit, baseFilters, availableFilters, getActiveFiltersForShopify, storeOrderParam, viewCacheKey]);
 
   // Infinite scroll trigger
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && pagination.hasNextPage && !isFetchingNextPage) {
+        if (entries[0].isIntersecting && pagination.hasNextPage && !isFetchingNextPage && !productsLoading) {
           fetchNextPage();
         }
       },
@@ -1004,7 +1291,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     );
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
-  }, [pagination.hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [pagination.hasNextPage, isFetchingNextPage, productsLoading, fetchNextPage]);
 
   // Track product impressions when products are loaded
   const impressionSentRef = useRef(false);
@@ -1018,7 +1305,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   }, [products]);
 
   const clearAllFilters = () => {
-    router.push(pathname, { scroll: false });
+    setOptimisticParams(new URLSearchParams());
+    startTransition(() => {
+      router.push(pathname, { scroll: false });
+    });
     scrollToTop();
   };
 
@@ -1027,11 +1317,14 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   };
 
   const handleSort = (value) => {
-    const p = new URLSearchParams(searchParams.toString());
+    const p = new URLSearchParams(optimisticParams.toString());
     if (value === "manual") p.delete("sort");
     else p.set("sort", value);
     p.delete("cursor");
-    router.push(`${pathname}?${p.toString()}`, { scroll: false });
+    setOptimisticParams(p);
+    startTransition(() => {
+      router.push(`${pathname}?${p.toString()}`, { scroll: false });
+    });
     scrollToTop();
     // Fire promoClick datalayer for sort-by
     const sortLabel = SORT_OPTIONS.find((o) => o.value === value)?.label || value;
@@ -1079,7 +1372,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         const banner = inpageBanners[bannerCount];
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
-            <Link prefetch={false} className="cursor-default" href={banner.href} onClick={(e) => e.preventDefault()}>
+            <Link prefetch={false} className="cursor-pointer block w-full h-full" href={banner.href || banner.linkUrl || "#"}>
               <Image
                 loader={shopifyLoader}
                 src={banner.src}
@@ -1190,12 +1483,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         cellCount += 2;
       }
 
-      // Trigger pagination when 10 products are scrolled
-      // For a batch of 25, this is the 11th product (index 10, or length - 15)
-      const isTrigger = pagination.hasNextPage && idx === products.length - 15;
-
       items.push(
-        <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
+        <div key={prod.id || `idx-${idx}`}>
           <ProductCard
             product={selectedColor ? { ...prod, selectedColor } : prod}
             collectionHandle={handle}
@@ -1339,8 +1628,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
           </div>
         </div>
-      ) : STORE_HANDLES.includes(handle) ? (
-        <StoreCollectionBanner collectionHandle={handle} bannerImages={STORE_IMAGES[handle] || []} />
+      ) : storeHandles.includes(handle) ? (
+        <StoreCollectionBanner collectionHandle={handle} storePages={storePages} />
       ) : (() => {
         const stripAlt = topBannerOverride?.alt || displayTitle;
         const stripDesktop = topBannerOverride?.desktopImage || topBannerDefault.desktopImage;
@@ -1404,10 +1693,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
           <div className="sticky top-19 self-start h-fit">
             <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
-              {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
+              {filtersLoading && Object.keys(displayFilters).length === 0 ? <FilterSidebarSkeleton /> : (
                 <div className={`space-y-3 pr-4 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
                   <div className="flex justify-between items-center border-b border-[#CECACA] pb-3"><h3 className="font-figtree font-bold text-black text-xl leading-none tracking-normal">Filters</h3><button onClick={clearAllFilters} className="font-figtree text-xs font-semibold uppercase tracking-wide text-[#696969] hover:text-black transition-colors">Clear All</button></div>
-                  {Object.entries(availableFilters).map(([groupKey, options]) => {
+                  {Object.entries(displayFilters).map(([groupKey, options]) => {
                     const isExpanded = expandedFilters[groupKey] ?? false;
                     if (groupKey === "Price") {
                       return (
@@ -1423,8 +1712,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                                   localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
                                   localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
                                 ]}
-                                onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
-                                onValueCommit={applyPriceFilter}
+                                onValueChange={handlePriceDrag}
+                                onValueCommit={handlePriceCommit}
                               />
                               <div className="text-sm font-semibold text-gray-900 text-center">
                                 ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
@@ -1440,9 +1729,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         {isExpanded && (
                           <div className="space-y-4 mt-2 mb-4 pb-5">
                             {Array.isArray(options) && options.map((opt) => {
-                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
+                              const isChecked = optimisticParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
                               return (
-                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onMouseEnter={() => prefetchFilter(opt.urlKey || groupKey, opt.value)} onPointerDown={() => prefetchFilter(opt.urlKey || groupKey, opt.value)} onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
                                   <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
                                     {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
                                   </span>
@@ -1489,7 +1778,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
           {!isMobile && activeFilterCount > 0 && (
             <div className="flex flex-wrap items-center gap-2.5 mb-4">
-              {Object.entries(availableFilters).map(([groupKey, options]) => (
+              {Object.entries(displayFilters).map(([groupKey, options]) => (
                 <Fragment key={groupKey}>
                   {groupKey === "Price" ? (
                     (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) && (
@@ -1512,7 +1801,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
           )}
 
-          <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
+          <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : gridItems}
           </div>
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
@@ -1924,10 +2213,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </div>
               <div className="flex-1 flex overflow-hidden">
                 <div className="w-[42%] bg-[#FBF3EF] border-r border-[#F0E7E2] overflow-y-auto">
-                  {Object.entries(availableFilters).map(([groupKey]) => {
+                  {Object.entries(displayFilters).map(([groupKey]) => {
                     let count = 0;
                     if (groupKey === "Price") { if (localPriceRange.min || localPriceRange.max) count = 1; }
-                    else { count = availableFilters[groupKey].filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))).length; }
+                    else { count = displayFilters[groupKey].filter(opt => isOptionSelected(groupKey, opt)).length; }
                     const isActive = activeMobileGroup === groupKey;
                     return (
                       <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left pl-5 pr-9 py-4 font-figtree text-[0.8125rem] tracking-normal relative leading-snug transition-colors ${isActive ? "bg-white text-[#5a413f] font-semibold" : "text-gray-500 font-medium active:bg-white/60"}`}>
@@ -1939,7 +2228,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   })}
                 </div>
                 <div className="w-[58%] bg-white overflow-y-auto px-4 py-3">
-                  {activeMobileGroup && availableFilters[activeMobileGroup] && (
+                  {activeMobileGroup && displayFilters[activeMobileGroup] && (
                     <div className="space-y-1 pb-24">
                       {activeMobileGroup === "Price" ? (
                         <div className="space-y-6 py-5 px-1.5">
@@ -1951,8 +2240,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                               localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
                               localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
                             ]}
-                            onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
-                            onValueCommit={applyPriceFilter}
+                            onValueChange={handlePriceDrag}
+                            onValueCommit={handlePriceCommit}
                           />
                           <div className="rounded-xl bg-[#FBF3EF] py-3 px-4 text-center">
                             <span className="font-figtree text-[0.9375rem] font-semibold text-[#5a413f]">
@@ -1961,10 +2250,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                           </div>
                         </div>
                       ) : (
-                        availableFilters[activeMobileGroup].map((option) => {
-                          const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
+                        displayFilters[activeMobileGroup].map((option) => {
+                          const isSelected = optimisticParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
                           return (
-                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
+                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onMouseEnter={() => prefetchFilter(option.urlKey || activeMobileGroup, option.value)} onPointerDown={() => prefetchFilter(option.urlKey || activeMobileGroup, option.value)} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
                               <div className="flex items-center gap-3 min-w-0">
                                 {isSelected ? <div className="w-[19px] h-[19px] shrink-0 bg-[#5a413f] rounded-[5px] flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[19px] h-[19px] shrink-0 border border-gray-300 rounded-[5px] group-hover:border-[#5a413f] transition-colors" />}
                                 <span className={`font-figtree text-sm leading-snug truncate ${isSelected ? "text-[#5a413f] font-semibold" : "text-gray-600"}`}>{option.label}</span>

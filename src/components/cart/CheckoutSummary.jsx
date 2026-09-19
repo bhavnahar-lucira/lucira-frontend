@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
-import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check } from "lucide-react";
+import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check, Info } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
@@ -12,7 +12,7 @@ import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import { formatMetal } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
-import { getEstimatedDispatchDate } from "@/lib/utils";
+import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import { calculateCouponDiscount, getAppliedOfferLabel } from "@/lib/coupons";
 import { pushPromoClick } from "@/lib/gtm";
 import { isFreeGiftVariant } from "@/lib/freeGifts";
@@ -36,6 +36,7 @@ export default function CheckoutSummary({
   const dispatch = useDispatch();
   const { items, totalAmount, appliedCoupon: rawAppliedCoupon, appliedCoupons, removeCoupon, nectorPoints, activeDiscounts, unclaimDiscount } = useCart();
   const user = useSelector((state) => state.user.user);
+  const { getDispatch } = useDispatchInfo();
 
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
@@ -90,12 +91,14 @@ export default function CheckoutSummary({
   // Actually, we'll fetch the one we're eligible for after calculating diamondTotalForOffer.
   // Let's do it after we define eligibleBraceletId.
   // Dispatch Calculation
+  // The whole order ships together, so the summary quotes the slowest line.
   const overallDispatchMessage = useMemo(() => {
     if (!items || items.length === 0) return "";
     const maxLeadTime = items.reduce((max, item) => Math.max(max, Number(item.leadTime || 12)), 0);
     const anyMadeToOrder = items.some(item => !item.inStock && item.variantId !== INSURANCE_VARIANT_ID && !item.isFreeGift);
-    return getEstimatedDispatchDate(!anyMadeToOrder, maxLeadTime);
-  }, [items]);
+    const info = getDispatch({ inStock: !anyMadeToOrder, leadTime: maxLeadTime });
+    return info.enabled ? info.text : "";
+  }, [items, getDispatch]);
 
   // Calculate Diamond Total for Offers (Bracelet)
   const diamondTotalForOffer = useMemo(() => {
@@ -404,6 +407,25 @@ export default function CheckoutSummary({
                           Metal: <span className="text-zinc-800">{formatMetal(item.karat, item.color)}</span>
                         </p>
                         <p className="text-xs text-zinc-500">Quantity: {item.quantity}</p>
+                        {(() => {
+                          const tags = Array.isArray(item.tags) ? item.tags : (typeof item.tags === "string" ? item.tags.split(",").map(t => t.trim()) : []);
+                          const hasTag = tags.some(t => {
+                            const s = String(t).trim().toLowerCase();
+                            return s === "only pendant" || s === "only-pendant" || s === "pendant only";
+                          });
+                          const lowerTitle = (item.title || "").toLowerCase();
+                          const lowerCategory = String(item.category || item.type || "").toLowerCase();
+                          const isPendantItem = hasTag || ((!tags || tags.length === 0) && (lowerTitle.includes("pendant") || lowerCategory.includes("pendant")));
+                          if (!isPendantItem) return null;
+                          return (
+                            <div className="inline-flex items-center gap-1 bg-[#f9f9f9] border border-[#eaeaea] rounded px-1.5 py-0.5 my-1 text-black w-fit max-w-full">
+                              <Info size={11} className="shrink-0 text-black" />
+                              <span className="text-[0.5625rem] font-semibold uppercase tracking-wider text-black leading-tight">
+                                Chain is not included in the purchase
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-2 pt-1">
                         <span className="text-sm font-bold text-zinc-900">₹{(displayPrice).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
@@ -442,12 +464,19 @@ export default function CheckoutSummary({
                     </div>
                   )}
 
-                  <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
-                    <Truck size={14} className="text-black" />
-                    <span className="text-[0.625rem] font-medium text-black tracking-tight">
-                      {getEstimatedDispatchDate(item.inStock, item.leadTime)}
-                    </span>
-                  </div>
+                  {/* Same rule as the cart line: build-your-own is made to order. */}
+                  {(() => {
+                    const lineDispatch = getDispatch({ inStock: item.inStock && !isBYJ, leadTime: item.leadTime });
+                    if (!lineDispatch.enabled || !lineDispatch.text) return null;
+                    return (
+                      <div className="bg-zinc-50 p-2 rounded-md flex items-center gap-2 mt-2">
+                        <Truck size={14} className="text-black" />
+                        <span className="text-[0.625rem] font-medium text-black tracking-tight">
+                          {lineDispatch.text?.replace(/^Orders will be\s*/i, "").replace(/^([a-z])/, (c) => c.toUpperCase())}
+                        </span>
+                      </div>
+                    );
+                  })()}
 
                   {index < displayItems.length - 1 && <div className="border-b border-zinc-50 pt-2" />}
                 </div>

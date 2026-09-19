@@ -12,14 +12,14 @@ import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 
 const CATEGORIES = [
-  { id: 1, name: "Rings", handle: "rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Rings.jpg" },
-  { id: 2, name: "Earrings", handle: "earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Earrings.jpg" },
-  { id: 3, name: "Bracelets", handle: "bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Bracelets.jpg" },
-  { id: 4, name: "Necklaces", handle: "necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Necklaces.jpg" },
-  { id: 5, name: "Nosepins", handle: "nosepins", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Nosepin.jpg" },
-  { id: 6, name: "Mangalsutra", handle: "mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_Mangalsutra.jpg" },
-  { id: 7, name: "Men's Ring", handle: "mens-ring", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensRing.jpg" },
-  { id: 8, name: "Men's Stud", handle: "mens-stud", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Range_MensStud.jpg" },
+  { id: 1, name: "Rings", handle: "rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Rings_cdcd476d-83ad-4bc8-9463-0a13217a051c.jpg?v=1788436552" },
+  { id: 2, name: "Earrings", handle: "earrings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Earrings_15f534ee-2965-489d-bb83-f5293775d792.jpg?v=1788436551" },
+  { id: 3, name: "Bracelets", handle: "bracelets", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Tennis-Bracelet.jpg?v=1788436552" },
+  { id: 4, name: "Necklaces", handle: "necklaces", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Necklaces_c3067ae6-14cc-45c4-9d7b-6a66ae6d5f69.jpg?v=1788436552" },
+  { id: 5, name: "Nosepins", handle: "nosepins", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Nosepins.jpg?v=1788436551" },
+  { id: 6, name: "Mangalsutra", handle: "mangalsutra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mangalsutras.jpg?v=1788436552" },
+  { id: 7, name: "Men's Ring", handle: "mens-rings", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Men_27s-Ring.jpg?v=1788436552" },
+  { id: 8, name: "Men's Stud", handle: "mens-stud", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Men_27s-Stud.jpg?v=1788436552" },
 ];
 
 export default function CategorySlider() {
@@ -54,7 +54,7 @@ export default function CategorySlider() {
               el: `.${paginationElClass}`,
               clickable: true,
               renderBullet: (index, className) => {
-                return `<span class="${className} w-2! h-2! rounded-full! bg-gray-300! transition-all duration-300 [&.swiper-pagination-bullet-active]:bg-black! [&.swiper-pagination-bullet-active]:w-6! md:[&.swiper-pagination-bullet-active]:w-6!"></span>`;
+                return `<span class="${className} w-2! h-2! rounded-full! bg-gray-300! transition-all duration-300 [&.swiper-pagination-bullet-active]:bg-black! [&.swiper-pagination-bullet-active]:w-6! md:[&.swiper-pagination-bullet-active]:w-6! cursor-pointer"></span>`;
               },
             }}
             breakpoints={{
@@ -69,7 +69,7 @@ export default function CategorySlider() {
                 <Link
                   href={`/collections/${category.handle}`}
                   prefetch={false}
-                  className="group block relative aspect-4/5 bg-[#EFEFEF] overflow-hidden rounded-sm"
+                  className="group block relative aspect-4/5 bg-gray-50 overflow-hidden rounded-md"
                 >
                   {/* Category Image */}
                   <div className="w-full h-full transition-transform duration-700 group-hover:scale-110">
@@ -77,20 +77,23 @@ export default function CategorySlider() {
                       src={category.image}
                       alt={category.name}
                       fill
-                      className="object-cover mix-blend-multiply opacity-90"
+                      className="object-cover"
                     />
                   </div>
 
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
+
                   {/* Category Info Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 px-4 pb-5 flex justify-between items-center bg-linear-to-t from-black/5 to-transparent">
+                  <div className="absolute bottom-0 left-0 right-0 px-4 pb-5 flex justify-between items-center text-white">
                     <span className="text-[22px] font-semibold text-white">
                       {category.name}
                     </span>
 
-                    <div className="w-8 h-8 rounded-full border border-white flex items-center justify-center transition-all duration-300 group-hover:bg-white">
+                    <div className="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center transition-all duration-300 group-hover:bg-white group-hover:text-black">
                       <ArrowRight
                         size={18}
-                        className="text-white group-hover:text-black transition-colors duration-300"
+                        className="transition-colors duration-300"
                       />
                     </div>
                   </div>
@@ -106,10 +109,10 @@ export default function CategorySlider() {
             
             {/* Arrows on the right */}
             <div className="flex items-center gap-4">
-              <button className={`${prevElClass} w-9 h-9 md:w-12 md:h-12 rounded-full border border-black flex items-center justify-center hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed`}>
+              <button className={`${prevElClass} w-9 h-9 md:w-12 md:h-12 rounded-full border border-black flex items-center justify-center hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer`}>
                 <ChevronLeft size={24} />
               </button>
-              <button className={`${nextElClass} w-9 h-9 md:w-12 md:h-12 rounded-full border border-black flex items-center justify-center hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed`}>
+              <button className={`${nextElClass} w-9 h-9 md:w-12 md:h-12 rounded-full border border-black flex items-center justify-center hover:bg-black hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer`}>
                 <ChevronRight size={24} />
               </button>
             </div>
@@ -120,6 +123,7 @@ export default function CategorySlider() {
       <style dangerouslySetInnerHTML={{ __html: `
         .${paginationElClass} .swiper-pagination-bullet {
           margin: 0 !important;
+          cursor: pointer;
         }
       `}} />
     </section>

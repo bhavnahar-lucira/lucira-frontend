@@ -1,6 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Geo layer for the store registry.
 //
+// A new store does NOT need an entry here. `resolveCoords` prefers whatever
+// /api/stores returns, `isStoreVisitable` defaults unknown handles to true, and
+// `storeShortName` falls back to the name it is given — so a store added in
+// Dashboard → Stores is ranked correctly as soon as its Shopify location has
+// coordinates. This table only backfills the locations whose Shopify latitude/
+// longitude metafields are blank.
+//
 // PURELY ADDITIVE to src/data/stores.js — nothing in that file changes. This
 // adds the two things the pincode module needs on top of the existing store
 // identity: a coordinate for every store, and the answer to "is this a place a

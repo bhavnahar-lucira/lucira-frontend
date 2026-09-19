@@ -28,7 +28,10 @@ import { Loader2 } from "lucide-react";
 export default function ReferralPage() {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
-  const referralLink = useSelector((state) => state.user.referralLink);
+  const rawReferralLink = useSelector((state) => state.user.referralLink);
+  const referralLink = rawReferralLink
+    ? rawReferralLink.replace(/https?:\/\/luciraonline\.myshopify\.com\/?/gi, "https://www.lucirajewelry.com/")
+    : "";
   const loadingLink = useSelector((state) => state.user.referralLoading);
 
   const [stats, setStats] = useState({
@@ -40,10 +43,10 @@ export default function ReferralPage() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
-    if (user?.id && !referralLink) {
+    if (user?.id && (!rawReferralLink || rawReferralLink.includes("luciraonline.myshopify.com"))) {
       fetchReferralLink();
     }
-  }, [user, referralLink, dispatch]);
+  }, [user, rawReferralLink, dispatch]);
 
   useEffect(() => {
     if (user?.id) {
@@ -59,7 +62,11 @@ export default function ReferralPage() {
         body: JSON.stringify({ customerId: user.id }),
       });
       if (data.referralLink) {
-        dispatch(setReferralLink(data.referralLink));
+        const cleanLink = data.referralLink.replace(
+          /https?:\/\/luciraonline\.myshopify\.com\/?/gi,
+          "https://www.lucirajewelry.com/"
+        );
+        dispatch(setReferralLink(cleanLink));
       }
     } catch (error) {
       dispatch(setReferralError("Failed loading referral link"));

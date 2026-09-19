@@ -33,6 +33,7 @@ import BestsellerSection from "@/components/home/homeCollection/BestsellerSectio
 import GemstoneSection from "@/components/home/homeCollection/GemstoneSection";
 import ExploreCollectionSection from "@/components/home/homeCollection/ExploreCollectionSection";
 import MobileCategorySlider from "@/components/home/MobileCategorySlider";
+import { getStorePages } from "@/lib/storeContent";
 
 export const metadata = {
   alternates: {
@@ -45,6 +46,9 @@ export default async function Home() {
     ? process.env.NEXT_PUBLIC_BACKEND_URL
     : "http://127.0.0.1:8080";
   const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+
+  // Dashboard-managed store content for the "Visit Lucira Store Near You" section.
+  const storePages = await getStorePages();
 
   let bestsellersInitial = null;
   let gemstoneInitial = null;
@@ -106,7 +110,7 @@ export default async function Home() {
 
       <BestsellerSection initialData={bestsellersInitial} />
 
-      <StoreLocatorSection />
+      <StoreLocatorSection storePages={storePages} surface="homepage" />
 
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <CuratedLooks />
@@ -144,7 +148,7 @@ export default async function Home() {
       <ExploreCollectionSection initialData={exploreInitial} />
 
       {/* <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <StoreLocatorSection />
+        <StoreLocatorSection storePages={storePages} surface="homepage" />
       </Suspense> */}
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <CustomerReview />

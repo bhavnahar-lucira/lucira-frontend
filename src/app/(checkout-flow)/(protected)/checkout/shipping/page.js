@@ -43,7 +43,7 @@ import { usePincodeLookup } from "@/hooks/checkout/usePincodeLookup";
 import { usePincodeDeliverability } from "@/hooks/checkout/usePincodeDeliverability";
 import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
 import { useStorePickup } from "@/hooks/checkout/useStorePickup";
-import { getEstimatedDispatchDate } from "@/lib/utils";
+import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 
@@ -124,6 +124,7 @@ const SummarySkeleton = () => (
 export default function ShippingPage() {
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { getDispatch, enabled: dispatchEnabled } = useDispatchInfo();
   const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
   const { items: cartItems, totalAmount, appliedCoupon, nectorPoints } = useCart();
   const searchParams = useSearchParams();
@@ -749,13 +750,17 @@ export default function ShippingPage() {
             <div className="hidden lg:block absolute inset-y-0 left-0 w-screen border-l border-zinc-100 z-0" />
             <div className="relative z-10 py-6 px-4 lg:px-0 lg:py-10 lg:pl-12 lg:pr-12 mb-0 lg:bg-transparent min-h-full bg-white">
               <div className="lg:sticky lg:top-4 space-y-6">
-                {deliveryMethod === "ship" && hasSavedAddresses && (
+                {/* Whole block is the dispatch estimate, so the dashboard's
+                    master toggle takes it away rather than emptying it. */}
+                {deliveryMethod === "ship" && hasSavedAddresses && dispatchEnabled && (
                   <div className="pt-6 border-t border-zinc-200 lg:border-none lg:pt-0">
                     <h3 className="text-[14px] lg:text-[0.875rem] font-figtree font-medium lg:font-bold text-black uppercase tracking-normal lg:tracking-wide leading-none lg:leading-normal mb-4">DELIVERY ESTIMATES</h3>
                     <div className="space-y-4">
                       {cartItems.filter(i => i.variantId !== INSURANCE_VARIANT_ID && !i.isFreeGift && !i.properties?.['_byj_parent'] && !(i.properties?.['_byj_group_id'] && !i.properties?.['_byj_preview'])).map((item, idx) => {
                         const isBYJ = item.properties?.['_byj_preview'];
                         const displayImage = isBYJ ? item.properties['_byj_preview'] : item.image;
+                        // Same rule as the cart line: build-your-own is made to order.
+                        const lineDispatch = getDispatch({ inStock: item.inStock && !isBYJ, leadTime: item.leadTime });
                         return (
                           <div key={idx} className="flex gap-4 items-center">
                             <div className="w-20 h-20 bg-[#FAFAFA] rounded-md shrink-0 p-1 flex items-center justify-center">
@@ -764,9 +769,12 @@ export default function ShippingPage() {
                               )}
                             </div>
                             <div>
-                              <p className="text-[0.8125rem] lg:text-[0.875rem] font-figtree text-black mb-1">Estimated Dispatch by</p>
+                              {/* Wording used to be hardcoded here with the
+                                  prefix stripped off the value; both halves now
+                                  come from the dashboard instead. */}
+                              <p className="text-[0.8125rem] lg:text-[0.875rem] font-figtree text-black mb-1">{lineDispatch.label}</p>
                               <p className="text-[14px] lg:text-[1rem] font-figtree font-semibold leading-none lg:leading-normal tracking-normal text-black align-middle lg:align-baseline">
-                                {getEstimatedDispatchDate(item.inStock, item.leadTime).replace(/Estimated dispatch by /i, "")}
+                                {lineDispatch.text?.replace(/^Orders will be\s*/i, "").replace(/^([a-z])/, (c) => c.toUpperCase())}
                               </p>
                             </div>
                           </div>

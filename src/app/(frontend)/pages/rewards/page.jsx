@@ -121,13 +121,10 @@ export default function RewardsPage() {
                 }
             );
             if (data.referralLink) {
-                let link = data.referralLink;
-                try {
-                    const url = new URL(link);
-                    link = window.location.origin + url.pathname + url.search + url.hash;
-                } catch (e) {
-                    link = link.replace('https://luciraonline.myshopify.com', window.location.origin);
-                }
+                let link = data.referralLink.replace(
+                    /https?:\/\/luciraonline\.myshopify\.com\/?/gi,
+                    "https://www.lucirajewelry.com/"
+                );
                 dispatch(
                     setReferralLink(link)
                 );

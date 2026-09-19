@@ -28,6 +28,8 @@ import CustomerReviews from "@/components/product/CustomerReviews";
 import FAQSection from "@/components/product/FAQSection";
 import DiamondComparison from "@/components/product/DiamondComparison";
 import { FindLuciraStore } from "@/components/product/FindLuciraStore";
+import { asStorePages, storeByHandle } from "@/lib/storeContent";
+import { handleFromStoreName } from "@/data/stores";
 const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { suspense: true });
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
@@ -48,7 +50,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
-import { getEstimatedDispatchDate } from "@/lib/utils";
+import { cn, formatDispatchMessage, getShippingDateValue } from "@/lib/utils";
+import { useDispatchInfo } from "@/hooks/useDispatchInfo";
+import DispatchTooltip from "@/components/common/DispatchTooltip";
 import { formatSizeLabel } from "@/lib/metal";
 import {
   Drawer,
@@ -166,28 +170,90 @@ function getCookieValue(name) {
   return value ? decodeURIComponent(value.split("=").slice(1).join("=")) : "";
 }
 
+let activeScrollRaf = null;
+let activeCancelCleanup = null;
+
 const handleSafeScroll = (elementRef) => {
-  if (!elementRef.current) return;
-  const isDesktop = window.innerWidth >= 768;
-  const bodyRect = document.body.getBoundingClientRect().top;
-  const elementRect = elementRef.current.getBoundingClientRect().top;
-  const absoluteElementTop = elementRect - bodyRect;
-  const offset = isDesktop ? 80 : 20;
-  const targetPosition = absoluteElementTop - offset;
+  const el = elementRef?.current;
+  if (!el) return;
 
-  window.scrollTo({
-    top: targetPosition,
-    behavior: "smooth",
-  });
-
-  if (isDesktop) {
-    setTimeout(() => {
-      window.scrollTo({
-        top: targetPosition,
-        behavior: "smooth",
-      });
-    }, 300);
+  if (activeCancelCleanup) {
+    activeCancelCleanup();
   }
+  if (activeScrollRaf) {
+    cancelAnimationFrame(activeScrollRaf);
+    activeScrollRaf = null;
+  }
+
+  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+  let offset = 80;
+
+  if (!isDesktop) {
+    const header = document.querySelector("header");
+    const subHeader = document.getElementById("pdp-sub-header");
+
+    const headerBottom = header
+      ? (window.scrollY > 40 ? header.getBoundingClientRect().bottom : Math.max(56, header.offsetHeight - 40))
+      : 64;
+
+    const subHeaderHeight = subHeader?.offsetHeight || 48;
+    const scrollPadding = 28;
+    offset = headerBottom + subHeaderHeight + scrollPadding;
+  } else {
+    // On Desktop, once scrolled past 120px, the header collapses to the compact sticky Navbar (~50px).
+    // Using a fixed 80px (56px navbar + 24px breathing room) avoids computing against the 186px expanded header.
+    offset = 80;
+  }
+
+  const startY = window.scrollY;
+  const getTargetY = () => Math.max(0, el.getBoundingClientRect().top + window.scrollY - offset);
+  let targetY = getTargetY();
+
+  if (Math.abs(targetY - startY) < 5) return;
+
+  const duration = Math.min(800, Math.max(400, Math.abs(targetY - startY) * 0.45));
+  const startTime = performance.now();
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+  let isCancelled = false;
+  const cancelEvents = ["wheel", "touchmove"];
+  const onCancel = () => {
+    isCancelled = true;
+    cleanup();
+  };
+  const cleanup = () => {
+    cancelEvents.forEach((ev) => window.removeEventListener(ev, onCancel));
+    if (activeCancelCleanup === cleanup) activeCancelCleanup = null;
+    if (activeScrollRaf) {
+      cancelAnimationFrame(activeScrollRaf);
+      activeScrollRaf = null;
+    }
+  };
+  activeCancelCleanup = cleanup;
+  cancelEvents.forEach((ev) => window.addEventListener(ev, onCancel, { passive: true }));
+
+  const step = (now) => {
+    if (isCancelled) return;
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+
+    // Dynamically adapt to layout shifts / header collapse as the page scrolls
+    if (progress > 0.4) {
+      targetY = getTargetY();
+    }
+
+    const currentY = startY + (targetY - startY) * easeOutCubic(progress);
+    window.scrollTo(0, currentY);
+
+    if (progress < 1) {
+      activeScrollRaf = requestAnimationFrame(step);
+    } else {
+      window.scrollTo(0, getTargetY());
+      cleanup();
+    }
+  };
+
+  activeScrollRaf = requestAnimationFrame(step);
 };
 
 // Force en-IN formatting to be consistent across environments
@@ -232,16 +298,25 @@ const getColorSpecificImage = (product, colorName) => {
   });
 };
 
+const standardizeKarat = (purity) => {
+  if (!purity) return "14KT";
+  const mp = String(purity).replace(/\s+/g, "").toLowerCase();
+  if (mp === "pt950" || mp === "plt" || mp === "platinum") return "PLT";
+  const km = mp.match(/^(\d+)(k|kt|ct)$/);
+  if (km) return `${km[1]}KT`;
+  return purity;
+};
+
 const getVariantSelection = (variant) => {
   if (variant?.metafields?.metal_purity && variant?.metafields?.metal_color) {
     return {
-      karat: variant.metafields.metal_purity,
+      karat: standardizeKarat(variant.metafields.metal_purity),
       color: variant.metafields.metal_color,
     };
   }
 
   const fallback = {
-    karat: variant?.metafields?.metal_purity || "14KT",
+    karat: standardizeKarat(variant?.metafields?.metal_purity),
     color: "Yellow Gold",
   };
 
@@ -258,7 +333,7 @@ const getVariantSelection = (variant) => {
   }
 
   return {
-    karat: parts[0] || fallback.karat,
+    karat: standardizeKarat(parts[0]) || fallback.karat,
     color: parts.slice(1).join(" ") || fallback.color,
   };
 };
@@ -293,6 +368,9 @@ export default function ProductPageClient({
   product,
   complementaryProducts: initialComplementaryProducts = [],
   matchingProducts: initialMatchingProducts = [],
+  // Dashboard-managed store content for the "Visit Lucira Store Near You"
+  // section below the product. Falls back to the baked-in defaults when absent.
+  storePages = null,
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -308,6 +386,8 @@ export default function ProductPageClient({
 
   const user = useSelector(selectUser);
   const isMobile = useMediaQuery("(max-width: 1023px)");
+  // Dispatch copy, cutoff and countdown all come from the dashboard's Dispatch Settings.
+  const { config: dispatchConfig, getDispatch } = useDispatchInfo();
   const wishlistItems = useSelector((state) => state.wishlist.items);
   const guestWishlistItems = useSelector((state) => state.wishlist.guestItems);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -318,6 +398,11 @@ export default function ProductPageClient({
 
   useEffect(() => {
     setIsMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    // Force scroll to top synchronously before paint to avoid visual jumping on iOS
+    window.scrollTo(0, 0);
   }, []);
 
   const mainAtcRef = useRef(null);
@@ -760,29 +845,7 @@ export default function ProductPageClient({
     message: "",
     coords: null
   });
-
-  useEffect(() => {
-    if (
-      globalPincode &&
-      !localPincode
-    ) {
-      setLocalPincode(globalPincode);
-    }
-  }, [globalPincode]);
-
-  useEffect(() => {
-    const savedPincode = String(
-      getCookieValue(USER_PINCODE_COOKIE) || ""
-    )
-      .replace(/\D/g, "")
-      .slice(0, 6);
-
-    if (savedPincode) {
-      setLocalPincode(savedPincode);
-
-      dispatch(setPincode(savedPincode));
-    }
-  }, [dispatch]);
+  const checkedPincodeRef = useRef("");
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -796,12 +859,16 @@ export default function ProductPageClient({
     fetchStores();
   }, []);
 
+  // Plain-date wording only (allowTimer: false). This feeds the pincode result,
+  // the analytics payload and Redux, none of which can re-render a ticking
+  // countdown — and a per-second identity change here would restart the
+  // dispatch-message effect below every tick.
   const calculateDispatchDate = useCallback(() => {
     // 1. Check if product is in stock or made to order
     const isInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
     const leadTime = product.productMetafields?.lead_time;
-    return getEstimatedDispatchDate(isInStock, leadTime);
-  }, [activeVariant, product.productMetafields]);
+    return formatDispatchMessage(dispatchConfig, { inStock: isInStock, leadTime, allowTimer: false }).text;
+  }, [activeVariant, product.productMetafields, dispatchConfig]);
 
   const handlePincodeCheck = useCallback(async (val, isAutomatic = false) => {
     // If val is a string (like from useEffect), use it. 
@@ -811,10 +878,12 @@ export default function ProductPageClient({
     ).trim();
 
     if (pincodeToCheck.length !== 6) {
-      if (pincodeToCheck) toast.error("Please enter a valid 6-digit pincode");
+      if (pincodeToCheck && !isAutomatic) toast.error("Please enter a valid 6-digit pincode");
       return;
     }
 
+    checkedPincodeRef.current = pincodeToCheck;
+    setLocalPincode(pincodeToCheck);
     setCheckingPincode(true);
     setDeliveryInfo({ status: "loading", message: "Checking..." });
 
@@ -855,14 +924,15 @@ export default function ProductPageClient({
     } catch (err) {
       console.error("Pincode check error:", err);
       setDeliveryInfo({ status: "idle", message: "" });
-      // Don't show toast on initial mount load
-      if (typeof val !== 'string') toast.error("Error checking pincode. Please try again.");
+      // Don't show toast on initial mount load or automatic checks
+      if (typeof val !== 'string' && !isAutomatic) toast.error("Error checking pincode. Please try again.");
     } finally {
       setCheckingPincode(false);
     }
   }, [localPincode, calculateDispatchDate, dispatch]);
 
   const resetPincodeState = useCallback(() => {
+    checkedPincodeRef.current = "";
     setLocalPincode("");
     setConfirmedPincode("");
     setDeliveryInfo({ status: "idle", message: "", coords: null });
@@ -890,6 +960,7 @@ export default function ProductPageClient({
 
           setLocalPincode(detectedPincode);
           dispatch(setPincode(detectedPincode));
+          checkedPincodeRef.current = detectedPincode;
 
           // GTM tracking — mirrors the Shopify "Locate Me Clicked" promoClick
           // event fired on a successful reverse-geocode lookup.
@@ -936,32 +1007,44 @@ export default function ProductPageClient({
     );
   }, [dispatch, handlePincodeCheck]);
 
-  // Initial check for persisted pincode - ONLY ON MOUNT
+  // Auto-check persisted or initial pincode (from cookie or Redux store)
   useEffect(() => {
-    if (globalPincode && globalPincode.length === 6) {
-      handlePincodeCheck(globalPincode, true);
-    }
-    // We only want this to run once when the page loads
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const savedPincode = String(
+      getCookieValue(USER_PINCODE_COOKIE) || ""
+    )
+      .replace(/\D/g, "")
+      .slice(0, 6);
 
+    const autoPincode = savedPincode.length === 6
+      ? savedPincode
+      : (globalPincode && String(globalPincode).replace(/\D/g, "").slice(0, 6));
+
+    if (autoPincode && autoPincode.length === 6) {
+      setLocalPincode(autoPincode);
+      dispatch(setPincode(autoPincode));
+      if (checkedPincodeRef.current !== autoPincode) {
+        checkedPincodeRef.current = autoPincode;
+        handlePincodeCheck(autoPincode, true);
+      }
+    }
+  }, [dispatch, globalPincode, handlePincodeCheck]);
+
+  // Listen for live broadcast updates (e.g. Geolocation in VisitorTracking or header pincode changes)
   useEffect(() => {
-    const applyPincode = (value) => {
-      const cookiePincode = String(value || "")
+    const handleUserPincode = (event) => {
+      const eventPincode = String(event.detail?.pincode || "")
         .replace(/\D/g, "")
         .slice(0, 6);
 
-      if (cookiePincode === localPincode) return;
-
-      setLocalPincode(cookiePincode);
-
-      if (cookiePincode.length === 6) {
-        handlePincodeCheck(cookiePincode);
+      if (eventPincode.length === 6) {
+        setLocalPincode(eventPincode);
+        if (checkedPincodeRef.current !== eventPincode) {
+          checkedPincodeRef.current = eventPincode;
+          handlePincodeCheck(eventPincode, true);
+        }
+      } else if (!eventPincode) {
+        resetPincodeState();
       }
-    };
-
-    const handleUserPincode = (event) => {
-      applyPincode(event.detail?.pincode);
     };
 
     window.addEventListener(
@@ -974,7 +1057,7 @@ export default function ProductPageClient({
         "lucira:user-pincode",
         handleUserPincode
       );
-  }, [handlePincodeCheck, localPincode]);
+  }, [handlePincodeCheck, resetPincodeState]);
 
   // Update dispatch message when variant changes (size/color)
   useEffect(() => {
@@ -1021,6 +1104,8 @@ export default function ProductPageClient({
     }).map(s => s.shopifyId);
 
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
+    const { stores: configuredStores = [] } = asStorePages(storePages);
+
     const storesWithData = allStores.map(store => {
       let distance = null;
       if (deliveryInfo.coords && (store.latitude || store.lat) && (store.longitude || store.lng)) {
@@ -1031,8 +1116,25 @@ export default function ProductPageClient({
           store.longitude || store.lng
         );
       }
+
+      const handle = store.handle || handleFromStoreName(store.name);
+      const storeConfig =
+        configuredStores.find(
+          (s) =>
+            (store.shopifyId && s.shopifyLocationId && (s.shopifyLocationId === store.shopifyId || store.shopifyId.includes(s.shopifyLocationId))) ||
+            (handle && s.handle === handle) ||
+            (s.city && (store.city || "").toLowerCase().includes(s.city.toLowerCase()))
+        ) || storeByHandle(storePages, handle);
+
       return {
         ...store,
+        handle: handle || storeConfig?.handle,
+        displayName: storeConfig?.name || (getStoreDisplayName(store.name) === "Head Office" ? "Head Office" : `${getStoreDisplayName(store.name)} Lucira Store`),
+        addressFormatted: storeConfig?.address || [store.address1 || store.address, store.city, store.province, store.zip].filter(Boolean).join(", "),
+        phone: storeConfig?.phone || store.phone,
+        mapLink: storeConfig?.links?.map || storeConfig?.links?.directions || store.mapLink,
+        image: storeConfig?.images?.homepage || storeConfig?.images?.locator || storeConfig?.images?.collection?.[0] || store.image,
+        storeConfig,
         distance,
         isInStock: stockStoreIds.includes(store.shopifyId)
       };
@@ -1064,7 +1166,7 @@ export default function ProductPageClient({
       nearestStore: storesWithData.length > 0 ? storesWithData[0] : null,
       availableStoreCount: stockStoreIds.length
     };
-  }, [allStores, activeVariant, deliveryInfo.coords]);
+  }, [allStores, activeVariant, deliveryInfo.coords, storePages]);
 
   const rawTags = product.tags || [];
   const tags = Array.isArray(rawTags) ? rawTags : (typeof rawTags === 'string' ? rawTags.split(',').map(t => t.trim()) : []);
@@ -1116,6 +1218,51 @@ export default function ProductPageClient({
     ? deliveryInfo.message
     : defaultDispatchMessage;
   const leadDays = parseInt(product?.productMetafields?.lead_time) || 12;
+
+  // The in-stock / made-to-order line under the size picker. Read live (not via
+  // calculateDispatchDate) so a configured countdown ticks; `isCentralInStock`
+  // drives it so the coloured branch and the wording can never disagree.
+  const dispatchLine = getDispatch({
+    inStock: isCentralInStock,
+    leadTime: product?.productMetafields?.lead_time,
+  });
+
+  const renderDispatchBanner = () => {
+    return isCentralInStock ? (
+      <div className="bg-[#ECF7F2] border border-[#189351] text-black p-2 lg:px-4 lg:py-3 flex items-center justify-between gap-2.5 rounded text-[0.85rem] lg:text-base">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-2.5 h-2.5 bg-[#189351] rounded-full shrink-0"></span>
+          <span className="font-semibold text-black" style={{ fontWeight: 500 }}>
+            {/* Stock status always shows; the estimate/countdown is
+                what the dashboard's master toggle hides. */}
+            {dispatchLine.enabled && dispatchLine.pdpHeadline ? (
+              dispatchLine.isWeekend ? (
+                <>
+                  <strong style={{ fontWeight: 700, color: "#189351" }}>In Stock</strong> • <strong style={{ fontWeight: 600 }}>Dispatches on Monday</strong>
+                </>
+              ) : (
+                <>
+                  <strong style={{ fontWeight: 700, color: "#189351" }}>In stock.</strong> <strong style={{ fontWeight: 600 }}>{dispatchLine.headline}</strong>
+                </>
+              )
+            ) : (
+              `${dispatchLine.label}.`
+            )}
+          </span>
+        </div>
+        {dispatchLine.enabled && dispatchLine.tooltipText && (
+          <DispatchTooltip text={dispatchLine.tooltipText} align="right" className="shrink-0" />
+        )}
+      </div>
+    ) : (
+      <div className="bg-amber-50 border border-amber-200 text-black rounded p-2 lg:px-4 lg:py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap text-[0.85rem] lg:text-base">
+        <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+        <span className="font-semibold xl:basis-auto lg:basis-full" style={{ fontWeight: 500 }}>
+          {dispatchLine.enabled ? dispatchLine.sentence : `${dispatchLine.label}.`}
+        </span>
+      </div>
+    );
+  };
 
   const isWishlisted = useMemo(() => {
     const normProductId = String(getNumericId(productId));
@@ -1356,6 +1503,7 @@ export default function ProductPageClient({
         shopifyId: product.shopifyId,
         handle: product.handle,
         title: product.title,
+        tags: product.tags || [],
         variantId: activeVariant.id,
         variantTitle: activeVariant.title,
         sku: activeVariant.sku || "",
@@ -1373,17 +1521,13 @@ export default function ProductPageClient({
         engravingText: savedEngraving.text,
         engravingFont: savedEngraving.font,
         giftText: giftText,
-        shippingDate: (() => {
-          const isInStock = activeVariant?.inStock === true || activeVariant?.inStock === "true";
-          const leadTime = parseInt(product?.productMetafields?.lead_time) || 12;
-          const totalDays = isInStock ? 2 : leadTime + 3;
-          const date = new Date();
-          date.setDate(date.getDate() + totalDays);
-          const d = String(date.getDate()).padStart(2, "0");
-          const m = String(date.getMonth() + 1).padStart(2, "0");
-          const y = date.getFullYear();
-          return `${d}/${m}/${y}`;
-        })(),
+        // Same date the shopper just read on the page. Only a placeholder for
+        // the order record though — the payment page re-stamps it, because by
+        // the time this cart is paid for the cutoff may long have passed.
+        shippingDate: getShippingDateValue(dispatchConfig, {
+          inStock: activeVariant?.inStock === true || activeVariant?.inStock === "true",
+          leadTime: product?.productMetafields?.lead_time,
+        }),
         goldPricePerGram: raw?.raw_breakup?.metal?.rate_per_gram || 0,
         goldWeight: raw?.raw_breakup?.metal?.weight || parseFloat(fallbackWeight),
         goldPrice: raw?.raw_breakup?.metal?.cost || 0,
@@ -1843,18 +1987,11 @@ export default function ProductPageClient({
     }
   }, [activeVariant, product, user]);
 
-  // Scroll to top on mount/refresh
-  useEffect(() => {
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
-    window.scrollTo(0, 0);
-    return () => {
-      if ('scrollRestoration' in window.history) {
-        window.history.scrollRestoration = 'auto';
-      }
-    };
-  }, []);
+  // Scroll positioning on navigation is handled app-wide by <ScrollRestoration>
+  // in the root layout. A local scrollTo(0, 0) here fired only once, post-paint,
+  // and its cleanup flipped scrollRestoration back to "auto" on every PDP exit —
+  // which let iOS Safari re-apply its own remembered offset while the page
+  // streamed in content, opening the PDP mid-scroll.
 
   const fetchSimilar = async () => {
     if (similarProducts.length > 0) {
@@ -2111,8 +2248,8 @@ export default function ProductPageClient({
 
   const renderEngravingContent = () => (
     <div className="flex-1 overflow-y-auto">
-      {/* Ring Preview */}
-      <div className="relative w-full aspect-[16/9] bg-[#F9F9F9] flex items-center justify-center overflow-hidden">
+      {/* Ring Preview at the top with realistic metallic depth */}
+      <div className="relative w-full aspect-[16/9] bg-[#FAF8F5] border-b border-[#EBE0D8]/60 flex items-center justify-center overflow-hidden">
         <Image
           src="/images/engraving_bg.jpg"
           alt="Ring band preview"
@@ -2120,54 +2257,40 @@ export default function ProductPageClient({
           className="object-cover"
         />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {engraving && (
+          {engraving ? (
             <div
               style={{
                 fontFamily: `var(--font-${engravingFont.toLowerCase()})`,
-                textShadow: "1px 1px 1.5px rgba(255,255,255,0.8), -0.5px -0.5px 1px rgba(0,0,0,0.15)"
+                textShadow: "0.5px 0.5px 1.5px rgba(255,255,255,0.85), -0.5px -0.5px 1px rgba(0,0,0,0.2)"
               }}
-              className="text-gray-800 text-xl sm:text-2xl tracking-[0.15em] opacity-80 italic -translate-y-9 sm:-translate-y-9"
+              className="text-[#3D3130] text-xl sm:text-2xl tracking-[0.15em] opacity-90 italic -translate-y-9 sm:-translate-y-9 select-none"
             >
               {engraving}
+            </div>
+          ) : (
+            <div className="text-[#5A413F]/35 text-sm sm:text-base italic tracking-widest -translate-y-9 sm:-translate-y-9 select-none font-light">
+              Preview will appear here
             </div>
           )}
         </div>
       </div>
 
-      <div className="p-6 space-y-8">
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-black leading-relaxed">
-            <span className="font-bold text-gray-900">Note:</span> Text can only contain up to 8 English/alphanumeric characters (A-Z, a-z, 0-9) and special characters (heart and infinity).
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <h4 className="text-base font-bold text-gray-900">Choose a Font <span className="text-rose-500">*</span></h4>
-          <div className="grid grid-cols-2 gap-3">
-            {["Lobster", "Yellowtail", "Satisfy", "ABeeZee"].map((font) => (
-              <button
-                key={font}
-                onClick={() => setEngravingFont(font)}
-                className={`px-2 py-3 rounded-sm border text-lg transition-all duration-300 ${engravingFont === font
-                  ? "border-black bg-zinc-900 text-white shadow-md scale-[1.02]"
-                  : "border-gray-200 text-gray-600 hover:border-gray-400 bg-white"
-                  }`}
-              >
-                <span style={{ fontFamily: `var(--font-${font.toLowerCase()})` }} className="text-base">Aa - {font}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
+      <div className="p-5 md:p-6 space-y-6">
+        {/* Inner Engraving (Text Input directly under preview) */}
+        <div className="space-y-2.5">
           <div className="flex justify-between items-center">
-            <h4 className="text-base font-bold text-gray-900">Inner Engraving <span className="text-rose-500">*</span></h4>
-            <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+            <label className="text-sm font-semibold font-figtree text-[#1A1A1A]">
+              Inner Engraving <span className="text-[#5A413F]">*</span>
+            </label>
+            <span className={cn(
+              "text-[11px] font-figtree tracking-wide",
+              engraving.length >= 8 ? "text-amber-600 font-semibold" : "text-gray-400 font-medium"
+            )}>
               {engraving.length}/8 Characters
-            </div>
+            </span>
           </div>
 
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-2.5 items-center">
             <div className="relative flex-1">
               <Input
                 ref={engravingInputRef}
@@ -2175,27 +2298,63 @@ export default function ProductPageClient({
                 maxLength={8}
                 onChange={(e) => setEngraving(e.target.value)}
                 placeholder="Type your text here"
-                className="h-14 border-gray-300 pr-4 text-lg focus-visible:ring-2 rounded-sm"
+                className="h-12 border-zinc-200 focus-visible:border-[#5A413F] focus-visible:ring-1 focus-visible:ring-[#5A413F] pr-4 text-base font-figtree rounded-[6px] transition-colors"
                 style={{ fontFamily: `var(--font-${engravingFont.toLowerCase()})` }}
               />
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-1.5 shrink-0">
               <button
+                type="button"
                 onClick={() => insertSymbol("♥")}
-                className="w-12 h-12 flex items-center justify-center border-2 border-zinc-100 rounded-sm hover:border-black hover:bg-zinc-50 transition-all active:scale-95"
+                className="w-12 h-12 flex items-center justify-center border border-zinc-200 rounded-[6px] hover:border-[#5A413F] hover:bg-[#FAF7F5] text-[#5A413F] transition-all active:scale-95 text-xl font-medium shadow-2xs cursor-pointer"
                 title="Insert Heart"
               >
-                <span className="text-2xl text-black">♥</span>
+                ♥
               </button>
               <button
+                type="button"
                 onClick={() => insertSymbol("∞")}
-                className="w-12 h-12 flex items-center justify-center border-2 border-zinc-100 rounded-sm hover:border-black hover:bg-zinc-50 transition-all active:scale-95"
+                className="w-12 h-12 flex items-center justify-center border border-zinc-200 rounded-[6px] hover:border-[#5A413F] hover:bg-[#FAF7F5] text-[#5A413F] transition-all active:scale-95 text-xl font-medium shadow-2xs cursor-pointer"
                 title="Insert Infinity"
               >
-                <span className="text-2xl text-black">∞</span>
+                ∞
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Choose Font */}
+        <div className="space-y-2.5">
+          <label className="text-sm font-semibold font-figtree text-[#1A1A1A]">
+            Choose a Font <span className="text-[#5A413F]">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2.5">
+            {["Lobster", "Yellowtail", "Satisfy", "ABeeZee"].map((font) => (
+              <button
+                key={font}
+                type="button"
+                onClick={() => setEngravingFont(font)}
+                className={cn(
+                  "h-12 px-3 rounded-[6px] border text-center flex items-center justify-center transition-all duration-200 cursor-pointer",
+                  engravingFont === font
+                    ? "border-[#5A413F] bg-[#FAF7F5] text-[#5A413F] ring-1 ring-[#5A413F] font-semibold shadow-2xs"
+                    : "border-zinc-200 text-gray-700 bg-white hover:border-zinc-300 hover:bg-zinc-50/70"
+                )}
+              >
+                <span style={{ fontFamily: `var(--font-${font.toLowerCase()})` }} className="text-[15px]">
+                  Aa - {font}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Note (Cart & Checkout badge / nudge style) */}
+        <div className="bg-[#FAF7F5] border border-[#EBE0D8] rounded-[8px] p-3 flex items-start gap-2.5">
+          <Info size={15} className="text-[#5A413F] shrink-0 mt-0.5" />
+          <p className="text-[12px] text-[#5A413F]/85 leading-relaxed font-figtree">
+            <span className="font-semibold text-[#5A413F]">Note:</span> Text can only contain up to 8 English/alphanumeric characters (A-Z, a-z, 0-9) and special symbols (♥, ∞).
+          </p>
         </div>
       </div>
     </div>
@@ -2225,25 +2384,26 @@ export default function ProductPageClient({
           }}
         />
       )}
-      <div className="w-[91%] lg:w-full lg:max-w-480 mx-auto lg:px-17">
+      <div className="w-[100%] lg:w-full lg:max-w-480 mx-auto lg:px-17">
         {/* Breadcrumb */}
-        <Breadcrumb className="py-5">
+        <Breadcrumb className="py-2 px-5 bg-[#f9f9f9] lg:bg-transparent lg:px-0 lg:py-5">
           <BreadcrumbList className="flex-nowrap">
             <BreadcrumbItem>
-              <BreadcrumbLink href="/collections" className="text-sm font-medium text-black">Collections</BreadcrumbLink>
+              <BreadcrumbLink href="/collections" className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-black">Collections</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator><ChevronRight size={14} /></BreadcrumbSeparator>
+            <BreadcrumbSeparator><ChevronRight className="w-[10px] h-[10px] lg:w-[14px] lg:h-[14px]" /></BreadcrumbSeparator>
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/collections/${slugify(product.type)}`} className="text-sm font-medium text-black whitespace-nowrap">{product.type}</BreadcrumbLink>
+              <BreadcrumbLink href={`/collections/${slugify(product.type)}`} className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-black whitespace-nowrap">{product.type}</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator><ChevronRight size={14} /></BreadcrumbSeparator>
-            <BreadcrumbItem className="text-sm font-medium text-gray-400 truncate line-clamp-1">
+            <BreadcrumbSeparator><ChevronRight className="w-[10px] h-[10px] lg:w-[14px] lg:h-[14px]" /></BreadcrumbSeparator>
+            <BreadcrumbItem className="text-[10px] lg:text-sm font-medium tracking-[0.2px] text-[#5a413f] lg:text-gray-400 truncate line-clamp-1">
               {product.title}
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-10 items-start">
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_420px] 2xl:grid-cols-[1fr_530px] gap-5 lg:gap-10 items-start">
           {/* Left: Product Gallery */}
           <ProductGallery
             media={product.media || []}
@@ -2255,7 +2415,7 @@ export default function ProductPageClient({
             activeVariant={activeVariant}
           />
           {/* Right: Product Info */}
-          <div className="w-full">
+          <div className="w-full px-5 lg:px-0">
             <div className="space-y-4">
               {/* Title */}
               <div className="w-full">
@@ -2300,7 +2460,18 @@ export default function ProductPageClient({
 
                         // If no diamond parts were added, or it's not a diamond product, show metal purity
                         if (parts.length === 0) {
-                          const metalPurity = variantMeta?.metal_purity || activeKarat;
+                          let metalPurity = variantMeta?.metal_purity || activeKarat;
+                          const karatKey = String(activeKarat || "").replace(/s+/g, "").toLowerCase();
+                          const isPlatinum = karatKey === "plt" || karatKey === "pt950" || karatKey === "platinum" || String(product.title).toLowerCase().includes("platinum");
+
+                          if (metalPurity) {
+                            const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
+                            if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
+                            else if (mp === "pt950" || mp === "plt" || mp === "platinum") metalPurity = "PLT";
+                          } else if (isPlatinum) {
+                            metalPurity = "PLT";
+                          }
+
                           if (metalPurity) parts.push(metalPurity);
                         }
 
@@ -2450,12 +2621,11 @@ export default function ProductPageClient({
                   </div>
                 );
               })()}
-              <Separator />
             </div>
 
             {/* Unlock Free Coupons Box */}
             {!(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold" || tag.toLowerCase() === "byj")) && !String(product?.handle || "").toLowerCase().includes("byj") && (
-              <div className="mb-6">
+              <div className="my-3">
                 <UnlockCoupon
                   user={user}
                   dispatch={dispatch}
@@ -2473,7 +2643,7 @@ export default function ProductPageClient({
 
             <div className="space-y-6 mt-4">
               {/* Mobile Customizer */}
-              <div ref={customizeRef} className="lg:hidden">
+              <div ref={customizeRef} className="lg:hidden space-y-4 mb-4">
                 <ProductCustomizerMobile
                   activeColor={activeColor}
                   activeKarat={activeKarat}
@@ -2492,6 +2662,12 @@ export default function ProductPageClient({
                   currentPrice={formatPrice(currentPrice)}
                   currentComparePrice={formatPrice(currentComparePrice)}
                 />
+
+                {availableSizes.length > 0 && availableSizes[0] !== null && availableSizes[0] !== undefined && (
+                  <p className="text-sm text-black font-medium">Didn&apos;t get the size right? We&apos;ll exchange it.</p>
+                )}
+
+                {renderDispatchBanner()}
               </div>
 
               {/* Desktop Selection Blocks */}
@@ -2655,17 +2831,7 @@ export default function ProductPageClient({
                       <p className="text-sm text-black font-medium">Didn&apos;t get the size right? We&apos;ll exchange it.</p>
                     </>
                   )}
-                  {activeVariant?.inStock ? (
-                    <div className="bg-[#ECF7F2] border border-[#189351] text-black px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap rounded">
-                      <span className="w-2.5 h-2.5 bg-[#189351] rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">In stock. {calculateDispatchDate()}</span>
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 border border-amber-200 text-black rounded px-4 py-3 flex items-center gap-3 xl:flex-nowrap lg:flex-wrap">
-                      <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
-                      <span className="font-semibold xl:basis-auto lg:basis-full">Made to order. {calculateDispatchDate()}</span>
-                    </div>
-                  )}
+                  {renderDispatchBanner()}
                 </div>
               </div>
 
@@ -2708,21 +2874,21 @@ export default function ProductPageClient({
                     onClose={() => setIsEngravingDrawerOpen(false)}
                     detents={[0.9]}
                   >
-                    <MobileSheet.Container className={`z-[499] ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
+                    <MobileSheet.Container className={`z-[499] bg-white ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
                       <MobileSheet.Header />
                       <MobileSheet.Content>
-                        <div className="flex flex-col h-full">
-                          <div className="flex items-center justify-between px-4 pb-4 border-b border-gray-100">
-                            <h2 className="text-lg font-bold">Engraving</h2>
-                            <button onClick={() => setIsEngravingDrawerOpen(false)} className="p-2">
-                              <X size={20} className="text-gray-400" />
+                        <div className="flex flex-col h-full bg-white">
+                          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                            <h2 className="text-base font-semibold font-figtree text-[#1A1A1A]">Engraving</h2>
+                            <button onClick={() => setIsEngravingDrawerOpen(false)} className="p-1.5 text-gray-400 hover:text-black rounded-full hover:bg-gray-100 transition-colors">
+                              <X size={20} />
                             </button>
                           </div>
                           {renderEngravingContent()}
-                          <div className="p-3 border-t border-gray-100">
+                          <div className="p-4 border-t border-gray-100 bg-white">
                             <Button
                               onClick={handleSaveEngraving}
-                              className="w-full h-12 font-bold rounded-sm bg-tertiary uppercase tracking-wider disabled:opacity-50"
+                              className="w-full h-12 font-figtree font-semibold rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white uppercase tracking-wider disabled:opacity-40 transition-all shadow-sm"
                               disabled={!engraving}
                             >
                               SAVE
@@ -2735,22 +2901,22 @@ export default function ProductPageClient({
                   </MobileSheet>
                 ) : (
                   <Sheet open={isEngravingDrawerOpen} onOpenChange={setIsEngravingDrawerOpen}>
-                    <SheetContent showCloseButton={false} side="right" className={`w-full sm:max-w-[450px] p-0 flex flex-col ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
-                      <SheetHeader className="p-6 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
-                        <SheetTitle className="text-lg font-bold">Engraving</SheetTitle>
+                    <SheetContent showCloseButton={false} side="right" className={`w-full sm:max-w-[450px] p-0 flex flex-col bg-white ${lobster.variable} ${yellowtail.variable} ${satisfy.variable} ${abeezee.variable}`}>
+                      <SheetHeader className="px-6 py-5 border-b border-gray-100 flex flex-row items-center justify-between space-y-0">
+                        <SheetTitle className="text-base font-semibold font-figtree text-[#1A1A1A]">Engraving</SheetTitle>
                         <SheetClose asChild>
-                          <button className="text-zinc-400 hover:text-black transition-colors hover:cursor-pointer p-1">
-                            <X size={22} strokeWidth={1.5} />
+                          <button className="text-zinc-400 hover:text-black transition-colors hover:cursor-pointer p-1.5 rounded-full hover:bg-gray-100">
+                            <X size={20} />
                           </button>
                         </SheetClose>
                       </SheetHeader>
 
                       {renderEngravingContent()}
 
-                      <div className="p-6 border-t border-gray-100">
+                      <div className="p-6 border-t border-gray-100 bg-white">
                         <Button
                           onClick={handleSaveEngraving}
-                          className="w-full h-12 font-bold rounded-sm bg-tertiary uppercase tracking-wider disabled:opacity-50"
+                          className="w-full h-12 font-figtree font-semibold rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white uppercase tracking-wider disabled:opacity-40 transition-all shadow-sm"
                           disabled={!engraving}
                         >
                           SAVE
@@ -2761,8 +2927,8 @@ export default function ProductPageClient({
                 )}
 
                 {savedEngraving.text && (
-                  <div className="mt-3 flex items-center gap-2 text-primary font-semibold text-sm bg-primary/5 w-fit px-3 py-1.5 rounded-full border border-primary/10">
-                    <Check size={14} />
+                  <div className="mt-3 flex items-center gap-2 text-[#5A413F] font-semibold text-sm bg-[#FAF7F5] w-fit px-3.5 py-1.5 rounded-full border border-[#EBE0D8]">
+                    <Check size={14} className="text-[#5A413F]" />
                     Engraving Saved:
                     <span style={{ fontFamily: `var(--font-${savedEngraving.font.toLowerCase()})` }} className="ml-1 text-base underline decoration-dotted">
                       {savedEngraving.text}
@@ -2772,7 +2938,8 @@ export default function ProductPageClient({
                         setSavedEngraving({ text: "", font: "" });
                         setEngraving("");
                       }}
-                      className="ml-2 p-1 hover:bg-primary/10 rounded-sm transition-colors"
+                      className="ml-2 p-1 hover:bg-[#5A413F]/10 rounded-full transition-colors text-[#5A413F]/70 hover:text-[#5A413F]"
+                      title="Remove Engraving"
                     >
                       <X size={12} />
                     </button>
@@ -3425,58 +3592,169 @@ export default function ProductPageClient({
                 )}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-2 gap-4 [&>*:last-child:nth-child(odd)]:col-span-2">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-3.5 xl:gap-4 [&>*:last-child:nth-child(odd)]:col-span-2">
                 {/* Metal Card */}
-                <div className="bg-[#F9F9F9] rounded p-5 space-y-4">
-                  <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                <div className="bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-4">
+                  <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                     <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_metal.svg" alt="Metal" width={18} height={18} />
                     Metal <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("metal")} />
                   </div>
-                  <div className="space-y-2">
-                    {activeVariant?.metafields?.metal_purity && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Purity</span>
-                        <span className="font-medium">{activeVariant.metafields.metal_purity}</span>
+                  {(() => {
+                    let compsList = [];
+                    try {
+                      const raw = activeVariant?.metafields?.components;
+                      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+                      compsList = parsed?.components || (Array.isArray(parsed) ? parsed : []);
+                    } catch (e) {}
+
+                    const isMetal = (name) => {
+                      const g = String(name || "").trim().toLowerCase();
+                      return g.includes("gold") || g.includes("platin") || g.includes("silver");
+                    };
+
+                    const metalComps = compsList.filter(c => isMetal(c?.item_group_name));
+                    const isMultiMetal = metalComps.length > 1;
+
+                    // Context to determine gold tone (Rose, Yellow, White)
+                    const allContext = [
+                      activeColor,
+                      activeVariant?.color,
+                      activeVariant?.metafields?.metal_color,
+                      activeVariant?.title,
+                      product?.title,
+                      ...(activeVariant?.selectedOptions || []).map(o => o?.value),
+                      ...Object.values(activeVariant?.options || {})
+                    ].filter(Boolean).join(" ").toLowerCase();
+
+                    let goldTone = "Rose Gold";
+                    if (allContext.includes("rose")) goldTone = "Rose Gold";
+                    else if (allContext.includes("yellow")) goldTone = "Yellow Gold";
+                    else if (allContext.includes("white")) goldTone = "White Gold";
+
+                    let displayPurity = activeVariant?.metafields?.metal_purity;
+                    let displayColor = activeVariant?.metafields?.metal_color;
+                    let displayNetWeight = activeVariant?.metafields?.metal_weight;
+
+                    if (isMultiMetal) {
+                      const hasPt = metalComps.some(m => String(m.item_group_name).toLowerCase().includes("platin"));
+                      const hasAu = metalComps.some(m => String(m.item_group_name).toLowerCase().includes("gold"));
+
+                      const purities = [];
+                      metalComps.forEach(m => {
+                        const g = String(m.item_group_name || "").toLowerCase();
+                        if (g.includes("platin")) {
+                          purities.push(m.karat_code ? `${m.karat_code} PLT` : "950 PLT");
+                        } else if (g.includes("gold") && m.karat_code) {
+                          purities.push(`${m.karat_code}KT`);
+                        } else if (g.includes("silver")) {
+                          purities.push(m.karat_code ? `${m.karat_code} Silver` : "Silver");
+                        }
+                      });
+                      if (purities.length > 0) {
+                        displayPurity = purities.join(" & ");
+                      }
+
+                      if (hasPt && hasAu) {
+                        displayColor = `Platinum & ${goldTone}`;
+                      }
+
+                      const totalWt = metalComps.reduce((sum, m) => sum + (Number(m.weight) || 0), 0);
+                      if (totalWt > 0) {
+                        displayNetWeight = Number(totalWt.toFixed(3));
+                      }
+                    }
+
+                    if (displayPurity) {
+                      displayPurity = String(displayPurity)
+                        .replace(/\bplatinum\b/gi, "PLT")
+                        .replace(/\bplt\b/gi, "PLT")
+                        .replace(/(\d+)\s*kt\b/gi, "$1KT")
+                        .replace(/(\d+)\s*k\b/gi, "$1KT");
+                    }
+
+                    if (displayColor) {
+                      displayColor = String(displayColor)
+                        .replace(/\bplt\b/gi, "Platinum");
+                    }
+
+                    return (
+                      <div className="space-y-2">
+                        {displayPurity && (
+                          <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                            <span className="text-gray-500 shrink-0">Purity</span>
+                            <span className="font-medium text-right whitespace-nowrap">{displayPurity}</span>
+                          </div>
+                        )}
+                        {displayColor && (
+                          <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                            <span className="text-gray-500 shrink-0">Color</span>
+                            <span className="font-medium text-right whitespace-nowrap">{displayColor}</span>
+                          </div>
+                        )}
+                        {isMultiMetal ? (
+                          <>
+                            {metalComps.map((m, idx) => {
+                              const g = String(m.item_group_name || "").toLowerCase();
+                              let label = "Metal Wt";
+                              if (g.includes("platin")) {
+                                label = "PLT Wt";
+                              } else if (g.includes("gold")) {
+                                label = `${goldTone} Wt`;
+                              } else if (g.includes("silver")) {
+                                label = "Silver Wt";
+                              } else if (m.item_group_name) {
+                                label = `${m.item_group_name} Wt`;
+                              }
+                              return (
+                                <div key={`multi-metal-${idx}`} className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                                  <span className="text-gray-500 shrink-0">{label}</span>
+                                  <span className="font-medium text-right whitespace-nowrap">{m.weight} g</span>
+                                </div>
+                              );
+                            })}
+                            {displayNetWeight && (
+                              <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                                <span className="text-gray-500 shrink-0">Net Wt</span>
+                                <span className="font-medium text-right whitespace-nowrap">{displayNetWeight} g</span>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          displayNetWeight && (
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Net Wt</span>
+                              <span className="font-medium text-right whitespace-nowrap">{displayNetWeight} g</span>
+                            </div>
+                          )
+                        )}
                       </div>
-                    )}
-                    {activeVariant?.metafields?.metal_color && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Color</span>
-                        <span className="font-medium">{activeVariant.metafields.metal_color}</span>
-                      </div>
-                    )}
-                    {activeVariant?.metafields?.metal_weight && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Net Wt</span>
-                        <span className="font-medium">{activeVariant.metafields.metal_weight} g</span>
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Dimensions Card */}
-                <div className="bg-[#F9F9F9] rounded p-5 space-y-4">
-                  <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                <div className="bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-4">
+                  <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                     <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_dimension.svg" alt="Dimensions" width={18} height={18} />
                     Dimension <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("dimension")} />
                   </div>
                   <div className="space-y-2">
                     {activeVariant?.metafields?.top_height && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Height</span>
-                        <span className="font-medium">{activeVariant.metafields.top_height} mm</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Height</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.top_height} mm</span>
                       </div>
                     )}
                     {activeVariant?.metafields?.top_width && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Width</span>
-                        <span className="font-medium">{activeVariant.metafields.top_width} mm</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Width</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.top_width} mm</span>
                       </div>
                     )}
                     {activeVariant?.metafields?.gross_weight && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Gross Wt</span>
-                        <span className="font-medium">{activeVariant.metafields.gross_weight} g</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Gross Wt</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gross_weight} g</span>
                       </div>
                     )}
                   </div>
@@ -3484,31 +3762,31 @@ export default function ProductPageClient({
 
                 {/* Single Diamond Card */}
                 {!isGoldCoin && activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1 && (
-                  <div className={`bg-[#F9F9F9] rounded p-5 space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
-                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                  <div className={`bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-4 ${(activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1) ? "" : "col-span-2"}`}>
+                    <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                       <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPIcons_diamond.svg" alt="Diamond" width={18} height={18} />
                       Diamond <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("diamond")} />
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {activeVariant.metafields.diamonds[0].quality && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Quality</span>
-                          <span className="font-medium">{activeVariant.metafields.diamonds[0].quality}</span>
+                        <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                          <span className="text-gray-500 shrink-0">Quality</span>
+                          <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.diamonds[0].quality}</span>
                         </div>
                       )}
                       {activeVariant.metafields.diamonds[0].shape && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Shape</span>
-                          <span className="font-medium">{mapShapeCode(activeVariant.metafields.diamonds[0].shape) || activeVariant.metafields.diamonds[0].shape}</span>
+                        <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                          <span className="text-gray-500 shrink-0">Shape</span>
+                          <span className="font-medium text-right whitespace-nowrap">{mapShapeCode(activeVariant.metafields.diamonds[0].shape) || activeVariant.metafields.diamonds[0].shape}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Quantity</span>
-                        <span className="font-medium">{activeVariant.metafields.diamonds[0].pieces || "1"}pcs</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Quantity</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.diamonds[0].pieces || "1"}pcs</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Carat</span>
-                        <span className="font-medium">{activeVariant.metafields.diamonds[0].weight}ct</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Carat</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.diamonds[0].weight}ct</span>
                       </div>
                     </div>
                   </div>
@@ -3546,31 +3824,31 @@ export default function ProductPageClient({
 
                 {/* Single Gemstone Card */}
                 {activeVariant?.metafields?.gemstones && activeVariant.metafields.gemstones.length === 1 && (
-                  <div className={`bg-[#F9F9F9] rounded p-5 space-y-4 ${(activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1) ? "" : "col-span-2"}`}>
-                    <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                  <div className={`bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-4 ${(activeVariant?.metafields?.diamonds && activeVariant.metafields.diamonds.length === 1) ? "" : "col-span-2"}`}>
+                    <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                       <Image src="/images/icons/gemstone.svg" alt="Gemstone" width={18} height={18} className="grayscale opacity-70" />
                       Gemstone <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("gemstone")} />
                     </div>
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
                       {activeVariant.metafields.gemstones[0].color && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Color</span>
-                          <span className="font-medium">{activeVariant.metafields.gemstones[0].color}</span>
+                        <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                          <span className="text-gray-500 shrink-0">Color</span>
+                          <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gemstones[0].color}</span>
                         </div>
                       )}
                       {activeVariant.metafields.gemstones[0].shape && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Shape</span>
-                          <span className="font-medium">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
+                        <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                          <span className="text-gray-500 shrink-0">Shape</span>
+                          <span className="font-medium text-right whitespace-nowrap">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Quantity</span>
-                        <span className="font-medium">{activeVariant.metafields.gemstones[0].pieces || "1"}pcs</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Quantity</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gemstones[0].pieces || "1"}pcs</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Carat</span>
-                        <span className="font-medium">{activeVariant.metafields.gemstones[0].weight || "0"}ct</span>
+                      <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                        <span className="text-gray-500 shrink-0">Carat</span>
+                        <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gemstones[0].weight || "0"}ct</span>
                       </div>
                     </div>
                   </div>
@@ -3613,40 +3891,45 @@ export default function ProductPageClient({
                     config = JSON.parse(activeVariant?.metafields?.variant_config || "{}");
                   } catch (e) { }
 
-                  const hasOtherMaterials = activeVariant?.metafields?.otherMaterials?.length > 0;
+                  const filteredOtherMaterials = (activeVariant?.metafields?.otherMaterials || []).filter(m => {
+                    const mat = String(m?.material || "").toLowerCase();
+                    return !mat.includes("platin") && !mat.includes("gold") && !mat.includes("silver");
+                  });
+                  const hasOtherMaterials = filteredOtherMaterials.length > 0;
                   const hasVariantConfigMaterial = config.additional_item_charges && Number(config.additional_item_charges) > 0;
 
                   if (!hasOtherMaterials && !hasVariantConfigMaterial) return null;
 
                   return (
-                    <div className="bg-[#F9F9F9] rounded p-5 space-y-5 col-span-2">
-                      <div className="flex items-center gap-2 font-bold text-sm uppercase text-gray-900">
+                    <div className="bg-[#F9F9F9] rounded p-3.5 xl:p-5 space-y-3.5 xl:space-y-5 col-span-2">
+                      <div className="flex items-center gap-2 font-bold text-xs xl:text-sm uppercase text-gray-900">
                         <svg width="18" height="18" viewBox="-2 -2 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M9.61794 18.625L11.4269 9.62529M11.4269 9.62529L18.4666 12.4908M11.4269 9.62529L6.44997 0.897371M8.96454 0.810074C8.14227 0.535717 7.24861 0.567263 6.44773 0.898916C5.64685 1.23057 4.99254 1.84006 4.60499 2.61542L1.00502 9.81518C0.612643 10.6 0.520397 11.5011 0.745622 12.3491C0.970847 13.1971 1.49804 13.9336 2.22811 14.4203L7.62806 18.0202C8.21945 18.4145 8.91434 18.6249 9.62514 18.6249C10.3359 18.6249 11.0308 18.4145 11.6222 18.0202L17.0222 14.4203C17.6791 13.9823 18.1737 13.3405 18.43 12.5938C18.6863 11.847 18.69 11.0367 18.4405 10.2877L16.6406 4.88784C16.4638 4.35761 16.1661 3.87581 15.7709 3.4806C15.3756 3.0854 14.8938 2.78764 14.3636 2.61092L8.96454 0.810074Z" stroke="#785754" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                         Other Material
+                        <Info size={14} className="text-gray-400 cursor-pointer ml-auto" onClick={() => setActiveInfoSheet("other_material")} />
                       </div>
 
                       <div className="space-y-2">
-                        {hasOtherMaterials && activeVariant.metafields.otherMaterials.map((m, i) => (
+                        {hasOtherMaterials && filteredOtherMaterials.map((m, i) => (
                           <div key={`other-mat-${i}`} className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Material</span>
-                              <span className="font-medium">{m.material || "-"}</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Material</span>
+                              <span className="font-medium text-right whitespace-nowrap">{m.material || "-"}</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Color</span>
-                              <span className="font-medium">{m.color || "-"}</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Color</span>
+                              <span className="font-medium text-right whitespace-nowrap">{m.color || "-"}</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Quantity</span>
-                              <span className="font-medium">{m.pieces || "1"}pcs</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Quantity</span>
+                              <span className="font-medium text-right whitespace-nowrap">{m.pieces || "1"}pcs</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Weight</span>
-                              <span className="font-medium">{m.weight || "0"}g</span>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Weight</span>
+                              <span className="font-medium text-right whitespace-nowrap">{m.weight || "0"}g</span>
                             </div>
-                            {i < activeVariant.metafields.otherMaterials.length - 1 && (
+                            {i < filteredOtherMaterials.length - 1 && (
                               <div className="h-px bg-gray-200 my-3" />
                             )}
                           </div>
@@ -3669,9 +3952,8 @@ export default function ProductPageClient({
                 })()}
               </div>
 
-              <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider mt-6">Price &amp; Savings Details:</h2>
-
-              <div ref={productDetailsRef} className="mt-8">
+              <div ref={productDetailsRef} className="mt-6">
+                <h2 className="text-base font-semibold tracking-tight mb-4 uppercase tracking-wider">Price &amp; Savings Details:</h2>
                 <PriceSavingsDetails
                   priceBreakup={augmentedPriceBreakup}
                   onTabChange={(tab) => {
@@ -3847,10 +4129,13 @@ export default function ProductPageClient({
           availableStores={availableStores}
           product={product}
           activeVariant={activeVariant}
+          hasConfirmedPincode={hasConfirmedPincode}
+          resetPincodeState={resetPincodeState}
+          storePages={storePages}
         />
       ) : (
         <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-          <StoreLocatorSection locationId="product page" />
+          <StoreLocatorSection locationId="product page" storePages={storePages} surface="productPage" />
         </Suspense>
       )}
 
@@ -3872,7 +4157,6 @@ export default function ProductPageClient({
         </Suspense>
       )}
 
-      <OurProcess />
       {matchingProducts.length > 0 && (
         <ProductSlider
           title="From the Same Collection"
@@ -3886,14 +4170,8 @@ export default function ProductPageClient({
         />
       )}
 
-      <ProductSlider
-        title={recentlyViewedState?.title || "Recently Viewed"}
-        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
-        preservePriceOnColorChange={true}
-        disableLastViewed={true}
-      />
       {youMayAlsoLikeProducts.length > 0 && (
-        <section className="w-full bg-white mt-10 md:mt-15 overflow-hidden">
+        <section className="w-full bg-white my-10 md:my-16 overflow-hidden">
           <div className="max-w-480 mx-auto px-5 md:px-17">
             <div className="text-center mb-10 md:mb-12">
               <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">From the Same Collection</h2>
@@ -3915,6 +4193,15 @@ export default function ProductPageClient({
           </div>
         </section>
       )}
+
+      <OurProcess />
+
+      <ProductSlider
+        title={recentlyViewedState?.title || "Recently Viewed"}
+        products={filteredRecentlyViewed.length > 0 ? filteredRecentlyViewed.slice(0, 12) : undefined}
+        preservePriceOnColorChange={true}
+        disableLastViewed={true}
+      />
       {!isGoldCoin && <DiamondComparison />}
       <FAQSection />
       {/* <ExploreOtherRings /> */}
@@ -3944,12 +4231,11 @@ export default function ProductPageClient({
                       <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
-                            {/* <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3> */}
                             <h3 className="font-bold text-lg">
-                              {getStoreDisplayName(store.name) === "Head Office"
+                              {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
                                 ? "Head Office"
                                 : `${getStoreDisplayName(store.name)}`
-                              }
+                              )}
                             </h3>
                             {store.distance !== null && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
@@ -3979,7 +4265,7 @@ export default function ProductPageClient({
                         <div className="space-y-3 pt-2">
                           <div className="flex items-start gap-3 text-sm text-gray-600">
                             <MapPin size={18} className="shrink-0 text-gray-400 mt-0.5" />
-                            <p className="leading-relaxed font-medium">{store.address1 || store.address}, {store.city}</p>
+                            <p className="leading-relaxed font-medium">{store.addressFormatted || `${store.address1 || store.address}, ${store.city}`}</p>
                           </div>
                           <div className="flex items-center gap-3 text-sm text-gray-600">
                             <Phone size={18} className="shrink-0 text-gray-400" />
@@ -4002,7 +4288,7 @@ export default function ProductPageClient({
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
                             href={`https://wa.me/+917208934782?text=${encodeURIComponent(
-                              `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                              `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
                             )}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -4017,7 +4303,7 @@ export default function ProductPageClient({
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
-                              href={`${store.mapLink}`}
+                              href={store.mapLink || "#"}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -4058,7 +4344,12 @@ export default function ProductPageClient({
                     <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                          <h3 className="font-bold text-lg">{getStoreDisplayName(store.name)}</h3>
+                          <h3 className="font-bold text-lg">
+                            {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
+                              ? "Head Office"
+                              : `${getStoreDisplayName(store.name)}`
+                            )}
+                          </h3>
                           {store.distance !== null && (
                             <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
                               <MapPin size={14} />
@@ -4087,11 +4378,11 @@ export default function ProductPageClient({
                       <div className="space-y-3 pt-2">
                         <div className="flex items-start gap-3 text-sm text-gray-600">
                           <MapPin size={18} className="shrink-0 text-gray-400 mt-0.5" />
-                          <p className="leading-relaxed font-medium">{store.address1 || store.address}, {store.city}</p>
+                          <p className="leading-relaxed font-medium">{store.addressFormatted || `${store.address1 || store.address}, ${store.city}`}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Phone size={18} className="shrink-0 text-gray-400" />
-                          <p className="font-medium">{store.phone || "+91 91724 99912"}</p>
+                          <p className="font-medium">{store.phone || "+91 7208934782"}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Package size={18} className="shrink-0 text-gray-400" />
@@ -4110,7 +4401,7 @@ export default function ProductPageClient({
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
                           href={`https://wa.me/+917208934782?text=${encodeURIComponent(
-                            `Hi, I would like to check the availability for ${getStoreDisplayName(store.name)} store.`
+                            `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -4121,11 +4412,11 @@ export default function ProductPageClient({
                           </div>
                         </a>
                         <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                          <a href={`tel:${store.phone || "+919172499912"}`}>CALL STORE</a>
+                          <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
                         </Button>
                         <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                           <a
-                            href={`${store.mapLink}`}
+                            href={store.mapLink || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                           >

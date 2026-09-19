@@ -16,6 +16,7 @@ export default async function FrontendLayout({ children }) {
       <VisitorTracking />
       {children}
       <Footer />
+      {/* Both store blocks fetch their own dashboard-managed store data. */}
       <HomeInformationContent />
       <PopularSearches />
       <AutoAuthPopup />

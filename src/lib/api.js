@@ -481,6 +481,11 @@ export const createOrnaverseReceipt = (payload) =>
 
 export const fetchSchemeOfferSettings = () => apiFetch("/api/settings/scheme-offer");
 
+// Dispatch/delivery-estimate config written by the dashboard's Dispatch Settings
+// page. Read through useDispatchInfo() rather than called directly — the hook
+// caches it store-wide so the PDP, cart and shipping page share one request.
+export const fetchDispatchSettings = () => apiFetch("/api/settings/dispatch");
+
 export const createSchemeRazorpayPlan = (amount, tenure) =>
   apiFetch("/api/schemes/razorpay/plan", {
     method: "POST",

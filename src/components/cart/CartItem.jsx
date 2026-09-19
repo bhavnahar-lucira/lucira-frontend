@@ -21,11 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, Truck } from "lucide-react";
+import { Loader2, X, ChevronDown, Store, ChevronRight, Check, Video, Truck, Info } from "lucide-react";
 import SocialProofBand from "@/components/common/SocialProofBand";
 import { formatMetal, realSize, sizeLabelFor, formatSizeLabel } from "@/lib/metal";
 import { apiFetch } from "@/lib/api";
-import { getEstimatedDispatchDate } from "@/lib/utils";
+import { useDispatchInfo } from "@/hooks/useDispatchInfo";
+import DispatchTooltip from "@/components/common/DispatchTooltip";
 
 
 // Rotation, icons, colours and labels live in the shared band
@@ -33,6 +34,7 @@ import { getEstimatedDispatchDate } from "@/lib/utils";
 
 export default function CartItem({ item, onAuthRequired, socialProof }) {
   const dispatch = useDispatch();
+  const { getDispatch } = useDispatchInfo();
   const { user, isAuthenticated } = useSelector((state) => state.user);
   const { items: allCartItems } = useSelector((state) => state.cart);
   const wishlistItems = useSelector((state) => state.wishlist.items);
@@ -137,11 +139,17 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
   const lineCompareAmount = effectiveComparePrice * (item.quantity || 1);
   const hasDiscount = lineCompareAmount > lineAmount;
 
-  const statusLabel = (isInStock && !isBYJ) ? "In Stock" : "Made to Order";
-  const statusClass = (isInStock && !isBYJ) ? "text-[#189351]" : "text-[#AF7C3E]";
-  // Same shared calculator the PDP and shipping-page summary use, so the date here never drifts from either.
-  const dispatchMessage = getEstimatedDispatchDate(isInStock && !isBYJ, item.leadTime);
-  const dispatchBgClass = (isInStock && !isBYJ) ? "bg-[#189351]/10" : "bg-[#AF7C3E]/10";
+  // Build-your-own pieces are always crafted to order, whatever the parent
+  // variant's stock flag says.
+  const dispatchInStock = isInStock && !isBYJ;
+  // Same shared config the PDP and shipping-page summary read, so the date here never drifts from either.
+  const dispatchInfo = getDispatch({ inStock: dispatchInStock, leadTime: item.leadTime });
+  // The pill keeps its own Title Case wording — it's a stock badge, not the
+  // dispatch line the dashboard owns.
+  const statusLabel = dispatchInStock ? "In Stock" : "Made to Order";
+  const statusClass = dispatchInStock ? "text-[#189351]" : "text-[#AF7C3E]";
+  const dispatchMessage = dispatchInfo.text;
+  const dispatchBgClass = dispatchInStock ? "bg-[#189351]/10" : "bg-[#AF7C3E]/10";
 
   const displayImage = isBYJ ? item.properties['_byj_preview'] : (currentVariant?.image || item.image);
   const isShopifyImage = !isBYJ && displayImage && (String(displayImage).includes("cdn.shopify.com") || String(displayImage).includes("myshopify.com"));
@@ -365,6 +373,24 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
     );
   }, [item.title, item.type, item.karat, item.color]);
 
+  const isOnlyPendant = useMemo(() => {
+    const tags = Array.isArray(item.tags)
+      ? item.tags
+      : (typeof item.tags === "string" ? item.tags.split(",").map(t => t.trim()) : []);
+
+    const hasTag = tags.some(t => {
+      const s = String(t).trim().toLowerCase();
+      return s === "only pendant" || s === "only-pendant" || s === "pendant only";
+    });
+
+    if (hasTag) return true;
+
+    // Fallback: If tags weren't persisted on an older backend cart item, check title and category
+    const lowerTitle = (item.title || "").toLowerCase();
+    const lowerCategory = String(item.category || item.type || "").toLowerCase();
+    return (!tags || tags.length === 0) && (lowerTitle.includes("pendant") || lowerCategory.includes("pendant"));
+  }, [item.tags, item.title, item.category, item.type]);
+
   return (
     <>
       {/* SINGLE RESPONSIVE DESIGN */}
@@ -436,6 +462,17 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
                 </span>
               </p>
 
+              {isOnlyPendant && (
+                <div className="inline-flex items-center gap-1.5 bg-[#B77767] border border-[#B77767] rounded px-2 py-1 my-1 text-white w-fit max-w-full">
+                  <Info size={12} className="shrink-0 text-white" />
+                  <span
+                    className="text-[0.65rem] lg:text-[0.7rem] font-semibold uppercase tracking-wider text-white leading-tight"
+                  >
+                    Only Pendant
+                  </span>
+                </div>
+              )}
+
               {/* Selectors */}
               <div className="flex items-center gap-3 lg:gap-5 pt-1 lg:pt-2 flex-wrap">
                 {displaySize && (
@@ -505,12 +542,19 @@ export default function CartItem({ item, onAuthRequired, socialProof }) {
             </div>
           </div>
 
-          <div className={`mt-3 lg:mt-5 flex items-center gap-2 lg:gap-2.5 rounded-[4px] px-3 py-2 lg:px-3.5 lg:py-2.5 ${dispatchBgClass}`}>
-            <Truck className={`shrink-0 w-[13px] h-[13px] lg:w-[16px] lg:h-[16px] ${statusClass}`} />
-            <span className={`font-figtree font-medium text-[0.75rem] lg:text-[1rem] leading-none tracking-[0px] ${statusClass}`}>
-              {dispatchMessage}
-            </span>
-          </div>
+          {/* This strip exists only to carry the estimate, so the dashboard's
+              master toggle removes it rather than leaving an empty band. */}
+          {dispatchInfo.enabled && dispatchMessage && (
+            <div className={`mt-3 lg:mt-5 flex items-center gap-2 lg:gap-2.5 rounded-[4px] px-3 py-2 lg:px-3.5 lg:py-2.5 ${dispatchBgClass}`}>
+              <Truck className={`shrink-0 w-[13px] h-[13px] lg:w-[16px] lg:h-[16px] ${statusClass}`} />
+              <span className={`font-figtree font-medium text-[0.75rem] lg:text-[1rem] leading-none tracking-[0px] ${statusClass}`}>
+                {dispatchMessage}
+              </span>
+              {dispatchInfo.tooltipText && (
+                <DispatchTooltip text={dispatchInfo.tooltipText} align="center" className={`ml-0.5 ${statusClass}`} />
+              )}
+            </div>
+          )}
 
           {isBYJ && showBreakdown && (
             <div className="mt-4 bg-[#fef5f1] p-4 sm:p-5 rounded-md space-y-5 border border-[#e0d0ba]/30">
