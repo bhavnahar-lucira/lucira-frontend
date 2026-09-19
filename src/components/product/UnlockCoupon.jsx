@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Loader2, Pencil } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import CouponCard from "@/components/coupons/CouponCard";
@@ -17,6 +16,68 @@ import { apiFetch, sendOtpApi, verifyOtpApi, registerCustomer } from "@/lib/api"
 const generateSessionId = () => {
   return "session_" + Math.random().toString(36).substring(2, 15);
 };
+
+function getCouponDiscount(coupon, price) {
+  if (!coupon) return 0;
+  if (coupon.discountType === "percentage" || coupon.valueType === "PERCENTAGE") {
+    const pct = Number(coupon.discountValue ?? coupon.value ?? 0);
+    return (price * pct) / 100;
+  }
+  if (coupon.discountValue !== undefined && coupon.discountValue !== null) {
+    return Number(coupon.discountValue);
+  }
+  if (coupon.value !== undefined && coupon.value !== null) {
+    return Number(coupon.value);
+  }
+  const titleMatch = String(coupon.title || "").match(/₹\s*([0-9,]+)/);
+  if (titleMatch) {
+    return parseFloat(titleMatch[1].replace(/,/g, "")) || 0;
+  }
+  const codeMatch = String(coupon.code || "").match(/([0-9]+)/);
+  if (codeMatch) {
+    return parseFloat(codeMatch[1]) || 0;
+  }
+  return 0;
+}
+
+function formatUnlockHeading(offer) {
+  if (!offer) return "Unlock upto ₹250 Off";
+  if (offer.isBankOffer) {
+    if (offer.discountType === "percentage") {
+      return `Unlock upto ${offer.discountValue}% Off`;
+    }
+    const clean = String(offer.title || "").replace(/\*/g, "").trim();
+    if (clean) {
+      const match = clean.match(/₹\s*([0-9,]+)/);
+      if (match) return `Unlock upto ₹${match[1]} Off`;
+      const pctMatch = clean.match(/([0-9.]+)%/);
+      if (pctMatch) return `Unlock upto ${pctMatch[1]}% Off`;
+      const formatted = clean.replace(/\boff\b/i, "Off");
+      return formatted.toLowerCase().endsWith("off") ? `Unlock upto ${formatted}` : `Unlock upto ${formatted} Off`;
+    }
+  }
+  const rawTitle = String(offer.title || "").replace(/\*/g, "").trim();
+  if (rawTitle) {
+    const match = rawTitle.match(/₹\s*([0-9,]+)/);
+    if (match) {
+      return `Unlock upto ₹${match[1]} Off`;
+    }
+    const pctMatch = rawTitle.match(/([0-9.]+)%/);
+    if (pctMatch) {
+      return `Unlock upto ${pctMatch[1]}% Off`;
+    }
+    const formatted = rawTitle.replace(/\boff\b/i, "Off");
+    return formatted.toLowerCase().endsWith("off") ? `Unlock upto ${formatted}` : `Unlock upto ${formatted} Off`;
+  }
+  if (offer.discountValue) {
+    if (offer.discountType === "percentage") {
+      return `Unlock upto ${offer.discountValue}% Off`;
+    }
+    return `Unlock upto ₹${Number(offer.discountValue).toLocaleString("en-IN")} Off`;
+  }
+  return "Unlock upto ₹250 Off";
+}
+
 
 export default function UnlockCoupon({ user, dispatch, toast, currentPrice, productId, productCategory }) {
   const [mobile, setMobile] = useState("");
@@ -325,32 +386,48 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
   // — filter back down to drawer-only here, same as the cart's drawer list.
   const couponsList = dynamicCoupons ? dynamicCoupons.filter((c) => c.showInDrawer) : COUPONS;
   const isDynamicCouponsList = !!dynamicCoupons;
+  const priceValue = parsePrice(currentPrice);
 
-  let visibleCoupons = [];
-  if (isDynamicCouponsList) {
-    const sorted = [...couponsList].sort((a, b) => Number(a.minAmount || 0) - Number(b.minAmount || 0));
-    const firstInvalid = sorted.findIndex(c => parsePrice(currentPrice) < Number(c.minAmount || 0));
-    const startIdx = firstInvalid > 0 ? firstInvalid - 1 : 0;
-    visibleCoupons = sorted.slice(startIdx, startIdx + 3);
-    if (visibleCoupons.length === 0) visibleCoupons = sorted.slice(0, 3);
-  } else {
-    const activeIndex = getCouponIndexForPrice(currentPrice);
-    visibleCoupons = COUPONS.slice(activeIndex, activeIndex + 3);
-  }
-
-  // The metal-split "additional % off" offers. Only the one matching THIS
-  // product can ever apply to it, so a diamond PDP never advertises the plain
-  // gold rate and vice versa — a rule naming no metal applies to both.
+  // The metal-split "additional % off" offers (e.g. 5% on Diamond / 3% on Gold).
+  // 5% is only above ₹25,000, so only include if currentPrice meets the minimum spend requirement.
   const bankOffers = (dynamicCoupons || [])
     .filter((c) => c.isFeatured)
     .filter((c) => {
       const category = getOfferCategory(c);
       if (category === OFFER_CATEGORY.ALL || !productCategory) return true;
       return category === productCategory;
+    })
+    .filter((c) => {
+      const min = Number(c.minAmount || c.minRequirementValue || 0);
+      return priceValue >= min;
     });
 
+  let visibleCoupons = [];
+  if (isDynamicCouponsList) {
+    const applicable = couponsList.filter((c) => priceValue >= Number(c.minAmount || 0));
+    const listToUse = applicable.length > 0 ? applicable : couponsList;
+    visibleCoupons = [...listToUse].sort((a, b) => {
+      return getCouponDiscount(b, priceValue) - getCouponDiscount(a, priceValue);
+    });
+  } else {
+    const activeIndex = getCouponIndexForPrice(currentPrice);
+    const applicable = COUPONS.slice(0, activeIndex + 1).reverse();
+    visibleCoupons = applicable.length > 0 ? applicable : [COUPONS[0]];
+  }
+
+  // Combined cards strictly sorted from HIGH TO LOW by discount value
+  const allCards = [
+    ...bankOffers.map((o) => ({ ...o, isBankOffer: true })),
+    ...visibleCoupons.map((c) => ({ ...c, isBankOffer: false })),
+  ].sort((a, b) => {
+    return getCouponDiscount(b, priceValue) - getCouponDiscount(a, priceValue);
+  });
+
+  // Dynamic heading showing the highest applicable coupon
+  const highestOffer = allCards[0] || null;
+  const unlockHeading = formatUnlockHeading(highestOffer);
+
   const isUnlocked = step === "unlocked";
-  const priceValue = parsePrice(currentPrice);
 
   return (
     <div
@@ -374,33 +451,20 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
             </button>
           </div>
 
-          {/* Swiper Slider for Coupons */}
+          {/* Swiper Slider for Coupons: sorted High to Low */}
           <Swiper
             slidesPerView="auto"
             spaceBetween={12}
             className="w-full pt-1"
           >
-            {/* The bank discount leads — it is the headline offer for this
-                product and the only one tied to its metal. */}
-            {bankOffers.map((offer) => (
-              <SwiperSlide key={`bank-${offer.code}`} className="!w-auto">
+            {allCards.map((card, idx) => (
+              <SwiperSlide key={card.id || card.code || idx} className="!w-auto">
                 <CouponCard
-                  coupon={offer}
+                  coupon={card}
                   onCopy={handleCopyCode}
                   copiedCode={copiedCode}
                   isMini={true}
-                  isBankOffer
-                  className="w-[230px] md:w-[270px]"
-                />
-              </SwiperSlide>
-            ))}
-            {visibleCoupons.map((coupon, idx) => (
-              <SwiperSlide key={idx} className="!w-auto">
-                <CouponCard
-                  coupon={coupon}
-                  onCopy={handleCopyCode}
-                  copiedCode={copiedCode}
-                  isMini={true}
+                  isBankOffer={card.isBankOffer}
                   className="w-[230px] md:w-[270px]"
                 />
               </SwiperSlide>
@@ -415,16 +479,27 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
             <h3
               className="text-[#4E3629] font-figtree font-semibold text-base sm:text-[var(--text-lg)] leading-[1.4] tracking-normal align-middle text-left sm:text-left"
             >
-              Unlock Highest Coupon Applicable
+              {unlockHeading}
             </h3>
           </div>
 
           <div className="w-full">
-            <div className="relative w-full">
-              <Input
+            <div
+              className={`relative flex items-center w-full h-[3.0625rem] bg-white rounded transition-colors border shadow-none ${
+                hasError ? "border-red-500" : "border-gray-200"
+              }`}
+            >
+              <div 
+                className="flex items-center pl-3.5 pr-2.5 shrink-0 select-none cursor-pointer"
+                onClick={() => document.getElementById("mobile-input")?.focus()}
+              >
+                <span className="font-figtree font-medium text-xs md:text-sm text-neutral-800 tracking-normal">+91</span>
+                <span className="h-4 w-[1px] bg-[#d0d0d0] ml-2.5" />
+              </div>
+              <input
                 id="mobile-input"
                 type="tel"
-                maxLength={15}
+                maxLength={10}
                 value={mobile}
                 onChange={(e) => {
                   if (hasError) setHasError(false);
@@ -439,9 +514,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
                   setMobile(cleaned.slice(0, 10));
                 }}
                 placeholder="Enter Phone Number"
-                className={`w-full h-[3.0625rem] bg-white rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-zinc-500 pl-3.5 pr-32 md:pr-36 focus-visible:ring-0 focus-visible:ring-offset-0 transition-colors ${
-                  hasError ? "border-red-500 border-2 ring-1 ring-red-500" : "border-gray-200 border"
-                }`}
+                className="w-full h-full bg-transparent font-figtree font-medium text-xs md:text-sm leading-[1.4] tracking-normal text-black placeholder:text-zinc-500 pl-2.5 pr-32 md:pr-36 border-none outline-none focus:ring-0 focus:outline-none"
               />
               <button
                 type="button"

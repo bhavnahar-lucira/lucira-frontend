@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import { Edit2, Loader2, CheckCircle2 } from "lucide-react";
+import { Edit2, Loader2, CheckCircle2, X } from "lucide-react";
 import {
   sendOtpApi,
   verifyOtpApi,
@@ -47,7 +47,15 @@ function nitroEnrich({ email, phone, name, isConsented }) {
   } catch (_) { }
 }
 
-export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = "login" }) {
+export function CheckoutAuthForm({ 
+  onSuccess, 
+  initialMobile = "", 
+  initialStep = "login",
+  title = "Checkout Securely",
+  subtitle = "Login / Signup to proceed checkout",
+  buttonText = "CONTINUE",
+  onClose
+}) {
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -293,13 +301,37 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
   };
 
   return (
-    <div className={`w-full flex flex-col pt-0 md:pt-8 md:p-8 bg-white h-auto transition-all duration-300 ${isKeyboardOpen ? 'pb-[80px] md:pb-0' : 'pb-0'}`}>
+    <div className={`relative w-full flex flex-col pt-0 md:pt-8 md:p-8 bg-white h-auto transition-all duration-300 ${isKeyboardOpen ? 'pb-[80px] md:pb-0' : 'pb-0'}`}>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-1.5 rounded-full text-zinc-400 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer border-none bg-transparent"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4 md:w-5 md:h-5" />
+        </button>
+      )}
 
       {step === "login" && (
         <div className="flex flex-col space-y-4">
           <div>
-            <h2 className="text-[16px] md:text-[22px] lg:text-[1.4rem] font-semibold md:font-bold lg:font-semibold text-zinc-900 leading-[140%] md:leading-none max-md:font-figtree lg:mb-2">Checkout Securely</h2>
-            <p className="text-[12px] md:text-[13px] lg:text-[1rem] text-zinc-500 mt-1 md:mt-2 lg:mt-0 font-normal md:font-medium leading-[140%] md:leading-normal max-md:font-figtree">Login / Signup to proceed checkout</p>
+            {title && (
+              <h2 
+                className="text-[16px] md:text-[22px] lg:text-[1.4rem] font-semibold md:font-bold lg:font-semibold text-zinc-900 leading-[140%] md:leading-none max-md:font-figtree"
+                style={{
+                  fontSize: "1.2rem",
+                  marginBottom: "6px",
+                }}
+              >
+                {title}
+              </h2>
+            )}
+            {subtitle ? (
+              <p className="text-[12px] md:text-[13px] lg:text-[1rem] text-zinc-500 mt-1 md:mt-2 lg:mt-0 font-normal md:font-medium leading-[140%] md:leading-normal max-md:font-figtree">
+                {subtitle}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex items-center border border-zinc-200 rounded-[4px] h-[50px] px-4">
@@ -325,7 +357,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
             disabled={loading}
             className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-2 leading-none max-md:font-figtree lg:text-[1rem]"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "CONTINUE"}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (buttonText || "CONTINUE")}
           </Button>
         </div>
       )}
