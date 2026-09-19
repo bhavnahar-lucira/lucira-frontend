@@ -191,7 +191,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
           id: userId,
           mobile: canonicalPhone || mobile,
           phone: canonicalPhone || mobile,
-          email: `${mobile}@gmail.com`,
+          email: customer?.email || "",
           name: "Unlock Coupon User"
         });
       } else {
@@ -225,7 +225,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
           id: userId,
           mobile: canonicalPhone || mobile,
           phone: canonicalPhone || mobile,
-          email: customer?.email || `${mobile}@gmail.com`,
+          email: customer?.email || "",
           first_name: customer?.first_name || "Unlock Coupon",
           last_name: customer?.last_name || "User",
           party_id: null,
@@ -278,7 +278,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         const regData = await registerCustomer({
           firstName: "Unlock Coupon",
           lastName: "User",
-          email: `${mobile}@gmail.com`,
+          email: "",
           mobile: mobile,
           sessionId,
           tags: "pdp-offers-lead",

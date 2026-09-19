@@ -298,11 +298,24 @@ export const pushAddPaymentInfo = (paymentData) => pushEventModel("add_payment_i
 // journeys (initiated) and the booking is locked in (confirmed). Both are one
 // event across all three cards — `appointment_type` (video_call / visit_store /
 // try_at_home) says which, so GTM needs one tag per event, not one per card.
+const sanitizeEmail = (email) => {
+  if (!email || typeof email !== "string") return "";
+  const trimmed = email.trim();
+  // Filter out dummy/placeholder emails generated from phone numbers:
+  // e.g. 9967337489@gmail.com, 919967337489@gmail.com, +919967337489@gmail.com, or @lucirajewelry.com
+  if (/^\+?\d{7,15}@(gmail\.com|lucirajewelry\.com)$/i.test(trimmed)) {
+    return "";
+  }
+  return trimmed;
+};
+
 const normalizeUserPayload = (userData) => {
   if (!userData) return userData;
   const canonicalPhone = toE164(userData.mobile || userData.phone);
+  const cleanEmail = userData.email !== undefined ? sanitizeEmail(userData.email) : undefined;
   return {
     ...userData,
+    ...(cleanEmail !== undefined ? { email: cleanEmail } : {}),
     ...(canonicalPhone ? {
       mobile: canonicalPhone,
       phone: canonicalPhone,
@@ -314,8 +327,10 @@ const normalizeUserPayload = (userData) => {
 const normalizeCustomerPayload = (customerData) => {
   if (!customerData) return customerData;
   const canonicalPhone = toE164(customerData.mobile || customerData.phone);
+  const cleanEmail = customerData.email !== undefined ? sanitizeEmail(customerData.email) : undefined;
   return {
     ...customerData,
+    ...(cleanEmail !== undefined ? { email: cleanEmail } : {}),
     ...(canonicalPhone ? {
       mobile: canonicalPhone,
       phone: canonicalPhone,
