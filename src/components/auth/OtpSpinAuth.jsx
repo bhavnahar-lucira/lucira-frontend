@@ -674,7 +674,7 @@ export function OtpSpinAuth({
       )}
 
       <div className={`flex flex-col w-full p-5 md:p-8 md:justify-center md:w-[50%] md:self-stretch`}>
-        {!(isMobileView && step === "register") && (
+        {step !== "register" && (
           <div className="text-center mb-4">
             <img
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
