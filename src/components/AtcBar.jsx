@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { pushPromoClick, formatGtmPrice, getNumericId } from "@/lib/gtm";
 import { apiFetch } from "@/lib/api";
 import { calculateDistance } from "@/utils/distance";
+import { toE164, toTenDigit, cleanPhoneInput } from "@/lib/phone";
 
 const STORE_FOOTFALL_WEBHOOK = "https://store-footfall-pdp-forn-385594025448.asia-south1.run.app";
 
@@ -139,7 +140,7 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
       setShowFarStores(false);
       const cookiePincode = getCookieValue("user_pincode");
       setPincode(globalPincode || cookiePincode || "");
-      const rawPhone = (user?.phone || user?.mobile || "").replace(/^\+91/, "").replace(/^91/, "").slice(0, 10);
+      const rawPhone = toTenDigit(user?.phone || user?.mobile || "");
       setPhone(rawPhone);
       const accountName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.name || "";
       setName(accountName.slice(0, 50));
@@ -165,7 +166,7 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
         body: JSON.stringify({
           name: name.trim(),
           pincode,
-          phone,
+          phone: toE164(phone) || phone,
           product_title: product?.title || "",
           product_handle: product?.handle || "",
           variant_sku: activeVariant?.sku || "",
@@ -522,7 +523,7 @@ function StoreFootfallModal({ open, onClose, product, activeVariant, device }) {
                         pattern="[0-9]*"
                         maxLength={10}
                         value={phone}
-                        onChange={(e) => { setError(""); setPhone(e.target.value.replace(/\D/g, "").slice(0, 10)); }}
+                        onChange={(e) => { setError(""); setPhone(cleanPhoneInput(e.target.value)); }}
                         placeholder="Enter 10-digit number"
                         className="flex-1 h-12 px-4 border border-gray-200 rounded-r-sm font-figtree text-sm text-black placeholder:text-zinc-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all bg-white"
                       />

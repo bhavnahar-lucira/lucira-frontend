@@ -1,3 +1,5 @@
+import { toTenDigit } from "@/lib/phone";
+
 export const INDIAN_STATES = [
   "Andaman and Nicobar Islands",
   "Andhra Pradesh",
@@ -53,12 +55,8 @@ export const emptyAddressForm = {
 };
 
 export function normalizeAddressForm(address = {}, customer = {}) {
-  let phone = address.phone || customer.phone || customer.phoneNumber || customer.mobile || "";
-  if (phone.startsWith("+91")) {
-    phone = phone.replace("+91", "").trim();
-  } else if (phone.startsWith("91") && phone.length === 12) {
-    phone = phone.substring(2).trim();
-  }
+  let rawPhone = address.phone || customer.phone || customer.phoneNumber || customer.mobile || "";
+  let phone = toTenDigit(rawPhone);
 
   // Extract GSTIN from company field if it was packed there
   let rawCompany = address.company || "";

@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { pushCustomerData, pushMarketingData, pushPageView } from "@/lib/gtm";
 import { saveUtmsFromUrl } from "@/lib/checkout-crm";
+import { toE164 } from "@/lib/phone";
 
 // Helper to determine the page type following Shopify conventions
 const getPageType = (pathname) => {
@@ -66,9 +67,14 @@ export default function GtmPageView() {
   useEffect(() => {
     // 3. Push Customer Data if authenticated
     if (isAuthenticated && user) {
+      const canonicalPhone = toE164(user.mobile || user.phone);
       pushCustomerData({
+        id: user.id || "",
+        userId: canonicalPhone || user.id || "",
+        cuid: canonicalPhone || "",
         name: user.name || "",
-        mobile: user.mobile || "",
+        mobile: canonicalPhone || user.mobile || "",
+        phone: canonicalPhone || user.phone || "",
         email: user.email || "",
         device_type: window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop'
       });

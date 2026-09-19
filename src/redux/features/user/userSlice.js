@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { toE164 } from "@/lib/phone";
 
 const initialState = {
   user: null,
@@ -20,7 +21,16 @@ const userSlice = createSlice({
     login: (state, action) => {
       const { user, accessToken } = action.payload.user ? action.payload : { user: action.payload, accessToken: state.accessToken };
       
-      state.user = user;
+      let normalizedUser = user;
+      if (user) {
+        const canonicalPhone = toE164(user.mobile || user.phone);
+        normalizedUser = {
+          ...user,
+          ...(canonicalPhone ? { mobile: canonicalPhone, phone: canonicalPhone } : {}),
+        };
+      }
+
+      state.user = normalizedUser;
       state.accessToken = accessToken || null;
       state.isAuthenticated = !!accessToken; // Only authenticated if we have a token
       state.isAuthModalOpen = false;
@@ -46,7 +56,12 @@ const userSlice = createSlice({
     },
     updateUser: (state, action) => {
       if (state.user) {
-        state.user = { ...state.user, ...action.payload };
+        const canonicalPhone = toE164(action.payload.mobile || action.payload.phone || state.user.mobile || state.user.phone);
+        state.user = { 
+          ...state.user, 
+          ...action.payload,
+          ...(canonicalPhone ? { mobile: canonicalPhone, phone: canonicalPhone } : {})
+        };
         // Ensure name is updated if firstName/lastName changed
         if (action.payload.firstName || action.payload.lastName) {
           state.user.name = `${action.payload.firstName || state.user.firstName || ""} ${action.payload.lastName || state.user.lastName || ""}`.trim();
