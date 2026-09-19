@@ -102,7 +102,6 @@ export function AuthDialog({
         onClose={handleClose}
         detent="content"
         avoidKeyboard={true}
-        springConfig={{ stiffness: 380, damping: 32, mass: 0.35 }}
         style={{ zIndex: 2000 }}
       >
         <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !max-h-[95dvh] !z-[2000]">
