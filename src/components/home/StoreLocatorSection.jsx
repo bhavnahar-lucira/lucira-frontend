@@ -356,11 +356,11 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
               <div className="w-full h-full bg-neutral-200" />
             )}
 
-            {/* Bottom dark gradient shadow overlay */}
+            {/* Localized dark shadow overlay only around the h2 heading */}
             <div
-              className="absolute inset-x-0 bottom-0 h-[52%] pointer-events-none"
+              className="absolute bottom-0 left-0 w-[75%] sm:w-[65%] h-[48%] pointer-events-none"
               style={{
-                background: "linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.08) 80%, transparent 100%)",
+                background: "radial-gradient(ellipse at 0% 100%, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.38) 40%, rgba(0, 0, 0, 0.08) 70%, transparent 100%)",
               }}
             />
 
@@ -369,7 +369,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
 
             {/* Bottom-Left: Store Name */}
             <div className="absolute bottom-4 sm:bottom-5 left-4 sm:left-[18px] z-10 pr-16 pointer-events-none select-none">
-              <h2 className="font-figtree font-normal text-white text-[16px] leading-[100%] tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
+              <h2 className="font-figtree font-semibold text-white text-[16px] leading-[100%] tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
                 {storeLabel}
               </h2>
             </div>
