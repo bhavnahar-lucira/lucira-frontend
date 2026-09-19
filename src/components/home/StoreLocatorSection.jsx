@@ -18,6 +18,7 @@ import { pushPromoClick } from "@/lib/gtm";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
 import { isStoreActive } from "@/data/stores";
 import { storesForSurface, formatTimings, storeStatus, designsLink } from "@/lib/storeContent";
+import StoreFootfallModal from "@/components/common/StoreFootfallModal";
 function ServiceCard({ item }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-md bg-white px-3 py-4 text-center">
@@ -42,6 +43,7 @@ function ServiceCard({ item }) {
 export default function StoreLocatorSection({ locationId = "homepage", storePages = null, surface = "homepage" }) {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   // `isStoreActive` is the site-wide kill switch in src/data/stores.js;
@@ -317,7 +319,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
     const storeStatusObj = storeStatus(store);
     const storeImage = store.images?.homepage || store.images?.locator || store.images?.collection?.[0] || "";
     const storeLabel = store.experienceLabel || (store.city ? `${store.city} Store` : store.name);
-    const targetHref = "/pages/book-an-appointment";
+    const targetHref = designsLink(store);
 
     return (
       <div
@@ -437,20 +439,28 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           </div>
         </div>
 
-        {/* Centered CTA - redirects directly to book-an-appointment page */}
+        {/* Centered CTA - opens StoreFootfallModal matching PDP flow */}
         <div className="container-main relative z-10">
           <div className="mt-8 sm:mt-10 flex justify-center">
-            <Link
-              href="/pages/book-an-appointment"
+            <button
+              type="button"
               onClick={() => {
                 handleStoreCtaClick("Book A Store Visit");
+                setIsStoreModalOpen(true);
               }}
               className="inline-flex items-center justify-center w-fit md:w-auto px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors cursor-pointer shadow-sm"
             >
               BOOK A STORE VISIT
-            </Link>
+            </button>
           </div>
         </div>
+
+        {/* Store Footfall / Visit Modal (same flow as PDP) */}
+        <StoreFootfallModal
+          open={isStoreModalOpen}
+          onClose={() => setIsStoreModalOpen(false)}
+          locationId={locationId}
+        />
 
         {/* Scoped and global styles for store section */}
         <style jsx global>{`
