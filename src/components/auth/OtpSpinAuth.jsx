@@ -684,8 +684,6 @@ export function OtpSpinAuth({
               style={{
                 WebkitBackfaceVisibility: "hidden",
                 backfaceVisibility: "hidden",
-                WebkitTransform: "translate3d(-50%, -50%, 0)",
-                transform: "translate3d(-50%, -50%, 0)",
               }}
             />
           </div>
