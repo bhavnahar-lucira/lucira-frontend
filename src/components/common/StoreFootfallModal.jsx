@@ -257,6 +257,7 @@ export default function StoreFootfallModal({
   // Pre-fill on open
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSubmitted(false);
       setError("");
       setStoreData(null);
