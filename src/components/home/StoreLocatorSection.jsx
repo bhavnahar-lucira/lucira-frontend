@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushPromoClick } from "@/lib/gtm";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
-import BookAppointmentPopup from "./BookAppointmentPopup";
 import { isStoreActive } from "@/data/stores";
 import { storesForSurface, formatTimings, storeStatus, designsLink } from "@/lib/storeContent";
 function ServiceCard({ item }) {
@@ -43,7 +42,6 @@ function ServiceCard({ item }) {
 export default function StoreLocatorSection({ locationId = "homepage", storePages = null, surface = "homepage" }) {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isBookAppointmentOpen, setIsBookAppointmentOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   // `isStoreActive` is the site-wide kill switch in src/data/stores.js;
@@ -189,14 +187,6 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
     lastPointerTimeRef.current = performance.now();
     velocityRef.current = 0;
     momentumVelocityRef.current = 0; // stop any previous momentum instantly on contact
-
-    // For mouse, immediately capture so dragging outside the carousel container works reliably
-    if (e.pointerType === "mouse") {
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        hasCapturedRef.current = true;
-      } catch (_) {}
-    }
   };
 
   const handlePointerMove = (e) => {
@@ -210,12 +200,12 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
 
     // On touch devices, detect vertical page scroll vs horizontal carousel swipe
     if (isTouchRef.current && !hasCapturedRef.current) {
-      if (distY > distX && distY > 6) {
+      if (distY > distX && distY > 8) {
         // User is scrolling the page vertically: release drag to allow native page scroll
         isDraggingRef.current = false;
         return;
       }
-      if (distX > 6 && distX >= distY) {
+      if (distX > 8 && distX >= distY) {
         // User is swiping horizontally: capture pointer
         try {
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -226,12 +216,22 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
       }
     }
 
-    if (distX > 4) {
+    // For mouse on desktop, only capture pointer after real drag threshold (>8px)
+    if (!isTouchRef.current && !hasCapturedRef.current && distX > 8) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        hasCapturedRef.current = true;
+      } catch (_) {}
+    }
+
+    if (distX > 8) {
       hasDraggedRef.current = true;
       if (!isDragging) {
         setIsDragging(true);
       }
     }
+
+    if (!hasDraggedRef.current) return;
 
     const deltaX = e.clientX - lastPointerXRef.current;
     el.scrollLeft -= deltaX;
@@ -269,7 +269,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
     }
 
     const timeSinceLastMove = performance.now() - lastPointerTimeRef.current;
-    if (timeSinceLastMove < 100 && Math.abs(velocityRef.current) > 0.8) {
+    if (hasDraggedRef.current && timeSinceLastMove < 100 && Math.abs(velocityRef.current) > 0.8) {
       // Natural momentum flick in the swipe direction
       const clampedV = Math.max(Math.min(-velocityRef.current, 24), -24);
       momentumVelocityRef.current = clampedV;
@@ -317,7 +317,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
     const storeStatusObj = storeStatus(store);
     const storeImage = store.images?.homepage || store.images?.locator || store.images?.collection?.[0] || "";
     const storeLabel = store.experienceLabel || (store.city ? `${store.city} Store` : store.name);
-    const targetHref = designsLink(store);
+    const targetHref = "/pages/book-an-appointment";
 
     return (
       <div
@@ -336,7 +336,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
             }
             handleStoreCtaClick("Store Card", store.city);
           }}
-          className="group block relative w-full aspect-[16/10] select-none cursor-inherit"
+          className="group block relative w-full aspect-[16/10] select-none cursor-pointer"
         >
           {/* Masked Card Visual (Image + Gradient + Store Name) */}
           <div className="store-card-inverted-mask absolute inset-0 w-full h-full overflow-hidden bg-neutral-100">
@@ -437,27 +437,20 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           </div>
         </div>
 
-        {/* Centered CTA - button style same as others */}
-        <div className="container-main">
+        {/* Centered CTA - redirects directly to book-an-appointment page */}
+        <div className="container-main relative z-10">
           <div className="mt-8 sm:mt-10 flex justify-center">
-            <Button
-              type="button"
+            <Link
+              href="/pages/book-an-appointment"
               onClick={() => {
                 handleStoreCtaClick("Book A Store Visit");
-                setIsBookAppointmentOpen(true);
               }}
-              className="w-fit md:w-auto px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center w-fit md:w-auto px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors cursor-pointer shadow-sm"
             >
               BOOK A STORE VISIT
-            </Button>
+            </Link>
           </div>
         </div>
-
-        {/* Book Appointment Modal */}
-        <BookAppointmentPopup
-          isOpen={isBookAppointmentOpen}
-          onClose={() => setIsBookAppointmentOpen(false)}
-        />
 
         {/* Scoped and global styles for store section */}
         <style jsx global>{`
