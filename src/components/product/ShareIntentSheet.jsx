@@ -19,7 +19,7 @@ import { X } from "lucide-react";
 // Only used if SalesIQ has not loaded yet - same number and message shape the
 // floating action button and AtcBar already use, so the shopper still lands in
 // an existing thread rather than nowhere.
-const EXPERT_WHATSAPP_NUMBER = "+918976740895";
+const EXPERT_WHATSAPP_NUMBER = "+917208934782";
 
 // The clipboard fallback field is looked up by id rather than held in a ref:
 // the action list is built during render, and a ref read reachable from it trips

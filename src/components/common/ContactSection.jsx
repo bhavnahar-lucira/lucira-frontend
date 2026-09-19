@@ -106,7 +106,7 @@ export default function ContactSection() {
 
     setCookie("contactFormData", formData, 30);
     const waMessage = `Hi Lucira, I'd like to get in touch.\nName: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\nMessage: ${formData.message || "No message provided"}`;
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=+918976740895&text=${encodeURIComponent(waMessage)}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=+917208934782&text=${encodeURIComponent(waMessage)}`;
 
     window.open(whatsappUrl, "_blank");
     setSubmitted(true);
