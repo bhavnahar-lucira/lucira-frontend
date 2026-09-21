@@ -314,9 +314,7 @@ async function getProduct(handle) {
         .replace(/(\d+)\s*k\b/gi, "$1KT");
     }
 
-    let metal_color = (goldComp?.stone_color_code && goldComp.stone_color_code !== "NA")
-      ? goldComp.stone_color_code
-      : (v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]));
+    let metal_color = v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]);
 
     if (!metal_color) {
       const optColor = getOpt(options, ["color", "metal"]);
@@ -326,6 +324,10 @@ async function getProduct(handle) {
           metal_color = cleaned;
         }
       }
+    }
+
+    if (!metal_color && goldComp?.stone_color_code && goldComp.stone_color_code !== "NA") {
+      metal_color = goldComp.stone_color_code;
     }
 
     const varContext = `${v.title || ""} ${v.sku || ""} ${Object.values(options).join(" ")}`.toLowerCase();
