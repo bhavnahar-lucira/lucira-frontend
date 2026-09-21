@@ -88,6 +88,11 @@ export default function CollectionSlider ({ products = [], loading = false, coll
                 collectionHandle={collectionHandle}
                 priority={idx < priorityCount}
                 promoClickMeta={promoClickMeta}
+                /* No Try At Home / Virtual Try-On / Chat here. This slider is the
+                   homepage's product sections, where the job is to move the
+                   shopper into a collection, not to start a booking off a tile
+                   they have only just scrolled past. */
+                disableCtas
               />
             </SwiperSlide>
           ))}

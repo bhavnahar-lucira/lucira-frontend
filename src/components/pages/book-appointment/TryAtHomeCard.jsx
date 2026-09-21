@@ -40,7 +40,7 @@ function AvailabilityNote({ store }) {
   );
 }
 
-export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall }) {
+export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall, locationId = "book-an-appointment" }) {
   const [step, setStep] = React.useState("idle");
   const [pincode, setPincode] = React.useState("");
   const [pincodeError, setPincodeError] = React.useState("");
@@ -88,7 +88,7 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
     });
     pushPromoClick({
       creative_name: "book appointment try at home started",
-      location_id: "book-an-appointment",
+      location_id: locationId,
       promo_id: "try_at_home",
       promo_name: card.title,
     });
@@ -111,7 +111,7 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
         creative_name: nearest
           ? "book appointment try at home serviceable"
           : "book appointment try at home not serviceable",
-        location_id: "book-an-appointment",
+        location_id: locationId,
         promo_id: value,
         promo_name: nearest ? storeLabel(nearest) : "no store nearby",
       });
@@ -143,7 +143,7 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
     flow.complete({ ...payloadFor(values), verifiedVia });
     pushPromoClick({
       creative_name: "book appointment try at home booked",
-      location_id: "book-an-appointment",
+      location_id: locationId,
       promo_id: pincode,
       promo_name: store ? storeLabel(store) : "",
       ...appointmentPromoDetails(payloadFor(values)),
