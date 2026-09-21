@@ -75,11 +75,8 @@ export function AutoAuthPopup() {
           sessionStorage.setItem("lucira_login_popup_seen", "true");
         }
       }} 
-      initialStep="login"
+      initialStep="register"
       forceShowWheel={true}
-      overrideHeading="Your Lucira Reward Awaits!"
-      overrideSubtext="Sign Up To Get ₹500 Assured + Spin The Wheel!"
-      overrideButtonText="Request OTP & Spin"
     />
   );
 }
