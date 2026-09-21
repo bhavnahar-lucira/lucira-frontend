@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { INDIAN_STATES } from "@/lib/checkout/address-helpers";
+import { cleanPhoneInput } from "@/lib/phone";
 
 export function AddressForm({
   form,
@@ -133,7 +134,7 @@ export function AddressForm({
             placeholder="Phone (optional)"
             value={form.phone}
             maxLength={10}
-            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, ""))}
+            onChange={(e) => onChange("phone", cleanPhoneInput(e.target.value))}
             disabled={disablePhone}
             className="h-full grow bg-transparent outline-none text-[0.9375rem] lg:text-[1.0625rem] font-figtree text-zinc-900 placeholder:text-zinc-400 disabled:cursor-not-allowed"
           />

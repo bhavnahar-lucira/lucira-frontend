@@ -1,4 +1,5 @@
 // src/lib/gtm.js
+import { toE164 } from "@/lib/phone";
 
 // Cache for deduplicating rapid events
 const lastPushedEvents = new Map();
@@ -297,13 +298,63 @@ export const pushAddPaymentInfo = (paymentData) => pushEventModel("add_payment_i
 // journeys (initiated) and the booking is locked in (confirmed). Both are one
 // event across all three cards — `appointment_type` (video_call / visit_store /
 // try_at_home) says which, so GTM needs one tag per event, not one per card.
+const sanitizeEmail = (email) => {
+  if (!email || typeof email !== "string") return "";
+  const trimmed = email.trim();
+  // Filter out dummy/placeholder emails generated from phone numbers:
+  // e.g. 9967337489@gmail.com, 919967337489@gmail.com, +919967337489@gmail.com, or @lucirajewelry.com
+  if (/^\+?\d{7,15}@(gmail\.com|lucirajewelry\.com)$/i.test(trimmed)) {
+    return "";
+  }
+  return trimmed;
+};
+
+const normalizeUserPayload = (userData) => {
+  if (!userData) return userData;
+  const canonicalPhone = toE164(userData.mobile || userData.phone);
+  const cleanEmail = userData.email !== undefined ? sanitizeEmail(userData.email) : undefined;
+  return {
+    ...userData,
+    ...(cleanEmail !== undefined ? { email: cleanEmail } : {}),
+    ...(canonicalPhone ? {
+      mobile: canonicalPhone,
+      phone: canonicalPhone,
+      cuid: canonicalPhone,
+    } : {}),
+  };
+};
+
+const normalizeCustomerPayload = (customerData) => {
+  if (!customerData) return customerData;
+  const canonicalPhone = toE164(customerData.mobile || customerData.phone);
+  const cleanEmail = customerData.email !== undefined ? sanitizeEmail(customerData.email) : undefined;
+  return {
+    ...customerData,
+    ...(cleanEmail !== undefined ? { email: cleanEmail } : {}),
+    ...(canonicalPhone ? {
+      mobile: canonicalPhone,
+      phone: canonicalPhone,
+      cuid: canonicalPhone,
+    } : {}),
+  };
+};
+
 // The confirmed push sits on the shared lead path, so OTP and already-verified
 // journeys both fire it exactly once.
 // Map these to Meta's InitiateCheckout/Lead tags in GTM.
-export const pushAppointmentInitiated = (data) =>
-  pushToDataLayer({ event: "appointment_initiated", appointment: data });
-export const pushAppointmentConfirmed = (data) =>
-  pushToDataLayer({ event: "appointment_confirmed", appointment: data });
+export const pushAppointmentInitiated = (data) => {
+  const appointment = data && (data.phone || data.mobile)
+    ? { ...data, phone: toE164(data.phone || data.mobile) || data.phone || data.mobile }
+    : data;
+  pushToDataLayer({ event: "appointment_initiated", appointment });
+};
+
+export const pushAppointmentConfirmed = (data) => {
+  const appointment = data && (data.phone || data.mobile)
+    ? { ...data, phone: toE164(data.phone || data.mobile) || data.phone || data.mobile }
+    : data;
+  pushToDataLayer({ event: "appointment_confirmed", appointment });
+};
 
 export const pushPurchase = (purchaseData) => pushEventModel("purchase", purchaseData);
 export const pushPaymentFailure = (failureData) => pushEcommerceEvent("Payment failure", failureData);
@@ -323,7 +374,7 @@ export const pushRemoveFromWishlist = (data) => {
 export const pushCustomerData = (customerData) => {
   pushToDataLayer({
     event: 'customerData',
-    customer: customerData
+    customer: normalizeCustomerPayload(customerData)
   });
 };
 
@@ -346,21 +397,21 @@ export const pushNewsletterSubscription = (email) => {
 export const pushSignup = (userData) => {
   pushToDataLayer({
     event: "signup",
-    user: userData
+    user: normalizeUserPayload(userData)
   });
 };
 
 export const pushLogout = (userData) => {
   pushToDataLayer({
     event: 'logout',
-    user: userData // Standardized to lowercase 'user'
+    user: normalizeUserPayload(userData) // Standardized to lowercase 'user'
   });
 };
 
 export const pushLogin = (userData) => {
   pushToDataLayer({
     event: 'login',
-    user: userData // Standardized to lowercase 'user'
+    user: normalizeUserPayload(userData) // Standardized to lowercase 'user'
   });
 };
 

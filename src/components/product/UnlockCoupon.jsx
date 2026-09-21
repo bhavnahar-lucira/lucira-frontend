@@ -11,6 +11,7 @@ import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { pushLogin, pushSignup, pushPromoClick } from "@/lib/gtm";
+import { toE164, cleanPhoneInput } from "@/lib/phone";
 import { apiFetch, sendOtpApi, verifyOtpApi, registerCustomer } from "@/lib/api";
 
 const generateSessionId = () => {
@@ -249,19 +250,22 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
   async function handleLoginSuccess(data, isSignup = false) {
     const customer = data.user || data.customer;
     const userId = customer?.id;
+    const canonicalPhone = toE164(mobile || customer?.mobile || customer?.phone);
 
     try {
       if (isSignup) {
         pushSignup({
           id: userId,
-          mobile: mobile,
-          email: `${mobile}@gmail.com`,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
+          email: customer?.email || "",
           name: "Unlock Coupon User"
         });
       } else {
         pushLogin({
           id: userId,
-          mobile: mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: customer?.email,
           name: customer?.first_name ? `${customer.first_name} ${customer.last_name || ""}`.trim() : "User"
         });
@@ -276,7 +280,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         creative_name: "unlock coupons - pdp",
         location_id: typeof window !== "undefined" ? window.location.href : "",
         promo_id: String(productId || ""),
-        promo_name: mobile || "",
+        promo_name: canonicalPhone || mobile || "",
       });
     } catch (error) {
       console.error("Error pushing to dataLayer:", error);
@@ -286,8 +290,9 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
       login({
         user: {
           id: userId,
-          mobile: mobile,
-          email: customer?.email || `${mobile}@gmail.com`,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
+          email: customer?.email || "",
           first_name: customer?.first_name || "Unlock Coupon",
           last_name: customer?.last_name || "User",
           party_id: null,
@@ -340,7 +345,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
         const regData = await registerCustomer({
           firstName: "Unlock Coupon",
           lastName: "User",
-          email: `${mobile}@gmail.com`,
+          email: "",
           mobile: mobile,
           sessionId,
           tags: "pdp-offers-lead",
@@ -483,10 +488,34 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
             </h3>
           </div>
 
-          <div className="w-full">
-            <div
-              className={`relative flex items-center w-full h-[3.0625rem] bg-white rounded transition-colors border shadow-none ${
-                hasError ? "border-red-500" : "border-gray-200"
+<div className="w-full">
+  <div
+    className={`relative flex items-center w-full h-[3.0625rem] bg-white rounded transition-colors border shadow-none ${
+      hasError ? "border-red-500" : "border-gray-200"
+    }`}
+  >
+    <Input
+      id="mobile-input"
+      type="tel"
+      maxLength={15}
+      value={mobile}
+      onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
+      placeholder="Enter Phone Number"
+      className="w-full h-[3.0625rem] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pl-3.5 pr-32 md:pr-36 focus-visible:ring-0 focus-visible:ring-offset-0"
+    />
+    <button
+      onClick={handleSendOtp}
+      disabled={mobile.length < 10 || loading}
+      className={`h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center gap-2 transition-all duration-200 select-none shrink-0 ${
+        mobile.length === 10
+          ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer"
+          : "text-white/80 bg-[#A3908C] cursor-not-allowed"
+      }`}
+    >
+      {loading ? "Sending..." : "Send OTP"}
+    </button>
+  </div>
+</div>
               }`}
             >
               <div 
