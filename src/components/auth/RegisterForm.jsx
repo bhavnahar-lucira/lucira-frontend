@@ -419,12 +419,30 @@ export function RegisterForm({ initialMobile = "" }) {
 
             {step === "verify-otp" && (
               <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-900">Enter OTP <span className="text-red-500">*</span></label>
+                <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0">VERIFY OTP</p>
+                <div className="flex items-center justify-center gap-1.5 mb-5">
+                  <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center tracking-wider leading-relaxed capitalize max-w-[100%] m-0">{`Sent To +91 ${mobile}`}</p>
+                  <button
+                    onClick={() => {
+                      setOtp("");
+                      setStep("register");
+                      setTimeout(() => firstNameRef.current?.focus(), 50);
+                    }}
+                    className="text-[#5a413f] hover:text-[#3d2c2a] transition-colors bg-transparent border-none cursor-pointer flex items-center p-1"
+                    title="Edit phone number"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="space-y-2 mb-3">
                   <input
                     ref={otpRef}
                     autoFocus
                     placeholder="Enter 4-digit OTP"
+                    maxLength={4}
                     value={otp}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 4);
@@ -433,23 +451,24 @@ export function RegisterForm({ initialMobile = "" }) {
                         verifyExistingOtp(val);
                       }
                     }}
-                    className="w-full h-11 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all"
+                    className="w-full h-[45px] px-4 text-center text-sm md:text-base border border-[#e2e2e2] rounded-sm outline-none bg-white font-extrabold tracking-[0.3em]"
                   />
                 </div>
+                
                 <button
                   onClick={() => verifyExistingOtp(otp)}
                   disabled={loading}
-                  className="w-full h-11 bg-[#5f4745] hover:bg-[#4a3634] text-white text-sm font-semibold rounded transition-colors uppercase tracking-wider mt-2 shadow-md"
+                  className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-0 mb-[4px] bg-[#5a413f] rounded-lg disabled:opacity-50 shadow-md"
                 >
-                  {loading ? "VERIFYING..." : "VERIFY OTP"}
+                  {loading ? "VERIFYING..." : "VERIFY OTP & CLAIM"}
                 </button>
                 
-                <p className="text-center text-[13px] text-gray-600 mt-2">
+                <p className="text-center mt-2.5 text-sm md:text-base text-[#5B5B5B]">
                   {timer > 0 ? (
                     `Resend OTP in 00:${timer < 10 ? `0${timer}` : timer}`
                   ) : (
                     <span 
-                      className="text-[#b77766] font-bold underline cursor-pointer" 
+                      className="cursor-pointer underline font-bold text-[#b77766]" 
                       onClick={async () => {
                         setTimer(30);
                         await sendOtpApi(mobile);
@@ -460,12 +479,16 @@ export function RegisterForm({ initialMobile = "" }) {
                     </span>
                   )}
                 </p>
+
+                <div className="flex items-center justify-center gap-2 text-[12px] text-black mt-[16px]">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                    <path d="M16.6668 10.8333C16.6668 15 13.7502 17.0833 10.2835 18.2916C10.102 18.3531 9.90478 18.3502 9.72516 18.2833C6.25016 17.0833 3.3335 15 3.3335 10.8333V4.99997C3.3335 4.77895 3.42129 4.56699 3.57757 4.41071C3.73385 4.25443 3.94582 4.16663 4.16683 4.16663C5.8335 4.16663 7.91683 3.16663 9.36683 1.89997C9.54337 1.74913 9.76796 1.66626 10.0002 1.66626C10.2324 1.66626 10.4569 1.74913 10.6335 1.89997C12.0918 3.17497 14.1668 4.16663 15.8335 4.16663C16.0545 4.16663 16.2665 4.25443 16.4228 4.41071C16.579 4.56699 16.6668 4.77895 16.6668 4.99997V10.8333Z" stroke="#008000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                    <path d="M7.5 9.99992L9.16667 11.6666L12.5 8.33325" stroke="#008000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                  </svg>
+                  <span>100% Secured & Spam Free</span>
+                </div>
               </>
             )}
-          </div>
-
-          <div className="flex items-center justify-center gap-1 text-[11px] text-gray-400 mt-6 uppercase tracking-widest">
-            <span>100% Secured & Spam Free</span>
           </div>
         </div>
       </div>
