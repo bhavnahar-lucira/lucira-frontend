@@ -788,6 +788,94 @@
 }
 
 
+/* ---------------- PRODUCT CARD CTA ---------------- */
+
+/* The Try At Home / Book Video Call / Virtual Try-On / Chat with Expert button at
+   the foot of a collection card. Each one owns a brand colour, passed in as --cta
+   from the component so the four share one set of rules instead of four variants.
+
+   The hover fill is a layer that scales across, NOT a background-color transition:
+   same reasoning as the badge flag above — background-color repaints on the main
+   thread every frame, and a grid is 25 of these sitting under one cursor sweep.
+   Wiping from the left rather than fading gives the fill a direction, which reads
+   as the button responding rather than merely changing colour.
+
+   --cta-ink is the label colour once the fill is down. It is white for all four
+   today, but stays a per-button variable rather than a hardcoded white: a lighter
+   brand tone cannot carry white text, and the button that picks one needs to say
+   so at the call site instead of quietly becoming unreadable. */
+.product-cta {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--cta);
+  color: var(--cta);
+  transition: color 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-cta-fill {
+  position: absolute;
+  inset: 0;
+  background-color: var(--cta);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Everything that is not the fill rides above it. */
+.product-cta > :not(.product-cta-fill) {
+  position: relative;
+  z-index: 1;
+}
+
+/* The icon leans into the direction the fill travels. */
+.product-cta-icon {
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Gated on a real pointer: on a touch screen :hover latches after a tap and the
+   button would stay filled until something else is tapped. */
+@media (hover: hover) {
+  .product-cta:hover {
+    color: var(--cta-ink);
+  }
+
+  .product-cta:hover .product-cta-fill {
+    transform: scaleX(1);
+  }
+
+  .product-cta:hover .product-cta-icon {
+    transform: translateX(2px);
+  }
+}
+
+/* Keyboard focus gets the same treatment on every device — there is no tap to
+   latch, and a focused button that looks identical to an idle one is not focused
+   as far as the shopper is concerned. */
+.product-cta:focus-visible {
+  color: var(--cta-ink);
+  outline: 2px solid var(--cta);
+  outline-offset: 2px;
+}
+
+.product-cta:focus-visible .product-cta-fill {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .product-cta,
+  .product-cta-fill,
+  .product-cta-icon {
+    transition: none;
+  }
+
+  .product-cta-icon {
+    transform: none;
+  }
+}
+
+
 /* ---------------- RIPPLE ---------------- */
 
 .ripple {

@@ -14,7 +14,7 @@ export const COLLECTION_QUICK_LINKS = [
   // mobileOnly keeps the desktop Collections grid an even 2x4; drop the flag
   // once Infinity should appear on desktop too.
   { label: "Infinity Collection", href: "/collections/infinity", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_collection_icon_91329834-7874-40aa-9871-bc03dc51ac8b.png?v=1787825093", mobileOnly: true },
-  { label: "Butterfly Collection", href: "/collections/butterfly-collection", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_Collection.png?v=1787824137" },
+  { label: "Butterfly Collection", href: "/collections/butterfly-collection", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_collection_icon_868489d6-0006-419f-84c4-f87091b052db.png?v=1789973142" },
 ];
 
 export async function getMenu(handle = "main-menu-official") {
