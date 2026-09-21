@@ -138,6 +138,10 @@ export default function OrderDetailsPage() {
   }, [id, accessToken]);
 
   const handleReturnClick = () => {
+    if (isCancelled) {
+      toast.info("This order has been cancelled and cannot be returned");
+      return;
+    }
     if (order.fulfillmentStatus !== 'FULFILLED') {
       toast.info("Returns are available once your order is delivered");
       return;
@@ -187,12 +191,23 @@ export default function OrderDetailsPage() {
 
   // Map Shopify status to stage index
   let currentStageIndex = 0;
+  const isCancelled = Boolean(
+    order.cancelledAt || 
+    order.cancelled_at || 
+    order.cancelReason || 
+    order.cancel_reason || 
+    order.status === 'Cancelled' || 
+    order.status === 'Canceled' ||
+    (typeof order.status === 'string' && order.status.toUpperCase() === 'CANCELLED')
+  );
   const status = (order.fulfillmentStatus || "").toUpperCase();
   const fStatus = (order.financialStatus || "").toUpperCase();
 
   const isDelivered = status === 'FULFILLED' || status === 'DELIVERED';
 
-  if (isDelivered) {
+  if (isCancelled) {
+    currentStageIndex = 0;
+  } else if (isDelivered) {
     currentStageIndex = stages.length - 1;
   } else if (status === 'IN_PROGRESS' || status === 'IN_TRANSIT') {
     currentStageIndex = 6;
@@ -249,20 +264,34 @@ export default function OrderDetailsPage() {
         </div>
       </div>
 
+      {isCancelled && (
+        <div className="bg-red-50/70 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-xs md:text-sm font-medium flex items-center gap-2.5">
+          <AlertCircle size={16} className="shrink-0 text-red-500" />
+          <span>
+            This order was cancelled{order.cancelledAt ? ` on ${new Date(order.cancelledAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}` : ""}.
+            {order.cancelReason ? ` Reason: ${order.cancelReason}` : ""}
+          </span>
+        </div>
+      )}
+
       {/* Order Status Timeline */}
       <div className="bg-white rounded-[8px] border border-zinc-100 p-8 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">     
           <div className="flex items-center gap-3">
             <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${
-              isDelivered ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+              isCancelled
+                ? "bg-red-50 text-red-600 border border-red-200"
+                : isDelivered 
+                  ? "bg-emerald-50 text-emerald-600" 
+                  : "bg-blue-50 text-blue-600"
             }`}>
-              {isDelivered ? <CheckCircle2 size={14} /> : <Clock size={14} />}      
-              {isDelivered ? "Delivered" : "In Progress"}
+              {isCancelled ? <AlertCircle size={14} /> : isDelivered ? <CheckCircle2 size={14} /> : <Clock size={14} />}      
+              {isCancelled ? "Cancelled" : isDelivered ? "Delivered" : "In Progress"}
             </span>
           </div>
           <div className="flex items-center gap-2 text-zinc-400">
             <Truck size={18} />
-            <span className="text-xs font-bold uppercase tracking-widest">Live tracking available</span>        
+            <span className="text-xs font-bold uppercase tracking-widest">{isCancelled ? "Order cancelled" : "Live tracking available"}</span>        
           </div>
         </div>
 
@@ -507,13 +536,13 @@ export default function OrderDetailsPage() {
               <div className="space-y-3">
                 <button
                   onClick={handleReturnClick}
-                  disabled={order.fulfillmentStatus !== 'FULFILLED'}
-                  title={order.fulfillmentStatus !== 'FULFILLED' ? "Available once your order is delivered" : "Request a return"}
+                  disabled={order.fulfillmentStatus !== 'FULFILLED' || isCancelled}
+                  title={isCancelled ? "This order has been cancelled" : order.fulfillmentStatus !== 'FULFILLED' ? "Available once your order is delivered" : "Request a return"}
                   className="w-full flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
                   <div className="flex items-center gap-3">
                     <RefreshCcw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
-                    <span className="text-base font-bold">Request a Return</span>
+                    <span className="text-base font-bold">{isCancelled ? "Order Cancelled" : "Request a Return"}</span>
                   </div>
                   <ChevronLeft className="rotate-180 size-6" />
                 </button>

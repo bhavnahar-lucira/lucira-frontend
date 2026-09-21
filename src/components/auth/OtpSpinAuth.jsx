@@ -721,8 +721,8 @@ export function OtpSpinAuth({
 
         {step === "login" && (
           <>
-            <p className="mb-2 text-center text-[16px] leading-tight font-medium text-[#5a413f] capitalize mx-auto mt-0 cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "Your Lucira Reward Awaits!"}</p>
-            <p className="text-[12px] font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[300px] mx-auto cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideSubtext || "Sign up to get ₹500 Assured"}</p>
+            <p className="mb-2 text-center text-[16px] leading-tight font-medium text-[#5a413f] mx-auto mt-0 cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "Welcome to Lucira!"}</p>
+            <p className="text-[12px] font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed max-w-[320px] mx-auto cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideSubtext || "Login to access your rewards & exclusive benefits"}</p>
             <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
               <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
               <input
