@@ -40,6 +40,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
 import { apiFetch, fetchProductMedia } from "@/lib/api";
 import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
+import ProductCardCta from "./ProductCardCta";
 import { trackProductClick as trackSearchProductClick } from "@/lib/searchAnalytics";
 
 const clientReviewStatsCache = new Map();
@@ -52,15 +53,6 @@ const colorMap = {
   yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
   rose: "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)",
   white: "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)",
-};
-
-const parseOrnaverseComponent = (val) => {
-  if (!val) return null;
-  try {
-    return JSON.parse(val);
-  } catch (e) {
-    return null;
-  }
 };
 
 const formatPrice = (num) => {
@@ -187,7 +179,7 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, disableReviews = false, priority = false, disableLastViewed = false, promoClickMeta = null }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, disableReviews = false, priority = false, disableLastViewed = false, disableCtas = false, promoClickMeta = null }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
@@ -901,55 +893,6 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               <Link href={`/products/${product.handle}`} prefetch={false} onClick={handleProductClick} className="cursor-pointer">
                 <h3 className="text-[14px] lg:text-base font-figtree font-[450] leading-[1.6] tracking-normal hover:underline underline-offset-4 hover:text-gray-900 transition-colors line-clamp-1 min-h-5">{product.title}</h3>
               </Link>
-              <div className="flex flex-col justify-center items-start gap-2">
-                {(() => {
-                  const variantMeta = currentVariant?.metafields;
-                  const prodMeta = product.productMetafields;
-                  const ornaverseComp = parseOrnaverseComponent(variantMeta?.components || prodMeta?.components);
-                  const firstDiamond = ornaverseComp?.components?.find(c => (c.item_group_name === "Diamond" || (c.quality_code && c.quality_code !== "NA")) && (parseFloat(c.weight) > 0 || parseInt(c.pieces) > 0));
-                  const variantDiamonds = variantMeta?.diamonds?.filter(d => parseFloat(d.weight) > 0 || parseInt(d.pieces) > 0) || [];
-                  const parts = [];
-                  if (!!firstDiamond || variantDiamonds.length > 0) {
-                    const quality = (firstDiamond?.quality_code && firstDiamond?.stone_color_code && firstDiamond.quality_code !== "NA" && firstDiamond.stone_color_code !== "NA") ? `${firstDiamond.quality_code}, ${firstDiamond.stone_color_code}` : (firstDiamond?.purity || variantDiamonds[0]?.quality || prodMeta?.quality);
-                    const totalWeight = variantDiamonds.length > 0 ? variantDiamonds.reduce((sum, d) => sum + parseFloat(d.weight || 0), 0) : 0;
-                    const carat = totalWeight > 0 ? `${Number(totalWeight.toFixed(3))}ct` : (firstDiamond?.weight ? `${firstDiamond.weight}ct` : prodMeta?.carat_range);
-                    if (quality && quality !== "NA") parts.push(quality);
-                    if (carat && carat !== "NA" && !String(carat).startsWith("0ct")) parts.push(carat);
-                  }
-                  if (parts.length === 0) {
-                    let metalPurity = variantMeta?.metal_purity;
-                    // Fallback: some collections (e.g. Nosepins) don't get metal_purity
-                    // mapped onto the variant, but the karat is in the variant/colour
-                    // label ("14KT Yellow Gold"). Derive it so the card matches others.
-                    if (!metalPurity) {
-                      const km = String(currentVariant?.color || currentVariant?.title || "")
-                        .match(/\b(9|10|14|18|22|24)\s*K(?:T)?\b/i);
-                      if (km) metalPurity = `${km[1]}KT`;
-                    }
-                    const isPlatinum = activeBase === "plt" || String(product.title).toLowerCase().includes("platinum");
-                    if (metalPurity) {
-                      const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
-                      if (mp === "pt950" || mp === "plt" || mp === "platinum") {
-                        metalPurity = "PLT";
-                      } else {
-                        const km = mp.match(/^(\d+)(k|kt|ct)$/);
-                        if (km) metalPurity = `${km[1]}KT`;
-                      }
-                    } else if (isPlatinum) {
-                      metalPurity = "PLT";
-                    }
-                    
-                    if (metalPurity) {
-                      parts.push(metalPurity);
-                    }
-                  }
-                  const weightVal = variantMeta?.metal_weight || variantMeta?.gross_weight || prodMeta?.weight || prodMeta?.gross_weight || currentVariant?.weight;
-                  const weight = (weightVal && parseFloat(weightVal) > 0) ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
-                  if (weight) parts.push(weight);
-                  if (parts.length === 0) return null;
-                  return <p className="font-figtree text-[12px] lg:text-sm font-light lg:font-medium text-black lg:text-gray-500 leading-[1.4] tracking-normal mt-0.5">{parts.join(" · ")}</p>;
-                })()}
-              </div>
             </div>
 
             {productOffers.length > 0 && (
@@ -965,6 +908,22 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                   </AnimatePresence>
                 </div>
               </div>
+            )}
+
+            {/* Browsing surfaces opt out: a homepage carousel is there to get the
+                shopper INTO a collection, and a booking CTA on every tile competes
+                with that. It stays on the collection grid, where they are already
+                looking at one piece at a time. */}
+            {!disableCtas && (
+              <ProductCardCta
+                product={product}
+                currentVariant={currentVariant}
+                inStock={isVariantInStock}
+                index={index}
+                price={displayPrice}
+                comparePrice={displayComparePrice}
+                image={galleryImages?.[0]?.url || product.image?.url || ""}
+              />
             )}
           </div>
         </div>

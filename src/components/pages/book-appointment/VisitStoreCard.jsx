@@ -36,7 +36,7 @@ import {
 } from "@/lib/bookAppointment";
 import { pushPromoClick, pushAppointmentInitiated } from "@/lib/gtm";
 
-export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall }) {
+export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose, onBookVideoCall, locationId = "book-an-appointment" }) {
   const [step, setStep] = React.useState("idle");
   const [pincode, setPincode] = React.useState("");
   const [pincodeError, setPincodeError] = React.useState("");
@@ -89,7 +89,7 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
     });
     pushPromoClick({
       creative_name: "book appointment store visit started",
-      location_id: "book-an-appointment",
+      location_id: locationId,
       promo_id: "visit_store",
       promo_name: card.title,
     });
@@ -113,7 +113,7 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
         creative_name: nearest
           ? "book appointment store found nearby"
           : "book appointment no store nearby",
-        location_id: "book-an-appointment",
+        location_id: locationId,
         promo_id: value,
         promo_name: nearest ? storeLabel(nearest) : "no store nearby",
       });
@@ -156,7 +156,7 @@ export default function VisitStoreCard({ card, open, fillHeight, onOpen, onClose
     flow.complete({ ...payloadFor(values), verifiedVia });
     pushPromoClick({
       creative_name: "book appointment store visit booked",
-      location_id: "book-an-appointment",
+      location_id: locationId,
       promo_id: pincode,
       promo_name: storeLabel(store),
       store_address: storeAddress(store),

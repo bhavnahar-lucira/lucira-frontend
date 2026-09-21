@@ -14,7 +14,7 @@ import { useBookingFlow, appointmentPromoDetails } from "./useBookingFlow";
 import { APPOINTMENT_TYPES } from "@/lib/bookAppointment";
 import { pushPromoClick, pushAppointmentInitiated } from "@/lib/gtm";
 
-export default function VideoCallCard({ card, open, fillHeight, onOpen, onClose }) {
+export default function VideoCallCard({ card, open, fillHeight, onOpen, onClose, locationId = "book-an-appointment" }) {
   const [step, setStep] = React.useState("idle");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
 
@@ -54,7 +54,7 @@ export default function VideoCallCard({ card, open, fillHeight, onOpen, onClose 
     });
     pushPromoClick({
       creative_name: "book appointment video call started",
-      location_id: "book-an-appointment",
+      location_id: locationId,
       promo_id: "video_call",
       promo_name: card.title,
     });
@@ -79,7 +79,7 @@ export default function VideoCallCard({ card, open, fillHeight, onOpen, onClose 
     flow.complete({ ...payloadFor(values), verifiedVia });
     pushPromoClick({
       creative_name: "book appointment video call booked",
-      location_id: "book-an-appointment",
+      location_id: locationId,
       promo_id: "video_call",
       promo_name: card.title,
       ...appointmentPromoDetails(payloadFor(values)),

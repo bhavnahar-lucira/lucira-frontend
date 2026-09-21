@@ -34,7 +34,7 @@ export default function Navbar({ hideTop, menuData }) {
           const colTitle = (col.title || '').toLowerCase();
           
           if (colTitle.includes('others')) {
-            const kidsIcon = 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Kids_Collections.png?v=1787824033';
+            const kidsIcon = 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Kid_s_collection_icon_b4d16249-d495-4f33-a0e4-b80538fcbf7d.png?v=1789973143';
             const items = (col.items || []).map(i =>
               i.label === 'Kids Collection' ? { ...i, menuIcon: kidsIcon } : i
             );
