@@ -121,7 +121,7 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
         mobile: canonicalPhone || mobile,
         phone: canonicalPhone || mobile,
         email: user?.email,
-        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
+        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
       });
     }
 
@@ -136,9 +136,9 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
           last_name: user?.last_name,
           party_id: ornaUser?.party_id || null,
           name:
-            user?.first_name && user?.last_name
-              ? `${user.first_name} ${user.last_name}`
-              : "User",
+            user?.first_name
+              ? `${user.first_name} ${user.last_name || ""}`.trim()
+              : (canonicalPhone || mobile || ""),
         },
         accessToken: data.accessToken,
       })

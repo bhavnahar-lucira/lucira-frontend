@@ -259,7 +259,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
           mobile: canonicalPhone || mobile,
           phone: canonicalPhone || mobile,
           email: customer?.email || "",
-          name: "Unlock Coupon User"
+          name: canonicalPhone || mobile || ""
         });
       } else {
         pushLogin({
@@ -267,7 +267,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
           mobile: canonicalPhone || mobile,
           phone: canonicalPhone || mobile,
           email: customer?.email,
-          name: customer?.first_name ? `${customer.first_name} ${customer.last_name || ""}`.trim() : "User"
+          name: customer?.first_name ? `${customer.first_name} ${customer.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
         });
       }
     } catch (err) {
@@ -293,12 +293,12 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
           mobile: canonicalPhone || mobile,
           phone: canonicalPhone || mobile,
           email: customer?.email || "",
-          first_name: customer?.first_name || "Unlock Coupon",
-          last_name: customer?.last_name || "User",
+          first_name: customer?.first_name || canonicalPhone || mobile || "",
+          last_name: customer?.last_name || "",
           party_id: null,
-          name: customer?.first_name && customer?.last_name 
-            ? `${customer.first_name} ${customer.last_name}` 
-            : "Unlock Coupon User",
+          name: customer?.first_name 
+            ? `${customer.first_name} ${customer.last_name || ""}`.trim() 
+            : (canonicalPhone || mobile || ""),
         },
         accessToken: data.accessToken,
       })
@@ -343,8 +343,8 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         const regData = await registerCustomer({
-          firstName: "Unlock Coupon",
-          lastName: "User",
+          firstName: mobile,
+          lastName: "",
           email: "",
           mobile: mobile,
           sessionId,
@@ -488,38 +488,15 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
             </h3>
           </div>
 
-<div className="w-full">
-  <div
-    className={`relative flex items-center w-full h-[3.0625rem] bg-white rounded transition-colors border shadow-none ${
-      hasError ? "border-red-500" : "border-gray-200"
-    }`}
-  >
-    <Input
-      id="mobile-input"
-      type="tel"
-      maxLength={15}
-      value={mobile}
-      onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
-      placeholder="Enter Phone Number"
-      className="w-full h-[3.0625rem] bg-white border-gray-200 rounded font-figtree font-medium text-xs leading-[1.4] tracking-normal text-black placeholder:text-black pl-3.5 pr-32 md:pr-36 focus-visible:ring-0 focus-visible:ring-offset-0"
-    />
-    <button
-      onClick={handleSendOtp}
-      disabled={mobile.length < 10 || loading}
-      className={`h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center gap-2 transition-all duration-200 select-none shrink-0 ${
-        mobile.length === 10
-          ? "text-white bg-[#5A413F] hover:bg-[#5A413F]/90 cursor-pointer"
-          : "text-white/80 bg-[#A3908C] cursor-not-allowed"
-      }`}
-    >
-      {loading ? "Sending..." : "Send OTP"}
-    </button>
-  </div>
-</div>
+          <div className="w-full">
+            <div
+              className={`relative flex items-center w-full h-[3.0625rem] bg-white rounded transition-colors border shadow-none ${
+                hasError ? "border-red-500" : "border-gray-200"
               }`}
             >
               <div 
-                className="flex items-center pl-3.5 pr-2.5 shrink-0 select-none cursor-pointer"
+                className="flex items-center px-[10px] shrink-0 select-none cursor-pointer"
+                style={{ padding: "0 10px" }}
                 onClick={() => document.getElementById("mobile-input")?.focus()}
               >
                 <span className="font-figtree font-medium text-xs md:text-sm text-neutral-800 tracking-normal">+91</span>
@@ -532,15 +509,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
                 value={mobile}
                 onChange={(e) => {
                   if (hasError) setHasError(false);
-                  let cleaned = e.target.value.replace(/\D/g, "");
-                  if (cleaned.length > 10) {
-                    if (cleaned.startsWith("91")) {
-                      cleaned = cleaned.slice(2);
-                    } else if (cleaned.startsWith("0")) {
-                      cleaned = cleaned.slice(1);
-                    }
-                  }
-                  setMobile(cleaned.slice(0, 10));
+                  setMobile(cleanPhoneInput(e.target.value));
                 }}
                 placeholder="Enter Phone Number"
                 className="w-full h-full bg-transparent font-figtree font-medium text-xs md:text-sm leading-[1.4] tracking-normal text-black placeholder:text-zinc-500 pl-2.5 pr-32 md:pr-36 border-none outline-none focus:ring-0 focus:outline-none"

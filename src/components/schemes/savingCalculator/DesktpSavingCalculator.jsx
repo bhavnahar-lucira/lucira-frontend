@@ -272,8 +272,8 @@ const DesktpSavingCalculator = () => {
                       if (!ornaProfile?.party_id) {
                         // Create customer in Ornaverse in background
                         await createOrnaverseCustomer({
-                          first_name: user.first_name || "User",
-                          last_name: user.last_name || "Customer",
+                          first_name: user.first_name || mobile10 || "",
+                          last_name: user.last_name || "",
                           phone: mobile10,
                           email: user.email || `${mobile10}@lucira.internal`,
                         });

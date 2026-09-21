@@ -130,7 +130,7 @@ export function CheckoutAuthForm({
         mobile: canonicalPhone || mobile,
         phone: canonicalPhone || mobile,
         email: user?.email,
-        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
+        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
       });
     } else {
       pushLogin({
@@ -138,7 +138,7 @@ export function CheckoutAuthForm({
         mobile: canonicalPhone || mobile,
         phone: canonicalPhone || mobile,
         email: user?.email,
-        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
+        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
       });
     }
 
@@ -151,7 +151,9 @@ export function CheckoutAuthForm({
           email: user?.email,
           first_name: user?.first_name,
           last_name: user?.last_name,
-          name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : "User",
+          name: user?.first_name
+            ? `${user.first_name} ${user.last_name || ""}`.trim()
+            : (canonicalPhone || mobile || ""),
         },
         accessToken: data.accessToken,
       })

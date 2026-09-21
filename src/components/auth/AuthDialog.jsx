@@ -57,7 +57,7 @@ export function AuthDialog({
   // open on the success step until the user dismisses it themselves.
   const isOpen = open || currentStep === "success";
 
-  const defaultTitle = pathname === "/checkout/cart" ? "Sign Up To Get Assured Rewards" : "Checkout Securely";
+  const defaultTitle = pathname === "/checkout/cart" ? "Unlock Your Benefits" : "Checkout Securely";
   const defaultSubtitle = pathname === "/checkout/cart" ? "" : "Login / Signup to proceed checkout";
 
   const hasHeadingOverride = overrideHeading !== undefined && overrideHeading !== null && overrideHeading !== "";

@@ -7,13 +7,8 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
-import { useSelector } from "react-redux";
-import { selectPincode } from "@/redux/features/user/userSlice";
-import { useAuth } from "@/hooks/useAuth";
-import { pushPromoClick, formatGtmPrice, getNumericId } from "@/lib/gtm";
-import { apiFetch } from "@/lib/api";
-import { calculateDistance } from "@/utils/distance";
-import { toE164, toTenDigit, cleanPhoneInput } from "@/lib/phone";
+import { pushPromoClick } from "@/lib/gtm";
+import StoreFootfallModal from "@/components/common/StoreFootfallModal";
 
 // ─── Cart Icon SVG ─────────────────────────────────────────────────────────────
 function CartSvg() {
