@@ -81,6 +81,13 @@ export default function MyOrdersPage() {
                 (typeof order.status === 'string' && order.status.toUpperCase() === 'CANCELLED')
               );
               const fStatus = (order.fulfillmentStatus || order.status || "").toUpperCase();
+              let customStatus = order.status;
+              if (customStatus) {
+                const normalized = customStatus.toLowerCase().replace(/[^a-z]/g, '');
+                if (normalized === 'pogenerated') customStatus = 'In Progress';
+                if (normalized === 'readytoinvoice' || normalized === 'readytoship') customStatus = 'Dispatch';
+              }
+
               return {
                 ...order,
                 id: order.id,
@@ -91,6 +98,7 @@ export default function MyOrdersPage() {
                   day: 'numeric'
                 }) : "N/A"),
                 status: isCancelled ? 'Cancelled' :
+                  (customStatus && !['FULFILLED', 'UNFULFILLED', 'PARTIAL'].includes(customStatus.toUpperCase())) ? customStatus :
                   (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
                   (fStatus === 'PARTIAL' || fStatus === 'IN_TRANSIT' || fStatus === 'IN_PROGRESS') ? 'In Transit' : 'Processing',
                 amount: order.amount || new Intl.NumberFormat('en-IN', {

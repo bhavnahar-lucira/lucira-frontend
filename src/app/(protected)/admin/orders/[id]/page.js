@@ -189,7 +189,7 @@ export default function OrderDetailsPage() {
     "Delivered"
   ];
 
-  // Map Shopify status to stage index
+  // Map Shopify & custom ERP status to stage index
   let currentStageIndex = 0;
   const isCancelled = Boolean(
     order.cancelledAt || 
@@ -202,17 +202,55 @@ export default function OrderDetailsPage() {
   );
   const status = (order.fulfillmentStatus || "").toUpperCase();
   const fStatus = (order.financialStatus || "").toUpperCase();
+  const rawStatus = (order.reason_status_description || order.status || "").toLowerCase();
 
-  const isDelivered = status === 'FULFILLED' || status === 'DELIVERED';
+  const isDelivered = status === 'FULFILLED' || status === 'DELIVERED' || rawStatus.includes('deliver');
+
+  const normalizedStatus = rawStatus.replace(/[^a-z0-9]/g, '');
 
   if (isCancelled) {
     currentStageIndex = 0;
   } else if (isDelivered) {
-    currentStageIndex = stages.length - 1;
-  } else if (status === 'IN_PROGRESS' || status === 'IN_TRANSIT') {
+    currentStageIndex = 7;
+  } else if (
+    normalizedStatus.includes('transit') || 
+    normalizedStatus.includes('shipped') || 
+    normalizedStatus.includes('outfordelivery') || 
+    status === 'IN_PROGRESS' || 
+    status === 'IN_TRANSIT'
+  ) {
     currentStageIndex = 6;
-  } else if (fStatus === 'PAID') {
+  } else if (
+    normalizedStatus.includes('dispatch') || 
+    normalizedStatus.includes('packed') || 
+    normalizedStatus.includes('readytoship') ||
+    normalizedStatus.includes('readytoinvoice')
+  ) {
+    currentStageIndex = 5;
+  } else if (
+    normalizedStatus.includes('certif') || 
+    normalizedStatus.includes('hallmark')
+  ) {
+    currentStageIndex = 4;
+  } else if (
+    normalizedStatus.includes('quality') || 
+    normalizedStatus.includes('qc')
+  ) {
+    currentStageIndex = 3;
+  } else if (
+    normalizedStatus.includes('manufactur') || 
+    normalizedStatus.includes('production') || 
+    normalizedStatus.includes('making') ||
+    normalizedStatus.includes('pogenerated')
+  ) {
+    currentStageIndex = 2;
+  } else if (
+    normalizedStatus.includes('process') || 
+    fStatus === 'PAID'
+  ) {
     currentStageIndex = 1;
+  } else {
+    currentStageIndex = 0;
   }
 
   // Ensure index is within bounds
@@ -282,11 +320,11 @@ export default function OrderDetailsPage() {
               isCancelled
                 ? "bg-red-50 text-red-600 border border-red-200"
                 : isDelivered 
-                  ? "bg-emerald-50 text-emerald-600" 
-                  : "bg-blue-50 text-blue-600"
+                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200" 
+                  : "bg-blue-50 text-blue-600 border border-blue-200"
             }`}>
               {isCancelled ? <AlertCircle size={14} /> : isDelivered ? <CheckCircle2 size={14} /> : <Clock size={14} />}      
-              {isCancelled ? "Cancelled" : isDelivered ? "Delivered" : "In Progress"}
+              {isCancelled ? "Cancelled" : stages[currentStageIndex]}
             </span>
           </div>
           <div className="flex items-center gap-2 text-zinc-400">
@@ -336,11 +374,15 @@ export default function OrderDetailsPage() {
                     <p className={`text-[10px] font-bold uppercase tracking-widest ${isCompleted ? "text-zinc-900" : "text-zinc-400"}`}>
                       {stage}
                     </p>
-                    {index === 0 && (
+                    {index === 0 ? (
                       <p className="text-[12px] text-zinc-900 font-medium">
-                        {new Date(order.processedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                        {order.processedAt ? new Date(order.processedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : ""}
                       </p>
-                    )}
+                    ) : (isCurrent && order.documentDate) ? (
+                      <p className="text-[12px] text-zinc-900 font-medium">
+                        {new Date(order.documentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               );
