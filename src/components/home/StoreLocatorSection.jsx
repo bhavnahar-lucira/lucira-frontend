@@ -44,7 +44,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingState, setIsDraggingState] = useState(false);
 
   // `isStoreActive` is the site-wide kill switch in src/data/stores.js;
   // the dashboard's own `published` flag is applied by `storesForSurface`.
@@ -59,105 +59,148 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
     });
   };
 
-  const scrollRef = useRef(null);
-  const set1Ref = useRef(null);
-  const isHoveredRef = useRef(false);
-  const isDraggingRef = useRef(false);
-  const hasDraggedRef = useRef(false);
-  const hasCapturedRef = useRef(false);
-  const isTouchRef = useRef(false);
-
-  const pointerDownXRef = useRef(0);
-  const pointerDownYRef = useRef(0);
-  const lastPointerXRef = useRef(0);
-  const lastPointerTimeRef = useRef(0);
-  const velocityRef = useRef(0);
-  const momentumVelocityRef = useRef(0);
-  const singleWidthRef = useRef(0);
-  const pauseUntilRef = useRef(0);
-
-  // Ensure each set has at least 5 stores so that 1 set is always > viewport width
+  // Ensure each group has at least 5 stores so that 1 set is always > viewport width
   const baseStores = stores.length > 0 && stores.length < 5 ? [...stores, ...stores] : stores;
 
-  // Initialize scroll position & measure widths on mount and resize
-  useEffect(() => {
-    if (surface !== "homepage") return;
-    const el = scrollRef.current;
-    const set1 = set1Ref.current;
-    if (!el || !set1) return;
+  const containerRef = useRef(null);
+  const trackRef = useRef(null);
+  const group1Ref = useRef(null);
 
-    const measureAndInit = () => {
-      if (!set1 || !el) return;
-      const w = set1.offsetWidth;
-      if (w > 0) {
-        singleWidthRef.current = w;
-        // Start in the center set (Set 2) if not already initialized
-        if (el.scrollLeft === 0 || el.scrollLeft < w * 0.4 || el.scrollLeft >= w * 2.6) {
-          el.scrollLeft = w;
+  const xPosRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const isHoveredRef = useRef(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const lastMoveXRef = useRef(0);
+  const lastMoveTimeRef = useRef(0);
+  const dragVelocityRef = useRef(0);
+  const momentumRef = useRef(0);
+  const isDirectionDeterminedRef = useRef(false);
+  const isScrollingVerticalRef = useRef(false);
+
+  // Unified Drag Handlers
+  const onDragStart = (clientX, clientY) => {
+    isDraggingRef.current = true;
+    setIsDraggingState(true);
+    hasDraggedRef.current = false;
+    isDirectionDeterminedRef.current = false;
+    isScrollingVerticalRef.current = false;
+    momentumRef.current = 0;
+    startXRef.current = clientX;
+    startYRef.current = clientY;
+    lastMoveXRef.current = clientX;
+    lastMoveTimeRef.current = performance.now();
+    dragVelocityRef.current = 0;
+  };
+
+  const onDragMove = (clientX, clientY, e) => {
+    if (!isDraggingRef.current) return;
+
+    const dx = clientX - startXRef.current;
+    const dy = clientY - startYRef.current;
+
+    // For touch devices, verify whether this gesture is vertical page scrolling or horizontal carousel drag
+    if (!isDirectionDeterminedRef.current) {
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+        isDirectionDeterminedRef.current = true;
+        if (Math.abs(dy) > Math.abs(dx)) {
+          // Vertical page scroll: release horizontal drag immediately
+          isScrollingVerticalRef.current = true;
+          isDraggingRef.current = false;
+          setIsDraggingState(false);
+          return;
         }
+      } else {
+        return;
       }
-    };
+    }
 
-    measureAndInit();
-    const timer = setTimeout(measureAndInit, 120);
+    if (isScrollingVerticalRef.current) return;
 
-    const ro = new ResizeObserver(() => {
-      measureAndInit();
-    });
-    ro.observe(set1);
-    window.addEventListener("resize", measureAndInit);
+    if (e && e.cancelable) {
+      e.preventDefault();
+    }
 
-    return () => {
-      clearTimeout(timer);
-      ro.disconnect();
-      window.removeEventListener("resize", measureAndInit);
-    };
-  }, [surface, stores.length]);
+    if (Math.abs(dx) > 5) {
+      hasDraggedRef.current = true;
+    }
 
-  // Unified 60fps/120fps continuous marquee + momentum decay + wrap engine
+    const stepDx = clientX - lastMoveXRef.current;
+    xPosRef.current += stepDx;
+
+    const singleWidth = group1Ref.current?.offsetWidth || 0;
+    if (singleWidth > 0) {
+      while (xPosRef.current <= -singleWidth) xPosRef.current += singleWidth;
+      while (xPosRef.current > 0) xPosRef.current -= singleWidth;
+    }
+
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translate3d(${xPosRef.current}px, 0, 0)`;
+    }
+
+    const now = performance.now();
+    const dt = Math.max(now - lastMoveTimeRef.current, 8);
+    const v = (stepDx / dt) * 16.67;
+    dragVelocityRef.current = dragVelocityRef.current * 0.3 + v * 0.7;
+    lastMoveXRef.current = clientX;
+    lastMoveTimeRef.current = now;
+  };
+
+  const onDragEnd = () => {
+    if (!isDraggingRef.current && !isScrollingVerticalRef.current) return;
+    isDraggingRef.current = false;
+    setIsDraggingState(false);
+
+    const timeSinceLast = performance.now() - lastMoveTimeRef.current;
+    if (hasDraggedRef.current && timeSinceLast < 100 && Math.abs(dragVelocityRef.current) > 0.8) {
+      momentumRef.current = Math.max(Math.min(dragVelocityRef.current, 28), -28);
+    } else {
+      momentumRef.current = 0;
+    }
+
+    if (hasDraggedRef.current) {
+      setTimeout(() => {
+        hasDraggedRef.current = false;
+      }, 150);
+    }
+  };
+
+  // Hardware-accelerated 60/120fps auto-scroll + momentum loop
   useEffect(() => {
     if (surface !== "homepage") return;
-    const el = scrollRef.current;
-    if (!el) return;
 
     let animId;
     let lastTime = performance.now();
-    const speed = 0.6; // elegant luxury pace (~36px/sec)
+    const autoSpeed = 1.8; // Brisk and lively speed (~110px/sec)
 
     const tick = (now) => {
-      const deltaMs = Math.min(now - lastTime, 50);
-      const deltaFactor = deltaMs / 16.67;
+      const dt = Math.min(now - lastTime, 50);
+      const factor = dt / 16.67;
       lastTime = now;
 
-      const singleWidth = singleWidthRef.current || set1Ref.current?.offsetWidth || 0;
+      const singleWidth = group1Ref.current?.offsetWidth || 0;
 
-      if (singleWidth > 0 && el) {
-        // Seamless circular wrap across buffer sets
-        const wrap = () => {
-          while (el.scrollLeft >= singleWidth * 2) {
-            el.scrollLeft -= singleWidth;
-          }
-          while (el.scrollLeft < singleWidth) {
-            el.scrollLeft += singleWidth;
-          }
-        };
-
-        if (isDraggingRef.current) {
-          wrap();
-        } else {
-          // Momentum physics after swipe/drag flick
-          if (Math.abs(momentumVelocityRef.current) > 0.05) {
-            el.scrollLeft += momentumVelocityRef.current * deltaFactor;
-            wrap();
-            momentumVelocityRef.current *= Math.pow(0.93, deltaFactor);
+      if (singleWidth > 0 && trackRef.current) {
+        if (!isDraggingRef.current) {
+          if (Math.abs(momentumRef.current) > 0.1) {
+            xPosRef.current += momentumRef.current * factor;
+            momentumRef.current *= Math.pow(0.92, factor);
           } else {
-            momentumVelocityRef.current = 0;
-            const isPaused = isHoveredRef.current || performance.now() < pauseUntilRef.current;
-            if (!isPaused) {
-              el.scrollLeft += speed * deltaFactor;
-              wrap();
+            momentumRef.current = 0;
+            if (!isHoveredRef.current) {
+              xPosRef.current -= autoSpeed * factor;
             }
           }
+
+          while (xPosRef.current <= -singleWidth) {
+            xPosRef.current += singleWidth;
+          }
+          while (xPosRef.current > 0) {
+            xPosRef.current -= singleWidth;
+          }
+
+          trackRef.current.style.transform = `translate3d(${xPosRef.current}px, 0, 0)`;
         }
       }
 
@@ -168,152 +211,65 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
     return () => cancelAnimationFrame(animId);
   }, [surface, stores.length]);
 
-  // Unified Pointer Handlers for Mouse (cursor) and Touch (hand)
-  const handlePointerDown = (e) => {
-    if (e.button !== 0 && e.pointerType === "mouse") return;
+  // Global mouse event listeners for desktop drag outside container bounds
+  useEffect(() => {
+    if (surface !== "homepage") return;
 
-    const el = scrollRef.current;
-    if (!el) return;
-
-    if (set1Ref.current) {
-      singleWidthRef.current = set1Ref.current.offsetWidth;
-    }
-
-    isDraggingRef.current = true;
-    hasDraggedRef.current = false;
-    hasCapturedRef.current = false;
-    isTouchRef.current = e.pointerType === "touch";
-    pointerDownXRef.current = e.clientX;
-    pointerDownYRef.current = e.clientY;
-    lastPointerXRef.current = e.clientX;
-    lastPointerTimeRef.current = performance.now();
-    velocityRef.current = 0;
-    momentumVelocityRef.current = 0; // stop any previous momentum instantly on contact
-  };
-
-  const handlePointerMove = (e) => {
-    if (!isDraggingRef.current) return;
-
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const distX = Math.abs(e.clientX - pointerDownXRef.current);
-    const distY = Math.abs(e.clientY - pointerDownYRef.current);
-
-    // On touch devices, detect vertical page scroll vs horizontal carousel swipe
-    if (isTouchRef.current && !hasCapturedRef.current) {
-      if (distY > distX && distY > 8) {
-        // User is scrolling the page vertically: release drag to allow native page scroll
-        isDraggingRef.current = false;
-        return;
+    const onWindowMouseMove = (e) => {
+      if (isDraggingRef.current) {
+        onDragMove(e.clientX, e.clientY, e);
       }
-      if (distX > 8 && distX >= distY) {
-        // User is swiping horizontally: capture pointer
-        try {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          hasCapturedRef.current = true;
-        } catch (_) {}
-      } else {
-        return;
+    };
+
+    const onWindowMouseUp = () => {
+      if (isDraggingRef.current) {
+        onDragEnd();
       }
-    }
+    };
 
-    // For mouse on desktop, only capture pointer after real drag threshold (>8px)
-    if (!isTouchRef.current && !hasCapturedRef.current && distX > 8) {
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        hasCapturedRef.current = true;
-      } catch (_) {}
-    }
+    window.addEventListener("mousemove", onWindowMouseMove);
+    window.addEventListener("mouseup", onWindowMouseUp);
 
-    if (distX > 8) {
-      hasDraggedRef.current = true;
-      if (!isDragging) {
-        setIsDragging(true);
+    return () => {
+      window.removeEventListener("mousemove", onWindowMouseMove);
+      window.removeEventListener("mouseup", onWindowMouseUp);
+    };
+  }, [surface]);
+
+  // Touch event listeners attached directly with { passive: false } for 1:1 mobile tracking
+  useEffect(() => {
+    if (surface !== "homepage") return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 1) {
+        onDragStart(e.touches[0].clientX, e.touches[0].clientY);
       }
-    }
+    };
 
-    if (!hasDraggedRef.current) return;
-
-    const deltaX = e.clientX - lastPointerXRef.current;
-    el.scrollLeft -= deltaX;
-
-    // Instant wrap during drag
-    const singleWidth = singleWidthRef.current || set1Ref.current?.offsetWidth || 0;
-    if (singleWidth > 0) {
-      while (el.scrollLeft >= singleWidth * 2) {
-        el.scrollLeft -= singleWidth;
+    const handleTouchMove = (e) => {
+      if (e.touches.length === 1 && isDraggingRef.current) {
+        onDragMove(e.touches[0].clientX, e.touches[0].clientY, e);
       }
-      while (el.scrollLeft < singleWidth) {
-        el.scrollLeft += singleWidth;
-      }
-    }
+    };
 
-    // Measure velocity for momentum
-    const now = performance.now();
-    const dt = Math.max(now - lastPointerTimeRef.current, 8);
-    const instantVelocity = (deltaX / dt) * 16.67;
-    velocityRef.current = velocityRef.current * 0.3 + instantVelocity * 0.7;
-    lastPointerXRef.current = e.clientX;
-    lastPointerTimeRef.current = now;
-  };
+    const handleTouchEnd = () => {
+      onDragEnd();
+    };
 
-  const handlePointerUp = (e) => {
-    if (!isDraggingRef.current) return;
-    isDraggingRef.current = false;
-    setIsDragging(false);
+    container.addEventListener("touchstart", handleTouchStart, { passive: true });
+    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+    container.addEventListener("touchend", handleTouchEnd, { passive: true });
+    container.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
-    if (hasCapturedRef.current) {
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch (_) {}
-      hasCapturedRef.current = false;
-    }
-
-    const timeSinceLastMove = performance.now() - lastPointerTimeRef.current;
-    if (hasDraggedRef.current && timeSinceLastMove < 100 && Math.abs(velocityRef.current) > 0.8) {
-      // Natural momentum flick in the swipe direction
-      const clampedV = Math.max(Math.min(-velocityRef.current, 24), -24);
-      momentumVelocityRef.current = clampedV;
-    } else {
-      momentumVelocityRef.current = 0;
-      pauseUntilRef.current = performance.now() + 800;
-    }
-
-    // Keep hasDraggedRef true briefly to suppress synthetic click on <Link>
-    if (hasDraggedRef.current) {
-      setTimeout(() => {
-        hasDraggedRef.current = false;
-      }, 150);
-    }
-  };
-
-  const handlePointerCancel = (e) => {
-    isDraggingRef.current = false;
-    setIsDragging(false);
-    momentumVelocityRef.current = 0;
-    if (hasCapturedRef.current) {
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch (_) {}
-      hasCapturedRef.current = false;
-    }
-    setTimeout(() => {
-      hasDraggedRef.current = false;
-    }, 150);
-  };
-
-  const handlePointerEnter = (e) => {
-    if (e.pointerType === "mouse") {
-      isHoveredRef.current = true;
-    }
-  };
-
-  const handlePointerLeave = (e) => {
-    if (e.pointerType === "mouse" && !isDraggingRef.current) {
-      isHoveredRef.current = false;
-    }
-  };
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
+      container.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [surface]);
 
   const renderStoreCard = (store, key) => {
     const storeStatusObj = storeStatus(store);
@@ -401,40 +357,41 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           </div>
         </div>
 
-        {/* Stores Marquee Carousel: Full-width edge-to-edge */}
-        <div className="w-full relative overflow-hidden">
+        {/* Stores Marquee Carousel: Full-width edge-to-edge with smooth drag */}
+        <div
+          ref={containerRef}
+          onMouseDown={(e) => {
+            if (e.button === 0) {
+              onDragStart(e.clientX, e.clientY);
+            }
+          }}
+          onMouseEnter={() => {
+            isHoveredRef.current = true;
+          }}
+          onMouseLeave={() => {
+            if (!isDraggingRef.current) {
+              isHoveredRef.current = false;
+            }
+          }}
+          className={`w-full relative overflow-hidden select-none ${
+            isDraggingState ? "cursor-grabbing" : "cursor-grab"
+          }`}
+          style={{ touchAction: "pan-y" }}
+          aria-label="Lucira stores"
+        >
           <div
-            ref={scrollRef}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerCancel}
-            onPointerEnter={handlePointerEnter}
-            onPointerLeave={handlePointerLeave}
-            className={`flex overflow-x-hidden select-none no-scrollbar w-full ${
-              isDragging ? "cursor-grabbing" : "cursor-grab"
-            }`}
-            style={{
-              touchAction: "pan-y",
-              userSelect: "none",
-              WebkitUserSelect: "none",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
+            ref={trackRef}
+            className="flex w-max"
+            style={{ willChange: "transform" }}
           >
-            {/* Set 1 (Left Buffer) */}
-            <div ref={set1Ref} className="flex flex-shrink-0">
-              {baseStores.map((store, idx) => renderStoreCard(store, `s1-${store.handle || store.id}-${idx}`))}
+            {/* Group 1 */}
+            <div ref={group1Ref} className="flex shrink-0">
+              {baseStores.map((store, idx) => renderStoreCard(store, `g1-${store.handle || store.id}-${idx}`))}
             </div>
 
-            {/* Set 2 (Active Center Set) */}
-            <div className="flex flex-shrink-0">
-              {baseStores.map((store, idx) => renderStoreCard(store, `s2-${store.handle || store.id}-${idx}`))}
-            </div>
-
-            {/* Set 3 (Right Buffer) */}
-            <div className="flex flex-shrink-0">
-              {baseStores.map((store, idx) => renderStoreCard(store, `s3-${store.handle || store.id}-${idx}`))}
+            {/* Group 2: an exact duplicate for seamless infinite loop */}
+            <div className="flex shrink-0" aria-hidden="true">
+              {baseStores.map((store, idx) => renderStoreCard(store, `g2-${store.handle || store.id}-${idx}`))}
             </div>
           </div>
         </div>

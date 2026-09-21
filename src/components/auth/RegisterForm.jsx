@@ -135,9 +135,9 @@ export function RegisterForm({ initialMobile = "" }) {
           first_name: user?.first_name || firstName,
           last_name: user?.last_name || lastName,
           name:
-            (user?.first_name || firstName) && (user?.last_name || lastName)
-              ? `${user?.first_name || firstName} ${user?.last_name || lastName}`
-              : "User",
+            (user?.first_name || firstName)
+              ? `${user?.first_name || firstName} ${user?.last_name || lastName || ""}`.trim()
+              : (canonicalPhone || mobile || ""),
         },
         accessToken: data.accessToken,
       })

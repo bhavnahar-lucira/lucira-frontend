@@ -616,12 +616,12 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     : 0;
 
   const drawerHeadingText = drawerSavings > 0
-    ? `Sign Up To Get Assured ₹${drawerSavings.toLocaleString("en-IN")}`
+    ? `Unlock Your ₹${drawerSavings.toLocaleString("en-IN")} Benefit`
     : drawerFeaturedPrimary?.discountType === "percentage" && drawerFeaturedPrimary?.discountValue
-      ? `Sign Up To Get Assured ${drawerFeaturedPrimary.discountValue}% Off`
+      ? `Unlock Your ${drawerFeaturedPrimary.discountValue}% Off Benefit`
       : drawerFeaturedPrimary?.discountValue
-        ? `Sign Up To Get Assured ₹${Number(drawerFeaturedPrimary.discountValue).toLocaleString("en-IN")}`
-        : "Sign Up To Get Assured Rewards";
+        ? `Unlock Your ₹${Number(drawerFeaturedPrimary.discountValue).toLocaleString("en-IN")} Benefit`
+        : "Unlock Your Benefits";
 
   // A featured/bank offer carries a dashboard minimum spend, checked against
   // its own metal's slice of the cart (see isFeaturedOfferEligible — the same

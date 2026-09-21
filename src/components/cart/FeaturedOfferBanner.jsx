@@ -329,15 +329,15 @@ export default function FeaturedOfferBanner({
           <button
             type="button"
             onClick={() => {
-              let headingText = "Sign Up To Get Assured ₹500";
+              let headingText = "Unlock Your ₹500 Benefit";
               if (best.savings > 0) {
                 const savingsVal = Math.round(best.savings).toLocaleString("en-IN");
-                headingText = `Sign Up To Get Assured ₹${savingsVal}`;
+                headingText = `Unlock Your ₹${savingsVal} Benefit`;
               } else if (best.discountType === "percentage" && best.discountValue) {
-                headingText = `Sign Up To Get Assured ${best.discountValue}% Off`;
+                headingText = `Unlock Your ${best.discountValue}% Off Benefit`;
               } else if (best.discountValue) {
                 const flatVal = Number(best.discountValue).toLocaleString("en-IN");
-                headingText = `Sign Up To Get Assured ₹${flatVal}`;
+                headingText = `Unlock Your ₹${flatVal} Benefit`;
               }
               openLogin({
                 useCheckoutAuth: true,

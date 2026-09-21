@@ -44,14 +44,19 @@ export default function ExploreRange({ bgClass = "bg-white", paddingClass = "pt-
         </div>
         <div className="block lg:hidden relative pb-10">
           <Swiper
+            key="explore-range-swiper"
             modules={[Pagination, Autoplay]}
             slidesPerView={1}
+            spaceBetween={12}
+            observer={true}
+            observeParents={true}
+            grabCursor={true}
             onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
             className="w-full"
           >
             {groupedCategories.map((group, groupIdx) => (
               <SwiperSlide key={groupIdx}>
-                <div className="grid grid-cols-2 gap-3 px-0">
+                <div className="grid grid-cols-2 gap-3 px-1">
                   {group.map((cat, index) => (
                     <CategoryCard key={index} cat={cat} />
                   ))}
