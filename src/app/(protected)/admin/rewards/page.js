@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { OccasionCoupons } from "@/components/coupons/CouponBanner";
 import { updateUser } from "@/redux/features/user/userSlice";
 import { toast } from "react-toastify";
+import { toE164 } from "@/lib/phone";
 
 const CONFIG = {
   storageKey: "lucira_profile_data",
@@ -27,14 +28,6 @@ const CONFIG = {
 const PERSONAL_INFO_API = "https://personal-information-api-385594025448.asia-south1.run.app/";
 const WEBENGAGE_SYNC_API = "https://complete-my-profile-385594025448.asia-south1.run.app";
 
-/* Normalise an Indian mobile number to E.164 (+91XXXXXXXXXX) — used as the WebEngage userId */
-function toE164(phone) {
-  const raw = String(phone || "").trim();
-  if (!raw) return "";
-  if (raw.startsWith("+")) return raw.replace(/\s|-/g, "");
-  const digits = raw.replace(/\D/g, "");
-  return digits ? `+91${digits.slice(-10)}` : "";
-}
 
 /* Push the saved profile to WebEngage via the GCP Cloud Function ({ userId, attributes }) */
 async function syncWebEngageProfile(d = {}) {

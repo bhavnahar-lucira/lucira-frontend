@@ -328,7 +328,24 @@ export default function FeaturedOfferBanner({
         {needsLogin ? (
           <button
             type="button"
-            onClick={() => openLogin()}
+            onClick={() => {
+              let headingText = "Unlock Your ₹500 Benefit";
+              if (best.savings > 0) {
+                const savingsVal = Math.round(best.savings).toLocaleString("en-IN");
+                headingText = `Unlock Your ₹${savingsVal} Benefit`;
+              } else if (best.discountType === "percentage" && best.discountValue) {
+                headingText = `Unlock Your ${best.discountValue}% Off Benefit`;
+              } else if (best.discountValue) {
+                const flatVal = Number(best.discountValue).toLocaleString("en-IN");
+                headingText = `Unlock Your ₹${flatVal} Benefit`;
+              }
+              openLogin({
+                useCheckoutAuth: true,
+                overrideHeading: headingText,
+                overrideSubtext: "",
+                overrideButtonText: "CONTINUE",
+              });
+            }}
             className="ml-0 flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1 rounded-[4px] px-3 font-figtree text-[12px] font-semibold uppercase tracking-wide text-white transition hover:brightness-95 sm:h-9 sm:gap-1.5 sm:px-4 lg:ml-[16px] lg:h-10 lg:gap-2 lg:px-6 lg:text-[14px]"
             style={{ background: theme.accent }}
           >

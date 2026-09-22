@@ -15,6 +15,7 @@
 import { apiFetch } from "@/lib/api";
 import { calculateDistance } from "@/utils/distance";
 import { handleFromStoreName } from "@/data/stores";
+import { toE164 } from "@/lib/phone";
 
 export const APPOINTMENT_WEBHOOK =
   "https://book-an-appointment-webhook-385594025448.asia-south1.run.app";
@@ -293,7 +294,7 @@ export async function submitAppointmentLead(payload) {
     // Key spelling inherited from the PDP store-footfall form — do not rename.
     name: (payload.name || "").trim(),
     pincode: payload.pincode || "",
-    phone: payload.phone || "",
+    phone: toE164(payload.phone) || payload.phone || "",
     page_url: typeof window !== "undefined" ? window.location.href : "",
     timestamp: new Date().toISOString(),
     // Appointment-specific fields.
@@ -311,6 +312,11 @@ export async function submitAppointmentLead(payload) {
     // Every lead reaching the webhook has a verified number behind it; this says
     // how — a fresh OTP, or an already signed-in account that proved the same
     // number at login.
+    // Which product the shopper was looking at, when the booking started from a
+    // product card rather than the Book Appointment page. Additive: the keys
+    // above are read by an existing sheet and must keep their spelling.
+    product_name: payload.productTitle || "",
+    product_url: payload.productUrl || "",
     otp_verified: true,
     verified_via: payload.verifiedVia || "otp",
   };

@@ -31,6 +31,7 @@ import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
 import { getStoredUtms, sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { toE164, toTenDigit } from "@/lib/phone";
 import { trackPaymentStep } from "@/lib/searchAnalytics";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -148,10 +149,7 @@ function getCartSessionId() {
 }
 
 function normalizePhone(value = "") {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (digits.length === 10) return digits;
-  if (digits.length > 10) return digits.slice(-10);
-  return digits;
+  return toTenDigit(value);
 }
 
 function loadRazorpayScript() {
@@ -457,7 +455,7 @@ export default function PaymentPage() {
       // Trigger CRM Webhook for Add Payment Info on click
       sendCheckoutCrmEvent("add_payment_info", {
         email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
-        mobile: customer?.phone || user?.mobile || selectedAddress?.phone || "",
+        mobile: toE164(customer?.phone || user?.mobile || selectedAddress?.phone || ""),
         firstName: customer?.firstName || user?.name?.split(' ')[0] || "",
         lastName: customer?.lastName || user?.name?.split(' ')[1] || "",
         totalCartValue: Number(finalAmount),

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { motion, useAnimation } from "framer-motion";
+import {
   apiFetch,
   registerCustomer,
   checkCustomerApi,
@@ -13,6 +14,7 @@ import { motion, useAnimation } from "framer-motion";
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { pushSignup } from "@/lib/gtm";
+import { toE164, cleanPhoneInput } from "@/lib/phone";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 
@@ -112,11 +114,13 @@ export function RegisterForm({ initialMobile = "" }) {
   const loginSuccess = async (data) => {
     const user = data.user || data.customer;
     const userId = user?.id;
+    const canonicalPhone = toE164(mobile || user?.mobile || user?.phone);
 
     // Track Signup in GTM
     pushSignup({
       id: userId,
-      mobile: mobile,
+      mobile: canonicalPhone || mobile,
+      phone: canonicalPhone || mobile,
       email: email,
       name: `${firstName} ${lastName}`.trim()
     });
@@ -125,14 +129,15 @@ export function RegisterForm({ initialMobile = "" }) {
       login({
         user: {
           id: userId,
-          mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: user?.email || email,
           first_name: user?.first_name || firstName,
           last_name: user?.last_name || lastName,
           name:
-            (user?.first_name || firstName) && (user?.last_name || lastName)
-              ? `${user?.first_name || firstName} ${user?.last_name || lastName}`
-              : "User",
+            (user?.first_name || firstName)
+              ? `${user?.first_name || firstName} ${user?.last_name || lastName || ""}`.trim()
+              : (canonicalPhone || mobile || ""),
         },
         accessToken: data.accessToken,
       })
@@ -218,9 +223,13 @@ export function RegisterForm({ initialMobile = "" }) {
     const targetRotation = -segment.centerAngle;
     const finalRotation = -(extraSpins + Math.abs(targetRotation));
 
+    // Snappier spin on mobile (2.5s) with smooth iOS-friendly easing
+    const spinDuration = typeof window !== "undefined" && window.innerWidth < 768 ? 2.5 : 3.0;
+
     await controls.start({
       rotate: finalRotation,
-      transition: { duration: 4, ease: [0.17, 0.67, 0.12, 0.99] },
+      z: 0,
+      transition: { duration: spinDuration, ease: [0.2, 0.8, 0.2, 1] },
     });
 
     setTimeout(async () => {
@@ -253,18 +262,39 @@ export function RegisterForm({ initialMobile = "" }) {
   // ... (keep copyCoupon, getWeightedPrize)
 
   const SpinWheelContent = () => (
-    <div className="relative w-full max-w-[350px] aspect-square mx-auto">
+    <div 
+      className="relative w-full max-w-[350px] aspect-square mx-auto"
+      style={{
+        WebkitBackfaceVisibility: "hidden",
+        backfaceVisibility: "hidden",
+        WebkitPerspective: 1000,
+        perspective: 1000,
+      }}
+    >
       <motion.img
         src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Below_Banner_Trust_Icon_Strip_1_1.png?v=1770784760"
         alt="Spin the Wheel"
-        className="w-full h-full object-contain absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1]"
+        className="w-full h-full object-contain absolute inset-0 m-auto z-[1]"
+        style={{
+          transformOrigin: "50% 50%",
+          WebkitTransformOrigin: "50% 50%",
+          willChange: "transform",
+          WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
+          WebkitTransform: "translate3d(0, 0, 0)",
+          transform: "translate3d(0, 0, 0)",
+        }}
         animate={controls}
-        initial={{ rotate: 0 }}
+        initial={{ rotate: 0, z: 0 }}
       />
       <img
         src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Spin_The_Wheel_Spinner_1.png?v=1769229971"
         alt="Spin CTA"
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none w-full max-w-[400px] h-auto"
+        style={{
+          WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
+        }}
       />
     </div>
   );
@@ -341,7 +371,7 @@ export function RegisterForm({ initialMobile = "" }) {
                       maxLength="10"
                       className="w-full h-full text-sm outline-none bg-transparent disabled:opacity-50"
                       value={mobile}
-                      onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
                       disabled={isMobilePreFilled && mobile.length === 10}
                     />
                   </div>

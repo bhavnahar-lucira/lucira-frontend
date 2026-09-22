@@ -1,6 +1,7 @@
 import { fetchWithRetry } from "@/utils/helpers";
 import { logout } from "@/redux/features/user/userSlice";
 import { searchContent } from "@/lib/contentSearch";
+import { toE164 } from "@/lib/phone";
 
 /* ================= GENERIC API FETCH ================= */
 
@@ -116,18 +117,12 @@ export const apiFetch = async (url, options = {}) => {
 };
 /* ================= AUTH HELPERS ================= */
 
-const normalizeMobile = (mobile) => {
-  let clean = String(mobile || "").replace(/\D/g, "");
-  if (clean.length === 10) return `91${clean}`;
-  return clean;
-};
-
 /* ================= SEND OTP ================= */
 
 export const sendOtpApi = (mobile) =>
   apiFetch("/api/auth/send-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile: normalizeMobile(mobile) }),
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
   });
 
 /* ================= VERIFY OTP ================= */
@@ -136,7 +131,7 @@ export const verifyOtpApi = (mobile, otp, sessionId = null) => {
   const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
   return apiFetch("/api/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile, otp, sessionId, sourcePage }),
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile, otp, sessionId, sourcePage }),
   });
 };
 
@@ -147,7 +142,7 @@ export const checkCustomerApi = (payload) =>
     method: "POST",
     body: JSON.stringify({ 
       ...payload, 
-      mobile: normalizeMobile(payload.mobile) 
+      mobile: toE164(payload.mobile) || payload.mobile 
     }),
   });
 
@@ -157,7 +152,7 @@ export const registerCustomer = (payload) => {
     method: "POST",
     body: JSON.stringify({ 
       ...payload, 
-      mobile: normalizeMobile(payload.mobile),
+      mobile: toE164(payload.mobile) || payload.mobile,
       sourcePage
     }),
   });

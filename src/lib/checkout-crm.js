@@ -1,5 +1,6 @@
 import { getNumericId } from "./gtm";
 import { apiFetch } from "./api";
+import { toE164 } from "@/lib/phone";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
@@ -68,7 +69,7 @@ export const sendCheckoutCrmEvent = async (type, data) => {
     
     const leadDetails = {
       Email: data.email || "",
-      Mobile: data.mobile || "",
+      Mobile: toE164(data.mobile || data.phone) || data.mobile || data.phone || "",
       First_Name: data.firstName || "",
       Last_Name: data.lastName || "",
       Lead_Source: "Website",

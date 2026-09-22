@@ -19,6 +19,7 @@ import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart, getSessionId } from "@/redux/features/cart/cartSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
+import { toE164, cleanPhoneInput } from "@/lib/phone";
 
 const SPIN_PRIZES = [
   { label: "₹1,500 OFF", value: "1500_off", chance: 33.33 },
@@ -195,20 +196,23 @@ export function OtpSpinAuth({
 
     const user = data.user || data.customer;
     const userId = user?.id;
+    const canonicalPhone = toE164(mobile || user?.mobile || user?.phone);
 
     if (isSignup) {
       pushSignup({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
-        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
+        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
       });
     } else {
       pushLogin({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
-        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
+        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
       });
     }
     
@@ -216,15 +220,16 @@ export function OtpSpinAuth({
       login({
         user: {
           id: userId,
-          mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: user?.email,
           first_name: user?.first_name,
           last_name: user?.last_name,
           party_id: ornaUser?.party_id || null,
           name:
-            user?.first_name && user?.last_name
-              ? `${user.first_name} ${user.last_name}`
-              : "User",
+            user?.first_name
+              ? `${user.first_name} ${user.last_name || ""}`.trim()
+              : (canonicalPhone || mobile || ""),
         },
         accessToken: data.accessToken,
       })
@@ -494,9 +499,13 @@ export function OtpSpinAuth({
     const targetRotation = -segment.centerAngle;
     const finalRotation = -(extraSpins + Math.abs(targetRotation));
 
+    // Snappier speed on mobile (2.5s) with smooth iOS-friendly easing
+    const spinDuration = typeof window !== "undefined" && window.innerWidth < 768 ? 2.5 : 3.0;
+
     await controls.start({
       rotate: finalRotation,
-      transition: { duration: 4, ease: [0.17, 0.67, 0.12, 0.99] },
+      z: 0,
+      transition: { duration: spinDuration, ease: [0.2, 0.8, 0.2, 1] },
     });
 
     // After spin animation
@@ -605,15 +614,15 @@ export function OtpSpinAuth({
         : "md:flex-row md:items-stretch md:w-[800px] md:max-w-[800px] md:h-[500px]"}
       ${(isPopup || !showWheel) ? "md:shadow-[0_0_10px_rgba(0,0,0,0.3)] md:rounded-sm" : "md:rounded-sm"}
       max-md:shadow-none max-md:rounded-none max-md:max-w-full
-      ${isMobileView ? "animate-[slideInBottom_0.45s_cubic-bezier(0.25,0.46,0.45,0.94)_forwards]" : ""}`}
+      ${isMobileView && !isPopup ? "animate-[slideInBottom_0.35s_cubic-bezier(0.25,0.46,0.45,0.94)_forwards]" : ""}`}
       style={{
-        animation: isMobileView ? "slideInBottom 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards" : "none"
+        animation: isMobileView && !isPopup ? "slideInBottom 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards" : "none"
       }}
     >
       <style>{`
         @keyframes slideInBottom {
-          from { transform: translateY(110%); }
-          to   { transform: translateY(0); }
+          from { transform: translate3d(0, 110%, 0); }
+          to   { transform: translate3d(0, 0, 0); }
         }
       `}</style>
       
@@ -636,10 +645,21 @@ export function OtpSpinAuth({
       {showWheel ? (
         <div 
           className={`flex flex-col items-center justify-center relative w-full h-[220px] md:h-auto overflow-hidden bg-center bg-cover bg-no-repeat md:w-[50%] md:self-stretch`}
-          style={{ backgroundImage: 'url("https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BG_1_1.png?v=1770198650")' }}
+          style={{ 
+            backgroundImage: 'url("https://cdn.shopify.com/s/files/1/0739/8516/3482/files/BG_1_1.png?v=1770198650")',
+            WebkitTransform: "translateZ(0)",
+            transform: "translateZ(0)",
+            WebkitMaskImage: "-webkit-radial-gradient(white, black)",
+          }}
         >
           <div 
-            className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px] ${(step === "login" || step === "otp" || step === "register") ? "cursor-pointer" : ""}`}
+            className={`relative w-[90%] h-[290px] md:w-[350px] md:h-[350px] max-md:absolute max-md:top-[-75px] max-md:left-1/2 max-md:-translate-x-1/2 ${(step === "login" || step === "otp" || step === "register") ? "cursor-pointer" : ""}`}
+            style={{
+              WebkitBackfaceVisibility: "hidden",
+              backfaceVisibility: "hidden",
+              WebkitPerspective: 1000,
+              perspective: 1000,
+            }}
             onClick={() => {
               if (step === "login") mobileRef.current?.focus();
               else if (step === "otp") otpRefs[0]?.current?.focus();
@@ -649,14 +669,27 @@ export function OtpSpinAuth({
             <motion.img
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Below_Banner_Trust_Icon_Strip_1_1.png?v=1770784760"
               alt="Spin the Wheel"
-              className="w-full h-full object-contain absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[1]"
+              className="w-full h-full object-contain absolute inset-0 m-auto z-[1]"
+              style={{
+                transformOrigin: "50% 50%",
+                WebkitTransformOrigin: "50% 50%",
+                willChange: "transform",
+                WebkitBackfaceVisibility: "hidden",
+                backfaceVisibility: "hidden",
+                WebkitTransform: "translate3d(0, 0, 0)",
+                transform: "translate3d(0, 0, 0)",
+              }}
               animate={controls}
-              initial={{ rotate: 0 }}
+              initial={{ rotate: 0, z: 0 }}
             />
             <img
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Spin_The_Wheel_Spinner_1.png?v=1769229971"
               alt="Spin CTA"
-              className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none h-auto w-[115%] max-w-none`}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none h-auto w-[115%] max-w-none"
+              style={{
+                WebkitBackfaceVisibility: "hidden",
+                backfaceVisibility: "hidden",
+              }}
             />
           </div>
         </div>
@@ -674,7 +707,7 @@ export function OtpSpinAuth({
       )}
 
       <div className={`flex flex-col w-full p-5 md:p-8 md:justify-center md:w-[50%] md:self-stretch`}>
-        {!(isMobileView && step === "register") && (
+        {step !== "register" && (
           <div className="text-center mb-4">
             <img
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
@@ -689,7 +722,7 @@ export function OtpSpinAuth({
         {step === "login" && (
           <>
             <p className="mb-2 text-center text-[16px] leading-tight font-medium text-[#5a413f] capitalize mx-auto mt-0 cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "Your Lucira Reward Awaits!"}</p>
-            <p className="text-[12px] font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[300px] mx-auto cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideSubtext || "Sign up to get ₹500 Assured + Spin the Wheel!"}</p>
+            <p className="text-[12px] font-medium text-[#5B5B5B] text-center mb-3 tracking-wider leading-relaxed capitalize max-w-[300px] mx-auto cursor-pointer" onClick={() => mobileRef.current?.focus()}>{overrideSubtext || "Sign up to get ₹500 Assured"}</p>
             <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
               <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
               <input
@@ -699,7 +732,7 @@ export function OtpSpinAuth({
                 maxLength="10"
                 className="w-full h-full text-sm md:text-base border-none outline-none font-normal bg-transparent tracking-[0.3px]"
                 value={mobile}
-                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
               />
             </div>
             <div className="my-3 max-w-full hidden">
@@ -739,8 +772,8 @@ export function OtpSpinAuth({
 
         {step === "otp" && (
           <>
-            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0">{overrideHeading || "VERIFY OTP"}</p>
-            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-5 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto">{overrideSubtext || `Sent to +91 ${mobile}`}</p>
+            <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0">VERIFY OTP</p>
+            <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-5 tracking-wider leading-relaxed capitalize max-w-[100%] mx-auto">{`Sent to +91 ${mobile}`}</p>
             <div className="flex justify-center gap-2 mt-2 mb-2">
               {otp.map((digit, i) => (
                 <input
@@ -818,7 +851,7 @@ export function OtpSpinAuth({
                     maxLength="10"
                     className="w-full h-full text-sm md:text-base border-none outline-none font-normal bg-transparent tracking-[0.3px] disabled:opacity-50"
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
                     disabled={isMobileVerified && mobile.length === 10}
                   />
                 </div>

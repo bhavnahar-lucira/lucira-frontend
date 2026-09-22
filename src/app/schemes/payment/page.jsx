@@ -157,7 +157,7 @@ export default function SchemePaymentPage() {
         name: "Lucira Jewelry",
         description: "Vault of Dreams Scheme",
         prefill: {
-          name: user?.name || "Customer",
+          name: user?.name || user?.phone || user?.mobile || "",
           contact: user?.phone || user?.mobile,
           email: user?.email,
         },

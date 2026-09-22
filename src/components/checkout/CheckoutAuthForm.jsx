@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import { Edit2, Loader2, CheckCircle2 } from "lucide-react";
+import { Edit2, Loader2, CheckCircle2, X } from "lucide-react";
 import {
   sendOtpApi,
   verifyOtpApi,
@@ -16,6 +16,7 @@ import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart, getSessionId } from "@/redux/features/cart/cartSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
+import { toE164, cleanPhoneInput } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 
 const NITRO_ORG_ID = process.env.NEXT_PUBLIC_NITRO_ORG_ID;
@@ -47,7 +48,15 @@ function nitroEnrich({ email, phone, name, isConsented }) {
   } catch (_) { }
 }
 
-export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = "login" }) {
+export function CheckoutAuthForm({ 
+  onSuccess, 
+  initialMobile = "", 
+  initialStep = "login",
+  title = "Checkout Securely",
+  subtitle = "Login / Signup to proceed checkout",
+  buttonText = "CONTINUE",
+  onClose
+}) {
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -113,20 +122,23 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
   const loginSuccess = async (data, isSignup = false) => {
     const user = data.user || data.customer;
     const userId = user?.id;
+    const canonicalPhone = toE164(mobile || user?.mobile || user?.phone);
 
     if (isSignup) {
       pushSignup({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
-        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
+        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
       });
     } else {
       pushLogin({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
-        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
+        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
       });
     }
 
@@ -134,11 +146,14 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
       login({
         user: {
           id: userId,
-          mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: user?.email,
           first_name: user?.first_name,
           last_name: user?.last_name,
-          name: user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : "User",
+          name: user?.first_name
+            ? `${user.first_name} ${user.last_name || ""}`.trim()
+            : (canonicalPhone || mobile || ""),
         },
         accessToken: data.accessToken,
       })
@@ -146,7 +161,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
 
     nitroEnrich({
       email: email || user?.email || "",
-      phone: mobile,
+      phone: canonicalPhone || mobile,
       name: [user?.first_name || firstName, user?.last_name || lastName].filter(Boolean).join(" ").trim(),
       isConsented: true,
     });
@@ -293,13 +308,37 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
   };
 
   return (
-    <div className={`w-full flex flex-col pt-0 md:pt-8 md:p-8 bg-white h-auto transition-all duration-300 ${isKeyboardOpen ? 'pb-[80px] md:pb-0' : 'pb-0'}`}>
+    <div className={`relative w-full flex flex-col pt-0 md:pt-8 md:p-8 bg-white h-auto transition-all duration-300 ${isKeyboardOpen ? 'pb-[80px] md:pb-0' : 'pb-0'}`}>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-1.5 rounded-full text-zinc-400 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer border-none bg-transparent"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4 md:w-5 md:h-5" />
+        </button>
+      )}
 
       {step === "login" && (
         <div className="flex flex-col space-y-4">
           <div>
-            <h2 className="text-[16px] md:text-[22px] lg:text-[1.4rem] font-semibold md:font-bold lg:font-semibold text-zinc-900 leading-[140%] md:leading-none max-md:font-figtree lg:mb-2">Checkout Securely</h2>
-            <p className="text-[12px] md:text-[13px] lg:text-[1rem] text-zinc-500 mt-1 md:mt-2 lg:mt-0 font-normal md:font-medium leading-[140%] md:leading-normal max-md:font-figtree">Login / Signup to proceed checkout</p>
+            {title && (
+              <h2 
+                className="text-[16px] md:text-[22px] lg:text-[1.4rem] font-semibold md:font-bold lg:font-semibold text-zinc-900 leading-[140%] md:leading-none max-md:font-figtree"
+                style={{
+                  fontSize: "1.2rem",
+                  marginBottom: "6px",
+                }}
+              >
+                {title}
+              </h2>
+            )}
+            {subtitle ? (
+              <p className="text-[12px] md:text-[13px] lg:text-[1rem] text-zinc-500 mt-1 md:mt-2 lg:mt-0 font-normal md:font-medium leading-[140%] md:leading-normal max-md:font-figtree">
+                {subtitle}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex items-center border border-zinc-200 rounded-[4px] h-[50px] px-4">
@@ -311,7 +350,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
               maxLength="10"
               className="w-full h-full text-[14px] md:text-[15px] lg:text-[1rem] font-medium border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400 max-md:font-figtree max-md:leading-[140%] max-md:text-zinc-700 md:text-zinc-900"
               value={mobile}
-              onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
               onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
             />
           </div>
@@ -325,7 +364,7 @@ export function CheckoutAuthForm({ onSuccess, initialMobile = "", initialStep = 
             disabled={loading}
             className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-2 leading-none max-md:font-figtree lg:text-[1rem]"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "CONTINUE"}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (buttonText || "CONTINUE")}
           </Button>
         </div>
       )}

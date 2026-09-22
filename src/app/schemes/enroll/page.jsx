@@ -282,8 +282,8 @@ export default function Enroll() {
       } else {
         // Fallback: Create if not exists (extra safety)
         await createOrnaverseCustomer({
-          first_name: first_name || "User",
-          last_name: last_name || "Customer",
+          first_name: first_name || mobile || "",
+          last_name: last_name || "",
           email: customer?.email || `${mobile}@lucira.internal`,
           phone: mobile,
           address: form.address,

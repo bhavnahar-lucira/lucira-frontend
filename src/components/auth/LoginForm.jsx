@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
+import { toE164, cleanPhoneInput } from "@/lib/phone";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 import {
@@ -112,13 +113,15 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
   const loginSuccess = async (data, isSignup = false, ornaUser = null) => {
     const user = data.user || data.customer;
     const userId = user?.id;
+    const canonicalPhone = toE164(mobile || user?.mobile || user?.phone);
     
     if (!isSignup) {
       pushLogin({
         id: userId,
-        mobile: mobile,
+        mobile: canonicalPhone || mobile,
+        phone: canonicalPhone || mobile,
         email: user?.email,
-        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "User"
+        name: user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : (canonicalPhone || mobile || "")
       });
     }
 
@@ -126,15 +129,16 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
       login({
         user: {
           id: userId,
-          mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: user?.email,
           first_name: user?.first_name,
           last_name: user?.last_name,
           party_id: ornaUser?.party_id || null,
           name:
-            user?.first_name && user?.last_name
-              ? `${user.first_name} ${user.last_name}`
-              : "User",
+            user?.first_name
+              ? `${user.first_name} ${user.last_name || ""}`.trim()
+              : (canonicalPhone || mobile || ""),
         },
         accessToken: data.accessToken,
       })
@@ -260,10 +264,12 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
       });
 
       if (data.status === "REGISTER_SUCCESS" || data.type === "success") {
+        const canonicalPhone = toE164(mobile || data.user?.mobile || data.customer?.phone);
         // Track signup in GTM
         pushSignup({
           id: data.user?.id || data.customer?.id,
-          mobile: mobile,
+          mobile: canonicalPhone || mobile,
+          phone: canonicalPhone || mobile,
           email: email,
           name: `${firstName} ${lastName}`.trim()
         });
@@ -291,7 +297,7 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
                 placeholder="Mobile Number"
                 maxLength="10"
                 value={mobile}
-                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
                 className="w-full h-full text-sm outline-none bg-transparent"
               />
             </div>

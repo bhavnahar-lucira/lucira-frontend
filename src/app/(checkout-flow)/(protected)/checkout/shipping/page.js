@@ -28,6 +28,7 @@ import { useCart } from "@/hooks/useCart";
 import { pushAddShippingInfo, pushBeginCheckout } from "@/lib/gtm";
 import { trackShippingStep } from "@/lib/searchAnalytics";
 import { sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { toE164 } from "@/lib/phone";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { MobileBottomSheet } from "@/components/common/MobileBottomSheet";
 import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
@@ -239,7 +240,7 @@ export default function ShippingPage() {
       // Trigger CRM Webhook for Begin Checkout
       sendCheckoutCrmEvent("begin_checkout", {
         email: currentCustomer?.email || "",
-        mobile: currentCustomer?.phone || currentCustomer?.mobile || "",
+        mobile: toE164(currentCustomer?.phone || currentCustomer?.mobile || ""),
         firstName: currentCustomer?.firstName || currentCustomer?.name?.split(' ')[0] || "",
         lastName: currentCustomer?.lastName || currentCustomer?.name?.split(' ')[1] || "",
         totalCartValue: Number(totalAmount),

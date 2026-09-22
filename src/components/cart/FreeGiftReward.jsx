@@ -34,35 +34,29 @@ export default function FreeGiftReward({ diamondTotal }) {
 
   const giftTiersConfig = useSelector(state => state.cart.giftTiersConfig);
 
-  // Initialize from Redux if available to prevent any initial render flicker
-  const [remoteConfig, setRemoteConfig] = useState(() => {
-    if (giftTiersConfig) {
-      return {
-        enabled: giftTiersConfig.enabled ?? true,
-        tiers: mapRemoteFreeGiftTiers(giftTiersConfig.tiers),
-      };
-    }
-    return null;
-  });
+  const [fetchedConfig, setFetchedConfig] = useState(null);
 
   useEffect(() => {
-    if (giftTiersConfig) {
-      setRemoteConfig({
-        enabled: giftTiersConfig.enabled ?? true,
-        tiers: mapRemoteFreeGiftTiers(giftTiersConfig.tiers),
-      });
-      return;
-    }
+    if (giftTiersConfig) return;
 
     apiFetch("/api/settings/silver-bracelet", { suppressErrorLog: true })
       .then((data) => {
-        setRemoteConfig({
+        setFetchedConfig({
           enabled: data?.enabled ?? true,
           tiers: mapRemoteFreeGiftTiers(data?.tiers),
         });
       })
       .catch((err) => console.error("Error fetching silver bracelet setting:", err));
   }, [giftTiersConfig]);
+
+  const remoteConfig = useMemo(() => {
+    return giftTiersConfig
+      ? {
+          enabled: giftTiersConfig.enabled ?? true,
+          tiers: mapRemoteFreeGiftTiers(giftTiersConfig.tiers),
+        }
+      : fetchedConfig;
+  }, [giftTiersConfig, fetchedConfig]);
 
   // All configured tiers, enabled or not — a disabled tier's gift line, if
   // one is already sitting in a cart from before it was disabled, still needs
@@ -244,7 +238,12 @@ export default function FreeGiftReward({ diamondTotal }) {
       ) : needsLogin ? (
         <button
           type="button"
-          onClick={() => openLogin()}
+          onClick={() => openLogin({
+            useCheckoutAuth: true,
+            overrideHeading: "Sign Up To Unlock Free Gift",
+            overrideSubtext: "",
+            overrideButtonText: "CONTINUE",
+          })}
           className="flex shrink-0 items-center justify-center gap-1 sm:gap-1.5 lg:gap-2 rounded-[4px] h-7 sm:h-9 lg:h-10 uppercase tracking-wide transition px-3 sm:px-4 lg:px-6 font-figtree font-medium text-[12px] sm:text-[12px] lg:text-[14px] bg-[#5A413F] text-white hover:bg-[#4A312F] cursor-pointer ml-0 lg:ml-[20px]"
         >
           <Lock className="w-3.5 h-3.5 hidden lg:block" />
