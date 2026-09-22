@@ -12,7 +12,11 @@ import {
   HelpCircle,
   AlertCircle,
   Loader2,
-  RefreshCcw
+  RefreshCcw,
+  ExternalLink,
+  Copy,
+  Check,
+  Calendar
 } from "lucide-react";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
@@ -23,6 +27,13 @@ import { useSelector } from "react-redux";
 import { apiFetch } from "@/lib/api";
 import { getOrderImage } from "@/lib/utils";
 import { shopifyStorefrontFetch, toShopifyGid } from "@/lib/shopify-client";
+
+const CLICKPOST_SECURITY_KEY = "2f6fe169-505f-47d8-bf14-da099427c840";
+
+function getClickpostTrackingUrl(waybill, cpId = 5) {
+  if (!waybill) return "";
+  return `https://track.clickpost.in/?waybill=${encodeURIComponent(waybill)}&source=dashboard&cp_id=${encodeURIComponent(cpId)}&security_key=${CLICKPOST_SECURITY_KEY}`;
+}
 
 // Specific query to get order details with handles via Customer
 const GET_ORDER_WITH_HANDLES = `
@@ -62,8 +73,22 @@ export default function OrderDetailsPage() {
   const { id } = useParams();
   const { accessToken } = useSelector((state) => state.user);
   const [order, setOrder] = useState(null);
+  const [clickpostData, setClickpostData] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const handleCopyWaybill = (text) => {
+    if (!text) return;
+    try {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success("Tracking number copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (_) {
+      toast.info(text);
+    }
+  };
 
   useEffect(() => {
     async function fetchOrderDetails() {
@@ -126,6 +151,42 @@ export default function OrderDetailsPage() {
           }
         }
 
+        // 3. Fetch ClickPost tracking status and order status link
+        try {
+          const cpRes = await apiFetch(`/api/clickpost/track/${id}`);
+          if (cpRes?.success && (cpRes.clickpostUrl || cpRes.waybill || cpRes.tracking)) {
+            const partnerId = cpRes.tracking?.additional?.courier_partner_id || 5;
+            const finalUrl = (cpRes.clickpostUrl && cpRes.clickpostUrl.includes('security_key'))
+              ? cpRes.clickpostUrl
+              : getClickpostTrackingUrl(cpRes.waybill || orderData?.trackingInfo?.waybill, partnerId);
+            setClickpostData({
+              ...cpRes,
+              clickpostUrl: finalUrl
+            });
+          } else if (orderData?.trackingInfo?.waybill) {
+            setClickpostData({
+              waybill: orderData.trackingInfo.waybill,
+              courierName: orderData.trackingInfo.courier,
+              clickpostUrl: (orderData.trackingInfo.trackingUrl && orderData.trackingInfo.trackingUrl.includes('security_key'))
+                ? orderData.trackingInfo.trackingUrl
+                : getClickpostTrackingUrl(orderData.trackingInfo.waybill, 5),
+              tracking: null
+            });
+          }
+        } catch (cpErr) {
+          console.warn("[OrderDetails] Clickpost fetch error (non-fatal):", cpErr);
+          if (orderData?.trackingInfo?.waybill) {
+            setClickpostData({
+              waybill: orderData.trackingInfo.waybill,
+              courierName: orderData.trackingInfo.courier,
+              clickpostUrl: (orderData.trackingInfo.trackingUrl && orderData.trackingInfo.trackingUrl.includes('security_key'))
+                ? orderData.trackingInfo.trackingUrl
+                : getClickpostTrackingUrl(orderData.trackingInfo.waybill, 5),
+              tracking: null
+            });
+          }
+        }
+
         setOrder(orderData);
       } catch (err) {
         console.error("Order details fetch error:", err);
@@ -178,84 +239,6 @@ export default function OrderDetailsPage() {
     }).format(val);
   };
 
-  const stages = [
-    "Order Confirmed",
-    "Processing",
-    "Manufacturing",
-    "Quality Control",
-    "Certification",
-    "Dispatch",
-    "In Transit",
-    "Delivered"
-  ];
-
-  // Map Shopify & custom ERP status to stage index
-  let currentStageIndex = 0;
-  const isCancelled = Boolean(
-    order.cancelledAt || 
-    order.cancelled_at || 
-    order.cancelReason || 
-    order.cancel_reason || 
-    order.status === 'Cancelled' || 
-    order.status === 'Canceled' ||
-    (typeof order.status === 'string' && order.status.toUpperCase() === 'CANCELLED')
-  );
-  const status = (order.fulfillmentStatus || "").toUpperCase();
-  const fStatus = (order.financialStatus || "").toUpperCase();
-  const rawStatus = (order.reason_status_description || order.status || "").toLowerCase();
-
-  const isDelivered = status === 'FULFILLED' || status === 'DELIVERED' || rawStatus.includes('deliver');
-
-  const normalizedStatus = rawStatus.replace(/[^a-z0-9]/g, '');
-
-  if (isCancelled) {
-    currentStageIndex = 0;
-  } else if (isDelivered) {
-    currentStageIndex = 7;
-  } else if (
-    normalizedStatus.includes('transit') || 
-    normalizedStatus.includes('shipped') || 
-    normalizedStatus.includes('outfordelivery') || 
-    status === 'IN_PROGRESS' || 
-    status === 'IN_TRANSIT'
-  ) {
-    currentStageIndex = 6;
-  } else if (
-    normalizedStatus.includes('dispatch') || 
-    normalizedStatus.includes('packed') || 
-    normalizedStatus.includes('readytoship') ||
-    normalizedStatus.includes('readytoinvoice')
-  ) {
-    currentStageIndex = 5;
-  } else if (
-    normalizedStatus.includes('certif') || 
-    normalizedStatus.includes('hallmark')
-  ) {
-    currentStageIndex = 4;
-  } else if (
-    normalizedStatus.includes('quality') || 
-    normalizedStatus.includes('qc')
-  ) {
-    currentStageIndex = 3;
-  } else if (
-    normalizedStatus.includes('manufactur') || 
-    normalizedStatus.includes('production') || 
-    normalizedStatus.includes('making') ||
-    normalizedStatus.includes('pogenerated')
-  ) {
-    currentStageIndex = 2;
-  } else if (
-    normalizedStatus.includes('process') || 
-    fStatus === 'PAID'
-  ) {
-    currentStageIndex = 1;
-  } else {
-    currentStageIndex = 0;
-  }
-
-  // Ensure index is within bounds
-  const progressPct = Math.min(100, (currentStageIndex / (stages.length - 1)) * 100);
-
   // Sorting logic for items
   const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
   const sortedLineItems = [...(order.lineItems || [])]
@@ -286,6 +269,287 @@ export default function OrderDetailsPage() {
     }
   }
 
+  // Parse order placed date
+  const orderPlacedDate = order.processedAt ? new Date(order.processedAt) : new Date();
+
+  // Helper to parse dates in DD/MM/YYYY or YYYY-MM-DD
+  const parseFlexibleDate = (val) => {
+    if (!val) return null;
+    const s = String(val).trim();
+    if (s.includes('/')) {
+      const parts = s.split('/');
+      if (parts.length === 3) {
+        return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+      }
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Extract MTO and In-Stock dispatch dates
+  let mtoDispatchDate = parseFlexibleDate(order.mtoDispatchDate);
+  let inStockDispatchDate = parseFlexibleDate(order.inStockDispatchDate);
+
+  sortedLineItems.forEach(item => {
+    const rawProps = item.properties || item.customAttributes || [];
+    const props = Array.isArray(rawProps)
+      ? rawProps.reduce((acc, p) => ({ ...acc, [p.key || p.name]: p.value }), {})
+      : rawProps;
+    
+    let shipDateStr = item.shippingDate || null;
+    if (!shipDateStr) {
+      for (const [k, v] of Object.entries(props)) {
+        const normK = k.toLowerCase().replace(/[^a-z]/g, '');
+        if (normK.includes('shippingdate') || normK.includes('dispatchdate')) {
+          shipDateStr = v;
+          break;
+        }
+      }
+    }
+
+    if (shipDateStr) {
+      const parsed = parseFlexibleDate(shipDateStr);
+      if (parsed) {
+        const isIns = item.isInsurance || 
+                      (item.title || "").toLowerCase().includes("insurance") || 
+                      (item.sku || "").toLowerCase().includes("ins");
+        if (isIns) {
+          if (!inStockDispatchDate || parsed > inStockDispatchDate) inStockDispatchDate = parsed;
+        } else {
+          if (!mtoDispatchDate || parsed > mtoDispatchDate) mtoDispatchDate = parsed;
+        }
+      }
+    }
+  });
+
+  const targetDispatchDate = mtoDispatchDate || inStockDispatchDate || parseFlexibleDate(order.targetDispatchDate);
+
+  const stages = [
+    "Order Confirmed",
+    "Processing",
+    "Manufacturing",
+    "Quality Control",
+    "Certification",
+    "Dispatch",
+    "In Transit",
+    "Out For Delivery",
+    "Delivered"
+  ];
+
+  // Extract real courier milestone dates from ClickPost scans (for Dispatch, In Transit, Out For Delivery, Delivered)
+  const clickpostScanDates = (() => {
+    const dates = {
+      5: null, // Dispatch
+      6: null, // In Transit
+      7: null, // Out For Delivery
+      8: null, // Delivered
+    };
+
+    const scans = clickpostData?.tracking?.scans || [];
+    for (const scan of scans) {
+      const bucket = scan.clickpost_status_bucket;
+      const desc = (scan.clickpost_status_description || scan.status || scan.remark || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+      const t = scan.timestamp ? new Date(scan.timestamp) : null;
+      if (!t || isNaN(t.getTime())) continue;
+
+      if (bucket === 6 || (desc.includes('deliver') && !desc.includes('outfordelivery'))) {
+        if (!dates[8] || t > dates[8]) dates[8] = t;
+      } else if (bucket === 4 || desc.includes('outfordelivery') || desc.includes('outfordeliver')) {
+        if (!dates[7] || t > dates[7]) dates[7] = t;
+      } else if (bucket === 3 || desc.includes('intransit') || desc.includes('transit') || desc.includes('reachedhub') || desc.includes('departed')) {
+        if (!dates[6] || t > dates[6]) dates[6] = t;
+      } else if (
+        bucket === 2 || 
+        desc.includes('pickedup') || 
+        desc.includes('dispatched') || 
+        desc.includes('pickupdone') || 
+        desc.includes('manifested') || 
+        desc.includes('inward')
+      ) {
+        if (!dates[5] || t < dates[5]) dates[5] = t;
+      }
+    }
+
+    const latest = clickpostData?.tracking?.latest_status;
+    if (latest?.timestamp) {
+      const lt = new Date(latest.timestamp);
+      if (!isNaN(lt.getTime())) {
+        const b = latest.clickpost_status_bucket;
+        const d = (latest.clickpost_status_description || latest.status || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (b === 6 || (d.includes('deliver') && !d.includes('outfordelivery'))) {
+          if (!dates[8]) dates[8] = lt;
+        } else if (b === 4 || d.includes('outfordelivery')) {
+          if (!dates[7]) dates[7] = lt;
+        } else if (b === 3 || d.includes('intransit') || d.includes('transit')) {
+          if (!dates[6]) dates[6] = lt;
+        } else if (b === 2 || d.includes('pickedup') || d.includes('dispatched') || d.includes('pickupdone')) {
+          if (!dates[5]) dates[5] = lt;
+        }
+      }
+    }
+
+    const additional = clickpostData?.tracking?.additional;
+    if (!dates[5] && additional?.pickup_date) {
+      const pt = new Date(additional.pickup_date);
+      if (!isNaN(pt.getTime())) dates[5] = pt;
+    }
+
+    return dates;
+  })();
+
+  // Dynamic calculation of milestone dates for all orders (In-stock, Express, MTO)
+  const stageDates = (() => {
+    const placed = new Date(orderPlacedDate);
+    const placedDay = new Date(placed.getFullYear(), placed.getMonth(), placed.getDate());
+
+    let dispatchDay;
+    if (targetDispatchDate && !isNaN(targetDispatchDate.getTime())) {
+      dispatchDay = new Date(targetDispatchDate.getFullYear(), targetDispatchDate.getMonth(), targetDispatchDate.getDate());
+    } else {
+      dispatchDay = new Date(placedDay.getTime() + 10 * 86400000);
+    }
+
+    if (dispatchDay < placedDay) {
+      dispatchDay = placedDay;
+    }
+
+    const diffDays = Math.round((dispatchDay.getTime() - placedDay.getTime()) / 86400000);
+
+    // If actual courier dispatch scan exists from ClickPost, use it for dispatch date
+    const actualDispatch = clickpostScanDates?.[5];
+    const effectiveDispatch = actualDispatch || dispatchDay;
+
+    if (diffDays <= 0) {
+      // In-stock / Same-day shipping: crafting is already complete; everything aligns with dispatch target
+      return {
+        0: placed,
+        1: placed,
+        2: placed,
+        3: placed,
+        4: placed,
+        5: effectiveDispatch,
+      };
+    }
+
+    if (diffDays === 1) {
+      // Next-day shipping
+      return {
+        0: placed,
+        1: placed,
+        2: placed,
+        3: dispatchDay,
+        4: dispatchDay,
+        5: effectiveDispatch,
+      };
+    }
+
+    if (diffDays <= 3) {
+      // 2-3 days shipping
+      const mid1 = new Date(placedDay.getTime() + 1 * 86400000);
+      return {
+        0: placed,
+        1: placed,
+        2: mid1,
+        3: mid1,
+        4: dispatchDay,
+        5: effectiveDispatch,
+      };
+    }
+
+    // MTO / Extended timeline (4+ days)
+    const totalMs = dispatchDay.getTime() - placedDay.getTime();
+    const d1 = new Date(placedDay.getTime() + Math.min(86400000, Math.round(totalMs * 0.08)));
+    const d2 = new Date(placedDay.getTime() + Math.round(totalMs * 0.28));
+    const d3 = new Date(placedDay.getTime() + Math.round(totalMs * 0.65));
+    const d4 = new Date(placedDay.getTime() + Math.round(totalMs * 0.85));
+
+    return {
+      0: placed,
+      1: d1 > dispatchDay ? dispatchDay : d1,
+      2: d2 > dispatchDay ? dispatchDay : d2,
+      3: d3 > dispatchDay ? dispatchDay : d3,
+      4: d4 > dispatchDay ? dispatchDay : d4,
+      5: effectiveDispatch,
+    };
+  })();
+
+  // Map Shopify, custom ERP & ClickPost live courier tracking to stage index
+  let currentStageIndex = 0;
+  const isCancelled = Boolean(
+    order.cancelledAt || 
+    order.cancelled_at || 
+    order.cancelReason || 
+    order.cancel_reason || 
+    order.status === 'Cancelled' || 
+    order.status === 'Canceled' ||
+    (typeof order.status === 'string' && order.status.toUpperCase() === 'CANCELLED')
+  );
+  const status = (order.fulfillmentStatus || "").toUpperCase();
+  const fStatus = (order.financialStatus || "").toUpperCase();
+  const rawStatus = (order.reason_status_description || order.status || "").toLowerCase();
+  const normalizedStatus = rawStatus.replace(/[^a-z0-9]/g, '');
+  const nowTime = Date.now();
+
+  const cpBucket = clickpostData?.tracking?.status_bucket;
+  const cpDesc = (clickpostData?.tracking?.status_description || clickpostData?.tracking?.latest_status?.status || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const hasCourierPickup = Boolean(
+    (cpBucket && cpBucket >= 2) || 
+    cpDesc.includes('pickedup') || 
+    cpDesc.includes('dispatched') || 
+    clickpostScanDates[5]
+  );
+  const isFulfilled = status === 'FULFILLED' || status === 'SHIPPED';
+
+  // Upcoming dispatch date guard (e.g. 10 Oct for MTO placed on 22 Sept):
+  // Courier hasn't moved yet (cpBucket <= 1). Crafting milestones apply.
+  const isBeforeDispatchDate = Boolean(targetDispatchDate && nowTime < stageDates[5]?.getTime());
+
+  // ClickPost live tracking & ERP status checks:
+  const isDelivered = status === 'DELIVERED' || cpBucket === 6 || (cpDesc.includes('deliver') && !cpDesc.includes('outfordelivery')) || (normalizedStatus.includes('deliver') && !normalizedStatus.includes('outfordelivery'));
+  const isOutForDelivery = cpBucket === 4 || cpDesc.includes('outfordelivery') || normalizedStatus.includes('outfordelivery');
+  const isInTransit = cpBucket === 3 || cpDesc.includes('intransit') || cpDesc.includes('transit') || cpDesc.includes('reachedhub') || cpDesc.includes('departed') || (!isBeforeDispatchDate && (normalizedStatus.includes('transit') || status === 'IN_TRANSIT'));
+  const isDispatched = cpBucket === 2 || cpDesc.includes('pickedup') || cpDesc.includes('dispatched') || hasCourierPickup || isFulfilled || normalizedStatus.includes('dispatched') || normalizedStatus.includes('shipped');
+
+  if (isCancelled) {
+    currentStageIndex = 0;
+  } else if (isDelivered) {
+    currentStageIndex = 8; // Delivered (from ClickPost bucket 6)
+  } else if (isOutForDelivery) {
+    currentStageIndex = 7; // Out For Delivery (from ClickPost bucket 4)
+  } else if (isInTransit) {
+    currentStageIndex = 6; // In Transit (from ClickPost bucket 3)
+  } else if (isDispatched) {
+    currentStageIndex = 5; // Dispatch (from ClickPost bucket 2)
+  } 
+  // Proportional manufacturing & crafting milestones
+  else if (normalizedStatus.includes('certif') || normalizedStatus.includes('hallmark') || (stageDates[4] && nowTime >= stageDates[4].getTime())) {
+    currentStageIndex = 4; // Certification (~85%)
+  } 
+  else if (normalizedStatus.includes('quality') || normalizedStatus.includes('qc') || (stageDates[3] && nowTime >= stageDates[3].getTime())) {
+    currentStageIndex = 3; // Quality Control (~65%)
+  } 
+  else if (normalizedStatus.includes('manufactur') || normalizedStatus.includes('production') || normalizedStatus.includes('making') || (stageDates[2] && nowTime >= stageDates[2].getTime())) {
+    currentStageIndex = 2; // Manufacturing (~28%)
+  } 
+  else if (
+    normalizedStatus.includes('process') || 
+    normalizedStatus.includes('pogenerated') ||
+    normalizedStatus.includes('orderplaced') ||
+    normalizedStatus.includes('inprogress') ||
+    status === 'IN_PROGRESS' ||
+    fStatus === 'PAID' ||
+    fStatus === 'PARTIALLY_PAID' ||
+    (stageDates[1] && nowTime >= stageDates[1].getTime())
+  ) {
+    currentStageIndex = 1; // Processing / PO Generated
+  } else {
+    currentStageIndex = 0; // Order Confirmed
+  }
+
+  // Ensure index is within bounds
+  const progressPct = Math.min(100, (currentStageIndex / (stages.length - 1)) * 100);
+
   return (
     <div className="font-figtree space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex items-center gap-4">
@@ -313,83 +577,320 @@ export default function OrderDetailsPage() {
       )}
 
       {/* Order Status Timeline */}
-      <div className="bg-white rounded-[8px] border border-zinc-100 p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">     
-          <div className="flex items-center gap-3">
-            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${
-              isCancelled
-                ? "bg-red-50 text-red-600 border border-red-200"
-                : isDelivered 
-                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200" 
-                  : "bg-blue-50 text-blue-600 border border-blue-200"
-            }`}>
-              {isCancelled ? <AlertCircle size={14} /> : isDelivered ? <CheckCircle2 size={14} /> : <Clock size={14} />}      
-              {isCancelled ? "Cancelled" : stages[currentStageIndex]}
-            </span>
+      <div className="bg-white rounded-2xl border border-zinc-100 p-6 sm:p-8 md:p-9 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        {/* Header: Status Headline & Action */}
+        <div className="flex items-center justify-between gap-4 pb-6 mb-8 border-b border-zinc-100">     
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide ${
+                isCancelled
+                  ? "bg-red-50 text-red-700 border border-red-200"
+                  : isDelivered 
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                    : "bg-blue-50 text-blue-700 border border-blue-200"
+              }`}>
+                {isCancelled ? <AlertCircle size={12} /> : isDelivered ? <CheckCircle2 size={12} /> : <Clock size={12} />}      
+                {isCancelled ? "Cancelled" : stages[currentStageIndex]}
+              </span>
+              {clickpostData?.courierName && (
+                <span className="text-[11px] text-zinc-400 font-normal">via {clickpostData.courierName}</span>
+              )}
+            </div>
+            {isDelivered && (
+              <p className="text-xs text-zinc-500 font-medium mt-1">
+                Delivered on {order.documentDate ? new Date(order.documentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : (order.processedAt ? new Date(order.processedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently')}
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2 text-zinc-400">
-            <Truck size={18} />
-            <span className="text-xs font-bold uppercase tracking-widest">{isCancelled ? "Order cancelled" : "Live tracking available"}</span>        
+
+          {/* Desktop action button */}
+          <div className="hidden md:flex items-center gap-2.5">
+            {clickpostData?.clickpostUrl ? (
+              <a
+                href={clickpostData.clickpostUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+              >
+                <Truck size={13} />
+                <span>Track Your Order</span>
+                <ExternalLink size={12} className="text-zinc-400" />
+              </a>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-200/60 rounded-xl text-xs font-medium text-zinc-500">
+                <Truck size={14} className="text-zinc-400" />
+                <span>Live tracking available</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="relative">
-          {/* Desktop Timeline Track */}
-          <div className="absolute top-5 left-[20px] right-[20px] h-1 bg-zinc-100 hidden md:block rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-[width] duration-1000 ease-out"
-              style={{ width: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
-            />
-          </div>
-
-          {/* Mobile Timeline Track */}
-          <div className="absolute left-[20px] top-5 bottom-5 w-1 bg-zinc-100 md:hidden rounded-full overflow-hidden">
-            <div
-              className="w-full bg-primary transition-[height] duration-1000 ease-out"
-              style={{ height: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
-            />
-          </div>
-
-          <div className="flex flex-col md:flex-row relative z-10 w-full gap-4">
+        {/* Desktop Timeline (md and up) */}
+        <div className="hidden md:block pt-2 pb-2">
+          {/* 8 Milestone Steps with perfectly centered connecting lines */}
+          <div className="flex w-full">
             {stages.map((stage, index) => {
               const isCompleted = index <= currentStageIndex;
               const isCurrent = index === currentStageIndex;
 
               return (
-                <div key={stage} className={`flex flex-row md:flex-col gap-4 flex-1 items-center ${
-                  index === 0 ? "md:items-start" :
-                  index === stages.length - 1 ? "md:items-end" :
-                  "md:items-center"
-                }`}>
-                  <div className={`size-10 rounded-full flex items-center justify-center border-4 transition-all duration-500 shrink-0 z-20 ${
-                    isCompleted ? "bg-primary border-primary text-white" : "bg-white border-zinc-100 text-zinc-300"
-                  } ${isCurrent ? "scale-125 shadow-lg shadow-primary/20 ring-4 ring-primary/10" : ""}`}>       
-                    {isCompleted ? <CheckCircle2 size={16} /> : <div className="size-2 bg-current rounded-full" />}
+                <div key={stage} className="flex-1 min-w-0 flex flex-col items-center text-center px-1">
+                  {/* Circle Node & Connecting Line Row - guarantees circles are 100% centered on the line */}
+                  <div className="relative w-full h-6 flex items-center justify-center mb-2.5">
+                    {/* Connecting line to the next circle */}
+                    {index < stages.length - 1 && (
+                      <div className="absolute top-1/2 -translate-y-1/2 left-1/2 w-full h-[2px] bg-zinc-100 z-0">
+                        <div
+                          className={`h-full transition-all duration-500 ease-out ${
+                            index < currentStageIndex
+                              ? isDelivered
+                                ? "bg-emerald-600"
+                                : "bg-zinc-900"
+                              : "w-0"
+                          }`}
+                          style={{ width: index < currentStageIndex ? "100%" : "0%" }}
+                        />
+                      </div>
+                    )}
+
+                    {/* The Circle - positioned with z-10 directly ON the line */}
+                    <div
+                      className={`relative z-10 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                        isCompleted
+                          ? isDelivered
+                            ? "size-4 bg-emerald-600 text-white"
+                            : "size-4 bg-zinc-900 text-white"
+                          : "size-2.5 bg-white border-2 border-zinc-200"
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <Check size={9} strokeWidth={3} className="text-white" />
+                      ) : null}
+                    </div>
                   </div>
-                  <div className={`space-y-1 ${
-                    index === 0 ? "md:text-left" :
-                    index === stages.length - 1 ? "md:text-right" :
-                    "md:text-center"
-                  }`}>
-                    <p className={`text-[10px] font-bold uppercase tracking-widest ${isCompleted ? "text-zinc-900" : "text-zinc-400"}`}>
-                      {stage}
-                    </p>
-                    {index === 0 ? (
-                      <p className="text-[12px] text-zinc-900 font-medium">
-                        {order.processedAt ? new Date(order.processedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : ""}
-                      </p>
-                    ) : (isCurrent && order.documentDate) ? (
-                      <p className="text-[12px] text-zinc-900 font-medium">
-                        {new Date(order.documentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                      </p>
-                    ) : null}
-                  </div>
+
+                  {/* Clean Title Case Stage Label */}
+                  <p
+                    className={`text-[11px] leading-tight transition-colors ${
+                      isCurrent
+                        ? "text-zinc-900 font-semibold"
+                        : isCompleted
+                          ? "text-zinc-700 font-medium"
+                          : "text-zinc-400 font-normal"
+                    }`}
+                  >
+                    {stage}
+                  </p>
+
+                  {/* Calculated Milestone Date (0-5) or ClickPost Courier Scan Date (5-8) */}
+                  {index <= 5 && stageDates[index] ? (
+                    <span className={`text-[10px] ${isCurrent ? 'text-zinc-800 font-semibold' : 'text-zinc-400 font-normal'} mt-1`}>
+                      {(index === 5 && clickpostScanDates[5])
+                        ? clickpostScanDates[5].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+                        : stageDates[index].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                    </span>
+                  ) : index >= 6 && clickpostScanDates[index] ? (
+                    <span className={`text-[10px] ${isCurrent ? 'text-zinc-800 font-semibold' : 'text-zinc-500 font-medium'} mt-1`}>
+                      {clickpostScanDates[index].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                    </span>
+                  ) : isCurrent && order.documentDate ? (
+                    <span className="text-[10px] text-zinc-500 font-medium mt-1">
+                      {new Date(order.documentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                    </span>
+                  ) : null}
                 </div>
               );
             })}
           </div>
         </div>
+
+        {/* Mobile Stepper Timeline (below md) */}
+        <div className="md:hidden pt-1">
+          <div className="relative pl-2">
+            {/* Vertical Track Line - strictly bounded to the step nodes */}
+            <div className="absolute left-[17px] top-2.5 bottom-2.5 w-[2px] bg-zinc-100 rounded-full overflow-hidden">
+              <div
+                className={`w-full transition-all duration-700 ease-out ${
+                  isDelivered ? "bg-emerald-600" : "bg-zinc-900"
+                }`}
+                style={{ height: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
+              />
+            </div>
+
+            <div className="space-y-4 relative z-10">
+              {stages.map((stage, index) => {
+                const isCompleted = index <= currentStageIndex;
+                const isCurrent = index === currentStageIndex;
+
+                return (
+                  <div key={stage} className="flex items-center gap-3.5">
+                    <div className="w-5 flex items-center justify-center shrink-0">
+                      <div
+                        className={`rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                          isCompleted
+                            ? isDelivered
+                              ? "size-4 bg-emerald-600 text-white"
+                              : "size-4 bg-zinc-900 text-white"
+                            : "size-2.5 bg-white border-2 border-zinc-200"
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <Check size={9} strokeWidth={3} className="text-white" />
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 flex items-baseline justify-between gap-2">
+                      <p
+                        className={`text-xs ${
+                          isCurrent
+                            ? "text-zinc-900 font-semibold"
+                            : isCompleted
+                              ? "text-zinc-700 font-medium"
+                              : "text-zinc-400 font-normal"
+                        }`}
+                      >
+                        {stage}
+                      </p>
+
+                      {index <= 5 && stageDates[index] ? (
+                        <span className={`text-[11px] ${isCurrent ? 'text-zinc-800 font-semibold' : 'text-zinc-400 font-normal'}`}>
+                          {(index === 5 && clickpostScanDates[5])
+                            ? clickpostScanDates[5].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+                            : stageDates[index].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                        </span>
+                      ) : index >= 6 && clickpostScanDates[index] ? (
+                        <span className={`text-[11px] ${isCurrent ? 'text-zinc-800 font-semibold' : 'text-zinc-500 font-medium'}`}>
+                          {clickpostScanDates[index].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                        </span>
+                      ) : isCurrent && order.documentDate ? (
+                        <span className="text-[11px] text-zinc-500 font-medium">
+                          {new Date(order.documentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Mobile Track on ClickPost button - clean spacing with NO lines intersecting */}
+          {clickpostData?.clickpostUrl ? (
+            <div className="mt-6">
+              <a
+                href={clickpostData.clickpostUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+              >
+                <Truck size={13} />
+                <span>Track Your Order</span>
+                <ExternalLink size={12} className="text-zinc-400" />
+              </a>
+            </div>
+          ) : (
+            <div className="mt-6">
+              <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-50 border border-zinc-200/60 rounded-xl text-xs font-medium text-zinc-500">
+                <Truck size={14} className="text-zinc-400" />
+                <span>Live tracking available</span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ClickPost Courier & Delivery Tracking Details */}
+      {(clickpostData?.waybill || clickpostData?.clickpostUrl || clickpostData?.tracking) && (
+        currentStageIndex >= 5 || (clickpostData.tracking?.scans && clickpostData.tracking.scans.length > 0 && clickpostData.tracking.status_bucket > 1) ? (
+          <div className="bg-white rounded-2xl border border-zinc-100 p-6 md:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-100">
+              <div className="flex items-center gap-3.5">
+                <div className="size-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-700 shrink-0">
+                  <Truck size={18} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-semibold text-zinc-900">
+                      {clickpostData.courierName || clickpostData.tracking?.courier_name || "Courier"} Tracking
+                    </h4>
+                    {clickpostData.tracking?.latest_status?.status && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-zinc-100 text-zinc-700">
+                        {clickpostData.tracking.latest_status.status}
+                      </span>
+                    )}
+                  </div>
+                  {clickpostData.waybill && (
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500">
+                      <span>AWB: <strong className="text-zinc-800 font-mono font-medium">{clickpostData.waybill}</strong></span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyWaybill(clickpostData.waybill)}
+                        className="text-zinc-400 hover:text-zinc-700 transition-colors p-0.5"
+                        title="Copy AWB number"
+                      >
+                        {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {clickpostData.clickpostUrl && (
+                <a
+                  href={clickpostData.clickpostUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shrink-0"
+                >
+                  <span>Track Your Order</span>
+                  <ExternalLink size={13} className="text-zinc-400" />
+                </a>
+              )}
+            </div>
+
+            {/* Live Scans Timeline if available */}
+            {clickpostData.tracking?.scans && clickpostData.tracking.scans.length > 0 ? (
+              <div className="mt-6 pt-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-5">Latest Courier Activity</p>
+                <div className="space-y-5 border-l border-zinc-200 ml-3 pl-5 relative">
+                  {clickpostData.tracking.scans.map((scan, idx) => (
+                    <div key={idx} className="relative">
+                      <div className={`absolute -left-[25px] top-1 size-2.5 rounded-full border-2 border-white ${
+                        idx === 0 ? "bg-emerald-600 ring-4 ring-emerald-100" : "bg-zinc-300"
+                      }`} />
+                      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
+                        <p className={`text-xs font-semibold ${idx === 0 ? "text-zinc-900" : "text-zinc-700"}`}>
+                          {scan.status || scan.clickpost_status_description || "Update"}
+                          {scan.location ? ` — ${scan.location}` : ""}
+                        </p>
+                        {scan.timestamp && (
+                          <span className="text-[11px] text-zinc-400 font-normal shrink-0">
+                            {new Date(scan.timestamp).toLocaleString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      {scan.remark && (
+                        <p className="text-xs text-zinc-500 mt-0.5">{scan.remark}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 pt-1 text-xs text-zinc-500">
+                Shipment is registered with the courier. Click above to view live tracking milestones on ClickPost.
+              </div>
+            )}
+          </div>
+        ) : null
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
