@@ -12,7 +12,10 @@ import {
   HelpCircle,
   AlertCircle,
   Loader2,
-  RefreshCcw
+  RefreshCcw,
+  ExternalLink,
+  Copy,
+  Check
 } from "lucide-react";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
@@ -62,8 +65,22 @@ export default function OrderDetailsPage() {
   const { id } = useParams();
   const { accessToken } = useSelector((state) => state.user);
   const [order, setOrder] = useState(null);
+  const [clickpostData, setClickpostData] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const handleCopyWaybill = (text) => {
+    if (!text) return;
+    try {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success("Tracking number copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (_) {
+      toast.info(text);
+    }
+  };
 
   useEffect(() => {
     async function fetchOrderDetails() {
@@ -123,6 +140,31 @@ export default function OrderDetailsPage() {
             } catch (sfErr) {
               console.warn("[OrderDetails] Storefront fallback failed:", sfErr);
             }
+          }
+        }
+
+        // 3. Fetch ClickPost tracking status and order status link
+        try {
+          const cpRes = await apiFetch(`/api/clickpost/track/${id}`);
+          if (cpRes?.success && (cpRes.clickpostUrl || cpRes.waybill || cpRes.tracking)) {
+            setClickpostData(cpRes);
+          } else if (orderData?.trackingInfo?.waybill) {
+            setClickpostData({
+              waybill: orderData.trackingInfo.waybill,
+              courierName: orderData.trackingInfo.courier,
+              clickpostUrl: orderData.trackingInfo.trackingUrl || `https://track.clickpost.in/?waybill=${encodeURIComponent(orderData.trackingInfo.waybill)}`,
+              tracking: null
+            });
+          }
+        } catch (cpErr) {
+          console.warn("[OrderDetails] Clickpost fetch error (non-fatal):", cpErr);
+          if (orderData?.trackingInfo?.waybill) {
+            setClickpostData({
+              waybill: orderData.trackingInfo.waybill,
+              courierName: orderData.trackingInfo.courier,
+              clickpostUrl: orderData.trackingInfo.trackingUrl || `https://track.clickpost.in/?waybill=${encodeURIComponent(orderData.trackingInfo.waybill)}`,
+              tracking: null
+            });
           }
         }
 
@@ -313,75 +355,193 @@ export default function OrderDetailsPage() {
       )}
 
       {/* Order Status Timeline */}
-      <div className="bg-white rounded-[8px] border border-zinc-100 p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">     
-          <div className="flex items-center gap-3">
-            <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${
-              isCancelled
-                ? "bg-red-50 text-red-600 border border-red-200"
-                : isDelivered 
-                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200" 
-                  : "bg-blue-50 text-blue-600 border border-blue-200"
-            }`}>
-              {isCancelled ? <AlertCircle size={14} /> : isDelivered ? <CheckCircle2 size={14} /> : <Clock size={14} />}      
-              {isCancelled ? "Cancelled" : stages[currentStageIndex]}
-            </span>
+      <div className="bg-white rounded-2xl border border-zinc-100 p-6 sm:p-8 md:p-9 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+        {/* Header: Status Headline & Action */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-zinc-100">     
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide ${
+                isCancelled
+                  ? "bg-red-50 text-red-700 border border-red-200"
+                  : isDelivered 
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                    : "bg-blue-50 text-blue-700 border border-blue-200"
+              }`}>
+                {isCancelled ? <AlertCircle size={12} /> : isDelivered ? <CheckCircle2 size={12} /> : <Clock size={12} />}      
+                {isCancelled ? "Cancelled" : stages[currentStageIndex]}
+              </span>
+              {clickpostData?.courierName && (
+                <span className="text-[11px] text-zinc-400 font-normal">via {clickpostData.courierName}</span>
+              )}
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-zinc-900 tracking-tight">
+              {isCancelled
+                ? "This order was cancelled"
+                : isDelivered
+                  ? `Delivered on ${order.documentDate ? new Date(order.documentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : (order.processedAt ? new Date(order.processedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently')}`
+                  : `Currently in ${stages[currentStageIndex]}`
+              }
+            </h3>
           </div>
-          <div className="flex items-center gap-2 text-zinc-400">
-            <Truck size={18} />
-            <span className="text-xs font-bold uppercase tracking-widest">{isCancelled ? "Order cancelled" : "Live tracking available"}</span>        
+
+          <div className="flex items-center gap-2.5">
+            {clickpostData?.clickpostUrl ? (
+              <a
+                href={clickpostData.clickpostUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+              >
+                <Truck size={13} />
+                <span>Track on ClickPost</span>
+                <ExternalLink size={12} className="text-zinc-400" />
+              </a>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-200/60 rounded-xl text-xs font-medium text-zinc-500">
+                <Truck size={14} className="text-zinc-400" />
+                <span>Live tracking available</span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="relative">
-          {/* Desktop Timeline Track */}
-          <div className="absolute top-5 left-[20px] right-[20px] h-1 bg-zinc-100 hidden md:block rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-[width] duration-1000 ease-out"
-              style={{ width: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
-            />
-          </div>
-
-          {/* Mobile Timeline Track */}
-          <div className="absolute left-[20px] top-5 bottom-5 w-1 bg-zinc-100 md:hidden rounded-full overflow-hidden">
-            <div
-              className="w-full bg-primary transition-[height] duration-1000 ease-out"
-              style={{ height: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
-            />
-          </div>
-
-          <div className="flex flex-col md:flex-row relative z-10 w-full gap-4">
+        {/* Desktop Timeline (md and up) */}
+        <div className="hidden md:block pt-2 pb-2">
+          {/* 8 Milestone Steps with perfectly centered connecting lines */}
+          <div className="flex w-full">
             {stages.map((stage, index) => {
               const isCompleted = index <= currentStageIndex;
               const isCurrent = index === currentStageIndex;
 
               return (
-                <div key={stage} className={`flex flex-row md:flex-col gap-4 flex-1 items-center ${
-                  index === 0 ? "md:items-start" :
-                  index === stages.length - 1 ? "md:items-end" :
-                  "md:items-center"
-                }`}>
-                  <div className={`size-10 rounded-full flex items-center justify-center border-4 transition-all duration-500 shrink-0 z-20 ${
-                    isCompleted ? "bg-primary border-primary text-white" : "bg-white border-zinc-100 text-zinc-300"
-                  } ${isCurrent ? "scale-125 shadow-lg shadow-primary/20 ring-4 ring-primary/10" : ""}`}>       
-                    {isCompleted ? <CheckCircle2 size={16} /> : <div className="size-2 bg-current rounded-full" />}
+                <div key={stage} className="flex-1 min-w-0 flex flex-col items-center text-center px-1">
+                  {/* Circle Node & Connecting Line Row - guarantees circles are 100% centered on the line */}
+                  <div className="relative w-full h-6 flex items-center justify-center mb-2.5">
+                    {/* Connecting line to the next circle */}
+                    {index < stages.length - 1 && (
+                      <div className="absolute top-1/2 -translate-y-1/2 left-1/2 w-full h-[2px] bg-zinc-100 z-0">
+                        <div
+                          className={`h-full transition-all duration-500 ease-out ${
+                            index < currentStageIndex
+                              ? isDelivered
+                                ? "bg-emerald-600"
+                                : "bg-zinc-900"
+                              : "w-0"
+                          }`}
+                          style={{ width: index < currentStageIndex ? "100%" : "0%" }}
+                        />
+                      </div>
+                    )}
+
+                    {/* The Circle - positioned with z-10 directly ON the line */}
+                    <div
+                      className={`relative z-10 rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                        isCurrent
+                          ? isDelivered
+                            ? "size-5 bg-emerald-600 text-white shadow-sm ring-4 ring-emerald-100 ring-offset-2 ring-offset-white"
+                            : "size-5 bg-zinc-900 text-white shadow-sm ring-4 ring-zinc-200 ring-offset-2 ring-offset-white"
+                          : isCompleted
+                            ? isDelivered
+                              ? "size-4 bg-emerald-600 text-white"
+                              : "size-4 bg-zinc-900 text-white"
+                            : "size-2.5 bg-white border-2 border-zinc-200"
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <Check size={isCurrent ? 11 : 9} strokeWidth={3} className="text-white" />
+                      ) : null}
+                    </div>
                   </div>
-                  <div className={`space-y-1 ${
-                    index === 0 ? "md:text-left" :
-                    index === stages.length - 1 ? "md:text-right" :
-                    "md:text-center"
-                  }`}>
-                    <p className={`text-[10px] font-bold uppercase tracking-widest ${isCompleted ? "text-zinc-900" : "text-zinc-400"}`}>
+
+                  {/* Clean Title Case Stage Label */}
+                  <p
+                    className={`text-[11px] leading-tight transition-colors ${
+                      isCurrent
+                        ? "text-zinc-900 font-semibold"
+                        : isCompleted
+                          ? "text-zinc-700 font-medium"
+                          : "text-zinc-400 font-normal"
+                    }`}
+                  >
+                    {stage}
+                  </p>
+
+                  {/* Timestamp */}
+                  {index === 0 && order.processedAt ? (
+                    <span className="text-[10px] text-zinc-400 font-normal mt-1">
+                      {new Date(order.processedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                    </span>
+                  ) : isCurrent && order.documentDate ? (
+                    <span className="text-[10px] text-zinc-500 font-medium mt-1">
+                      {new Date(order.documentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobile Stepper Timeline (below md) */}
+        <div className="md:hidden relative pl-2 pt-1">
+          {/* Vertical Track Line */}
+          <div className="absolute left-[17px] top-3 bottom-4 w-[2px] bg-zinc-100 rounded-full overflow-hidden">
+            <div
+              className={`w-full transition-all duration-700 ease-out ${
+                isDelivered ? "bg-emerald-600" : "bg-zinc-900"
+              }`}
+              style={{ height: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
+            />
+          </div>
+
+          <div className="space-y-4 relative z-10">
+            {stages.map((stage, index) => {
+              const isCompleted = index <= currentStageIndex;
+              const isCurrent = index === currentStageIndex;
+
+              return (
+                <div key={stage} className="flex items-center gap-3.5">
+                  <div className="w-5 flex items-center justify-center shrink-0">
+                    <div
+                      className={`rounded-full flex items-center justify-center transition-all duration-300 shrink-0 ${
+                        isCurrent
+                          ? isDelivered
+                            ? "size-5 bg-emerald-600 text-white shadow-sm ring-4 ring-emerald-100"
+                            : "size-5 bg-zinc-900 text-white shadow-sm ring-4 ring-zinc-200"
+                          : isCompleted
+                            ? isDelivered
+                              ? "size-4 bg-emerald-600 text-white"
+                              : "size-4 bg-zinc-900 text-white"
+                            : "size-2.5 bg-white border-2 border-zinc-200"
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <Check size={isCurrent ? 11 : 9} strokeWidth={3} />
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex items-baseline justify-between gap-2">
+                    <p
+                      className={`text-xs ${
+                        isCurrent
+                          ? "text-zinc-900 font-semibold"
+                          : isCompleted
+                            ? "text-zinc-700 font-medium"
+                            : "text-zinc-400 font-normal"
+                      }`}
+                    >
                       {stage}
                     </p>
-                    {index === 0 ? (
-                      <p className="text-[12px] text-zinc-900 font-medium">
-                        {order.processedAt ? new Date(order.processedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : ""}
-                      </p>
-                    ) : (isCurrent && order.documentDate) ? (
-                      <p className="text-[12px] text-zinc-900 font-medium">
+
+                    {index === 0 && order.processedAt ? (
+                      <span className="text-[11px] text-zinc-400 font-normal">
+                        {new Date(order.processedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                      </span>
+                    ) : isCurrent && order.documentDate ? (
+                      <span className="text-[11px] text-zinc-500 font-medium">
                         {new Date(order.documentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                      </p>
+                      </span>
                     ) : null}
                   </div>
                 </div>
@@ -390,6 +550,96 @@ export default function OrderDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* ClickPost Courier & Delivery Tracking Details */}
+      {(clickpostData?.waybill || clickpostData?.clickpostUrl || clickpostData?.tracking) && (
+        <div className="bg-white rounded-2xl border border-zinc-100 p-6 md:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-100">
+            <div className="flex items-center gap-3.5">
+              <div className="size-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-700 shrink-0">
+                <Truck size={18} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-semibold text-zinc-900">
+                    {clickpostData.courierName || clickpostData.tracking?.courier_name || "Courier"} Tracking
+                  </h4>
+                  {clickpostData.tracking?.latest_status?.status && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-zinc-100 text-zinc-700">
+                      {clickpostData.tracking.latest_status.status}
+                    </span>
+                  )}
+                </div>
+                {clickpostData.waybill && (
+                  <div className="flex items-center gap-2 mt-0.5 text-xs text-zinc-500">
+                    <span>AWB: <strong className="text-zinc-800 font-mono font-medium">{clickpostData.waybill}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyWaybill(clickpostData.waybill)}
+                      className="text-zinc-400 hover:text-zinc-700 transition-colors p-0.5"
+                      title="Copy AWB number"
+                    >
+                      {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {clickpostData.clickpostUrl && (
+              <a
+                href={clickpostData.clickpostUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shrink-0"
+              >
+                <span>ClickPost Order Status</span>
+                <ExternalLink size={13} className="text-zinc-400" />
+              </a>
+            )}
+          </div>
+
+          {/* Live Scans Timeline if available */}
+          {clickpostData.tracking?.scans && clickpostData.tracking.scans.length > 0 ? (
+            <div className="mt-6 pt-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-5">Latest Courier Activity</p>
+              <div className="space-y-5 border-l border-zinc-200 ml-3 pl-5 relative">
+                {clickpostData.tracking.scans.map((scan, idx) => (
+                  <div key={idx} className="relative">
+                    <div className={`absolute -left-[25px] top-1 size-2.5 rounded-full border-2 border-white ${
+                      idx === 0 ? "bg-emerald-600 ring-4 ring-emerald-100" : "bg-zinc-300"
+                    }`} />
+                    <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
+                      <p className={`text-xs font-semibold ${idx === 0 ? "text-zinc-900" : "text-zinc-700"}`}>
+                        {scan.status || scan.clickpost_status_description || "Update"}
+                        {scan.location ? ` — ${scan.location}` : ""}
+                      </p>
+                      {scan.timestamp && (
+                        <span className="text-[11px] text-zinc-400 font-normal shrink-0">
+                          {new Date(scan.timestamp).toLocaleString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    {scan.remark && (
+                      <p className="text-xs text-zinc-500 mt-0.5">{scan.remark}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 pt-1 text-xs text-zinc-500">
+              Shipment is registered with the courier. Click above to view live tracking milestones on ClickPost.
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
