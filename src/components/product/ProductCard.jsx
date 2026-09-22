@@ -111,6 +111,44 @@ function getVariantForBase(product, selectedBase, prefer9KT = false) {
   );
 }
 
+// Alt codes for the shots that are NOT colour-specific: the model wearing the
+// piece (MQ / MH), the video (MV), the close-up (CI) and the 360 spin. They
+// carry no colour token in their alt text, which is exactly why the colour
+// matching below dropped them — the card showed the flat product shots only,
+// while the PDP, which reads these same codes, showed the model too.
+//
+// Listed in the priority ProductGallery gives them (see its ALWAYS_SHOW_CODES
+// and takeCode), so a card and the product page it opens agree on which extra
+// shot comes first. Longer codes lead their own family: "mq-ai" is checked
+// before "mq" so MQ_AI is claimed by the right slot.
+const EXTRA_SHOT_CODES = [
+  "mv-ai", "mv_ai", "mv",
+  "mq-ai", "mq_ai", "mq",
+  "mh-ai", "mh_ai", "mh",
+  "ci-ai", "ci_ai", "ci",
+  "360v", "360°",
+];
+
+// Never on a card. A certificate scan and a size chart are documents about the
+// piece, not pictures of it — the PDP gives them their own place, and a grid
+// tile that swipes into a PDF-looking page reads as a bug. ProductGallery
+// drops "cert" from its carousel for the same reason.
+const NON_PRODUCT_ALTS = ["cert", "size"];
+
+const COLOR_ALT_TOKENS = ["white", "yellow", "rose", "plt", "platinum"];
+
+// Colour shot, then the two extras, then back to colour — ProductGallery's own
+// slot pattern. Interleaving rather than appending is the point: a card with
+// five yellow shots would bury the model image sixth, where nobody swipes.
+// Position 0 stays a colour shot, which matters beyond looks — galleryImages[0]
+// is the thumbnail the wishlist and the GTM payloads send.
+const CARD_SLOT_PATTERN = [
+  "color", "extra", "extra",
+  "color", "color", "extra", "extra",
+  "color", "color", "extra", "extra",
+  "color",
+];
+
 function getImagesForBase(product, selectedBase) {
   const variant = getVariantForBase(product, selectedBase);
   const variantColor = String(variant?.color || variant?.title || "").toLowerCase();
@@ -142,12 +180,45 @@ function getImagesForBase(product, selectedBase) {
     colorSpecificImages = [...colorSpecificImages, ...colorImages];
   }
 
-  // If we found color-specific images, ONLY show those
-  if (colorSpecificImages.length > 0) return colorSpecificImages;
+  // 4. The colour-agnostic shots, matched on their alt code. Walked code-first
+  //    so the result is in ProductGallery's priority order rather than whatever
+  //    order Shopify happens to return the media in.
+  const extraShots = [];
+  EXTRA_SHOT_CODES.forEach((code) => {
+    allImages.forEach((img) => {
+      const alt = String(img.alt || "").toLowerCase();
+      if (!alt || !alt.includes(code)) return;
+      if (NON_PRODUCT_ALTS.some((skip) => alt.includes(skip))) return;
+      // A shot whose alt names a colour is a colour shot; steps 1–3 own those,
+      // and picking it up here would put another colour's photo on this card.
+      if (COLOR_ALT_TOKENS.some((token) => alt.includes(token))) return;
+      if (extraShots.some((e) => e.url === img.url)) return;
+      if (colorSpecificImages.some((p) => p.url === img.url)) return;
+      extraShots.push(img);
+    });
+  });
 
-  // Fallback to variant image or main image if no color-specific images are found
-  const fallbackImage = variant?.image || product?.image || null;
-  return fallbackImage ? [{ url: fallbackImage, alt: product?.title || "Product image" }] : [];
+  // Colour shots lead; where there are none, fall back to the variant or main
+  // image so a card is never blank.
+  const colorQueue = colorSpecificImages.length > 0
+    ? [...colorSpecificImages]
+    : (() => {
+        const fallbackImage = variant?.image || product?.image || null;
+        return fallbackImage ? [{ url: fallbackImage, alt: product?.title || "Product image" }] : [];
+      })();
+
+  if (colorQueue.length === 0 && extraShots.length === 0) return [];
+
+  const extraQueue = [...extraShots];
+  const ordered = [];
+  CARD_SLOT_PATTERN.forEach((slot) => {
+    const next = slot === "color" ? colorQueue.shift() : extraQueue.shift();
+    if (next) ordered.push(next);
+  });
+
+  // Whatever the pattern did not reach still belongs on the card — it just
+  // belongs after the shots that earned a slot.
+  return [...ordered, ...extraQueue, ...colorQueue];
 }
 
 function getPrioritizedVariant(product, collectionHandle) {
@@ -442,7 +513,21 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [displayLabels.length]);
 
 
-  const galleryImages = getImagesForBase(product, activeBase);
+  // Memoised on what actually changes the list, and both reasons are
+  // load-bearing. The effect below resets the carousel whenever this array's
+  // identity changes — recomputed every render, it dragged the shopper back to
+  // the first slide each time a live price or a review count landed, which also
+  // made the model shot behind slide 1 nearly unreachable. And the lookup now
+  // walks every alt code against every image, once per tile in a grid of 25.
+  // Keyed on the fields the lookup actually reads, not on `product` itself: the
+  // collection grid passes `{ ...prod, selectedColor }` whenever a colour
+  // filter is on, so the object is a new reference every render while the arrays
+  // inside it are not.
+  const galleryImages = useMemo(
+    () => getImagesForBase(product, activeBase),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [product.images, product.variants, product.image, product.title, activeBase]
+  );
   const swiperId = `card-swiper-${String(product.id || product.shopifyId || product.handle).replace(/[^a-zA-Z0-9]/g, "")}`;
   const swiperRef = useRef(null);
 
