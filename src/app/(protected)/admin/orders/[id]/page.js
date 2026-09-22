@@ -508,19 +508,19 @@ export default function OrderDetailsPage() {
   // ClickPost live tracking & ERP status checks:
   const isDelivered = status === 'DELIVERED' || cpBucket === 6 || (cpDesc.includes('deliver') && !cpDesc.includes('outfordelivery')) || (normalizedStatus.includes('deliver') && !normalizedStatus.includes('outfordelivery'));
   const isOutForDelivery = cpBucket === 4 || cpDesc.includes('outfordelivery') || normalizedStatus.includes('outfordelivery');
-  const isInTransit = cpBucket === 3 || cpDesc.includes('intransit') || (cpBucket > 1 && cpBucket < 6 && cpBucket !== 4) || (!isBeforeDispatchDate && (normalizedStatus.includes('transit') || status === 'IN_TRANSIT'));
-  const isDispatched = hasCourierPickup || isFulfilled || normalizedStatus.includes('dispatched') || normalizedStatus.includes('shipped');
+  const isInTransit = cpBucket === 3 || cpDesc.includes('intransit') || cpDesc.includes('transit') || cpDesc.includes('reachedhub') || cpDesc.includes('departed') || (!isBeforeDispatchDate && (normalizedStatus.includes('transit') || status === 'IN_TRANSIT'));
+  const isDispatched = cpBucket === 2 || cpDesc.includes('pickedup') || cpDesc.includes('dispatched') || hasCourierPickup || isFulfilled || normalizedStatus.includes('dispatched') || normalizedStatus.includes('shipped');
 
   if (isCancelled) {
     currentStageIndex = 0;
   } else if (isDelivered) {
-    currentStageIndex = 8; // Delivered
+    currentStageIndex = 8; // Delivered (from ClickPost bucket 6)
   } else if (isOutForDelivery) {
-    currentStageIndex = 7; // Out For Delivery (from ClickPost)
-  } else if (isInTransit && (!isBeforeDispatchDate || (cpBucket && cpBucket > 1))) {
-    currentStageIndex = 6; // In Transit (from ClickPost)
+    currentStageIndex = 7; // Out For Delivery (from ClickPost bucket 4)
+  } else if (isInTransit) {
+    currentStageIndex = 6; // In Transit (from ClickPost bucket 3)
   } else if (isDispatched) {
-    currentStageIndex = 5; // Dispatch
+    currentStageIndex = 5; // Dispatch (from ClickPost bucket 2)
   } 
   // Proportional manufacturing & crafting milestones
   else if (normalizedStatus.includes('certif') || normalizedStatus.includes('hallmark') || (stageDates[4] && nowTime >= stageDates[4].getTime())) {
