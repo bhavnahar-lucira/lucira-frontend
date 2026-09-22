@@ -810,7 +810,21 @@ export default function PaymentPage() {
             blocks: {
               upi: {
                 name: "Pay via UPI",
-                methods: ["vpa", "qr"],
+                instruments: [
+                  { method: "upi" },
+                ],
+              },
+              cards: {
+                name: "Cards",
+                instruments: [
+                  { method: "card" },
+                ],
+              },
+              netbanking: {
+                name: "Netbanking",
+                instruments: [
+                  { method: "netbanking" },
+                ],
               },
             },
             sequence: ["block.upi", "block.cards", "block.netbanking"],
