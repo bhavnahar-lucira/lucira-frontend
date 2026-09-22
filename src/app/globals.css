@@ -1497,3 +1497,33 @@ img.marquee-img {
 }
 
 
+
+@keyframes dialog-pop-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.75);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes dialog-pop-out {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.75);
+  }
+}
+
+.animate-dialog-pop {
+  animation: dialog-pop-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-dialog-close {
+  animation: dialog-pop-out 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

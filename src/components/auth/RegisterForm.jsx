@@ -340,36 +340,45 @@ export function RegisterForm({ initialMobile = "" }) {
             <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg" width="120" height="49" alt="lucira jewelry logo" className="mx-auto" />
           </div>
           
-          <h2 className="text-xl font-bold text-center uppercase mb-1 font-serif">Register to Win Rewards</h2>
-          <p className="text-sm text-gray-500 text-center mb-6">Try Your Luck! Win a Diamond Pendant</p>
+          <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0 cursor-pointer" onClick={() => firstNameRef.current?.focus()}>REGISTER & UNLOCK YOUR REWARDS</p>
+          <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center mb-[18px] tracking-wider leading-relaxed max-w-[100%] mx-auto cursor-pointer" onClick={() => firstNameRef.current?.focus()}>Get ₹500 Assured + Spin the Wheel for More!</p>
 
           <div className="space-y-4">
             {step === "register" && (
               <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">First Name <span className="text-red-500">*</span></label>
-                    <input type="text" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-gray-600">Last Name <span className="text-red-500">*</span></label>
-                    <input type="text" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                  </div>
+                <div className="flex flex-col mb-[8px]">
+                  <input
+                    ref={firstNameRef}
+                    type="text"
+                    placeholder="Full Name *"
+                    className="w-full h-[45px] px-4 text-sm md:text-base border border-[#e2e2e2] rounded-sm outline-none bg-white placeholder-[#666]"
+                    value={firstName + (lastName ? " " + lastName : "")}
+                    onChange={(e) => {
+                      const parts = e.target.value.split(" ");
+                      setFirstName(parts[0] || "");
+                      setLastName(parts.slice(1).join(" ") || "");
+                    }}
+                  />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-600">Email Address <span className="text-red-500">*</span></label>
-                  <input type="email" className="w-full h-10 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <div className="flex flex-col mb-[8px]">
+                  <input
+                    type="email"
+                    placeholder="Email Address *"
+                    className="w-full h-[45px] px-4 text-sm md:text-base border border-[#e2e2e2] rounded-sm outline-none bg-white placeholder-[#666]"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-600">Phone Number <span className="text-red-500">*</span></label>
-                  <div className="flex items-center border border-gray-200 rounded h-10 px-3 bg-white focus-within:border-black transition-all">
-                    <span className="text-sm text-gray-500 mr-2 border-r border-gray-200 pr-2">+91</span>
+                <div className="flex flex-col mb-[14px]">
+                  <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
+                    <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
                     <input
                       type="tel"
+                      placeholder="Phone Number *"
                       maxLength="10"
-                      className="w-full h-full text-sm outline-none bg-transparent disabled:opacity-50"
+                      className="w-full h-full text-sm md:text-base border-none outline-none font-normal bg-transparent tracking-[0.3px] disabled:opacity-50 placeholder-[#666]"
                       value={mobile}
                       onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
                       disabled={isMobilePreFilled && mobile.length === 10}
@@ -377,20 +386,27 @@ export function RegisterForm({ initialMobile = "" }) {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 pt-2">
-                  <input type="checkbox" id="consent-reg" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 accent-[#5a413f]" />
-                  <label htmlFor="consent-reg" className="text-[11px] text-gray-600 leading-tight cursor-pointer">
-                    I accept that I have read & understood Privacy Policy and T&Cs.
+                <div className="my-3 max-w-full">
+                  <label htmlFor="consent-reg" className="flex items-start gap-2 text-xs leading-tight cursor-pointer text-[#000]">
+                    <input type="checkbox" id="consent-reg" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 accent-[#5a413f]" />
+                    <span>I accept that I have read & understood Privacy Policy and T&Cs.</span>
                   </label>
                 </div>
 
                 <button
-                  className="w-full h-11 bg-[#5f4745] hover:bg-[#4a3634] text-white text-sm font-semibold rounded transition-colors uppercase tracking-wider mt-2 disabled:opacity-50 shadow-md"
+                  className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-0 mb-[4px] bg-[#5a413f] rounded-lg disabled:opacity-50 shadow-md"
                   onClick={handleSpinAndRegister}
                   disabled={isSpinning || loading}
                 >
                   {isSpinning ? "SPINNING..." : "SPIN & CREATE ACCOUNT"}
                 </button>
+                <div className="flex items-center justify-center gap-2 text-[12px] text-black mt-[8px]">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                    <path d="M16.6668 10.8333C16.6668 15 13.7502 17.0833 10.2835 18.2916C10.102 18.3531 9.90478 18.3502 9.72516 18.2833C6.25016 17.0833 3.3335 15 3.3335 10.8333V4.99997C3.3335 4.77895 3.42129 4.56699 3.57757 4.41071C3.73385 4.25443 3.94582 4.16663 4.16683 4.16663C5.8335 4.16663 7.91683 3.16663 9.36683 1.89997C9.54337 1.74913 9.76796 1.66626 10.0002 1.66626C10.2324 1.66626 10.4569 1.74913 10.6335 1.89997C12.0918 3.17497 14.1668 4.16663 15.8335 4.16663C16.0545 4.16663 16.2665 4.25443 16.4228 4.41071C16.579 4.56699 16.6668 4.77895 16.6668 4.99997V10.8333Z" stroke="#008000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                    <path d="M7.5 9.99992L9.16667 11.6666L12.5 8.33325" stroke="#008000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                  </svg>
+                  <span>100% Secured & Spam Free</span>
+                </div>
 
                 <p className="text-center text-[13px] text-gray-600 mt-4">
                   Already registered?{" "}
@@ -403,12 +419,30 @@ export function RegisterForm({ initialMobile = "" }) {
 
             {step === "verify-otp" && (
               <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-900">Enter OTP <span className="text-red-500">*</span></label>
+                <p className="mb-2 text-center text-lg md:text-xl leading-tight font-medium text-black uppercase mx-auto mt-0">VERIFY OTP</p>
+                <div className="flex items-center justify-center gap-1.5 mb-5">
+                  <p className="text-sm md:text-base font-medium text-[#5B5B5B] text-center tracking-wider leading-relaxed capitalize max-w-[100%] m-0">{`Sent To +91 ${mobile}`}</p>
+                  <button
+                    onClick={() => {
+                      setOtp("");
+                      setStep("register");
+                      setTimeout(() => firstNameRef.current?.focus(), 50);
+                    }}
+                    className="text-[#5a413f] hover:text-[#3d2c2a] transition-colors bg-transparent border-none cursor-pointer flex items-center p-1"
+                    title="Edit phone number"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                    </svg>
+                  </button>
+                </div>
+                
+                <div className="space-y-2 mb-3">
                   <input
                     ref={otpRef}
                     autoFocus
                     placeholder="Enter 4-digit OTP"
+                    maxLength={4}
                     value={otp}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 4);
@@ -417,23 +451,24 @@ export function RegisterForm({ initialMobile = "" }) {
                         verifyExistingOtp(val);
                       }
                     }}
-                    className="w-full h-11 px-3 text-sm border border-gray-200 rounded focus:border-black outline-none transition-all"
+                    className="w-full h-[45px] px-4 text-center text-sm md:text-base border border-[#e2e2e2] rounded-sm outline-none bg-white font-extrabold tracking-[0.3em]"
                   />
                 </div>
+                
                 <button
                   onClick={() => verifyExistingOtp(otp)}
                   disabled={loading}
-                  className="w-full h-11 bg-[#5f4745] hover:bg-[#4a3634] text-white text-sm font-semibold rounded transition-colors uppercase tracking-wider mt-2 shadow-md"
+                  className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-0 mb-[4px] bg-[#5a413f] rounded-lg disabled:opacity-50 shadow-md"
                 >
-                  {loading ? "VERIFYING..." : "VERIFY OTP"}
+                  {loading ? "VERIFYING..." : "VERIFY OTP & CLAIM"}
                 </button>
                 
-                <p className="text-center text-[13px] text-gray-600 mt-2">
+                <p className="text-center mt-2.5 text-sm md:text-base text-[#5B5B5B]">
                   {timer > 0 ? (
                     `Resend OTP in 00:${timer < 10 ? `0${timer}` : timer}`
                   ) : (
                     <span 
-                      className="text-[#b77766] font-bold underline cursor-pointer" 
+                      className="cursor-pointer underline font-bold text-[#b77766]" 
                       onClick={async () => {
                         setTimer(30);
                         await sendOtpApi(mobile);
@@ -444,12 +479,16 @@ export function RegisterForm({ initialMobile = "" }) {
                     </span>
                   )}
                 </p>
+
+                <div className="flex items-center justify-center gap-2 text-[12px] text-black mt-[16px]">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                    <path d="M16.6668 10.8333C16.6668 15 13.7502 17.0833 10.2835 18.2916C10.102 18.3531 9.90478 18.3502 9.72516 18.2833C6.25016 17.0833 3.3335 15 3.3335 10.8333V4.99997C3.3335 4.77895 3.42129 4.56699 3.57757 4.41071C3.73385 4.25443 3.94582 4.16663 4.16683 4.16663C5.8335 4.16663 7.91683 3.16663 9.36683 1.89997C9.54337 1.74913 9.76796 1.66626 10.0002 1.66626C10.2324 1.66626 10.4569 1.74913 10.6335 1.89997C12.0918 3.17497 14.1668 4.16663 15.8335 4.16663C16.0545 4.16663 16.2665 4.25443 16.4228 4.41071C16.579 4.56699 16.6668 4.77895 16.6668 4.99997V10.8333Z" stroke="#008000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                    <path d="M7.5 9.99992L9.16667 11.6666L12.5 8.33325" stroke="#008000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                  </svg>
+                  <span>100% Secured & Spam Free</span>
+                </div>
               </>
             )}
-          </div>
-
-          <div className="flex items-center justify-center gap-1 text-[11px] text-gray-400 mt-6 uppercase tracking-widest">
-            <span>100% Secured & Spam Free</span>
           </div>
         </div>
       </div>
