@@ -244,6 +244,11 @@ export function isSlotAvailable(day, slot, now = new Date()) {
   return start.getTime() - now.getTime() >= SLOT_LEAD_MINUTES * 60 * 1000;
 }
 
+/** Earliest slot on `day` that can still be booked, or null when none can. */
+export function firstAvailableSlot(day, now = new Date()) {
+  return timeSlots().find((s) => isSlotAvailable(day, s, now)) || null;
+}
+
 /** First day in the list that still has a bookable slot — today may not. */
 export function firstBookableDay(days, now = new Date()) {
   const slots = timeSlots();
@@ -317,6 +322,9 @@ export async function submitAppointmentLead(payload) {
     // above are read by an existing sheet and must keep their spelling.
     product_name: payload.productTitle || "",
     product_url: payload.productUrl || "",
+    // The exact variant (metal colour, size) on screen when they pressed Try At
+    // Home — the product name alone leaves the store guessing which one to bring.
+    product_sku: payload.productSku || "",
     otp_verified: true,
     verified_via: payload.verifiedVia || "otp",
   };
