@@ -512,7 +512,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
                   setMobile(cleanPhoneInput(e.target.value));
                 }}
                 placeholder="Enter Phone Number"
-                className="w-full h-full bg-transparent font-figtree font-medium text-xs md:text-sm leading-[1.4] tracking-normal text-black placeholder:text-zinc-500 pl-2.5 pr-32 md:pr-36 border-none outline-none focus:ring-0 focus:outline-none"
+                className="w-full h-full bg-transparent font-figtree font-medium text-xs md:text-sm leading-[1.4] tracking-normal text-black placeholder:text-zinc-500 pl-2.5 md:pl-0 pr-32 md:pr-36 border-none outline-none focus:ring-0 focus:outline-none"
               />
               <button
                 type="button"

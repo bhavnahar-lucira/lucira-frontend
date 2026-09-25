@@ -314,26 +314,40 @@ async function getProduct(handle) {
         .replace(/(\d+)\s*k\b/gi, "$1KT");
     }
 
-    const textContext = `${v.title || ""} ${product.title || ""} ${v.sku || ""} ${Object.values(options).join(" ")}`.toLowerCase();
-    let detectedGoldTone = "";
-    if (textContext.includes('rose')) detectedGoldTone = 'Rose Gold';
-    else if (textContext.includes('yellow')) detectedGoldTone = 'Yellow Gold';
-    else if (textContext.includes('white')) detectedGoldTone = 'White Gold';
+    let metal_color = v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]);
 
-    let metal_color = (goldComp?.stone_color_code && goldComp.stone_color_code !== "NA")
-      ? goldComp.stone_color_code
-      : (v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]));
+    if (!metal_color) {
+      const optColor = getOpt(options, ["color", "metal"]);
+      if (optColor) {
+        const cleaned = optColor.replace(/^\d+\s*kt\s*/i, "").trim();
+        if (cleaned && !/^\d+$/.test(cleaned)) {
+          metal_color = cleaned;
+        }
+      }
+    }
+
+    if (!metal_color && goldComp?.stone_color_code && goldComp.stone_color_code !== "NA") {
+      metal_color = goldComp.stone_color_code;
+    }
+
+    const varContext = `${v.title || ""} ${v.sku || ""} ${Object.values(options).join(" ")}`.toLowerCase();
+    const hasWord = (word) => new RegExp(`\\b${word}\\b`, 'i').test(varContext);
+
+    let detectedGoldTone = "";
+    if (hasWord('rose')) detectedGoldTone = 'Rose Gold';
+    else if (hasWord('yellow')) detectedGoldTone = 'Yellow Gold';
+    else if (hasWord('white')) detectedGoldTone = 'White Gold';
 
     if (platinumComp && goldComp) {
       const goldTone = detectedGoldTone || (metal_color && !metal_color.toLowerCase().includes('platin') && !metal_color.toLowerCase().includes('plt') ? metal_color : 'Rose Gold');
       metal_color = `Platinum & ${goldTone}`;
     } else if (!metal_color) {
-      if (textContext.includes('yellow') && textContext.includes('white')) metal_color = 'Yellow-White Gold';
-      else if (textContext.includes('rose') && textContext.includes('white')) metal_color = 'Rose-White Gold';
-      else if (textContext.includes('rose')) metal_color = 'Rose Gold';
-      else if (textContext.includes('white')) metal_color = 'White Gold';
-      else if (textContext.includes('yellow')) metal_color = 'Yellow Gold';
-      else if (textContext.includes('platinum')) metal_color = 'Platinum';
+      if (hasWord('yellow') && hasWord('white')) metal_color = 'Yellow-White Gold';
+      else if (hasWord('rose') && hasWord('white')) metal_color = 'Rose-White Gold';
+      else if (hasWord('rose')) metal_color = 'Rose Gold';
+      else if (hasWord('white')) metal_color = 'White Gold';
+      else if (hasWord('yellow')) metal_color = 'Yellow Gold';
+      else if (hasWord('platinum')) metal_color = 'Platinum';
     }
     if (metal_color) {
       metal_color = String(metal_color).replace(/\bplt\b/gi, "Platinum");

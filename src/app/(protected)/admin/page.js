@@ -116,10 +116,23 @@ export default function CustomerDashboard() {
           if (ordersData && ordersData.orders) {
             // Backend orders pass through as-is apart from the thumbnail, which can
             // come back as a generic placeholder — drop it so no image renders.
-            storefrontOrders = ordersData.orders.slice(0, 5).map((order) => ({
-              ...order,
-              image: getOrderImage(order?.image),
-            }));
+            storefrontOrders = ordersData.orders.slice(0, 5).map((order) => {
+              const isCancelled = Boolean(
+                order.cancelledAt ||
+                order.cancelled_at ||
+                order.canceledAt ||
+                order.cancelReason ||
+                order.cancel_reason ||
+                order.status === 'Cancelled' ||
+                order.status === 'Canceled' ||
+                (typeof order.status === 'string' && order.status.toUpperCase() === 'CANCELLED')
+              );
+              return {
+                ...order,
+                status: isCancelled ? 'Cancelled' : order.status,
+                image: getOrderImage(order?.image),
+              };
+            });
           } else {
             throw new Error("Empty backend orders");
           }
@@ -135,14 +148,21 @@ export default function CustomerDashboard() {
             storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
               if (!node) return null;
               const mainItem = node.lineItems?.edges?.[0]?.node;
+              const isCancelled = Boolean(
+                node.canceledAt ||
+                node.cancelReason ||
+                node.financialStatus === 'VOIDED'
+              );
+              const fStatus = (node.fulfillmentStatus || "").toUpperCase();
               return {
                 id: node.id,
                 orderNumber: node.orderNumber ? node.orderNumber.toString() : "N/A",
                 date: node.processedAt ? new Date(node.processedAt).toLocaleDateString('en-IN', {
                   year: 'numeric', month: 'long', day: 'numeric'
                 }) : "Date Unknown",
-                status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
-                        node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+                status: isCancelled ? 'Cancelled' : 
+                        (fStatus === 'FULFILLED' ? 'Delivered' : 
+                         fStatus === 'PARTIAL' ? 'In Transit' : 'Processing'),
                 amount: node.totalPrice ? new Intl.NumberFormat('en-IN', {
                   style: 'currency', currency: node.totalPrice.currencyCode || 'INR',
                 }).format(node.totalPrice.amount) : "0.00",
@@ -302,7 +322,9 @@ export default function CustomerDashboard() {
                       <span
                         className={`w-fit mx-auto md:mx-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           order.status === "Delivered"
-                            ? "bg-emerald-50 text-emerald-600"
+                            ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                            : order.status === "Cancelled" || order.status === "Canceled"
+                            ? "bg-red-50 text-red-600 border border-red-200"
                             : "bg-blue-50 text-blue-600"
                         }`}
                       >

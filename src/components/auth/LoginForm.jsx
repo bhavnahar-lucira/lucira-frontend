@@ -287,18 +287,24 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
     <div className="space-y-4">
       {step === "login" && (
         <>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-900">Phone Number <span className="text-red-500">*</span></label>
-            <div className="flex items-center border border-gray-200 rounded-md h-11 px-3 bg-white focus-within:border-black transition-all">
-              <span className="text-sm text-gray-500 mr-2 border-r border-gray-200 pr-2">+91</span>
+          <div className="text-center mb-6">
+            <img src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg" width="120" height="49" alt="lucira jewelry logo" className="mx-auto" />
+          </div>
+          <p className="mb-[14px] text-center text-[14px] leading-tight font-normal text-[#030000] mx-auto mt-[14px] cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis px-2 max-w-full">
+            Login to access your rewards & exclusive benefits
+          </p>
+
+          <div className="flex flex-col mb-[14px]">
+            <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
+              <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
               <input
                 ref={mobileRef}
                 type="tel"
-                placeholder="Mobile Number"
+                placeholder="Phone Number *"
                 maxLength="10"
                 value={mobile}
                 onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
-                className="w-full h-full text-sm outline-none bg-transparent"
+                className="w-full h-full text-sm md:text-base border-none outline-none font-normal bg-transparent tracking-[0.3px]"
               />
             </div>
           </div>
@@ -306,10 +312,18 @@ export function LoginForm({ onSuccess, initialMobile = "", initialStep = "login"
           <Button
             onClick={sendLoginOtp}
             disabled={loading}
-            className="h-12 w-full bg-[#5f4745] hover:bg-[#4a3634] text-white font-semibold transition-colors mt-4"
+            className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-0 mb-[4px] bg-[#5a413f] rounded-lg disabled:opacity-50 shadow-md"
           >
             {loading ? "Sending..." : "REQUEST OTP"}
           </Button>
+
+          <div className="flex items-center justify-center gap-2 text-[12px] text-black mt-[8px]">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+              <path d="M16.6668 10.8333C16.6668 15 13.7502 17.0833 10.2835 18.2916C10.102 18.3531 9.90478 18.3502 9.72516 18.2833C6.25016 17.0833 3.3335 15 3.3335 10.8333V4.99997C3.3335 4.77895 3.42129 4.56699 3.57757 4.41071C3.73385 4.25443 3.94582 4.16663 4.16683 4.16663C5.8335 4.16663 7.91683 3.16663 9.36683 1.89997C9.54337 1.74913 9.76796 1.66626 10.0002 1.66626C10.2324 1.66626 10.4569 1.74913 10.6335 1.89997C12.0918 3.17497 14.1668 4.16663 15.8335 4.16663C16.0545 4.16663 16.2665 4.25443 16.4228 4.41071C16.579 4.56699 16.6668 4.77895 16.6668 4.99997V10.8333Z" stroke="#008000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+              <path d="M7.5 9.99992L9.16667 11.6666L12.5 8.33325" stroke="#008000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+            </svg>
+            <span>100% Secured & Spam Free</span>
+          </div>
 
           <p
             className="text-center text-sm text-gray-600 mt-4"

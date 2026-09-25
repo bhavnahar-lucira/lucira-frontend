@@ -84,9 +84,13 @@ const FALLBACK_TOP_OVERRIDES = [
     mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg" },
 ];
 
+// `mobileSrc` is the key the dashboard's MOBILE BANNER IMAGE field writes and
+// the one /api/settings/plp-banners persists, so these carry it too — the
+// comment above promises these mirror PLP_BANNER_DEFAULTS, and that default
+// points both at the same creative.
 const FALLBACK_INPAGE_BANNERS = [
-  { src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", alt: "Promo", href: "/collections/rakhi" },
-  { src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", alt: "Promo", href: "/collections/rakhi" },
+  { src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", mobileSrc: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", alt: "Promo", href: "/collections/rakhi" },
+  { src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", mobileSrc: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", alt: "Promo", href: "/collections/rakhi" },
 ];
 
 const SORT_OPTIONS = [
@@ -1384,16 +1388,31 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       // once and then stops — the row is not repeated further down the grid.
       if (bannerCount < inpageBanners.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
         const banner = inpageBanners[bannerCount];
+        // Mobile takes its own creative, the way the top banner already does.
+        // The dashboard stores both (`mobileSrc` beside `src`) because they are
+        // cut for different tiles — 270×495 against the desktop 413×615 — and
+        // rendering the desktop one on a phone threw away 30% of its width.
+        const bannerSrc = (isMobile && banner.mobileSrc) || banner.src;
         items.push(
           <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
             <Link prefetch={false} className="cursor-pointer block w-full h-full" href={banner.href || banner.linkUrl || "#"}>
+              {/* Contained, not covered. This cell's height is set by the
+                  product cards beside it, and the Try At Home / video call row
+                  made those ~50px taller than either creative was cut for — so
+                  filling the cell scales the banner up and crops its width,
+                  which is precisely where the "20% OFF" and "50% OFF" boxes
+                  sit (within a few pixels of the creative's own edges). Any
+                  crop at all clips them, so there is none: the banner keeps its
+                  own proportions and is pinned to the top of the cell, where
+                  its top edge lines up with the card image next to it. */}
               <Image
                 loader={shopifyLoader}
-                src={banner.src}
+                src={bannerSrc}
                 alt={banner.alt}
                 width={800}
                 height={400}
-                className="w-full h-full object-cover rounded-[4px]"
+                sizes="(max-width: 1023px) 50vw, 33vw"
+                className="w-full h-full object-contain object-top rounded-[4px]"
               />
             </Link>
           </div>
