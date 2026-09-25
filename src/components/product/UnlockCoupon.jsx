@@ -409,11 +409,38 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
 
   let visibleCoupons = [];
   if (isDynamicCouponsList) {
-    const applicable = couponsList.filter((c) => priceValue >= Number(c.minAmount || 0));
-    const listToUse = applicable.length > 0 ? applicable : couponsList;
-    visibleCoupons = [...listToUse].sort((a, b) => {
-      return getCouponDiscount(b, priceValue) - getCouponDiscount(a, priceValue);
+    // Sort all dynamic promotional coupons ascending by minAmount, then discount value
+    const sortedCoupons = [...couponsList].sort((a, b) => {
+      const minA = Number(a.minAmount ?? a.minRequirementValue ?? 0);
+      const minB = Number(b.minAmount ?? b.minRequirementValue ?? 0);
+      if (minA !== minB) return minA - minB;
+      const discA = Number(a.discountValue ?? a.value ?? 0);
+      const discB = Number(b.discountValue ?? b.value ?? 0);
+      return discA - discB;
     });
+
+    // Check which coupons this product qualifies for based on minAmount
+    const applicable = sortedCoupons.filter((c) => {
+      const min = Number(c.minAmount ?? c.minRequirementValue ?? 0);
+      return priceValue >= min;
+    });
+
+    if (applicable.length > 0) {
+      // Show eligible coupons matching this price range, sorted high-to-low by discount
+      visibleCoupons = [...applicable].sort((a, b) => {
+        return getCouponDiscount(b, priceValue) - getCouponDiscount(a, priceValue);
+      });
+    } else if (sortedCoupons.length > 0) {
+      // Product price is below the lowest coupon threshold (e.g. ₹5,999 < ₹15,000).
+      // According to price range, show ONLY the lowest/entry tier coupon(s), NEVER higher tiers (75k, 50k, 30k)
+      const lowestMinAmount = Number(sortedCoupons[0].minAmount ?? sortedCoupons[0].minRequirementValue ?? 0);
+      const lowestTierCoupons = sortedCoupons.filter((c) => {
+        const min = Number(c.minAmount ?? c.minRequirementValue ?? 0);
+        return min === lowestMinAmount;
+      });
+      // Pick the entry coupon for this range (lowest discount in that tier, e.g. Flat ₹250 off)
+      visibleCoupons = [lowestTierCoupons[0]];
+    }
   } else {
     const activeIndex = getCouponIndexForPrice(currentPrice);
     const applicable = COUPONS.slice(0, activeIndex + 1).reverse();
@@ -512,19 +539,19 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
                   setMobile(cleanPhoneInput(e.target.value));
                 }}
                 placeholder="Enter Phone Number"
-                className="w-full h-full bg-transparent font-figtree font-medium text-xs md:text-sm leading-[1.4] tracking-normal text-black placeholder:text-zinc-500 pl-2.5 md:pl-0 pr-32 md:pr-36 border-none outline-none focus:ring-0 focus:outline-none"
+                className="w-full h-full bg-transparent font-figtree font-medium text-xs md:text-sm leading-[1.4] tracking-normal text-black placeholder:text-zinc-500 pl-2.5 max-[380px]:pl-0 md:pl-0 pr-32 max-[380px]:pr-26 md:pr-36 border-none outline-none focus:ring-0 focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleSendOtp}
                 disabled={loading}
-                className="h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 md:px-6 font-figtree font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center gap-2 transition-all duration-200 select-none shrink-0 text-white bg-[#5A413F] hover:bg-[#4E322A] cursor-pointer shadow-sm disabled:opacity-60"
+                className="h-[2.4375rem] md:h-10.5 text-xs md:text-sm px-4 max-[380px]:px-[10px] max-[380px]:text-[0.7rem] md:px-6 font-figtree font-semibold leading-[1.4] tracking-normal uppercase rounded absolute right-1 top-1/2 transform -translate-y-1/2 flex items-center justify-center gap-2 max-[380px]:gap-1.5 transition-all duration-200 select-none shrink-0 text-white bg-[#5A413F] hover:bg-[#4E322A] cursor-pointer shadow-sm disabled:opacity-60"
               >
                 {loading ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0 max-[380px]:w-3.5 max-[380px]:h-3.5">
                       <path d="M4.66667 6.66668V4.66668C4.6667 3.93293 4.90884 3.21969 5.35553 2.63757C5.80222 2.05546 6.42851 1.63699 7.13726 1.44708C7.84601 1.25717 8.59762 1.30642 9.27553 1.5872C9.95344 1.86797 10.5198 2.36459 10.8867 3.00002M8.66667 10.6667C8.66667 11.0349 8.36819 11.3334 8 11.3334C7.63181 11.3334 7.33333 11.0349 7.33333 10.6667C7.33333 10.2985 7.63181 10 8 10C8.36819 10 8.66667 10.2985 8.66667 10.6667ZM3.33333 6.66668H12.6667C13.403 6.66668 14 7.26364 14 8.00002V13.3334C14 14.0697 13.403 14.6667 12.6667 14.6667H3.33333C2.59695 14.6667 2 14.0697 2 13.3334V8.00002C2 7.26364 2.59695 6.66668 3.33333 6.66668Z" stroke="white" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     UNLOCK NOW

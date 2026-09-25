@@ -53,6 +53,8 @@ const colorMap = {
   yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
   rose: "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)",
   white: "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)",
+  "white-yellow": "linear-gradient(to right, #c59922 50%, #dfdfdf 50%)",
+  "white-rose": "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)",
 };
 
 const formatPrice = (num) => {
@@ -71,6 +73,8 @@ function formatCdnUrl(url) {
 
 function getBaseColor(color = "") {
   const normalized = String(color).toLowerCase();
+  if (normalized.includes("white") && normalized.includes("yellow")) return "white-yellow";
+  if (normalized.includes("white") && normalized.includes("rose")) return "white-rose";
   if (normalized.includes("rose")) return "rose";
   if (normalized.includes("white") || normalized.includes("silver") || normalized.includes("platinum")) return "white";
   if (normalized.includes("yellow") || normalized.includes("gold")) return "yellow";
@@ -78,7 +82,7 @@ function getBaseColor(color = "") {
 }
 
 function getUniqueBaseColors(colors = []) {
-  const order = ["white", "yellow", "rose"];
+  const order = ["white-yellow", "white-rose", "white", "yellow", "rose"];
   const availableBaseColors = new Set();
   colors.forEach((color) => {
     const base = getBaseColor(color);
@@ -164,8 +168,18 @@ function getImagesForBase(product, selectedBase) {
 
   // 2. Find images whose alt text matches the selected base color (e.g., "yellow")
   if (selectedBase) {
+    const isTarget = (alt) => {
+      const lower = alt.toLowerCase();
+      if (selectedBase === "white-yellow") {
+        return (lower.includes("white") && lower.includes("yellow")) || (lower.includes("yellow") && !lower.includes("rose"));
+      }
+      if (selectedBase === "white-rose") {
+        return (lower.includes("white") && lower.includes("rose")) || (lower.includes("rose") && !lower.includes("yellow"));
+      }
+      return lower.includes(selectedBase.toLowerCase());
+    };
     const baseImages = allImages.filter(img =>
-      String(img.alt || "").toLowerCase().includes(selectedBase.toLowerCase()) &&
+      isTarget(String(img.alt || "")) &&
       !colorSpecificImages.some(p => p.url === img.url)
     );
     colorSpecificImages = [...colorSpecificImages, ...baseImages];

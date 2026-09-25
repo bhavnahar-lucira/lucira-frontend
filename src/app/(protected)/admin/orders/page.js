@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 import { getOrderImage } from "@/lib/utils";
+import { getOrderMilestoneStatus } from "@/lib/order-status";
 
 export default function MyOrdersPage() {
   const { accessToken } = useSelector((state) => state.user);
@@ -97,10 +98,11 @@ export default function MyOrdersPage() {
                   month: 'long',
                   day: 'numeric'
                 }) : "N/A"),
-                status: isCancelled ? 'Cancelled' :
+                status: isCancelled ? 'Cancelled' : (getOrderMilestoneStatus(order) || (
                   (customStatus && !['FULFILLED', 'UNFULFILLED', 'PARTIAL'].includes(customStatus.toUpperCase())) ? customStatus :
                   (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
-                  (fStatus === 'PARTIAL' || fStatus === 'IN_TRANSIT' || fStatus === 'IN_PROGRESS') ? 'In Transit' : 'Processing',
+                  (fStatus === 'PARTIAL' || fStatus === 'IN_TRANSIT' || fStatus === 'IN_PROGRESS') ? 'In Transit' : 'Processing'
+                )),
                 amount: order.amount || new Intl.NumberFormat('en-IN', {
                   style: 'currency',
                   currency: order.totalPrice?.currencyCode || order.currency || 'INR',
@@ -154,9 +156,10 @@ export default function MyOrdersPage() {
                   month: 'long',
                   day: 'numeric'
                 }),
-                status: isCancelled ? 'Cancelled' :
+                status: isCancelled ? 'Cancelled' : (getOrderMilestoneStatus(node) || (
                   (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
-                  fStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+                  fStatus === 'PARTIAL' ? 'In Transit' : 'Processing'
+                )),
                 amount: new Intl.NumberFormat('en-IN', {
                   style: 'currency',
                   currency: node.totalPrice.currencyCode,
@@ -287,7 +290,16 @@ export default function MyOrdersPage() {
         {filteredOrders.map((order) => {
           const isCancelled = order.status === "Cancelled" || order.status === "Canceled";
           const isDelivered = order.status === "Delivered";
-          const isInTransit = order.status === "In Transit";
+          const isBlueStatus = [
+            "In Transit",
+            "Manufacturing",
+            "Processing",
+            "In Progress",
+            "Dispatch",
+            "Quality Control",
+            "Certification",
+            "Out For Delivery"
+          ].some(s => s.toLowerCase() === (order.status || "").toLowerCase());
 
           return (
             <div
@@ -324,7 +336,7 @@ export default function MyOrdersPage() {
                           ? "text-red-600 bg-red-50/50 border-red-200"
                           : isDelivered
                             ? "text-emerald-600 bg-emerald-50/40 border-emerald-100/60"
-                            : isInTransit
+                            : isBlueStatus
                               ? "text-blue-600 bg-blue-50/40 border-blue-100/60"
                               : "text-orange-600 bg-orange-50/40 border-orange-100/60"
                           }`}
@@ -333,7 +345,7 @@ export default function MyOrdersPage() {
                           ? "bg-red-500"
                           : isDelivered
                             ? "bg-emerald-500"
-                            : isInTransit
+                            : isBlueStatus
                               ? "bg-blue-500"
                               : "bg-orange-500 animate-pulse"
                           }`} />
