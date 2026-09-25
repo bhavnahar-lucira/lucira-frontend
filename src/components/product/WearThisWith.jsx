@@ -38,7 +38,7 @@ export default function WearThisWith({ products = [] }) {
         >
           {products.map((product, idx) => (
             <SwiperSlide key={product.id || product.shopifyId}>
-               <ProductCard product={product} index={idx + 1} singleStarRating={true} />
+               <ProductCard product={product} index={idx + 1} />
             </SwiperSlide>
           ))}
         </Swiper>
