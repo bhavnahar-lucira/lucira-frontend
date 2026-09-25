@@ -200,7 +200,8 @@ export default function ProductCardCta({
 
   return (
     <>
-      <div className="mt-2.5">
+      {/* mt-auto: pinned to the bottom of the card, see ProductCard. */}
+      <div className="mt-auto pt-2.5">
         {inStock ? (
           <div className="flex items-stretch gap-2">
             <button

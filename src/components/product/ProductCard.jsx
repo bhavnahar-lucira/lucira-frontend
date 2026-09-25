@@ -667,10 +667,25 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     return [...new Set(offers)];
   }, [product, currentVariant]);
 
+  // What the deals pill shows. The diamond / making-charges offers where the
+  // piece has them; otherwise the overall discount, phrased and styled like
+  // them ("13% OFF On Product") so every card carries the same green pill.
+  // Never both: an overall % beside a component % reads as two competing
+  // discounts.
+  const dealLabels = useMemo(() => {
+    if (productOffers.length > 0) return productOffers;
+    return discountPercent > 0 ? [`${discountPercent}% OFF On Product`] : [];
+  }, [productOffers, discountPercent]);
+
   return (
     <>
-      <div className="space-y-4">
-        <div className="group/card block space-y-4">
+      {/* Fills its grid cell, and the details column takes whatever height is
+          left, so the CTA row can sit on the bottom edge: cards in one row then
+          line their buttons up even when only some of them carry an offer pill
+          (or a price that wraps). The slack lands above the buttons, and only in
+          rows that mix the two — a row with no offers stays compact. */}
+      <div className="h-full">
+        <div className="group/card h-full flex flex-col gap-4">
           <div className="relative aspect-square w-full bg-[#fafafa] overflow-hidden">
             <Link href={`/products/${product.handle}`} prefetch={false} className="block w-full h-full mix-blend-multiply cursor-pointer" onClick={handleProductClick}>
               {slides.length > 0 ? (
@@ -928,11 +943,10 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             )}
           </div>
 
-          <div className="flex flex-col gap-1.5 px-1">
+          <div className="@container flex-1 flex flex-col gap-1.5 px-1">
             <div className="flex items-center flex-wrap gap-x-2 gap-y-1 font-figtree">
               <p className="text-base lg:text-xl font-bold">₹{formatPrice(displayPrice)}</p>
               {displayComparePrice > displayPrice && <p className="text-[14px] lg:text-base text-[#909090] line-through">₹{formatPrice(displayComparePrice)}</p>}
-              {displayComparePrice > displayPrice && discountPercent > 0 && <span className="hidden lg:inline-block bg-[#EFE5DE] text-black px-2 py-0.5 rounded-full text-sm font-semibold font-figtree leading-[1.6] tracking-normal uppercase">{discountPercent}% OFF</span>}
             </div>
 
             <div className="flex flex-col items-start gap-0.5">
@@ -941,17 +955,33 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               </Link>
             </div>
 
-            {productOffers.length > 0 && (
-              <div className="inline-flex items-center gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 lg:px-3 py-1 mt-1 w-fit">
-                <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 lg:w-5 lg:h-5 shrink-0">
-                  <path d="M8.7583 3.05392C8.91463 2.87933 9.10601 2.73967 9.31996 2.64406C9.53391 2.54844 9.76563 2.49902 9.99997 2.49902C10.2343 2.49902 10.466 2.54844 10.68 2.64406C10.8939 2.73967 11.0853 2.87933 11.2416 3.05392L11.825 3.70558C11.9917 3.89183 12.1982 4.03819 12.4291 4.13383C12.6601 4.22947 12.9096 4.27193 13.1591 4.25808L14.0341 4.20975C14.2682 4.19685 14.5023 4.23346 14.7212 4.31718C14.9402 4.40091 15.139 4.52988 15.3047 4.69566C15.4704 4.86144 15.5992 5.0603 15.6829 5.27927C15.7665 5.49824 15.803 5.73238 15.79 5.96642L15.7416 6.84058C15.7279 7.09003 15.7704 7.33936 15.8661 7.57016C15.9617 7.80095 16.108 8.00729 16.2941 8.17392L16.9458 8.75725C17.1205 8.91358 17.2603 9.10501 17.356 9.31904C17.4517 9.53307 17.5012 9.76488 17.5012 9.99933C17.5012 10.2338 17.4517 10.4656 17.356 10.6796C17.2603 10.8937 17.1205 11.0851 16.9458 11.2414L16.2941 11.8247C16.1079 11.9915 15.9615 12.1979 15.8659 12.4289C15.7703 12.6598 15.7278 12.9093 15.7416 13.1589L15.79 14.0339C15.8029 14.268 15.7663 14.5021 15.6825 14.721C15.5988 14.9399 15.4698 15.1387 15.3041 15.3044C15.1383 15.4701 14.9394 15.599 14.7204 15.6826C14.5015 15.7663 14.2673 15.8028 14.0333 15.7898L13.1591 15.7414C12.9097 15.7277 12.6604 15.7702 12.4296 15.8659C12.1988 15.9615 11.9924 16.1078 11.8258 16.2939L11.2425 16.9456C11.0861 17.1203 10.8947 17.2601 10.6807 17.3558C10.4666 17.4515 10.2348 17.5009 10.0004 17.5009C9.76594 17.5009 9.53412 17.4515 9.32009 17.3558C9.10606 17.2601 8.91463 17.1203 8.7583 16.9456L8.17497 16.2939C8.00825 16.1077 7.80178 15.9613 7.57083 15.8657C7.33989 15.77 7.09038 15.7276 6.8408 15.7414L5.9658 15.7898C5.73177 15.8027 5.49764 15.766 5.27871 15.6823C5.05978 15.5986 4.86098 15.4696 4.69528 15.3038C4.52957 15.1381 4.4007 14.9392 4.31708 14.7202C4.23346 14.5013 4.19696 14.2671 4.20997 14.0331L4.2583 13.1589C4.27203 12.9095 4.2295 12.6601 4.13387 12.4293C4.03823 12.1986 3.89194 11.9922 3.7058 11.8256L3.05414 11.2422C2.87941 11.0859 2.73964 10.8945 2.64394 10.6805C2.54824 10.4664 2.49878 10.2346 2.49878 10.0002C2.49878 9.76572 2.54824 9.5339 2.64394 9.31987C2.73964 9.10584 2.87941 8.91441 3.05414 8.75808L3.7058 8.17475C3.89205 8.00803 4.03841 7.80156 4.13405 7.57061C4.22969 7.33966 4.27215 7.09016 4.2583 6.84058L4.20997 5.96558C4.19719 5.73161 4.23389 5.49758 4.31767 5.27875C4.40145 5.05992 4.53044 4.86122 4.6962 4.69561C4.86197 4.53 5.0608 4.40121 5.2797 4.31763C5.49861 4.23406 5.73268 4.19758 5.96664 4.21058L6.8408 4.25892C7.09025 4.27264 7.33959 4.23011 7.57038 4.13448C7.80117 4.03884 8.00751 3.89255 8.17414 3.70642L8.7583 3.05392Z" stroke="#189351" strokeWidth="1.5" />
-                  <path d="M7.91675 7.91602H7.92508V7.92435H7.91675V7.91602ZM12.0834 12.0827H12.0917V12.091H12.0834V12.0827Z" stroke="#189351" strokeWidth="2" strokeLinejoin="round" />
-                  <path d="M12.5 7.5L7.5 12.5" stroke="#189351" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <div className="overflow-hidden">
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="font-figtree font-semibold text-[10px] lg:text-sm leading-[1.4] tracking-normal capitalize whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
-                  </AnimatePresence>
+            {/* Deals row: ONE green pill (see dealLabels). The diamond / making-charges
+                offer where the piece has one; otherwise the overall % OFF. Never both — "9% OFF" beside
+                "20% OFF On Diamonds" reads as two competing discounts and leaves the
+                shopper guessing which one they actually get. Every discounted piece
+                has one or the other, so the row is filled on every card, which is
+                what keeps the Try At Home buttons level across a grid row.
+
+                Sized by the CARD, not the screen (@container on the column above):
+                the same card is ~330px wide in a 3-up grid but ~215px beside the
+                filters and ~170px on a phone. The text steps down with it, the icon
+                drops under 13rem, and a label that still does not fit truncates
+                rather than wrapping the row. */}
+            {dealLabels.length > 0 && (
+              <div className="flex items-center gap-1.5 min-w-0 mt-1 font-figtree font-semibold text-[10px] @[13rem]:text-[11px] @[19rem]:text-sm leading-[1.4] tracking-normal">
+                <div className="min-w-0 inline-flex items-center gap-1 @[19rem]:gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 @[19rem]:px-3 py-1">
+                  <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 @[19rem]:w-5 @[19rem]:h-5 shrink-0 hidden @[13rem]:block">
+                    <path d="M8.7583 3.05392C8.91463 2.87933 9.10601 2.73967 9.31996 2.64406C9.53391 2.54844 9.76563 2.49902 9.99997 2.49902C10.2343 2.49902 10.466 2.54844 10.68 2.64406C10.8939 2.73967 11.0853 2.87933 11.2416 3.05392L11.825 3.70558C11.9917 3.89183 12.1982 4.03819 12.4291 4.13383C12.6601 4.22947 12.9096 4.27193 13.1591 4.25808L14.0341 4.20975C14.2682 4.19685 14.5023 4.23346 14.7212 4.31718C14.9402 4.40091 15.139 4.52988 15.3047 4.69566C15.4704 4.86144 15.5992 5.0603 15.6829 5.27927C15.7665 5.49824 15.803 5.73238 15.79 5.96642L15.7416 6.84058C15.7279 7.09003 15.7704 7.33936 15.8661 7.57016C15.9617 7.80095 16.108 8.00729 16.2941 8.17392L16.9458 8.75725C17.1205 8.91358 17.2603 9.10501 17.356 9.31904C17.4517 9.53307 17.5012 9.76488 17.5012 9.99933C17.5012 10.2338 17.4517 10.4656 17.356 10.6796C17.2603 10.8937 17.1205 11.0851 16.9458 11.2414L16.2941 11.8247C16.1079 11.9915 15.9615 12.1979 15.8659 12.4289C15.7703 12.6598 15.7278 12.9093 15.7416 13.1589L15.79 14.0339C15.8029 14.268 15.7663 14.5021 15.6825 14.721C15.5988 14.9399 15.4698 15.1387 15.3041 15.3044C15.1383 15.4701 14.9394 15.599 14.7204 15.6826C14.5015 15.7663 14.2673 15.8028 14.0333 15.7898L13.1591 15.7414C12.9097 15.7277 12.6604 15.7702 12.4296 15.8659C12.1988 15.9615 11.9924 16.1078 11.8258 16.2939L11.2425 16.9456C11.0861 17.1203 10.8947 17.2601 10.6807 17.3558C10.4666 17.4515 10.2348 17.5009 10.0004 17.5009C9.76594 17.5009 9.53412 17.4515 9.32009 17.3558C9.10606 17.2601 8.91463 17.1203 8.7583 16.9456L8.17497 16.2939C8.00825 16.1077 7.80178 15.9613 7.57083 15.8657C7.33989 15.77 7.09038 15.7276 6.8408 15.7414L5.9658 15.7898C5.73177 15.8027 5.49764 15.766 5.27871 15.6823C5.05978 15.5986 4.86098 15.4696 4.69528 15.3038C4.52957 15.1381 4.4007 14.9392 4.31708 14.7202C4.23346 14.5013 4.19696 14.2671 4.20997 14.0331L4.2583 13.1589C4.27203 12.9095 4.2295 12.6601 4.13387 12.4293C4.03823 12.1986 3.89194 11.9922 3.7058 11.8256L3.05414 11.2422C2.87941 11.0859 2.73964 10.8945 2.64394 10.6805C2.54824 10.4664 2.49878 10.2346 2.49878 10.0002C2.49878 9.76572 2.54824 9.5339 2.64394 9.31987C2.73964 9.10584 2.87941 8.91441 3.05414 8.75808L3.7058 8.17475C3.89205 8.00803 4.03841 7.80156 4.13405 7.57061C4.22969 7.33966 4.27215 7.09016 4.2583 6.84058L4.20997 5.96558C4.19719 5.73161 4.23389 5.49758 4.31767 5.27875C4.40145 5.05992 4.53044 4.86122 4.6962 4.69561C4.86197 4.53 5.0608 4.40121 5.2797 4.31763C5.49861 4.23406 5.73268 4.19758 5.96664 4.21058L6.8408 4.25892C7.09025 4.27264 7.33959 4.23011 7.57038 4.13448C7.80117 4.03884 8.00751 3.89255 8.17414 3.70642L8.7583 3.05392Z" stroke="#189351" strokeWidth="1.5" />
+                    <path d="M7.91675 7.91602H7.92508V7.92435H7.91675V7.91602ZM12.0834 12.0827H12.0917V12.091H12.0834V12.0827Z" stroke="#189351" strokeWidth="2" strokeLinejoin="round" />
+                    <path d="M12.5 7.5L7.5 12.5" stroke="#189351" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div className="min-w-0 overflow-hidden">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span key={currentLabelIndex % dealLabels.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="block capitalize whitespace-nowrap truncate">
+                        {dealLabels[currentLabelIndex % dealLabels.length]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
             )}
