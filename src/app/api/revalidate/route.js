@@ -25,6 +25,35 @@ export async function POST(request) {
       return NextResponse.json({ revalidated: true, type: 'all' }, { headers: corsHeaders });
     }
 
+    if (type === 'batch') {
+      // Sent by the backend's revalidation queue (lucira-backend
+      // lib/storefrontRevalidation.js): every page touched by one debounce
+      // window of webhooks / dashboard saves, in a single invocation. The
+      // backend clears its own memory cache, so no /api/clear-cache ping here.
+      const MAX_ITEMS = 200;
+      const handles = (v) => (Array.isArray(v) ? v : [])
+        .filter((h) => typeof h === 'string' && /^[^/\s?#]+$/.test(h))
+        .slice(0, MAX_ITEMS);
+      const products = handles(body.products);
+      const collections = handles(body.collections);
+      const paths = (Array.isArray(body.paths) ? body.paths : [])
+        .filter((p) => typeof p === 'string' && p.startsWith('/') && !p.startsWith('//'))
+        .slice(0, MAX_ITEMS);
+
+      if (body.home) revalidatePath('/');
+      products.forEach((h) => revalidatePath(`/products/${h}`));
+      collections.forEach((h) => revalidatePath(`/collections/${h}`));
+      if (body.collectionsAll) revalidatePath('/collections/[handle]', 'page');
+      paths.forEach((p) => revalidatePath(p));
+
+      console.log(`[Next.js Revalidate] Batch: ${products.length} products, ${collections.length} collections, ${paths.length} paths, allCollections=${!!body.collectionsAll}, home=${!!body.home}`);
+      return NextResponse.json({
+        revalidated: true,
+        type: 'batch',
+        counts: { products: products.length, collections: collections.length, paths: paths.length },
+      }, { headers: corsHeaders });
+    }
+
     if (type === 'path' && body.path) {
       // Revalidate a specific path
       revalidatePath(body.path);
