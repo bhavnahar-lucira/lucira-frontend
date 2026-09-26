@@ -53,18 +53,18 @@ export function AddressForm({
           </div>
         )}
 
-        <Input placeholder="First Name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className={inputClasses} />
-        <Input placeholder="Last Name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className={inputClasses} />
+        <Input placeholder="First Name *" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className={inputClasses} />
+        <Input placeholder="Last Name *" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className={inputClasses} />
 
         {isCompanyPurchase && (
           <>
             <div className="col-span-2">
-              <Input placeholder="Company Name" value={form.company} onChange={(e) => onChange("company", e.target.value)} className={inputClasses} />
+              <Input placeholder="Company Name *" value={form.company} onChange={(e) => onChange("company", e.target.value)} className={inputClasses} />
             </div>
             {form.country.trim().toLowerCase() === "india" ? (
               <div className="col-span-2">
                 <Input
-                  placeholder="GSTIN"
+                  placeholder="GSTIN (Optional)"
                   value={form.gstin}
                   onChange={(e) => onChange("gstin", e.target.value.toUpperCase())}
                   maxLength={15}
@@ -78,14 +78,14 @@ export function AddressForm({
         )}
 
         <div className="col-span-2">
-          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className={inputClasses} />
+          <Input placeholder="Address *" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className={inputClasses} />
         </div>
         <div className="col-span-2">
           <Input placeholder="Landmark (Optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className={inputClasses} />
         </div>
 
         <Input
-          placeholder="Pincode"
+          placeholder="Pincode *"
           value={form.zip}
           maxLength={6}
           onChange={(e) => {
@@ -106,7 +106,7 @@ export function AddressForm({
           }}
           className={inputClasses}
         />
-        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className={inputClasses} />
+        <Input placeholder="City *" value={form.city} onChange={(e) => onChange("city", e.target.value)} className={inputClasses} />
 
         <div className="relative w-full">
           <select
@@ -115,7 +115,7 @@ export function AddressForm({
             className={`w-full appearance-none px-3 pr-9 outline-none border cursor-pointer ${inputClasses}`}
           >
             <option value="" disabled className="text-zinc-500">
-              State
+              State *
             </option>
             {stateOptions.map((state) => (
               <option key={state} value={state} className="text-zinc-900">
@@ -143,7 +143,7 @@ export function AddressForm({
           <div className="col-span-2">
             <Input
               type="email"
-              placeholder="Email"
+              placeholder="Email (optional)"
               value={form.email}
               onChange={(e) => onChange("email", e.target.value)}
               className={inputClasses}

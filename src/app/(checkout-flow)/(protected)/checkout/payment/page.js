@@ -78,8 +78,8 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input placeholder="First name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="Last name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="First name *" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="Last name *" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
         <Input placeholder="Company (optional)" value={form.company} onChange={(e) => onChange("company", e.target.value)} className="h-12 border-zinc-200" />
         {form.country.trim().toLowerCase() === "india" ? (
           <Input
@@ -93,14 +93,14 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
           <div className="hidden md:block" />
         )}
         <div className="md:col-span-2">
-          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
+          <Input placeholder="Address *" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
         </div>
         <div className="md:col-span-2">
           <Input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className="h-12 border-zinc-200" />
         </div>
-        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="PIN code" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="City *" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="State *" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="PIN code *" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
         <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
         <div className="md:col-span-2">
           <Input

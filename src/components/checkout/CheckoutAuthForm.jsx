@@ -346,7 +346,7 @@ export function CheckoutAuthForm({
             <input
               ref={mobileRef}
               type="tel"
-              placeholder="Enter Mobile Number"
+              placeholder="Enter Mobile Number *"
               maxLength="10"
               className="w-full h-full text-[14px] md:text-[15px] lg:text-[1rem] font-medium border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400 max-md:font-figtree max-md:leading-[140%] max-md:text-zinc-700 md:text-zinc-900"
               value={mobile}
@@ -437,7 +437,7 @@ export function CheckoutAuthForm({
             <input
               ref={firstNameRef}
               type="text"
-              placeholder="Enter Your Full Name"
+              placeholder="Enter Your Full Name *"
               className="w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal max-md:font-figtree max-md:leading-[140%]"
               value={fullName}
               onChange={(e) => {
@@ -451,7 +451,7 @@ export function CheckoutAuthForm({
 
             <input
               type="email"
-              placeholder="Enter Your Mail Id"
+              placeholder="Enter Your Mail Id *"
               className="w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal max-md:font-figtree max-md:leading-[140%]"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
