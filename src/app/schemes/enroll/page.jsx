@@ -233,8 +233,9 @@ export default function Enroll() {
     party_name
   ]);
 
-   const saveDraft = async (value) => {
+   const saveDraft = async (value, partyIdOverride = null) => {
     try {
+      const activePartyId = partyIdOverride || profile.party_id;
       sessionStorage.setItem(
         "scheme_enrollment",
         JSON.stringify({
@@ -247,7 +248,7 @@ export default function Enroll() {
           pincode: form.pincode,
           city: form.city,
           state: form.state,
-          party_id: profile.party_id,
+          party_id: activePartyId,
           party_name: party_name
         })
       );
@@ -262,10 +263,13 @@ export default function Enroll() {
       setLoading(true);
       toast.loading("Updating your details...");
 
+      let currentPartyId = profile.party_id;
+
       // ✅ Update or Create Ornaverse Customer
       if (profile.party_id) {
         const payload = {
           id: profile.party_id,
+          party_id: profile.party_id,
           first_name: first_name,
           last_name: last_name,
           email: profile.email || customer?.email || "",
@@ -278,10 +282,13 @@ export default function Enroll() {
           zip: form.pincode,
         };
 
-        await updateOrnaverseCustomer(payload);
+        const updateRes = await updateOrnaverseCustomer(payload);
+        if (updateRes?.party_id || updateRes?.EntityId) {
+          currentPartyId = updateRes.party_id || updateRes.EntityId;
+        }
       } else {
         // Fallback: Create if not exists (extra safety)
-        await createOrnaverseCustomer({
+        const createRes = await createOrnaverseCustomer({
           first_name: first_name || mobile || "",
           last_name: last_name || "",
           email: customer?.email || `${mobile}@lucira.internal`,
@@ -291,6 +298,10 @@ export default function Enroll() {
           state: form.state,
           zip: form.pincode,
         });
+        if (createRes?.party_id || createRes?.EntityId) {
+          currentPartyId = createRes.party_id || createRes.EntityId;
+          setProfile((prev) => ({ ...prev, party_id: currentPartyId }));
+        }
       }
 
       // Fire dataLayer promoClick event
@@ -307,11 +318,11 @@ export default function Enroll() {
 
       toast.dismiss();
       toast.success("Details saved successfully");
-      await saveDraft(displayAmount);
+      await saveDraft(displayAmount, currentPartyId);
       router.push("/schemes/payment");
     } catch (err) {
       toast.dismiss();
-      toast.error("Failed to update customer details");
+      toast.error(err?.message || "Failed to update customer details");
       console.error("Update error:", err);
     } finally {
       setLoading(false);
