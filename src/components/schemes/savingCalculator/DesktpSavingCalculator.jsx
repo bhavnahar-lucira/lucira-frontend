@@ -266,7 +266,7 @@ const DesktpSavingCalculator = () => {
                     const mobile10 = get10DigitMobile(user.mobile || user.phone);
                     if (mobile10) {
                       // Check if customer exists in Ornaverse
-                      const ornaData = await fetchOrnaverseCustomer(mobile10);
+                      const ornaData = await fetchOrnaverseCustomer({ mobile: mobile10, email: user.email });
                       const ornaProfile = ornaData?.Entities?.[0];
 
                       if (!ornaProfile?.party_id) {

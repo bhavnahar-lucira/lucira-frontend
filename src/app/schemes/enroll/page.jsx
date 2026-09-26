@@ -67,20 +67,23 @@ export default function Enroll() {
 
   /* ===================== ORNAVERSE CUSTOMER FETCH ===================== */
   useEffect(() => {
-    if (!mobile) return;
+    const userEmail = customer?.email;
+    if (!mobile && !userEmail) return;
 
     const loadOrnaverseProfile = async () => {
       try {
-        const data = await fetchOrnaverseCustomer(mobile);
+        const data = await fetchOrnaverseCustomer({ mobile, email: userEmail });
         const ornaProfile = data?.Entities?.[0] || {};
-        setProfile(ornaProfile);
+        if (ornaProfile?.party_id) {
+          setProfile(ornaProfile);
+        }
       } catch (error) {
         console.error("[Ornaverse] Failed to fetch customer:", error);
       }
     };
 
     loadOrnaverseProfile();
-  }, [mobile]);
+  }, [mobile, customer?.email]);
 
   const initialAmount = useMemo(() => {
     const queryAmount = clampAmount(searchParams.get("amount"));
