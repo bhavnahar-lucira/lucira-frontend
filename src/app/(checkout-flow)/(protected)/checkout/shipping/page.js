@@ -361,9 +361,19 @@ export default function ShippingPage() {
       await createAddress(addressForm, { makeDefault });
 
       setIsNudged(false);
+      setDialogMode("");
+      setEditingAddressId("");
+      setShippingView("card");
       toast.success("Address added");
-      if (useDialog) setShippingView("card");
     } catch (error) {
+      if (error.message && error.message.toLowerCase().includes("address already exists")) {
+        setIsNudged(false);
+        setDialogMode("");
+        setEditingAddressId("");
+        setShippingView("card");
+        toast.success("Address saved");
+        return;
+      }
       toast.error(error.message || "Unable to add address");
     } finally {
       if (useDialog) setDialogSaving(false);
@@ -379,12 +389,43 @@ export default function ShippingPage() {
     try {
       setDialogSaving(true);
 
+      // Check if address is unchanged
+      const original = addresses.find((a) => a.id === editingAddressId);
+      const isUnchanged = original &&
+        original.firstName?.trim() === addressForm.firstName?.trim() &&
+        original.lastName?.trim() === addressForm.lastName?.trim() &&
+        original.address1?.trim() === addressForm.address1?.trim() &&
+        (original.address2?.trim() || "") === (addressForm.address2?.trim() || "") &&
+        original.city?.trim() === addressForm.city?.trim() &&
+        original.province?.trim() === addressForm.province?.trim() &&
+        original.zip?.trim() === addressForm.zip?.trim() &&
+        original.phone?.trim() === addressForm.phone?.trim();
+
+      if (isUnchanged) {
+        setIsNudged(false);
+        setDialogMode("");
+        setEditingAddressId("");
+        setShippingView("card");
+        toast.success("Address updated");
+        return;
+      }
+
       await updateAddress(editingAddressId, addressForm, { makeDefault });
 
       setIsNudged(false);
+      setDialogMode("");
+      setEditingAddressId("");
       setShippingView("card");
       toast.success("Address updated");
     } catch (error) {
+      if (error.message && error.message.toLowerCase().includes("address already exists")) {
+        setIsNudged(false);
+        setDialogMode("");
+        setEditingAddressId("");
+        setShippingView("card");
+        toast.success("Address saved");
+        return;
+      }
       toast.error(error.message || "Unable to update address");
     } finally {
       setDialogSaving(false);
@@ -464,31 +505,112 @@ export default function ShippingPage() {
 
   const isLoading = loadingAddresses;
 
-  const isContinueDisabled = (deliveryMethod === "ship"
-    ? (!selectedAddress || !isDeliverable || checkingPincode)
-    : !pickup.selectedStoreId) || !selectedBillingAddress;
+  const effectiveBillingAddress = selectedBillingAddress || selectedAddress;
 
-  const handleContinueClick = () => {
+  const isContinueDisabled = deliveryMethod === "ship"
+    ? (!selectedAddress || !isDeliverable || checkingPincode || !effectiveBillingAddress)
+    : (!pickup.selectedStoreId || !effectiveBillingAddress);
+
+  const handleContinueClick = async () => {
     if (deliveryMethod === "ship") {
-      const hasUnsavedAddressForm =
+      // 1. If user already has a saved & selected address and is not actively editing in a form, allow continuing directly!
+      if (selectedAddress && shippingView !== "form" && !dialogMode) {
+        if (checkingPincode) {
+          toast.error("Checking pincode delivery, please wait a moment...");
+          return;
+        }
+
+        if (!isDeliverable) {
+          toast.error("We are not delivering products to this address. Please choose another address.");
+          return;
+        }
+
+        if (!effectiveBillingAddress) {
+          toast.error("Please select or save a billing address.");
+          return;
+        }
+
+        handleContinueToPayment();
+        router.push("/checkout/payment");
+        return;
+      }
+
+      // 2. If the user is currently on an open address form (new address or edit)
+      const isFormOpen =
         !hasSavedAddresses ||
         !selectedAddress ||
         shippingView === "form" ||
-        dialogMode === "create" ||
-        dialogMode === "edit";
+        Boolean(dialogMode);
 
-      if (hasUnsavedAddressForm) {
-        setIsNudged(true);
-        toast.error("Please click 'Save Address' to save your shipping address first.", {
-          id: "nudge-save-address",
-        });
+      if (isFormOpen) {
+        // If all fields are filled, save the address automatically and continue to payment!
+        const validationError = validateForm();
+        if (validationError) {
+          setIsNudged(true);
+          toast.error(validationError || "Please save your shipping address first.", {
+            id: "nudge-save-address",
+          });
 
-        if (saveButtonRef.current) {
-          saveButtonRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-        } else if (addressFormRef.current) {
-          addressFormRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (saveButtonRef.current) {
+            saveButtonRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (addressFormRef.current) {
+            addressFormRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+          return;
         }
-        return;
+
+        if (!confirmPincodeMismatch(addressForm)) return;
+
+        // All fields are valid! Save and proceed to payment:
+        try {
+          if (dialogMode === "edit" && editingAddressId) {
+            const original = addresses.find((a) => a.id === editingAddressId);
+            const isUnchanged = original &&
+              original.firstName?.trim() === addressForm.firstName?.trim() &&
+              original.lastName?.trim() === addressForm.lastName?.trim() &&
+              original.address1?.trim() === addressForm.address1?.trim() &&
+              (original.address2?.trim() || "") === (addressForm.address2?.trim() || "") &&
+              original.city?.trim() === addressForm.city?.trim() &&
+              original.province?.trim() === addressForm.province?.trim() &&
+              original.zip?.trim() === addressForm.zip?.trim() &&
+              original.phone?.trim() === addressForm.phone?.trim();
+
+            if (!isUnchanged) {
+              setDialogSaving(true);
+              await updateAddress(editingAddressId, addressForm, { makeDefault });
+            }
+          } else {
+            setInlineSaving(true);
+            await createAddress(addressForm, { makeDefault });
+          }
+
+          setIsNudged(false);
+          setDialogMode("");
+          setEditingAddressId("");
+          setShippingView("card");
+          toast.success("Address saved");
+
+          handleContinueToPayment();
+          router.push("/checkout/payment");
+          return;
+        } catch (err) {
+          if (err.message && err.message.toLowerCase().includes("address already exists")) {
+            setIsNudged(false);
+            setDialogMode("");
+            setEditingAddressId("");
+            setShippingView("card");
+            toast.success("Address saved");
+
+            handleContinueToPayment();
+            router.push("/checkout/payment");
+            return;
+          }
+          toast.error(err.message || "Failed to save address");
+          return;
+        } finally {
+          setDialogSaving(false);
+          setInlineSaving(false);
+        }
       }
 
       if (checkingPincode) {
@@ -507,7 +629,7 @@ export default function ShippingPage() {
       }
     }
 
-    if (!selectedBillingAddress) {
+    if (!effectiveBillingAddress) {
       toast.error("Please select or save a billing address.");
       return;
     }
@@ -858,7 +980,7 @@ export default function ShippingPage() {
                     >
                       CONTINUE TO PAYMENT
                     </Button>
-                    {(!selectedAddress || isNudged) && deliveryMethod === "ship" && (
+                    {!selectedAddress && deliveryMethod === "ship" && (
                       <p className="text-[11px] lg:text-[12px] text-amber-800 text-center font-figtree font-medium mt-2">
                         Please save your shipping address to proceed to payment
                       </p>
@@ -904,7 +1026,7 @@ export default function ShippingPage() {
             >
               CONTINUE TO PAYMENT
             </Button>
-            {(!selectedAddress || isNudged) && deliveryMethod === "ship" && (
+            {!selectedAddress && deliveryMethod === "ship" && (
               <p className="text-[11px] text-amber-800 text-center font-figtree font-medium -mt-1">
                 Please save your shipping address to proceed to payment
               </p>
