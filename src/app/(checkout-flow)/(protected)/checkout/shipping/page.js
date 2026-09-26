@@ -172,7 +172,9 @@ export default function ShippingPage() {
   const [makeDefault, setMakeDefault] = useState(true);
   const [editingAddressId, setEditingAddressId] = useState("");
   const [isCompanyPurchase, setIsCompanyPurchase] = useState(false);
+  const [isNudged, setIsNudged] = useState(false);
   const addressFormRef = useRef(null);
+  const saveButtonRef = useRef(null);
 
   const { pincodeLoading } = usePincodeLookup(addressForm.zip, setAddressForm);
 
@@ -289,6 +291,7 @@ export default function ShippingPage() {
   });
 
   const updateForm = (field, value) => {
+    if (isNudged) setIsNudged(false);
     setAddressForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -357,6 +360,7 @@ export default function ShippingPage() {
 
       await createAddress(addressForm, { makeDefault });
 
+      setIsNudged(false);
       toast.success("Address added");
       if (useDialog) setShippingView("card");
     } catch (error) {
@@ -377,6 +381,7 @@ export default function ShippingPage() {
 
       await updateAddress(editingAddressId, addressForm, { makeDefault });
 
+      setIsNudged(false);
       setShippingView("card");
       toast.success("Address updated");
     } catch (error) {
@@ -462,6 +467,54 @@ export default function ShippingPage() {
   const isContinueDisabled = (deliveryMethod === "ship"
     ? (!selectedAddress || !isDeliverable || checkingPincode)
     : !pickup.selectedStoreId) || !selectedBillingAddress;
+
+  const handleContinueClick = () => {
+    if (deliveryMethod === "ship") {
+      const hasUnsavedAddressForm =
+        !hasSavedAddresses ||
+        !selectedAddress ||
+        shippingView === "form" ||
+        dialogMode === "create" ||
+        dialogMode === "edit";
+
+      if (hasUnsavedAddressForm) {
+        setIsNudged(true);
+        toast.error("Please click 'Save Address' to save your shipping address first.", {
+          id: "nudge-save-address",
+        });
+
+        if (saveButtonRef.current) {
+          saveButtonRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        } else if (addressFormRef.current) {
+          addressFormRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
+      if (checkingPincode) {
+        toast.error("Checking pincode delivery, please wait a moment...");
+        return;
+      }
+
+      if (!isDeliverable) {
+        toast.error("We are not delivering products to this address. Please choose another address.");
+        return;
+      }
+    } else {
+      if (!pickup.selectedStoreId) {
+        toast.error("Please select a pickup store.");
+        return;
+      }
+    }
+
+    if (!selectedBillingAddress) {
+      toast.error("Please select or save a billing address.");
+      return;
+    }
+
+    handleContinueToPayment();
+    router.push("/checkout/payment");
+  };
 
 
   if (isLoading) {
@@ -557,6 +610,8 @@ export default function ShippingPage() {
                           submitLabel={dialogMode === "edit" ? "Save Changes" : "Save Address"}
                           onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
                           saving={dialogSaving}
+                          isNudged={isNudged}
+                          buttonRef={saveButtonRef}
                         />
                       </div>
                     ) : shippingView === "list" ? (
@@ -585,6 +640,8 @@ export default function ShippingPage() {
                                   setDialogMode(""); // Close inline form on success
                                 }}
                                 saving={dialogSaving}
+                                isNudged={isNudged}
+                                buttonRef={saveButtonRef}
                               >
                                 <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
                                   Cancel
@@ -609,6 +666,8 @@ export default function ShippingPage() {
                                   setDialogMode(""); // Close inline form on success
                                 }}
                                 saving={dialogSaving}
+                                isNudged={isNudged}
+                                buttonRef={saveButtonRef}
                               >
                                 <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
                                   Cancel
@@ -693,6 +752,8 @@ export default function ShippingPage() {
                         submitLabel="Save Address"
                         onSubmit={() => handleCreateAddress(false)}
                         saving={inlineSaving}
+                        isNudged={isNudged}
+                        buttonRef={saveButtonRef}
                       />
                     </div>
                   )}
@@ -789,19 +850,19 @@ export default function ShippingPage() {
                     {/* Desktop Button - Moved inside to match cart and payment pages */}
                     <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
                     <Button
-                      disabled={isContinueDisabled}
-                      onClick={() => {
-                        if (isContinueDisabled) {
-                          toast.error(`Please select a valid ${deliveryMethod === "ship" ? "shipping address" : "pickup location"}`);
-                          return;
-                        }
-                        handleContinueToPayment();
-                        router.push("/checkout/payment");
-                      }}
-                      className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                      type="button"
+                      onClick={handleContinueClick}
+                      className={`w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer ${
+                        isContinueDisabled ? "opacity-75" : ""
+                      }`}
                     >
                       CONTINUE TO PAYMENT
                     </Button>
+                    {(!selectedAddress || isNudged) && deliveryMethod === "ship" && (
+                      <p className="text-[11px] lg:text-[12px] text-amber-800 text-center font-figtree font-medium mt-2">
+                        Please save your shipping address to proceed to payment
+                      </p>
+                    )}
                   </div>
                 </CheckoutSummary>
                 </div>
@@ -834,14 +895,20 @@ export default function ShippingPage() {
                 View Order Summary
               </button>
             </div>
-            <Link prefetch={false} href="/checkout/payment" className={`w-full block ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
-              <Button
-                disabled={isContinueDisabled}
-                className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                CONTINUE TO PAYMENT
-              </Button>
-            </Link>
+            <Button
+              type="button"
+              onClick={handleContinueClick}
+              className={`w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer ${
+                isContinueDisabled ? "opacity-75" : ""
+              }`}
+            >
+              CONTINUE TO PAYMENT
+            </Button>
+            {(!selectedAddress || isNudged) && deliveryMethod === "ship" && (
+              <p className="text-[11px] text-amber-800 text-center font-figtree font-medium -mt-1">
+                Please save your shipping address to proceed to payment
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -23,6 +23,8 @@ export function AddressForm({
   isCompanyPurchase = false,
   onCompanyPurchaseChange,
   showCompanyToggle = true,
+  isNudged = false,
+  buttonRef = null,
   children,
 }) {
   const handleCompanyToggle = (next) => {
@@ -159,15 +161,42 @@ export function AddressForm({
         </label>
       </div>
 
+      {isNudged && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-300 rounded-[4px] text-amber-900 text-xs md:text-sm font-figtree font-medium animate-in fade-in slide-in-from-top-1">
+          <span className="text-base shrink-0">👉</span>
+          <span>Please click <strong>{submitLabel}</strong> below to save this address before continuing to payment.</span>
+        </div>
+      )}
+
       {children ? (
         <div className="flex items-center gap-3 pt-2">
           {children}
-          <Button type="button" onClick={onSubmit} disabled={saving} className="flex-1 h-[46px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-colors">
+          <Button
+            ref={buttonRef}
+            type="button"
+            onClick={onSubmit}
+            disabled={saving}
+            className={`flex-1 h-[46px] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-all ${
+              isNudged
+                ? "bg-[#5A413F] text-white ring-4 ring-[#5A413F]/30 shadow-md animate-pulse"
+                : "bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F]"
+            }`}
+          >
             {saving ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
           </Button>
         </div>
       ) : (
-        <Button type="button" onClick={onSubmit} disabled={saving} className="w-full h-[48px] bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-colors mt-2">
+        <Button
+          ref={buttonRef}
+          type="button"
+          onClick={onSubmit}
+          disabled={saving}
+          className={`w-full h-[48px] font-figtree font-semibold text-[0.9375rem] lg:text-[1rem] rounded-[4px] transition-all mt-2 ${
+            isNudged
+              ? "bg-[#5A413F] text-white ring-4 ring-[#5A413F]/30 shadow-md animate-pulse"
+              : "bg-transparent hover:bg-zinc-50 border border-[#5A413F] text-[#5A413F]"
+          }`}
+        >
           {saving ? <Loader2 className="size-4 animate-spin" /> : submitLabel}
         </Button>
       )}
