@@ -441,11 +441,15 @@ export const fetchLocalRates = () => apiFetch("/api/local-rates");
 
 /* ================= ORNAVERSE SCHEMES ================= */
 
-export const fetchOrnaverseCustomer = (mobile) =>
-  apiFetch("/api/schemes/customer/get", {
+export const fetchOrnaverseCustomer = (param, email = null) => {
+  const body = (typeof param === "object" && param !== null)
+    ? param
+    : { mobile: param, ...(email ? { email } : {}) };
+  return apiFetch("/api/schemes/customer/get", {
     method: "POST",
-    body: JSON.stringify({ mobile }),
+    body: JSON.stringify(body),
   });
+};
 
 export const updateOrnaverseCustomer = (payload) =>
   apiFetch("/api/schemes/customer/update", {
