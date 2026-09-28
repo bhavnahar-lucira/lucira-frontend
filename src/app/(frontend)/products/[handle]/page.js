@@ -22,7 +22,7 @@ const PRODUCT_QUERY = `
       publishedAt
       collectionHandles: collections(first: 10) { edges { node { handle } } }
       featuredImage { url }
-      images(first: 20) {
+      images(first: 100) {
         edges {
           node {
             url
@@ -30,7 +30,7 @@ const PRODUCT_QUERY = `
           }
         }
       }
-      media(first: 20) {
+      media(first: 100) {
         edges {
           node {
             mediaContentType
@@ -521,8 +521,8 @@ async function getProduct(handle) {
     if (m.mediaContentType === "IMAGE") {
       return {
         type: "IMAGE",
-        url: m.image.url,
-        alt: m.image.altText || ""
+        url: m.image?.url || m.previewImage?.url,
+        alt: m.image?.altText || m.previewImage?.altText || ""
       };
     } else if (m.mediaContentType === "VIDEO") {
       return {
