@@ -133,7 +133,7 @@ export function AddressForm({
           <span className="text-[0.9375rem] lg:text-[1rem] font-figtree text-zinc-900 mr-2">+91</span>
           <input
             type="tel"
-            placeholder="Phone (optional)"
+            placeholder="Phone *"
             value={form.phone}
             maxLength={10}
             onChange={(e) => onChange("phone", cleanPhoneInput(e.target.value))}
