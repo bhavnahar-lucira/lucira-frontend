@@ -110,12 +110,24 @@ export function useCustomerAddresses({ accessToken, user }) {
 
   const createAddress = useCallback(
     async (form, { makeDefault = false } = {}) => {
+      const cleanPhone = (form.phone || "").replace(/\D/g, "");
+      if (!cleanPhone) {
+        throw new Error("Phone number is required");
+      }
+      if (cleanPhone.length !== 10) {
+        throw new Error("Phone number must be exactly 10 digits");
+      }
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        throw new Error("Please enter a valid 10-digit Indian mobile number");
+      }
+
       const deliverable = await checkPincodeDeliverability(form.zip?.trim());
       if (!deliverable) {
         throw new Error("We are not delivering product on this address");
       }
 
       const { email: _formEmail, gstin: _formGstin, ...addressToSave } = form;
+      addressToSave.phone = cleanPhone;
       if (form.gstin) {
         addressToSave.company = addressToSave.company 
           ? `${addressToSave.company} - GSTIN: ${form.gstin}`
@@ -124,7 +136,7 @@ export function useCustomerAddresses({ accessToken, user }) {
       try {
         const payload = await createCustomerAddress({ address: addressToSave, makeDefault }, accessToken);
         applyAddressPayload(payload);
-        await syncProfile(form);
+        await syncProfile({ ...form, phone: cleanPhone });
         return payload;
       } catch (err) {
         if (err.message && err.message.toLowerCase().includes("address already exists")) {
@@ -140,12 +152,24 @@ export function useCustomerAddresses({ accessToken, user }) {
 
   const updateAddress = useCallback(
     async (addressId, form, { makeDefault = false } = {}) => {
+      const cleanPhone = (form.phone || "").replace(/\D/g, "");
+      if (!cleanPhone) {
+        throw new Error("Phone number is required");
+      }
+      if (cleanPhone.length !== 10) {
+        throw new Error("Phone number must be exactly 10 digits");
+      }
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        throw new Error("Please enter a valid 10-digit Indian mobile number");
+      }
+
       const deliverable = await checkPincodeDeliverability(form.zip?.trim());
       if (!deliverable) {
         throw new Error("We are not delivering product on this address");
       }
 
       const { email: _formEmail, gstin: _formGstin, ...addressToSave } = form;
+      addressToSave.phone = cleanPhone;
       if (form.gstin) {
         addressToSave.company = addressToSave.company 
           ? `${addressToSave.company} - GSTIN: ${form.gstin}`
@@ -154,7 +178,7 @@ export function useCustomerAddresses({ accessToken, user }) {
       try {
         const payload = await updateCustomerAddress({ addressId, address: addressToSave, makeDefault }, accessToken);
         applyAddressPayload(payload);
-        await syncProfile(form);
+        await syncProfile({ ...form, phone: cleanPhone });
         return payload;
       } catch (err) {
         if (err.message && err.message.toLowerCase().includes("address already exists")) {

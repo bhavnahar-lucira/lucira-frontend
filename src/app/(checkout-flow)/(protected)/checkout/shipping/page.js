@@ -38,7 +38,7 @@ import { AddressListInline } from "@/components/checkout/shipping/AddressListInl
 import { AddressSummaryCard } from "@/components/checkout/shipping/AddressSummaryCard";
 import { BillingAddressSection } from "@/components/checkout/shipping/BillingAddressSection";
 import { StorePickupSection } from "@/components/checkout/shipping/StorePickupSection";
-import { emptyAddressForm, normalizeAddressForm } from "@/lib/checkout/address-helpers";
+import { emptyAddressForm, normalizeAddressForm, validateAddressForm } from "@/lib/checkout/address-helpers";
 import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
 import { usePincodeLookup } from "@/hooks/checkout/usePincodeLookup";
 import { usePincodeDeliverability } from "@/hooks/checkout/usePincodeDeliverability";
@@ -296,25 +296,7 @@ export default function ShippingPage() {
   };
 
   const validateForm = () => {
-    if (!addressForm.firstName.trim()) return "First name is required";
-    if (!addressForm.lastName.trim()) return "Last name is required";
-    if (!addressForm.address1.trim()) return "Address is required";
-    if (!addressForm.city.trim()) return "City is required";
-    if (!addressForm.province.trim()) return "State is required";
-    if (!addressForm.zip.trim()) return "PIN code is required";
-
-    if (!/^\d{6}$/.test(addressForm.zip.trim())) {
-      return "Please enter a valid 6-digit PIN code";
-    }
-
-    if (!addressForm.country.trim()) return "Country is required";
-    if (addressForm.gstin.trim()) {
-      const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-      if (!gstinRegex.test(addressForm.gstin.trim())) {
-        return "Please enter a valid 15-digit GSTIN";
-      }
-    }
-    return "";
+    return validateAddressForm(addressForm);
   };
 
   const confirmPincodeMismatch = (form) => {
