@@ -16,7 +16,7 @@ import {
   applyPoints,
   repriceCartForCheckout,
 } from "@/redux/features/cart/cartSlice";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -78,8 +78,8 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input placeholder="First name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="Last name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="First name *" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="Last name *" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
         <Input placeholder="Company (optional)" value={form.company} onChange={(e) => onChange("company", e.target.value)} className="h-12 border-zinc-200" />
         {form.country.trim().toLowerCase() === "india" ? (
           <Input
@@ -93,14 +93,14 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
           <div className="hidden md:block" />
         )}
         <div className="md:col-span-2">
-          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
+          <Input placeholder="Address *" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
         </div>
         <div className="md:col-span-2">
           <Input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className="h-12 border-zinc-200" />
         </div>
-        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="PIN code" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="City *" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="State *" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="PIN code *" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
         <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
         <div className="md:col-span-2">
           <Input
@@ -179,6 +179,19 @@ function loadRazorpayScript() {
   });
 }
 
+const STORE_NAME_MAPPING = {
+  "BO1": "Borivali",
+  "CS1": "Chembur",
+  "PS1": "Pune",
+  "NOS18": "Noida",
+};
+
+function getStoreDisplayName(codeOrName = "") {
+  if (!codeOrName) return "";
+  const mapped = STORE_NAME_MAPPING[codeOrName] || codeOrName;
+  return mapped.toLowerCase().includes("store") ? mapped : `${mapped} Store`;
+}
+
 export default function PaymentPage() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const router = useRouter();
@@ -191,7 +204,15 @@ export default function PaymentPage() {
 
   const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [checkoutSelection, setCheckoutSelection] = useState(null);
+  const [checkoutSelection, setCheckoutSelection] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("checkout_selection");
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return null;
+  });
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
   const [addAddressDialogOpen, setAddAddressDialogOpen] = useState(false);
@@ -310,6 +331,12 @@ export default function PaymentPage() {
   }, [items, totalAmount, appliedCoupon, nectorPoints]);
 
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
+  const selectedStore = checkoutSelection?.selectedStore;
+  const storeDisplayName = getStoreDisplayName(selectedStore?.code || selectedStore?.name);
+  const pickupHeaderTitle = storeDisplayName ? `Pickup from ${storeDisplayName}` : "Store Pickup";
+  const pickupAddressText = selectedStore
+    ? [selectedStore.address, selectedStore.city, selectedStore.state, selectedStore.zip].filter(Boolean).join(", ")
+    : "Store address";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
 
   // Remove points when leaving the payment page to prevent stale points
@@ -975,14 +1002,18 @@ export default function PaymentPage() {
                 <div className="border-0 lg:border lg:border-[#EBE1D7] lg:rounded-[8px] overflow-hidden mb-3 lg:mb-0">
                   <div className="flex items-center gap-4 py-4 px-4 bg-white">
                     <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      {isPickup ? (
+                        <Store size={20} className="text-black" />
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
                       <p className="font-figtree font-medium text-[14px] leading-none tracking-normal align-middle mb-[9px] text-black truncate">
-                        Delivering to {customer?.name || user?.name || "Customer"}
+                        {isPickup ? pickupHeaderTitle : `Delivering to ${customer?.name || user?.name || "Customer"}`}
                       </p>
                       <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
-                        {isPickup ? [checkoutSelection?.selectedStore?.address, checkoutSelection?.selectedStore?.city, checkoutSelection?.selectedStore?.state, checkoutSelection?.selectedStore?.zip].filter(Boolean).join(", ") : formatAddressPreview(selectedAddress)}
+                        {isPickup ? pickupAddressText : formatAddressPreview(selectedAddress)}
                       </p>
                     </div>
                     <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
@@ -1062,14 +1093,18 @@ export default function PaymentPage() {
                 <div className="border border-[#EBE1D7] rounded-[8px] overflow-hidden">
                   <div className="flex items-center gap-4 py-4 px-4 bg-white">
                     <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      {isPickup ? (
+                        <Store size={20} className="text-black" />
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
                       <p className="font-figtree font-medium text-[14px] leading-none tracking-normal align-middle mb-[9px] text-black truncate">
-                        Delivering to {customer?.name || user?.name || "Customer"}
+                        {isPickup ? pickupHeaderTitle : `Delivering to ${customer?.name || user?.name || "Customer"}`}
                       </p>
                       <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
-                        {isPickup ? [checkoutSelection?.selectedStore?.address, checkoutSelection?.selectedStore?.city, checkoutSelection?.selectedStore?.state, checkoutSelection?.selectedStore?.zip].filter(Boolean).join(", ") : formatAddressPreview(selectedAddress)}
+                        {isPickup ? pickupAddressText : formatAddressPreview(selectedAddress)}
                       </p>
                     </div>
                     <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
@@ -1117,7 +1152,7 @@ export default function PaymentPage() {
                   </div>
 
                 <div className="flex items-center justify-between gap-6 pt-4">
-                  <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
+                  <Link prefetch={false} href={shipToChangeHref} className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
                     <ChevronLeft className="size-4" />
                     Return to shipping
                   </Link>

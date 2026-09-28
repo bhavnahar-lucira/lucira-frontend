@@ -25,6 +25,7 @@ import {
   nearestStoreWithin,
   storeCollectionUrl,
   storeLabel,
+  storeAddress,
   savedPincode,
   APPOINTMENT_TYPES,
 } from "@/lib/bookAppointment";
@@ -133,6 +134,7 @@ export default function TryAtHomeCard({ card, open, fillHeight, onOpen, onClose,
     pincode,
     categories: values.categories,
     storeName: store ? storeLabel(store) : "",
+    storeAddress: store ? storeAddress(store) : "",
     appointmentDate: values.appointmentDate,
     appointmentTime: values.appointmentTime,
   });

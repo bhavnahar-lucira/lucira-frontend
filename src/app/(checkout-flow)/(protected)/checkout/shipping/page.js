@@ -38,7 +38,7 @@ import { AddressListInline } from "@/components/checkout/shipping/AddressListInl
 import { AddressSummaryCard } from "@/components/checkout/shipping/AddressSummaryCard";
 import { BillingAddressSection } from "@/components/checkout/shipping/BillingAddressSection";
 import { StorePickupSection } from "@/components/checkout/shipping/StorePickupSection";
-import { emptyAddressForm, normalizeAddressForm } from "@/lib/checkout/address-helpers";
+import { emptyAddressForm, normalizeAddressForm, validateAddressForm } from "@/lib/checkout/address-helpers";
 import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
 import { usePincodeLookup } from "@/hooks/checkout/usePincodeLookup";
 import { usePincodeDeliverability } from "@/hooks/checkout/usePincodeDeliverability";
@@ -172,7 +172,9 @@ export default function ShippingPage() {
   const [makeDefault, setMakeDefault] = useState(true);
   const [editingAddressId, setEditingAddressId] = useState("");
   const [isCompanyPurchase, setIsCompanyPurchase] = useState(false);
+  const [isNudged, setIsNudged] = useState(false);
   const addressFormRef = useRef(null);
+  const saveButtonRef = useRef(null);
 
   const { pincodeLoading } = usePincodeLookup(addressForm.zip, setAddressForm);
 
@@ -289,29 +291,12 @@ export default function ShippingPage() {
   });
 
   const updateForm = (field, value) => {
+    if (isNudged) setIsNudged(false);
     setAddressForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const validateForm = () => {
-    if (!addressForm.firstName.trim()) return "First name is required";
-    if (!addressForm.lastName.trim()) return "Last name is required";
-    if (!addressForm.address1.trim()) return "Address is required";
-    if (!addressForm.city.trim()) return "City is required";
-    if (!addressForm.province.trim()) return "State is required";
-    if (!addressForm.zip.trim()) return "PIN code is required";
-
-    if (!/^\d{6}$/.test(addressForm.zip.trim())) {
-      return "Please enter a valid 6-digit PIN code";
-    }
-
-    if (!addressForm.country.trim()) return "Country is required";
-    if (addressForm.gstin.trim()) {
-      const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-      if (!gstinRegex.test(addressForm.gstin.trim())) {
-        return "Please enter a valid 15-digit GSTIN";
-      }
-    }
-    return "";
+    return validateAddressForm(addressForm);
   };
 
   const confirmPincodeMismatch = (form) => {
@@ -357,9 +342,20 @@ export default function ShippingPage() {
 
       await createAddress(addressForm, { makeDefault });
 
+      setIsNudged(false);
+      setDialogMode("");
+      setEditingAddressId("");
+      setShippingView("card");
       toast.success("Address added");
-      if (useDialog) setShippingView("card");
     } catch (error) {
+      if (error.message && error.message.toLowerCase().includes("address already exists")) {
+        setIsNudged(false);
+        setDialogMode("");
+        setEditingAddressId("");
+        setShippingView("card");
+        toast.success("Address saved");
+        return;
+      }
       toast.error(error.message || "Unable to add address");
     } finally {
       if (useDialog) setDialogSaving(false);
@@ -375,11 +371,43 @@ export default function ShippingPage() {
     try {
       setDialogSaving(true);
 
+      // Check if address is unchanged
+      const original = addresses.find((a) => a.id === editingAddressId);
+      const isUnchanged = original &&
+        original.firstName?.trim() === addressForm.firstName?.trim() &&
+        original.lastName?.trim() === addressForm.lastName?.trim() &&
+        original.address1?.trim() === addressForm.address1?.trim() &&
+        (original.address2?.trim() || "") === (addressForm.address2?.trim() || "") &&
+        original.city?.trim() === addressForm.city?.trim() &&
+        original.province?.trim() === addressForm.province?.trim() &&
+        original.zip?.trim() === addressForm.zip?.trim() &&
+        original.phone?.trim() === addressForm.phone?.trim();
+
+      if (isUnchanged) {
+        setIsNudged(false);
+        setDialogMode("");
+        setEditingAddressId("");
+        setShippingView("card");
+        toast.success("Address updated");
+        return;
+      }
+
       await updateAddress(editingAddressId, addressForm, { makeDefault });
 
+      setIsNudged(false);
+      setDialogMode("");
+      setEditingAddressId("");
       setShippingView("card");
       toast.success("Address updated");
     } catch (error) {
+      if (error.message && error.message.toLowerCase().includes("address already exists")) {
+        setIsNudged(false);
+        setDialogMode("");
+        setEditingAddressId("");
+        setShippingView("card");
+        toast.success("Address saved");
+        return;
+      }
       toast.error(error.message || "Unable to update address");
     } finally {
       setDialogSaving(false);
@@ -459,9 +487,138 @@ export default function ShippingPage() {
 
   const isLoading = loadingAddresses;
 
-  const isContinueDisabled = (deliveryMethod === "ship"
-    ? (!selectedAddress || !isDeliverable || checkingPincode)
-    : !pickup.selectedStoreId) || !selectedBillingAddress;
+  const effectiveBillingAddress = selectedBillingAddress || selectedAddress;
+
+  const isContinueDisabled = deliveryMethod === "ship"
+    ? (!selectedAddress || !isDeliverable || checkingPincode || !effectiveBillingAddress)
+    : (!pickup.selectedStoreId || !effectiveBillingAddress);
+
+  const handleContinueClick = async () => {
+    if (deliveryMethod === "ship") {
+      // 1. If user already has a saved & selected address and is not actively editing in a form, allow continuing directly!
+      if (selectedAddress && shippingView !== "form" && !dialogMode) {
+        if (checkingPincode) {
+          toast.error("Checking pincode delivery, please wait a moment...");
+          return;
+        }
+
+        if (!isDeliverable) {
+          toast.error("We are not delivering products to this address. Please choose another address.");
+          return;
+        }
+
+        if (!effectiveBillingAddress) {
+          toast.error("Please select or save a billing address.");
+          return;
+        }
+
+        handleContinueToPayment();
+        router.push("/checkout/payment");
+        return;
+      }
+
+      // 2. If the user is currently on an open address form (new address or edit)
+      const isFormOpen =
+        !hasSavedAddresses ||
+        !selectedAddress ||
+        shippingView === "form" ||
+        Boolean(dialogMode);
+
+      if (isFormOpen) {
+        // If all fields are filled, save the address automatically and continue to payment!
+        const validationError = validateForm();
+        if (validationError) {
+          setIsNudged(true);
+          toast.error(validationError || "Please save your shipping address first.", {
+            id: "nudge-save-address",
+          });
+
+          if (saveButtonRef.current) {
+            saveButtonRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (addressFormRef.current) {
+            addressFormRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+          return;
+        }
+
+        if (!confirmPincodeMismatch(addressForm)) return;
+
+        // All fields are valid! Save and proceed to payment:
+        try {
+          if (dialogMode === "edit" && editingAddressId) {
+            const original = addresses.find((a) => a.id === editingAddressId);
+            const isUnchanged = original &&
+              original.firstName?.trim() === addressForm.firstName?.trim() &&
+              original.lastName?.trim() === addressForm.lastName?.trim() &&
+              original.address1?.trim() === addressForm.address1?.trim() &&
+              (original.address2?.trim() || "") === (addressForm.address2?.trim() || "") &&
+              original.city?.trim() === addressForm.city?.trim() &&
+              original.province?.trim() === addressForm.province?.trim() &&
+              original.zip?.trim() === addressForm.zip?.trim() &&
+              original.phone?.trim() === addressForm.phone?.trim();
+
+            if (!isUnchanged) {
+              setDialogSaving(true);
+              await updateAddress(editingAddressId, addressForm, { makeDefault });
+            }
+          } else {
+            setInlineSaving(true);
+            await createAddress(addressForm, { makeDefault });
+          }
+
+          setIsNudged(false);
+          setDialogMode("");
+          setEditingAddressId("");
+          setShippingView("card");
+          toast.success("Address saved");
+
+          handleContinueToPayment();
+          router.push("/checkout/payment");
+          return;
+        } catch (err) {
+          if (err.message && err.message.toLowerCase().includes("address already exists")) {
+            setIsNudged(false);
+            setDialogMode("");
+            setEditingAddressId("");
+            setShippingView("card");
+            toast.success("Address saved");
+
+            handleContinueToPayment();
+            router.push("/checkout/payment");
+            return;
+          }
+          toast.error(err.message || "Failed to save address");
+          return;
+        } finally {
+          setDialogSaving(false);
+          setInlineSaving(false);
+        }
+      }
+
+      if (checkingPincode) {
+        toast.error("Checking pincode delivery, please wait a moment...");
+        return;
+      }
+
+      if (!isDeliverable) {
+        toast.error("We are not delivering products to this address. Please choose another address.");
+        return;
+      }
+    } else {
+      if (!pickup.selectedStoreId) {
+        toast.error("Please select a pickup store.");
+        return;
+      }
+    }
+
+    if (!effectiveBillingAddress) {
+      toast.error("Please select or save a billing address.");
+      return;
+    }
+
+    handleContinueToPayment();
+    router.push("/checkout/payment");
+  };
 
 
   if (isLoading) {
@@ -557,6 +714,8 @@ export default function ShippingPage() {
                           submitLabel={dialogMode === "edit" ? "Save Changes" : "Save Address"}
                           onSubmit={dialogMode === "edit" ? handleUpdateAddress : () => handleCreateAddress(true)}
                           saving={dialogSaving}
+                          isNudged={isNudged}
+                          buttonRef={saveButtonRef}
                         />
                       </div>
                     ) : shippingView === "list" ? (
@@ -585,6 +744,8 @@ export default function ShippingPage() {
                                   setDialogMode(""); // Close inline form on success
                                 }}
                                 saving={dialogSaving}
+                                isNudged={isNudged}
+                                buttonRef={saveButtonRef}
                               >
                                 <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
                                   Cancel
@@ -609,6 +770,8 @@ export default function ShippingPage() {
                                   setDialogMode(""); // Close inline form on success
                                 }}
                                 saving={dialogSaving}
+                                isNudged={isNudged}
+                                buttonRef={saveButtonRef}
                               >
                                 <Button type="button" onClick={() => setDialogMode("")} className="flex-1 h-[46px] bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-600 font-figtree font-medium text-[0.875rem] lg:text-[0.9375rem] rounded-[4px] transition-colors">
                                   Cancel
@@ -693,6 +856,8 @@ export default function ShippingPage() {
                         submitLabel="Save Address"
                         onSubmit={() => handleCreateAddress(false)}
                         saving={inlineSaving}
+                        isNudged={isNudged}
+                        buttonRef={saveButtonRef}
                       />
                     </div>
                   )}
@@ -789,19 +954,19 @@ export default function ShippingPage() {
                     {/* Desktop Button - Moved inside to match cart and payment pages */}
                     <div className="hidden lg:block mt-6 pt-4 border-t border-zinc-200 sticky bottom-0 bg-white z-20 pb-4">
                     <Button
-                      disabled={isContinueDisabled}
-                      onClick={() => {
-                        if (isContinueDisabled) {
-                          toast.error(`Please select a valid ${deliveryMethod === "ship" ? "shipping address" : "pickup location"}`);
-                          return;
-                        }
-                        handleContinueToPayment();
-                        router.push("/checkout/payment");
-                      }}
-                      className="w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                      type="button"
+                      onClick={handleContinueClick}
+                      className={`w-full flex shrink-0 items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer ${
+                        isContinueDisabled ? "opacity-75" : ""
+                      }`}
                     >
                       CONTINUE TO PAYMENT
                     </Button>
+                    {!selectedAddress && deliveryMethod === "ship" && (
+                      <p className="text-[11px] lg:text-[12px] text-amber-800 text-center font-figtree font-medium mt-2">
+                        Please save your shipping address to proceed to payment
+                      </p>
+                    )}
                   </div>
                 </CheckoutSummary>
                 </div>
@@ -834,14 +999,20 @@ export default function ShippingPage() {
                 View Order Summary
               </button>
             </div>
-            <Link prefetch={false} href="/checkout/payment" className={`w-full block ${isContinueDisabled ? "pointer-events-none opacity-50" : ""}`} onClick={handleContinueToPayment}>
-              <Button
-                disabled={isContinueDisabled}
-                className="w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                CONTINUE TO PAYMENT
-              </Button>
-            </Link>
+            <Button
+              type="button"
+              onClick={handleContinueClick}
+              className={`w-full flex items-center justify-center rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] transition-colors h-[50px] font-figtree font-medium uppercase tracking-wider text-[1rem] lg:text-[1.0625rem] text-white cursor-pointer ${
+                isContinueDisabled ? "opacity-75" : ""
+              }`}
+            >
+              CONTINUE TO PAYMENT
+            </Button>
+            {!selectedAddress && deliveryMethod === "ship" && (
+              <p className="text-[11px] text-amber-800 text-center font-figtree font-medium -mt-1">
+                Please save your shipping address to proceed to payment
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -1,40 +1,36 @@
 "use client";
 
+// Mirrors ProductCard row for row, at the same heights, so the grid does not
+// jump when the real cards land: image, then price, title, the deals row (one
+// pill: the offer, or the overall % OFF) and the Try At Home / video-call row.
+// No swatch or rating rows — the card dropped the swatches, and the rating now
+// sits on the image.
 export default function ProductCardSkeleton() {
   return (
-    <div className="flex flex-col gap-4 animate-pulse">
-      {/* Image Skeleton */}
-      <div className="relative aspect-square w-full bg-gray-200" />
+    <div className="space-y-4 animate-pulse" aria-hidden="true">
+      {/* Image */}
+      <div className="aspect-square w-full bg-gray-200 rounded-sm" />
 
-      {/* Info Skeleton */}
-      <div className="flex flex-col gap-3 px-1">
-        {/* Color Swatches Skeleton */}
-        <div className="flex gap-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="w-7 h-7 rounded-full bg-gray-200" />
-          ))}
+      <div className="@container flex flex-col gap-1.5 px-1">
+        {/* Price and compare-at price */}
+        <div className="flex items-center gap-2 h-6 lg:h-7">
+          <div className="h-5 lg:h-6 w-20 lg:w-24 bg-gray-200 rounded" />
+          <div className="h-4 lg:h-5 w-14 lg:w-16 bg-gray-100 rounded" />
         </div>
 
-        {/* Title Skeleton */}
-        <div className="h-6 bg-gray-200 rounded w-11/12" />
+        {/* Title — one line */}
+        <div className="h-4 lg:h-5 w-4/5 bg-gray-200 rounded my-0.5" />
 
-        {/* Rating Skeleton */}
-        <div className="flex items-center gap-2">
-          <div className="h-4 bg-gray-200 rounded w-24" />
-          <div className="h-4 bg-gray-200 rounded w-8" />
+        {/* Deals row: one pill (the offer, or the overall % OFF), sized by the
+            card's width as on ProductCard */}
+        <div className="flex items-center mt-1">
+          <div className="h-[22px] @[13rem]:h-6 @[19rem]:h-7 w-28 @[13rem]:w-36 @[19rem]:w-44 bg-gray-100 rounded-full" />
         </div>
 
-        {/* Metadata Skeleton */}
-        <div className="h-4 bg-gray-200 rounded w-full" />
-
-        {/* Offer Badge Skeleton */}
-        <div className="h-6 bg-gray-100 rounded-full w-40" />
-
-        {/* Price Skeleton */}
-        <div className="flex items-center gap-3">
-          <div className="h-6 bg-gray-200 rounded w-24" />
-          <div className="h-4 bg-gray-200 rounded w-20" />
-          <div className="h-5 bg-gray-100 rounded-full w-16" />
+        {/* Try At Home + video call */}
+        <div className="flex items-stretch gap-2 mt-2.5">
+          <div className="flex-1 h-10 lg:h-11 bg-gray-100 rounded-sm" />
+          <div className="w-11 h-10 lg:h-11 bg-gray-100 rounded-sm shrink-0" />
         </div>
       </div>
     </div>

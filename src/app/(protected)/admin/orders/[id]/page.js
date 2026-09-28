@@ -457,18 +457,23 @@ export default function OrderDetailsPage() {
     }
 
     // MTO / Extended timeline (4+ days)
-    const totalMs = dispatchDay.getTime() - placedDay.getTime();
-    const d1 = new Date(placedDay.getTime() + Math.min(86400000, Math.round(totalMs * 0.08)));
-    const d2 = new Date(placedDay.getTime() + Math.round(totalMs * 0.28));
-    const d3 = new Date(placedDay.getTime() + Math.round(totalMs * 0.65));
-    const d4 = new Date(placedDay.getTime() + Math.round(totalMs * 0.85));
+    const d1 = new Date(placedDay.getTime() + 1 * 86400000); // 1 day after order confirmed (Processing)
+    const d2 = new Date(d1.getTime() + 1 * 86400000); // 1 day after processing (Manufacturing starts)
+    const d3 = new Date(dispatchDay.getTime() - 2 * 86400000); // 2 days before dispatch (Quality Control)
+    const d4 = new Date(dispatchDay.getTime() - 1 * 86400000); // 1 day before dispatch (Certification)
+
+    // Ensure sanity / monotonic progression if timeline is compressed
+    const finalD1 = d1 > dispatchDay ? dispatchDay : d1;
+    const finalD2 = d2 < finalD1 ? finalD1 : (d2 > dispatchDay ? dispatchDay : d2);
+    const finalD3 = d3 < finalD2 ? finalD2 : (d3 > dispatchDay ? dispatchDay : d3);
+    const finalD4 = d4 < finalD3 ? finalD3 : (d4 > dispatchDay ? dispatchDay : d4);
 
     return {
       0: placed,
-      1: d1 > dispatchDay ? dispatchDay : d1,
-      2: d2 > dispatchDay ? dispatchDay : d2,
-      3: d3 > dispatchDay ? dispatchDay : d3,
-      4: d4 > dispatchDay ? dispatchDay : d4,
+      1: finalD1,
+      2: finalD2,
+      3: finalD3,
+      4: finalD4,
       5: effectiveDispatch,
     };
   })();
@@ -522,15 +527,15 @@ export default function OrderDetailsPage() {
   } else if (isDispatched) {
     currentStageIndex = 5; // Dispatch (from ClickPost bucket 2)
   } 
-  // Proportional manufacturing & crafting milestones
+  // Manufacturing & crafting milestones
   else if (normalizedStatus.includes('certif') || normalizedStatus.includes('hallmark') || (stageDates[4] && nowTime >= stageDates[4].getTime())) {
-    currentStageIndex = 4; // Certification (~85%)
+    currentStageIndex = 4; // Certification (1 day before dispatch)
   } 
   else if (normalizedStatus.includes('quality') || normalizedStatus.includes('qc') || (stageDates[3] && nowTime >= stageDates[3].getTime())) {
-    currentStageIndex = 3; // Quality Control (~65%)
+    currentStageIndex = 3; // Quality Control (2 days before dispatch)
   } 
   else if (normalizedStatus.includes('manufactur') || normalizedStatus.includes('production') || normalizedStatus.includes('making') || (stageDates[2] && nowTime >= stageDates[2].getTime())) {
-    currentStageIndex = 2; // Manufacturing (~28%)
+    currentStageIndex = 2; // Manufacturing (1 day after processing)
   } 
   else if (
     normalizedStatus.includes('process') || 

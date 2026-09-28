@@ -43,6 +43,7 @@ import {
   fetchStoresForPincode,
   nearestStoreWithin,
   storeLabel,
+  storeAddress,
   savedPincode,
   APPOINTMENT_TYPES,
 } from "@/lib/bookAppointment";
@@ -54,6 +55,30 @@ function AvailabilityNote({ store }) {
     <div className="bg-[#F1F9F1] border border-[#DBEFDB] rounded-sm p-3">
       <p className="font-figtree font-bold text-sm text-black">Service is Available at your Location</p>
       <p className="text-xs text-zinc-500 font-figtree mt-1">Served by our {storeLabel(store)}.</p>
+    </div>
+  );
+}
+
+/**
+ * The piece this booking is for, in place of the category picker the page
+ * shows: the shopper already chose it by pressing the button on its card.
+ */
+function SelectedPiece({ product, promoProduct }) {
+  if (!product?.title) return null;
+  return (
+    <div className="flex items-center gap-3 border border-gray-200 rounded-sm p-2">
+      {promoProduct?.product_image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={promoProduct.product_image}
+          alt=""
+          className="w-12 h-12 object-contain bg-[#FAFAFA] rounded-sm shrink-0"
+        />
+      )}
+      <div className="min-w-0">
+        <p className="font-figtree font-semibold text-sm text-black truncate">{product.title}</p>
+        {promoProduct?.sku && <p className="text-[11px] text-zinc-500 font-figtree">SKU: {promoProduct.sku}</p>}
+      </div>
     </div>
   );
 }
@@ -195,6 +220,12 @@ export default function ProductAppointmentDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [knownPincode]);
 
+  // Pinned to the variant on screen, so the link opens the same metal colour the
+  // SKU names rather than whichever one the product page defaults to.
+  const variantUrl = promoProduct?.product_url
+    ? `${promoProduct.product_url}${promoProduct.variant_id ? `?variant=${promoProduct.variant_id}` : ""}`
+    : "";
+
   const payloadFor = (values) => ({
     appointmentType: activeType,
     // Name and email come from the form, not the account: a signed-out shopper
@@ -204,16 +235,19 @@ export default function ProductAppointmentDrawer({
     phone: values.phone,
     email: values.email,
     pincode: activeIsTryAtHome ? pincode : "",
-    categories: values.categories,
+    // Not asked for here — they started from one piece, so asking them to pick
+    // its category again only adds a field. The product's own type fills the
+    // column instead, so the sheet reads the same as a page booking.
+    categories: product?.type ? [product.type] : [],
     storeName: store ? storeLabel(store) : "",
+    storeAddress: store ? storeAddress(store) : "",
     appointmentDate: values.appointmentDate,
     appointmentTime: values.appointmentTime,
     // The piece they were looking at when they started — without it the store
     // team gets a booking off a collection page and no idea what to bring.
     productTitle: product?.title || "",
-    productUrl: product?.handle
-      ? `${typeof window !== "undefined" ? window.location.origin : ""}/products/${product.handle}`
-      : "",
+    productSku: promoProduct?.sku || "",
+    productUrl: variantUrl,
   });
 
   // Takes the submitted values rather than reading `details`: this runs after an
@@ -328,17 +362,19 @@ export default function ProductAppointmentDrawer({
         <SlotBookingFields
           form={form}
           intro={
-            store ? (
-              <div className="flex flex-col gap-2.5">
-                <AvailabilityNote store={store} />
-                {/* The pincode is still theirs to change from here — it was on
-                    the step this form replaced, and dropping it would strand
-                    anyone who mistyped it. */}
-                <PincodeChip pincode={pincode} onChange={backToPincode} />
-              </div>
-            ) : null
+            <div className="flex flex-col gap-2.5">
+              <SelectedPiece product={product} promoProduct={promoProduct} />
+              {store && (
+                <>
+                  <AvailabilityNote store={store} />
+                  {/* The pincode is still theirs to change from here — it was on
+                      the step this form replaced, and dropping it would strand
+                      anyone who mistyped it. */}
+                  <PincodeChip pincode={pincode} onChange={backToPincode} />
+                </>
+              )}
+            </div>
           }
-          showCategories={activeIsTryAtHome && !!store}
         />
       )}
 

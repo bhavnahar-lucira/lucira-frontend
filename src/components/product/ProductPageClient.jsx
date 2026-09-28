@@ -276,6 +276,8 @@ const getValidSrc = (src, fallback = "/images/product/1.jpg") => {
 
 const getBaseColor = (color = "") => {
   const normalized = String(color).toLowerCase();
+  if (normalized.includes("white") && normalized.includes("yellow")) return "white-yellow";
+  if (normalized.includes("white") && normalized.includes("rose")) return "white-rose";
   if (normalized.includes("rose")) return "rose";
   if (normalized.includes("white") || normalized.includes("silver") || normalized.includes("platinum")) return "white";
   if (normalized.includes("yellow") || normalized.includes("gold")) return "yellow";
@@ -293,6 +295,12 @@ const getColorSpecificImage = (product, colorName) => {
   return product.media.find(m => {
     if (m.type !== "IMAGE") return false;
     const alt = (m.alt || "").toLowerCase();
+    if (baseColor === "white-yellow") {
+      return (alt.includes("white") && alt.includes("yellow")) || (alt.includes("yellow") && !alt.includes("rose"));
+    }
+    if (baseColor === "white-rose") {
+      return (alt.includes("white") && alt.includes("rose")) || (alt.includes("rose") && !alt.includes("yellow"));
+    }
     const mentionsOtherColor = colorTerms.some(c => c !== baseColor && alt.includes(c));
     return alt.includes(baseColor) || !mentionsOtherColor;
   });

@@ -8,7 +8,8 @@ import PointsResetHandler from "@/components/common/PointsResetHandler";
 import { GlobalAuthModal } from "@/components/auth/GlobalAuthModal";
 import Script from "next/script";
 import GtmPageView from "@/components/common/GtmPageView";
-import { organizationSchema, websiteSchema, storesSchema } from "@/lib/seo";
+import { organizationSchema, websiteSchema, getStoresSchema } from "@/lib/seo";
+import { getStorePages } from "@/lib/storeContent";
 import WebEngageRegistration from "@/components/common/WebEngageRegistration";
 import TabTitleAnimator from "@/components/common/TabTitleAnimator";
 import BodyClassManager from "@/components/common/BodyClassManager";
@@ -39,8 +40,11 @@ export const viewport = {
   interactiveWidget: "resizes-content",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
   const isProd = process.env.NODE_ENV === "production";
+  // The Store entries in the site-wide schema come from the dashboard store
+  // content, so they follow Dashboard → Stores instead of a hand-kept list.
+  const storesSchema = getStoresSchema(await getStorePages());
 
   return (
     <html lang="en" suppressHydrationWarning>

@@ -9,6 +9,7 @@ import BlogArticleClient from "@/components/blogs/BlogArticleClient";
 import { getReadingTimeLabel } from "@/lib/readingTime";
 import "./blog-article.css";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
+import { getArticleFaqSchema } from "@/lib/articleFaqs";
 
 // SSG: static blog articles, pre-rendered at build time and served from the
 // cache like `revalidate: false` would. Unlike `false`, a page that fails to
@@ -197,6 +198,9 @@ export default async function ArticlePage({ params }) {
     { name: displayTitle, url: `/blogs/${blogHandle}/${article.handle}` }
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
+  // Read from the same body the reader sees, so a new post with an FAQ section
+  // gets its FAQPage markup with nothing to fill in. Null when there is none.
+  const faqLd = getArticleFaqSchema(bodyHtml);
 
   return (
     <>
@@ -208,6 +212,12 @@ export default async function ArticlePage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
+      {faqLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        />
+      )}
       <BlogArticleClient
         article={{ ...article, title: displayTitle }}
         bodyHtml={bodyHtml}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import {
@@ -110,43 +110,84 @@ export function useCustomerAddresses({ accessToken, user }) {
 
   const createAddress = useCallback(
     async (form, { makeDefault = false } = {}) => {
+      const cleanPhone = (form.phone || "").replace(/\D/g, "");
+      if (!cleanPhone) {
+        throw new Error("Phone number is required");
+      }
+      if (cleanPhone.length !== 10) {
+        throw new Error("Phone number must be exactly 10 digits");
+      }
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        throw new Error("Please enter a valid 10-digit Indian mobile number");
+      }
+
       const deliverable = await checkPincodeDeliverability(form.zip?.trim());
       if (!deliverable) {
         throw new Error("We are not delivering product on this address");
       }
 
       const { email: _formEmail, gstin: _formGstin, ...addressToSave } = form;
+      addressToSave.phone = cleanPhone;
       if (form.gstin) {
         addressToSave.company = addressToSave.company 
           ? `${addressToSave.company} - GSTIN: ${form.gstin}`
           : `GSTIN: ${form.gstin}`;
       }
-      const payload = await createCustomerAddress({ address: addressToSave, makeDefault }, accessToken);
-      applyAddressPayload(payload);
-      await syncProfile(form);
-      return payload;
+      try {
+        const payload = await createCustomerAddress({ address: addressToSave, makeDefault }, accessToken);
+        applyAddressPayload(payload);
+        await syncProfile({ ...form, phone: cleanPhone });
+        return payload;
+      } catch (err) {
+        if (err.message && err.message.toLowerCase().includes("address already exists")) {
+          const fresh = await fetchCustomerAddresses(accessToken);
+          applyAddressPayload(fresh);
+          return fresh;
+        }
+        throw err;
+      }
     },
     [accessToken, applyAddressPayload, syncProfile]
   );
 
   const updateAddress = useCallback(
     async (addressId, form, { makeDefault = false } = {}) => {
+      const cleanPhone = (form.phone || "").replace(/\D/g, "");
+      if (!cleanPhone) {
+        throw new Error("Phone number is required");
+      }
+      if (cleanPhone.length !== 10) {
+        throw new Error("Phone number must be exactly 10 digits");
+      }
+      if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+        throw new Error("Please enter a valid 10-digit Indian mobile number");
+      }
+
       const deliverable = await checkPincodeDeliverability(form.zip?.trim());
       if (!deliverable) {
         throw new Error("We are not delivering product on this address");
       }
 
       const { email: _formEmail, gstin: _formGstin, ...addressToSave } = form;
+      addressToSave.phone = cleanPhone;
       if (form.gstin) {
         addressToSave.company = addressToSave.company 
           ? `${addressToSave.company} - GSTIN: ${form.gstin}`
           : `GSTIN: ${form.gstin}`;
       }
-      const b64AddressId = typeof window !== 'undefined' ? btoa(addressId) : Buffer.from(addressId).toString('base64');
-      const payload = await updateCustomerAddress({ addressId: b64AddressId, address: addressToSave, makeDefault }, accessToken);
-      applyAddressPayload(payload);
-      await syncProfile(form);
-      return payload;
+      try {
+        const payload = await updateCustomerAddress({ addressId, address: addressToSave, makeDefault }, accessToken);
+        applyAddressPayload(payload);
+        await syncProfile({ ...form, phone: cleanPhone });
+        return payload;
+      } catch (err) {
+        if (err.message && err.message.toLowerCase().includes("address already exists")) {
+          const fresh = await fetchCustomerAddresses(accessToken);
+          applyAddressPayload(fresh);
+          return fresh;
+        }
+        throw err;
+      }
     },
     [accessToken, applyAddressPayload, syncProfile]
   );
@@ -162,8 +203,7 @@ export function useCustomerAddresses({ accessToken, user }) {
 
       setSelectedAddressId(addressId);
       try {
-        const b64AddressId = typeof window !== 'undefined' ? btoa(addressId) : Buffer.from(addressId).toString('base64');
-        applyAddressPayload(await selectDefaultCustomerAddress(b64AddressId, accessToken));
+        applyAddressPayload(await selectDefaultCustomerAddress(addressId, accessToken));
 
         if (addressToSelect && accessToken && !accessToken.startsWith("simulated_") && addresses.length <= 1) {
           try {
@@ -204,8 +244,7 @@ export function useCustomerAddresses({ accessToken, user }) {
         return;
       }
       try {
-        const b64AddressId = typeof window !== 'undefined' ? btoa(addressId) : Buffer.from(addressId).toString('base64');
-        applyAddressPayload(await deleteCustomerAddress(b64AddressId, accessToken));
+        applyAddressPayload(await deleteCustomerAddress(addressId, accessToken));
         toast.success("Address removed");
       } catch (error) {
         toast.error(error.message || "Unable to remove address");
@@ -214,7 +253,24 @@ export function useCustomerAddresses({ accessToken, user }) {
     [accessToken, addresses, applyAddressPayload]
   );
 
-  const selectedAddress = addresses.find((a) => a.id === selectedAddressId) || null;
+  useEffect(() => {
+    if (addresses.length > 0 && (!selectedAddressId || !addresses.some((a) => a.id === selectedAddressId))) {
+      const defaultAddr = addresses.find((a) => a.isDefault) || addresses[0];
+      if (defaultAddr) {
+        setSelectedAddressId(defaultAddr.id);
+      }
+    }
+  }, [addresses, selectedAddressId]);
+
+  const selectedAddress = useMemo(() => {
+    if (!addresses || addresses.length === 0) return null;
+    return (
+      addresses.find((a) => a.id === selectedAddressId) ||
+      addresses.find((a) => a.isDefault) ||
+      addresses[0] ||
+      null
+    );
+  }, [addresses, selectedAddressId]);
 
   return {
     addresses,

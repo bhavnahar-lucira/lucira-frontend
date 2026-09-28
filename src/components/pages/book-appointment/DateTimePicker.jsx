@@ -21,6 +21,7 @@ import {
   timeSlots,
   isSlotAvailable,
   firstBookableDay,
+  firstAvailableSlot,
   slotSelection,
 } from "@/lib/bookAppointment";
 
@@ -38,6 +39,9 @@ export function SectionLabel({ icon: Icon, children }) {
  *
  * Today is pre-selected, unless every slot today has already gone — then the
  * first day that still has one is, so the shopper never opens onto a dead grid.
+ * The earliest open slot on that day is pre-selected too, as it is whenever the
+ * day changes: most shoppers take the first slot anyway, and a form that opens
+ * already bookable is one fewer tap between them and Confirm.
  * `now` is captured once per `reset()` so the disabled set cannot shift
  * mid-form. Callers `reset()` whenever the form (re)opens, optionally passing
  * the `{ dayKey, slotHour }` from an earlier submit so a shopper stepping back
@@ -49,7 +53,9 @@ export function useSlotPicker() {
   const [now, setNow] = React.useState(() => new Date());
   const [days, setDays] = React.useState(() => upcomingDays(7, new Date()));
   const [dayKey, setDayKey] = React.useState(() => firstBookableDay(days, now)?.key || days[0].key);
-  const [slotHour, setSlotHour] = React.useState(null);
+  const [slotHour, setSlotHour] = React.useState(
+    () => firstAvailableSlot(days.find((d) => d.key === dayKey), now)?.hour ?? null
+  );
 
   const reset = React.useCallback((preset) => {
     const fresh = new Date();
@@ -62,10 +68,9 @@ export function useSlotPicker() {
     const presetStillOpen =
       !!presetDay && !!presetSlot && isSlotAvailable(presetDay, presetSlot, fresh);
 
-    setDayKey(
-      presetStillOpen ? presetDay.key : firstBookableDay(nextDays, fresh)?.key || nextDays[0].key
-    );
-    setSlotHour(presetStillOpen ? presetSlot.hour : null);
+    const nextDay = presetStillOpen ? presetDay : firstBookableDay(nextDays, fresh) || nextDays[0];
+    setDayKey(nextDay.key);
+    setSlotHour(presetStillOpen ? presetSlot.hour : firstAvailableSlot(nextDay, fresh)?.hour ?? null);
   }, []);
 
   const day = days.find((d) => d.key === dayKey) || days[0];
@@ -108,7 +113,7 @@ export default function DateTimePicker({ picker, error, onChange }) {
                 disabled={isDead}
                 onClick={() => {
                   setDayKey(d.key);
-                  setSlotHour(null);
+                  setSlotHour(firstAvailableSlot(d, now)?.hour ?? null);
                   onChange?.();
                 }}
                 className={`h-14 rounded-sm border flex flex-col items-center justify-center gap-0.5 transition-colors ${

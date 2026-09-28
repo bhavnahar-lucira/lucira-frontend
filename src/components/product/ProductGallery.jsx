@@ -181,6 +181,9 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
     const getColorFromAlt = (text) => {
       const lower = (text || "").toLowerCase();
+      if (lower.includes("white") && lower.includes("yellow")) return "white-yellow";
+      if (lower.includes("white") && lower.includes("rose")) return "white-rose";
+
       const match = lower.match(/(yellow|white|rose|plt|platinum)[\s-]?(yellow|white|rose|plt|platinum)?/);
       if (match && match[1]) {
         const firstColor = match[1];
@@ -190,7 +193,15 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       return "";
     };
 
-    const targetColor = getColorFromAlt(activeColor) || (activeColor.toLowerCase().includes("plt") ? "plt" : activeColor.toLowerCase());
+    const isColorMatch = (itemColor, target) => {
+      if (!itemColor || !target) return false;
+      if (itemColor === target) return true;
+      if (target === "white-yellow" && itemColor === "yellow") return true;
+      if (target === "white-rose" && itemColor === "rose") return true;
+      return false;
+    };
+
+    const targetColor = getColorFromAlt(activeColor) || (String(activeColor || "").toLowerCase().includes("plt") ? "plt" : String(activeColor || "").toLowerCase());
 
     const buckets = {
       color: [],
@@ -214,7 +225,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
         ALWAYS_SHOW_CODES.some(code => alt.includes(code)) ||
         (alt.includes("mv") && (urlString.includes("mv_ai") || urlString.includes("mv-ai")));
       
-      if (itemColor === targetColor || (!isAnyColor && isCodeMatch)) {
+      if (isColorMatch(itemColor, targetColor) || (!isAnyColor && isCodeMatch)) {
         if (
           alt.includes("mv-ai") ||
           alt.includes("mv_ai") ||
@@ -238,7 +249,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
           buckets.codes.ci.push(item);
         } else if (alt.includes("360v") || alt.includes("360°")) {
           buckets.codes.v360.push(item);
-        } else if (itemColor === targetColor) {
+        } else if (isColorMatch(itemColor, targetColor)) {
           buckets.color.push(item);
         } else {
           buckets.extras.push(item);
