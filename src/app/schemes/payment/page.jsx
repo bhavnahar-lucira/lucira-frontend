@@ -257,7 +257,7 @@ export default function SchemePaymentPage() {
                 currency_id: "103",
                 exchange_rate: 1,
                 ledger_id: 154,
-                company_id: 2,
+                company_id: 1,
                 scheme_type: "1",
                 scheme_unique_code: matchedScheme.scheme_unique_code,
               }
