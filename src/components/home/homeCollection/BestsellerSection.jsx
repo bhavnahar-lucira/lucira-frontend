@@ -5,6 +5,17 @@ import CollectionSection from "./CollectionSection";
 import CollectionSlider from "./CollectionSlider";
 import { apiFetch } from "@/lib/api";
 
+const SHOPIFY_FILES = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files";
+
+// Editorial image shown as the first slide, one per tab.
+const TAB_LEAD_IMAGES = {
+  All: `${SHOPIFY_FILES}/All.jpg?v=1790684560`,
+  Rings: `${SHOPIFY_FILES}/Rings_1.jpg?v=1790684559`,
+  Earrings: `${SHOPIFY_FILES}/Earrings_1_5e9c08e3-74c5-4f96-9153-59d23606b040.jpg?v=1790684561`,
+  Bracelets: `${SHOPIFY_FILES}/Bracelets_bc1c5692-0068-4672-bc55-25c085391398.jpg?v=1790684561`,
+  Necklaces: `${SHOPIFY_FILES}/Necklaces_1.jpg?v=1790684561`,
+};
+
 // `surface` only tags the GA promo-click payload, so a rail reused on another
 // page does not report itself as the homepage. Everything else is unchanged.
 export default function BestsellerSection({ initialData, surface = "homepage" }) {
@@ -71,6 +82,10 @@ export default function BestsellerSection({ initialData, surface = "homepage" })
         products={products.length > 0 ? products : (loading ? [] : undefined)}
         loading={loading}
         priorityCount={4}
+        leadImage={{
+          src: TAB_LEAD_IMAGES[activeTab],
+          alt: activeTab === "All" ? "Shop bestsellers" : `Shop bestseller ${activeTab.toLowerCase()}`,
+        }}
         promoClickMeta={{
           creative_name: `shop bestseller section ${surface}`,
           location_id: surface,
