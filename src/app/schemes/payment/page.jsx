@@ -14,6 +14,7 @@ import {
   fetchOrnaverseEnrollments, 
   createOrnaverseReceipt 
 } from "@/lib/api";
+import { toTenDigit } from "@/lib/phone";
 import { pushPromoClick } from "@/lib/gtm";
 import { BadgeCheck, Loader2, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 
@@ -201,7 +202,7 @@ export default function SchemePaymentPage() {
               tenure,
               scheme_monthly_details: months,
               bonus_value: amount,
-              mobile: user?.phone || user?.mobile,
+              mobile: toTenDigit(user?.phone || user?.mobile),
               party_name: enrollment.party_name || user?.name,
               scheme_code: "9+1",
               max_installment_amount: MAX_INSTALLMENT_AMOUNT,
@@ -229,7 +230,7 @@ export default function SchemePaymentPage() {
                 document_no: 123, // Placeholder as in original
                 document_date: new Date().toISOString(),
                 document_id: 99, // Placeholder as in original
-                mobile: user?.phone || user?.mobile,
+                mobile: toTenDigit(user?.phone || user?.mobile),
                 party_id: partyId.toString(),
                 party_name: enrollment.party_name || user?.name,
                 email: user?.email || "",

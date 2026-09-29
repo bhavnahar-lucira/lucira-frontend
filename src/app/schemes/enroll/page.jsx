@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, UserPlus, Info, CheckCircle2, ChevronRight } from "lucide-react";
 
 import { fetchCustomerAddresses, fetchOrnaverseCustomer, updateOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
+import { toTenDigit } from "@/lib/phone";
 
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
@@ -49,7 +50,7 @@ export default function Enroll() {
   const customer = useSelector((s) => s.user.user);
   const accessToken = useSelector((s) => s.user.accessToken);
   const enrollment = useSelector((s) => s.user.user?.enrollment_draft);
-  const mobile = customer?.mobile || customer?.phone;
+  const mobile = toTenDigit(customer?.mobile || customer?.phone);
 
   /* ===================== AUTH PROTECTION ===================== */
   useEffect(() => {
