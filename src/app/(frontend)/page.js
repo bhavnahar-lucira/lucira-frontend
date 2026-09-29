@@ -63,7 +63,7 @@ export default async function Home() {
       fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { cache: 'force-cache' }),
       fetch(`${base}/api/products/filters?q=gemstone`, { cache: 'force-cache' }),
       fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { cache: 'force-cache' }),
-      fetch(`${base}/api/settings/hero-banners`, { cache: 'force-cache' })
+      fetch(`${base}/api/settings/hero-banners`, { cache: 'no-store', next: { revalidate: 0 } })
     ]);
 
     if (bestsellersRes.ok) bestsellersInitial = await bestsellersRes.json();
