@@ -1,39 +1,46 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Lock, Gift, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { apiFetch } from "@/lib/api";
 import { pushPromoClick } from "@/lib/gtm";
-import { FREE_GIFTS, isFreeGiftVariant, getApplicableFreeGift, getNextFreeGift, mapRemoteFreeGiftTiers, isTierLive } from "@/lib/freeGifts";
+import { 
+  FREE_GIFTS, 
+  isFreeGiftVariant, 
+  isFreeGiftItem,
+  getApplicableFreeGift, 
+  getNextFreeGift, 
+  getNextGiftMilestone,
+  getEligibleGiftQuantity,
+  mapRemoteFreeGiftTiers, 
+  isTierLive,
+  cleanId,
+  setCachedFreeGiftTiers
+} from "@/lib/freeGifts";
+import { setGiftTiersConfig } from "@/redux/features/cart/cartSlice";
 import NoImageIcon from "@/components/common/RewardBadgeIcon";
 
 /**
  * Cart free-gift-with-purchase widget — sits directly beneath the "Apply
  * Coupon" trigger and reproduces its locked / login / claim / remove states.
- * Driven entirely by lib/freeGifts.js, so a new tier or a swapped gift
- * product is a config edit, not a change here.
- *
- * "Claimed" is derived purely from whether the gift's line item is actually
- * in the cart (never a separately-persisted flag), so it can't drift out of
- * sync across login/logout — logging out clears the cart itself, and the
- * next login re-derives this from whatever the fetched cart contains.
+ * Driven entirely by dashboard settings via lib/freeGifts.js.
  *
  * @param {number} diamondTotal - the qualifying (diamond-only, plain-gold
  *   excluded) cart value, computed by the caller — same value the coupon
  *   ladder uses.
  */
 export default function FreeGiftReward({ diamondTotal }) {
-  const { items, appliedCoupon, addToCart, removeFromCart, removeCoupon, loading } = useCart();
+  const dispatch = useDispatch();
+  const { items, appliedCoupon, addToCart, removeFromCart, updateCartItem, removeCoupon, loading } = useCart();
   const user = useSelector((state) => state.user.user);
   const { openLogin } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const giftTiersConfig = useSelector(state => state.cart.giftTiersConfig);
-
   const [fetchedConfig, setFetchedConfig] = useState(null);
 
   useEffect(() => {
@@ -45,9 +52,13 @@ export default function FreeGiftReward({ diamondTotal }) {
           enabled: data?.enabled ?? true,
           tiers: mapRemoteFreeGiftTiers(data?.tiers),
         });
+        if (data?.tiers) {
+          setCachedFreeGiftTiers(data.tiers);
+          dispatch(setGiftTiersConfig(data));
+        }
       })
       .catch((err) => console.error("Error fetching silver bracelet setting:", err));
-  }, [giftTiersConfig]);
+  }, [giftTiersConfig, dispatch]);
 
   const remoteConfig = useMemo(() => {
     return giftTiersConfig
@@ -58,75 +69,101 @@ export default function FreeGiftReward({ diamondTotal }) {
       : fetchedConfig;
   }, [giftTiersConfig, fetchedConfig]);
 
-  // All configured tiers, enabled or not — a disabled tier's gift line, if
-  // one is already sitting in a cart from before it was disabled, still needs
-  // to be recognized (so it prices at ₹0 and gets excluded from subtotals)
-  // rather than suddenly billed as a paid item.
+  // All configured tiers, enabled or not
   const effectiveGifts = useMemo(() => {
     if (!remoteConfig) return FREE_GIFTS;
     return remoteConfig.tiers;
   }, [remoteConfig]);
 
-  // Only enabled, currently-scheduled tiers count toward what a shopper can
-  // newly unlock/claim.
+  useEffect(() => {
+    if (effectiveGifts && effectiveGifts.length > 0) {
+      setCachedFreeGiftTiers(effectiveGifts);
+    }
+  }, [effectiveGifts]);
+
+  // Only enabled, currently-scheduled tiers count toward what a shopper can unlock
   const activeGifts = useMemo(
     () => effectiveGifts.filter((g) => g.enabled !== false && isTierLive(g)),
     [effectiveGifts]
   );
 
-  const appliedItem = items.find((item) => isFreeGiftVariant(item.variantId, effectiveGifts));
-  // The tier the cart's actual claimed line belongs to — not necessarily the
-  // same as `gift` below. With more than one tier, a shopper can claim tier
-  // A and later add enough to qualify for tier B without ever re-claiming
-  // (claiming never auto-upgrades); the widget must keep describing what's
-  // actually in the cart, not the best tier currently on offer.
+  const appliedItem = (items || []).find((item) => {
+    if (!isFreeGiftItem(item, effectiveGifts)) return false;
+    const v = cleanId(item.variantId);
+    return effectiveGifts.some((g) => {
+      const target = cleanId(g.variantId);
+      return v === target || v.includes(target) || target.includes(v);
+    });
+  });
+
   const appliedTier = appliedItem
-    ? effectiveGifts.find((g) => g.variantId === appliedItem.variantId)
+    ? effectiveGifts.find((g) => {
+        const target = cleanId(g.variantId);
+        const v = cleanId(appliedItem.variantId);
+        return v === target || v.includes(target) || target.includes(v);
+      })
     : null;
+
   const gift = getApplicableFreeGift(diamondTotal, activeGifts);
   const nextGift = getNextFreeGift(diamondTotal, activeGifts);
   const isApplied = !!appliedItem;
-  // What the widget shows: the claimed tier once one is applied, otherwise
-  // the best tier the cart currently qualifies for.
   const displayGift = isApplied ? appliedTier : gift;
 
   const isLocked = !displayGift;
   const needsLogin = !isApplied && !!gift && !user;
 
-  // A claimed gift doesn't survive its OWN tier's qualifying total dropping
-  // back below threshold (items removed, coupon applied to a restricted
-  // subtotal, etc), that tier being disabled from the dashboard, or the
-  // shopper no longer being logged in — claiming requires a user, so a gift
-  // line sitting in a guest cart (left over from a prior login's cart
-  // merging back into a guest session, or similar) is an invalid state, not
-  // a legitimately-held claim. Checked against appliedTier's own threshold,
-  // not against `gift` (the best tier available now) — otherwise a claimed
-  // lower tier would be wrongly stripped the moment a higher tier unlocks.
   const appliedTierStillValid =
     !!appliedTier && appliedTier.enabled !== false && isTierLive(appliedTier) && diamondTotal >= appliedTier.threshold;
-  useEffect(() => {
-    if (appliedItem && (!appliedTierStillValid || !user)) {
-      removeFromCart(appliedItem.lineId || appliedItem.variantId);
-    }
-  }, [appliedItem, appliedTierStillValid, user, removeFromCart]);
 
-  // The gift and a coupon can't both apply — unless staff ticked "Combine
-  // coupons" on the claimed tier. Claiming removes an active coupon (see
-  // handleToggle) when combining isn't allowed — this is the safety net for
-  // a coupon landing afterwards (e.g. re-applied from the drawer).
+  // Cleanup any orphan / stale free gift items that do not belong to the valid applied tier
+  useEffect(() => {
+    if (isProcessing) return;
+    const staleItems = (items || []).filter((item) => {
+      if (!isFreeGiftItem(item, effectiveGifts)) return false;
+      // If user not logged in or threshold not met or appliedTier invalid, ALL free gifts must be removed
+      if (!appliedTierStillValid || !user || !appliedTier) return true;
+      // If this item is not the currently valid applied tier variant, it's an orphan from an old/different tier
+      const v = cleanId(item.variantId);
+      const target = cleanId(appliedTier.variantId);
+      return v !== target && !v.includes(target) && !target.includes(v);
+    });
+
+    if (staleItems.length > 0) {
+      staleItems.forEach((stale) => {
+        removeFromCart(stale.lineId || stale.variantId);
+      });
+    }
+  }, [items, appliedTierStillValid, user, appliedTier, isProcessing, removeFromCart, effectiveGifts]);
+
+  // Auto-sync gift quantity when diamondTotal changes and tier scales with spend
+  useEffect(() => {
+    if (!appliedItem || !appliedTier || !appliedTier.scaleQuantityWithSpend || isProcessing) return;
+    const targetQty = getEligibleGiftQuantity(diamondTotal, appliedTier);
+    if (targetQty > 0 && targetQty !== Number(appliedItem.quantity || 1)) {
+      updateCartItem({
+        lineId: appliedItem.lineId,
+        variantId: appliedItem.variantId,
+        quantity: targetQty,
+      });
+    }
+  }, [diamondTotal, appliedItem, appliedTier, isProcessing, updateCartItem]);
+
+  // Remove gift if a non-combinable coupon is applied
   useEffect(() => {
     if (appliedCoupon && appliedItem && !appliedTier?.combineCoupons && !isProcessing) {
       removeFromCart(appliedItem.lineId || appliedItem.variantId);
       toast.info(`${appliedItem.title || "Free gift"} removed as it cannot be combined with a coupon.`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedCoupon, appliedItem, appliedTier, isProcessing]);
+  }, [appliedCoupon, appliedItem, appliedTier, isProcessing, removeFromCart]);
 
   const hasFreeGift = gift || nextGift || isApplied;
   const isFreeGiftEnabled = remoteConfig && remoteConfig.enabled;
   const showFreeGiftBanner = isFreeGiftEnabled || isApplied;
 
-  if (!hasFreeGift) return null;
+  const nextMilestone = getNextGiftMilestone(diamondTotal, activeGifts, displayGift);
+  const eligibleQty = displayGift ? getEligibleGiftQuantity(diamondTotal, displayGift) : 0;
+
+  if (!hasFreeGift || !showFreeGiftBanner) return null;
 
   const handleToggle = async () => {
     setIsProcessing(true);
@@ -152,6 +189,7 @@ export default function FreeGiftReward({ diamondTotal }) {
           removeCoupon();
           toast.info("Coupon removed as the free gift offer cannot be combined with coupons.");
         }
+        const claimQty = getEligibleGiftQuantity(diamondTotal, gift);
         await addToCart({
           productId: gift.productId,
           variantId: gift.variantId,
@@ -160,12 +198,16 @@ export default function FreeGiftReward({ diamondTotal }) {
           price: 0,
           originalPrice: gift.worthValue,
           comparePrice: gift.worthValue,
-          quantity: 1,
+          quantity: claimQty,
           variantTitle: "Free Gift",
           inStock: true,
           isFreeGift: true,
+          properties: {
+            _is_free_gift: "true",
+            is_free_gift: "true",
+          },
         });
-        toast.success(`Free ${gift.title} has been added to your order!`);
+        toast.success(`Free ${gift.title}${claimQty > 1 ? ` (${claimQty})` : ""} has been added to your order!`);
       }
     } catch (e) {
       console.error("Error updating free gift reward:", e);
@@ -215,13 +257,18 @@ export default function FreeGiftReward({ diamondTotal }) {
             gift.bannerText ? (
               <>{gift.bannerText}</>
             ) : (
-              <>Unlock to claim a FREE {gift.title} worth {gift.worthLabel}.</>
+              <>Unlock to claim a FREE {gift.title}{eligibleQty > 1 ? ` (${eligibleQty} items)` : ""} worth ₹{(gift.worthValue * (eligibleQty || 1)).toLocaleString("en-IN")}.</>
             )
           ) : (
             displayGift.bannerText ? (
               <>{displayGift.bannerText}</>
             ) : (
-              <>You&apos;ve unlocked a FREE {displayGift.title} worth {displayGift.worthLabel}.</>
+              <>
+                You&apos;ve unlocked {eligibleQty > 1 ? `${eligibleQty}x ` : "a "}FREE {displayGift.title} worth ₹{(displayGift.worthValue * (eligibleQty || 1)).toLocaleString("en-IN")}.
+                {nextMilestone?.isMultiplier && (
+                  <> Add <span className="font-bold text-[#e7000b]">₹{nextMilestone.remaining.toLocaleString("en-IN")}</span> more to get {nextMilestone.targetQuantity}x FREE {displayGift.title}!</>
+                )}
+              </>
             )
           )}
         </p>

@@ -6,45 +6,82 @@
 //
 // Callers must pass the DIAMOND value of the cart (same qualifying value used
 // for the coupon ladder), not the full subtotal: plain gold does not count
-// toward these tiers. Each file already computes its own local diamondTotal
-// (CartSummary/GoldCoinOption use a diamondCharges-based sum, CheckoutSummary
-// uses a different product-type heuristic for its own purposes) — this module
-// deliberately does not unify those, it just accepts whatever number a caller
-// hands it.
+// toward these tiers.
+
+let dynamicTiers = null;
+
+export const setCachedFreeGiftTiers = (tiers) => {
+  if (Array.isArray(tiers)) {
+    dynamicTiers = mapRemoteFreeGiftTiers(tiers);
+  }
+};
+
+export const getCachedFreeGiftTiers = () => dynamicTiers;
+
 export const FREE_GIFTS = [
   {
     id: "silver-diamond-bracelet",
     threshold: 30000,
     variantId: "gid://shopify/ProductVariant/48414958715098",
     productId: "gid://shopify/Product/9438188896474",
-    // Short noun phrase — used in-line as "a FREE {title} worth {worthLabel}".
-    // The cart-line/breakdown label is derived from this ("Free " + title)
-    // rather than stored separately, so the two never drift out of sync.
     title: "Diamond Bracelet",
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Bracelet_PNG_1.png",
     worthValue: 15000,
     worthLabel: "₹15,000",
+    scaleQuantityWithSpend: false,
+    allocationLimit: null,
   },
 ];
 
-// True for any configured free-gift variant — use this instead of comparing
-// against a single hardcoded variant ID so new tiers are picked up everywhere
-// (subtotal/savings/insurance-quantity/item-list exclusions) automatically.
-// Accepts the current gift list so a dashboard-added tier is recognized
-// immediately, not just the two variants baked into this file at build time.
-export const isFreeGiftVariant = (variantId, gifts = FREE_GIFTS) =>
-  gifts.some((g) => g.variantId === variantId);
+export const cleanId = (id) => String(id || "").replace(/^gid:\/\/shopify\/ProductVariant\//i, "").trim().toLowerCase();
+export const cleanProdId = (id) => String(id || "").replace(/^gid:\/\/shopify\/Product\//i, "").trim().toLowerCase();
+
+/**
+ * True for any configured free-gift variant.
+ * Normalizes Shopify GID vs numeric ID so matches always succeed.
+ * Checks dynamic tiers from dashboard first, then static FREE_GIFTS.
+ */
+export const isFreeGiftVariant = (variantId, gifts = null) => {
+  if (!variantId) return false;
+  const target = cleanId(variantId);
+  const list = gifts || dynamicTiers || FREE_GIFTS;
+  return list.some((g) => {
+    const v = cleanId(g.variantId);
+    return v === target || (v && target && (v.includes(target) || target.includes(v)));
+  });
+};
+
+/**
+ * True for any configured free-gift product ID.
+ */
+export const isFreeGiftProduct = (productId, gifts = null) => {
+  if (!productId) return false;
+  const target = cleanProdId(productId);
+  const list = gifts || dynamicTiers || FREE_GIFTS;
+  return list.some((g) => {
+    const p = cleanProdId(g.productId);
+    return p && target && (p === target || p.includes(target) || target.includes(p));
+  });
+};
+
+/**
+ * Comprehensive check to identify any free gift item from the dashboard or cart.
+ * Guarantees that free gifts NEVER leak into the regular cart item list.
+ */
+export const isFreeGiftItem = (item, gifts = null) => {
+  if (!item) return false;
+  if (item.isFreeGift === true) return true;
+  if (item.properties?.['_is_free_gift'] === 'true' || item.properties?.['is_free_gift'] === 'true') return true;
+  if (item.variantId && isFreeGiftVariant(item.variantId, gifts)) return true;
+  if (item.productId && isFreeGiftProduct(item.productId, gifts)) return true;
+  if (String(item.title || "").toLowerCase().startsWith("free ")) return true;
+  if (String(item.variantTitle || "").toLowerCase().includes("free gift")) return true;
+  return false;
+};
 
 /**
  * Maps the backend's /api/settings/silver-bracelet tier shape
- * ({ min, giftVariantId, giftProductId, giftTitle, giftWorthValue, giftImage })
- * onto the shape the functions below expect.
- *
- * Falls back to the static FREE_GIFTS list only when `tiers` is missing
- * entirely (the settings doc hasn't been saved even once yet) — NOT when it's
- * an empty array. An empty array is a deliberate staff choice ("no gifts
- * configured right now") and must render as no gift, not silently resurrect
- * the old hardcoded bracelet.
+ * onto the shape expected across the storefront.
  */
 export const mapRemoteFreeGiftTiers = (tiers) => {
   if (!Array.isArray(tiers)) return FREE_GIFTS;
@@ -63,20 +100,14 @@ export const mapRemoteFreeGiftTiers = (tiers) => {
       bannerText: t.bannerText,
       worthValue: Number(t.giftWorthValue) || 0,
       worthLabel: `₹${(Number(t.giftWorthValue) || 0).toLocaleString("en-IN")}`,
-      // On: claiming this gift doesn't remove an applied coupon (and applying
-      // a coupon doesn't remove this gift) — off is today's default, hard
-      // exclusivity between the two.
       combineCoupons: t.combineCoupons === true,
+      scaleQuantityWithSpend: t.scaleQuantityWithSpend === true,
+      allocationLimit: t.allocationLimit ? Number(t.allocationLimit) : null,
     }))
     .filter((t) => t.variantId)
-    // getApplicableFreeGift/getNextFreeGift assume ascending order.
     .sort((a, b) => a.threshold - b.threshold);
 };
 
-// Mirrors the backend's isTierLive (cartPricing.js) — a scheduled-but-not-
-// yet-started or already-ended tier can't be newly claimed, even though its
-// variant still needs to be recognized elsewhere (isFreeGiftVariant) so an
-// already-claimed line from while it was live keeps pricing at ₹0.
 export const isTierLive = (tier, now = Date.now()) => {
   if (tier.startsAt && new Date(tier.startsAt).getTime() > now) return false;
   if (tier.endsAt && new Date(tier.endsAt).getTime() < now) return false;
@@ -84,29 +115,84 @@ export const isTierLive = (tier, now = Date.now()) => {
 };
 
 /**
- * The single best gift a cart of this diamond value currently qualifies for.
- * Tiers are assumed ascending by threshold; the highest one cleared wins (a
- * shopper who clears a later, better tier isn't stuck with an earlier one).
- *
- * `gifts` defaults to the static FREE_GIFTS list but callers may pass the
- * live tier list instead — see FreeGiftReward, which fetches and maps
- * /api/settings/silver-bracelet via mapRemoteFreeGiftTiers so staff can add,
- * edit, or disable tiers from the dashboard without a code deploy.
+ * Calculates the eligible free gift quantity for a given diamond spend.
+ * If scaleQuantityWithSpend is enabled, scales linearly with spend (1 per threshold).
+ * e.g., 30k -> 1, 60k -> 2, 90k -> 3.
  */
-export const getApplicableFreeGift = (diamondValue, gifts = FREE_GIFTS) => {
+export const getEligibleGiftQuantity = (diamondValue, tier) => {
+  if (!tier) return 0;
+  const value = Number(diamondValue) || 0;
+  const threshold = Number(tier.threshold) || 0;
+  if (threshold <= 0 || value < threshold) return 0;
+  if (!tier.scaleQuantityWithSpend) return 1;
+
+  const count = Math.floor(value / threshold);
+  const capped = tier.allocationLimit ? Math.min(tier.allocationLimit, count) : count;
+  return Math.max(1, capped);
+};
+
+/**
+ * The best tier a cart of this diamond value qualifies for.
+ */
+export const getApplicableFreeGift = (diamondValue, gifts = null) => {
+  const tierList = gifts || dynamicTiers || FREE_GIFTS;
   const value = Number(diamondValue) || 0;
   let applicable = null;
-  for (const gift of gifts) {
+  for (const gift of tierList) {
     if (value >= gift.threshold) applicable = gift;
   }
   return applicable;
 };
 
 /**
- * The next not-yet-unlocked gift, for "add ₹X more to unlock" messaging.
- * Returns null once every configured tier has been cleared.
+ * The next not-yet-unlocked tier, for "add ₹X more to unlock" messaging.
  */
-export const getNextFreeGift = (diamondValue, gifts = FREE_GIFTS) => {
+export const getNextFreeGift = (diamondValue, gifts = null) => {
+  const tierList = gifts || dynamicTiers || FREE_GIFTS;
   const value = Number(diamondValue) || 0;
-  return gifts.find((gift) => value < gift.threshold) || null;
+  return tierList.find((gift) => value < gift.threshold) || null;
+};
+
+/**
+ * Computes next unlock milestone, including spend multiplier steps (e.g. ₹60k -> 2, ₹90k -> 3).
+ */
+export const getNextGiftMilestone = (diamondValue, gifts = null, currentTier = null) => {
+  const value = Number(diamondValue) || 0;
+  const tierList = gifts || dynamicTiers || FREE_GIFTS;
+
+  const nextHigherTier = tierList.find((g) => value < g.threshold);
+
+  if (currentTier?.scaleQuantityWithSpend && currentTier.threshold > 0) {
+    const currentQty = Math.floor(value / currentTier.threshold);
+    const nextQty = Math.max(1, currentQty + 1);
+    const nextMultipleThreshold = nextQty * currentTier.threshold;
+
+    if (!currentTier.allocationLimit || nextQty <= currentTier.allocationLimit) {
+      if (!nextHigherTier || nextMultipleThreshold <= nextHigherTier.threshold) {
+        return {
+          threshold: nextMultipleThreshold,
+          remaining: Math.max(0, nextMultipleThreshold - value),
+          title: currentTier.title,
+          worthLabel: currentTier.worthLabel,
+          worthValue: currentTier.worthValue,
+          targetQuantity: nextQty,
+          isMultiplier: true,
+        };
+      }
+    }
+  }
+
+  if (nextHigherTier) {
+    return {
+      threshold: nextHigherTier.threshold,
+      remaining: Math.max(0, nextHigherTier.threshold - value),
+      title: nextHigherTier.title,
+      worthLabel: nextHigherTier.worthLabel,
+      worthValue: nextHigherTier.worthValue,
+      targetQuantity: 1,
+      isMultiplier: false,
+    };
+  }
+
+  return null;
 };

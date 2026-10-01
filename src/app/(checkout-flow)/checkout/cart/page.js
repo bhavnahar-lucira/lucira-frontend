@@ -16,7 +16,7 @@ import { calculateCouponDiscount } from "@/lib/coupons";
 import { useAuth } from "@/hooks/useAuth";
 
 import { apiFetch } from "@/lib/api";
-import { isFreeGiftVariant } from "@/lib/freeGifts";
+import { isFreeGiftItem, isFreeGiftVariant, mapRemoteFreeGiftTiers, getCachedFreeGiftTiers } from "@/lib/freeGifts";
 
 // Prefer productId — that's the field carts/wishlists/orders key on (backend normalizes to numeric).
 const getItemProductId = (item) => item.productId || item.shopifyId || item.id || item.handle || "";
@@ -29,7 +29,11 @@ const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 export default function CartPage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { items, totalQuantity, totalAmount, appliedCoupon, loading } = useSelector((state) => state.cart);
+  const { items, totalQuantity, totalAmount, appliedCoupon, loading, giftTiersConfig } = useSelector((state) => state.cart);
+  const effectiveGifts = useMemo(() => {
+    if (giftTiersConfig?.tiers) return mapRemoteFreeGiftTiers(giftTiersConfig.tiers);
+    return getCachedFreeGiftTiers();
+  }, [giftTiersConfig]);
   const { user, isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
@@ -64,11 +68,10 @@ export default function CartPage() {
     }
   };
 
-const filteredItems = items.filter(
+  const filteredItems = items.filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !item.isFreeGift &&
-      !isFreeGiftVariant(item.variantId) &&
+      !isFreeGiftItem(item, effectiveGifts) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] && // Handle potential space in key
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
