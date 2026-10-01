@@ -12,6 +12,7 @@ import { Sheet } from "react-modal-sheet";
 import { OtpSpinAuth } from "./OtpSpinAuth";
 import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { runPendingLoginAction, clearPendingLoginAction } from "@/hooks/useAtcLoginGate";
 
 import { useSelector } from "react-redux";
 
@@ -78,6 +79,13 @@ export function AuthDialog({
     onOpenChange(false);
   };
 
+  // User-initiated close (X, backdrop) without logging in: drop any add-to-cart
+  // that was waiting on this login.
+  const handleDismiss = () => {
+    clearPendingLoginAction();
+    handleClose();
+  };
+
   const handleSuccess = (redirectPath) => {
     // 1. Explicitly navigate first if a path is provided
     if (redirectPath) {
@@ -88,6 +96,7 @@ export function AuthDialog({
     setTimeout(() => {
       handleClose();
       if (onSuccess) onSuccess();
+      runPendingLoginAction();
     }, 50);
   };
 
@@ -99,7 +108,7 @@ export function AuthDialog({
     return (
       <Sheet
         isOpen={isOpen}
-        onClose={handleClose}
+        onClose={handleDismiss}
         detent="content"
         avoidKeyboard={true}
         style={{ zIndex: 2000 }}
@@ -117,7 +126,8 @@ export function AuthDialog({
                   title={finalTitle}
                   subtitle={finalSubtitle}
                   buttonText={overrideButtonText || "CONTINUE"}
-                  onClose={handleClose}
+                  onClose={handleDismiss}
+                  keepSavedCart={!!authModalOverrides?.keepSavedCart}
                 />
               </div>
             ) : (
@@ -138,7 +148,7 @@ export function AuthDialog({
             )}
           </Sheet.Content>
         </Sheet.Container>
-        <Sheet.Backdrop onTap={handleClose} />
+        <Sheet.Backdrop onTap={handleDismiss} />
       </Sheet>
     );
   }
@@ -147,7 +157,7 @@ export function AuthDialog({
     return (
       <Dialog
         open={isOpen}
-        onOpenChange={(val) => (val ? onOpenChange(true) : handleClose())}
+        onOpenChange={(val) => (val ? onOpenChange(true) : handleDismiss())}
       >
         <DialogContent 
           className="w-full max-w-[420px] p-0 border-none bg-white shadow-2xl rounded-lg overflow-hidden" 
@@ -165,7 +175,8 @@ export function AuthDialog({
               title={finalTitle}
               subtitle={finalSubtitle}
               buttonText={overrideButtonText || "CONTINUE"}
-              onClose={handleClose}
+              onClose={handleDismiss}
+              keepSavedCart={!!authModalOverrides?.keepSavedCart}
             />
           </div>
         </DialogContent>
