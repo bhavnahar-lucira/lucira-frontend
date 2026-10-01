@@ -20,6 +20,7 @@ import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart, getSessionId } from "@/redux/features/cart/cartSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
 import { toE164, cleanPhoneInput } from "@/lib/phone";
+import { trackSignupSuccess } from "@/lib/signupExperiment";
 
 const SPIN_PRIZES = [
   { label: "₹1,500 OFF", value: "1500_off", chance: 33.33 },
@@ -92,9 +93,19 @@ export function OtpSpinAuth({
   overrideButtonText = "",
   showCloseButton = true,
   isPopup = false,
-  hideRegisterLink = false
+  hideRegisterLink = false,
+  // Set only for the auto popup (signup A/B test); null = no test tracking.
+  experimentVariant = null,
+  experimentDevice = null,
 }) {
   const router = useRouter();
+  // A/B success metric: one promoClick per successful popup login/sign-up.
+  const trackSuccess = (isNewUser, rewardValue) =>
+    trackSignupSuccess({ variant: experimentVariant, isNewUser, rewardValue });
+  // Tags the Shopify customer with the popup variant they signed up through.
+  const experimentTags = experimentVariant
+    ? { tags: `signup_${experimentVariant}, signup_popup_${experimentDevice || "mobile"}` }
+    : {};
   const pathname = usePathname();
   const dispatch = useDispatch();
   const controls = useAnimation();
@@ -377,9 +388,11 @@ export function OtpSpinAuth({
             sessionId,
             wonPrize: wonPrize?.value,
             prizeLabel: wonPrize?.label,
+            ...experimentTags,
           });
 
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+            trackSuccess(true, wonPrize?.value);
             // Switch to the coupon screen BEFORE logging in: the `login` dispatch
             // flips Redux to authenticated, and the auth pages / global modal tear
             // this component down the moment that happens.
@@ -405,6 +418,7 @@ export function OtpSpinAuth({
             console.error("[Ornaverse] Fetch error:", error);
           }
         }
+        trackSuccess(false);
         await loginSuccess(data, false, false, ornaUser);
       }
     } catch (err) {
@@ -508,6 +522,7 @@ export function OtpSpinAuth({
       transition: { duration: spinDuration, ease: [0.2, 0.8, 0.2, 1] },
     });
 
+
     // After spin animation
     setTimeout(async () => {
       const sessionId = getSessionId();
@@ -544,8 +559,10 @@ export function OtpSpinAuth({
             sessionId,
             wonPrize: prize?.value,
             prizeLabel: prize?.label,
+            ...experimentTags,
           });
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+            trackSuccess(true, prize?.value);
             // See note above: the coupon screen has to be in place before `login`
             // is dispatched, otherwise the parent unmounts us first.
             handleStepChange("success");
