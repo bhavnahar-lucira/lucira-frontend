@@ -204,6 +204,17 @@ export const fetchCustomerDashboardStats = (accessToken) =>
     headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
   });
 
+// The birthday / anniversary coupons this customer can use today — open from
+// 7 days before the date they saved in My Account → Rewards, for 14 days.
+// Empty for everyone outside that window; the backend decides, never the client.
+export const fetchOccasionCoupons = (accessToken) => {
+  if (!accessToken || accessToken.startsWith('simulated_')) return Promise.resolve({ coupons: [] });
+  return apiFetch("/api/customer/occasion-coupons", {
+    headers: { "Authorization": `Bearer ${accessToken}` },
+    suppressErrorLog: true,
+  });
+};
+
 export const fetchCustomerAddresses = (accessToken) => {
   if (!accessToken || accessToken.startsWith('simulated_')) return Promise.resolve({ addresses: [], customer: null, defaultAddressId: null });
   return apiFetch("/api/customer/addresses", {
