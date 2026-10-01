@@ -252,19 +252,19 @@ export default function FreeGiftReward({ diamondTotal }) {
           style={{ color: isLocked ? "#6B5B54" : "rgb(0, 0, 0)", fontWeight: 500 }}
         >
           {isLocked ? (
-            <>Add <span className="font-bold text-[#e7000b]">₹{Math.max(0, nextGift.threshold - diamondTotal).toLocaleString("en-IN")}</span> more to unlock a FREE {nextGift.title} worth {nextGift.worthLabel}.</>
+            <>Add <span className="font-bold text-[#e7000b]">₹{Math.max(0, nextGift.threshold - diamondTotal).toLocaleString("en-IN")}</span> more to unlock a FREE {nextGift.title}.</>
           ) : needsLogin ? (
             gift.bannerText ? (
-              <>{gift.bannerText}</>
+              <>{gift.bannerText.replace(/\s*worth\s*₹?\s*[\d,]+/gi, "").trim()}</>
             ) : (
-              <>Unlock to claim a FREE {gift.title}{eligibleQty > 1 ? ` (${eligibleQty} items)` : ""} worth ₹{(gift.worthValue * (eligibleQty || 1)).toLocaleString("en-IN")}.</>
+              <>Unlock to claim a FREE {gift.title}{eligibleQty > 1 ? ` (${eligibleQty} items)` : ""}.</>
             )
           ) : (
             displayGift.bannerText ? (
-              <>{displayGift.bannerText}</>
+              <>{displayGift.bannerText.replace(/\s*worth\s*₹?\s*[\d,]+/gi, "").trim()}</>
             ) : (
               <>
-                You&apos;ve unlocked {eligibleQty > 1 ? `${eligibleQty}x ` : "a "}FREE {displayGift.title} worth ₹{(displayGift.worthValue * (eligibleQty || 1)).toLocaleString("en-IN")}.
+                You&apos;ve unlocked {eligibleQty > 1 ? `${eligibleQty}x ` : "a "}FREE {displayGift.title}.
                 {nextMilestone?.isMultiplier && (
                   <> Add <span className="font-bold text-[#e7000b]">₹{nextMilestone.remaining.toLocaleString("en-IN")}</span> more to get {nextMilestone.targetQuantity}x FREE {displayGift.title}!</>
                 )}
