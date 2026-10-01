@@ -31,8 +31,20 @@ export function AuthDialog({
   const router = useRouter();
   const pathname = usePathname();
   const [currentStep, setCurrentStep] = useState(initialStep);
-  const authRedirectPath = useSelector((state) => state.user.authRedirectPath);
-  const authModalOverrides = useSelector((state) => state.user.authModalOverrides);
+  const liveRedirectPath = useSelector((state) => state.user.authRedirectPath);
+  const liveOverrides = useSelector((state) => state.user.authModalOverrides);
+
+  // closeAuthModal wipes the overrides the moment the modal is told to close,
+  // while the dialog/sheet is still animating out. Reading them live would flip
+  // the closing modal to the default title, or to the spin-wheel form entirely.
+  // Hold on to what it was opened with until it opens again.
+  const [heldAuthConfig, setHeldAuthConfig] = useState({ overrides: liveOverrides, redirectPath: liveRedirectPath });
+  if (open && (heldAuthConfig.overrides !== liveOverrides || heldAuthConfig.redirectPath !== liveRedirectPath)) {
+    setHeldAuthConfig({ overrides: liveOverrides, redirectPath: liveRedirectPath });
+  }
+  const authModalOverrides = open ? liveOverrides : heldAuthConfig.overrides;
+  const authRedirectPath = open ? liveRedirectPath : heldAuthConfig.redirectPath;
+
   const hideRegisterLink = authRedirectPath === "/checkout/shipping" || pathname === "/checkout/cart";
 
   const isCartOrCheckout = 
