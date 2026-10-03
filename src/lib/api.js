@@ -502,3 +502,54 @@ export const createSchemeRazorpayPlan = (amount, tenure) =>
     body: JSON.stringify({ amount, tenure }),
   });
 
+/* ================= DGRP ("LOCK & KEY") APIS ================= */
+
+export const fetchDgrpConfig = () => apiFetch("/api/dgrp/config");
+
+export const createDgrpAdvanceOrder = (payload) =>
+  apiFetch("/api/dgrp/create-advance-order", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const verifyDgrpAdvancePayment = (payload) =>
+  apiFetch("/api/dgrp/verify-advance-payment", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const fetchUserDgrpPlans = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiFetch(`/api/dgrp/user-plans${query ? `?${query}` : ""}`);
+};
+
+export const createDgrpInstallmentOrder = (payload) =>
+  apiFetch("/api/dgrp/installment/create-order", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const verifyDgrpInstallmentPayment = (payload) =>
+  apiFetch("/api/dgrp/installment/verify", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const calculateDgrpPreclose = (planId) =>
+  apiFetch("/api/dgrp/preclose/calculate", {
+    method: "POST",
+    body: JSON.stringify({ plan_id: planId }),
+  });
+
+export const createDgrpPrecloseOrder = (planId) =>
+  apiFetch("/api/dgrp/preclose/create-order", {
+    method: "POST",
+    body: JSON.stringify({ plan_id: planId }),
+  });
+
+export const verifyDgrpPreclosePayment = (payload) =>
+  apiFetch("/api/dgrp/preclose/verify", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+

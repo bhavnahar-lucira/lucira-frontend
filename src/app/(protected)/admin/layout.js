@@ -20,6 +20,7 @@ import {
   GraduationCap,
   TicketPercent,
   RefreshCcw,
+  Coins,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDispatch, useSelector } from "react-redux";
@@ -33,6 +34,7 @@ const sidebarLinks = [
   { name: "My Returns", href: "/admin/returns", icon: RefreshCcw, color: "text-teal-500", bg: "bg-teal-500/10" },
   { name: "Wishlist", href: "/admin/wishlist", icon: Heart, color: "text-rose-500", bg: "bg-rose-500/10" },
   { name: "My Schemes", href: "/admin/schemes", icon: TicketPercent, color: "text-amber-700", bg: "bg-amber-700/10" },
+  { name: "Digi Gold", href: "/admin/digi-gold", icon: Coins, color: "text-amber-600", bg: "bg-amber-600/10" },
   { name: "Saved Addresses", href: "/admin/addresses", icon: MapPin, color: "text-orange-500", bg: "bg-orange-500/10" },
   { name: "Earn Rewards", href: "/admin/rewards", icon: Gift, color: "text-amber-500", bg: "bg-amber-500/10" },
   { name: "My Profile", href: "/admin/profile", icon: User, color: "text-zinc-500", bg: "bg-zinc-500/10" },

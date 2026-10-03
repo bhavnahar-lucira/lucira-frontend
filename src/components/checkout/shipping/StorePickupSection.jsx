@@ -99,11 +99,13 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
             }))}
           </div>
           
-          <div className="hidden lg:block absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-0">
-            <Button type="button" onClick={saveStoreSelection} className="w-full h-[50px] bg-[#5A413F] text-white hover:bg-transparent hover:text-[#5A413F] border border-[#5A413F] font-figtree text-[1rem] lg:text-[1.0625rem] font-medium tracking-wide uppercase rounded-[4px] transition-colors shadow-sm cursor-pointer">
-              {sortedStores.length === 0 ? 'Close' : 'Confirm'}
-            </Button>
-          </div>
+          {isDesktop && (
+            <div className="hidden lg:block absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white/90 to-transparent pt-8 pb-0">
+              <Button type="button" onClick={saveStoreSelection} className="w-full h-[50px] bg-[#5A413F] text-white hover:bg-transparent hover:text-[#5A413F] border border-[#5A413F] font-figtree text-[1rem] lg:text-[1.0625rem] font-medium tracking-wide uppercase rounded-[4px] transition-colors shadow-sm cursor-pointer">
+                {sortedStores.length === 0 ? 'Close' : 'Confirm'}
+              </Button>
+            </div>
+          )}
         </div>
       ) : hasResolvedStore && selectedStore ? (
         <div className="space-y-4">

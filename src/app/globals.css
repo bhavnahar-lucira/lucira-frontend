@@ -1527,3 +1527,21 @@ img.marquee-img {
 .animate-dialog-close {
   animation: dialog-pop-out 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Razorpay Popup & Close Button Interaction Fix */
+.razorpay-container,
+.razorpay-backdrop,
+iframe.razorpay-checkout-frame,
+iframe[name^="rzp_"] {
+  pointer-events: auto !important;
+  z-index: 2147483647 !important;
+}
+
+.razorpay-container * {
+  pointer-events: auto !important;
+}
+
+body:has(.razorpay-container) {
+  pointer-events: auto !important;
+}
+
