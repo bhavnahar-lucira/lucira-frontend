@@ -13,12 +13,40 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-export default function HeroBanner({ initialData = [], surface = "homepage" }) {
+export default function HeroBanner({ initialData = [], surface = "homepage", settings = {} }) {
   const id = useId().replace(/:/g, "");
   const paginationElClass = `pagination-${id}`;
   const bannerHeightClasses = "w-full h-auto";
 
-  const banners = initialData;
+  const banners = Array.isArray(initialData) ? initialData : (initialData?.banners || []);
+
+  const videoSlideDelay = Number(
+    settings?.videoSlideDelay ??
+    initialData?.videoSlideDelay ??
+    8
+  );
+
+  const imageSlideDelay = Number(
+    settings?.imageSlideDelay ??
+    initialData?.imageSlideDelay ??
+    6
+  );
+
+  const getSlideDelay = (slide) => {
+    if (!slide) return imageSlideDelay * 1000;
+    if (slide.duration && Number(slide.duration) > 0) {
+      return Number(slide.duration) * 1000;
+    }
+    const isVideo =
+      slide.type === "video" ||
+      Boolean(slide.desktopVideo && !slide.desktopImage) ||
+      (typeof slide.desktopImage === "string" &&
+        (slide.desktopImage.endsWith(".mp4") ||
+          slide.desktopImage.endsWith(".webm") ||
+          slide.desktopImage.includes("/video/")));
+
+    return isVideo ? videoSlideDelay * 1000 : imageSlideDelay * 1000;
+  };
 
   const handleBannerClick = (slide) => {
     pushPromoClick({
@@ -36,13 +64,22 @@ export default function HeroBanner({ initialData = [], surface = "homepage" }) {
       const videos = activeSlide.querySelectorAll("video");
       videos.forEach((vid) => {
         if (vid.paused) {
+          vid.currentTime = 0;
           vid.play().catch(() => {});
         }
       });
     }
+
+    if (swiper.autoplay) {
+      const currentBanner = banners[swiper.realIndex];
+      const targetDelay = getSlideDelay(currentBanner);
+      swiper.params.autoplay.delay = targetDelay;
+    }
   };
 
   if (!banners || banners.length === 0) return null;
+
+  const initialDelay = getSlideDelay(banners[0]);
 
   return (
     <div className="w-full bg-white">
@@ -52,7 +89,7 @@ export default function HeroBanner({ initialData = [], surface = "homepage" }) {
           slidesPerView={1}
           loop={banners.length > 1}
           autoplay={{
-            delay: 6000,
+            delay: initialDelay,
             disableOnInteraction: false,
           }}
           navigation={{
@@ -187,7 +224,7 @@ export default function HeroBanner({ initialData = [], surface = "homepage" }) {
             );
 
             return (
-              <SwiperSlide key={slide.id || index}>
+              <SwiperSlide key={slide.id || index} data-swiper-autoplay={getSlideDelay(slide)}>
                 {hasLink ? (
                   <Link
                     prefetch={false}

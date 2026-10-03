@@ -107,6 +107,7 @@ import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
 import ShareIntentSheet from "@/components/product/ShareIntentSheet";
 import { useShareIntent } from "@/hooks/useShareIntent";
+import { useAtcLoginGate } from "@/hooks/useAtcLoginGate";
 import { loadNectorReviews } from "@/lib/nector";
 import UnlockCoupon from "@/components/product/UnlockCoupon";
 import { OFFER_CATEGORY } from "@/lib/coupons";
@@ -387,6 +388,10 @@ export default function ProductPageClient({
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
   const dispatch = useDispatch();
+  const requireLoginForCart = useAtcLoginGate();
+  // Points at the newest handleAddToCart so the post-login add sees the
+  // logged-in user and whatever variant is selected by then.
+  const handleAddToCartRef = useRef(null);
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
     return () => {
@@ -1453,12 +1458,28 @@ export default function ProductPageClient({
 
   // ctaSource identifies which ATC button fired (header sticky / bottom
   // sticky / in-page). Guarded because direct onClick usage passes the event.
-  const handleAddToCart = async (ctaSource) => {
+  const handleAddToCart = async (ctaSource, { afterLogin = false } = {}) => {
     const atcCtaLocation = typeof ctaSource === "string" ? ctaSource : "pdp page cta";
+
+    // promoClick fires on the click itself (before the login gate), so guests
+    // stopped at the login modal are still counted. promo_id says WHICH atc
+    // button fired: "header sticky cta", "bottom sticky cta", "pdp page cta".
+    // Skipped on the post-login replay so one click never logs two promoClicks.
+    if (!afterLogin) {
+      pushPromoClick({
+        creative_name: "add to cart cta",
+        promo_id: atcCtaLocation,
+        promo_name: product?.title || "",
+      });
+    }
+
     if (!activeVariant) {
       toast.error("Please select a variant");
       return;
     }
+
+    // Guests must log in first; the add runs after login via the latest handler.
+    if (requireLoginForCart(() => handleAddToCartRef.current?.(ctaSource, { afterLogin: true }))) return;
 
     setAddingToCart(true);
     try {
@@ -1620,6 +1641,9 @@ export default function ProductPageClient({
       setAddingToCart(false);
     }
   };
+  useEffect(() => {
+    handleAddToCartRef.current = handleAddToCart;
+  });
 
   const handleToggleWishlist = async () => {
     if (!productId) {

@@ -55,6 +55,7 @@ export default async function Home() {
   let gemstoneCategoriesInitial = null;
   let exploreInitial = null;
   let bannersInitial = [];
+  let heroSettingsInitial = { videoSlideDelay: 8, imageSlideDelay: 6 };
 
   try {
     // Use force-cache so these fetches inherit the page-level revalidate=21600
@@ -74,6 +75,10 @@ export default async function Home() {
     if (bannersRes.ok) {
       const bData = await bannersRes.json();
       bannersInitial = bData.banners || [];
+      heroSettingsInitial = {
+        videoSlideDelay: bData.videoSlideDelay !== undefined ? Number(bData.videoSlideDelay) : 8,
+        imageSlideDelay: bData.imageSlideDelay !== undefined ? Number(bData.imageSlideDelay) : 6,
+      };
     }
 
     // Helper to strip heavy fields and save Vercel bandwidth
@@ -103,7 +108,7 @@ export default async function Home() {
   return (
     <div className="w-full">
       <MobileCategorySlider />
-      <HeroSliderImage initialData={bannersInitial} />
+      <HeroSliderImage initialData={bannersInitial} settings={heroSettingsInitial} />
       <FeatureBar />
       <ExploreRange />
       <AspirationalCollections />
