@@ -105,6 +105,7 @@ import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
 import PdpInfoSheet from "@/components/product/PdpInfoSheet";
 import ShareIntentSheet from "@/components/product/ShareIntentSheet";
 import { useShareIntent } from "@/hooks/useShareIntent";
+import { useAtcLoginGate } from "@/hooks/useAtcLoginGate";
 import { loadNectorReviews } from "@/lib/nector";
 import UnlockCoupon from "@/components/product/UnlockCoupon";
 import { OFFER_CATEGORY } from "@/lib/coupons";
@@ -385,6 +386,10 @@ export default function ProductPageClient({
   const variantIdFromUrl = searchParams.get("variant");
   const collectionContext = useSelector((state) => state.user.collectionContext);
   const dispatch = useDispatch();
+  const requireLoginForCart = useAtcLoginGate();
+  // Points at the newest handleAddToCart so the post-login add sees the
+  // logged-in user and whatever variant is selected by then.
+  const handleAddToCartRef = useRef(null);
   useEffect(() => {
     window.__LUCIRA_PRODUCT__ = product;
     return () => {
@@ -1446,6 +1451,9 @@ export default function ProductPageClient({
       return;
     }
 
+    // Guests must log in first; the add runs after login via the latest handler.
+    if (requireLoginForCart(() => handleAddToCartRef.current?.(ctaSource))) return;
+
     setAddingToCart(true);
     try {
       // Calculate robust diamondCharges
@@ -1606,6 +1614,9 @@ export default function ProductPageClient({
       setAddingToCart(false);
     }
   };
+  useEffect(() => {
+    handleAddToCartRef.current = handleAddToCart;
+  });
 
   const handleToggleWishlist = async () => {
     if (!productId) {
