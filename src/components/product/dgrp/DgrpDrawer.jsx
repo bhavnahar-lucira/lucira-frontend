@@ -420,21 +420,21 @@ export default function DgrpDrawer({
             {/* Hero Wrapper: Chain begins from the very top behind the Gold Rate Banner */}
             <div className="relative -mx-5 sm:-mx-6 overflow-hidden isolate">
               {/* Live Gold Rate Banner (z-20 to sit on top of the chain) */}
-              <div className="relative z-20 mx-5 sm:mx-6 rounded-[8px] bg-[#F7EFE8]/95 backdrop-blur-xs px-3.5 py-2.5 flex items-center justify-between shadow-2xs">
+              <div className="relative z-20 mx-5 sm:mx-6 rounded-[8px] bg-[#F7EFE8] px-3 py-2 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="relative size-9 rounded-full overflow-hidden shrink-0 shadow-2xs">
+                  <div className="relative size-8 rounded-full overflow-hidden shrink-0">
                     <Image
                       loader={shopifyLoader}
                       src={DGRP_ASSETS.goldIcon}
                       alt="Current 24KT Gold Rate"
-                      width={72}
-                      height={72}
+                      width={64}
+                      height={64}
                       className="size-full object-cover"
                       priority
                     />
                   </div>
                   <div>
-                    <p className="text-[11.5px] font-semibold text-[#2D201E] leading-tight">
+                    <p className="text-[11px] font-semibold text-[#2D201E] leading-tight">
                       Current 24KT Gold Rate
                     </p>
                     <p className="text-[9.5px] text-[#7A6A64] mt-0.5">
@@ -442,7 +442,7 @@ export default function DgrpDrawer({
                     </p>
                   </div>
                 </div>
-                <span className="rounded-[6px] bg-[#523A36] px-3 py-1.5 text-[12px] font-semibold text-white tracking-wide shadow-2xs">
+                <span className="rounded-[6px] bg-[#523A36] px-2.5 py-1 text-[11.5px] font-semibold text-white tracking-wide">
                   ₹{formatPrice(lockedGoldRate)}/gm
                 </span>
               </div>
@@ -607,9 +607,9 @@ export default function DgrpDrawer({
         {step === 2 && (
           <div className="p-4 sm:p-5 space-y-3.5 sm:space-y-4 font-figtree animate-in fade-in duration-200">
             {/* Live Gold Rate Banner in Step 2 */}
-            <div className="rounded-[8px] bg-[#F7EFE8] px-3 py-2 flex items-center justify-between shadow-2xs font-figtree">
+            <div className="rounded-[8px] bg-[#F7EFE8] px-3 py-2 flex items-center justify-between font-figtree">
               <div className="flex items-center gap-2.5">
-                <div className="relative size-8 rounded-full overflow-hidden shrink-0 shadow-2xs">
+                <div className="relative size-8 rounded-full overflow-hidden shrink-0">
                   <Image
                     loader={shopifyLoader}
                     src={DGRP_ASSETS.goldIcon}
@@ -629,7 +629,7 @@ export default function DgrpDrawer({
                   </p>
                 </div>
               </div>
-              <span className="rounded-[6px] bg-[#523A36] px-2.5 py-1 text-[11.5px] font-semibold text-white tracking-wide shadow-2xs">
+              <span className="rounded-[6px] bg-[#523A36] px-2.5 py-1 text-[11.5px] font-semibold text-white tracking-wide">
                 ₹{formatPrice(lockedGoldRate)}/gm
               </span>
             </div>
