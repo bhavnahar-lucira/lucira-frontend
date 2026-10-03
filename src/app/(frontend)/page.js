@@ -55,6 +55,7 @@ export default async function Home() {
   let gemstoneCategoriesInitial = null;
   let exploreInitial = null;
   let bannersInitial = [];
+  let heroSettingsInitial = { videoSlideDelay: 8, imageSlideDelay: 6 };
 
   try {
     // Use force-cache so these fetches inherit the page-level revalidate=21600
@@ -70,8 +71,6 @@ export default async function Home() {
     if (gemstoneRes.ok) gemstoneInitial = await gemstoneRes.json();
     if (gemstoneCatRes.ok) gemstoneCategoriesInitial = await gemstoneCatRes.json();
     if (exploreRes.ok) exploreInitial = await exploreRes.json();
-
-    let heroSettingsInitial = { videoSlideDelay: 8, imageSlideDelay: 6 };
 
     if (bannersRes.ok) {
       const bData = await bannersRes.json();
