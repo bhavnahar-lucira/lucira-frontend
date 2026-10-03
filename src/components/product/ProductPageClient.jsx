@@ -1444,15 +1444,28 @@ export default function ProductPageClient({
 
   // ctaSource identifies which ATC button fired (header sticky / bottom
   // sticky / in-page). Guarded because direct onClick usage passes the event.
-  const handleAddToCart = async (ctaSource) => {
+  const handleAddToCart = async (ctaSource, { afterLogin = false } = {}) => {
     const atcCtaLocation = typeof ctaSource === "string" ? ctaSource : "pdp page cta";
+
+    // promoClick fires on the click itself (before the login gate), so guests
+    // stopped at the login modal are still counted. promo_id says WHICH atc
+    // button fired: "header sticky cta", "bottom sticky cta", "pdp page cta".
+    // Skipped on the post-login replay so one click never logs two promoClicks.
+    if (!afterLogin) {
+      pushPromoClick({
+        creative_name: "add to cart cta",
+        promo_id: atcCtaLocation,
+        promo_name: product?.title || "",
+      });
+    }
+
     if (!activeVariant) {
       toast.error("Please select a variant");
       return;
     }
 
     // Guests must log in first; the add runs after login via the latest handler.
-    if (requireLoginForCart(() => handleAddToCartRef.current?.(ctaSource))) return;
+    if (requireLoginForCart(() => handleAddToCartRef.current?.(ctaSource, { afterLogin: true }))) return;
 
     setAddingToCart(true);
     try {
