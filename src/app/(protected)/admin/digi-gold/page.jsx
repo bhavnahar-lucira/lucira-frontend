@@ -63,9 +63,36 @@ function fmtDate(str) {
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function fmtOrdinalDate(str) {
+  if (!str) return "—";
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return "—";
+  const day = d.getDate();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  const j = day % 10;
+  const k = day % 100;
+  let suffix = "th";
+  if (j === 1 && k !== 11) suffix = "st";
+  else if (j === 2 && k !== 12) suffix = "nd";
+  else if (j === 3 && k !== 13) suffix = "rd";
+  return `${day}${suffix} ${month} ${year}`;
+}
+
 function fmtPrice(val) {
   if (val === null || val === undefined) return "0";
   return Number(val).toLocaleString("en-IN");
+}
+
+function isDateArrived(str) {
+  if (!str) return false;
+  const target = new Date(str);
+  if (isNaN(target.getTime())) return false;
+  const now = new Date();
+  const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return todayMidnight >= targetMidnight;
 }
 
 export default function DigiGoldPage() {
@@ -139,6 +166,7 @@ export default function DigiGoldPage() {
   }, [user, expandedPlanId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPlans();
   }, [loadPlans]);
 
@@ -227,13 +255,14 @@ export default function DigiGoldPage() {
   // Open Pre-close Modal
   const handleOpenPreclose = async (plan) => {
     try {
+      setPrecloseData(null);
       setPrecloseLoading(true);
       setPrecloseModalOpen(true);
       const data = await calculateDgrpPreclose(plan._id);
       setPrecloseData({ ...data, plan });
     } catch (err) {
       console.error(err);
-      toast.error("Failed to calculate pre-closure details");
+      toast.error(err?.message || "Failed to calculate pre-closure details");
       setPrecloseModalOpen(false);
     } finally {
       setPrecloseLoading(false);
@@ -564,50 +593,67 @@ export default function DigiGoldPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-zinc-50">
-                            {plan.installments?.map((ins) => {
-                              const isPaid = ins.status === "paid";
-                              const isPreclosed = ins.status === "pre_closed";
-                              const isPayingThis = payingInstallmentNumber === ins.installment_number;
-
-                              return (
-                                <tr key={ins.installment_number} className="hover:bg-zinc-50/50 transition-colors">
-                                  <td className="py-3.5 px-4 font-medium text-zinc-600">
-                                    {fmtDate(ins.due_date)}
-                                  </td>
-                                  <td className="py-3.5 px-4 font-bold text-zinc-900">
-                                    {ins.label}
-                                  </td>
-                                  <td className="py-3.5 px-4">
-                                    {isPaid ? (
-                                      <span className="inline-flex items-center gap-1 text-emerald-600 font-bold">
-                                        <CheckCircle2 size={13} />
-                                        Paid
-                                      </span>
-                                    ) : isPreclosed ? (
-                                      <span className="inline-flex items-center gap-1 text-purple-600 font-bold">
-                                        Pre-Closed
-                                      </span>
-                                    ) : (
-                                      <Button
-                                        size="sm"
-                                        disabled={isPayingThis}
-                                        onClick={() => handlePayInstallment(plan, ins)}
-                                        className="h-7 px-3 bg-[#5A413F] text-white text-[11px] font-bold rounded-lg hover:bg-[#463231] cursor-pointer"
-                                      >
-                                        {isPayingThis ? (
-                                          <Loader2 size={12} className="animate-spin" />
-                                        ) : (
-                                          "Pay Now"
-                                        )}
-                                      </Button>
-                                    )}
-                                  </td>
-                                  <td className="py-3.5 px-4 text-right font-bold text-zinc-900">
-                                    ₹{fmtPrice(ins.amount)}
-                                  </td>
-                                </tr>
+                            {(() => {
+                              const firstUnpaid = plan.installments?.find(
+                                (i) =>
+                                  String(i.status || "").toLowerCase() !== "paid" &&
+                                  String(i.status || "").toLowerCase() !== "pre_closed"
                               );
-                            })}
+
+                              return plan.installments?.map((ins) => {
+                                const isPaid = String(ins.status || "").toLowerCase() === "paid";
+                                const isPreclosed =
+                                  String(ins.status || "").toLowerCase() === "pre_closed" ||
+                                  plan.financials?.status === "pre_closed";
+                                const isPayingThis = payingInstallmentNumber === ins.installment_number;
+                                const isDue = isDateArrived(ins.due_date);
+                                const isFirstUnpaid = firstUnpaid?.installment_number === ins.installment_number;
+
+                                return (
+                                  <tr key={ins.installment_number} className="hover:bg-zinc-50/50 transition-colors">
+                                    <td className="py-3.5 px-4 font-medium text-zinc-600">
+                                      {fmtDate(ins.due_date)}
+                                    </td>
+                                    <td className="py-3.5 px-4 font-bold text-zinc-900">
+                                      {ins.label}
+                                    </td>
+                                    <td className="py-3.5 px-4">
+                                      {isPaid ? (
+                                        <span className="inline-flex items-center gap-1.5 text-emerald-600 font-bold text-[11px]">
+                                          <CheckCircle2 size={13} className="text-emerald-600" />
+                                          Paid
+                                        </span>
+                                      ) : isPreclosed ? (
+                                        <span className="inline-flex items-center gap-1.5 text-purple-600 font-bold text-[11px]">
+                                          Pre-Closed
+                                        </span>
+                                      ) : isFirstUnpaid && isDue ? (
+                                        <Button
+                                          size="sm"
+                                          disabled={isPayingThis || payingInstallmentNumber !== null}
+                                          onClick={() => handlePayInstallment(plan, ins)}
+                                          className="h-7 px-3 bg-[#5A413F] text-white text-[11px] font-bold rounded-lg hover:bg-[#463231] cursor-pointer shadow-sm transition-all"
+                                        >
+                                          {isPayingThis ? (
+                                            <Loader2 size={12} className="animate-spin" />
+                                          ) : (
+                                            "Pay Now"
+                                          )}
+                                        </Button>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 text-zinc-400 font-medium text-[11px]">
+                                          <Clock size={12} className="text-zinc-400" />
+                                          Upcoming
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-3.5 px-4 text-right font-bold text-zinc-900">
+                                      ₹{fmtPrice(ins.amount)}
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                            })()}
                           </tbody>
                         </table>
                       </div>

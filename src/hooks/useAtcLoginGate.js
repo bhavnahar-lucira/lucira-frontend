@@ -26,18 +26,23 @@ export function useAtcLoginGate() {
 
   // Returns true when the shopper was sent to log in (caller should stop);
   // `action` then runs once login completes.
-  return (action) => {
+  return (action, overrides = {}) => {
     if (isAuthenticated) return false;
     pendingAction = action;
     dispatch(
       openAuthModal({
         useCheckoutAuth: true,
         keepSavedCart: true,
-        overrideHeading: "Login to Add to Cart",
-        overrideSubtext: "Login / Signup to save this piece to your cart & unlock member offers",
-        overrideButtonText: "CONTINUE",
+        overrideHeading: overrides.overrideHeading || "Login to Add to Cart",
+        overrideSubtext: overrides.overrideSubtext !== undefined
+          ? overrides.overrideSubtext
+          : "Login / Signup to save this piece to your cart & unlock member offers",
+        overrideButtonText: overrides.overrideButtonText || "CONTINUE",
       })
     );
     return true;
   };
 }
+
+export { useAtcLoginGate as useLoginGate };
+

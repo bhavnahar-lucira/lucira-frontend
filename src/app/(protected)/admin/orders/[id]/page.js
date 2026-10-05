@@ -16,7 +16,11 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Calendar
+  Calendar,
+  Coins,
+  ShieldCheck,
+  ArrowRight,
+  Sparkles
 } from "lucide-react";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
@@ -493,6 +497,7 @@ export default function OrderDetailsPage() {
   const fStatus = (order.financialStatus || "").toUpperCase();
   const rawStatus = (order.reason_status_description || order.status || "").toLowerCase();
   const normalizedStatus = rawStatus.replace(/[^a-z0-9]/g, '');
+  // eslint-disable-next-line react-hooks/purity
   const nowTime = Date.now();
 
   const cpBucket = clickpostData?.tracking?.status_bucket;
@@ -554,6 +559,50 @@ export default function OrderDetailsPage() {
 
   // Ensure index is within bounds
   const progressPct = Math.min(100, (currentStageIndex / (stages.length - 1)) * 100);
+
+  // DGRP Plan resolution
+  const noteAttrs = order.noteAttributes || order.customAttributes || [];
+  const attrsMap = {};
+  if (Array.isArray(noteAttrs)) {
+    noteAttrs.forEach((a) => {
+      attrsMap[a.name || a.key] = a.value;
+    });
+  }
+
+  const tagsStr = typeof order.tags === "string" ? order.tags : Array.isArray(order.tags) ? order.tags.join(",") : "";
+  const hasDgrpTag = tagsStr.includes("DGRP") || tagsStr.includes("LOCK_AND_KEY");
+  const hasDgrpLineItem = (order.lineItems || []).some((item) => {
+    const title = (item.title || item.name || "").toLowerCase();
+    if (title.includes("lock & key") || title.includes("dgrp")) return true;
+    const rawProps = item.properties || item.customAttributes || [];
+    const props = Array.isArray(rawProps)
+      ? rawProps.reduce((acc, p) => ({ ...acc, [p.key || p.name]: p.value }), {})
+      : rawProps;
+    return (
+      props["_Plan Type"]?.includes("Lock & Key") ||
+      props["_Gold Price Per Gram"] ||
+      props["Plan Type"]?.includes("Lock & Key")
+    );
+  });
+
+  const isDgrpOrder = Boolean(
+    order.isDgrp ||
+    order.dgrpPlan ||
+    hasDgrpTag ||
+    attrsMap["payment_gateway"] === "DGRP" ||
+    Boolean(attrsMap["dgrp_plan_code"]) ||
+    hasDgrpLineItem
+  );
+
+  const dgrpPlan = order.dgrpPlan;
+  const dgrpPlanCode = dgrpPlan?.plan_code || attrsMap["dgrp_plan_code"] || null;
+  const dgrpLockedRate = dgrpPlan?.financials?.locked_gold_rate || attrsMap["dgrp_locked_gold_rate"] || null;
+  const dgrpTenure = dgrpPlan?.financials?.installment_tenure_months || attrsMap["dgrp_tenure_months"] || 6;
+  const dgrpAdvance = dgrpPlan?.financials?.advance_amount || attrsMap["dgrp_advance_amount"] || (order.totalPrice?.amount ? Math.round(Number(order.totalPrice.amount) * 0.10) : null);
+  const dgrpPending = dgrpPlan?.financials?.amount_pending || attrsMap["dgrp_pending_balance"] || (order.totalPrice?.amount && dgrpAdvance ? Number(order.totalPrice.amount) - Number(dgrpAdvance) : null);
+  const dgrpMonthlyEmi = dgrpPlan?.financials?.monthly_installment || attrsMap["dgrp_monthly_emi"] || (dgrpPending ? Math.round(Number(dgrpPending) / Number(dgrpTenure)) : null);
+  const dgrpStatus = dgrpPlan?.financials?.status || (order.financialStatus === "PAID" ? "completed" : "active");
+  const dgrpNextIns = dgrpPlan?.live_metrics?.next_installment || dgrpPlan?.installments?.find((ins) => ins.status === "pending");
 
   return (
     <div className="font-figtree space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -899,6 +948,126 @@ export default function OrderDetailsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+          {/* Lock & Key (Digi Gold / DGRP) Plan Card */}
+          {isDgrpOrder && (
+            <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 bg-gradient-to-br from-[#FFFDF9] via-white to-[#FDF8EE] p-6 sm:p-7 shadow-sm transition-all duration-300 hover:shadow-md">
+              {/* Subtle background glow */}
+              <div className="pointer-events-none absolute -right-12 -top-12 size-48 rounded-full bg-amber-400/10 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col gap-5">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-100 pb-5">
+                  <div className="flex items-center gap-3.5">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100/80 text-amber-800 border border-amber-200 shadow-2xs">
+                      <Coins size={22} className="text-amber-700" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-serif text-base sm:text-lg font-bold text-[#5A413F] tracking-tight">
+                          Lock &amp; Key Gold Rate Protection Plan
+                        </h3>
+                      </div>
+                      <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                        This order is protected under our 10% Advance Digi Gold installment plan.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Badge & Code */}
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    {dgrpPlanCode && (
+                      <span className="font-mono text-[11px] font-bold text-amber-900 bg-amber-100/70 border border-amber-200 px-2.5 py-1 rounded-lg">
+                        {dgrpPlanCode}
+                      </span>
+                    )}
+                    <span
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        dgrpStatus === "pre_closed"
+                          ? "bg-purple-100 text-purple-700 border border-purple-200"
+                          : dgrpStatus === "completed"
+                          ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                          : "bg-amber-100/90 text-amber-800 border border-amber-300"
+                      }`}
+                    >
+                      <ShieldCheck size={12} />
+                      {dgrpStatus === "pre_closed"
+                        ? "Pre-Closed"
+                        : dgrpStatus === "completed"
+                        ? "Fully Paid"
+                        : "Active Price Lock"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Metric Columns */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  {dgrpLockedRate && (
+                    <div className="rounded-xl bg-white/90 p-3 border border-amber-100/80 shadow-2xs">
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                        Locked Gold Rate
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-zinc-900 mt-0.5 block truncate">
+                        ₹{Number(dgrpLockedRate).toLocaleString("en-IN")}/gm
+                      </span>
+                    </div>
+                  )}
+
+                  {dgrpAdvance && (
+                    <div className="rounded-xl bg-white/90 p-3 border border-amber-100/80 shadow-2xs">
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                        10% Advance Paid
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-emerald-700 mt-0.5 block truncate">
+                        ₹{Number(dgrpAdvance).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  )}
+
+                  {dgrpMonthlyEmi && (
+                    <div className="rounded-xl bg-white/90 p-3 border border-amber-100/80 shadow-2xs">
+                      <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                        Monthly EMI
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-zinc-900 mt-0.5 block truncate">
+                        ₹{Number(dgrpMonthlyEmi).toLocaleString("en-IN")}/mo
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="rounded-xl bg-white/90 p-3 border border-amber-100/80 shadow-2xs">
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                      Tenure
+                    </span>
+                    <span className="text-xs sm:text-sm font-bold text-zinc-900 mt-0.5 block">
+                      {dgrpTenure} Months
+                    </span>
+                  </div>
+                </div>
+
+                {/* Footer Bar: Next installment info + Redirect Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-amber-100/80">
+                  <div className="flex items-center gap-2 text-xs text-amber-900 font-medium">
+                    <Calendar size={14} className="text-amber-700 shrink-0" />
+                    <span>
+                      {dgrpNextIns?.due_date
+                        ? `Next installment due: ${new Date(dgrpNextIns.due_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} (₹${Number(dgrpNextIns.amount).toLocaleString("en-IN")})`
+                        : "Track price lock benefits, pay monthly installments, or pre-close at the lowest rate in Digi Gold."}
+                    </span>
+                  </div>
+
+                  <Link
+                    prefetch={false}
+                    href={`/admin/digi-gold${dgrpPlanCode ? `?plan=${dgrpPlanCode}` : ""}`}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#5A413F] hover:bg-[#463231] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#5A413F]/15 shrink-0 cursor-pointer"
+                  >
+                    <span>Manage in Digi Gold</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Order Items */}
           <div className="bg-white rounded-[8px] border border-zinc-100 overflow-hidden shadow-sm">
             <div className="p-8 border-b border-zinc-100">
@@ -931,7 +1100,18 @@ export default function OrderDetailsPage() {
                       )}
                       <div className="flex-1">
                         <h4 className="font-bold text-zinc-900">{item.title}</h4>
-                        <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <p className="text-xs text-zinc-500 font-medium">Quantity: {item.quantity}</p>
+                          {(item.title?.toLowerCase().includes("lock & key") ||
+                            item.title?.toLowerCase().includes("dgrp") ||
+                            properties["_Plan Type"]?.includes("Lock & Key") ||
+                            properties["_Gold Price Per Gram"]) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                              <ShieldCheck size={11} className="text-amber-700" />
+                              Lock &amp; Key Protected
+                            </span>
+                          )}
+                        </div>
                         <p className="text-lg font-bold text-primary mt-2">
                           {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
                         </p>
@@ -1069,6 +1249,32 @@ export default function OrderDetailsPage() {
               </div>
             </div>
           </div>
+
+          {/* DGRP Digi Gold Sidebar Card */}
+          {isDgrpOrder && (
+            <div className="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/50 rounded-[8px] border border-amber-200/90 p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[#5A413F] flex items-center gap-2 text-sm uppercase tracking-wider">
+                  <Coins size={16} className="text-amber-700" />
+                  Lock &amp; Key Plan
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                  Digi Gold
+                </span>
+              </div>
+              <p className="text-xs text-zinc-600 leading-relaxed font-medium">
+                This order was placed with 10% advance under Gold Rate Protection. View your installment schedule, payment history, and pre-closure benefits in the Digi Gold tab.
+              </p>
+              <Link
+                prefetch={false}
+                href={`/admin/digi-gold${dgrpPlanCode ? `?plan=${dgrpPlanCode}` : ""}`}
+                className="w-full py-2.5 bg-[#5A413F] hover:bg-[#463231] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#5A413F]/15 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Go to Digi Gold</span>
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+          )}
 
           {/* Help Center */}
           <div className="bg-zinc-900 rounded-[4px] p-8 text-white relative overflow-hidden shadow-xl shadow-zinc-200">

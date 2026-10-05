@@ -4561,6 +4561,14 @@ export default function ProductPageClient({
         tenureMonths={dgrpTenureMonths}
         advanceAmount={dgrpAdvanceAmount}
         monthlyEmi={dgrpMonthlyEmi}
+        priceBreakup={priceBreakup}
+        activeColor={activeColor}
+        activeKarat={activeKarat}
+        selectedSize={selectedSize}
+        shippingDate={getShippingDateValue(dispatchConfig, {
+          inStock: activeVariant?.inStock === true || activeVariant?.inStock === "true",
+          leadTime: product?.productMetafields?.lead_time,
+        })}
       />
     </div>
   );

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
+import { useLoginGate } from "@/hooks/useAtcLoginGate";
 import {
   X,
   TrendingUp,
@@ -82,14 +83,21 @@ export default function DgrpDrawer({
   tenureMonths = 6,
   advanceAmount = 0,
   monthlyEmi = 0,
+  priceBreakup = null,
+  activeColor = "",
+  activeKarat = "",
+  selectedSize = "",
+  shippingDate = "",
 }) {
   const router = useRouter();
   const { user, accessToken } = useSelector((state) => state.user || {});
+  const requireLogin = useLoginGate();
 
   // Steps: 1 = Offer Breakdown, 2 = Address & Payment, 3 = Success
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
+  const prevIsOpenRef = useRef(false);
 
   // Address & Form state matching shipping page
   const [deliveryMethod, setDeliveryMethod] = useState("delivery");
@@ -153,15 +161,24 @@ export default function DgrpDrawer({
     };
   }, [isRazorpayOpen]);
 
-  // Reset and pre-fill address on open
+  // Reset to Step 1 only when drawer transitions from closed to open
+  useEffect(() => {
+    if (isOpen && !prevIsOpenRef.current) {
+      setStep(1);
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Pre-fill address when drawer is open and addresses/user load
   useEffect(() => {
     if (isOpen) {
-      setStep(1);
       const defaultAddr = addresses?.find((a) => a.isDefault) || addresses?.[0];
       if (defaultAddr) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setAddressForm(normalizeAddressForm(defaultAddr, user || {}));
         setIsCompanyPurchase(Boolean(defaultAddr.company || defaultAddr.gstin));
       } else if (user) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setAddressForm(normalizeAddressForm({}, user || {}));
       }
     }
@@ -199,8 +216,39 @@ export default function DgrpDrawer({
   const rateHighSim = Math.round(lockedGoldRate * 1.18);
   const rateLowSim = Math.round(lockedGoldRate * 0.92);
 
+  const handleContinueToStep2 = () => {
+    if (
+      requireLogin(
+        () => {
+          setStep(2);
+        },
+        {
+          overrideHeading: "Login to Lock Gold Rate",
+          overrideSubtext: "",
+          overrideButtonText: "CONTINUE",
+        }
+      )
+    ) {
+      return;
+    }
+    setStep(2);
+  };
+
   // Handle Pay 10% Advance via Razorpay
   const handlePayAdvance = async () => {
+    if (
+      requireLogin(
+        () => {},
+        {
+          overrideHeading: "Login to Lock Gold Rate",
+          overrideSubtext: "",
+          overrideButtonText: "CONTINUE",
+        }
+      )
+    ) {
+      return;
+    }
+
     if (deliveryMethod === "delivery") {
       const validationError = validateAddressForm(addressForm);
       if (validationError) {
@@ -260,6 +308,11 @@ export default function DgrpDrawer({
             email: addressForm.email,
           };
 
+      const raw = priceBreakup || {};
+      const fallbackWeight = activeVariant?.metafields?.metal_weight || "0";
+      const fallbackDiamondPcs = activeVariant?.metafields?.diamonds?.reduce((acc, d) => acc + (parseInt(d.pieces) || 0), 0) || 0;
+      const diamondCharges = raw?.raw_breakup?.diamond?.final || 0;
+
       const orderPayload = {
         product: {
           id: product?.id || product?.shopifyId,
@@ -267,11 +320,25 @@ export default function DgrpDrawer({
           title: product?.title || "Jewelry Item",
           image: activeVariant?.image?.url || product?.featuredImage?.url || (product?.media && product?.media[0]?.url) || "",
           sku: activeVariant?.sku || product?.sku || "",
-          metal_purity: activeVariant?.metafields?.metal_purity || "18KT",
-          metal_color: activeVariant?.metafields?.metal_color || "Yellow Gold",
-          metal_weight: Number(activeVariant?.metafields?.metal_weight || 2.5),
-          diamond_carat: Number(activeVariant?.metafields?.diamond_carat || 0),
+          metal_purity: activeKarat || activeVariant?.metafields?.metal_purity || "18KT",
+          metal_color: activeColor || activeVariant?.metafields?.metal_color || "Yellow Gold",
+          metal_weight: Number(raw?.raw_breakup?.metal?.weight || fallbackWeight || 2.5),
+          diamond_carat: Number(raw?.raw_breakup?.diamond?.total_carat || activeVariant?.metafields?.diamond_carat || 0),
           is_diamond: isDiamond,
+          goldPricePerGram: raw?.raw_breakup?.metal?.rate_per_gram || lockedGoldRate || 0,
+          goldWeight: raw?.raw_breakup?.metal?.weight || parseFloat(fallbackWeight) || 0,
+          goldPrice: raw?.raw_breakup?.metal?.cost || 0,
+          makingCharges: raw?.raw_breakup?.making_charges?.final || 0,
+          diamondCharges: diamondCharges,
+          gst: raw?.raw_breakup?.gst?.amount || 0,
+          finalPrice: currentPrice || activeVariant?.price || 0,
+          diamondTotalPcs: raw?.raw_breakup?.diamond?.total_pcs || fallbackDiamondPcs || 0,
+          diamondTotalCarat: raw?.raw_breakup?.diamond?.total_carat || 0,
+          shippingDate: shippingDate || "",
+          variantTitle: activeVariant?.title || `${activeKarat || "18KT"} ${activeColor || "Yellow Gold"}${selectedSize ? " / " + selectedSize : ""}`,
+          color: activeColor || activeVariant?.metafields?.metal_color || "",
+          karat: activeKarat || activeVariant?.metafields?.metal_purity || "",
+          size: selectedSize || "",
         },
         product_price: currentPrice,
         locked_gold_rate: lockedGoldRate,
@@ -319,9 +386,23 @@ export default function DgrpDrawer({
             setLoading(true);
             const verifyPayload = {
               dgrpOrderId: orderData.dgrpOrderId,
+              draftId: orderData.draftId,
               razorpayPaymentId: response.razorpay_payment_id,
               razorpayOrderId: response.razorpay_order_id,
               razorpaySignature: response.razorpay_signature,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              plan_data: {
+                ...orderPayload,
+                draftId: orderData.draftId,
+                tenure_months: tenureMonths,
+                original_price: currentPrice,
+                advance_amount: advanceAmount,
+                monthly_installment: monthlyEmi,
+                locked_gold_rate: lockedGoldRate,
+                is_diamond: isDiamond,
+              }
             };
 
             await verifyDgrpAdvancePayment(verifyPayload);
@@ -593,7 +674,7 @@ export default function DgrpDrawer({
 
             {/* Continue Button */}
             <Button
-              onClick={() => setStep(2)}
+              onClick={handleContinueToStep2}
               className="w-full h-[50px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[13px] sm:text-[14px] rounded-[6px] transition-colors cursor-pointer shadow-xs"
             >
               CONTINUE
