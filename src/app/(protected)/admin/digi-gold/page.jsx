@@ -200,23 +200,20 @@ export default function DigiGoldPage() {
         if (res.current_gold_rate_24k) {
           setCurrentGoldRate(res.current_gold_rate_24k);
         }
-        if (res.plans.length > 0 && !expandedPlanId) {
-          // Check if url query param has specific plan
-          let targetId = res.plans[0]._id;
-          if (typeof window !== "undefined") {
-            const params = new URLSearchParams(window.location.search);
-            const queryPlan = params.get("plan");
-            if (queryPlan) {
-              const matched = res.plans.find(
-                (p) =>
-                  p.plan_code === queryPlan ||
-                  p._id === queryPlan ||
-                  String(p.shopify_order_number) === queryPlan
-              );
-              if (matched) targetId = matched._id;
+        if (typeof window !== "undefined" && res.plans.length > 0) {
+          const params = new URLSearchParams(window.location.search);
+          const queryPlan = params.get("plan");
+          if (queryPlan) {
+            const matched = res.plans.find(
+              (p) =>
+                p.plan_code === queryPlan ||
+                p._id === queryPlan ||
+                String(p.shopify_order_number) === queryPlan
+            );
+            if (matched) {
+              setExpandedPlanId(matched._id);
             }
           }
-          setExpandedPlanId(targetId);
         }
       }
     } catch (err) {
@@ -225,7 +222,7 @@ export default function DigiGoldPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, expandedPlanId]);
+  }, [user]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -470,10 +467,15 @@ export default function DigiGoldPage() {
         /* Plan Cards List (Exact UI from Figma Screenshot: Frame 1437258052 & 1437258053) */
         <div className="space-y-6">
           {plans.map((plan) => {
-            const isExpanded = expandedPlanId === plan._id;
+            const planKey = String(plan._id || plan.id || plan.plan_code);
+            const isExpanded = String(expandedPlanId) === planKey;
             const liveMetrics = plan.live_metrics || {};
-            const lockedRate = liveMetrics.locked_gold_rate || plan.financials?.locked_gold_rate || 15802;
-            const todayRate = liveMetrics.today_gold_rate || currentGoldRate || 17418;
+            const rawLockedRate = liveMetrics.locked_gold_rate || plan.financials?.locked_gold_rate || 15802;
+            const rawTodayRate = liveMetrics.today_gold_rate || currentGoldRate || 17418;
+            
+            // Normalize rates to per-gram if stored as 10g rate (> 35000)
+            const lockedRate = rawLockedRate > 35000 ? Math.round(rawLockedRate / 10) : rawLockedRate;
+            const todayRate = rawTodayRate > 35000 ? Math.round(rawTodayRate / 10) : rawTodayRate;
             const benefit = todayRate > lockedRate 
               ? (todayRate - lockedRate) 
               : (liveMetrics.protected_benefit_per_gm || 0);
@@ -495,12 +497,12 @@ export default function DigiGoldPage() {
             return (
               <div
                 key={plan._id}
-                className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 transition-all duration-200 shadow-sm"
+                className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6 transition-all duration-200 shadow-sm"
               >
                 {/* ── Top Section (Frame 1437258052) ── */}
-                <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+                <div className="flex flex-col md:flex-row gap-5 md:gap-6 items-start">
                   {/* Left: Square Product Image */}
-                  <div className="relative w-full sm:w-48 sm:h-48 md:w-56 md:h-56 aspect-square shrink-0 rounded-2xl bg-[#FBFBFB] border border-zinc-100 flex items-center justify-center p-4 overflow-hidden mx-auto sm:mx-0">
+                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 aspect-square shrink-0 rounded-xl bg-[#FBFBFB] border border-zinc-100 flex items-center justify-center p-3 overflow-hidden mx-auto sm:mx-0">
                     {plan.product?.image ? (
                       <Image
                         src={plan.product.image}
@@ -511,7 +513,7 @@ export default function DigiGoldPage() {
                       />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-zinc-300 gap-2">
-                        <Coins size={36} />
+                        <Coins size={32} />
                         <span className="text-[10px] font-medium text-zinc-400">Jewelry Piece</span>
                       </div>
                     )}
@@ -521,61 +523,65 @@ export default function DigiGoldPage() {
                   <div className="flex-1 min-w-0 w-full flex flex-col justify-between self-stretch">
                     <div>
                       {/* Product Title */}
-                      <h3 className="text-base sm:text-lg font-bold text-zinc-900 leading-snug">
+                      <h3 className="text-sm sm:text-base font-bold text-zinc-900 leading-snug">
                         {plan.product?.title || "2 CT Round Cut with Side Diamonds Accent Engagement Ring"}
                       </h3>
 
                       {/* Specs Subtitle */}
-                      <p className="text-xs text-zinc-500 font-normal mt-1 leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-zinc-400 font-normal mt-0.5 leading-relaxed">
                         {getProductSpecsLine(plan.product)}
                       </p>
                     </div>
 
                     {/* 3 Rates Row */}
-                    <div className="grid grid-cols-3 gap-2 sm:gap-6 my-5 sm:my-6">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-6 my-4 sm:my-5">
                       <div>
-                        <span className="block text-xs text-zinc-500 font-normal">
+                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
                           Locked Gold Rated
                         </span>
-                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                        <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-1">
                           {Math.round(lockedRate)}/gm
                         </span>
                       </div>
 
                       <div>
-                        <span className="block text-xs text-zinc-500 font-normal">
+                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
                           Today&apos;s Gold Rate
                         </span>
-                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                        <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-1">
                           {Math.round(todayRate)}/gm
                         </span>
                       </div>
 
                       <div>
-                        <span className="block text-xs text-zinc-500 font-normal">
+                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
                           Benefit if Pre Closed Today
                         </span>
-                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-[#16A34A] mt-1">
+                        <span className="block text-base sm:text-lg md:text-xl font-bold text-[#16A34A] mt-1">
                           {benefit > 0 ? `${Math.round(benefit)}/gm` : "0/gm"}
                         </span>
                       </div>
                     </div>
 
                     {/* Buttons Row */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-0.5">
                       <button
                         onClick={() => handleOpenPreclose(plan)}
                         disabled={isCompleted}
-                        className="w-full sm:flex-1 h-11 bg-[#5A413F] text-white font-medium text-xs sm:text-sm rounded-lg hover:bg-[#463231] transition-all flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                        className="w-full sm:flex-1 h-10 bg-[#5A413F] text-white font-medium text-xs sm:text-[13px] rounded-lg hover:bg-[#463231] transition-all flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                       >
                         Pre-close at Lowest Rate
                       </button>
 
                       <button
-                        onClick={() => setExpandedPlanId(isExpanded ? null : plan._id)}
-                        className="w-full sm:flex-1 h-11 bg-[#ECE8E5] text-[#2D2322] border border-[#DCD6D1] rounded-lg font-medium text-xs sm:text-sm hover:bg-[#E2DDD9] transition-all flex items-center justify-center cursor-pointer"
+                        type="button"
+                        onClick={() => {
+                          setExpandedPlanId((prev) => (String(prev) === planKey ? null : planKey));
+                        }}
+                        className="w-full sm:flex-1 h-10 bg-[#ECE8E5] text-[#2D2322] border border-[#DCD6D1] rounded-lg font-medium text-xs sm:text-[13px] hover:bg-[#E2DDD9] transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none"
                       >
-                        View Plan
+                        <span>{isExpanded ? "Hide Plan" : "View Plan"}</span>
+                        <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                       </button>
                     </div>
                   </div>
@@ -583,53 +589,53 @@ export default function DigiGoldPage() {
 
                 {/* ── Expanded Section (Frame 1437258053) ── */}
                 {isExpanded && (
-                  <div className="mt-8 pt-6 border-t border-zinc-100">
+                  <div className="mt-6 pt-5 border-t border-zinc-100">
                     {/* 3 Financial Pillars */}
                     <div className="grid grid-cols-3 gap-2 sm:gap-6">
                       <div>
-                        <span className="block text-xs text-zinc-500 font-medium">
+                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-medium">
                           Product Value
                         </span>
-                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                        <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-0.5">
                           ₹{fmtPrice(productValue)}*
                         </span>
                       </div>
 
                       <div>
-                        <span className="block text-xs text-zinc-500 font-medium">
+                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-medium">
                           Amount Paid
                         </span>
-                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                        <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-0.5">
                           ₹{fmtPrice(amountPaid)}*
                         </span>
                       </div>
 
                       <div className="text-right">
-                        <span className="block text-xs text-zinc-500 font-medium">
+                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-medium">
                           Current Balance
                         </span>
-                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                        <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-0.5">
                           ₹{fmtPrice(currentBalance)}*
                         </span>
                       </div>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="mt-5 sm:mt-6">
+                    <div className="mt-4 sm:mt-5">
                       <div className="w-full h-1.5 bg-[#E8E3DF] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-[#5A413F] rounded-full transition-all duration-500"
                           style={{ width: `${completedPct}%` }}
                         />
                       </div>
-                      <p className="text-xs text-zinc-500 font-normal mt-2.5">
+                      <p className="text-[11px] sm:text-xs text-zinc-500 font-normal mt-2">
                         {completedPct}% Completed{nextPaymentDateStr ? ` - Next Payment by ${nextPaymentDateStr}` : ""}
                       </p>
                     </div>
 
                     {/* Payment History */}
-                    <div className="mt-8">
-                      <h4 className="text-sm sm:text-base font-bold text-zinc-900 mb-2">
+                    <div className="mt-6 sm:mt-7">
+                      <h4 className="text-xs sm:text-sm font-bold text-zinc-900 mb-2">
                         Payment History
                       </h4>
 
@@ -653,7 +659,7 @@ export default function DigiGoldPage() {
                             return (
                               <div
                                 key={ins.installment_number}
-                                className="grid grid-cols-12 items-center py-3.5 sm:py-4 text-xs sm:text-sm"
+                                className="grid grid-cols-12 items-center py-2.5 sm:py-3 text-xs sm:text-[13px]"
                               >
                                 {/* Col 1: Date */}
                                 <div className="col-span-3 sm:col-span-3 font-normal text-zinc-700">
