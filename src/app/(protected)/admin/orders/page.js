@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 import {
   ShoppingBag, ChevronRight, Package, Truck,
-  CheckCircle2, Clock, Loader2, ChevronDown, RefreshCcw
+  CheckCircle2, Clock, Loader2, ChevronDown, RefreshCcw, Coins
 } from "lucide-react";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
@@ -18,7 +18,6 @@ import { getOrderMilestoneStatus } from "@/lib/order-status";
 export default function MyOrdersPage() {
   const { accessToken } = useSelector((state) => state.user);
   const [orders, setOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -89,8 +88,16 @@ export default function MyOrdersPage() {
                 if (normalized === 'readytoinvoice' || normalized === 'readytoship') customStatus = 'Dispatch';
               }
 
+              const isDgrp = Boolean(
+                order.isDgrp ||
+                (order.tags && (Array.isArray(order.tags) ? order.tags : [order.tags]).some(t => String(t).toLowerCase().includes("dgrp"))) ||
+                (order.noteAttributes || order.note_attributes || []).some(na => String(na.name || na.key || "").toLowerCase().includes("dgrp")) ||
+                (items || []).some(i => (i.properties || i.customAttributes || []).some(p => String(p.name || p.key || "").toLowerCase().includes("dgrp")))
+              );
+
               return {
                 ...order,
+                isDgrp,
                 id: order.id,
                 orderNumber: (order.orderNumber || order.order_number || "").toString(),
                 date: order.date || (order.processedAt || order.processed_at ? new Date(order.processedAt || order.processed_at).toLocaleDateString('en-IN', {
@@ -148,8 +155,14 @@ export default function MyOrdersPage() {
               const displayImage = getOrderImage(props['_byj_preview'] || mainItem?.variant?.image?.url);
 
               const isCancelled = Boolean(node.canceledAt || node.cancelReason || node.financialStatus === 'VOIDED');
+              const isDgrp = Boolean(
+                (node.customAttributes || []).some(a => String(a.key || a.name || "").toLowerCase().includes("dgrp")) ||
+                (items || []).some(i => (i.customAttributes || []).some(a => String(a.key || a.name || "").toLowerCase().includes("dgrp")))
+              );
+
               return {
                 id: node.id,
+                isDgrp,
                 orderNumber: node.orderNumber.toString(),
                 date: new Date(node.processedAt).toLocaleDateString('en-IN', {
                   year: 'numeric',
@@ -173,7 +186,6 @@ export default function MyOrdersPage() {
         }
 
         setOrders(storefrontOrders);
-        setFilteredOrders(storefrontOrders);
       } catch (err) {
         console.error("Orders Fetch Error:", err);
         toast.error("Failed to load orders");
@@ -202,7 +214,7 @@ export default function MyOrdersPage() {
     loadReturns();
   }, [accessToken]);
 
-  useEffect(() => {
+  const filteredOrders = useMemo(() => {
     let result = orders;
     if (searchQuery) {
       result = result.filter(
@@ -214,7 +226,7 @@ export default function MyOrdersPage() {
     if (statusFilter) {
       result = result.filter((order) => order.status === statusFilter);
     }
-    setFilteredOrders(result);
+    return result;
   }, [searchQuery, statusFilter, orders]);
 
   if (loading) {
@@ -331,6 +343,12 @@ export default function MyOrdersPage() {
                       <span className="font-figtree text-[9px] md:text-[11px] font-bold text-zinc-400 bg-zinc-50/80 px-2.5 md:px-4 py-1 rounded-full uppercase tracking-[0.1em] border border-zinc-100/50">
                         #{order.orderNumber}
                       </span>
+                      {order.isDgrp && (
+                        <span className="font-figtree px-2.5 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-[0.05em] flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200">
+                          <Coins size={12} className="text-amber-600" />
+                          Lock &amp; Key (DGRP)
+                        </span>
+                      )}
                       <span
                         className={`font-figtree px-2.5 md:px-4 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-[0.05em] flex items-center gap-1.5 border ${isCancelled
                           ? "text-red-600 bg-red-50/50 border-red-200"
@@ -431,6 +449,15 @@ export default function MyOrdersPage() {
                       </button>
                     );
                   })()}
+                  {order.isDgrp && (
+                    <Link prefetch={false}
+                      href={`/admin/digi-gold?plan=${order.orderNumber}`}
+                      className="font-figtree flex-1 md:w-full py-3 md:py-4 border-[1.5px] border-amber-600/30 text-amber-900 bg-amber-500/10 text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5 md:gap-2.5"
+                    >
+                      <Coins size={13} className="text-amber-700" />
+                      <span className="truncate">Digi Gold Plan</span>
+                    </Link>
+                  )}
                   <Link prefetch={false}
                     href={`/admin/orders/${order.id.split("/").pop()}`}
                     className="font-figtree flex-1 md:w-full py-3 md:py-4 bg-[#5A413F] text-white text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] hover:bg-[#4A3533] transition-all duration-300 shadow-md md:shadow-[0_10px_20px_rgba(90,65,63,0.15)] active:scale-[0.98] flex items-center justify-center"

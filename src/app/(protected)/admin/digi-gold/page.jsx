@@ -80,6 +80,17 @@ function fmtOrdinalDate(str) {
   return `${day}${suffix} ${month} ${year}`;
 }
 
+function fmtNextPaymentDate(str) {
+  if (!str) return "";
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return "";
+  const day = d.getDate();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
 function fmtPrice(val) {
   if (val === null || val === undefined) return "0";
   return Number(val).toLocaleString("en-IN");
@@ -93,6 +104,42 @@ function isDateArrived(str) {
   const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
   const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   return todayMidnight >= targetMidnight;
+}
+
+function getProductSpecsLine(product) {
+  if (!product) return "14K yellow gold · Lab-Grown diamond";
+  if (product.specs_line) return product.specs_line;
+
+  const parts = [];
+  if (product.diamond_carat) parts.push(`${product.diamond_carat} ct`);
+  if (product.diamond_clarity) parts.push(`${product.diamond_clarity} Clarity`);
+  if (product.diamond_color) parts.push(`${product.diamond_color} Color`);
+
+  const goldParts = [];
+  if (product.metal_purity) goldParts.push(product.metal_purity);
+  if (product.metal_color) goldParts.push(product.metal_color.toLowerCase());
+  if (goldParts.length > 0) parts.push(goldParts.join(" "));
+
+  if (product.metal_weight) parts.push(`${product.metal_weight} g`);
+  if (product.diamond_shape) parts.push(product.diamond_shape);
+  parts.push(product.diamond_type || "Lab-Grown diamond");
+
+  return parts.length > 0 ? parts.join(" · ") : "14K yellow gold · Lab-Grown diamond";
+}
+
+function getInstallmentLabel(ins) {
+  if (ins.label) {
+    return ins.label.replace(/Installment/i, "Instalment");
+  }
+  if (ins.installment_number === 0) return "10% Advance";
+  const num = ins.installment_number;
+  const j = num % 10;
+  const k = num % 100;
+  let suffix = "th";
+  if (j === 1 && k !== 11) suffix = "st";
+  else if (j === 2 && k !== 12) suffix = "nd";
+  else if (j === 3 && k !== 13) suffix = "rd";
+  return `${num}${suffix} Instalment`;
 }
 
 export default function DigiGoldPage() {
@@ -154,7 +201,22 @@ export default function DigiGoldPage() {
           setCurrentGoldRate(res.current_gold_rate_24k);
         }
         if (res.plans.length > 0 && !expandedPlanId) {
-          setExpandedPlanId(res.plans[0]._id);
+          // Check if url query param has specific plan
+          let targetId = res.plans[0]._id;
+          if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const queryPlan = params.get("plan");
+            if (queryPlan) {
+              const matched = res.plans.find(
+                (p) =>
+                  p.plan_code === queryPlan ||
+                  p._id === queryPlan ||
+                  String(p.shopify_order_number) === queryPlan
+              );
+              if (matched) targetId = matched._id;
+            }
+          }
+          setExpandedPlanId(targetId);
         }
       }
     } catch (err) {
@@ -405,257 +467,240 @@ export default function DigiGoldPage() {
           </Button>
         </div>
       ) : (
-        /* Plan Cards List (Matching Image 3) */
+        /* Plan Cards List (Exact UI from Figma Screenshot: Frame 1437258052 & 1437258053) */
         <div className="space-y-6">
           {plans.map((plan) => {
             const isExpanded = expandedPlanId === plan._id;
             const liveMetrics = plan.live_metrics || {};
             const lockedRate = liveMetrics.locked_gold_rate || plan.financials?.locked_gold_rate || 15802;
-            const todayRate = liveMetrics.today_gold_rate || currentGoldRate;
-            const benefit = liveMetrics.protected_benefit_per_gm || 0;
-            const nextIns = liveMetrics.next_installment;
+            const todayRate = liveMetrics.today_gold_rate || currentGoldRate || 17418;
+            const benefit = todayRate > lockedRate 
+              ? (todayRate - lockedRate) 
+              : (liveMetrics.protected_benefit_per_gm || 0);
+
+            const productValue = plan.financials?.original_product_price || 60000;
+            const amountPaid = plan.financials?.total_paid || 0;
+            const currentBalance = plan.financials?.amount_pending ?? Math.max(0, productValue - amountPaid);
+            const completedPct = Math.min(100, Math.max(0, Math.round((amountPaid / (productValue || 1)) * 100)));
+
+            const unpaidInstallments = (plan.installments || []).filter(
+              (i) =>
+                String(i.status || "").toLowerCase() !== "paid" &&
+                String(i.status || "").toLowerCase() !== "pre_closed"
+            );
+            const nextIns = unpaidInstallments[0];
+            const nextPaymentDateStr = nextIns ? fmtNextPaymentDate(nextIns.due_date) : "";
             const isCompleted = plan.financials?.status === "completed" || plan.financials?.status === "pre_closed";
 
             return (
               <div
                 key={plan._id}
-                className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md"
+                className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 transition-all duration-200 shadow-sm"
               >
-                {/* ── Top Summary Header (Exact layout from Image 3) ── */}
-                <div className="p-5 sm:p-6 space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    {/* Left: Thumbnail & Title */}
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="relative size-16 sm:size-20 shrink-0 overflow-hidden rounded-2xl bg-zinc-50 border border-zinc-100 p-1">
-                        {plan.product?.image ? (
-                          <Image
-                            src={plan.product.image}
-                            alt={plan.product.title || "Product"}
-                            fill
-                            className="object-contain p-1"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-zinc-400">
-                            <Coins size={24} />
-                          </div>
-                        )}
+                {/* ── Top Section (Frame 1437258052) ── */}
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+                  {/* Left: Square Product Image */}
+                  <div className="relative w-full sm:w-48 sm:h-48 md:w-56 md:h-56 aspect-square shrink-0 rounded-2xl bg-[#FBFBFB] border border-zinc-100 flex items-center justify-center p-4 overflow-hidden mx-auto sm:mx-0">
+                    {plan.product?.image ? (
+                      <Image
+                        src={plan.product.image}
+                        alt={plan.product.title || "Product"}
+                        fill
+                        className="object-contain p-2"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-zinc-300 gap-2">
+                        <Coins size={36} />
+                        <span className="text-[10px] font-medium text-zinc-400">Jewelry Piece</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Details & Action Row */}
+                  <div className="flex-1 min-w-0 w-full flex flex-col justify-between self-stretch">
+                    <div>
+                      {/* Product Title */}
+                      <h3 className="text-base sm:text-lg font-bold text-zinc-900 leading-snug">
+                        {plan.product?.title || "2 CT Round Cut with Side Diamonds Accent Engagement Ring"}
+                      </h3>
+
+                      {/* Specs Subtitle */}
+                      <p className="text-xs text-zinc-500 font-normal mt-1 leading-relaxed">
+                        {getProductSpecsLine(plan.product)}
+                      </p>
+                    </div>
+
+                    {/* 3 Rates Row */}
+                    <div className="grid grid-cols-3 gap-2 sm:gap-6 my-5 sm:my-6">
+                      <div>
+                        <span className="block text-xs text-zinc-500 font-normal">
+                          Locked Gold Rated
+                        </span>
+                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                          {Math.round(lockedRate)}/gm
+                        </span>
                       </div>
 
-                      <div className="min-w-0">
-                        <h3 className="text-sm sm:text-base font-bold text-zinc-900 truncate">
-                          {plan.product?.title || "Diamond Jewelry Piece"}
-                        </h3>
-                        <p className="text-[11px] text-zinc-500 font-medium truncate mt-0.5">
-                          {plan.product?.metal_purity} {plan.product?.metal_color} · {plan.product?.metal_weight}g
-                          {plan.product?.diamond_carat ? ` · ${plan.product.diamond_carat}ct Diamond` : ""}
-                        </p>
-                        <span className="inline-block text-[10px] font-mono text-zinc-400 mt-1">
-                          {plan.plan_code}
+                      <div>
+                        <span className="block text-xs text-zinc-500 font-normal">
+                          Today&apos;s Gold Rate
+                        </span>
+                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                          {Math.round(todayRate)}/gm
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="block text-xs text-zinc-500 font-normal">
+                          Benefit if Pre Closed Today
+                        </span>
+                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-[#16A34A] mt-1">
+                          {benefit > 0 ? `${Math.round(benefit)}/gm` : "0/gm"}
                         </span>
                       </div>
                     </div>
 
-                    {/* Status Badge */}
-                    <div className="self-start sm:self-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          plan.financials?.status === "pre_closed"
-                            ? "bg-purple-50 text-purple-700 border border-purple-200"
-                            : plan.financials?.status === "completed"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-amber-50 text-amber-700 border border-amber-200"
-                        }`}
-                      >
-                        <ShieldCheck size={12} />
-                        {plan.financials?.status === "pre_closed"
-                          ? "Pre-Closed"
-                          : plan.financials?.status === "completed"
-                          ? "Fully Paid"
-                          : "Active Price Lock"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 3 Metric Badges: Locked / Today / Benefit */}
-                  <div className="grid grid-cols-3 gap-2 sm:gap-4 rounded-2xl bg-zinc-50/80 p-3 sm:p-4 border border-zinc-100 text-center">
-                    <div>
-                      <span className="block text-[10px] sm:text-xs text-zinc-500 font-medium">
-                        Locked Gold Rate
-                      </span>
-                      <span className="text-xs sm:text-base font-bold text-zinc-900">
-                        ₹{fmtPrice(lockedRate)}/gm
-                      </span>
-                    </div>
-
-                    <div className="border-x border-zinc-200">
-                      <span className="block text-[10px] sm:text-xs text-zinc-500 font-medium">
-                        Today&apos;s Gold Rate
-                      </span>
-                      <span className="text-xs sm:text-base font-bold text-zinc-900">
-                        ₹{fmtPrice(todayRate)}/gm
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="block text-[10px] sm:text-xs text-zinc-500 font-medium">
-                        Benefit / Protected Rate
-                      </span>
-                      <span className="text-xs sm:text-base font-bold text-emerald-600">
-                        ₹{fmtPrice(benefit)}/gm
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons: Pre-close at Lowest Rate | View Plan */}
-                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
-                    {!isCompleted && (
-                      <Button
+                    {/* Buttons Row */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+                      <button
                         onClick={() => handleOpenPreclose(plan)}
-                        className="w-full sm:flex-1 h-11 bg-[#5A413F] text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-[#463231] transition-all cursor-pointer shadow-md shadow-[#5A413F]/10"
+                        disabled={isCompleted}
+                        className="w-full sm:flex-1 h-11 bg-[#5A413F] text-white font-medium text-xs sm:text-sm rounded-lg hover:bg-[#463231] transition-all flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                       >
                         Pre-close at Lowest Rate
-                      </Button>
-                    )}
+                      </button>
 
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        setExpandedPlanId(isExpanded ? null : plan._id)
-                      }
-                      className="w-full sm:w-auto h-11 px-6 rounded-xl font-bold text-xs uppercase tracking-wider border-zinc-200 text-zinc-700 hover:bg-zinc-50 cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      {isExpanded ? "Hide Plan" : "View Plan"}
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </Button>
+                      <button
+                        onClick={() => setExpandedPlanId(isExpanded ? null : plan._id)}
+                        className="w-full sm:flex-1 h-11 bg-[#ECE8E5] text-[#2D2322] border border-[#DCD6D1] rounded-lg font-medium text-xs sm:text-sm hover:bg-[#E2DDD9] transition-all flex items-center justify-center cursor-pointer"
+                      >
+                        View Plan
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* ── Expanded Detail View (Exact layout from Image 3 bottom) ── */}
+                {/* ── Expanded Section (Frame 1437258053) ── */}
                 {isExpanded && (
-                  <div className="border-t border-zinc-100 bg-[#FAFAFA] p-5 sm:p-6 space-y-6 animate-in slide-in-from-top-2 duration-200">
-                    {/* Financial 3-pillar breakdown */}
-                    <div className="grid grid-cols-3 gap-2 sm:gap-4 border-b border-zinc-200/80 pb-5 text-center">
+                  <div className="mt-8 pt-6 border-t border-zinc-100">
+                    {/* 3 Financial Pillars */}
+                    <div className="grid grid-cols-3 gap-2 sm:gap-6">
                       <div>
-                        <span className="block text-[10px] sm:text-xs text-zinc-500 font-semibold uppercase tracking-wider">
-                          Total Order
+                        <span className="block text-xs text-zinc-500 font-medium">
+                          Product Value
                         </span>
-                        <span className="text-sm sm:text-xl font-bold text-zinc-900">
-                          ₹{fmtPrice(plan.financials?.original_product_price)}*
+                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                          ₹{fmtPrice(productValue)}*
                         </span>
                       </div>
-                      <div className="border-x border-zinc-200">
-                        <span className="block text-[10px] sm:text-xs text-zinc-500 font-semibold uppercase tracking-wider">
+
+                      <div>
+                        <span className="block text-xs text-zinc-500 font-medium">
                           Amount Paid
                         </span>
-                        <span className="text-sm sm:text-xl font-bold text-[#5A413F]">
-                          ₹{fmtPrice(plan.financials?.total_paid)}*
+                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                          ₹{fmtPrice(amountPaid)}*
                         </span>
                       </div>
-                      <div>
-                        <span className="block text-[10px] sm:text-xs text-zinc-500 font-semibold uppercase tracking-wider">
-                          Amount Pending
+
+                      <div className="text-right">
+                        <span className="block text-xs text-zinc-500 font-medium">
+                          Current Balance
                         </span>
-                        <span className="text-sm sm:text-xl font-bold text-zinc-900">
-                          ₹{fmtPrice(plan.financials?.amount_pending)}*
+                        <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 mt-1">
+                          ₹{fmtPrice(currentBalance)}*
                         </span>
                       </div>
                     </div>
 
-                    {/* Next Installment Alert Banner */}
-                    {nextIns && !isCompleted && (
-                      <div className="flex items-center justify-between rounded-xl bg-amber-50/80 px-4 py-2.5 border border-amber-200/70 text-xs text-amber-900 font-medium">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={15} className="text-amber-700" />
-                          <span>
-                            Next installment :{" "}
-                            <strong className="font-bold">{fmtDate(nextIns.due_date)}</strong>
-                          </span>
-                        </div>
-                        <span className="font-bold">₹{fmtPrice(nextIns.amount)}</span>
+                    {/* Progress Bar */}
+                    <div className="mt-5 sm:mt-6">
+                      <div className="w-full h-1.5 bg-[#E8E3DF] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#5A413F] rounded-full transition-all duration-500"
+                          style={{ width: `${completedPct}%` }}
+                        />
                       </div>
-                    )}
+                      <p className="text-xs text-zinc-500 font-normal mt-2.5">
+                        {completedPct}% Completed{nextPaymentDateStr ? ` - Next Payment by ${nextPaymentDateStr}` : ""}
+                      </p>
+                    </div>
 
-                    {/* Payment History Table */}
-                    <div className="space-y-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-900">
+                    {/* Payment History */}
+                    <div className="mt-8">
+                      <h4 className="text-sm sm:text-base font-bold text-zinc-900 mb-2">
                         Payment History
                       </h4>
 
-                      <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white">
-                        <table className="w-full text-xs text-left">
-                          <thead>
-                            <tr className="border-b border-zinc-100 bg-zinc-50 text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                              <th className="py-3 px-4">Due Date</th>
-                              <th className="py-3 px-4">Description</th>
-                              <th className="py-3 px-4">Status</th>
-                              <th className="py-3 px-4 text-right">Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-zinc-50">
-                            {(() => {
-                              const firstUnpaid = plan.installments?.find(
-                                (i) =>
-                                  String(i.status || "").toLowerCase() !== "paid" &&
-                                  String(i.status || "").toLowerCase() !== "pre_closed"
-                              );
+                      <div className="divide-y divide-zinc-100">
+                        {(() => {
+                          const firstUnpaid = plan.installments?.find(
+                            (i) =>
+                              String(i.status || "").toLowerCase() !== "paid" &&
+                              String(i.status || "").toLowerCase() !== "pre_closed"
+                          );
 
-                              return plan.installments?.map((ins) => {
-                                const isPaid = String(ins.status || "").toLowerCase() === "paid";
-                                const isPreclosed =
-                                  String(ins.status || "").toLowerCase() === "pre_closed" ||
-                                  plan.financials?.status === "pre_closed";
-                                const isPayingThis = payingInstallmentNumber === ins.installment_number;
-                                const isDue = isDateArrived(ins.due_date);
-                                const isFirstUnpaid = firstUnpaid?.installment_number === ins.installment_number;
+                          return plan.installments?.map((ins) => {
+                            const isPaid = String(ins.status || "").toLowerCase() === "paid";
+                            const isPreclosed =
+                              String(ins.status || "").toLowerCase() === "pre_closed" ||
+                              plan.financials?.status === "pre_closed";
+                            const isPayingThis = payingInstallmentNumber === ins.installment_number;
+                            const isDue = isDateArrived(ins.due_date);
+                            const isFirstUnpaid = firstUnpaid?.installment_number === ins.installment_number;
 
-                                return (
-                                  <tr key={ins.installment_number} className="hover:bg-zinc-50/50 transition-colors">
-                                    <td className="py-3.5 px-4 font-medium text-zinc-600">
-                                      {fmtDate(ins.due_date)}
-                                    </td>
-                                    <td className="py-3.5 px-4 font-bold text-zinc-900">
-                                      {ins.label}
-                                    </td>
-                                    <td className="py-3.5 px-4">
-                                      {isPaid ? (
-                                        <span className="inline-flex items-center gap-1.5 text-emerald-600 font-bold text-[11px]">
-                                          <CheckCircle2 size={13} className="text-emerald-600" />
-                                          Paid
+                            return (
+                              <div
+                                key={ins.installment_number}
+                                className="grid grid-cols-12 items-center py-3.5 sm:py-4 text-xs sm:text-sm"
+                              >
+                                {/* Col 1: Date */}
+                                <div className="col-span-3 sm:col-span-3 font-normal text-zinc-700">
+                                  {fmtOrdinalDate(ins.due_date)}
+                                </div>
+
+                                {/* Col 2: Milestone description */}
+                                <div className="col-span-4 sm:col-span-4 font-normal text-zinc-800">
+                                  {getInstallmentLabel(ins)}
+                                </div>
+
+                                {/* Col 3: Status / Action */}
+                                <div className="col-span-2 sm:col-span-2">
+                                  {isPaid ? (
+                                    <span className="font-normal text-zinc-800">Paid</span>
+                                  ) : isPreclosed ? (
+                                    <span className="font-normal text-purple-700">Pre-Closed</span>
+                                  ) : isFirstUnpaid && isDue ? (
+                                    <button
+                                      onClick={() => handlePayInstallment(plan, ins)}
+                                      disabled={isPayingThis || payingInstallmentNumber !== null}
+                                      className="font-semibold text-[#5A413F] underline hover:opacity-80 transition-opacity cursor-pointer text-left"
+                                    >
+                                      {isPayingThis ? (
+                                        <span className="inline-flex items-center gap-1">
+                                          <Loader2 size={12} className="animate-spin" />
+                                          Paying
                                         </span>
-                                      ) : isPreclosed ? (
-                                        <span className="inline-flex items-center gap-1.5 text-purple-600 font-bold text-[11px]">
-                                          Pre-Closed
-                                        </span>
-                                      ) : isFirstUnpaid && isDue ? (
-                                        <Button
-                                          size="sm"
-                                          disabled={isPayingThis || payingInstallmentNumber !== null}
-                                          onClick={() => handlePayInstallment(plan, ins)}
-                                          className="h-7 px-3 bg-[#5A413F] text-white text-[11px] font-bold rounded-lg hover:bg-[#463231] cursor-pointer shadow-sm transition-all"
-                                        >
-                                          {isPayingThis ? (
-                                            <Loader2 size={12} className="animate-spin" />
-                                          ) : (
-                                            "Pay Now"
-                                          )}
-                                        </Button>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1 text-zinc-400 font-medium text-[11px]">
-                                          <Clock size={12} className="text-zinc-400" />
-                                          Upcoming
-                                        </span>
+                                        "Pay Now"
                                       )}
-                                    </td>
-                                    <td className="py-3.5 px-4 text-right font-bold text-zinc-900">
-                                      ₹{fmtPrice(ins.amount)}
-                                    </td>
-                                  </tr>
-                                );
-                              });
-                            })()}
-                          </tbody>
-                        </table>
+                                    </button>
+                                  ) : (
+                                    <span className="font-normal text-zinc-300 select-none">
+                                      Pay Now
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Col 4: Amount */}
+                                <div className="col-span-3 sm:col-span-3 text-right font-bold text-zinc-900">
+                                  ₹{fmtPrice(ins.amount)}
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                   </div>
