@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
-import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check } from "lucide-react";
+import { Phone, MessageSquare, Truck, MessageCircle, Coins, Loader2, Check, Wallet } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { applyPoints, removePoints, applyCoupon } from "@/redux/features/cart/cartSlice";
+import { applyPoints, removePoints, applyCoupon, applyGyftrRedeem, removeGyftrRedeem } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
 import CartContact from "./CartContact";
 import { formatMetal } from "@/lib/metal";
@@ -30,16 +30,31 @@ export default function CheckoutSummary({
   onApplyCoinsWarning = null,
   mobilePaymentCoinsTheme = false,
   compactBreakdown = false,
+  showGyftrWallet = false,
+  gyftrMobile = "",
   children
 }) {
   const pathname = usePathname();
   const dispatch = useDispatch();
-  const { items, totalAmount, appliedCoupon, removeCoupon, nectorPoints } = useCart();
+  const { items, totalAmount, appliedCoupon, removeCoupon, nectorPoints, gyftrRedeem } = useCart();
   const user = useSelector((state) => state.user.user);
 
   const [pointsData, setPointsData] = useState(null);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [gyftrLoading, setGyftrLoading] = useState(false);
+  const [gyftrTotalBalance, setGyftrTotalBalance] = useState(null);
+  const [gyftrBalanceDetails, setGyftrBalanceDetails] = useState([]);
+  const [gyftrError, setGyftrError] = useState("");
+  const [gyftrOtpMobile, setGyftrOtpMobile] = useState("");
+  const [gyftrOtp, setGyftrOtp] = useState("");
+  const [gyftrOtpSent, setGyftrOtpSent] = useState(false);
+  const [gyftrSendingOtp, setGyftrSendingOtp] = useState(false);
+  const [gyftrVouchers, setGyftrVouchers] = useState(null);
+  const [gyftrLoadingVouchers, setGyftrLoadingVouchers] = useState(false);
+  const [gyftrManualVoucherCode, setGyftrManualVoucherCode] = useState("");
+  const [gyftrRecharging, setGyftrRecharging] = useState(false);
+  const [gyftrRedeemInput, setGyftrRedeemInput] = useState("");
 
   const firstProductName = (items || []).find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
@@ -169,7 +184,12 @@ export default function CheckoutSummary({
 
   const discountValue = couponDiscountAmount;
   const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
-  const grandTotalValue = subtotalValue + insuranceValue - discountValue - pointsDiscountAmount;
+  const gyftrRedeemAmount = gyftrRedeem?.amount || 0;
+  // Total before the wallet's own discount is applied — the ceiling a new
+  // redeem claim gets capped against, so re-claiming a different amount
+  // doesn't compound against an already-active redemption.
+  const totalBeforeGyftrRedeem = subtotalValue + insuranceValue - discountValue - pointsDiscountAmount;
+  const grandTotalValue = totalBeforeGyftrRedeem - gyftrRedeemAmount;
 
   useEffect(() => {
     if (isPaymentPage && user?.id) {
@@ -264,6 +284,138 @@ export default function CheckoutSummary({
     toast.error("Points discount removed", {
       icon: <Check className="w-4 h-4" />
     });
+  };
+
+  const fetchGyftrBalance = async (mobile) => {
+    setGyftrLoading(true);
+    setGyftrError("");
+    try {
+      // `items` lets the backend restrict CATEGORY to only what's actually
+      // in the cart (e.g. a gold-coin-only cart sends CATEGORY=GOLD_COINS,
+      // not all 3) — see routes/gyftr/index.js's resolveCartCategories.
+      const requestBody = { mobile, items };
+      console.log('[GyFTR getWalletBalance] frontend -> backend body:', requestBody);
+      const result = await apiFetch('/api/gyftr/balance', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+      console.log('[GyFTR getWalletBalance] backend -> GyFTR payload:', result.debugRequestPayload);
+      setGyftrTotalBalance(result.totalBalance);
+      setGyftrBalanceDetails(result.balanceDetails || []);
+    } catch (error) {
+      setGyftrError(error.message || "Could not fetch gift card balance");
+    } finally {
+      setGyftrLoading(false);
+    }
+  };
+
+  // Auto-fetch the wallet balance from the logged-in customer's phone on
+  // file — no OTP step, per explicit request (25 Aug 2026).
+  useEffect(() => {
+    if (showGyftrWallet && gyftrMobile?.length === 10) {
+      fetchGyftrBalance(gyftrMobile);
+    }
+  }, [showGyftrWallet, gyftrMobile]);
+
+  // Prefill the OTP-flow mobile field from the session once it's known,
+  // without clobbering anything the user has already typed in.
+  useEffect(() => {
+    if (gyftrMobile?.length === 10 && !gyftrOtpMobile) {
+      setGyftrOtpMobile(gyftrMobile);
+    }
+  }, [gyftrMobile, gyftrOtpMobile]);
+
+  const handleGyftrSendOtp = async () => {
+    if (gyftrOtpMobile.length !== 10) {
+      toast.error("Enter a valid 10-digit mobile number");
+      return;
+    }
+    setGyftrSendingOtp(true);
+    try {
+      const requestBody = { mobile: gyftrOtpMobile };
+      console.log('[GyFTR generateOtp] frontend -> backend body:', requestBody);
+      const result = await apiFetch('/api/gyftr/generate-otp', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+      console.log('[GyFTR generateOtp] backend -> GyFTR payload:', result.debugRequestPayload);
+      setGyftrOtpSent(true);
+      toast.success("OTP sent to your mobile number");
+    } catch (error) {
+      toast.error(error.message || "Could not send OTP");
+    } finally {
+      setGyftrSendingOtp(false);
+    }
+  };
+
+  const handleGyftrLoadVouchers = async () => {
+    if (!gyftrOtp.trim()) {
+      toast.error("Enter the OTP you received");
+      return;
+    }
+    setGyftrLoadingVouchers(true);
+    try {
+      const requestBody = { mobile: gyftrOtpMobile, otp: gyftrOtp.trim(), items };
+      console.log('[GyFTR loadWallet] frontend -> backend body:', requestBody);
+      const result = await apiFetch('/api/gyftr/vouchers', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+      console.log('[GyFTR loadWallet] backend -> GyFTR payload:', result.debugRequestPayload);
+      setGyftrVouchers(result.vouchers || []);
+    } catch (error) {
+      toast.error(error.message || "Could not load your vouchers");
+    } finally {
+      setGyftrLoadingVouchers(false);
+    }
+  };
+
+  const handleGyftrRecharge = async (voucherNumber, voucherType = "P") => {
+    const code = voucherNumber.trim();
+    if (!code) {
+      toast.error("Enter a voucher code");
+      return;
+    }
+    setGyftrRecharging(true);
+    try {
+      const requestBody = { mobile: gyftrOtpMobile, voucherNumber: code, voucherType, items };
+      console.log('[GyFTR rechargeWallet] frontend -> backend body:', requestBody);
+      const result = await apiFetch('/api/gyftr/recharge', {
+        method: 'POST',
+        body: JSON.stringify(requestBody)
+      });
+      console.log('[GyFTR rechargeWallet] backend -> GyFTR payload:', result.debugRequestPayload);
+      toast.success("Gift card added to your wallet");
+      setGyftrManualVoucherCode("");
+      // Balance just changed — refetch so the total/category rows stay accurate.
+      if (gyftrMobile?.length === 10) fetchGyftrBalance(gyftrMobile);
+    } catch (error) {
+      toast.error(error.message || "Could not add this gift card");
+    } finally {
+      setGyftrRecharging(false);
+    }
+  };
+
+  const handleApplyGyftrRedeem = () => {
+    const requested = Number(gyftrRedeemInput || 0);
+    if (!requested || requested <= 0) {
+      toast.error("Enter an amount to redeem");
+      return;
+    }
+    const cap = Math.max(0, Math.min(gyftrTotalBalance || 0, totalBeforeGyftrRedeem || 0));
+    if (cap <= 0) {
+      toast.error("No redeemable balance available for this order");
+      return;
+    }
+    const amount = Math.min(requested, cap);
+    dispatch(applyGyftrRedeem({ amount, mobile: gyftrOtpMobile }));
+    toast.success(`₹${amount.toLocaleString("en-IN")} will be redeemed from your Gyftr wallet`);
+  };
+
+  const handleRemoveGyftrRedeem = () => {
+    dispatch(removeGyftrRedeem());
+    setGyftrRedeemInput("");
+    toast.info("Gyftr wallet redemption removed");
   };
 
   const displayItems = (items || []).filter(
@@ -433,6 +585,173 @@ export default function CheckoutSummary({
         </div>
       )}
 
+      {showGyftrWallet && (
+        <div className="p-4 rounded-[8px] border border-[#EBE1D7] bg-[#FDFBF9] space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#5A413F]/10 flex items-center justify-center shrink-0">
+              <Wallet size={18} className="text-[#5A413F]" />
+            </div>
+            <div>
+              <p className="font-figtree font-medium text-[14px] leading-[1.3] text-black">Gyftr Wallet</p>
+              <p className="font-figtree font-light text-[12px] leading-[1.3] text-black/60">Pay using your Gyftr gift card balance</p>
+            </div>
+          </div>
+          {gyftrLoading ? (
+            <div className="flex items-center gap-2 py-1">
+              <Loader2 size={14} className="animate-spin text-[#5A413F]" />
+              <p className="font-figtree text-[13px] text-black/60">Fetching your balance...</p>
+            </div>
+          ) : gyftrError ? (
+            <p className="font-figtree text-[12px] text-amber-700">{gyftrError}</p>
+          ) : !gyftrMobile || gyftrMobile.length !== 10 ? (
+            <p className="font-figtree text-[12px] text-black/50">No mobile number on file to check your wallet.</p>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <p className="font-figtree text-[13px] text-black/70">Total balance</p>
+                <p className="font-figtree font-medium text-[16px] text-black">₹{(gyftrTotalBalance || 0).toLocaleString("en-IN")}</p>
+              </div>
+              {gyftrBalanceDetails.length > 0 && (
+                <div className="pl-2 space-y-1 border-l-2 border-[#EBE1D7]">
+                  {gyftrBalanceDetails.map((d) => (
+                    <div key={d.CATEGORY} className="flex justify-between items-center">
+                      <p className="font-figtree text-[12px] text-black/60">
+                        {d.CATEGORY === "DIAMOND_JEWELLERY" ? "Diamond Jewellery" : d.CATEGORY === "PLAIN_JEWELLERY" ? "Plain Jewellery" : d.CATEGORY === "GOLD_COINS" ? "Gold Coins" : d.CATEGORY}
+                      </p>
+                      <p className="font-figtree text-[12px] text-black/80">₹{Number(d.BALANCE || 0).toLocaleString("en-IN")}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="pt-3 border-t border-[#EBE1D7] space-y-2">
+            <p className="font-figtree text-[12px] text-black/60">Verify with OTP to redeem your balance</p>
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={gyftrOtpMobile}
+                onChange={(e) => setGyftrOtpMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                placeholder="Mobile number"
+                className="flex-1 h-11 px-3 rounded-[6px] border border-[#EBE1D7] bg-white font-figtree text-[14px] text-black placeholder:text-black/40 focus:outline-none focus:border-[#5A413F]"
+              />
+              <button
+                type="button"
+                onClick={handleGyftrSendOtp}
+                disabled={gyftrOtpMobile.length !== 10 || gyftrSendingOtp}
+                className="h-11 shrink-0 px-4 rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree font-medium text-[13px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {gyftrSendingOtp ? "Sending..." : "Send OTP"}
+              </button>
+            </div>
+            {gyftrOtpSent && (
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  value={gyftrOtp}
+                  onChange={(e) => setGyftrOtp(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="Enter OTP"
+                  className="flex-1 h-11 px-3 rounded-[6px] border border-[#EBE1D7] bg-white font-figtree text-[14px] text-black placeholder:text-black/40 focus:outline-none focus:border-[#5A413F]"
+                />
+                <button
+                  type="button"
+                  onClick={handleGyftrLoadVouchers}
+                  disabled={!gyftrOtp.trim() || gyftrLoadingVouchers}
+                  className="h-11 shrink-0 px-4 rounded-[6px] border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 font-figtree font-medium text-[13px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {gyftrLoadingVouchers ? "Loading..." : "View Vouchers"}
+                </button>
+              </div>
+            )}
+
+            {gyftrVouchers !== null && (
+              <div className="space-y-2 pt-1">
+                {gyftrVouchers.length === 0 ? (
+                  <p className="font-figtree text-[12px] text-black/50">No gift cards found on this number.</p>
+                ) : (
+                  gyftrVouchers.map((v) => (
+                    <div key={v.VoucherGuid} className="flex justify-between items-center gap-2">
+                      <span className="font-figtree text-[12px] text-black/70 truncate">
+                        {v.BrandName} — {v.VoucherNumber} (₹{Number(v.AvailableBalance ?? v.Value ?? 0).toLocaleString("en-IN")})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleGyftrRecharge(v.EncryptedVoucherNumber || v.VoucherNumber, v.EncryptedVoucherNumber ? "E" : "P")}
+                        disabled={gyftrRecharging}
+                        className="shrink-0 px-3 py-1.5 rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree font-medium text-[11px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {gyftrOtp.trim().length === 4 ? (
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="text"
+                  value={gyftrManualVoucherCode}
+                  onChange={(e) => setGyftrManualVoucherCode(e.target.value)}
+                  placeholder="Have a gift card code?"
+                  className="flex-1 h-11 px-3 rounded-[6px] border border-[#EBE1D7] bg-white font-figtree text-[14px] text-black placeholder:text-black/40 focus:outline-none focus:border-[#5A413F]"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleGyftrRecharge(gyftrManualVoucherCode)}
+                  disabled={!gyftrManualVoucherCode.trim() || gyftrRecharging || gyftrOtpMobile.length !== 10}
+                  className="h-11 shrink-0 px-4 rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree font-medium text-[13px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {gyftrRecharging ? "Adding..." : "Add"}
+                </button>
+              </div>
+            ) : gyftrOtpSent ? (
+              <p className="font-figtree text-[11px] text-black/40 pt-1">Enter the OTP above to add a gift card manually.</p>
+            ) : null}
+
+            {gyftrOtp.trim().length === 4 && (
+              gyftrRedeemAmount > 0 ? (
+                <div className="flex justify-between items-center pt-2">
+                  <p className="font-figtree text-[12px] text-[#00A63E]">
+                    ₹{gyftrRedeemAmount.toLocaleString("en-IN")} will be redeemed on this order
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleRemoveGyftrRedeem}
+                    className="font-figtree text-[11px] font-bold text-red-500 hover:underline uppercase tracking-tighter cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2 pt-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={gyftrRedeemInput}
+                    onChange={(e) => setGyftrRedeemInput(e.target.value)}
+                    placeholder={`Redeem amount (up to ₹${Math.min(gyftrTotalBalance || 0, totalBeforeGyftrRedeem || 0).toLocaleString("en-IN")})`}
+                    className="flex-1 h-11 px-3 rounded-[6px] border border-[#EBE1D7] bg-white font-figtree text-[14px] text-black placeholder:text-black/40 focus:outline-none focus:border-[#5A413F]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyGyftrRedeem}
+                    disabled={!gyftrRedeemInput || Number(gyftrRedeemInput) <= 0}
+                    className="h-11 shrink-0 px-4 rounded-[6px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree font-medium text-[13px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Redeem
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
       {showBreakdown && (
         <div ref={breakdownRef} className="scroll-mt-20 lg:scroll-mt-24 space-y-3.5 bg-transparent lg:pt-0 lg:pb-0 mb-0 lg:mb-[20px]">
           <h2 className="text-[0.9375rem] font-figtree font-medium text-black uppercase tracking-wide mb-4 lg:hidden">ORDER SUMMARY</h2>
@@ -507,6 +826,12 @@ export default function CheckoutSummary({
             <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
               <span className="font-semibold uppercase tracking-wider text-[#189351]">Redeemed {nectorPoints.coin_value} coins</span>
               <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {nectorPoints.fiat_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            </div>
+          )}
+          {gyftrRedeemAmount > 0 && (
+            <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">
+              <span className="font-semibold uppercase tracking-wider text-[#189351]">Gyftr Wallet Redeemed</span>
+              <span className="font-semibold text-[#00A63E] whitespace-nowrap">- ₹ {gyftrRedeemAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
             </div>
           )}
           <div className="flex justify-between items-center font-figtree text-[0.875rem] lg:text-base text-[#000000]">

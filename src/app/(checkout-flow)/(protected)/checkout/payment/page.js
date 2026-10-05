@@ -14,6 +14,8 @@ import {
   removeCoupon,
   applyCoupon,
   applyPoints,
+  applyGyftrRedeem,
+  removeGyftrRedeem,
   repriceCartForCheckout,
 } from "@/redux/features/cart/cartSlice";
 import { ChevronLeft } from "lucide-react";
@@ -203,7 +205,7 @@ export default function PaymentPage() {
   const [makeDefault, setMakeDefault] = useState(false);
 
   const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
-  const { items, totalAmount, appliedCoupon, nectorPoints, loading } = useCart();
+  const { items, totalAmount, appliedCoupon, nectorPoints, gyftrRedeem, loading } = useCart();
 
   // We need eligibleBraceletId first
   useEffect(() => {
@@ -289,16 +291,18 @@ export default function PaymentPage() {
     const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
-    return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
-  }, [items, totalAmount, appliedCoupon, nectorPoints]);
+    const gyftrDiscountAmount = gyftrRedeem?.amount || 0;
+    return subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount - gyftrDiscountAmount;
+  }, [items, totalAmount, appliedCoupon, nectorPoints, gyftrRedeem]);
 
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
 
-  // Remove points when leaving the payment page to prevent stale points
+  // Remove points/wallet redemption when leaving the payment page to prevent stale claims
   useEffect(() => {
     return () => {
       dispatch(removePoints());
+      dispatch(removeGyftrRedeem());
     };
   }, [dispatch]);
 
@@ -379,6 +383,19 @@ export default function PaymentPage() {
     }
   }, [partialCodDetails.isEligible, selectedPaymentGateway]);
 
+  const getGatewayCopy = (gateway) => {
+    if (gateway.id === "partial_cod") {
+      return {
+        title: `Partial COD ₹${Number(gateway.amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
+        subtitle: `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })} at Delivery`,
+      };
+    }
+    return {
+      title: `Full Payment ₹${Number(gateway.amount || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`,
+      subtitle: "Complete your Purchase with Ease",
+    };
+  };
+
   useEffect(() => {
     if (nectorPoints) {
       const hasDiamondJewellery = items.some(item => {
@@ -421,6 +438,7 @@ export default function PaymentPage() {
       toast.info("Partial COD is available only below ₹50,000 cart value.");
       return;
     }
+
 
     const isPickup = checkoutSelection?.deliveryMethod === "pickup";
 
@@ -477,7 +495,8 @@ export default function PaymentPage() {
       const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
       const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
-      const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
+      const gyftrDiscountAmount = gyftrRedeem?.amount || 0;
+      const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount - gyftrDiscountAmount;
       const paymentMethodDetails = selectedPaymentGateway === "partial_cod"
         ? {
           type: "partial_cod",
@@ -592,6 +611,7 @@ export default function PaymentPage() {
           valueType: "FIXED_AMOUNT"
         } : null,
         nectorPoints: nectorPoints,
+        gyftrRedeem: gyftrRedeem,
         paymentMethod: paymentMethodDetails,
         amount: paymentMethodDetails.prepaidAmount, // Use the correct calculated amount
         gclid: getCookie("gclid") || "",
@@ -615,6 +635,7 @@ export default function PaymentPage() {
         if (serverPricing) {
           const serverCoupon = Number(serverPricing.couponDiscount || 0);
           const serverPoints = Number(serverPricing.pointsDiscount || 0);
+          const serverGyftr = Number(serverPricing.gyftrDiscount || 0);
 
           if (appliedCoupon && serverCoupon !== couponDiscountAmount) {
             if (serverCoupon > 0) {
@@ -631,6 +652,14 @@ export default function PaymentPage() {
             else {
               dispatch(removePoints());
               toast.info("Your loyalty points could not be applied to this order.");
+            }
+          }
+
+          if (gyftrRedeem?.amount && serverGyftr !== gyftrDiscountAmount) {
+            if (serverGyftr > 0) dispatch(applyGyftrRedeem({ ...gyftrRedeem, amount: serverGyftr }));
+            else {
+              dispatch(removeGyftrRedeem());
+              toast.info("Your Gyftr wallet balance could not be applied to this order.");
             }
           }
         }
@@ -666,7 +695,8 @@ export default function PaymentPage() {
             const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
 
             const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
-            const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount;
+            const gyftrDiscountAmount = gyftrRedeem?.amount || 0;
+            const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount - pointsDiscountAmount - gyftrDiscountAmount;
             const purchaseValue = selectedPaymentGateway === "partial_cod"
               ? partialCodDetails.prepaidAmount
               : grandTotalValue;
@@ -744,6 +774,7 @@ export default function PaymentPage() {
                 valueType: "FIXED_AMOUNT"
               } : null,
               nectorPoints: nectorPoints, // Pass points for completion attributes
+              gyftrRedeem: gyftrRedeem,
               paymentMethod: order.paymentMethod || paymentMethodDetails,
               cartItems: checkoutItems, // Pass items explicitly as fallback for backend
               gclid: getCookie("gclid") || "",
@@ -982,7 +1013,9 @@ export default function PaymentPage() {
                 <div className="space-y-4 pt-2 px-4 lg:pb-4">
                   <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[0.9375rem] mb-4 lg:hidden">PAYMENT OPTIONS</h2>
                   <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
-                      {paymentGateways.map((gateway) => (
+                      {paymentGateways.map((gateway) => {
+                        const copy = getGatewayCopy(gateway);
+                        return (
                         <div key={gateway.id} className="relative">
                           <Label
                             htmlFor={`m-opt-${gateway.id}`}
@@ -991,10 +1024,10 @@ export default function PaymentPage() {
                             <div className="flex justify-between items-center">
                               <div>
                                 <h4 className="font-figtree font-medium text-black text-[0.9rem] mb-[8px]">
-                                  {gateway.id === "razorpay" ? `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                  {copy.title}
                                 </h4>
                                 <p className="font-figtree text-[0.8rem] text-black/70 mt-1">
-                                  {gateway.id === "razorpay" ? "Complete your Purchase with Ease" : `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
+                                  {copy.subtitle}
                                 </p>
                               </div>
                               <div className="relative flex items-center justify-center shrink-0">
@@ -1007,7 +1040,8 @@ export default function PaymentPage() {
                             </div>
                           </Label>
                         </div>
-                      ))}
+                        );
+                      })}
                     </RadioGroup>
                   </div>
 
@@ -1069,7 +1103,9 @@ export default function PaymentPage() {
                 <div className="space-y-4 pt-2">
                   <h2 className="font-figtree font-medium text-black uppercase tracking-wide text-[1.1rem]">PAYMENT OPTIONS</h2>
                   <RadioGroup value={selectedPaymentGateway} onValueChange={setSelectedPaymentGateway}>
-                      {paymentGateways.map((gateway) => (
+                      {paymentGateways.map((gateway) => {
+                        const copy = getGatewayCopy(gateway);
+                        return (
                         <div key={gateway.id} className="relative m-0">
                           <Label
                             htmlFor={`d-opt-${gateway.id}`}
@@ -1078,10 +1114,10 @@ export default function PaymentPage() {
                             <div className="flex justify-between items-center">
                               <div>
                                 <h4 className="font-figtree font-medium text-black text-[1rem] mb-[8px]">
-                                  {gateway.id === "razorpay" ? `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                  {copy.title}
                                 </h4>
                                 <p className="font-figtree text-[12px] text-black/70 mt-[8px] mb-0">
-                                  {gateway.id === "razorpay" ? "Complete your Purchase with Ease" : `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
+                                  {copy.subtitle}
                                 </p>
                               </div>
                               <div className="relative flex items-center justify-center shrink-0">
@@ -1094,7 +1130,8 @@ export default function PaymentPage() {
                             </div>
                           </Label>
                         </div>
-                      ))}
+                        );
+                      })}
                     </RadioGroup>
                   </div>
 
@@ -1117,6 +1154,8 @@ export default function PaymentPage() {
                   <CheckoutSummary
                     showItems={false}
                     mobilePaymentCoinsTheme={true}
+                    showGyftrWallet={true}
+                    gyftrMobile={normalizePhone(customer?.phone || user?.mobile || selectedAddress?.phone || "")}
                     onApplyCoinsWarning={(proceed) => {
                       setCoinsProceedAction(() => proceed);
                       setShowCoinsNudge(true);

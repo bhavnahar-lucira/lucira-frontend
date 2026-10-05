@@ -967,6 +967,7 @@ const initialState = {
   totalAmount: 0,
   appliedCoupon: null,
   nectorPoints: null, // { coin_value: 0, fiat_value: 0, points_label: "" }
+  gyftrRedeem: null, // { amount: 0, mobile: "" }
   isCartOpen: false,
   loading: false,
   error: null,
@@ -982,6 +983,7 @@ const cartSlice = createSlice({
       state.totalAmount = 0;
       state.appliedCoupon = null;
       state.nectorPoints = null;
+      state.gyftrRedeem = null;
 
       // Clear local storage to prevent cart resurrection from Shopify/Backend sync
       if (typeof window !== "undefined") {
@@ -993,6 +995,7 @@ const cartSlice = createSlice({
     applyCoupon: (state, action) => {
       state.appliedCoupon = action.payload;
       state.nectorPoints = null; // Enforce only one discount type
+      state.gyftrRedeem = null;
     },
     removeCoupon: (state) => {
       state.appliedCoupon = null;
@@ -1000,9 +1003,18 @@ const cartSlice = createSlice({
     applyPoints: (state, action) => {
       state.nectorPoints = action.payload;
       state.appliedCoupon = null; // Enforce only one discount type
+      state.gyftrRedeem = null;
     },
     removePoints: (state) => {
       state.nectorPoints = null;
+    },
+    applyGyftrRedeem: (state, action) => {
+      state.gyftrRedeem = action.payload;
+      state.appliedCoupon = null; // Enforce only one discount type
+      state.nectorPoints = null;
+    },
+    removeGyftrRedeem: (state) => {
+      state.gyftrRedeem = null;
     },
     openCart: (state) => {
       state.isCartOpen = true;
@@ -1160,7 +1172,9 @@ export const {
   removeCoupon, 
   applyPoints,
   removePoints,
-  openCart, 
+  applyGyftrRedeem,
+  removeGyftrRedeem,
+  openCart,
   closeCart, 
   toggleCart 
 } = cartSlice.actions;
