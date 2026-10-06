@@ -108,7 +108,7 @@ import { useShareIntent } from "@/hooks/useShareIntent";
 import { useAtcLoginGate } from "@/hooks/useAtcLoginGate";
 import { loadNectorReviews } from "@/lib/nector";
 import UnlockCoupon from "@/components/product/UnlockCoupon";
-import { OFFER_CATEGORY } from "@/lib/coupons";
+import { OFFER_CATEGORY, getItemOfferCategory } from "@/lib/coupons";
 
 import { Sheet as MobileSheet } from "react-modal-sheet";
 
@@ -845,7 +845,62 @@ export default function ProductPageClient({
     };
   }, []);
 
-  const schemeData = activeVariant?.price > 20000 ? calculateScheme(activeVariant.price) : null;
+  // Schemes are not available for gold coins or plain gold jewelry
+  const isGoldOrCoinProduct = useMemo(() => {
+    const rawTags = product?.tags || [];
+    const tList = Array.isArray(rawTags)
+      ? rawTags
+      : (typeof rawTags === 'string' ? rawTags.split(',').map(t => t.trim()) : []);
+    const title = String(product?.title || '').toLowerCase();
+    const handle = String(product?.handle || '').toLowerCase();
+    const type = String(product?.productType || product?.type || '').toLowerCase();
+
+    // 1. Gold coins and bars
+    const isCoin =
+      tList.some(t => {
+        const s = t.toLowerCase().replace(/[-_]/g, ' ');
+        return (
+          s === 'gold coin' ||
+          s.includes('gold coin') ||
+          s.includes('gold coins') ||
+          s === 'coin' ||
+          s === 'coins' ||
+          s.includes('gold bar') ||
+          s.includes('gold bullion')
+        );
+      }) ||
+      title.includes('gold coin') ||
+      title.includes('gold coins') ||
+      title.includes('coin') ||
+      handle.includes('gold-coin') ||
+      handle.includes('coin') ||
+      type.includes('gold coin') ||
+      type.includes('coin');
+
+    if (isCoin) return true;
+
+    // 2. Plain gold products
+    const isPlain =
+      tList.some(t => {
+        const s = t.toLowerCase().replace(/[-_]/g, ' ');
+        return (
+          s.includes('plain gold') ||
+          s === 'plaingold' ||
+          s.includes('gold jewelry') ||
+          s.includes('gold jewellery') ||
+          s.includes('gold chain')
+        );
+      }) ||
+      type.includes('plain gold') ||
+      title.includes('plain gold') ||
+      (typeof getItemOfferCategory === 'function' && getItemOfferCategory(product) === OFFER_CATEGORY.GOLD);
+
+    return isPlain;
+  }, [product]);
+
+  const schemeData = (!isGoldOrCoinProduct && activeVariant?.price > 20000)
+    ? calculateScheme(activeVariant.price)
+    : null;
 
   // Pincode & Dispatch Logic
   const globalPincode = useSelector(selectPincode);
@@ -4031,18 +4086,19 @@ export default function ProductPageClient({
                 });
               }
 
-              slides.push(
-                {
-                  img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPOldGoldExchange.jpg",
-                  title: "Old Gold Exchange",
-                  desc: "Exchange your old gold at the best value and upgrade to new Lucira Jewelry with ease."
-                },
-                {
+              slides.push({
+                img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPOldGoldExchange.jpg",
+                title: "Old Gold Exchange",
+                desc: "Exchange your old gold at the best value and upgrade to new Lucira Jewelry with ease."
+              });
+
+              if (!isGoldOrCoinProduct) {
+                slides.push({
                   img: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/PDPScheme.png",
                   title: "9 + 1 Scheme",
                   desc: "Complete 9 monthly payments and enjoy an extra month benefit from Lucira Jewelry."
-                }
-              );
+                });
+              }
 
               return (
                 <div className="space-y-4 mt-4">
