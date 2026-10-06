@@ -11,6 +11,7 @@ import {
 } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 import { trackAddToCart as trackSearchAddToCart } from "@/lib/searchAnalytics";
+import { isFreeGiftVariant, isFreeGiftProduct, isFreeGiftItem, setCachedFreeGiftTiers } from "@/lib/freeGifts";
 
 const DEFAULT_CONTEXT = process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront';
 
@@ -87,7 +88,15 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         else if (shopifyColor.toLowerCase().includes("white")) fallbackColor = "White Gold";
       }
 
-      const isFreeGift = backendItem?.isFreeGift || false;
+      const isFreeGift = Boolean(
+        backendItem?.isFreeGift ||
+        shopifyProperties['_is_free_gift'] === 'true' ||
+        shopifyProperties['is_free_gift'] === 'true' ||
+        isFreeGiftVariant(variantId) ||
+        isFreeGiftProduct(node.merchandise.product?.id) ||
+        String(node.merchandise.title || '').toLowerCase().includes('free gift') ||
+        String(node.merchandise.product?.title || '').toLowerCase().startsWith('free ')
+      );
       const backendPrice = Number(backendItem?.finalPrice || backendItem?.price || 0);
       const shopifyPrice = Number(node.merchandise.price.amount);
       const finalUnitPrice = isFreeGift ? 0 : (backendPrice > 0 ? backendPrice : shopifyPrice);
@@ -160,7 +169,7 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         return false;
       }
       seenFreeGifts.add(item.variantId);
-      item.quantity = 1; // Force max 1 quantity for free gifts
+      item.quantity = Math.max(1, Number(item.quantity || 1));
     } else {
       // Basic deduplication for identical UI line items (if no custom properties)
       const propKeys = Object.keys(item.properties || {}).filter(k => !k.startsWith('_'));
@@ -276,6 +285,9 @@ export const fetchCart = createAsyncThunk(
     const settingsPromise = apiFetch("/api/settings/silver-bracelet", { suppressErrorLog: true }).catch(() => null);
 
     let [data, backendCart, settingsData] = await Promise.all([shopifyPromise, backendPromise, settingsPromise]);
+    if (settingsData?.tiers) {
+      setCachedFreeGiftTiers(settingsData.tiers);
+    }
     
     // Heal stale cart if shopifyPromise returned nothing but we had a cartId
     if (cartId && !data?.cart) {
@@ -434,7 +446,7 @@ export const fetchCart = createAsyncThunk(
             }).catch(err => console.error("Failed to reduce excess Shopify quantities", err));
           }
 
-          return mappedState;
+          return { ...mappedState, settingsData };
         }
       }
     }
@@ -532,6 +544,11 @@ export const addToCart = createAsyncThunk(
         key,
         value: String(value)
       })) : [];
+
+      if (p.isFreeGift) {
+        attributes.push({ key: "_is_free_gift", value: "true" });
+        attributes.push({ key: "is_free_gift", value: "true" });
+      }
 
       return {
         merchandiseId: toShopifyGid(rawId, "ProductVariant"),
@@ -1031,6 +1048,12 @@ const cartSlice = createSlice({
         localStorage.removeItem("checkoutBillingAddressSelection");
       }
     },
+    setGiftTiersConfig: (state, action) => {
+      state.giftTiersConfig = action.payload;
+      if (action.payload?.tiers) {
+        setCachedFreeGiftTiers(action.payload.tiers);
+      }
+    },
     applyCoupon: (state, action) => {
       // Replaces whatever was applied — the one-coupon-at-a-time default.
       state.appliedCoupons = action.payload ? [action.payload] : [];
@@ -1118,8 +1141,11 @@ const cartSlice = createSlice({
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
           state.activeDiscounts = action.payload.activeDiscounts || [];
-          if (action.payload.settingsData) {
+          if (action.payload?.settingsData) {
             state.giftTiersConfig = action.payload.settingsData;
+            if (action.payload.settingsData.tiers) {
+              setCachedFreeGiftTiers(action.payload.settingsData.tiers);
+            }
           }
         }
       })
@@ -1229,6 +1255,7 @@ const cartSlice = createSlice({
 
 export const { 
   clearCart, 
+  setGiftTiersConfig,
   applyCoupon, 
   addCoupon,
   removeCoupon, 
