@@ -135,6 +135,136 @@
 }
 
 /* ==========================================================================
+   Zone A: Dynamic Hero Styles (.jewellery-emi-dynamic-hero)
+   Applied when .hero is rendered from Shopify's collection.descriptionHtml
+   ========================================================================== */
+
+.jewellery-emi-dynamic-hero .hero {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.jewellery-emi-dynamic-hero .hero .lead {
+  font-family: var(--font-abhaya), serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #2B2523;
+  line-height: 1.25;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 640px) {
+  .jewellery-emi-dynamic-hero .hero .lead {
+    font-size: 32px;
+  }
+}
+
+.jewellery-emi-dynamic-hero .scope {
+  background: #FAF6F4;
+  border: 1px solid #EBE1D7;
+  border-left: 4px solid #5A413F;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 16px 0;
+  font-size: 13px;
+  color: #52525B;
+  font-family: var(--font-figtree), sans-serif;
+  line-height: 1.6;
+}
+
+.jewellery-emi-dynamic-hero .btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0 12px;
+}
+
+.jewellery-emi-dynamic-hero .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 4px;
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.jewellery-emi-dynamic-hero .btn-p {
+  background: #5A413F;
+  color: #FFFFFF !important;
+}
+
+.jewellery-emi-dynamic-hero .btn-p:hover {
+  background: #4A312F;
+}
+
+.jewellery-emi-dynamic-hero .btn-s {
+  background: #FFFFFF;
+  border: 1px solid #EBE1D7;
+  color: #5A413F !important;
+}
+
+.jewellery-emi-dynamic-hero .btn-s:hover {
+  border-color: #5A413F;
+  background: #FAF6F4;
+}
+
+.jewellery-emi-dynamic-hero .trust {
+  font-size: 13px;
+  color: #71717A;
+  margin: 12px 0 16px;
+  font-family: var(--font-figtree), sans-serif;
+}
+
+.jewellery-emi-dynamic-hero .facts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 18px;
+}
+
+@media (min-width: 640px) {
+  .jewellery-emi-dynamic-hero .facts {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.jewellery-emi-dynamic-hero .fact {
+  background: #FFFFFF;
+  border: 1px solid #EBE1D7;
+  border-radius: 8px;
+  padding: 14px 10px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.jewellery-emi-dynamic-hero .fact b {
+  display: block;
+  font-family: var(--font-abhaya), serif;
+  font-size: 22px;
+  color: #5A413F;
+  line-height: 1;
+}
+
+.jewellery-emi-dynamic-hero .fact span {
+  display: block;
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 12px;
+  color: #71717A;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
    Zone C: SEO Content Styles (.jewellery-emi-content .emi-hub)
    Renders the descriptionHtml provided via Shopify without polluting global.css
    ========================================================================== */
