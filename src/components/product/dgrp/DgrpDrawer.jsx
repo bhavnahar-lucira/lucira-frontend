@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { useLoginGate } from "@/hooks/useAtcLoginGate";
 import {
   X,
+  ChevronLeft,
   TrendingUp,
   TrendingDown,
   Calendar,
@@ -460,7 +461,7 @@ export default function DgrpDrawer({
     >
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[440px] p-0 overflow-y-auto bg-white border-l border-zinc-200 z-[600]"
+        className="dgrp-drawer-sheet w-full sm:max-w-[440px] p-0 overflow-y-auto bg-white border-l border-zinc-200 z-[600]"
         style={{ maxWidth: "440px" }}
         showCloseButton={false}
         onPointerDownOutside={(e) => {
@@ -477,13 +478,99 @@ export default function DgrpDrawer({
           e.preventDefault();
         }}
       >
+        {/* Scoped CSS for smooth Digi Gold Drawer transitions in this file */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes dgrpSheetSlideIn {
+            0% {
+              transform: translate3d(100%, 0, 0);
+            }
+            100% {
+              transform: translate3d(0, 0, 0);
+            }
+          }
+
+          @keyframes dgrpSheetSlideOut {
+            0% {
+              transform: translate3d(0, 0, 0);
+            }
+            100% {
+              transform: translate3d(100%, 0, 0);
+            }
+          }
+
+          @keyframes dgrpOverlayFadeIn {
+            0% {
+              opacity: 0;
+            }
+            100% {
+              opacity: 1;
+            }
+          }
+
+          @keyframes dgrpOverlayFadeOut {
+            0% {
+              opacity: 1;
+            }
+            100% {
+              opacity: 0;
+            }
+          }
+
+          @keyframes dgrpStepEnter {
+            0% {
+              opacity: 0;
+              transform: translateY(6px);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          /* Smooth slide-in and slide-out for DGRP drawer */
+          .dgrp-drawer-sheet[data-state="open"] {
+            animation: dgrpSheetSlideIn 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            will-change: transform;
+          }
+
+          .dgrp-drawer-sheet[data-state="closed"] {
+            animation: dgrpSheetSlideOut 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            will-change: transform;
+          }
+
+          /* Smooth overlay fade */
+          body:has(.dgrp-drawer-sheet) [data-slot="sheet-overlay"][data-state="open"] {
+            animation: dgrpOverlayFadeIn 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+          }
+
+          body:has(.dgrp-drawer-sheet) [data-slot="sheet-overlay"][data-state="closed"] {
+            animation: dgrpOverlayFadeOut 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+          }
+
+          .dgrp-step-transition {
+            animation: dgrpStepEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+        `}} />
+
         <SheetTitle className="sr-only">Lock &amp; Key - Gold Rate Protection</SheetTitle>
 
         {/* Header Bar */}
-        <div className="sticky top-0 z-40 flex items-center justify-between bg-white px-5 sm:px-6 pt-5 pb-3 font-figtree">
-          <h2 className="font-abhaya text-2xl font-semibold tracking-tight text-[#1F1918]">
-            Lock &amp; Key
-          </h2>
+        <div className="sticky top-0 z-40 flex items-center justify-between bg-white px-5 sm:px-6 pt-5 pb-3 font-figtree border-b border-zinc-100/60 transition-colors">
+          <div className="flex items-center gap-1.5">
+            {step === 2 && (
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="flex size-7 -ml-1 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100 hover:text-black transition-colors cursor-pointer"
+                aria-label="Back to Offer"
+              >
+                <ChevronLeft size={19} strokeWidth={2} />
+              </button>
+            )}
+            <h2 className="font-abhaya text-2xl font-semibold tracking-tight text-[#1F1918]">
+              {step === 2 ? "Checkout" : "Lock & Key"}
+            </h2>
+          </div>
           <button
             onClick={onClose}
             className="flex size-8 items-center justify-center rounded-full text-zinc-700 hover:bg-zinc-100 hover:text-black transition-colors cursor-pointer"
@@ -497,7 +584,7 @@ export default function DgrpDrawer({
         {/* STEP 1: Offer Breakdown (Exact Figma Frame 1 Design) */}
         {/* ───────────────────────────────────────────────────────────── */}
         {step === 1 && (
-          <div className="px-5 sm:px-6 pb-6 pt-1 space-y-4 font-figtree animate-in fade-in duration-200">
+          <div className="px-5 sm:px-6 pb-6 pt-1 space-y-4 font-figtree dgrp-step-transition">
             {/* Hero Wrapper: Chain begins from the very top behind the Gold Rate Banner */}
             <div className="relative -mx-5 sm:-mx-6 overflow-hidden isolate">
               {/* Live Gold Rate Banner (z-20 to sit on top of the chain) */}
@@ -686,7 +773,7 @@ export default function DgrpDrawer({
         {/* STEP 2: Address & Payment */}
         {/* ───────────────────────────────────────────────────────────── */}
         {step === 2 && (
-          <div className="p-4 sm:p-5 space-y-3.5 sm:space-y-4 font-figtree animate-in fade-in duration-200">
+          <div className="p-4 sm:p-5 space-y-3.5 sm:space-y-4 font-figtree dgrp-step-transition">
             {/* Live Gold Rate Banner in Step 2 */}
             <div className="rounded-[8px] bg-[#F7EFE8] px-3 py-2 flex items-center justify-between font-figtree">
               <div className="flex items-center gap-2.5">
@@ -1043,7 +1130,7 @@ export default function DgrpDrawer({
         {/* STEP 3: Success Screen */}
         {/* ───────────────────────────────────────────────────────────── */}
         {step === 3 && (
-          <div className="p-8 text-center space-y-6 font-figtree animate-in zoom-in-95 duration-300">
+          <div className="p-8 text-center space-y-6 font-figtree dgrp-step-transition">
             {/* Product Centerpiece */}
             <div className="mx-auto size-40 sm:size-48 relative overflow-hidden rounded-[8px] bg-zinc-50 border border-zinc-200 p-4 shadow-xs flex items-center justify-center">
               {productImgSrc ? (
