@@ -23,16 +23,14 @@ export default function DgrpPdpBanner({
       className="group relative flex w-full cursor-pointer select-none items-stretch overflow-hidden rounded-[8px] bg-[#FBF3EA] shadow-xs transition-all duration-200 hover:shadow-sm active:scale-[0.995]"
     >
       {/* Left Voucher Body */}
-      <div className="flex flex-1 items-center gap-3 p-3 sm:p-3.5 min-w-0">
+      <div className="flex flex-1 items-center gap-2 sm:gap-3 p-2.5 sm:p-3.5 min-w-0">
         {/* Jewelry Padlock Icon with Keyhole & Gold Rim */}
-        <div className="flex size-10 sm:size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5D423F] to-[#432D2B] border border-[#D4AF37]/50 shadow-xs transition-transform duration-200 group-hover:scale-105">
+        <div className="flex size-8.5 sm:size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5D423F] to-[#432D2B] border border-[#D4AF37]/50 shadow-xs transition-transform duration-200 group-hover:scale-105">
           <svg
-            width="20"
-            height="20"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="text-[#F3C872]"
+            className="w-4 h-4 sm:w-5 sm:h-5 text-[#F3C872]"
           >
             {/* Elegant Padlock Shackle */}
             <path
@@ -65,22 +63,13 @@ export default function DgrpPdpBanner({
 
         {/* Text Content */}
         <div className="min-w-0 flex-1">
-          <div
-            className="font-figtree font-semibold tracking-[0.06em] text-[#8A6A3A] uppercase"
-            style={{ fontSize: "0.75rem" }}
-          >
+          <div className="font-figtree font-semibold tracking-[0.05em] text-[#8A6A3A] uppercase text-[9px] sm:text-xs">
             LOCK AND KEY OFFER
           </div>
-          <div
-            className="my-0.5 truncate font-figtree font-semibold text-[#3B2A25]"
-            style={{ fontSize: "1.05rem", lineHeight: 1.4 }}
-          >
+          <div className="my-0.5 truncate font-figtree font-semibold text-[#3B2A25] text-xs sm:text-[15px] md:text-[1.05rem] leading-tight sm:leading-snug">
             ₹{formatPrice(advanceAmount)} now + ₹{formatPrice(monthlyEmi)}/mo
           </div>
-          <div
-            className="truncate font-figtree text-[#6B5249]"
-            style={{ fontSize: "0.75rem" }}
-          >
+          <div className="truncate font-figtree text-[#6B5249] text-[10px] sm:text-xs">
             {isDiamond
               ? "Free diamond pendant with gold rate lock"
               : "Lock gold rate & pay in easy installments"}
@@ -89,17 +78,14 @@ export default function DgrpPdpBanner({
       </div>
 
       {/* Right Perforated Coupon Stub */}
-      <div className="flex flex-col items-center justify-center gap-1.5 border-l-[1.5px] border-dashed border-[#D9BF9C] bg-[#F5E7D4]/60 px-3 sm:px-4 py-2.5 sm:py-3 min-w-[96px] sm:min-w-[114px] shrink-0 transition-colors group-hover:bg-[#F5E7D4]">
-        <span className="rounded-[4px] border border-[#E8D5BE] bg-white px-2 py-0.5 font-figtree text-[10px] sm:text-[11px] font-semibold text-[#189351] whitespace-nowrap shadow-xs">
-          {tenureMonths} EMIs
-        </span>
+      <div className="flex flex-col items-center justify-center border-l-[1.5px] border-dashed border-[#D9BF9C] bg-[#F5E7D4]/60 px-2 sm:px-4 py-2 sm:py-3 min-w-[74px] sm:min-w-[104px] shrink-0 transition-colors group-hover:bg-[#F5E7D4]">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onClick?.();
           }}
-          className="rounded-[4px] bg-[#5A413F] px-3 sm:px-3.5 py-1.5 font-figtree text-[12px] sm:text-[13px] font-medium text-[#FBF3EA] whitespace-nowrap transition-colors hover:bg-[#4A312F] cursor-pointer shadow-xs active:scale-95"
+          className="rounded-[4px] bg-[#5A413F] px-2 sm:px-3.5 py-1.5 font-figtree text-[11px] sm:text-[13px] font-medium text-[#FBF3EA] whitespace-nowrap transition-colors hover:bg-[#4A312F] cursor-pointer shadow-xs active:scale-95"
         >
           Lock rate
         </button>
