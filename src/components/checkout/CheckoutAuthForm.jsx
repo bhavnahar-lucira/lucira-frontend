@@ -55,7 +55,10 @@ export function CheckoutAuthForm({
   title = "Checkout Securely",
   subtitle = "Login / Signup to proceed checkout",
   buttonText = "CONTINUE",
-  onClose
+  onClose,
+  // Add-to-cart login gate: keep the account's saved cart and just merge into it,
+  // instead of clearing it like the checkout login does.
+  keepSavedCart = false
 }) {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -171,28 +174,30 @@ export function CheckoutAuthForm({
       if (avData.avatar) dispatch(setAvatar(avData.avatar));
     } catch (err) { }
 
-    try {
-      const { store } = await import("@/redux/store");
-      const guestItems = store.getState().cart?.items || [];
-      const guestVariantIds = guestItems.map(i => i.variantId);
-      
-      // Pass the new access token explicitly to avoid localStorage race conditions
-      const authHeader = { Authorization: `Bearer ${data.accessToken}` };
-      const backendCart = await apiFetch(`/api/cart/get?userId=${userId}`, { headers: authHeader });
-      const itemsToRemove = backendCart?.items || [];
-      const sessionId = getSessionId();
-      
-      if (itemsToRemove.length > 0) {
-        await Promise.all(itemsToRemove.map(item => 
-          apiFetch("/api/cart/remove", {
-            method: "POST",
-            headers: authHeader,
-            body: JSON.stringify({ userId, sessionId, variantId: item.variantId })
-          }).catch((err) => console.error("Backend remove failed:", err))
-        ));
+    if (!keepSavedCart) {
+      try {
+        const { store } = await import("@/redux/store");
+        const guestItems = store.getState().cart?.items || [];
+        const guestVariantIds = guestItems.map(i => i.variantId);
+        
+        // Pass the new access token explicitly to avoid localStorage race conditions
+        const authHeader = { Authorization: `Bearer ${data.accessToken}` };
+        const backendCart = await apiFetch(`/api/cart/get?userId=${userId}`, { headers: authHeader });
+        const itemsToRemove = backendCart?.items || [];
+        const sessionId = getSessionId();
+        
+        if (itemsToRemove.length > 0) {
+          await Promise.all(itemsToRemove.map(item => 
+            apiFetch("/api/cart/remove", {
+              method: "POST",
+              headers: authHeader,
+              body: JSON.stringify({ userId, sessionId, variantId: item.variantId })
+            }).catch((err) => console.error("Backend remove failed:", err))
+          ));
+        }
+      } catch (err) {
+        console.warn("Could not clear old cart items:", err);
       }
-    } catch (err) {
-      console.warn("Could not clear old cart items:", err);
     }
 
     try {
