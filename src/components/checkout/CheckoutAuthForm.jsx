@@ -65,6 +65,8 @@ export function CheckoutAuthForm({
 
   const [step, setStep] = useState(initialStep); // login, otp, register
   const [mobile, setMobile] = useState(initialMobile);
+  const [mobileError, setMobileError] = useState("");
+  const [otpError, setOtpError] = useState("");
 
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [fullName, setFullName] = useState("");
@@ -216,9 +218,16 @@ export function CheckoutAuthForm({
   };
 
   const handleSendOtp = async () => {
-    if (mobile.length !== 10) return toast.error("Please enter a valid 10-digit mobile number");
-    if (!/^[6-9]/.test(mobile)) return toast.error("Please enter a valid Indian mobile number");
+    if (mobile.length !== 10) {
+      setMobileError("Please enter a valid 10-digit mobile number");
+      return;
+    }
+    if (!/^[6-9]/.test(mobile)) {
+      setMobileError("Please enter a valid Indian mobile number");
+      return;
+    }
 
+    setMobileError("");
     setLoading(true);
     try {
       await sendOtpApi(mobile);
@@ -226,7 +235,7 @@ export function CheckoutAuthForm({
       setStep("otp");
       setTimer(118); // 01:58 as in figma (approx 120s)
     } catch (err) {
-      toast.error(err.message || "Failed to send OTP");
+      setMobileError(err.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -235,8 +244,12 @@ export function CheckoutAuthForm({
   const handleVerifyOtp = async (overrideOtp) => {
     if (loading) return;
     const otpValue = typeof overrideOtp === "string" ? overrideOtp : otp.join("");
-    if (otpValue.length !== 4) return toast.error("Enter 4-digit OTP");
+    if (otpValue.length !== 4) {
+      setOtpError("Enter 4-digit OTP");
+      return;
+    }
 
+    setOtpError("");
     setLoading(true);
     try {
       const data = await verifyOtpApi(mobile, otpValue);
@@ -247,13 +260,14 @@ export function CheckoutAuthForm({
         await loginSuccess(data, false);
       }
     } catch (err) {
-      toast.error(err.message || "Invalid OTP");
+      setOtpError(err.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
   };
 
   const handleOtpChange = (index, value) => {
+    if (otpError) setOtpError("");
     if (value.length === 4 && /^\d+$/.test(value)) {
       const newOtp = value.split("");
       setOtp(newOtp);
@@ -346,7 +360,11 @@ export function CheckoutAuthForm({
             ) : null}
           </div>
 
-          <div className="flex items-center border border-zinc-200 rounded-[4px] h-[50px] px-4">
+          <div
+            className={`flex items-center rounded-[4px] h-[50px] px-4 transition-colors ${
+              mobileError ? "border border-red-500" : "border border-zinc-200"
+            }`}
+          >
             <span className="text-[15px] font-medium mr-3 pr-3 border-r border-zinc-400 md:border-zinc-200 text-zinc-700">+91</span>
             <input
               ref={mobileRef}
@@ -355,7 +373,10 @@ export function CheckoutAuthForm({
               maxLength="10"
               className="w-full h-full text-[14px] md:text-[15px] lg:text-[1rem] font-medium border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400 max-md:font-figtree max-md:leading-[140%] max-md:text-zinc-700 md:text-zinc-900"
               value={mobile}
-              onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
+              onChange={(e) => {
+                setMobile(cleanPhoneInput(e.target.value));
+                if (mobileError) setMobileError("");
+              }}
               onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
             />
           </div>
@@ -363,6 +384,12 @@ export function CheckoutAuthForm({
           <p className="text-[10px] md:text-[11px] lg:text-[0.8rem] font-light md:font-medium max-md:font-figtree text-left leading-[1.6] mb-[12px] text-black max-[380px]:max-w-[285px]">
             By proceeding you accept Lucira&apos;s <Link href="/pages/exclusive-promotions-page" target="_blank" rel="noopener noreferrer" className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Terms & Conditions</Link> & <Link href="/pages/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-medium md:font-bold underline cursor-pointer text-zinc-700">Privacy Policy</Link>
           </p>
+
+          {mobileError && (
+            <p className="text-[12px] font-medium text-red-500 text-left font-figtree -mt-1 mb-1 animate-in fade-in duration-150">
+              {mobileError}
+            </p>
+          )}
 
           <Button
             onClick={handleSendOtp}
@@ -393,7 +420,9 @@ export function CheckoutAuthForm({
                 inputMode="numeric"
                 autoComplete="off"
                 maxLength="1"
-                className="min-w-0 flex-1 aspect-[1.4] max-h-[60px] text-center text-[22px] border border-zinc-200 rounded-[4px] focus:border-black outline-none font-semibold bg-white text-zinc-800"
+                className={`min-w-0 flex-1 aspect-[1.4] max-h-[60px] text-center text-[22px] border ${
+                  otpError ? "border-red-500" : "border-zinc-200"
+                } rounded-[4px] focus:border-black outline-none font-semibold bg-white text-zinc-800 transition-colors`}
                 value={digit}
                 onChange={(e) => handleOtpChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
@@ -410,6 +439,12 @@ export function CheckoutAuthForm({
               </span>
             )}
           </p>
+
+          {otpError && (
+            <p className="text-[12px] font-medium text-red-500 text-center font-figtree mb-1 animate-in fade-in duration-150">
+              {otpError}
+            </p>
+          )}
 
           <Button
             onClick={() => handleVerifyOtp()}
