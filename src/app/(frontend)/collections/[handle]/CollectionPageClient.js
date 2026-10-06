@@ -38,6 +38,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
+import JewelleryEmiStrip from "@/components/collections/JewelleryEmiStrip";
 import { apiFetch } from "@/lib/api";
 import { storeCollectionHandles } from "@/lib/storeContent";
 
@@ -1720,8 +1721,14 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       })()}
 
       {handle === "eterna" && <EternaBandsSection />}
+      {handle === "jewellery-on-emi" && (
+        <JewelleryEmiStrip 
+          onShopClick={scrollToProductsTop} 
+          descriptionHtml={collection?.descriptionHtml} 
+        />
+      )}
 
-      <div ref={productsTopRef} className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
+      <div ref={productsTopRef} id="products" className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
         {/* ================= FILTERS SIDEBAR ================= */}
         <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
           <div className="sticky top-19 self-start h-fit">
@@ -1787,6 +1794,16 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
         {/* ================= PRODUCTS SECTION ================= */}
         <div className="flex-1">
+          {handle === "jewellery-on-emi" && (
+            <div className="mb-4 px-4 lg:px-0">
+              <h2 className="font-abhaya text-2xl lg:text-3xl font-extrabold text-[#2B1F1E]">
+                Diamond jewelry from ₹50,000
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6D625E] font-medium font-figtree mt-1">
+                EMI is available where eligible and applies to the diamond component of each piece.
+              </p>
+            </div>
+          )}
           <div className={`flex items-center justify-between sticky top-0 z-20 ${isMobile ? "gap-3 p-4 bg-white/95 backdrop-blur-sm border-b border-[#F0E7E2]" : "gap-4 py-4 bg-white"}`}>
             <div className={isMobile ? "flex items-center gap-2.5" : "flex gap-3 items-center"}>
               {isMobile ? (
@@ -1984,6 +2001,23 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
               {/* SEO Section */}
               {collection?.descriptionHtml && (
+                handle === "jewellery-on-emi" ? (
+                  <div className="jewellery-emi-content mt-8 border-t border-[#EADFD8] pt-10">
+                    <div
+                      dangerouslySetInnerHTML={{ 
+                        __html: collection.descriptionHtml.replace(/<div class="hero">[\s\S]*?<\/div>\s*(?:<nav class="toc">|<section|$)/i, (match) => {
+                          // Keep <nav class="toc"> or <section> if matched
+                          if (match.includes('<nav class="toc">')) return '<nav class="toc">';
+                          if (match.includes('<section')) {
+                            const secIdx = match.indexOf('<section');
+                            return match.slice(secIdx);
+                          }
+                          return '';
+                        })
+                      }}
+                    />
+                  </div>
+                ) : (
                 <div className="mt-8 border-t border-gray-100 pt-10">
                   <div
                     className="
@@ -2185,6 +2219,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
                     dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
                   />
                 </div>
+                )
               )}
             </div>
           </div>
