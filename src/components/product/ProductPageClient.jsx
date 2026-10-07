@@ -29,7 +29,7 @@ import FAQSection from "@/components/product/FAQSection";
 import DiamondComparison from "@/components/product/DiamondComparison";
 import { FindLuciraStore } from "@/components/product/FindLuciraStore";
 import { asStorePages, storeByHandle } from "@/lib/storeContent";
-import { handleFromStoreName } from "@/data/stores";
+import { handleFromStoreName, isHeadOffice } from "@/data/stores";
 const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { suspense: true });
 import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
 import { ProductSlider } from "@/components/product/ProductSlider";
@@ -902,6 +902,14 @@ export default function ProductPageClient({
     ? calculateScheme(activeVariant.price)
     : null;
 
+  const productPageUrl = useMemo(() => {
+    if (!product?.handle) return "";
+    const origin = typeof window !== "undefined" && window.location.origin
+      ? window.location.origin
+      : "https://www.lucirajewelry.com";
+    return `${origin}/products/${product.handle}`;
+  }, [product?.handle]);
+
   // Pincode & Dispatch Logic
   const globalPincode = useSelector(selectPincode);
   const [localPincode, setLocalPincode] = useState(globalPincode || "");
@@ -919,7 +927,8 @@ export default function ProductPageClient({
     const fetchStores = async () => {
       try {
         const data = await apiFetch("/api/stores");
-        setAllStores(data.stores || []);
+        const stores = (data.stores || []).filter((s) => !isHeadOffice(s));
+        setAllStores(stores);
       } catch (err) {
         console.error("Error fetching stores:", err);
       }
@@ -1140,12 +1149,12 @@ export default function ProductPageClient({
 
   // Handle Nearest Store Logic using useMemo for synchronous variant matching and distance sorting
   const { availableStores, nearestStore, availableStoreCount } = useMemo(() => {
-    if (!allStores.length) {
+    const visitableStores = (allStores || []).filter((s) => !isHeadOffice(s));
+    if (!visitableStores.length) {
       return { availableStores: [], nearestStore: null, availableStoreCount: 0 };
     }
 
     const tagMapping = {
-      "Malad": ["divinecarat", "malad", "goregaon"],
       "Chembur": ["chembur", "cs1"],
       "Pune": ["pune", "ps1"],
       "Borivali": ["borivali", "bo1"],
@@ -1155,7 +1164,7 @@ export default function ProductPageClient({
     const inStoreTags = activeVariant?.metafields?.in_store_available || [];
 
     // 1. Identify which stores actually have stock
-    const stockStoreIds = allStores.filter(store => {
+    const stockStoreIds = visitableStores.filter(store => {
       if (inStoreTags.includes(store.shopifyId)) return true;
       const storeNumericId = store.shopifyId.split("/").pop();
       if (inStoreTags.some(tag => String(tag).includes(storeNumericId))) return true;
@@ -1174,7 +1183,7 @@ export default function ProductPageClient({
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
     const { stores: configuredStores = [] } = asStorePages(storePages);
 
-    const storesWithData = allStores.map(store => {
+    const storesWithData = visitableStores.map(store => {
       let distance = null;
       if (deliveryInfo.coords && (store.latitude || store.lat) && (store.longitude || store.lng)) {
         distance = calculateDistance(
@@ -1197,7 +1206,7 @@ export default function ProductPageClient({
       return {
         ...store,
         handle: handle || storeConfig?.handle,
-        displayName: storeConfig?.name || (getStoreDisplayName(store.name) === "Head Office" ? "Head Office" : `${getStoreDisplayName(store.name)} Lucira Store`),
+        displayName: storeConfig?.name || `${getStoreDisplayName(store.name)} Lucira Store`,
         addressFormatted: storeConfig?.address || [store.address1 || store.address, store.city, store.province, store.zip].filter(Boolean).join(", "),
         phone: storeConfig?.phone || store.phone,
         mapLink: storeConfig?.links?.map || storeConfig?.links?.directions || store.mapLink,
@@ -3159,7 +3168,29 @@ export default function ProductPageClient({
 
             <div className="flex gap-2 mb-6">
               <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
-                <a href={`https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+get+more+information+about+this+product%3A+${encodeURIComponent(product?.title || '')}&type=phone_number&app_absent=0`} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                    `Hi, I'd like more details on the: ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
+                  )}&type=phone_number&app_absent=0`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    pushPromoClick({
+                      promo_id: activeVariant?.sku || String(getNumericId(activeVariant?.id || product?.shopifyId || product?.id) || ""),
+                      promo_name: product?.title || "",
+                      creative_name: "Product page whatsapp",
+                      location_id: "pdp",
+                      product_id: String(getNumericId(product?.shopifyId || product?.id) || ""),
+                      product_name: product?.title || "",
+                      sku: activeVariant?.sku || "",
+                      variant_id: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId) || ""),
+                      product_url: productPageUrl,
+                      product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
+                      price: Number(activeVariant?.price || 0),
+                      offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
+                    });
+                  }}
+                >
                   <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
                   <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
                 </a>
@@ -3511,14 +3542,26 @@ export default function ProductPageClient({
                                 event: "promoClick",
                                 promoClick: {
                                   creative_name: "book video call cta pdp",
-                                  promo_id: getNumericId(activeVariant?.id),
+                                  promo_id: String(getNumericId(activeVariant?.id) || ""),
                                   promo_name: "Book Video Call",
                                   promo_position: "Product Details Section",
                                   location_id: "pdp",
-                                  product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                                  product_id: String(getNumericId(product?.shopifyId || product?.id) || ""),
+                                  product_name: product?.title || "",
+                                  sku: activeVariant?.sku || "",
+                                  variant_id: String(getNumericId(activeVariant?.id) || ""),
+                                  product_url: productPageUrl,
+                                  product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url)),
+                                  price: Number(activeVariant?.price || 0),
+                                  offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
                                 }
                               });
-                              window.open("https://api.whatsapp.com/send/?phone=+917208934782&text=Hi%2C+I+want+to+schedule+video+call+&type=phone_number&app_absent=0", "_blank");
+                              window.open(
+                                `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                                  `Hi, I'd like to schedule a video call for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
+                                )}&type=phone_number&app_absent=0`,
+                                "_blank"
+                              );
                             }}
                             className="w-full h-10 font-bold rounded text-xs bg-tertiary uppercase tracking-wide"
                           >
@@ -3591,13 +3634,24 @@ export default function ProductPageClient({
                   description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
                   action="BOOK APPOINTMENT"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
-                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20book%20an%20appointment"
+                  url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                    `Hi, I'd like to book a store appointment for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
+                  )}&type=phone_number&app_absent=0`}
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
-                      promo_id: getNumericId(product.shopifyId || product.id),
+                      promo_id: String(getNumericId(product.shopifyId || product.id) || ""),
+                      promo_name: product.title || "",
                       creative_name: 'Visit Store Button clicked',
                       location_id: 'Pdp',
+                      product_id: String(getNumericId(product.shopifyId || product.id) || ""),
+                      product_name: product.title || "",
+                      sku: activeVariant?.sku || "",
+                      variant_id: String(getNumericId(activeVariant?.id) || ""),
+                      product_url: productPageUrl,
+                      product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
+                      price: Number(activeVariant?.price || 0),
+                      offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
                     }
                   })}
                 />
@@ -3607,14 +3661,24 @@ export default function ProductPageClient({
                   description="Try your selected pieces from the comfort of your home. Available in all major cities"
                   action="BOOK HOME TRIAL"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
-                  url="https://wa.me/+917208934782?text=Hi,%20I%20want%20to%20try%20this%20at%20home"
+                  url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                    `Hi, I'd like to book a free home trial for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
+                  )}&type=phone_number&app_absent=0`}
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
-                      promo_id: activeVariant?.sku || product.id,
+                      promo_id: activeVariant?.sku || String(getNumericId(product.id) || ""),
                       promo_name: product.title,
                       creative_name: 'Try at Home Section',
                       location_id: 'PDP',
+                      product_id: String(getNumericId(product.shopifyId || product.id) || ""),
+                      product_name: product.title || "",
+                      sku: activeVariant?.sku || "",
+                      variant_id: String(getNumericId(activeVariant?.id) || ""),
+                      product_url: productPageUrl,
+                      product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
+                      price: Number(activeVariant?.price || 0),
+                      offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
                     }
                   })}
                 />
@@ -4314,16 +4378,13 @@ export default function ProductPageClient({
                 </div>
 
                 <div className="space-y-6  overflow-y-auto h-full">
-                  {availableStores.length > 0 ? (
-                    availableStores.map((store) => (
+                  {availableStores.filter((s) => !isHeadOffice(s)).length > 0 ? (
+                    availableStores.filter((s) => !isHeadOffice(s)).map((store) => (
                       <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
                             <h3 className="font-bold text-lg">
-                              {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
-                                ? "Head Office"
-                                : `${getStoreDisplayName(store.name)}`
-                              )}
+                              {store.displayName || `${getStoreDisplayName(store.name)}`}
                             </h3>
                             {store.distance !== null && (
                               <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
@@ -4375,11 +4436,28 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://wa.me/+917208934782?text=${encodeURIComponent(
-                              `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
-                            )}`}
+                            href={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                              `Hi, is the ${product?.title || ""} available to see at your ${store.displayName || getStoreDisplayName(store.name)} store?${productPageUrl ? ` ${productPageUrl}` : ""}`
+                            )}&type=phone_number&app_absent=0`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() => {
+                              pushPromoClick({
+                                promo_id: activeVariant?.sku || String(getNumericId(activeVariant?.id || product?.shopifyId || product?.id) || ""),
+                                promo_name: product?.title || "",
+                                creative_name: "Store Availability WhatsApp",
+                                location_id: "pdp",
+                                store_name: store.displayName || getStoreDisplayName(store.name),
+                                product_id: String(getNumericId(product?.shopifyId || product?.id) || ""),
+                                product_name: product?.title || "",
+                                sku: activeVariant?.sku || "",
+                                variant_id: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId) || ""),
+                                product_url: productPageUrl,
+                                product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
+                                price: Number(activeVariant?.price || 0),
+                                offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
+                              });
+                            }}
                             className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
                           >
                             <div className="relative w-7 h-7">
@@ -4427,16 +4505,13 @@ export default function ProductPageClient({
 
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-6">
-                {availableStores.length > 0 ? (
-                  availableStores.map((store) => (
+                {availableStores.filter((s) => !isHeadOffice(s)).length > 0 ? (
+                  availableStores.filter((s) => !isHeadOffice(s)).map((store) => (
                     <div key={store.id || store.shopifyId} className="border border-gray-100 rounded-xl p-5 space-y-4 bg-gray-50/50">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
                           <h3 className="font-bold text-lg">
-                            {store.displayName || (getStoreDisplayName(store.name) === "Head Office"
-                              ? "Head Office"
-                              : `${getStoreDisplayName(store.name)}`
-                            )}
+                            {store.displayName || `${getStoreDisplayName(store.name)}`}
                           </h3>
                           {store.distance !== null && (
                             <div className="flex items-center gap-1.5 text-primary font-semibold text-sm">
@@ -4488,11 +4563,28 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://wa.me/+917208934782?text=${encodeURIComponent(
-                            `Hi, I would like to check the availability for ${store.displayName || getStoreDisplayName(store.name)} store.`
-                          )}`}
+                          href={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                            `Hi, is the ${product?.title || ""} available to see at your ${store.displayName || getStoreDisplayName(store.name)} store?${productPageUrl ? ` ${productPageUrl}` : ""}`
+                          )}&type=phone_number&app_absent=0`}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => {
+                            pushPromoClick({
+                              promo_id: activeVariant?.sku || String(getNumericId(activeVariant?.id || product?.shopifyId || product?.id) || ""),
+                              promo_name: product?.title || "",
+                              creative_name: "Store Availability WhatsApp",
+                              location_id: "pdp",
+                              store_name: store.displayName || getStoreDisplayName(store.name),
+                              product_id: String(getNumericId(product?.shopifyId || product?.id) || ""),
+                              product_name: product?.title || "",
+                              sku: activeVariant?.sku || "",
+                              variant_id: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId) || ""),
+                              product_url: productPageUrl,
+                              product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
+                              price: Number(activeVariant?.price || 0),
+                              offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
+                            });
+                          }}
                           className="h-11 aspect-square bg-[#29a319] shadow-sm border-gray-200 rounded-sm flex items-center justify-center shrink-0"
                         >
                           <div className="relative w-7 h-7">

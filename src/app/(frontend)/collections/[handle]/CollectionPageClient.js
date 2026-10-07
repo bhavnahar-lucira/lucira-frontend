@@ -397,6 +397,9 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     ? plpBanners.inpageBanners
     : FALLBACK_INPAGE_BANNERS;
 
+  // Dashboard-managed Jewelry on EMI content & calculator settings
+  const emiSettings = initialData?.emiSettings || null;
+
   // Dashboard-managed store pages. `storeHandles` covers every store, including
   // ones whose hero is switched off — those collections then render no top
   // banner at all, which is what the old hard-coded STORE_HANDLES list did.
@@ -1725,6 +1728,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         <JewelleryEmiStrip 
           onShopClick={scrollToProductsTop} 
           descriptionHtml={collection?.descriptionHtml} 
+          emiSettings={emiSettings}
         />
       )}
 

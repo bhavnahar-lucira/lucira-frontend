@@ -114,16 +114,25 @@ export default async function Page({ params }) {
 
   let initialData = null;
   try {
-    const [collRes, filterRes, plpBannersRes] = await Promise.all([
+    const [collRes, filterRes, plpBannersRes, emiSettingsRes] = await Promise.all([
       fetch(`${base}/api/collection?handle=${handle}&limit=16&sort=manual`, { 
         cache: (handle === "jewellery-on-emi" || process.env.NODE_ENV === "development") ? "no-store" : "force-cache" 
       }),
       fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' }),
-      fetch(`${base}/api/settings/plp-banners`, { cache: 'force-cache' })
+      fetch(`${base}/api/settings/plp-banners`, { cache: 'force-cache' }),
+      handle === "jewellery-on-emi"
+        ? fetch(`${base}/api/settings/jewellery-on-emi`, {
+            cache: process.env.NODE_ENV === "development" ? "no-store" : "force-cache"
+          }).catch(() => null)
+        : Promise.resolve(null),
     ]);
     let plpBanners = null;
     if (plpBannersRes.ok) {
       plpBanners = await plpBannersRes.json().catch(() => null);
+    }
+    let emiSettings = null;
+    if (emiSettingsRes && emiSettingsRes.ok) {
+      emiSettings = await emiSettingsRes.json().catch(() => null);
     }
     if (collRes.ok && filterRes.ok) {
       const collData = await collRes.json();
@@ -146,7 +155,7 @@ export default async function Page({ params }) {
         });
       }
 
-      initialData = { collData, filterData: filterDataObj || {}, plpBanners };
+      initialData = { collData, filterData: filterDataObj || {}, plpBanners, emiSettings };
     }
   } catch (e) {
     console.error("Failed to fetch initial data for SSG", e);
