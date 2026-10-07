@@ -15,6 +15,7 @@ import { ScratchCardAuth } from "./scratch/ScratchCardAuth";
 import { VARIANT_SCRATCH } from "@/lib/signupExperiment";
 import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { runPendingLoginAction, clearPendingLoginAction } from "@/hooks/useAtcLoginGate";
 
 import { useSelector } from "react-redux";
 
@@ -36,8 +37,20 @@ export function AuthDialog({
   const router = useRouter();
   const pathname = usePathname();
   const [currentStep, setCurrentStep] = useState(initialStep);
-  const authRedirectPath = useSelector((state) => state.user.authRedirectPath);
-  const authModalOverrides = useSelector((state) => state.user.authModalOverrides);
+  const liveRedirectPath = useSelector((state) => state.user.authRedirectPath);
+  const liveOverrides = useSelector((state) => state.user.authModalOverrides);
+
+  // closeAuthModal wipes the overrides the moment the modal is told to close,
+  // while the dialog/sheet is still animating out. Reading them live would flip
+  // the closing modal to the default title, or to the spin-wheel form entirely.
+  // Hold on to what it was opened with until it opens again.
+  const [heldAuthConfig, setHeldAuthConfig] = useState({ overrides: liveOverrides, redirectPath: liveRedirectPath });
+  if (open && (heldAuthConfig.overrides !== liveOverrides || heldAuthConfig.redirectPath !== liveRedirectPath)) {
+    setHeldAuthConfig({ overrides: liveOverrides, redirectPath: liveRedirectPath });
+  }
+  const authModalOverrides = open ? liveOverrides : heldAuthConfig.overrides;
+  const authRedirectPath = open ? liveRedirectPath : heldAuthConfig.redirectPath;
+
   const hideRegisterLink = authRedirectPath === "/checkout/shipping" || pathname === "/checkout/cart";
 
   const isCartOrCheckout = 
@@ -84,6 +97,13 @@ export function AuthDialog({
     onOpenChange(false);
   };
 
+  // User-initiated close (X, backdrop) without logging in: drop any add-to-cart
+  // that was waiting on this login.
+  const handleDismiss = () => {
+    clearPendingLoginAction();
+    handleClose();
+  };
+
   const handleSuccess = (redirectPath) => {
     // 1. Explicitly navigate first if a path is provided
     if (redirectPath) {
@@ -94,6 +114,7 @@ export function AuthDialog({
     setTimeout(() => {
       handleClose();
       if (onSuccess) onSuccess();
+      runPendingLoginAction();
     }, 50);
   };
 
@@ -113,7 +134,7 @@ export function AuthDialog({
     return (
       <Sheet
         isOpen={isOpen}
-        onClose={handleClose}
+        onClose={handleDismiss}
         detent="content"
         avoidKeyboard={true}
         style={{ zIndex: 2000 }}
@@ -131,7 +152,8 @@ export function AuthDialog({
                   title={finalTitle}
                   subtitle={finalSubtitle}
                   buttonText={overrideButtonText || "CONTINUE"}
-                  onClose={handleClose}
+                  onClose={handleDismiss}
+                  keepSavedCart={!!authModalOverrides?.keepSavedCart}
                 />
               </div>
             ) : (
@@ -154,7 +176,7 @@ export function AuthDialog({
             )}
           </Sheet.Content>
         </Sheet.Container>
-        <Sheet.Backdrop onTap={handleClose} />
+        <Sheet.Backdrop onTap={handleDismiss} />
       </Sheet>
     );
   }
@@ -163,7 +185,7 @@ export function AuthDialog({
     return (
       <Dialog
         open={isOpen}
-        onOpenChange={(val) => (val ? onOpenChange(true) : handleClose())}
+        onOpenChange={(val) => (val ? onOpenChange(true) : handleDismiss())}
       >
         <DialogContent 
           className="w-full max-w-[420px] p-0 border-none bg-white shadow-2xl rounded-lg overflow-hidden" 
@@ -181,7 +203,8 @@ export function AuthDialog({
               title={finalTitle}
               subtitle={finalSubtitle}
               buttonText={overrideButtonText || "CONTINUE"}
-              onClose={handleClose}
+              onClose={handleDismiss}
+              keepSavedCart={!!authModalOverrides?.keepSavedCart}
             />
           </div>
         </DialogContent>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import Konva from 'konva';
 import { shopifyStorefrontFetch } from '@/lib/shopify-client';
 import { useCart } from '@/hooks/useCart';
+import { useAtcLoginGate } from '@/hooks/useAtcLoginGate';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn, uploadToShopify } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -192,6 +193,9 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
   const { addToCart } = useCart();
   const router = useRouter();
+  const requireLoginForCart = useAtcLoginGate();
+  // Newest handleAddToBag, so the post-login add sees the logged-in user.
+  const handleAddToBagRef = useRef(null);
 
   useEffect(() => {
     async function loadData() {
@@ -873,14 +877,23 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     setIsSummaryOpen(true);
   };
 
-  const handleAddToBag = async () => {
-    pushPromoClick({
-      creative_name: "BYJ Add to cart",
-      location_id: "build your jewelry",
-      promo_id: categoryConfig.label,
-    });
+  // afterLogin: replayed by the login gate; the click was already tracked.
+  const handleAddToBag = async (opts) => {
+    if (!opts?.afterLogin) {
+      pushPromoClick({
+        creative_name: "BYJ Add to cart",
+        location_id: "build your jewelry",
+        promo_id: categoryConfig.label,
+      });
+    }
 
     if (!selectedStyle || selectedCharms.length === 0) return;
+
+    // Guests must log in before anything is added; the add runs after login.
+    if (requireLoginForCart(() => handleAddToBagRef.current?.({ afterLogin: true }))) {
+      setIsSummaryOpen(false);
+      return;
+    }
     setAddingToBag(true);
     try {
       const styleV = getActiveVersion(selectedStyle, material, length);
@@ -954,13 +967,16 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
       });
       
       setIsSummaryOpen(false);
-      router.push('/cart');
+      router.push('/checkout/cart');
     } catch (err) {
       console.error('Add to bag failed:', err);
     } finally {
       setAddingToBag(false);
     }
   };
+  useEffect(() => {
+    handleAddToBagRef.current = handleAddToBag;
+  });
 
   const containerStyle = {
   };

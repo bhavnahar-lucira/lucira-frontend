@@ -124,6 +124,8 @@ export function OtpSpinAuth({
 
   const [step, setStep] = useState(initialStep); // login, otp, register, success
   const [mobile, setMobile] = useState(initialMobile);
+  const [mobileError, setMobileError] = useState("");
+  const [otpError, setOtpError] = useState("");
 
   const handleStepChange = (newStep) => {
     if (onStepChange) onStepChange(newStep);
@@ -319,8 +321,15 @@ export function OtpSpinAuth({
   };
 
   const handleSendOtp = async () => {
-    if (mobile.length !== 10) return toast.error("Please enter a valid 10-digit mobile number");
-    if (!/^[6-9]/.test(mobile)) return toast.error("Please enter a valid Indian mobile number starting with 6, 7, 8 or 9");
+    if (mobile.length !== 10) {
+      setMobileError("Please enter a valid 10-digit mobile number");
+      return;
+    }
+    if (!/^[6-9]/.test(mobile)) {
+      setMobileError("Please enter a valid Indian mobile number starting with 6, 7, 8 or 9");
+      return;
+    }
+    setMobileError("");
     setLoading(true);
     try {
       await sendOtpApi(mobile);
@@ -328,7 +337,7 @@ export function OtpSpinAuth({
       handleStepChange("otp");
       setTimer(30);
     } catch (err) {
-      toast.error(err.message || "Failed to send OTP");
+      setMobileError(err.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -739,7 +748,7 @@ export function OtpSpinAuth({
         {step === "login" && (
           <>
             <p className="mb-[14px] text-center text-[14px] leading-tight font-normal text-[#030000] mx-auto mt-[14px] cursor-pointer whitespace-nowrap" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "Login to access your rewards & exclusive benefits"}</p>
-            <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
+            <div className={`flex items-center h-[45px] px-4 rounded-sm bg-white transition-colors ${mobileError ? "border border-red-500" : "border border-[#e2e2e2]"}`}>
               <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
               <input
                 ref={mobileRef}
@@ -748,7 +757,10 @@ export function OtpSpinAuth({
                 maxLength="10"
                 className="w-full h-full text-sm md:text-base border-none outline-none font-normal bg-transparent tracking-[0.3px]"
                 value={mobile}
-                onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
+                onChange={(e) => {
+                  setMobile(cleanPhoneInput(e.target.value));
+                  if (mobileError) setMobileError("");
+                }}
               />
             </div>
             <div className="my-3 max-w-full hidden">
@@ -764,8 +776,13 @@ export function OtpSpinAuth({
                 </span>
               </label>
             </div>
+            {mobileError && (
+              <p className="text-[12px] font-medium text-red-500 text-left font-figtree mt-2 mb-1 animate-in fade-in duration-150">
+                {mobileError}
+              </p>
+            )}
             <button 
-              className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-3 bg-[#5a413f] rounded-lg disabled:opacity-50" 
+              className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-2 bg-[#5a413f] rounded-lg disabled:opacity-50" 
               onClick={handleSendOtp} 
               disabled={loading}
             >
