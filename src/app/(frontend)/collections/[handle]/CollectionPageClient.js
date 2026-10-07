@@ -1811,13 +1811,13 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
         {/* ================= PRODUCTS SECTION ================= */}
         <div className="flex-1">
-          {handle === "jewellery-on-emi" && (
+          {handle === "jewellery-on-emi" && emiSettings?.productsIntro?.enabled !== false && (
             <div className="mb-4 px-4 lg:px-0">
               <h2 className="font-abhaya text-2xl lg:text-3xl font-extrabold text-[#2B1F1E]">
-                Diamond jewelry from ₹50,000
+                {emiSettings?.productsIntro?.title ?? "Diamond jewelry from ₹50,000"}
               </h2>
               <p className="text-xs sm:text-sm text-[#6D625E] font-medium font-figtree mt-1">
-                EMI is available where eligible and applies to the diamond component of each piece.
+                {emiSettings?.productsIntro?.subtitle ?? "EMI is available where eligible and applies to the diamond component of each piece."}
               </p>
             </div>
           )}
