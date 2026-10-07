@@ -112,15 +112,13 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
     }
   }, [calc]);
 
-  // Legacy fallback: extract hero HTML from Shopify descriptionHtml if emiSettings wasn't provided and hero is enabled
+  // The hero lives in the Shopify collection description; dashboard settings / defaults are the fallback.
+  // The hero div ends right before the next HTML comment, the TOC nav or the first section.
   const legacyHeroHtml = useMemo(() => {
-    if (emiSettings) return null; // Using dashboard settings
-    if (!descriptionHtml || typeof descriptionHtml !== "string" || !descriptionHtml.trim()) {
-      return null;
-    }
-    const match = descriptionHtml.match(/<div class="hero">([\s\S]*?)<\/div>\s*(?:<nav class="toc">|<section|<div class="facts">|$)/i);
-    return match ? match[0] : null;
-  }, [descriptionHtml, emiSettings]);
+    if (!descriptionHtml || typeof descriptionHtml !== "string") return null;
+    const match = descriptionHtml.match(/<div class="hero">[\s\S]*?<\/div>\s*(?=<!--|<nav class="toc"|<section|$)/i);
+    return match ? `<div class="emi-hub">${match[0]}</div>` : null;
+  }, [descriptionHtml]);
 
   // Calculations
   const downPaymentAmount = useMemo(() => {

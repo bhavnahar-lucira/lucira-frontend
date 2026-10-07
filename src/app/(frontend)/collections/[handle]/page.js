@@ -13,6 +13,7 @@ async function getCollectionData(handle) {
         title
         handle
         description
+        descriptionHtml
         seo { title description }
         image { url altText }
         products(first: 24) {
@@ -26,20 +27,31 @@ async function getCollectionData(handle) {
     }
   `;
 
-  // Use force-cache so the fetch is cached and inherits the page-level revalidate=86400
-  const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'force-cache' });
+  // Revalidate frequently so Shopify admin updates reflect quickly
+  const data = await shopifyStorefrontFetch(
+    query, 
+    { handle }, 
+    process.env.NODE_ENV === 'development' 
+      ? { cache: 'no-store' } 
+      : { next: { revalidate: 60 } }
+  );
   return data?.collectionByHandle;
 }
 
 export async function generateMetadata({ params }) {
   const { handle } = await params;
+  const collection = await getCollectionData(handle);
+
   if (handle === "jewellery-on-emi") {
+    const title = collection?.seo?.title || collection?.title || "Jewelry on EMI: 0-Cost EMI on Diamond Jewelry | Lucira";
+    const description = collection?.seo?.description || collection?.description?.slice(0, 160) || "Buy jewelry on EMI where eligible: 0-cost EMI on the diamond component, tenures of 3, 6, 9 and 12 months, ₹0 processing fee. Try the EMI calculator.";
     return {
-      title: "Jewelry on EMI: 0-Cost EMI on Diamond Jewelry | Lucira",
-      description: "Buy jewelry on EMI where eligible: 0-cost EMI on the diamond component, tenures of 3, 6, 9 and 12 months, ₹0 processing fee. Try the EMI calculator.",
+      title,
+      description,
       openGraph: {
-        title: "Jewelry on EMI: 0-Cost EMI on Diamond Jewelry | Lucira",
-        description: "Buy jewelry on EMI where eligible: 0-cost EMI on the diamond component, tenures of 3, 6, 9 and 12 months, ₹0 processing fee. Try the EMI calculator.",
+        title,
+        description,
+        images: collection?.image ? [collection.image.url] : [],
       },
       alternates: {
         canonical: `/collections/${handle}`,
@@ -53,7 +65,6 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const collection = await getCollectionData(handle);
   if (!collection) return {};
 
   return {
@@ -140,6 +151,18 @@ export default async function Page({ params }) {
           delete collData.collection.metafields.custom.bestsellers_html;
           delete collData.collection.metafields.custom.seo_content_data;
         }
+        if (!collData.collection.descriptionHtml && collection?.descriptionHtml) {
+          collData.collection.descriptionHtml = collection.descriptionHtml;
+        }
+      } else if (collData && collection) {
+        collData.collection = {
+          title: collection.title,
+          handle: collection.handle,
+          description: collection.description,
+          descriptionHtml: collection.descriptionHtml,
+          seo: collection.seo,
+          image: collection.image,
+        };
       }
 
       // Keep product descriptions lean in the grid and filter hidden products
@@ -176,7 +199,12 @@ export default async function Page({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <CollectionPageClient params={params} initialData={initialData} storePages={storePages} />
+      <CollectionPageClient 
+        params={params} 
+        initialData={initialData} 
+        storePages={storePages} 
+        collectionData={collection}
+      />
     </>
   );
 }

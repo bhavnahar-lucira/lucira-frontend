@@ -381,7 +381,7 @@ function RecentlyViewedRow({ products }) {
   );
 }
 
-export default function CollectionPage({ params: paramsPromise, initialData, storePages = null }) {
+export default function CollectionPage({ params: paramsPromise, initialData, storePages = null, collectionData = null }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
 
@@ -597,16 +597,29 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   });
   const [filtersLoading, setFiltersLoading] = useState(!initialData);
   const [collection, setCollection] = useState(() => {
-    if (initialData && initialData.collData && initialData.collData.collection) {
+    const src = initialData?.collData?.collection || collectionData;
+    if (src) {
       return {
-        title: initialData.collData.collection.title || handle.replace(/-/g, " "),
-        description: initialData.collData.collection.description || "",
-        descriptionHtml: initialData.collData.collection.descriptionHtml || "",
-        metafields: initialData.collData.collection.metafields || {}
+        title: src.title || collectionData?.title || handle.replace(/-/g, " "),
+        description: src.description || collectionData?.description || "",
+        descriptionHtml: src.descriptionHtml || collectionData?.descriptionHtml || "",
+        metafields: src.metafields || collectionData?.metafields || {}
       };
     }
     return { title: "", description: "", descriptionHtml: "" };
   });
+
+  useEffect(() => {
+    if (!collection?.descriptionHtml && collectionData?.descriptionHtml) {
+      setCollection(prev => ({
+        ...prev,
+        title: prev.title || collectionData.title,
+        description: prev.description || collectionData.description,
+        descriptionHtml: collectionData.descriptionHtml,
+      }));
+    }
+  }, [collectionData, collection?.descriptionHtml]);
+
   const [dbCollection, setDbCollection] = useState(null);
   const [isProfileComplete, setIsProfileComplete] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -2005,27 +2018,10 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
               {/* SEO Section */}
               {collection?.descriptionHtml && (
-                handle === "jewellery-on-emi" ? (
-                  <div className="jewellery-emi-content mt-8 border-t border-[#EADFD8] pt-10">
-                    <div
-                      dangerouslySetInnerHTML={{ 
-                        __html: collection.descriptionHtml.replace(/<div class="hero">[\s\S]*?<\/div>\s*(?:<nav class="toc">|<section|$)/i, (match) => {
-                          // Keep <nav class="toc"> or <section> if matched
-                          if (match.includes('<nav class="toc">')) return '<nav class="toc">';
-                          if (match.includes('<section')) {
-                            const secIdx = match.indexOf('<section');
-                            return match.slice(secIdx);
-                          }
-                          return '';
-                        })
-                      }}
-                    />
-                  </div>
-                ) : (
-                <div className="mt-8 border-t border-gray-100 pt-10">
+                <div className={`mt-8 border-t pt-10 ${handle === "jewellery-on-emi" ? "jewellery-emi-content border-[#EADFD8]" : "border-gray-100"}`}>
                   <div
-                    className="
-        max-w-4xl
+                    className={`
+        ${handle === "jewellery-on-emi" ? "w-full" : "max-w-4xl"}
 
         [&_h1]:text-2xl
         [&_h1]:font-bold
@@ -2219,11 +2215,10 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         [&_pre]:overflow-x-auto
         [&_pre]:text-xs
         [&_pre]:text-gray-700
-      "
+      `}
                     dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
                   />
                 </div>
-                )
               )}
             </div>
           </div>
