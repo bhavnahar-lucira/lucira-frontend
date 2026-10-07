@@ -2021,7 +2021,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
                 <div className={`mt-8 border-t pt-10 ${handle === "jewellery-on-emi" ? "jewellery-emi-content border-[#EADFD8]" : "border-gray-100"}`}>
                   <div
                     className={`
-        ${handle === "jewellery-on-emi" ? "w-full" : "max-w-4xl"}
+        w-full
 
         [&_h1]:text-2xl
         [&_h1]:font-bold
