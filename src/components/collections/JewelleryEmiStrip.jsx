@@ -117,7 +117,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
   const legacyHeroHtml = useMemo(() => {
     if (!descriptionHtml || typeof descriptionHtml !== "string") return null;
     const match = descriptionHtml.match(/<div class="hero">[\s\S]*?<\/div>\s*(?=<!--|<nav class="toc"|<section|$)/i);
-    return match ? `<div class="emi-hub">${match[0]}</div>` : null;
+    return match ? match[0] : null;
   }, [descriptionHtml]);
 
   // Calculations

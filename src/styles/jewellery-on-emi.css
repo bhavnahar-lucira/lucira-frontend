@@ -161,6 +161,31 @@
   }
 }
 
+.jewellery-emi-dynamic-hero .hero > p:not(.lead):not(.trust) {
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: #52525B;
+  margin: 0 0 4px;
+}
+
+.jewellery-emi-dynamic-hero .hero > p strong {
+  color: #222222;
+  font-weight: 600;
+}
+
+.jewellery-emi-dynamic-hero .scope p {
+  margin: 0 0 4px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #52525B;
+}
+
+.jewellery-emi-dynamic-hero .scope p strong {
+  color: #3D2B28;
+  font-weight: 600;
+}
+
 .jewellery-emi-dynamic-hero .scope {
   background: #FAF6F4;
   border: 1px solid #EBE1D7;
