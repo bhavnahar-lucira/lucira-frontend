@@ -19,7 +19,6 @@ const STICKY_CTA_BAR_OFFSETS = {
 export default function FloatingActionButton() {
   const pathname = usePathname();
 
-  if (pathname?.includes("store-giveaway")) return null;
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [tooltipShown, setTooltipShown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -69,7 +68,8 @@ export default function FloatingActionButton() {
     } else if (ctx.type === "collection") {
       message = `Hi, I want to get more information about this collection: ${ctx.title}`;
     } else if (ctx.type === "product") {
-      message = `Hi, I want to get more information about this product: ${ctx.title}`;
+      const productUrl = typeof window !== 'undefined' ? window.location.href : "";
+      message = `Hi, I'd like more details on the: ${ctx.title}${productUrl ? ` ${productUrl}` : ""}`;
     } else if (ctx.type === "blog") {
       message = pathname.split('/').length > 2 
         ? `Hi, can you tell me more about this blog: ${ctx.title}`
@@ -82,16 +82,16 @@ export default function FloatingActionButton() {
       message = `Tell me more about ${getRateCity(ctx.slug, 'silver')} silver rate`;
     } else if (ctx.type === "schemes") {
       // Scheme enquiries go to a dedicated line, not the main store number.
-      return `https://wa.me/+917208934782?text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}`;
+      return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}&type=phone_number&app_absent=0`;
     } else if (ctx.type === "old-gold-exchange") {
       // Old Gold Exchange enquiries share the same dedicated line.
-      return `https://wa.me/+917208934782?text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}`;
+      return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}&type=phone_number&app_absent=0`;
     } else if (ctx.type === "store-locator") {
       // Store-locator enquiries also go to the dedicated line (default message).
-      return `https://wa.me/+917208934782?text=${encodeURIComponent(message)}`;
+      return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
     }
 
-    return `https://wa.me/+917208934782?text=${encodeURIComponent(message)}`;
+    return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
   };
 
   const pushPromoClick = (creativeName) => {
@@ -228,6 +228,8 @@ export default function FloatingActionButton() {
     if (e?.currentTarget) e.currentTarget.href = getWhatsAppUrl();
     pushPromoClick("chatWithExperts");
   };
+
+  if (pathname?.includes("store-giveaway")) return null;
 
   const isProductPage = pathname.startsWith('/products');
   const isCollectionPage = pathname.startsWith('/collections');
