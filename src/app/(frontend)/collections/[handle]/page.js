@@ -26,9 +26,8 @@ async function getCollectionData(handle) {
     }
   `;
 
-  const data = await shopifyStorefrontFetch(query, { handle }, { 
-    cache: (handle === "jewellery-on-emi" || process.env.NODE_ENV === "development") ? "no-store" : "force-cache" 
-  });
+  // Use force-cache so the fetch is cached and inherits the page-level revalidate=86400
+  const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'force-cache' });
   return data?.collectionByHandle;
 }
 
@@ -115,15 +114,11 @@ export default async function Page({ params }) {
   let initialData = null;
   try {
     const [collRes, filterRes, plpBannersRes, emiSettingsRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=${handle}&limit=16&sort=manual`, { 
-        cache: (handle === "jewellery-on-emi" || process.env.NODE_ENV === "development") ? "no-store" : "force-cache" 
-      }),
+      fetch(`${base}/api/collection?handle=${handle}&limit=16&sort=manual`, { cache: 'force-cache' }),
       fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' }),
       fetch(`${base}/api/settings/plp-banners`, { cache: 'force-cache' }),
       handle === "jewellery-on-emi"
-        ? fetch(`${base}/api/settings/jewellery-on-emi`, {
-            cache: process.env.NODE_ENV === "development" ? "no-store" : "force-cache"
-          }).catch(() => null)
+        ? fetch(`${base}/api/settings/jewellery-on-emi`, { cache: 'force-cache' }).catch(() => null)
         : Promise.resolve(null),
     ]);
     let plpBanners = null;
