@@ -250,12 +250,12 @@ export default function CartPage() {
                 <div className="flex items-center gap-3">
                   <Image loader={shopifyLoader}
                     src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bsi-hallmarked.png?v=1786168167"
-                    alt="BSI Hallmarked"
+                    alt="BIS Hallmarked"
                     width={64}
                     height={64}
                     className="w-9 h-9 shrink-0 object-contain"
                   />
-                  <span className="font-figtree text-[13px] font-semibold text-black leading-tight">BSI Hallmarked</span>
+                  <span className="font-figtree text-[13px] font-semibold text-black leading-tight">BIS Hallmarked</span>
                 </div>
               </div>
             </div>
@@ -289,12 +289,12 @@ export default function CartPage() {
               <div className="flex items-center gap-3">
                 <Image loader={shopifyLoader}
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bsi-hallmarked.png?v=1786168167"
-                  alt="BSI Hallmarked"
+                  alt="BIS Hallmarked"
                   width={64}
                   height={64}
                   className="w-10 h-10 shrink-0 object-contain"
                 />
-                <span className="font-figtree text-[14px] font-semibold text-black leading-tight">BSI Hallmarked</span>
+                <span className="font-figtree text-[14px] font-semibold text-black leading-tight">BIS Hallmarked</span>
               </div>
             </div>
 
