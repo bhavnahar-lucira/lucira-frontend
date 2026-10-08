@@ -487,6 +487,15 @@ async function getProduct(handle) {
       } catch(e) {}
     }
 
+    const isOnlyPlatinum = (platinumComp && !goldComp && !silverComp) ||
+      (!goldComp && !silverComp && (variantConfig?.metal_type?.toLowerCase() === "platinum" || variantConfig?.metal_type?.toLowerCase() === "plt"));
+
+    const variantConfigMetalWeight = variantConfig
+      ? (isOnlyPlatinum
+          ? (Number(variantConfig.platinum_weight) > 0 ? Number(variantConfig.platinum_weight) : variantConfig.metal_weight)
+          : variantConfig.metal_weight)
+      : null;
+
     return {
       id: v.id.split("/").pop(),
       shopifyId: v.id,
@@ -503,7 +512,7 @@ async function getProduct(handle) {
       metafields: {
         metal_purity,
         metal_color,
-        metal_weight: v.metal_weight?.value || v.custom_metal_weight?.value || (totalMetalWeight > 0 ? Number(totalMetalWeight.toFixed(3)) : null) || variantConfig?.metal_weight,
+        metal_weight: v.metal_weight?.value || v.custom_metal_weight?.value || (totalMetalWeight > 0 ? Number(totalMetalWeight.toFixed(3)) : null) || variantConfigMetalWeight || variantConfig?.metal_weight,
         gross_weight: v.gross_weight?.value || v.custom_gross_weight?.value,
         top_width: v.top_width?.value || v.custom_top_width?.value,
         top_height: v.top_height?.value || v.custom_top_height?.value,
