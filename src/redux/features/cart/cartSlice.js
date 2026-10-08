@@ -260,10 +260,6 @@ export const mapShopifyCart = (cart, backendCart = null) => {
 // Module-level variable to track ongoing sync to prevent concurrent double-syncs
 let ongoingSyncPromise = null;
 
-// Bumped whenever addToCart lands. A fetchCart that started before that bump is
-// holding a pre-add snapshot and must not overwrite the freshly added items.
-let cartWriteSeq = 0;
-
 export const fetchCart = createAsyncThunk(
   "cart/fetchCart",
   async (params = {}, { getState }) => {
@@ -277,7 +273,6 @@ export const fetchCart = createAsyncThunk(
       await ongoingSyncPromise;
     }
 
-    const seqAtStart = cartWriteSeq;
     const sessionId = getSessionId();
     const backendPromise = apiFetch(`/api/cart/get?userId=${userId || ""}&sessionId=${sessionId || ""}&context=${context}`)
       .catch(e => {
@@ -294,13 +289,7 @@ export const fetchCart = createAsyncThunk(
       setCachedFreeGiftTiers(settingsData.tiers);
     }
     
-    // null data = the Storefront call itself failed (network/GraphQL error), not "cart
-    // gone". Don't clear the cart ID or render an empty cart; keep the current state.
-    if (cartId && !data) {
-      throw new Error("Storefront cart fetch failed");
-    }
-
-    // Heal stale cart if Shopify answered but the cart no longer exists
+    // Heal stale cart if shopifyPromise returned nothing but we had a cartId
     if (cartId && !data?.cart) {
       console.warn("[fetchCart] Cart ID not found on Shopify, clearing...");
       localStorage.removeItem("shopify_cart_id");
@@ -457,7 +446,7 @@ export const fetchCart = createAsyncThunk(
             }).catch(err => console.error("Failed to reduce excess Shopify quantities", err));
           }
 
-          return { ...mappedState, settingsData, stale: seqAtStart !== cartWriteSeq };
+          return { ...mappedState, settingsData };
         }
       }
     }
@@ -486,7 +475,7 @@ export const fetchCart = createAsyncThunk(
       }
     }
     
-    return { ...mappedState, settingsData, stale: seqAtStart !== cartWriteSeq };
+    return { ...mappedState, settingsData };
   }
 );
 
@@ -695,10 +684,9 @@ export const addToCart = createAsyncThunk(
       productsToAdd.forEach(p => {
         trackSearchAddToCart(String(p.shopifyVariantId || p.variantId || p.id).split('/').pop(), p.quantity || 1);
       });
-      cartWriteSeq++;
       return mapShopifyCart(shopifyCartData, backendCart);
     }
-
+    
     return rejectWithValue("Failed to add to cart");
   }
 );
@@ -1148,7 +1136,7 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload && !action.payload.stale) {
+        if (action.payload) {
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
