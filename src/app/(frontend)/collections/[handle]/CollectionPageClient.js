@@ -38,6 +38,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
+import JewelleryEmiStrip from "@/components/collections/JewelleryEmiStrip";
 import { apiFetch } from "@/lib/api";
 import { storeCollectionHandles } from "@/lib/storeContent";
 
@@ -380,7 +381,7 @@ function RecentlyViewedRow({ products }) {
   );
 }
 
-export default function CollectionPage({ params: paramsPromise, initialData, storePages = null }) {
+export default function CollectionPage({ params: paramsPromise, initialData, storePages = null, collectionData = null }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
 
@@ -403,6 +404,9 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   const inpageBanners = scopedInpageBanners.length
     ? scopedInpageBanners
     : allInpageBanners.filter((b) => !b.handles?.length);
+
+  // Dashboard-managed Jewelry on EMI content & calculator settings
+  const emiSettings = initialData?.emiSettings || null;
 
   // Dashboard-managed store pages. `storeHandles` covers every store, including
   // ones whose hero is switched off — those collections then render no top
@@ -601,16 +605,29 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   });
   const [filtersLoading, setFiltersLoading] = useState(!initialData);
   const [collection, setCollection] = useState(() => {
-    if (initialData && initialData.collData && initialData.collData.collection) {
+    const src = initialData?.collData?.collection || collectionData;
+    if (src) {
       return {
-        title: initialData.collData.collection.title || handle.replace(/-/g, " "),
-        description: initialData.collData.collection.description || "",
-        descriptionHtml: initialData.collData.collection.descriptionHtml || "",
-        metafields: initialData.collData.collection.metafields || {}
+        title: src.title || collectionData?.title || handle.replace(/-/g, " "),
+        description: src.description || collectionData?.description || "",
+        descriptionHtml: src.descriptionHtml || collectionData?.descriptionHtml || "",
+        metafields: src.metafields || collectionData?.metafields || {}
       };
     }
     return { title: "", description: "", descriptionHtml: "" };
   });
+
+  useEffect(() => {
+    if (!collection?.descriptionHtml && collectionData?.descriptionHtml) {
+      setCollection(prev => ({
+        ...prev,
+        title: prev.title || collectionData.title,
+        description: prev.description || collectionData.description,
+        descriptionHtml: collectionData.descriptionHtml,
+      }));
+    }
+  }, [collectionData, collection?.descriptionHtml]);
+
   const [dbCollection, setDbCollection] = useState(null);
   const [isProfileComplete, setIsProfileComplete] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -1735,8 +1752,15 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       })()}
 
       {handle === "eterna" && <EternaBandsSection />}
+      {handle === "jewellery-on-emi" && (
+        <JewelleryEmiStrip 
+          onShopClick={scrollToProductsTop} 
+          descriptionHtml={collection?.descriptionHtml} 
+          emiSettings={emiSettings}
+        />
+      )}
 
-      <div ref={productsTopRef} className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
+      <div ref={productsTopRef} id="products" className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
         {/* ================= FILTERS SIDEBAR ================= */}
         <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
           <div className="sticky top-19 self-start h-fit">
@@ -1802,6 +1826,16 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
         {/* ================= PRODUCTS SECTION ================= */}
         <div className="flex-1">
+          {handle === "jewellery-on-emi" && emiSettings?.productsIntro?.enabled !== false && (
+            <div className="mb-4 px-4 lg:px-0">
+              <h2 className="font-abhaya text-2xl lg:text-3xl font-extrabold text-[#2B1F1E]">
+                {emiSettings?.productsIntro?.title ?? "Diamond jewelry from ₹50,000"}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6D625E] font-medium font-figtree mt-1">
+                {emiSettings?.productsIntro?.subtitle ?? "EMI is available where eligible and applies to the diamond component of each piece."}
+              </p>
+            </div>
+          )}
           <div className={`flex items-center justify-between sticky top-0 z-20 ${isMobile ? "gap-3 p-4 bg-white/95 backdrop-blur-sm border-b border-[#F0E7E2]" : "gap-4 py-4 bg-white"}`}>
             <div className={isMobile ? "flex items-center gap-2.5" : "flex gap-3 items-center"}>
               {isMobile ? (
@@ -1999,10 +2033,10 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
               {/* SEO Section */}
               {collection?.descriptionHtml && (
-                <div className="mt-8 border-t border-gray-100 pt-10">
+                <div className={`mt-8 border-t pt-10 ${handle === "jewellery-on-emi" ? "jewellery-emi-content border-[#EADFD8]" : "border-gray-100"}`}>
                   <div
-                    className="
-        max-w-4xl
+                    className={`
+        w-full
 
         [&_h1]:text-2xl
         [&_h1]:font-bold
@@ -2196,7 +2230,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         [&_pre]:overflow-x-auto
         [&_pre]:text-xs
         [&_pre]:text-gray-700
-      "
+      `}
                     dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
                   />
                 </div>
