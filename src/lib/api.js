@@ -127,13 +127,25 @@ export const sendOtpApi = (mobile) =>
 
 /* ================= VERIFY OTP ================= */
 
-export const verifyOtpApi = (mobile, otp, sessionId = null) => {
+// `extra` carries optional flags such as { rewardSource: "scratch_card" },
+// which makes the backend return the customer's signup reward with the login.
+export const verifyOtpApi = (mobile, otp, sessionId = null, extra = {}) => {
   const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
   return apiFetch("/api/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile: toE164(mobile) || mobile, otp, sessionId, sourcePage }),
+    body: JSON.stringify({ ...extra, mobile: toE164(mobile) || mobile, otp, sessionId, sourcePage }),
   });
 };
+
+/* ================= SIGNUP REWARD LOOKUP ================= */
+
+// Scratch-card popup, before OTP: { exists, firstName, reward: { label, amount, status } | null }.
+// Never contains the coupon code — that only comes back from verify/register.
+export const rewardLookupApi = (mobile) =>
+  apiFetch("/api/auth/reward-lookup", {
+    method: "POST",
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
+  });
 
 /* ================= REGISTER ================= */
 

@@ -9,7 +9,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Sheet } from "react-modal-sheet";
+import { AnimatePresence } from "framer-motion";
 import { OtpSpinAuth } from "./OtpSpinAuth";
+import { ScratchCardAuth } from "./scratch/ScratchCardAuth";
+import { VARIANT_SCRATCH } from "@/lib/signupExperiment";
 import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { runPendingLoginAction, clearPendingLoginAction } from "@/hooks/useAtcLoginGate";
@@ -25,7 +28,10 @@ export function AuthDialog({
   overrideHeading = "",
   overrideSubtext = "",
   overrideButtonText = "",
-  useCheckoutAuth = false
+  useCheckoutAuth = false,
+  // Signup popup A/B test (AutoAuthPopup only): "spin_wheel" | "scratch_card".
+  experimentVariant = null,
+  experimentDevice = null,
 }) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const router = useRouter();
@@ -116,6 +122,14 @@ export function AuthDialog({
     setCurrentStep(step);
   };
 
+  if (isMobile && experimentVariant === VARIANT_SCRATCH && !isCartOrCheckout) {
+    return (
+      <AnimatePresence>
+        {isOpen && <ScratchCardAuth key="scratch-card" onClose={handleClose} onSuccess={handleSuccess} />}
+      </AnimatePresence>
+    );
+  }
+
   if (isMobile) {
     return (
       <Sheet
@@ -155,6 +169,8 @@ export function AuthDialog({
                   overrideButtonText={overrideButtonText}
                   isPopup={true}
                   hideRegisterLink={hideRegisterLink}
+                  experimentVariant={experimentVariant}
+                  experimentDevice={experimentDevice}
                 />
               </div>
             )}
@@ -219,6 +235,8 @@ export function AuthDialog({
           overrideButtonText={overrideButtonText}
           isPopup={true}
           hideRegisterLink={hideRegisterLink}
+          experimentVariant={experimentVariant}
+          experimentDevice={experimentDevice}
         />
       </DialogContent>
     </Dialog>

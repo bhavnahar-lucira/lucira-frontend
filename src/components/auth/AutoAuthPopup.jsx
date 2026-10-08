@@ -5,9 +5,11 @@ import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { AuthDialog } from "./AuthDialog";
 import { selectIsAuthenticated, selectIsAuthModalOpen } from "@/redux/features/user/userSlice";
+import { getSignupVariant, VARIANT_SPIN } from "@/lib/signupExperiment";
 
 export function AutoAuthPopup() {
   const [open, setOpen] = useState(false);
+  const [experiment, setExperiment] = useState({ variant: null, device: null });
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const isAuthModalOpen = useSelector(selectIsAuthModalOpen);
   const pathname = usePathname();
@@ -55,6 +57,15 @@ export function AutoAuthPopup() {
       const manuallyOpened = sessionStorage.getItem("lucira_login_manually_opened") === "true";
       if (manuallyOpened) return;
 
+      // Signup A/B test: mobile is split 50/50 (sticky per device) between the
+      // wheel and the scratch card; desktop always gets the wheel. Checkout
+      // paths render CheckoutAuthForm instead, so they stay out of the test.
+      const isCheckout = cleanPath.startsWith("/checkout");
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+      const device = isMobile ? "mobile" : "desktop";
+      const variant = isCheckout ? null : isMobile ? getSignupVariant() : VARIANT_SPIN;
+      setExperiment({ variant, device });
+
       setOpen(true);
       sessionStorage.setItem("lucira_login_popup_seen", "true");
     }, SHOW_DELAY);
@@ -77,6 +88,8 @@ export function AutoAuthPopup() {
       }} 
       initialStep="register"
       forceShowWheel={true}
+      experimentVariant={experiment.variant}
+      experimentDevice={experiment.device}
     />
   );
 }
