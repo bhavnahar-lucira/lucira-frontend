@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { AnimatePresence, motion, useAnimation, useReducedMotion } from "framer-motion";
-import { sendOtpApi, verifyOtpApi, registerCustomer, rewardLookupApi } from "@/lib/api";
+import { sendOtpApi, verifyOtpApi, registerCustomer, rewardLookupApi, trackScratchCardView } from "@/lib/api";
 import { getSessionId } from "@/redux/features/cart/cartSlice";
 import { cleanPhoneInput } from "@/lib/phone";
 import { useCompleteLogin } from "@/hooks/useCompleteLogin";
@@ -237,6 +237,22 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const nameRef = useRef(null);
   const otpFirstRef = useRef(null);
   const cardAreaRef = useRef(null);
+
+  // How long the card was on screen: sent once, on close/unmount or tab hide.
+  useEffect(() => {
+    const start = Date.now();
+    let sent = false;
+    const flush = () => {
+      if (sent) return;
+      sent = true;
+      trackScratchCardView(getSessionId(), Math.round((Date.now() - start) / 1000));
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
 
   useEffect(() => {
     const prev = document.body.style.overflow;

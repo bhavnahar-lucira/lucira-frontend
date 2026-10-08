@@ -137,6 +137,23 @@ export const verifyOtpApi = (mobile, otp, sessionId = null, extra = {}) => {
   });
 };
 
+/* ================= SCRATCH CARD VIEW TIME ================= */
+
+// Fire-and-forget (sendBeacon survives page unload) — seconds the scratch card was on screen.
+export const trackScratchCardView = (sessionId, seconds) => {
+  if (typeof window === "undefined" || !sessionId || seconds < 1) return;
+  const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+  const body = JSON.stringify({
+    event: "scratch_card_view",
+    sessionId,
+    page: window.location.pathname,
+    metadata: { durationSeconds: seconds },
+  });
+  try {
+    navigator.sendBeacon(`${base}/api/track`, new Blob([body], { type: "application/json" }));
+  } catch {}
+};
+
 /* ================= SIGNUP REWARD LOOKUP ================= */
 
 // Scratch-card popup, before OTP: { exists, firstName, reward: { label, amount, status } | null }.
