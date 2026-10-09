@@ -74,7 +74,18 @@ function useVisualViewportBox() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setBox({ height: vv.height, top: vv.offsetTop });
+    // The Android keyboard keeps toggling its OTP/clipboard suggestion strip while
+    // typing, resizing the viewport by ~50px each time. While it is open, only
+    // ever shrink the box so the sheet doesn't hop with every digit.
+    let minOpen = Infinity;
+    const update = () => {
+      const open = window.innerHeight - vv.height > 120;
+      if (open) minOpen = Math.min(minOpen, vv.height);
+      else minOpen = Infinity;
+      const height = open ? minOpen : vv.height;
+      const top = vv.offsetTop;
+      setBox((prev) => (prev && prev.height === height && prev.top === top ? prev : { height, top }));
+    };
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
