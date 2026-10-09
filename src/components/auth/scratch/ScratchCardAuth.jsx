@@ -588,6 +588,10 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
               className="absolute inset-0 rounded-[12px] bg-transparent border-none cursor-pointer flex items-end justify-center pb-3"
               style={{ touchAction: "none" }}
               onPointerUp={nudgeCard}
+              // A tap also fires a compat mousedown after pointerup, which would move
+              // focus to this button and close the keyboard we just opened.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={nudgeCard}
             >
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/45 backdrop-blur-sm text-white text-[11px] tracking-[0.4px]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
