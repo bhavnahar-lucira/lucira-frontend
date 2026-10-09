@@ -60,7 +60,6 @@ export default async function RootLayout({ children }) {
               })(window,document,'script','dataLayer','GTM-MKZBJB8M');`}
           </Script>
         )}
-        <script async src="https://app.pallix.in/api/public/ai-traffic/tracker.js?brandId=cb0e043b-bb77-4558-9f22-399c3e093f37"></script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
