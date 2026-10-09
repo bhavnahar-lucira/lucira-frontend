@@ -109,12 +109,18 @@ export function ScratchSurface({
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.lineWidth = brushRadius * 2;
-    ctx.shadowColor = "#000";
-    ctx.shadowBlur = brushRadius * 0.6 * s.dpr; // soft edge
     ctx.beginPath();
     ctx.moveTo(from.x, from.y);
     ctx.lineTo(to.x + 0.01, to.y);
     ctx.stroke();
+    // Gritty edge: flecks of cover chip off around the stroke
+    for (let i = 0; i < 7; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const d = brushRadius * (0.8 + Math.random() * 0.6);
+      ctx.beginPath();
+      ctx.arc(to.x + Math.cos(a) * d, to.y + Math.sin(a) * d, 0.8 + Math.random() * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     const dist = Math.hypot(to.x - from.x, to.y - from.y);
     const steps = Math.max(1, Math.ceil(dist / (brushRadius / 2)));
