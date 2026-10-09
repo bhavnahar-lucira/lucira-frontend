@@ -74,22 +74,37 @@ function useVisualViewportBox() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    // The Android keyboard keeps toggling its OTP/clipboard suggestion strip while
-    // typing, resizing the viewport by ~50px each time. While it is open, only
-    // ever shrink the box so the sheet doesn't hop with every digit.
-    let minOpen = Infinity;
+    // Every time focus moves to another field, Android's keyboard drops its
+    // autofill strip (~60px) for a couple of frames and puts it back, so the
+    // viewport grows and shrinks again. Shrinking (keyboard opening) is applied
+    // at once; a small grow while the keyboard is up only once it has held.
+    // The site uses interactive-widget=resizes-content, so window.innerHeight
+    // shrinks with the keyboard too — "open" is measured against the tallest
+    // (keyboard-closed) height seen instead.
+    let closedHeight = Math.max(window.innerHeight, vv.height);
+    let shown = null;
+    let growTimer = null;
+    const apply = (height, top) => {
+      if (shown && shown.height === height && shown.top === top) return;
+      shown = { height, top };
+      setBox(shown);
+    };
     const update = () => {
-      const open = window.innerHeight - vv.height > 120;
-      if (open) minOpen = Math.min(minOpen, vv.height);
-      else minOpen = Infinity;
-      const height = open ? minOpen : vv.height;
-      const top = vv.offsetTop;
-      setBox((prev) => (prev && prev.height === height && prev.top === top ? prev : { height, top }));
+      clearTimeout(growTimer);
+      const height = vv.height;
+      closedHeight = Math.max(closedHeight, height);
+      const keyboardOpen = closedHeight - height > 120;
+      if (shown && keyboardOpen && height > shown.height && height - shown.height < 150) {
+        growTimer = setTimeout(() => apply(vv.height, vv.offsetTop), 250);
+        return;
+      }
+      apply(height, vv.offsetTop);
     };
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
     return () => {
+      clearTimeout(growTimer);
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
     };
@@ -161,46 +176,61 @@ function Confetti() {
   );
 }
 
+// One real input drawn as four boxes. Hopping focus between four inputs made
+// Android restart the keyboard on every digit (and every backspace), which
+// briefly resized the viewport and shook the sheet.
 function OtpBoxes({ otp, setOtp, onComplete, firstRef }) {
-  const refs = [firstRef, useRef(null), useRef(null), useRef(null)];
+  const [focused, setFocused] = useState(false);
+  const code = otp.join("");
+  const active = Math.min(code.length, 3);
 
-  const handleChange = (i, raw) => {
-    const value = raw.replace(/\D/g, "");
-    // Paste / SMS autofill of the whole code
-    if (value.length >= 4) {
-      const next = value.slice(0, 4).split("");
-      setOtp(next);
-      refs[3].current?.blur();
-      onComplete(next.join(""));
-      return;
-    }
-    const next = [...otp];
-    next[i] = value.slice(-1);
-    setOtp(next);
-    if (value && i < 3) refs[i + 1].current?.focus();
-    if (next.every((d) => d !== "")) onComplete(next.join(""));
+  const handleChange = (raw) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 4);
+    setOtp([0, 1, 2, 3].map((i) => digits[i] || ""));
+    if (digits.length === 4 && code.length < 4) onComplete(digits);
+  };
+
+  // Keep the caret at the end so typing and backspace always act on the last box.
+  const caretToEnd = (e) => {
+    const len = e.currentTarget.value.length;
+    e.currentTarget.setSelectionRange?.(len, len);
   };
 
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="relative grid grid-cols-4 gap-3">
       {otp.map((digit, i) => (
-        <input
+        <div
           key={i}
-          ref={refs[i]}
-          type="tel"
-          inputMode="numeric"
-          autoComplete={i === 0 ? "one-time-code" : "off"}
-          maxLength={i === 0 ? 4 : 1}
-          placeholder="-"
-          aria-label={`OTP digit ${i + 1}`}
-          className="h-[46px] w-full text-center text-[18px] font-semibold border border-[#E2E2E2] bg-[#FAFAFA] rounded-[4px] outline-none focus:border-[#5a413f] placeholder:text-[#9a9a9a]"
-          value={digit}
-          onChange={(e) => handleChange(i, e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Backspace" && !otp[i] && i > 0) refs[i - 1].current?.focus();
-          }}
-        />
+          aria-hidden="true"
+          className={`h-[46px] w-full flex items-center justify-center text-[18px] font-semibold border bg-[#FAFAFA] rounded-[4px] ${
+            focused && i === active ? "border-[#5a413f]" : "border-[#E2E2E2]"
+          } ${digit ? "text-black" : "text-[#9a9a9a]"}`}
+        >
+          {digit || (focused && i === active ? <span className="lucira-otp-caret w-px h-[20px] bg-black" /> : "-")}
+        </div>
       ))}
+      <input
+        ref={firstRef}
+        type="tel"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={4}
+        aria-label="Enter the 4-digit OTP"
+        className="absolute inset-0 w-full h-full opacity-0 text-[16px] border-none outline-none bg-transparent"
+        value={code}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={(e) => {
+          setFocused(true);
+          caretToEnd(e);
+        }}
+        onBlur={() => setFocused(false)}
+        onClick={caretToEnd}
+        onKeyUp={caretToEnd}
+      />
+      <style>{`
+        .lucira-otp-caret { animation: luciraOtpCaret 1s steps(1) infinite; }
+        @keyframes luciraOtpCaret { 50% { opacity: 0; } }
+      `}</style>
     </div>
   );
 }
