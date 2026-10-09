@@ -14,7 +14,6 @@ import { RewardTicket } from "./RewardTicket";
 import { ScratchSurface } from "./ScratchSurface";
 
 const COVER_SRC = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437258093.jpg?v=1790752132";
-const CONTINUE_SHOPPING_PATH = "/collections/jewelry";
 const OTP_RESEND_SECONDS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const EMPTY_OTP = ["", "", "", ""];
@@ -85,6 +84,24 @@ function useVisualViewportBox() {
     };
   }, []);
   return box;
+}
+
+// Tallest viewport seen (keyboard closed). The card is laid out against this so
+// it never shrinks or moves when the keyboard opens or the sheet hides.
+function useBaselineHeight() {
+  const [h, setH] = useState(() => (typeof window === "undefined" ? 700 : window.innerHeight));
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const update = () => setH((prev) => Math.max(prev, vv?.height || 0, window.innerHeight));
+    update();
+    vv?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return h;
 }
 
 // Seeded PRNG so the confetti layout is pure (same burst every render).
@@ -209,6 +226,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const reduce = useReducedMotion();
   const completeLogin = useCompleteLogin();
   const vvBox = useVisualViewportBox();
+  const baseHeight = useBaselineHeight();
   const shake = useAnimation();
 
   const [step, setStep] = useState("phone"); // phone | otp | verified | won
@@ -231,12 +249,10 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const [cardSize] = useState(() =>
     typeof window === "undefined" ? 255 : Math.round(Math.min(window.innerWidth * 0.68, 290))
   );
-  const [cardScale, setCardScale] = useState(1);
 
   const phoneRef = useRef(null);
   const nameRef = useRef(null);
   const otpFirstRef = useRef(null);
-  const cardAreaRef = useRef(null);
 
   // How long the card was on screen: sent once, on close/unmount or tab hide.
   useEffect(() => {
@@ -261,19 +277,6 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       document.body.style.overflow = prev;
     };
   }, []);
-
-  // Shrink the card (visually only — the canvas keeps its size) when the
-  // keyboard leaves less room than the card needs.
-  useEffect(() => {
-    const el = cardAreaRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(([entry]) => {
-      const h = entry.contentRect.height;
-      setCardScale(Math.max(0.45, Math.min(1, (h - 28) / cardSize)));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [cardSize]);
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -301,7 +304,6 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const hasStoredPrize = userType === "existing" && !!lookupReward && !reward?.fresh;
   const scratchEnabled = step === "verified" && !!reward;
   const cardLocked = step === "phone" || step === "otp";
-  const sheetHidden = scratching && !revealed;
 
   const nudgeCard = () => {
     if (!reduce) shake.start({ x: [0, -9, 9, -6, 6, -2, 0], transition: { duration: 0.45 } });
@@ -437,8 +439,11 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     setTimeout(() => handleVerify(code), 60);
   };
 
+  // The button reveals the card directly (same as "tap to reveal"); scratching
+  // the card by hand still works too.
   const startScratchMode = () => {
     setScratching(true);
+    handleScratchComplete();
   };
 
   const handleScratchStart = () => {
@@ -468,8 +473,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   };
 
   const handleContinueShopping = () => {
-    onSuccess?.(CONTINUE_SHOPPING_PATH);
-    router.refresh();
+    handleClose();
   };
 
   const days = reward?.daysLeft ?? 7;
@@ -485,7 +489,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       className="relative"
       style={{ width: cardSize, height: cardSize }}
       initial={reduce ? false : { opacity: 0, scale: 0.8, y: 30 }}
-      animate={{ opacity: 1, scale: cardScale, y: 0 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 220, damping: 20 }}
     >
       <motion.div
@@ -556,7 +560,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
         type="button"
         onClick={handleClose}
         aria-label="Close"
-        className="absolute -top-[14px] -right-[40px] w-[26px] h-[26px] rounded-full bg-[#E9E9E9] border-none flex items-center justify-center cursor-pointer z-30"
+        className="absolute -top-[14px] -right-[14px] w-[26px] h-[26px] rounded-full bg-[#E9E9E9] border-none flex items-center justify-center cursor-pointer z-30"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12" />
@@ -744,7 +748,11 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     >
       <div className="absolute inset-0 bg-[#1f1f1f]/[0.92]" aria-hidden="true" />
 
-      <div ref={cardAreaRef} className="relative flex-1 min-h-0 flex flex-col items-center justify-center">
+      {/* Sized from the keyboard-closed height so the card stays put */}
+      <div
+        className="absolute left-0 right-0 top-0 flex flex-col items-center justify-center"
+        style={{ height: Math.max(cardSize + 60, baseHeight - 300) }}
+      >
         {card}
         <AnimatePresence>
           {showTapReveal && !revealed && (
@@ -763,11 +771,10 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       </div>
 
       <motion.div
-        className="relative bg-white rounded-t-[20px] px-4 pt-5 pb-[max(16px,env(safe-area-inset-bottom))] overflow-hidden"
+        className="relative mt-auto bg-white rounded-t-[20px] px-4 pt-5 pb-[max(16px,env(safe-area-inset-bottom))] overflow-hidden"
         initial={reduce ? false : { y: "100%" }}
-        animate={{ y: sheetHidden ? "110%" : 0 }}
+        animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
-        style={{ position: sheetHidden ? "absolute" : "relative", left: 0, right: 0, bottom: 0 }}
       >
         <AnimatePresence mode="wait" initial={false}>
           {panel}
