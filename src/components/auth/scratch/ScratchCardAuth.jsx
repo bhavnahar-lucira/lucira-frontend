@@ -179,7 +179,7 @@ function Confetti() {
 // One real input drawn as four boxes. Hopping focus between four inputs made
 // Android restart the keyboard on every digit (and every backspace), which
 // briefly resized the viewport and shook the sheet.
-function OtpBoxes({ otp, setOtp, onComplete, firstRef }) {
+function OtpBoxes({ otp, setOtp, onComplete, firstRef, error }) {
   const [focused, setFocused] = useState(false);
   const code = otp.join("");
   const active = Math.min(code.length, 3);
@@ -203,7 +203,7 @@ function OtpBoxes({ otp, setOtp, onComplete, firstRef }) {
           key={i}
           aria-hidden="true"
           className={`h-[46px] w-full flex items-center justify-center text-[18px] font-semibold border bg-[#FAFAFA] rounded-[4px] ${
-            focused && i === active ? "border-[#5a413f]" : "border-[#E2E2E2]"
+            error ? "border-[#D92D20]" : focused && i === active ? "border-[#5a413f]" : "border-[#E2E2E2]"
           } ${digit ? "text-black" : "text-[#9a9a9a]"}`}
         >
           {digit || (focused && i === active ? <span className="lucira-otp-caret w-px h-[20px] bg-black" /> : "-")}
@@ -277,7 +277,13 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const [mobile, setMobile] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(EMPTY_OTP);
+  const [otp, setOtpDigits] = useState(EMPTY_OTP);
+  // Wrong/expired OTP is shown inline (red boxes + message above the button), not as a toast.
+  const [otpError, setOtpError] = useState("");
+  const setOtp = (next) => {
+    setOtpDigits(next);
+    setOtpError("");
+  };
   const [timer, setTimer] = useState(0);
   const [loading, setLoading] = useState(false);
   const [mobileVerified, setMobileVerified] = useState(false);
@@ -425,7 +431,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
         return toast.error("Please enter a valid email address");
       }
     } else if (code.length !== 4) {
-      return toast.error("Enter the 4-digit OTP");
+      return setOtpError("Enter the 4-digit OTP");
     }
 
     setLoading(true);
@@ -468,7 +474,8 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       trackSuccess(true, r.value);
       await completeLogin(regData, { isSignup: true, mobile, email: email.trim(), name: fullName.trim() });
     } catch (err) {
-      toast.error(friendlyError(err.message));
+      if (mobileVerified) toast.error(friendlyError(err.message));
+      else setOtpError(err.message || "Invalid or expired OTP");
     } finally {
       setLoading(false);
     }
@@ -683,8 +690,13 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     panel = (
       <motion.div key="otp" {...panelMotion}>
         {otpHeader}
-        <OtpBoxes otp={otp} setOtp={setOtp} onComplete={handleOtpComplete} firstRef={otpFirstRef} />
+        <OtpBoxes otp={otp} setOtp={setOtp} onComplete={handleOtpComplete} firstRef={otpFirstRef} error={!!otpError} />
         {resendRow}
+        {otpError && (
+          <p role="alert" className="m-0 -mt-1 mb-2 text-center text-[12px] text-[#D92D20]">
+            {otpError}
+          </p>
+        )}
         <PrimaryButton onClick={() => handleVerify()} disabled={loading}>
           {loading
             ? "Verifying..."
