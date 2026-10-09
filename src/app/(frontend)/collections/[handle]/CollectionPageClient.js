@@ -1425,7 +1425,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         // rendering the desktop one on a phone threw away 30% of its width.
         const bannerSrc = (isMobile && banner.mobileSrc) || banner.src;
         items.push(
-          <div key={`inpage-${idx}`} className={`overflow-hidden rounded-[4px] ${banner.size === "wide" ? "lg:col-span-2 lg:row-span-2" : ""}`}>
+          <div key={`inpage-${idx}`} className={`overflow-hidden rounded-[4px] ${banner.size === "wide" ? "lg:col-span-2 lg:row-span-2" : banner.size === "double" ? (isMobile ? "col-span-2 row-span-2" : "col-span-2") : ""}`}>
             <Link prefetch={false} className="cursor-pointer block w-full h-full" href={banner.href || banner.linkUrl || "#"}>
               {/* Contained, not covered. This cell's height is set by the
                   product cards beside it, and the Try At Home / video call row
@@ -1443,12 +1443,12 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
                 width={800}
                 height={400}
                 sizes="(max-width: 1023px) 50vw, 33vw"
-                className={`w-full h-full rounded-[4px] ${banner.size === "wide" ? "object-cover" : "object-contain object-top"}`}
+                className={`w-full h-full rounded-[4px] ${banner.size === "wide" || banner.size === "double" ? "object-cover" : "object-contain object-top"}`}
               />
             </Link>
           </div>
         );
-        cellCount += 1;
+        cellCount += banner.size === "double" ? (isMobile ? 4 : 2) : 1;
         if (banner.size === "wide" && !isMobile) wideBeside += 2;
         bannerCount++;
       }
