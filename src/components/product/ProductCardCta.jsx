@@ -122,9 +122,9 @@ export default function ProductCardCta({
   const productTitle = product?.title || "";
   const productUrl = promoProduct.product_url || "";
 
-  // 1. Try At Home WhatsApp URL: "Hi, I'd like to book a free home trial for [Product Name] [Product URL]"
+  // 1. Try At Home WhatsApp URL: "Hi, I'd like to book a free home trial for:\n[Product Name] [Product URL]"
   const tryAtHomeWhatsappHref = React.useMemo(() => {
-    const message = `Hi, I'd like to book a free home trial for ${productTitle}${productUrl ? ` ${productUrl}` : ""}`;
+    const message = `Hi, I'd like to book a free home trial for:\n${productTitle}${productUrl ? ` ${productUrl}` : ""}`;
     return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
   }, [productTitle, productUrl]);
 
