@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { AnimatePresence, motion, useAnimation, useReducedMotion } from "framer-motion";
-import { sendOtpApi, verifyOtpApi, registerCustomer, rewardLookupApi } from "@/lib/api";
+import { sendOtpApi, verifyOtpApi, registerCustomer, rewardLookupApi, trackScratchCardView } from "@/lib/api";
 import { getSessionId } from "@/redux/features/cart/cartSlice";
 import { cleanPhoneInput } from "@/lib/phone";
 import { useCompleteLogin } from "@/hooks/useCompleteLogin";
@@ -14,7 +14,6 @@ import { RewardTicket } from "./RewardTicket";
 import { ScratchSurface } from "./ScratchSurface";
 
 const COVER_SRC = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437258093.jpg?v=1790752132";
-const CONTINUE_SHOPPING_PATH = "/collections/jewelry";
 const OTP_RESEND_SECONDS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const EMPTY_OTP = ["", "", "", ""];
@@ -75,16 +74,60 @@ function useVisualViewportBox() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setBox({ height: vv.height, top: vv.offsetTop });
+    // Every time focus moves to another field, Android's keyboard drops its
+    // autofill strip (~60px) for a couple of frames and puts it back, so the
+    // viewport grows and shrinks again. Shrinking (keyboard opening) is applied
+    // at once; a small grow while the keyboard is up only once it has held.
+    // The site uses interactive-widget=resizes-content, so window.innerHeight
+    // shrinks with the keyboard too — "open" is measured against the tallest
+    // (keyboard-closed) height seen instead.
+    let closedHeight = Math.max(window.innerHeight, vv.height);
+    let shown = null;
+    let growTimer = null;
+    const apply = (height, top) => {
+      if (shown && shown.height === height && shown.top === top) return;
+      shown = { height, top };
+      setBox(shown);
+    };
+    const update = () => {
+      clearTimeout(growTimer);
+      const height = vv.height;
+      closedHeight = Math.max(closedHeight, height);
+      const keyboardOpen = closedHeight - height > 120;
+      if (shown && keyboardOpen && height > shown.height && height - shown.height < 150) {
+        growTimer = setTimeout(() => apply(vv.height, vv.offsetTop), 250);
+        return;
+      }
+      apply(height, vv.offsetTop);
+    };
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
     return () => {
+      clearTimeout(growTimer);
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
     };
   }, []);
   return box;
+}
+
+// Tallest viewport seen (keyboard closed). The card is laid out against this so
+// it never shrinks or moves when the keyboard opens or the sheet hides.
+function useBaselineHeight() {
+  const [h, setH] = useState(() => (typeof window === "undefined" ? 700 : window.innerHeight));
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const update = () => setH((prev) => Math.max(prev, vv?.height || 0, window.innerHeight));
+    update();
+    vv?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return h;
 }
 
 // Seeded PRNG so the confetti layout is pure (same burst every render).
@@ -133,46 +176,61 @@ function Confetti() {
   );
 }
 
-function OtpBoxes({ otp, setOtp, onComplete, firstRef }) {
-  const refs = [firstRef, useRef(null), useRef(null), useRef(null)];
+// One real input drawn as four boxes. Hopping focus between four inputs made
+// Android restart the keyboard on every digit (and every backspace), which
+// briefly resized the viewport and shook the sheet.
+function OtpBoxes({ otp, setOtp, onComplete, firstRef, error }) {
+  const [focused, setFocused] = useState(false);
+  const code = otp.join("");
+  const active = Math.min(code.length, 3);
 
-  const handleChange = (i, raw) => {
-    const value = raw.replace(/\D/g, "");
-    // Paste / SMS autofill of the whole code
-    if (value.length >= 4) {
-      const next = value.slice(0, 4).split("");
-      setOtp(next);
-      refs[3].current?.blur();
-      onComplete(next.join(""));
-      return;
-    }
-    const next = [...otp];
-    next[i] = value.slice(-1);
-    setOtp(next);
-    if (value && i < 3) refs[i + 1].current?.focus();
-    if (next.every((d) => d !== "")) onComplete(next.join(""));
+  const handleChange = (raw) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 4);
+    setOtp([0, 1, 2, 3].map((i) => digits[i] || ""));
+    if (digits.length === 4 && code.length < 4) onComplete(digits);
+  };
+
+  // Keep the caret at the end so typing and backspace always act on the last box.
+  const caretToEnd = (e) => {
+    const len = e.currentTarget.value.length;
+    e.currentTarget.setSelectionRange?.(len, len);
   };
 
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="relative grid grid-cols-4 gap-3">
       {otp.map((digit, i) => (
-        <input
+        <div
           key={i}
-          ref={refs[i]}
-          type="tel"
-          inputMode="numeric"
-          autoComplete={i === 0 ? "one-time-code" : "off"}
-          maxLength={i === 0 ? 4 : 1}
-          placeholder="-"
-          aria-label={`OTP digit ${i + 1}`}
-          className="h-[46px] w-full text-center text-[18px] font-semibold border border-[#E2E2E2] bg-[#FAFAFA] rounded-[4px] outline-none focus:border-[#5a413f] placeholder:text-[#9a9a9a]"
-          value={digit}
-          onChange={(e) => handleChange(i, e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Backspace" && !otp[i] && i > 0) refs[i - 1].current?.focus();
-          }}
-        />
+          aria-hidden="true"
+          className={`h-[46px] w-full flex items-center justify-center text-[18px] font-semibold border bg-[#FAFAFA] rounded-[4px] ${
+            error ? "border-[#D92D20]" : focused && i === active ? "border-[#5a413f]" : "border-[#E2E2E2]"
+          } ${digit ? "text-black" : "text-[#9a9a9a]"}`}
+        >
+          {digit || (focused && i === active ? <span className="lucira-otp-caret w-px h-[20px] bg-black" /> : "-")}
+        </div>
       ))}
+      <input
+        ref={firstRef}
+        type="tel"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={4}
+        aria-label="Enter the 4-digit OTP"
+        className="absolute inset-0 w-full h-full opacity-0 text-[16px] border-none outline-none bg-transparent"
+        value={code}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={(e) => {
+          setFocused(true);
+          caretToEnd(e);
+        }}
+        onBlur={() => setFocused(false)}
+        onClick={caretToEnd}
+        onKeyUp={caretToEnd}
+      />
+      <style>{`
+        .lucira-otp-caret { animation: luciraOtpCaret 1s steps(1) infinite; }
+        @keyframes luciraOtpCaret { 50% { opacity: 0; } }
+      `}</style>
     </div>
   );
 }
@@ -209,6 +267,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const reduce = useReducedMotion();
   const completeLogin = useCompleteLogin();
   const vvBox = useVisualViewportBox();
+  const baseHeight = useBaselineHeight();
   const shake = useAnimation();
 
   const [step, setStep] = useState("phone"); // phone | otp | verified | won
@@ -218,7 +277,13 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const [mobile, setMobile] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(EMPTY_OTP);
+  const [otp, setOtpDigits] = useState(EMPTY_OTP);
+  // Wrong/expired OTP is shown inline (red boxes + message above the button), not as a toast.
+  const [otpError, setOtpError] = useState("");
+  const setOtp = (next) => {
+    setOtpDigits(next);
+    setOtpError("");
+  };
   const [timer, setTimer] = useState(0);
   const [loading, setLoading] = useState(false);
   const [mobileVerified, setMobileVerified] = useState(false);
@@ -231,12 +296,26 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const [cardSize] = useState(() =>
     typeof window === "undefined" ? 255 : Math.round(Math.min(window.innerWidth * 0.68, 290))
   );
-  const [cardScale, setCardScale] = useState(1);
 
   const phoneRef = useRef(null);
   const nameRef = useRef(null);
   const otpFirstRef = useRef(null);
-  const cardAreaRef = useRef(null);
+
+  // How long the card was on screen: sent once, on close/unmount or tab hide.
+  useEffect(() => {
+    const start = Date.now();
+    let sent = false;
+    const flush = () => {
+      if (sent) return;
+      sent = true;
+      trackScratchCardView(getSessionId(), Math.round((Date.now() - start) / 1000));
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -246,19 +325,6 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     };
   }, []);
 
-  // Shrink the card (visually only — the canvas keeps its size) when the
-  // keyboard leaves less room than the card needs.
-  useEffect(() => {
-    const el = cardAreaRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(([entry]) => {
-      const h = entry.contentRect.height;
-      setCardScale(Math.max(0.45, Math.min(1, (h - 28) / cardSize)));
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [cardSize]);
-
   useEffect(() => {
     if (timer <= 0) return;
     const t = setTimeout(() => setTimer((s) => s - 1), 1000);
@@ -266,14 +332,12 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   }, [timer]);
 
   useEffect(() => {
-    if (step !== "otp") return;
+    if (step !== "otp" && step !== "details") return;
     const t = setTimeout(() => {
-      if (userType === "new" && !fullName) nameRef.current?.focus();
-      else otpFirstRef.current?.focus();
+      (step === "details" ? nameRef : otpFirstRef).current?.focus();
     }, 350);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, userType]);
+  }, [step]);
 
   // Fallback for people who don't scratch: offer a plain tap-to-reveal.
   useEffect(() => {
@@ -282,15 +346,17 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     return () => clearTimeout(t);
   }, [scratching, revealed]);
 
+  const keyboardOpen = !!vvBox && baseHeight - vvBox.height > 120;
   const hasStoredPrize = userType === "existing" && !!lookupReward && !reward?.fresh;
   const scratchEnabled = step === "verified" && !!reward;
-  const cardLocked = step === "phone" || step === "otp";
-  const sheetHidden = scratching && !revealed;
+  const cardLocked = step === "phone" || step === "otp" || step === "details";
 
   const nudgeCard = () => {
+    const target = { phone: phoneRef, otp: otpFirstRef, details: nameRef }[step]?.current ?? null;
+    // Already typing: leave everything alone so the keyboard and card stay still.
+    if (keyboardOpen || (target && document.activeElement === target)) return;
     if (!reduce) shake.start({ x: [0, -9, 9, -6, 6, -2, 0], transition: { duration: 0.45 } });
-    if (step === "phone") phoneRef.current?.focus();
-    else if (step === "otp") (userType === "new" && !fullName ? nameRef : otpFirstRef).current?.focus();
+    target?.focus({ preventScroll: true });
   };
 
   const handleContinue = async () => {
@@ -354,17 +420,19 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     if (loading) return;
     const code = typeof override === "string" ? override : otp.join("");
     const { firstName, lastName } = splitFullName(fullName);
-    const isNew = userType === "new";
 
-    // Validate the form before spending the OTP.
-    if (isNew && !firstName) {
-      nameRef.current?.focus();
-      return toast.error("Please enter your full name");
+    // Flow: number → OTP → (new users only) name + email.
+    if (mobileVerified) {
+      if (!firstName) {
+        nameRef.current?.focus();
+        return toast.error("Please enter your full name");
+      }
+      if (!EMAIL_RE.test(email.trim())) {
+        return toast.error("Please enter a valid email address");
+      }
+    } else if (code.length !== 4) {
+      return setOtpError("Enter the 4-digit OTP");
     }
-    if (isNew && !EMAIL_RE.test(email.trim())) {
-      return toast.error("Please enter a valid email address");
-    }
-    if (!mobileVerified && code.length !== 4) return toast.error("Enter the 4-digit OTP");
 
     setLoading(true);
     try {
@@ -378,14 +446,11 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
         if (!(data?.status === "REGISTER_REQUIRED" || data?.status === "REGISTER" || data?.type === "register")) {
           throw new Error("Verification failed. Please try again.");
         }
+        // OTP is good and this is a new customer: collect name + email next.
         setMobileVerified(true);
-        if (!isNew) {
-          // Lookup failed earlier and this is actually a new customer.
-          setUserType("new");
-          setLoading(false);
-          toast.info("Please add your name and email to create your account");
-          return;
-        }
+        setUserType("new");
+        setStep("details");
+        return;
       }
 
       const regData = await registerCustomer({
@@ -409,20 +474,22 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       trackSuccess(true, r.value);
       await completeLogin(regData, { isSignup: true, mobile, email: email.trim(), name: fullName.trim() });
     } catch (err) {
-      toast.error(friendlyError(err.message));
+      if (mobileVerified) toast.error(friendlyError(err.message));
+      else setOtpError(err.message || "Invalid or expired OTP");
     } finally {
       setLoading(false);
     }
   };
 
   const handleOtpComplete = (code) => {
-    // New users still need name + email; only auto-submit when those are in.
-    if (userType === "new" && (!fullName.trim() || !EMAIL_RE.test(email.trim()))) return;
     setTimeout(() => handleVerify(code), 60);
   };
 
+  // The button reveals the card directly (same as "tap to reveal"); scratching
+  // the card by hand still works too.
   const startScratchMode = () => {
     setScratching(true);
+    handleScratchComplete();
   };
 
   const handleScratchStart = () => {
@@ -452,8 +519,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   };
 
   const handleContinueShopping = () => {
-    onSuccess?.(CONTINUE_SHOPPING_PATH);
-    router.refresh();
+    handleClose();
   };
 
   const days = reward?.daysLeft ?? 7;
@@ -469,12 +535,12 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       className="relative"
       style={{ width: cardSize, height: cardSize }}
       initial={reduce ? false : { opacity: 0, scale: 0.8, y: 30 }}
-      animate={{ opacity: 1, scale: cardScale, y: 0 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 220, damping: 20 }}
     >
       <motion.div
         className="absolute inset-0"
-        animate={!reduce && cardLocked ? { y: [0, -6, 0] } : { y: 0 }}
+        animate={!reduce && cardLocked && !keyboardOpen ? { y: [0, -6, 0] } : { y: 0 }}
         transition={cardLocked ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
       >
         <motion.div animate={shake} className="absolute inset-0 rounded-[12px] shadow-[0_18px_40px_rgba(0,0,0,0.45)]" style={{ perspective: 900 }}>
@@ -520,7 +586,8 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
               type="button"
               aria-label="Verify your number to scratch the card"
               className="absolute inset-0 rounded-[12px] bg-transparent border-none cursor-pointer flex items-end justify-center pb-3"
-              onClick={nudgeCard}
+              style={{ touchAction: "none" }}
+              onPointerUp={nudgeCard}
             >
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/45 backdrop-blur-sm text-white text-[11px] tracking-[0.4px]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -540,7 +607,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
         type="button"
         onClick={handleClose}
         aria-label="Close"
-        className="absolute -top-[14px] -right-[40px] w-[26px] h-[26px] rounded-full bg-[#E9E9E9] border-none flex items-center justify-center cursor-pointer z-30"
+        className="absolute -top-[14px] -right-[14px] w-[26px] h-[26px] rounded-full bg-[#E9E9E9] border-none flex items-center justify-center cursor-pointer z-30"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">
           <path d="M18 6 6 18M6 6l12 12" />
@@ -550,10 +617,11 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   );
 
   const panelMotion = {
-    initial: reduce ? false : { opacity: 0, x: 28 },
-    animate: { opacity: 1, x: 0 },
-    exit: reduce ? { opacity: 0 } : { opacity: 0, x: -28 },
-    transition: { duration: 0.22 },
+    // Fade only — sliding panels made the sheet jump while typing
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+    transition: { duration: 0.12 },
   };
 
   const otpHeader = (
@@ -620,40 +688,52 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     );
   } else if (step === "otp") {
     panel = (
-      <motion.div key={`otp-${userType}`} {...panelMotion}>
+      <motion.div key="otp" {...panelMotion}>
         {otpHeader}
-        {userType === "new" && (
-          <div className="space-y-3 mb-3">
-            <input
-              ref={nameRef}
-              type="text"
-              autoComplete="name"
-              placeholder="Enter Your Full Name"
-              className={inputClass}
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-            <input
-              type="email"
-              autoComplete="email"
-              inputMode="email"
-              placeholder="Enter Your Mail Id"
-              className={inputClass}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+        <OtpBoxes otp={otp} setOtp={setOtp} onComplete={handleOtpComplete} firstRef={otpFirstRef} error={!!otpError} />
+        {resendRow}
+        {otpError && (
+          <p role="alert" className="m-0 -mt-1 mb-2 text-center text-[12px] text-[#D92D20]">
+            {otpError}
+          </p>
         )}
-        {!mobileVerified && <OtpBoxes otp={otp} setOtp={setOtp} onComplete={handleOtpComplete} firstRef={otpFirstRef} />}
-        {mobileVerified ? <div className="h-3" /> : resendRow}
         <PrimaryButton onClick={() => handleVerify()} disabled={loading}>
           {loading
             ? "Verifying..."
-            : userType === "new"
-              ? mobileVerified ? "Create Account" : "Verify"
-              : hasStoredPrize
-                ? lookupReward.status === "expired" ? "Reactivate My Code" : "Reveal My Code"
-                : "Verify"}
+            : hasStoredPrize
+              ? lookupReward.status === "expired" ? "Reactivate My Code" : "Reveal My Code"
+              : "Verify"}
+        </PrimaryButton>
+      </motion.div>
+    );
+  } else if (step === "details") {
+    panel = (
+      <motion.div key="details" {...panelMotion}>
+        <p className="m-0 text-[16px] font-semibold text-black">Welcome to Lucira Jewelry</p>
+        <p className="m-0 mt-0.5 mb-4 text-[12px] text-black">Enter your details to create your account</p>
+        <div className="space-y-3 mb-4">
+          <input
+            ref={nameRef}
+            type="text"
+            autoComplete="name"
+            placeholder="Enter Your Full Name"
+            className={inputClass}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
+          <input
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            placeholder="Enter Your Mail Id"
+            className={inputClass}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleVerify()}
+          />
+        </div>
+        <PrimaryButton onClick={() => handleVerify()} disabled={loading}>
+          {loading ? "Verifying..." : "Create Account"}
         </PrimaryButton>
       </motion.div>
     );
@@ -717,8 +797,8 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
 
   return createPortal(
     <motion.div
-      className="fixed left-0 right-0 z-[2000] flex flex-col"
-      style={{ top: vvBox?.top ?? 0, height: vvBox ? vvBox.height : "100dvh" }}
+      className="fixed left-0 right-0 top-0 z-[2000]"
+      style={{ height: "100dvh" }}
       role="dialog"
       aria-modal="true"
       aria-label="Scratch card rewards"
@@ -728,7 +808,11 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     >
       <div className="absolute inset-0 bg-[#1f1f1f]/[0.92]" aria-hidden="true" />
 
-      <div ref={cardAreaRef} className="relative flex-1 min-h-0 flex flex-col items-center justify-center">
+      {/* Sized from the keyboard-closed height so the card stays put */}
+      <div
+        className="absolute z-10 left-0 right-0 top-0 flex flex-col items-center justify-center"
+        style={{ height: Math.max(cardSize + 60, baseHeight - 170) }}
+      >
         {card}
         <AnimatePresence>
           {showTapReveal && !revealed && (
@@ -746,17 +830,22 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
         </AnimatePresence>
       </div>
 
-      <motion.div
-        className="relative bg-white rounded-t-[20px] px-4 pt-5 pb-[max(16px,env(safe-area-inset-bottom))] overflow-hidden"
-        initial={reduce ? false : { y: "100%" }}
-        animate={{ y: sheetHidden ? "110%" : 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 30 }}
-        style={{ position: sheetHidden ? "absolute" : "relative", left: 0, right: 0, bottom: 0 }}
+      {/* Only the sheet follows the keyboard; the card layer above never moves */}
+      <div
+        className="absolute left-0 right-0 z-40 flex flex-col justify-end pointer-events-none"
+        style={{ top: vvBox?.top ?? 0, height: vvBox ? vvBox.height : "100%" }}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          {panel}
-        </AnimatePresence>
-      </motion.div>
+        <motion.div
+          className="pointer-events-auto bg-white rounded-t-[20px] px-4 pt-5 pb-[max(16px,env(safe-area-inset-bottom))] overflow-hidden"
+          initial={reduce ? false : { y: "100%" }}
+          animate={{ y: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 30 }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {panel}
+          </AnimatePresence>
+        </motion.div>
+      </div>
     </motion.div>,
     document.body
   );
