@@ -8,7 +8,7 @@ import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { pushPromoClick } from "@/lib/gtm";
-import StoreFootfallModal from "@/components/common/StoreFootfallModal";
+import { useUserPincode } from "@/hooks/useUserPincode";
 
 // ─── Cart Icon SVG ─────────────────────────────────────────────────────────────
 function CartSvg() {
@@ -30,12 +30,15 @@ export default function AtcBar({
   onToggleWishlist,
   isWishlisted,
   schemeData,
+  pincode: pincodeProp,
 }) {
   const [hasTopAnimated, setHasTopAnimated] = React.useState(false);
   const [hasBottomAnimated, setHasBottomAnimated] = React.useState(false);
   const [isMounted, setIsMounted] = React.useState(false);
-  const [storeModalOpen, setStoreModalOpen] = React.useState(false);
-  const [storeModalDevice, setStoreModalDevice] = React.useState("desktop");
+
+  const { pincode: hookPincode } = useUserPincode();
+  const currentPincode = String(pincodeProp || hookPincode || "").replace(/\D/g, "").slice(0, 6);
+  const hasPincode = currentPincode.length === 6;
 
   const productUrl = React.useMemo(() => {
     if (!product?.handle) return "";
@@ -45,15 +48,27 @@ export default function AtcBar({
     return `${origin}/products/${product.handle}`;
   }, [product?.handle]);
 
-  const openStoreModal = (device) => {
+  const storesNearbyWhatsAppUrl = React.useMemo(() => {
+    const text = hasPincode
+      ? `I'd like to visit a store near ${currentPincode} to explore ${product?.title || ""}`
+      : `I would like to visit the store near me to know more about product: ${product?.title || ""}${productUrl ? ` ${productUrl}` : ""}`;
+    return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
+  }, [hasPincode, currentPincode, product?.title, productUrl]);
+
+  const handleStoresNearbyClick = (device) => {
     pushPromoClick({
-      promo_id: device,
+      promo_id: activeVariant?.sku || String(activeVariant?.id || product?.shopifyId || product?.id || device),
       promo_name: product?.title || "Stores Nearby",
-      creative_name: "store nearby sticky cta pdp for footfall",
+      creative_name: "store nearby sticky cta pdp whatsapp",
       location_id: "pdp",
+      product_id: String(product?.shopifyId || product?.id || ""),
+      product_name: product?.title || "",
+      sku: activeVariant?.sku || "",
+      variant_id: String(activeVariant?.id || ""),
+      product_url: productUrl,
+      price: Number(activeVariant?.price || 0),
+      offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
     });
-    setStoreModalDevice(device);
-    setStoreModalOpen(true);
   };
 
   React.useEffect(() => {
@@ -123,15 +138,6 @@ export default function AtcBar({
 
   return (
     <>
-      {/* ── Store Footfall Modal ── */}
-      <StoreFootfallModal
-        open={storeModalOpen}
-        onClose={() => setStoreModalOpen(false)}
-        product={product}
-        activeVariant={activeVariant}
-        device={storeModalDevice}
-      />
-
       {/* ── Sticky Top Bar (atcBar) ── */}
       <div
         className={cn(
@@ -183,13 +189,16 @@ export default function AtcBar({
             ) : (
               <>
                 {/* Stores Nearby CTA — desktop sticky top bar */}
-                <button
-                  onClick={() => openStoreModal("desktop")}
+                <a
+                  href={storesNearbyWhatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => handleStoresNearbyClick("desktop")}
                   className="hidden lg:flex h-14 px-6 items-center justify-center gap-2 border border-primary text-primary font-bold text-sm rounded-sm uppercase tracking-wider whitespace-nowrap hover:bg-primary/5 transition-colors"
                 >
                   <StoreIcon size={16} />
                   <span>STORES NEARBY</span>
-                </button>
+                </a>
 
                 <Button
                   onClick={() => onAddToCart("header sticky cta")}
@@ -260,13 +269,16 @@ export default function AtcBar({
             <div className="hidden lg:block"></div>
             <div className="pointer-events-auto bg-white border border-gray-100 rounded-sm p-3 flex items-center gap-2 w-full">
               {!isBYJ && (
-                <button
-                  onClick={() => openStoreModal("desktop")}
+                <a
+                  href={storesNearbyWhatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => handleStoresNearbyClick("desktop")}
                   className="h-14 flex-1 border border-primary text-primary font-semibold text-base rounded-sm flex items-center justify-center gap-2 whitespace-nowrap px-2 hover:bg-accent/5 transition-colors uppercase"
                 >
                   <StoreIcon size={16} />
                   <span>STORES NEARBY</span>
-                </button>
+                </a>
               )}
               <button
                 onClick={() => onAddToCart("bottom sticky cta")}
@@ -313,13 +325,16 @@ export default function AtcBar({
 
             {/* Stores CTA — replaces Scheme button in mobile sticky bottom bar */}
             {!isBYJ && (
-              <button
-                onClick={() => openStoreModal("mobile")}
+              <a
+                href={storesNearbyWhatsAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleStoresNearbyClick("mobile")}
                 className="h-14 flex-1 border border-primary text-primary font-bold text-[13px] rounded-sm flex items-center justify-center gap-1.5 whitespace-nowrap px-2"
               >
                 <StoreIcon size={15} />
                 <span>STORES</span>
-              </button>
+              </a>
             )}
 
             {/* Add to Cart */}

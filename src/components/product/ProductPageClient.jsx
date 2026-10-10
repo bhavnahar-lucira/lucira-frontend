@@ -2469,6 +2469,7 @@ export default function ProductPageClient({
         onToggleWishlist={handleToggleWishlist}
         isWishlisted={isWishlisted}
         wishlistLoading={wishlistLoading}
+        pincode={hasConfirmedPincode ? localPincode : (localPincode?.length === 6 ? localPincode : (globalPincode || ""))}
       />
       {isMounted && isMobile && (
         <PdpSubHeader
