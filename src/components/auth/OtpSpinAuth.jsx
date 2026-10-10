@@ -14,6 +14,7 @@ import {
   fetchOrnaverseCustomer,
   createOrnaverseCustomer,
   saveSpinPrize,
+  trackSpinWheelView,
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
@@ -184,6 +185,26 @@ export function OtpSpinAuth({
     }
   }, [step]);
 
+  // Track popup / modal view and on-screen duration for Spin the Wheel & Login
+  useEffect(() => {
+    const start = Date.now();
+    let sent = false;
+    const sid = getSessionId();
+
+    const flush = () => {
+      if (sent) return;
+      sent = true;
+      const duration = Math.max(1, Math.round((Date.now() - start) / 1000));
+      trackSpinWheelView(sid, duration, isPopup ? "auto_popup" : "modal");
+    };
+
+    window.addEventListener("pagehide", flush);
+    return () => {
+      flush();
+      window.removeEventListener("pagehide", flush);
+    };
+  }, [isPopup]);
+
 
   const loginSuccess = async (data, isSignup = false, skipRedirect = false, ornaUser = null) => {
     // 1. Identify where we need to go
@@ -350,12 +371,12 @@ export function OtpSpinAuth({
     setLoading(true);
     try {
       const sessionId = getSessionId();
-      const data = await verifyOtpApi(mobile, otpValue, sessionId);
+      const data = await verifyOtpApi(mobile, otpValue, sessionId, { rewardSource: "spin_wheel" });
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         if (hideRegisterLink) {
           // Auto register with mobile number (Cart Flow)
           try {
-            const regData = await registerCustomer({ mobile, sessionId });
+            const regData = await registerCustomer({ mobile, sessionId, rewardSource: "spin_wheel" });
             if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
               await loginSuccess(regData, true);
             } else {
@@ -395,6 +416,7 @@ export function OtpSpinAuth({
             email,
             mobile,
             sessionId,
+            rewardSource: "spin_wheel",
             wonPrize: wonPrize?.value,
             prizeLabel: wonPrize?.label,
             ...experimentTags,
@@ -566,6 +588,7 @@ export function OtpSpinAuth({
             email,
             mobile,
             sessionId,
+            rewardSource: "spin_wheel",
             wonPrize: prize?.value,
             prizeLabel: prize?.label,
             ...experimentTags,
