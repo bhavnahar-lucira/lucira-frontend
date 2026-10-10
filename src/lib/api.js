@@ -162,26 +162,6 @@ export const trackScratchCardView = (sessionId, seconds = 1) => {
     }
   } catch {}
 };
-  const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
-  const body = JSON.stringify({
-    event: "scratch_card_view",
-    sessionId,
-    page: window.location.pathname,
-    metadata: { durationSeconds: Math.max(1, seconds) },
-  });
-  try {
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(`${base}/api/track`, new Blob([body], { type: "application/json" }));
-    } else {
-      fetch(`${base}/api/track`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        keepalive: true,
-      }).catch(() => {});
-    }
-  } catch {}
-};
 
 // Fire-and-forget (sendBeacon survives page unload) — seconds the spin wheel / login popup was on screen.
 export const trackSpinWheelView = (sessionId, seconds = 1, source = "popup") => {
@@ -204,8 +184,6 @@ export const trackSpinWheelView = (sessionId, seconds = 1, source = "popup") => 
         keepalive: true,
       }).catch(() => {});
     }
-  } catch {}
-};
   } catch {}
 };
 
