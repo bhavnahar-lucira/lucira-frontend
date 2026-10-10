@@ -11,6 +11,7 @@ import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 import { fetchOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
+import { toE164 } from "@/lib/phone";
 
 const PRESETS = [3000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
@@ -254,7 +255,7 @@ const DesktpSavingCalculator = () => {
                     creative_name: "scheme page Continue cta",
                     location_id: "schemes page",
                     promo_id: String(amount),
-                    promo_name: get10DigitMobile(user?.mobile || user?.phone) || "",
+                    promo_name: toE164(user?.mobile || user?.phone) || "",
                   });
                 } catch (error) {
                   console.error("Error pushing to dataLayer:", error);

@@ -107,6 +107,14 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/track',
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080'}/api/track`,
+      },
+      {
+        source: '/api/track/:path*',
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080'}/api/track/:path*`,
+      },
+      {
         source: '/feeds/products.xml',
         destination: '/api/feeds/products',
       },

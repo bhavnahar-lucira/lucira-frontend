@@ -393,9 +393,17 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     ? plpBanners.topBanner.overrides
     : FALLBACK_TOP_OVERRIDES;
   const topBannerOverride = topBannerOverrides.find((o) => o.handles?.includes(handle)) || null;
-  const inpageBanners = plpBanners.inpageBanners?.length
+  const allInpageBanners = plpBanners.inpageBanners?.length
     ? plpBanners.inpageBanners
     : FALLBACK_INPAGE_BANNERS;
+  // Banners targeted at this collection (`handles`) replace the global ones here,
+  // each shown once at its own `after` position; untargeted ones keep the 6/16 cadence.
+  const scopedInpageBanners = allInpageBanners
+    .filter((b) => b.handles?.includes(handle))
+    .sort((a, b) => (a.after ?? 6) - (b.after ?? 6));
+  const inpageBanners = scopedInpageBanners.length
+    ? scopedInpageBanners
+    : allInpageBanners.filter((b) => !b.handles?.length);
 
   // Dashboard-managed Jewelry on EMI content & calculator settings
   const emiSettings = initialData?.emiSettings || null;
@@ -1393,7 +1401,8 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     const items = [];
     let renderedCount = 0;
     let bannerCount = 0;
-    let cellCount = 0;            // grid cells occupied so far (a col-span-full block = 2)
+    let wideBeside = 0;           // products placed beside wide (2x2) banners so far
+    let cellCount = 0;           // grid cells occupied so far (a col-span-full block = 2)
     let rewardBannerAdded = false;
     let rewardBannerAt = -1;      // renderedCount when the claim banner was inserted
     let recentlyViewedAdded = false;
@@ -1403,7 +1412,12 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       if (!prod) return;
       // First banner after 6 products, the second 10 later (6, 16). Each creative shows
       // once and then stops — the row is not repeated further down the grid.
-      if (bannerCount < inpageBanners.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
+      const showScopedBanner = scopedInpageBanners.length > 0
+        && bannerCount < inpageBanners.length
+        // Products sitting beside an earlier wide tile (2 rows x 1 spare column on the
+        // 3-up grid) don't count toward the dashboard's "after N" gap.
+        && renderedCount >= (inpageBanners[bannerCount].after ?? 6) + wideBeside;
+      if (showScopedBanner || (!scopedInpageBanners.length && bannerCount < inpageBanners.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0)) {
         const banner = inpageBanners[bannerCount];
         // Mobile takes its own creative, the way the top banner already does.
         // The dashboard stores both (`mobileSrc` beside `src`) because they are
@@ -1411,7 +1425,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         // rendering the desktop one on a phone threw away 30% of its width.
         const bannerSrc = (isMobile && banner.mobileSrc) || banner.src;
         items.push(
-          <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
+          <div key={`inpage-${idx}`} className={`overflow-hidden rounded-[4px] ${banner.size === "wide" ? "lg:col-span-2 lg:row-span-2" : banner.size === "double" ? (isMobile ? "col-span-2 row-span-2" : "col-span-2") : ""}`}>
             <Link prefetch={false} className="cursor-pointer block w-full h-full" href={banner.href || banner.linkUrl || "#"}>
               {/* Contained, not covered. This cell's height is set by the
                   product cards beside it, and the Try At Home / video call row
@@ -1429,12 +1443,13 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
                 width={800}
                 height={400}
                 sizes="(max-width: 1023px) 50vw, 33vw"
-                className="w-full h-full object-contain object-top rounded-[4px]"
+                className={`w-full h-full rounded-[4px] ${banner.size === "wide" || banner.size === "double" ? "object-cover" : "object-contain object-top"}`}
               />
             </Link>
           </div>
         );
-        cellCount += 1;
+        cellCount += banner.size === "double" ? (isMobile ? 4 : 2) : 1;
+        if (banner.size === "wide" && !isMobile) wideBeside += 2;
         bannerCount++;
       }
 
@@ -1562,7 +1577,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     handle,
     selectedColor,
     dispatch,
-    inpageBanners
+    plpBanners.inpageBanners
   ]);
 
   const displayTitle = isMobile
@@ -1868,7 +1883,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
             </div>
           )}
 
-          <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"}`}>
+          <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-flow-dense gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : gridItems}
           </div>
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
