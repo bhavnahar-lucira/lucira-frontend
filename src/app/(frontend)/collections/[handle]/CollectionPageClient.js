@@ -1424,9 +1424,23 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         // cut for different tiles — 270×495 against the desktop 413×615 — and
         // rendering the desktop one on a phone threw away 30% of its width.
         const bannerSrc = (isMobile && banner.mobileSrc) || banner.src;
+        const bannerPosition = bannerCount + 1;
         items.push(
           <div key={`inpage-${idx}`} className={`overflow-hidden rounded-[4px] ${banner.size === "wide" ? "lg:col-span-2 lg:row-span-2" : banner.size === "double" ? (isMobile ? "col-span-2 row-span-2" : "col-span-2") : ""}`}>
-            <Link prefetch={false} className="cursor-pointer block w-full h-full" href={banner.href || banner.linkUrl || "#"}>
+            <Link
+              prefetch={false}
+              className="cursor-pointer block w-full h-full"
+              href={banner.href || banner.linkUrl || "#"}
+              onClick={() =>
+                pushPromoClick({
+                  creative_name: `Plp Inpage Banner - ${banner.alt || "Promo"}`,
+                  promo_id: banner.id || banner.href || "",
+                  promo_name: banner.alt || "",
+                  promo_position: `Position ${bannerPosition}`,
+                  location_id: pathname,
+                })
+              }
+            >
               {/* Contained, not covered. This cell's height is set by the
                   product cards beside it, and the Try At Home / video call row
                   made those ~50px taller than either creative was cut for — so
