@@ -373,6 +373,16 @@ const mapShapeCode = (code) => {
   return maps[code.toUpperCase()] || code;
 };
 
+const getStoreDisplayName = (name) => {
+  if (!name) return "";
+  if (name.includes("Divinecarat")) return "Head Office";
+  if (name === "BO1") return "Borivali";
+  if (name === "CS1") return "Chembur";
+  if (name === "PS1") return "Pune";
+  if (name === "NOS18") return "Noida";
+  return name;
+};
+
 export default function ProductPageClient({
   product,
   complementaryProducts: initialComplementaryProducts = [],
@@ -1495,16 +1505,6 @@ export default function ProductPageClient({
   }, [product, dispatch, reviewStats]);
 
   const hasSimilarItems = product.hasSimilar || (product.matchingProductIds && product.matchingProductIds.length > 0);
-
-  const getStoreDisplayName = (name) => {
-    if (!name) return "";
-    if (name.includes("Divinecarat")) return "Head Office";
-    if (name === "BO1") return "Borivali";
-    if (name === "CS1") return "Chembur";
-    if (name === "PS1") return "Pune";
-    if (name === "NOS18") return "Noida";
-    return name;
-  };
 
   // ctaSource identifies which ATC button fired (header sticky / bottom
   // sticky / in-page). Guarded because direct onClick usage passes the event.
