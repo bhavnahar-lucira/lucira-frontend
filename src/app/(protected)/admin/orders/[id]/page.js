@@ -968,7 +968,7 @@ export default function OrderDetailsPage() {
                         </h3>
                       </div>
                       <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                        This order is protected under our 10% Advance Digi Gold installment plan.
+                        This order is protected under our 10% Advance Digi Gold Rate Protection installment plan.
                       </p>
                     </div>
                   </div>
@@ -1051,7 +1051,7 @@ export default function OrderDetailsPage() {
                     <span>
                       {dgrpNextIns?.due_date
                         ? `Next installment due: ${new Date(dgrpNextIns.due_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })} (₹${Number(dgrpNextIns.amount).toLocaleString("en-IN")})`
-                        : "Track price lock benefits, pay monthly installments, or pre-close at the lowest rate in Digi Gold."}
+                        : "Track price lock benefits, pay monthly installments, or pre-close at the lowest rate in Digi Gold Rate Protection."}
                     </span>
                   </div>
 
@@ -1060,7 +1060,7 @@ export default function OrderDetailsPage() {
                     href={`/admin/digi-gold${dgrpPlanCode ? `?plan=${dgrpPlanCode}` : ""}`}
                     className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#5A413F] hover:bg-[#463231] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#5A413F]/15 shrink-0 cursor-pointer"
                   >
-                    <span>Manage in Digi Gold</span>
+                    <span>Manage in Digi Gold Rate Protection</span>
                     <ArrowRight size={14} />
                   </Link>
                 </div>
@@ -1259,18 +1259,18 @@ export default function OrderDetailsPage() {
                   Lock &amp; Key Plan
                 </span>
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                  Digi Gold
+                  Digi Gold Rate Protection
                 </span>
               </div>
               <p className="text-xs text-zinc-600 leading-relaxed font-medium">
-                This order was placed with 10% advance under Gold Rate Protection. View your installment schedule, payment history, and pre-closure benefits in the Digi Gold tab.
+                This order was placed with 10% advance under Gold Rate Protection. View your installment schedule, payment history, and pre-closure benefits in the Digi Gold Rate Protection tab.
               </p>
               <Link
                 prefetch={false}
                 href={`/admin/digi-gold${dgrpPlanCode ? `?plan=${dgrpPlanCode}` : ""}`}
                 className="w-full py-2.5 bg-[#5A413F] hover:bg-[#463231] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md shadow-[#5A413F]/15 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Go to Digi Gold</span>
+                <span>Go to Digi Gold Rate Protection</span>
                 <ArrowRight size={13} />
               </Link>
             </div>

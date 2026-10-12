@@ -455,7 +455,7 @@ export default function MyOrdersPage() {
                       className="font-figtree flex-1 md:w-full py-3 md:py-4 border-[1.5px] border-amber-600/30 text-amber-900 bg-amber-500/10 text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1.5 md:gap-2.5"
                     >
                       <Coins size={13} className="text-amber-700" />
-                      <span className="truncate">Digi Gold Plan</span>
+                      <span className="truncate">Digi Gold Rate Protection</span>
                     </Link>
                   )}
                   <Link prefetch={false}

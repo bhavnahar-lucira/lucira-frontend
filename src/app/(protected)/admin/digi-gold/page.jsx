@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSelector } from "react-redux";
@@ -26,6 +26,7 @@ import {
   Clock,
   Loader2,
   AlertCircle,
+  XCircle,
   X,
   ArrowRight,
 } from "lucide-react";
@@ -181,6 +182,8 @@ export default function DigiGoldPage() {
     };
   }, [isRazorpayOpen]);
 
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const loadPlans = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -189,10 +192,14 @@ export default function DigiGoldPage() {
 
     try {
       setLoading(true);
+      const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const queryPlan = params?.get("plan") || "";
+
       const res = await fetchUserDgrpPlans({
         mobile: user.phone || user.mobile || "",
         email: user.email || "",
         user_id: user.id || "",
+        plan: queryPlan,
       });
 
       if (res?.plans) {
@@ -200,19 +207,17 @@ export default function DigiGoldPage() {
         if (res.current_gold_rate_24k) {
           setCurrentGoldRate(res.current_gold_rate_24k);
         }
-        if (typeof window !== "undefined" && res.plans.length > 0) {
-          const params = new URLSearchParams(window.location.search);
-          const queryPlan = params.get("plan");
-          if (queryPlan) {
-            const matched = res.plans.find(
-              (p) =>
-                p.plan_code === queryPlan ||
-                p._id === queryPlan ||
-                String(p.shopify_order_number) === queryPlan
-            );
-            if (matched) {
-              setExpandedPlanId(matched._id);
-            }
+        if (queryPlan && res.plans.length > 0) {
+          const cleanQ = queryPlan.replace('#', '');
+          const matched = res.plans.find(
+            (p) =>
+              p.plan_code === queryPlan ||
+              p._id === queryPlan ||
+              String(p.shopify_order_name || '').replace('#', '') === cleanQ ||
+              String(p.shopify_order_number || '').replace('#', '') === cleanQ
+          );
+          if (matched) {
+            setExpandedPlanId(matched._id);
           }
         }
       }
@@ -223,6 +228,28 @@ export default function DigiGoldPage() {
       setLoading(false);
     }
   }, [user]);
+
+  const filteredPlans = useMemo(() => {
+    if (statusFilter === "all") return plans;
+    if (statusFilter === "cancelled") {
+      return plans.filter((p) => p.financials?.status === "cancelled" || p.cancellation?.is_cancelled);
+    }
+    if (statusFilter === "pre_closed") {
+      return plans.filter((p) => p.financials?.status === "pre_closed" && !p.cancellation?.is_cancelled);
+    }
+    if (statusFilter === "active") {
+      return plans.filter((p) => p.financials?.status === "active" && !p.cancellation?.is_cancelled);
+    }
+    return plans.filter((p) => p.financials?.status === statusFilter);
+  }, [plans, statusFilter]);
+
+  const counts = useMemo(() => {
+    const total = plans.length;
+    const cancelled = plans.filter((p) => p.financials?.status === "cancelled" || p.cancellation?.is_cancelled).length;
+    const preclosed = plans.filter((p) => p.financials?.status === "pre_closed" && !p.cancellation?.is_cancelled).length;
+    const active = plans.filter((p) => p.financials?.status === "active" && !p.cancellation?.is_cancelled).length;
+    return { total, active, preclosed, cancelled };
+  }, [plans]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -416,7 +443,7 @@ export default function DigiGoldPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 pb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 font-serif">
-            Digi Gold
+            Digi Gold Rate Protection
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-1">
             Lock &amp; Key Gold Rate Protection Plans &amp; Installments
@@ -444,17 +471,17 @@ export default function DigiGoldPage() {
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="animate-spin text-[#5A413F]" size={36} />
           <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-            Loading your Digi Gold plans...
+            Loading your Digi Gold Rate Protection plans...
           </p>
         </div>
       ) : plans.length === 0 ? (
-        /* Empty State */
+        /* Empty State (No Plans at all) */
         <div className="rounded-3xl border border-dashed border-zinc-200 bg-zinc-50/50 p-12 text-center space-y-4">
           <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#FAF2EB] text-[#5A413F]">
             <Coins size={32} />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-bold text-zinc-900">No Active Lock &amp; Key Plans</h3>
+            <h3 className="text-base font-bold text-zinc-900">No Lock &amp; Key Plans Found</h3>
             <p className="text-xs text-zinc-500 max-w-sm mx-auto">
               Lock today&apos;s gold rate with only a 10% down payment and unlock luxury with 3 or 6 months easy installments.
             </p>
@@ -464,132 +491,227 @@ export default function DigiGoldPage() {
           </Button>
         </div>
       ) : (
-        /* Plan Cards List (Exact UI from Figma Screenshot: Frame 1437258052 & 1437258053) */
+        /* Plans Container with Status Tabs */
         <div className="space-y-6">
-          {plans.map((plan) => {
-            const planKey = String(plan._id || plan.id || plan.plan_code);
-            const isExpanded = String(expandedPlanId) === planKey;
-            const liveMetrics = plan.live_metrics || {};
-            const rawLockedRate = liveMetrics.locked_gold_rate || plan.financials?.locked_gold_rate || 15802;
-            const rawTodayRate = liveMetrics.today_gold_rate || currentGoldRate || 17418;
-            
-            // Normalize rates to per-gram if stored as 10g rate (> 35000)
-            const lockedRate = rawLockedRate > 35000 ? Math.round(rawLockedRate / 10) : rawLockedRate;
-            const todayRate = rawTodayRate > 35000 ? Math.round(rawTodayRate / 10) : rawTodayRate;
-            const benefit = todayRate > lockedRate 
-              ? (todayRate - lockedRate) 
-              : (liveMetrics.protected_benefit_per_gm || 0);
-
-            const productValue = plan.financials?.original_product_price || 60000;
-            const amountPaid = plan.financials?.total_paid || 0;
-            const currentBalance = plan.financials?.amount_pending ?? Math.max(0, productValue - amountPaid);
-            const completedPct = Math.min(100, Math.max(0, Math.round((amountPaid / (productValue || 1)) * 100)));
-
-            const unpaidInstallments = (plan.installments || []).filter(
-              (i) =>
-                String(i.status || "").toLowerCase() !== "paid" &&
-                String(i.status || "").toLowerCase() !== "pre_closed"
-            );
-            const nextIns = unpaidInstallments[0];
-            const nextPaymentDateStr = nextIns ? fmtNextPaymentDate(nextIns.due_date) : "";
-            const isCompleted = plan.financials?.status === "completed" || plan.financials?.status === "pre_closed";
-
-            return (
-              <div
-                key={plan._id}
-                className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6 transition-all duration-200 shadow-sm"
+          {/* Status Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {[
+              { id: "all", label: `All Plans (${counts.total})` },
+              { id: "active", label: `Active (${counts.active})` },
+              { id: "cancelled", label: `Cancelled (${counts.cancelled})` },
+              { id: "pre_closed", label: `Pre-Closed (${counts.preclosed})` },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  statusFilter === tab.id
+                    ? "bg-[#5A413F] text-white shadow-xs"
+                    : "bg-white text-zinc-500 border border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900"
+                }`}
               >
-                {/* ── Top Section (Frame 1437258052) ── */}
-                <div className="flex flex-col md:flex-row gap-5 md:gap-6 items-start">
-                  {/* Left: Square Product Image */}
-                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 aspect-square shrink-0 rounded-xl bg-[#FBFBFB] border border-zinc-100 flex items-center justify-center p-3 overflow-hidden mx-auto sm:mx-0">
-                    {plan.product?.image ? (
-                      <Image
-                        src={plan.product.image}
-                        alt={plan.product.title || "Product"}
-                        fill
-                        className="object-contain p-2"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-zinc-300 gap-2">
-                        <Coins size={32} />
-                        <span className="text-[10px] font-medium text-zinc-400">Jewelry Piece</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {filteredPlans.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-zinc-200 bg-white p-10 text-center space-y-2">
+              <p className="text-sm font-bold text-zinc-700">No {statusFilter} plans found</p>
+              <p className="text-xs text-zinc-400">Try selecting another filter above.</p>
+            </div>
+          ) : (
+            filteredPlans.map((plan) => {
+              const planKey = String(plan._id || plan.id || plan.plan_code);
+              const isExpanded = String(expandedPlanId) === planKey;
+              const liveMetrics = plan.live_metrics || {};
+              const rawLockedRate = liveMetrics.locked_gold_rate || plan.financials?.locked_gold_rate || 15802;
+              const rawTodayRate = liveMetrics.today_gold_rate || currentGoldRate || 17418;
+              
+              // Normalize rates to per-gram if stored as 10g rate (> 35000)
+              const lockedRate = rawLockedRate > 35000 ? Math.round(rawLockedRate / 10) : rawLockedRate;
+              const todayRate = rawTodayRate > 35000 ? Math.round(rawTodayRate / 10) : rawTodayRate;
+              const benefit = todayRate > lockedRate 
+                ? (todayRate - lockedRate) 
+                : (liveMetrics.protected_benefit_per_gm || 0);
+
+              const productValue = plan.financials?.original_product_price || 60000;
+              const amountPaid = plan.financials?.total_paid || 0;
+              const currentBalance = plan.financials?.amount_pending ?? Math.max(0, productValue - amountPaid);
+              const completedPct = Math.min(100, Math.max(0, Math.round((amountPaid / (productValue || 1)) * 100)));
+
+              const isCancelled =
+                plan.financials?.status === "cancelled" ||
+                Boolean(plan.cancellation?.is_cancelled);
+              const isCompleted =
+                plan.financials?.status === "completed" ||
+                plan.financials?.status === "pre_closed";
+
+              const unpaidInstallments = (plan.installments || []).filter(
+                (i) =>
+                  String(i.status || "").toLowerCase() !== "paid" &&
+                  String(i.status || "").toLowerCase() !== "pre_closed" &&
+                  String(i.status || "").toLowerCase() !== "cancelled"
+              );
+              const nextIns = unpaidInstallments[0];
+              const nextPaymentDateStr = !isCancelled && nextIns ? fmtNextPaymentDate(nextIns.due_date) : "";
+
+              return (
+                <div
+                  key={plan._id}
+                  className={`bg-white rounded-2xl border p-5 sm:p-6 transition-all duration-200 shadow-sm ${
+                    isCancelled ? "border-red-100 bg-red-50/10" : "border-zinc-200"
+                  }`}
+                >
+                  {/* ── Top Section (Frame 1437258052) ── */}
+                  <div className="flex flex-col md:flex-row gap-5 md:gap-6 items-start">
+                    {/* Left: Square Product Image */}
+                    <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 aspect-square shrink-0 rounded-xl bg-[#FBFBFB] border border-zinc-100 flex items-center justify-center p-3 overflow-hidden mx-auto sm:mx-0">
+                      {plan.product?.image ? (
+                        <Image
+                          src={plan.product.image}
+                          alt={plan.product.title || "Product"}
+                          fill
+                          className="object-contain p-2"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-zinc-300 gap-2">
+                          <Coins size={32} />
+                          <span className="text-[10px] font-medium text-zinc-400">Jewelry Piece</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Details & Action Row */}
+                    <div className="flex-1 min-w-0 w-full flex flex-col justify-between self-stretch">
+                      <div>
+                        {/* Status & Order Badges */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            {plan.shopify_order_name && (
+                              <span className="text-[10px] sm:text-xs font-bold text-zinc-600 bg-zinc-100 px-2.5 py-0.5 rounded-full border border-zinc-200">
+                                Order {plan.shopify_order_name}
+                              </span>
+                            )}
+                            <span className="text-[10px] font-mono text-zinc-400">
+                              {plan.plan_code}
+                            </span>
+                          </div>
+
+                          {isCancelled ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-600 border border-red-200">
+                              <span className="size-1.5 rounded-full bg-red-500" />
+                              Cancelled
+                            </span>
+                          ) : plan.financials?.status === "pre_closed" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
+                              <span className="size-1.5 rounded-full bg-purple-500" />
+                              Pre-Closed
+                            </span>
+                          ) : plan.financials?.status === "completed" ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="size-1.5 rounded-full bg-emerald-500" />
+                              Completed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Active Plan
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Product Title */}
+                        <h3 className="text-sm sm:text-base font-bold text-zinc-900 leading-snug">
+                          {plan.product?.title || "Jewelry Piece"}
+                        </h3>
+
+                        {/* Specs Subtitle */}
+                        <p className="text-[11px] sm:text-xs text-zinc-400 font-normal mt-0.5 leading-relaxed">
+                          {getProductSpecsLine(plan.product)}
+                        </p>
                       </div>
-                    )}
+
+                      {/* 3 Rates Row */}
+                      <div className="grid grid-cols-3 gap-2 sm:gap-6 my-4 sm:my-5">
+                        <div>
+                          <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
+                            Locked Gold Rate
+                          </span>
+                          <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-1">
+                            ₹{Math.round(lockedRate)}/gm
+                          </span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
+                            Today&apos;s Gold Rate
+                          </span>
+                          <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-1">
+                            ₹{Math.round(todayRate)}/gm
+                          </span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
+                            Benefit if Pre Closed Today
+                          </span>
+                          <span className="block text-base sm:text-lg md:text-xl font-bold text-[#16A34A] mt-1">
+                            {benefit > 0 && !isCancelled ? `${Math.round(benefit)}/gm` : "0/gm"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Buttons Row */}
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-0.5">
+                        {isCancelled ? (
+                          <button
+                            disabled
+                            className="w-full sm:flex-1 h-10 bg-zinc-100 text-zinc-400 font-medium text-xs sm:text-[13px] rounded-lg cursor-not-allowed flex items-center justify-center border border-zinc-200/60"
+                          >
+                            Plan Cancelled
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenPreclose(plan)}
+                            disabled={isCompleted}
+                            className="w-full sm:flex-1 h-10 bg-[#5A413F] text-white font-medium text-xs sm:text-[13px] rounded-lg hover:bg-[#463231] transition-all flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                          >
+                            Pre-close at Lowest Rate
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandedPlanId((prev) => (String(prev) === planKey ? null : planKey));
+                          }}
+                          className="w-full sm:flex-1 h-10 bg-[#ECE8E5] text-[#2D2322] border border-[#DCD6D1] rounded-lg font-medium text-xs sm:text-[13px] hover:bg-[#E2DDD9] transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none"
+                        >
+                          <span>{isExpanded ? "Hide Plan" : "View Plan"}</span>
+                          <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Right: Details & Action Row */}
-                  <div className="flex-1 min-w-0 w-full flex flex-col justify-between self-stretch">
-                    <div>
-                      {/* Product Title */}
-                      <h3 className="text-sm sm:text-base font-bold text-zinc-900 leading-snug">
-                        {plan.product?.title || "2 CT Round Cut with Side Diamonds Accent Engagement Ring"}
-                      </h3>
-
-                      {/* Specs Subtitle */}
-                      <p className="text-[11px] sm:text-xs text-zinc-400 font-normal mt-0.5 leading-relaxed">
-                        {getProductSpecsLine(plan.product)}
-                      </p>
-                    </div>
-
-                    {/* 3 Rates Row */}
-                    <div className="grid grid-cols-3 gap-2 sm:gap-6 my-4 sm:my-5">
-                      <div>
-                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
-                          Locked Gold Rated
-                        </span>
-                        <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-1">
-                          {Math.round(lockedRate)}/gm
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
-                          Today&apos;s Gold Rate
-                        </span>
-                        <span className="block text-base sm:text-lg md:text-xl font-bold text-zinc-900 mt-1">
-                          {Math.round(todayRate)}/gm
-                        </span>
-                      </div>
-
-                      <div>
-                        <span className="block text-[11px] sm:text-xs text-zinc-500 font-normal">
-                          Benefit if Pre Closed Today
-                        </span>
-                        <span className="block text-base sm:text-lg md:text-xl font-bold text-[#16A34A] mt-1">
-                          {benefit > 0 ? `${Math.round(benefit)}/gm` : "0/gm"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Buttons Row */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-0.5">
-                      <button
-                        onClick={() => handleOpenPreclose(plan)}
-                        disabled={isCompleted}
-                        className="w-full sm:flex-1 h-10 bg-[#5A413F] text-white font-medium text-xs sm:text-[13px] rounded-lg hover:bg-[#463231] transition-all flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                      >
-                        Pre-close at Lowest Rate
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExpandedPlanId((prev) => (String(prev) === planKey ? null : planKey));
-                        }}
-                        className="w-full sm:flex-1 h-10 bg-[#ECE8E5] text-[#2D2322] border border-[#DCD6D1] rounded-lg font-medium text-xs sm:text-[13px] hover:bg-[#E2DDD9] transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none"
-                      >
-                        <span>{isExpanded ? "Hide Plan" : "View Plan"}</span>
-                        <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
 
                 {/* ── Expanded Section (Frame 1437258053) ── */}
                 {isExpanded && (
                   <div className="mt-6 pt-5 border-t border-zinc-100">
+                    {/* Cancellation Alert Banner */}
+                    {isCancelled && (
+                      <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5">
+                        <AlertCircle size={16} className="shrink-0 text-red-500 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-red-800">Plan Cancelled</p>
+                          <p className="mt-0.5 text-red-600">
+                            This plan was cancelled{plan.cancellation?.cancelled_at ? ` on ${fmtDate(plan.cancellation.cancelled_at)}` : ""}{plan.cancellation?.cancel_reason ? ` (${plan.cancellation.cancel_reason})` : ""}. All future installments and pre-closure actions are halted.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* 3 Financial Pillars */}
                     <div className="grid grid-cols-3 gap-2 sm:gap-6">
                       <div>
@@ -644,11 +766,14 @@ export default function DigiGoldPage() {
                           const firstUnpaid = plan.installments?.find(
                             (i) =>
                               String(i.status || "").toLowerCase() !== "paid" &&
-                              String(i.status || "").toLowerCase() !== "pre_closed"
+                              String(i.status || "").toLowerCase() !== "pre_closed" &&
+                              String(i.status || "").toLowerCase() !== "cancelled"
                           );
 
                           return plan.installments?.map((ins) => {
                             const isPaid = String(ins.status || "").toLowerCase() === "paid";
+                            const isInsCancelled =
+                              isCancelled || String(ins.status || "").toLowerCase() === "cancelled";
                             const isPreclosed =
                               String(ins.status || "").toLowerCase() === "pre_closed" ||
                               plan.financials?.status === "pre_closed";
@@ -675,9 +800,11 @@ export default function DigiGoldPage() {
                                 <div className="col-span-2 sm:col-span-2">
                                   {isPaid ? (
                                     <span className="font-normal text-zinc-800">Paid</span>
+                                  ) : isInsCancelled ? (
+                                    <span className="font-medium text-red-500">Cancelled</span>
                                   ) : isPreclosed ? (
                                     <span className="font-normal text-purple-700">Pre-Closed</span>
-                                  ) : isFirstUnpaid && isDue ? (
+                                  ) : isFirstUnpaid && isDue && !isCancelled ? (
                                     <button
                                       onClick={() => handlePayInstallment(plan, ins)}
                                       disabled={isPayingThis || payingInstallmentNumber !== null}
@@ -713,9 +840,10 @@ export default function DigiGoldPage() {
                 )}
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
+    )}
 
       {/* ── Pre-close Modal ── */}
       <Dialog
