@@ -151,6 +151,13 @@ export default function SearchPage() {
   const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const allSeenFilters = useRef({});
+  const [storePages, setStorePages] = useState(null);
+
+  useEffect(() => {
+    apiFetch("/api/settings/store-pages")
+      .then((data) => setStorePages(data))
+      .catch(() => {});
+  }, []);
   // Scroll to top on mount or query change
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -281,6 +288,8 @@ export default function SearchPage() {
         }
       } else if (Array.isArray(options)) {
         const mergedOptionsMap = new Map();
+        const configuredStores = storePages?.stores || [];
+
         options.forEach(opt => {
           let label = (opt.label || "").trim();
           if (groupKey === "Metal Purity") {
@@ -288,10 +297,39 @@ export default function SearchPage() {
             else if (label === "18K") label = "18KT";
             else if (label === "9K") label = "9KT";
           }
+          if (groupKey === "In Store Available") {
+            const matchedStore = configuredStores.find((s) => {
+              const labelLower = label.toLowerCase();
+              const needles = [
+                s.city,
+                s.name,
+                s.shopifyLocationId ? String(s.shopifyLocationId).replace("gid://shopify/Location/", "") : "",
+                ...(Array.isArray(s.locationAliases) ? s.locationAliases : []),
+              ].map((v) => String(v || "").toLowerCase().trim()).filter(Boolean);
+
+              return needles.some((n) => labelLower === n || labelLower.includes(n) || n.includes(labelLower));
+            });
+
+            if (matchedStore) {
+              label = matchedStore.city || matchedStore.name;
+            }
+          }
           if (mergedOptionsMap.has(label)) {
-            mergedOptionsMap.get(label).count += opt.count;
+            const existing = mergedOptionsMap.get(label);
+            existing.count += opt.count;
+            if (!existing.allInputs) {
+              existing.allInputs = existing.input ? [existing.input] : [];
+            }
+            if (opt.input) {
+              existing.allInputs.push(opt.input);
+            }
           } else {
-            mergedOptionsMap.set(label, { ...opt, label, value: opt.value ?? label });
+            mergedOptionsMap.set(label, {
+              ...opt,
+              label,
+              value: opt.value ?? label,
+              allInputs: opt.input ? [opt.input] : [],
+            });
           }
           if (opt.input) {
             if (!allSeenFilters.current[groupKey]) allSeenFilters.current[groupKey] = {};
@@ -333,7 +371,7 @@ export default function SearchPage() {
     });
     
     return finalSortedData;
-  }, []);
+  }, [storePages]);
 
   /* The search API only understands Shopify filter inputs passed as
      `filters=<json>` — forwarding the raw URL params did nothing, which is why
@@ -371,8 +409,15 @@ export default function SearchPage() {
             String(o.value).toLowerCase() === String(value).toLowerCase() || 
             String(o.label).toLowerCase() === String(value).toLowerCase()
           ));
-          if (foundOpt && foundOpt.input) {
-            optInput = foundOpt.input;
+          if (foundOpt) {
+            if (Array.isArray(foundOpt.allInputs) && foundOpt.allInputs.length > 0) {
+              foundOpt.allInputs.forEach(inp => {
+                filters[actualGroupKey].push({ label: value, input: inp });
+              });
+              return;
+            } else if (foundOpt.input) {
+              optInput = foundOpt.input;
+            }
           }
         }
 

@@ -1164,6 +1164,8 @@ export default function ProductPageClient({
       return { availableStores: [], nearestStore: null, availableStoreCount: 0 };
     }
 
+    const { stores: configuredStores = [] } = asStorePages(storePages);
+
     const tagMapping = {
       "Chembur": ["chembur", "cs1"],
       "Pune": ["pune", "ps1"],
@@ -1179,6 +1181,31 @@ export default function ProductPageClient({
       const storeNumericId = store.shopifyId.split("/").pop();
       if (inStoreTags.some(tag => String(tag).includes(storeNumericId))) return true;
 
+      const handle = store.handle || handleFromStoreName(store.name);
+      const storeConfig = configuredStores.find(
+        (s) =>
+          (store.shopifyId && s.shopifyLocationId && (s.shopifyLocationId === store.shopifyId || store.shopifyId.includes(s.shopifyLocationId))) ||
+          (handle && s.handle === handle) ||
+          (s.city && (store.city || "").toLowerCase().includes(s.city.toLowerCase()))
+      );
+
+      if (storeConfig) {
+        if (storeConfig.shopifyLocationId) {
+          const configNumId = storeConfig.shopifyLocationId.split("/").pop();
+          if (inStoreTags.some(tag => String(tag).includes(configNumId))) return true;
+        }
+        if (Array.isArray(storeConfig.locationAliases)) {
+          const matched = inStoreTags.some(tag => {
+            const tagStr = String(tag).toLowerCase().trim();
+            return storeConfig.locationAliases.some(alias => {
+              const a = String(alias).toLowerCase().trim();
+              return a && (tagStr === a || tagStr.includes(a) || a.includes(tagStr));
+            });
+          });
+          if (matched) return true;
+        }
+      }
+
       const storeNameLower = store.name.toLowerCase();
       const storeCityLower = (store.city || "").toLowerCase();
 
@@ -1191,7 +1218,6 @@ export default function ProductPageClient({
     }).map(s => s.shopifyId);
 
     // 2. Prepare ALL stores with distance and stock status for the Side Sheet
-    const { stores: configuredStores = [] } = asStorePages(storePages);
 
     const storesWithData = visitableStores.map(store => {
       let distance = null;
@@ -1604,6 +1630,10 @@ export default function ProductPageClient({
         image: getValidSrc(activeVariant.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url)),
         quantity: 1,
         inStock: Boolean(activeVariant.inStock),
+        orderStatus: activeVariant.inStock ? "RTS" : "MTO",
+        properties: {
+          "Order Status": activeVariant.inStock ? "RTS" : "MTO",
+        },
         color: activeColor,
         karat: activeKarat,
         size: selectedSize,

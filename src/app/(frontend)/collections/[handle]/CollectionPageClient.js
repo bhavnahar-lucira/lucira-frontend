@@ -490,11 +490,40 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
             if (label === "Y" || label.toLowerCase() === "yellow") label = "Yellow Gold";
             if (label === "W" || label.toLowerCase() === "white") label = "White Gold";
           }
+          if (groupKey === "In Store Available") {
+            const configuredStores = storePages?.stores || [];
+            const matchedStore = configuredStores.find((s) => {
+              const labelLower = label.toLowerCase();
+              const needles = [
+                s.city,
+                s.name,
+                s.shopifyLocationId ? String(s.shopifyLocationId).replace("gid://shopify/Location/", "") : "",
+                ...(Array.isArray(s.locationAliases) ? s.locationAliases : []),
+              ].map((v) => String(v || "").toLowerCase().trim()).filter(Boolean);
+
+              return needles.some((n) => labelLower === n || labelLower.includes(n) || n.includes(labelLower));
+            });
+
+            if (matchedStore) {
+              label = matchedStore.city || matchedStore.name;
+            }
+          }
           if (mergedOptionsMap.has(label)) {
             const existing = mergedOptionsMap.get(label);
             existing.count += opt.count || 0;
+            if (!existing.allInputs) {
+              existing.allInputs = existing.input ? [existing.input] : [];
+            }
+            if (opt.input) {
+              existing.allInputs.push(opt.input);
+            }
           } else {
-            mergedOptionsMap.set(label, { ...opt, label, value: opt.value !== undefined ? opt.value : label });
+            mergedOptionsMap.set(label, {
+              ...opt,
+              label,
+              value: opt.value !== undefined ? opt.value : label,
+              allInputs: opt.input ? [opt.input] : [],
+            });
           }
         });
         mergedData[groupKey] = Array.from(mergedOptionsMap.values());
@@ -568,7 +597,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     });
 
     return finalSortedData;
-  }, []);
+  }, [storePages]);
 
   // Data State
   // `availableFilters` is the NARROWED facet list from the last response — the live
@@ -1064,7 +1093,13 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
                 (opt.urlKey === key || opt.label === key || groupMatchesKey) &&
                 (opt.value === value || opt.label === value)
               ) {
-                filters.push(typeof opt.input === 'string' ? JSON.parse(opt.input) : opt.input);
+                if (Array.isArray(opt.allInputs) && opt.allInputs.length > 0) {
+                  opt.allInputs.forEach((inp) => {
+                    if (inp) filters.push(typeof inp === 'string' ? JSON.parse(inp) : inp);
+                  });
+                } else if (opt.input) {
+                  filters.push(typeof opt.input === 'string' ? JSON.parse(opt.input) : opt.input);
+                }
                 found = true;
               }
             });

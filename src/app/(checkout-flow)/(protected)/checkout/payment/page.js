@@ -309,13 +309,23 @@ export default function PaymentPage() {
      included: those are always made to order whatever the variant flag says. */
   const stampShippingDates = useCallback(
     (list) =>
-      list.map((item) => ({
-        ...item,
-        shippingDate: getShippingDateValue(dispatchConfig, {
-          inStock: Boolean(item.inStock) && !item.properties?.["_byj_preview"],
-          leadTime: item.leadTime,
-        }),
-      })),
+      list.map((item) => {
+        const inStock = Boolean(item.inStock) && !item.properties?.["_byj_preview"];
+        const orderStatus = inStock ? "RTS" : "MTO";
+        return {
+          ...item,
+          inStock,
+          orderStatus,
+          properties: {
+            ...(item.properties || {}),
+            "Order Status": orderStatus,
+          },
+          shippingDate: getShippingDateValue(dispatchConfig, {
+            inStock,
+            leadTime: item.leadTime,
+          }),
+        };
+      }),
     [dispatchConfig]
   );
 
