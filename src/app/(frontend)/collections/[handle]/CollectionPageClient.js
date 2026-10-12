@@ -38,6 +38,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
+import JewelleryEmiStrip from "@/components/collections/JewelleryEmiStrip";
 import { apiFetch } from "@/lib/api";
 import { storeCollectionHandles } from "@/lib/storeContent";
 
@@ -380,7 +381,7 @@ function RecentlyViewedRow({ products }) {
   );
 }
 
-export default function CollectionPage({ params: paramsPromise, initialData, storePages = null }) {
+export default function CollectionPage({ params: paramsPromise, initialData, storePages = null, collectionData = null }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
 
@@ -392,9 +393,20 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     ? plpBanners.topBanner.overrides
     : FALLBACK_TOP_OVERRIDES;
   const topBannerOverride = topBannerOverrides.find((o) => o.handles?.includes(handle)) || null;
-  const inpageBanners = plpBanners.inpageBanners?.length
+  const allInpageBanners = plpBanners.inpageBanners?.length
     ? plpBanners.inpageBanners
     : FALLBACK_INPAGE_BANNERS;
+  // Banners targeted at this collection (`handles`) replace the global ones here,
+  // each shown once at its own `after` position; untargeted ones keep the 6/16 cadence.
+  const scopedInpageBanners = allInpageBanners
+    .filter((b) => b.handles?.includes(handle))
+    .sort((a, b) => (a.after ?? 6) - (b.after ?? 6));
+  const inpageBanners = scopedInpageBanners.length
+    ? scopedInpageBanners
+    : allInpageBanners.filter((b) => !b.handles?.length);
+
+  // Dashboard-managed Jewelry on EMI content & calculator settings
+  const emiSettings = initialData?.emiSettings || null;
 
   // Dashboard-managed store pages. `storeHandles` covers every store, including
   // ones whose hero is switched off — those collections then render no top
@@ -593,16 +605,29 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   });
   const [filtersLoading, setFiltersLoading] = useState(!initialData);
   const [collection, setCollection] = useState(() => {
-    if (initialData && initialData.collData && initialData.collData.collection) {
+    const src = initialData?.collData?.collection || collectionData;
+    if (src) {
       return {
-        title: initialData.collData.collection.title || handle.replace(/-/g, " "),
-        description: initialData.collData.collection.description || "",
-        descriptionHtml: initialData.collData.collection.descriptionHtml || "",
-        metafields: initialData.collData.collection.metafields || {}
+        title: src.title || collectionData?.title || handle.replace(/-/g, " "),
+        description: src.description || collectionData?.description || "",
+        descriptionHtml: src.descriptionHtml || collectionData?.descriptionHtml || "",
+        metafields: src.metafields || collectionData?.metafields || {}
       };
     }
     return { title: "", description: "", descriptionHtml: "" };
   });
+
+  useEffect(() => {
+    if (!collection?.descriptionHtml && collectionData?.descriptionHtml) {
+      setCollection(prev => ({
+        ...prev,
+        title: prev.title || collectionData.title,
+        description: prev.description || collectionData.description,
+        descriptionHtml: collectionData.descriptionHtml,
+      }));
+    }
+  }, [collectionData, collection?.descriptionHtml]);
+
   const [dbCollection, setDbCollection] = useState(null);
   const [isProfileComplete, setIsProfileComplete] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -1376,7 +1401,8 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     const items = [];
     let renderedCount = 0;
     let bannerCount = 0;
-    let cellCount = 0;            // grid cells occupied so far (a col-span-full block = 2)
+    let wideBeside = 0;           // products placed beside wide (2x2) banners so far
+    let cellCount = 0;           // grid cells occupied so far (a col-span-full block = 2)
     let rewardBannerAdded = false;
     let rewardBannerAt = -1;      // renderedCount when the claim banner was inserted
     let recentlyViewedAdded = false;
@@ -1386,16 +1412,35 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       if (!prod) return;
       // First banner after 6 products, the second 10 later (6, 16). Each creative shows
       // once and then stops — the row is not repeated further down the grid.
-      if (bannerCount < inpageBanners.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
+      const showScopedBanner = scopedInpageBanners.length > 0
+        && bannerCount < inpageBanners.length
+        // Products sitting beside an earlier wide tile (2 rows x 1 spare column on the
+        // 3-up grid) don't count toward the dashboard's "after N" gap.
+        && renderedCount >= (inpageBanners[bannerCount].after ?? 6) + wideBeside;
+      if (showScopedBanner || (!scopedInpageBanners.length && bannerCount < inpageBanners.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0)) {
         const banner = inpageBanners[bannerCount];
         // Mobile takes its own creative, the way the top banner already does.
         // The dashboard stores both (`mobileSrc` beside `src`) because they are
         // cut for different tiles — 270×495 against the desktop 413×615 — and
         // rendering the desktop one on a phone threw away 30% of its width.
         const bannerSrc = (isMobile && banner.mobileSrc) || banner.src;
+        const bannerPosition = bannerCount + 1;
         items.push(
-          <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
-            <Link prefetch={false} className="cursor-pointer block w-full h-full" href={banner.href || banner.linkUrl || "#"}>
+          <div key={`inpage-${idx}`} className={`overflow-hidden rounded-[4px] ${banner.size === "wide" ? "lg:col-span-2 lg:row-span-2" : banner.size === "double" ? (isMobile ? "col-span-2 row-span-2" : "col-span-2") : ""}`}>
+            <Link
+              prefetch={false}
+              className="cursor-pointer block w-full h-full"
+              href={banner.href || banner.linkUrl || "#"}
+              onClick={() =>
+                pushPromoClick({
+                  creative_name: `Plp Inpage Banner - ${banner.alt || "Promo"}`,
+                  promo_id: banner.id || banner.href || "",
+                  promo_name: banner.alt || "",
+                  promo_position: `Position ${bannerPosition}`,
+                  location_id: pathname,
+                })
+              }
+            >
               {/* Contained, not covered. This cell's height is set by the
                   product cards beside it, and the Try At Home / video call row
                   made those ~50px taller than either creative was cut for — so
@@ -1412,12 +1457,13 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
                 width={800}
                 height={400}
                 sizes="(max-width: 1023px) 50vw, 33vw"
-                className="w-full h-full object-contain object-top rounded-[4px]"
+                className={`w-full h-full rounded-[4px] ${banner.size === "wide" || banner.size === "double" ? "object-cover" : "object-contain object-top"}`}
               />
             </Link>
           </div>
         );
-        cellCount += 1;
+        cellCount += banner.size === "double" ? (isMobile ? 4 : 2) : 1;
+        if (banner.size === "wide" && !isMobile) wideBeside += 2;
         bannerCount++;
       }
 
@@ -1545,7 +1591,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     handle,
     selectedColor,
     dispatch,
-    inpageBanners
+    plpBanners.inpageBanners
   ]);
 
   const displayTitle = isMobile
@@ -1720,8 +1766,15 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       })()}
 
       {handle === "eterna" && <EternaBandsSection />}
+      {handle === "jewellery-on-emi" && (
+        <JewelleryEmiStrip 
+          onShopClick={scrollToProductsTop} 
+          descriptionHtml={collection?.descriptionHtml} 
+          emiSettings={emiSettings}
+        />
+      )}
 
-      <div ref={productsTopRef} className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
+      <div ref={productsTopRef} id="products" className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
         {/* ================= FILTERS SIDEBAR ================= */}
         <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
           <div className="sticky top-19 self-start h-fit">
@@ -1787,6 +1840,16 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
         {/* ================= PRODUCTS SECTION ================= */}
         <div className="flex-1">
+          {handle === "jewellery-on-emi" && emiSettings?.productsIntro?.enabled !== false && (
+            <div className="mb-4 px-4 lg:px-0">
+              <h2 className="font-abhaya text-2xl lg:text-3xl font-extrabold text-[#2B1F1E]">
+                {emiSettings?.productsIntro?.title ?? "Diamond jewelry from ₹50,000"}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6D625E] font-medium font-figtree mt-1">
+                {emiSettings?.productsIntro?.subtitle ?? "EMI is available where eligible and applies to the diamond component of each piece."}
+              </p>
+            </div>
+          )}
           <div className={`flex items-center justify-between sticky top-0 z-20 ${isMobile ? "gap-3 p-4 bg-white/95 backdrop-blur-sm border-b border-[#F0E7E2]" : "gap-4 py-4 bg-white"}`}>
             <div className={isMobile ? "flex items-center gap-2.5" : "flex gap-3 items-center"}>
               {isMobile ? (
@@ -1834,7 +1897,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
             </div>
           )}
 
-          <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"}`}>
+          <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-flow-dense gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : gridItems}
           </div>
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
@@ -1984,10 +2047,10 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
               {/* SEO Section */}
               {collection?.descriptionHtml && (
-                <div className="mt-8 border-t border-gray-100 pt-10">
+                <div className={`mt-8 border-t pt-10 ${handle === "jewellery-on-emi" ? "jewellery-emi-content border-[#EADFD8]" : "border-gray-100"}`}>
                   <div
-                    className="
-        max-w-4xl
+                    className={`
+        w-full
 
         [&_h1]:text-2xl
         [&_h1]:font-bold
@@ -2181,7 +2244,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         [&_pre]:overflow-x-auto
         [&_pre]:text-xs
         [&_pre]:text-gray-700
-      "
+      `}
                     dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
                   />
                 </div>

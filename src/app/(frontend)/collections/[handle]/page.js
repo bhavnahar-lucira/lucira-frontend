@@ -13,6 +13,7 @@ async function getCollectionData(handle) {
         title
         handle
         description
+        descriptionHtml
         seo { title description }
         image { url altText }
         products(first: 24) {
@@ -26,13 +27,37 @@ async function getCollectionData(handle) {
     }
   `;
 
-  // Use force-cache so the fetch is cached and inherits the page-level revalidate=86400
-  const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'force-cache' });
+  // Revalidate frequently so Shopify admin updates reflect quickly
+  const data = await shopifyStorefrontFetch(
+    query, 
+    { handle }, 
+    process.env.NODE_ENV === 'development' 
+      ? { cache: 'no-store' } 
+      : { next: { revalidate: 60 } }
+  );
   return data?.collectionByHandle;
 }
 
 export async function generateMetadata({ params }) {
   const { handle } = await params;
+  const collection = await getCollectionData(handle);
+
+  if (handle === "jewellery-on-emi") {
+    const title = collection?.seo?.title || collection?.title || "Jewelry on EMI: 0-Cost EMI on Diamond Jewelry | Lucira";
+    const description = collection?.seo?.description || collection?.description?.slice(0, 160) || "Buy jewelry on EMI where eligible: 0-cost EMI on the diamond component, tenures of 3, 6, 9 and 12 months, ₹0 processing fee. Try the EMI calculator.";
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: collection?.image ? [collection.image.url] : [],
+      },
+      alternates: {
+        canonical: `/collections/${handle}`,
+      },
+    };
+  }
   if (handle === "all") {
     return {
       title: "All Lab Grown Diamond Jewelry | Lucira Jewelry",
@@ -40,7 +65,6 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const collection = await getCollectionData(handle);
   if (!collection) return {};
 
   return {
@@ -69,7 +93,8 @@ export async function generateStaticParams() {
     { handle: "lucira-express" },
     { handle: "necklaces" },
     { handle: "bracelets" },
-    { handle: "pendants" }
+    { handle: "pendants" },
+    { handle: "jewellery-on-emi" }
   ];
 }
 
@@ -77,7 +102,7 @@ export default async function Page({ params }) {
   const { handle } = await params;
   const collection = await getCollectionData(handle);
 
-  if (!collection && handle !== "all") {
+  if (!collection && handle !== "all" && handle !== "jewellery-on-emi") {
     notFound();
   }
 
@@ -99,14 +124,21 @@ export default async function Page({ params }) {
 
   let initialData = null;
   try {
-    const [collRes, filterRes, plpBannersRes] = await Promise.all([
+    const [collRes, filterRes, plpBannersRes, emiSettingsRes] = await Promise.all([
       fetch(`${base}/api/collection?handle=${handle}&limit=16&sort=manual`, { cache: 'force-cache' }),
       fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' }),
-      fetch(`${base}/api/settings/plp-banners`, { cache: 'force-cache' })
+      fetch(`${base}/api/settings/plp-banners`, { cache: 'force-cache' }),
+      handle === "jewellery-on-emi"
+        ? fetch(`${base}/api/settings/jewellery-on-emi`, { cache: 'force-cache' }).catch(() => null)
+        : Promise.resolve(null),
     ]);
     let plpBanners = null;
     if (plpBannersRes.ok) {
       plpBanners = await plpBannersRes.json().catch(() => null);
+    }
+    let emiSettings = null;
+    if (emiSettingsRes && emiSettingsRes.ok) {
+      emiSettings = await emiSettingsRes.json().catch(() => null);
     }
     if (collRes.ok && filterRes.ok) {
       const collData = await collRes.json();
@@ -119,6 +151,18 @@ export default async function Page({ params }) {
           delete collData.collection.metafields.custom.bestsellers_html;
           delete collData.collection.metafields.custom.seo_content_data;
         }
+        if (!collData.collection.descriptionHtml && collection?.descriptionHtml) {
+          collData.collection.descriptionHtml = collection.descriptionHtml;
+        }
+      } else if (collData && collection) {
+        collData.collection = {
+          title: collection.title,
+          handle: collection.handle,
+          description: collection.description,
+          descriptionHtml: collection.descriptionHtml,
+          seo: collection.seo,
+          image: collection.image,
+        };
       }
 
       // Keep product descriptions lean in the grid and filter hidden products
@@ -129,14 +173,14 @@ export default async function Page({ params }) {
         });
       }
 
-      initialData = { collData, filterData: filterDataObj || {}, plpBanners };
+      initialData = { collData, filterData: filterDataObj || {}, plpBanners, emiSettings };
     }
   } catch (e) {
     console.error("Failed to fetch initial data for SSG", e);
   }
 
   // Check if collection is empty after fetching data
-  if (initialData?.collData && (!initialData.collData.products || initialData.collData.products.length === 0)) {
+  if (handle !== "jewellery-on-emi" && initialData?.collData && (!initialData.collData.products || initialData.collData.products.length === 0)) {
     if (!initialData.collData.pageInfo?.hasNextPage) {
       notFound();
     }
@@ -155,7 +199,12 @@ export default async function Page({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <CollectionPageClient params={params} initialData={initialData} storePages={storePages} />
+      <CollectionPageClient 
+        params={params} 
+        initialData={initialData} 
+        storePages={storePages} 
+        collectionData={collection}
+      />
     </>
   );
 }

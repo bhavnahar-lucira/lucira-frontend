@@ -404,14 +404,14 @@ export default function EarnRewardsPage() {
     setCompleting(true);
     pushPromoClick({
       creative_name: "Complete My Profile CTA",
-      location_id: formData.mobile_number || "",
+      location_id: toE164(formData.mobile_number) || formData.mobile_number || "",
       promo_id: "profile_completion",
       promo_name: `${profileFillPercent(formData)}%`,
       // full personal-details payload
       first_name: formData.first_name || "",
       last_name: formData.last_name || "",
       email: formData.email || "",
-      mobile_number: formData.mobile_number || "",
+      mobile_number: toE164(formData.mobile_number) || formData.mobile_number || "",
       date_of_birth: formData.date_of_birth || "",
       gender: formData.gender || "",
       marital_status: formData.marital_status || "",
@@ -489,7 +489,7 @@ export default function EarnRewardsPage() {
       occasionAnalytics.created(occFormSession, form, next.length); // shared session id (PII-free)
       pushPromoClick({
         creative_name: "Add Occasion CTA",
-        location_id: formData.mobile_number || "",
+        location_id: toE164(formData.mobile_number) || formData.mobile_number || "",
         promo_id: "occasion_added",
         promo_name: form.occasion_title || "",
         relationship_name: form.relationship_name || "",

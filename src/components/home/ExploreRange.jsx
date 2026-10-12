@@ -23,12 +23,18 @@ const CATEGORIES = [
   { name: "Men's Stud", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Men_27s-Stud.jpg?v=1788436552", href: "/collections/mens-stud" },
 ];
 
-export default function ExploreRange({ bgClass = "bg-white", paddingClass = "pt-5 pb-5 lg:pb-10" }) {
+export default function ExploreRange({ initialData, bgClass = "bg-white", paddingClass = "pt-5 pb-5 lg:pb-10" }) {
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const categories = (Array.isArray(initialData?.categories) && initialData.categories.length > 0)
+    ? initialData.categories
+    : CATEGORIES;
+  const title = initialData?.title || "Explore Our Range";
+  const subtitle = initialData?.subtitle || "Find diamond jewelry pieces that match your style.";
   
   const groupedCategories = [];
-  for (let i = 0; i < CATEGORIES.length; i += 4) {
-    groupedCategories.push(CATEGORIES.slice(i, i + 4));
+  for (let i = 0; i < categories.length; i += 4) {
+    groupedCategories.push(categories.slice(i, i + 4));
   }
 
   return (
@@ -36,10 +42,10 @@ export default function ExploreRange({ bgClass = "bg-white", paddingClass = "pt-
       <div className="container-main">
         <div className="text-left lg:text-center mb-6 px-1 lg:px-0">
           <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
-            Explore Our Range
+            {title}
           </h2>
           <p className="text-black font-normal md:text-base text-sm leading-[1.4] tracking-normal align-middle">
-            Find diamond jewelry pieces that match your style.
+            {subtitle}
           </p>
         </div>
         <div className="block lg:hidden relative pb-10">
@@ -58,7 +64,7 @@ export default function ExploreRange({ bgClass = "bg-white", paddingClass = "pt-
               <SwiperSlide key={groupIdx}>
                 <div className="grid grid-cols-2 gap-3 px-1">
                   {group.map((cat, index) => (
-                    <CategoryCard key={index} cat={cat} />
+                    <CategoryCard key={cat.id || index} cat={cat} />
                   ))}
                 </div>
               </SwiperSlide>
@@ -81,8 +87,8 @@ export default function ExploreRange({ bgClass = "bg-white", paddingClass = "pt-
           </div>
         </div>
         <div className="hidden lg:grid lg:grid-cols-4 gap-4">
-          {CATEGORIES.map((cat, index) => (
-            <CategoryCard key={index} cat={cat} />
+          {categories.map((cat, index) => (
+            <CategoryCard key={cat.id || index} cat={cat} />
           ))}
         </div>
       </div>
@@ -100,20 +106,31 @@ function CategoryCard({ cat }) {
     });
   };
 
+  const isShopifyUrl = typeof cat.image === 'string' && cat.image.includes('cdn.shopify.com');
+  const isExternal = typeof cat.href === 'string' && (cat.href.startsWith('http://') || cat.href.startsWith('https://'));
+
   return (
     <Link prefetch={false}
-      href={cat.href}
+      href={cat.href || "#"}
       onClick={handleCategoryClick}
       className="group relative aspect-313/362 block overflow-hidden rounded-md bg-gray-50"
+      {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
-      <Image 
-        loader={shopifyLoader}
-        src={cat.image} 
-        alt={cat.name} 
-        fill
-        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-        className="object-cover transition-transform duration-700 group-hover:scale-110"
-      />
+      {cat.image ? (
+        <Image 
+          loader={isShopifyUrl ? shopifyLoader : undefined}
+          src={cat.image} 
+          alt={cat.name || 'Category'} 
+          fill
+          unoptimized={!isShopifyUrl}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+      ) : (
+        <div className="w-full h-full bg-zinc-200 flex items-center justify-center text-zinc-400">
+          No Image
+        </div>
+      )}
       <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent pointer-events-none" />
       <div className="absolute bottom-2 lg:bottom-4 left-3 lg:left-4 right-3 flex justify-between items-center text-white">
         <span className="text-sm lg:text-2xl font-semibold text-base leading-none tracking-normal align-middle">{cat.name}</span>

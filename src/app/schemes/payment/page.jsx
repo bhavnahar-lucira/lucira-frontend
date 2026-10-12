@@ -14,7 +14,7 @@ import {
   fetchOrnaverseEnrollments, 
   createOrnaverseReceipt 
 } from "@/lib/api";
-import { toTenDigit } from "@/lib/phone";
+import { toE164, toTenDigit } from "@/lib/phone";
 import { pushPromoClick } from "@/lib/gtm";
 import { BadgeCheck, Loader2, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 
@@ -119,7 +119,7 @@ export default function SchemePaymentPage() {
           creative_name: "Pay Securely Cta in schemes payment page",
           location_id: "/schemes/payment",
           promo_id: String(enrollment?.amount || ""),
-          promo_name: user?.mobile || user?.phone || "",
+          promo_name: toE164(user?.mobile || user?.phone) || user?.mobile || user?.phone || "",
         });
       } catch (error) {
         console.error("Error pushing to dataLayer:", error);

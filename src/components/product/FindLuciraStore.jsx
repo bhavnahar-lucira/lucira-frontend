@@ -8,7 +8,7 @@ import Image from "next/image";
 import LazyImage from "@/components/common/LazyImage";
 import shopifyLoader from "@/utils/shopifyLoader";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
-import { isStoreActive, handleFromStoreName, isStoreOpeningSoon } from "@/data/stores";
+import { isStoreActive, handleFromStoreName, isStoreOpeningSoon, isHeadOffice } from "@/data/stores";
 import { storeByHandle, formatTimings, storeStatus, asStorePages } from "@/lib/storeContent";
 import { apiFetch } from "@/lib/api";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -118,8 +118,9 @@ export function FindLuciraStore({
     return "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg";
   };
 
-  // Hide any store whose location is switched off in the central registry or unpublished
+  // Hide any store whose location is switched off in the central registry, unpublished, or Head Office
   const storesToDisplay = (availableStores || []).filter((store) => {
+    if (isHeadOffice(store)) return false;
     const handle = store?.handle || handleFromStoreName(store?.name);
     if (!isStoreActive(handle)) return false;
     const config = resolveStoreConfig(store);

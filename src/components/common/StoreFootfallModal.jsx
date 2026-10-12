@@ -35,12 +35,15 @@ const STORE_TAG_MAPPING = {
 
 export function isHeadOffice(store) {
   if (!store) return false;
-  const name = String(store.name || "").toLowerCase();
+  const name = String(store.displayName || store.name || "").toLowerCase();
   const handle = String(store.handle || "").toLowerCase();
   const city = String(store.city || "").toLowerCase();
+  const address = String(store.addressFormatted || store.address || store.address1 || "").toLowerCase();
   if (name.includes("divinecarat") || name.includes("head office") || name.includes("head_office")) return true;
   if (handle === "malad" || city === "malad") return true;
-  if (store.visitable === false && (handle === "malad" || name.includes("malad"))) return true;
+  if (address.includes("dlh park") || address.includes("office 1402")) return true;
+  if (store.visitable === false && (handle === "malad" || name.includes("malad") || address.includes("dlh park"))) return true;
+  if (store.isHeadOffice) return true;
   return false;
 }
 

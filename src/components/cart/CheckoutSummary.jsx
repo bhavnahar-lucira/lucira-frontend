@@ -15,7 +15,7 @@ import { apiFetch } from "@/lib/api";
 import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 import { calculateCouponDiscount, getAppliedOfferLabel } from "@/lib/coupons";
 import { pushPromoClick } from "@/lib/gtm";
-import { isFreeGiftVariant } from "@/lib/freeGifts";
+import { isFreeGiftItem, isFreeGiftVariant, mapRemoteFreeGiftTiers, getCachedFreeGiftTiers, cleanId, isTierLive } from "@/lib/freeGifts";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -36,6 +36,11 @@ export default function CheckoutSummary({
   const dispatch = useDispatch();
   const { items, totalAmount, appliedCoupon: rawAppliedCoupon, appliedCoupons, removeCoupon, nectorPoints, activeDiscounts, unclaimDiscount } = useCart();
   const user = useSelector((state) => state.user.user);
+  const giftTiersConfig = useSelector((state) => state.cart.giftTiersConfig);
+  const effectiveGifts = useMemo(() => {
+    if (giftTiersConfig?.tiers) return mapRemoteFreeGiftTiers(giftTiersConfig.tiers);
+    return getCachedFreeGiftTiers();
+  }, [giftTiersConfig]);
   const { getDispatch } = useDispatchInfo();
 
   const [pointsData, setPointsData] = useState(null);
@@ -177,8 +182,7 @@ export default function CheckoutSummary({
   const originalSubtotalValue = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !item.isFreeGift &&
-      !isFreeGiftVariant(item.variantId)
+      !isFreeGiftItem(item, effectiveGifts)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -191,8 +195,7 @@ export default function CheckoutSummary({
   const totalSavings = (items || [])
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !item.isFreeGift &&
-      !isFreeGiftVariant(item.variantId)
+      !isFreeGiftItem(item, effectiveGifts)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -348,16 +351,21 @@ export default function CheckoutSummary({
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !item.isFreeGift &&
-      !isFreeGiftVariant(item.variantId) &&
+      !isFreeGiftItem(item, effectiveGifts) &&
       !item.properties?.['_byj_parent'] &&
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
   );
 
-  // Claiming requires a logged-in user, so a gift line without one is an
-  // invalid leftover state (FreeGiftReward's own effect removes it), not a
-  // legitimate claim — don't reflect it as applied here in the meantime.
-  const appliedGiftItem = user ? (items || []).find((item) => item.isFreeGift || isFreeGiftVariant(item.variantId)) : null;
+  // Claimed gift item must strictly match an active, qualifying tier that is actually claimed
+  const appliedGiftItem = user ? (items || []).find((item) => {
+    if (!isFreeGiftItem(item, effectiveGifts)) return false;
+    const v = cleanId(item.variantId);
+    return (effectiveGifts || []).some((g) => {
+      if (g.enabled === false || !isTierLive(g)) return false;
+      const target = cleanId(g.variantId);
+      return v === target || v.includes(target) || target.includes(v);
+    });
+  }) : null;
 
   const hasPointsBalance = pointsData && parseInt(pointsData.points_balance || 0) > 0;
   // A zero balance still shows the card (with a disabled button) — Nector

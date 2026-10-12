@@ -14,12 +14,14 @@ import {
   fetchOrnaverseCustomer,
   createOrnaverseCustomer,
   saveSpinPrize,
+  trackSpinWheelView,
 } from "@/lib/api";
 import { login, setAvatar } from "@/redux/features/user/userSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { mergeCart, getSessionId } from "@/redux/features/cart/cartSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
 import { toE164, cleanPhoneInput } from "@/lib/phone";
+import { trackSignupSuccess } from "@/lib/signupExperiment";
 
 const SPIN_PRIZES = [
   { label: "₹1,500 OFF", value: "1500_off", chance: 33.33 },
@@ -92,9 +94,19 @@ export function OtpSpinAuth({
   overrideButtonText = "",
   showCloseButton = true,
   isPopup = false,
-  hideRegisterLink = false
+  hideRegisterLink = false,
+  // Set only for the auto popup (signup A/B test); null = no test tracking.
+  experimentVariant = null,
+  experimentDevice = null,
 }) {
   const router = useRouter();
+  // A/B success metric: one promoClick per successful popup login/sign-up.
+  const trackSuccess = (isNewUser, rewardValue) =>
+    trackSignupSuccess({ variant: experimentVariant, isNewUser, rewardValue });
+  // Tags the Shopify customer with the popup variant they signed up through.
+  const experimentTags = experimentVariant
+    ? { tags: `signup_${experimentVariant}, signup_popup_${experimentDevice || "mobile"}` }
+    : {};
   const pathname = usePathname();
   const dispatch = useDispatch();
   const controls = useAnimation();
@@ -113,6 +125,8 @@ export function OtpSpinAuth({
 
   const [step, setStep] = useState(initialStep); // login, otp, register, success
   const [mobile, setMobile] = useState(initialMobile);
+  const [mobileError, setMobileError] = useState("");
+  const [otpError, setOtpError] = useState("");
 
   const handleStepChange = (newStep) => {
     if (onStepChange) onStepChange(newStep);
@@ -170,6 +184,26 @@ export function OtpSpinAuth({
       return () => clearTimeout(timerId);
     }
   }, [step]);
+
+  // Track popup / modal view and on-screen duration for Spin the Wheel & Login
+  useEffect(() => {
+    const start = Date.now();
+    let sent = false;
+    const sid = getSessionId();
+
+    const flush = () => {
+      if (sent) return;
+      sent = true;
+      const duration = Math.max(1, Math.round((Date.now() - start) / 1000));
+      trackSpinWheelView(sid, duration, isPopup ? "auto_popup" : "modal");
+    };
+
+    window.addEventListener("pagehide", flush);
+    return () => {
+      flush();
+      window.removeEventListener("pagehide", flush);
+    };
+  }, [isPopup]);
 
 
   const loginSuccess = async (data, isSignup = false, skipRedirect = false, ornaUser = null) => {
@@ -308,8 +342,15 @@ export function OtpSpinAuth({
   };
 
   const handleSendOtp = async () => {
-    if (mobile.length !== 10) return toast.error("Please enter a valid 10-digit mobile number");
-    if (!/^[6-9]/.test(mobile)) return toast.error("Please enter a valid Indian mobile number starting with 6, 7, 8 or 9");
+    if (mobile.length !== 10) {
+      setMobileError("Please enter a valid 10-digit mobile number");
+      return;
+    }
+    if (!/^[6-9]/.test(mobile)) {
+      setMobileError("Please enter a valid Indian mobile number starting with 6, 7, 8 or 9");
+      return;
+    }
+    setMobileError("");
     setLoading(true);
     try {
       await sendOtpApi(mobile);
@@ -317,7 +358,7 @@ export function OtpSpinAuth({
       handleStepChange("otp");
       setTimer(30);
     } catch (err) {
-      toast.error(err.message || "Failed to send OTP");
+      setMobileError(err.message || "Failed to send OTP");
     } finally {
       setLoading(false);
     }
@@ -330,12 +371,12 @@ export function OtpSpinAuth({
     setLoading(true);
     try {
       const sessionId = getSessionId();
-      const data = await verifyOtpApi(mobile, otpValue, sessionId);
+      const data = await verifyOtpApi(mobile, otpValue, sessionId, { rewardSource: "spin_wheel" });
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         if (hideRegisterLink) {
           // Auto register with mobile number (Cart Flow)
           try {
-            const regData = await registerCustomer({ mobile, sessionId });
+            const regData = await registerCustomer({ mobile, sessionId, rewardSource: "spin_wheel" });
             if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
               await loginSuccess(regData, true);
             } else {
@@ -375,11 +416,14 @@ export function OtpSpinAuth({
             email,
             mobile,
             sessionId,
+            rewardSource: "spin_wheel",
             wonPrize: wonPrize?.value,
             prizeLabel: wonPrize?.label,
+            ...experimentTags,
           });
 
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+            trackSuccess(true, wonPrize?.value);
             // Switch to the coupon screen BEFORE logging in: the `login` dispatch
             // flips Redux to authenticated, and the auth pages / global modal tear
             // this component down the moment that happens.
@@ -405,6 +449,7 @@ export function OtpSpinAuth({
             console.error("[Ornaverse] Fetch error:", error);
           }
         }
+        trackSuccess(false);
         await loginSuccess(data, false, false, ornaUser);
       }
     } catch (err) {
@@ -508,6 +553,7 @@ export function OtpSpinAuth({
       transition: { duration: spinDuration, ease: [0.2, 0.8, 0.2, 1] },
     });
 
+
     // After spin animation
     setTimeout(async () => {
       const sessionId = getSessionId();
@@ -542,10 +588,13 @@ export function OtpSpinAuth({
             email,
             mobile,
             sessionId,
+            rewardSource: "spin_wheel",
             wonPrize: prize?.value,
             prizeLabel: prize?.label,
+            ...experimentTags,
           });
           if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
+            trackSuccess(true, prize?.value);
             // See note above: the coupon screen has to be in place before `login`
             // is dispatched, otherwise the parent unmounts us first.
             handleStepChange("success");
@@ -722,7 +771,7 @@ export function OtpSpinAuth({
         {step === "login" && (
           <>
             <p className="mb-[14px] text-center text-[14px] leading-tight font-normal text-[#030000] mx-auto mt-[14px] cursor-pointer whitespace-nowrap" onClick={() => mobileRef.current?.focus()}>{overrideHeading || "Login to access your rewards & exclusive benefits"}</p>
-            <div className="flex items-center border border-[#e2e2e2] h-[45px] px-4 rounded-sm bg-white">
+            <div className={`flex items-center h-[45px] px-4 rounded-sm bg-white transition-colors ${mobileError ? "border border-red-500" : "border border-[#e2e2e2]"}`}>
               <span className="text-sm md:text-base font-normal mr-2.5 pr-3 border-r border-[#d0d0d0]">+91</span>
               <input
                 ref={mobileRef}
@@ -731,7 +780,10 @@ export function OtpSpinAuth({
                 maxLength="10"
                 className="w-full h-full text-sm md:text-base border-none outline-none font-normal bg-transparent tracking-[0.3px]"
                 value={mobile}
-                onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
+                onChange={(e) => {
+                  setMobile(cleanPhoneInput(e.target.value));
+                  if (mobileError) setMobileError("");
+                }}
               />
             </div>
             <div className="my-3 max-w-full hidden">
@@ -747,8 +799,13 @@ export function OtpSpinAuth({
                 </span>
               </label>
             </div>
+            {mobileError && (
+              <p className="text-[12px] font-medium text-red-500 text-left font-figtree mt-2 mb-1 animate-in fade-in duration-150">
+                {mobileError}
+              </p>
+            )}
             <button 
-              className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-3 bg-[#5a413f] rounded-lg disabled:opacity-50" 
+              className="text-white h-[45px] w-full font-normal text-sm md:text-base cursor-pointer transition-opacity uppercase tracking-[0.3px] border-none mt-2 bg-[#5a413f] rounded-lg disabled:opacity-50" 
               onClick={handleSendOtp} 
               disabled={loading}
             >

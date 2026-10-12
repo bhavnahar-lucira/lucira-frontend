@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Tag, Phone, MessageSquare, Gift, Truck, MessageCircle, ChevronRight, X, Loader2, CircleChevronRight, Check, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
@@ -24,7 +24,7 @@ import TrustBadges from "@/components/common/TrustBadges";
 import Image from "next/image";
 import FreeGiftReward from "./FreeGiftReward";
 import FeaturedOfferBanner, { selectFeaturedOffers } from "./FeaturedOfferBanner";
-import { FREE_GIFTS, isFreeGiftVariant, mapRemoteFreeGiftTiers } from "@/lib/freeGifts";
+import { FREE_GIFTS, isFreeGiftVariant, isFreeGiftItem, mapRemoteFreeGiftTiers, getCachedFreeGiftTiers, cleanId, isTierLive } from "@/lib/freeGifts";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -60,6 +60,10 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const giftTiersConfig = useSelector((state) => state.cart.giftTiersConfig);
   const { openLogin } = useAuth();
 
+  const effectiveGifts = useMemo(() => {
+    if (giftTiersConfig?.tiers) return mapRemoteFreeGiftTiers(giftTiersConfig.tiers);
+    return getCachedFreeGiftTiers() || FREE_GIFTS;
+  }, [giftTiersConfig]);
 
   const otherItemsQuantity = (() => {
     let qty = 0;
@@ -67,8 +71,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
     items
       .filter(item =>
         item.variantId !== INSURANCE_VARIANT_ID &&
-        !item.isFreeGift &&
-        !isFreeGiftVariant(item.variantId)
+        !isFreeGiftItem(item, effectiveGifts)
       )
       .forEach(item => {
         const byjGroupId = item.properties?.['_byj_group_id'];
@@ -89,8 +92,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const productTotal = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !item.isFreeGift &&
-      !isFreeGiftVariant(item.variantId)
+      !isFreeGiftItem(item, effectiveGifts)
     )
     .reduce((acc, item) => acc + Number(item.price || 0) * Number(item.quantity || item.qty || 1), 0);
 
@@ -111,8 +113,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
         String(item.title || "").toLowerCase().includes('byj')
       );
       return item.variantId !== INSURANCE_VARIANT_ID &&
-        !item.isFreeGift &&
-        !isFreeGiftVariant(item.variantId) &&
+        !isFreeGiftItem(item, effectiveGifts) &&
         !isBYJ;
     })
     .reduce((acc, item) => {
@@ -164,22 +165,34 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
 
   const insuranceItem = items.find(item => item.variantId === INSURANCE_VARIANT_ID);
   const insuranceAmount = insuranceItem ? insuranceItem.price * (Number(insuranceItem.quantity || insuranceItem.qty || 1)) : 0;
-  // Claiming requires a logged-in user, so a gift line without one is an
-  // invalid leftover state (FreeGiftReward's own effect removes it), not a
-  // legitimate claim — don't reflect it as applied here in the meantime.
-  const appliedGiftItem = user ? items.find(item => item.isFreeGift || isFreeGiftVariant(item.variantId)) : null;
-  // Which tier the claimed gift line belongs to, so the coupon-block below
-  // can tell a combinable tier ("Combine coupons" on) apart from the default
-  // exclusive one — mirrors FreeGiftReward's own appliedTier lookup.
-  const appliedGiftTier = appliedGiftItem
-    ? mapRemoteFreeGiftTiers(giftTiersConfig?.tiers).find((t) => t.variantId === appliedGiftItem.variantId)
+  
+  // Claimed gift item must strictly match an active, qualifying tier that is actually claimed
+  const appliedGiftTier = useMemo(() => {
+    if (!user || !effectiveGifts || effectiveGifts.length === 0) return null;
+    return effectiveGifts.find((g) => {
+      if (g.enabled === false || !isTierLive(g) || diamondTotal < g.threshold) return false;
+      const target = cleanId(g.variantId);
+      return items.some((item) => {
+        if (!isFreeGiftItem(item, effectiveGifts)) return false;
+        const v = cleanId(item.variantId);
+        return v === target || v.includes(target) || target.includes(v);
+      });
+    });
+  }, [user, effectiveGifts, diamondTotal, items]);
+
+  const appliedGiftItem = appliedGiftTier
+    ? items.find((item) => {
+        const v = cleanId(item.variantId);
+        const target = cleanId(appliedGiftTier.variantId);
+        return isFreeGiftItem(item, effectiveGifts) && (v === target || v.includes(target) || target.includes(v));
+      })
     : null;
+
   const giftBlocksCoupon = !!appliedGiftItem && !appliedGiftTier?.combineCoupons;
 
   const firstProductName = items.find(item =>
     item.variantId !== INSURANCE_VARIANT_ID &&
-    !item.isFreeGift &&
-    !isFreeGiftVariant(item.variantId)
+    !isFreeGiftItem(item, effectiveGifts)
   )?.title;
 
   // Auto-sync insurance and gold coin quantities
@@ -272,8 +285,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const originalSubtotal = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !item.isFreeGift &&
-      !isFreeGiftVariant(item.variantId)
+      !isFreeGiftItem(item, effectiveGifts)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);
@@ -287,8 +299,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
   const totalSavings = items
     .filter(item =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !item.isFreeGift &&
-      !isFreeGiftVariant(item.variantId)
+      !isFreeGiftItem(item, effectiveGifts)
     )
     .reduce((acc, item) => {
       const qty = Number(item.quantity || item.qty || 1);

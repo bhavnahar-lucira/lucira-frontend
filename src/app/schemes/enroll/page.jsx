@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, UserPlus, Info, CheckCircle2, ChevronRight } from "lucide-react";
 
 import { fetchCustomerAddresses, fetchOrnaverseCustomer, updateOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
-import { toTenDigit } from "@/lib/phone";
+import { toE164, toTenDigit } from "@/lib/phone";
 
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
@@ -314,7 +314,7 @@ export default function Enroll() {
           creative_name: "Continue To Payment Cta in enroll scheme page",
           location_id: "/schemes/enroll",
           promo_id: String(displayAmount),
-          promo_name: mobile || "",
+          promo_name: toE164(mobile) || mobile || "",
         });
       } catch (error) {
         console.error("Error pushing to dataLayer:", error);

@@ -131,9 +131,9 @@ export default function ShareIntentSheet({
     } else {
       // SalesIQ script has not finished loading - send them to the WhatsApp
       // expert thread rather than leaving the tap dead.
-      const message = `Hi, I want to get more information about this product: ${productTitle || ""}`;
+      const message = `Hi, I'd like more details on the: ${productTitle || ""}${shareUrl ? ` ${shareUrl}` : ""}`;
       window.open(
-        `https://wa.me/${EXPERT_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`,
+        `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`,
         "_blank",
         "noopener,noreferrer"
       );
@@ -141,7 +141,7 @@ export default function ShareIntentSheet({
 
     // Closed either way, so the chat window is not left behind this sheet.
     handleClose();
-  }, [onShare, productTitle, handleClose]);
+  }, [onShare, productTitle, shareUrl, handleClose]);
 
   const handleNativeShare = useCallback(async () => {
     onShare?.("native_share");
