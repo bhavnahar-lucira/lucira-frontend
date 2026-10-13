@@ -3627,33 +3627,37 @@ export default function ProductPageClient({
             {isCentralInStock && hasConfirmedPincode && (
               <div className="space-y-4 mt-4">
                 <h3 className="text-base font-semibold">More Ways To Explore:</h3>
-                <ExploreCard
-                  key="try-at-home"
-                  title="Try At Home"
-                  description="Try your selected pieces from the comfort of your home. Available in all major cities"
-                  action="BOOK HOME TRIAL"
-                  img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_TryAtHome.jpg"
-                  url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
-                    `Hi, I'd like to book a free home trial for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
-                  )}&type=phone_number&app_absent=0`}
-                  onClick={() => pushToDataLayer({
-                    event: 'promoClick',
-                    promoClick: {
-                      promo_id: activeVariant?.sku || String(getNumericId(product.id) || ""),
-                      promo_name: product.title,
-                      creative_name: 'Try at Home Section',
-                      location_id: 'PDP',
-                      product_id: String(getNumericId(product.shopifyId || product.id) || ""),
-                      product_name: product.title || "",
-                      sku: activeVariant?.sku || "",
-                      variant_id: String(getNumericId(activeVariant?.id) || ""),
-                      product_url: productPageUrl,
-                      product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
-                      price: Number(activeVariant?.price || 0),
-                      offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
-                    }
-                  })}
-                />
+                {/* A home trial is served from a nearby store, so it is only offered
+                    when one was found; a video call works from anywhere. */}
+                {nearbyAvailableStore && (
+                  <ExploreCard
+                    key="try-at-home"
+                    title="Try At Home"
+                    description="Try your selected pieces from the comfort of your home. Available in all major cities"
+                    action="BOOK HOME TRIAL"
+                    img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_TryAtHome.jpg"
+                    url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                      `Hi, I'd like to book a free home trial for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
+                    )}&type=phone_number&app_absent=0`}
+                    onClick={() => pushToDataLayer({
+                      event: 'promoClick',
+                      promoClick: {
+                        promo_id: activeVariant?.sku || String(getNumericId(product.id) || ""),
+                        promo_name: product.title,
+                        creative_name: 'Try at Home Section',
+                        location_id: 'PDP',
+                        product_id: String(getNumericId(product.shopifyId || product.id) || ""),
+                        product_name: product.title || "",
+                        sku: activeVariant?.sku || "",
+                        variant_id: String(getNumericId(activeVariant?.id) || ""),
+                        product_url: productPageUrl,
+                        product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
+                        price: Number(activeVariant?.price || 0),
+                        offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
+                      }
+                    })}
+                  />
+                )}
                 <ExploreCard
                   key="video-call"
                   title="Video Call"
