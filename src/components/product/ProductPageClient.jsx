@@ -831,29 +831,7 @@ export default function ProductPageClient({
   // fallback so the PDP doesn't show a price stale by up to 24h (page.js
   // revalidate: 86400) when the static ISR-cached price has drifted from Shopify.
   const [livePrice, setLivePrice] = useState(null);
-  const [isSchemeOpen, setIsSchemeOpen] = useState(false);
-  const schemeTimeoutRef = useRef(null);
   const shouldToastVariantChangeRef = useRef(false);
-
-  const calculateScheme = useCallback((price) => {
-    if (!price) return null;
-    const priceRupees = Math.floor(price);
-    const rawMonthly = Math.floor(priceRupees / 10);
-    const remainder = rawMonthly % 500;
-    const monthly = rawMonthly - remainder;
-
-    // Route to the in-app scheme page with the product-specific monthly amount.
-    const schemeUrl = `/schemes?amount=${monthly}`;
-
-    return {
-      monthly,
-      pay9: monthly * 9,
-      saveAmount: monthly,
-      totalRedeemable: monthly * 10,
-      schemeUrl,
-      productPrice: priceRupees
-    };
-  }, []);
 
   // Schemes are not available for gold coins or plain gold jewelry
   const isGoldOrCoinProduct = useMemo(() => {
@@ -907,10 +885,6 @@ export default function ProductPageClient({
 
     return isPlain;
   }, [product]);
-
-  const schemeData = (!isGoldOrCoinProduct && activeVariant?.price > 20000)
-    ? calculateScheme(activeVariant.price)
-    : null;
 
   const productPageUrl = useMemo(() => {
     if (!product?.handle) return "";
@@ -2463,7 +2437,6 @@ export default function ProductPageClient({
         isBottomVisible={showBottomAtc}
         product={product}
         activeVariant={activeVariant}
-        schemeData={schemeData}
         onAddToCart={handleAddToCart}
         addingToCart={addingToCart}
         onToggleWishlist={handleToggleWishlist}
@@ -3112,7 +3085,7 @@ export default function ProductPageClient({
               </Drawer>
             </div>
 
-            <div ref={mainAtcRef} className="mb-3">
+            <div ref={mainAtcRef} className="mb-6">
               <div className="flex gap-2">
                 <button
                   onClick={() => handleAddToCart("pdp page cta")}
@@ -3165,172 +3138,6 @@ export default function ProductPageClient({
                   />
                 </Button>
               </div>
-            </div>
-
-            <div className="flex gap-2 mb-6">
-              <Button asChild variant="outline" className={`h-12 md:h-14 flex items-center justify-center bg-white border border-[#5A413F] text-[#5A413F] hover:bg-[#5A413F]/5 hover:text-[#5A413F] hover:border-[#5A413F] hover:cursor-pointer transition-all group px-0 shrink-0 ${schemeData ? 'w-12 md:w-14 rounded' : 'flex-1 gap-2 rounded'}`}>
-                <a
-                  href={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
-                    `Hi, I'd like more details on the: ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
-                  )}&type=phone_number&app_absent=0`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    pushPromoClick({
-                      promo_id: activeVariant?.sku || String(getNumericId(activeVariant?.id || product?.shopifyId || product?.id) || ""),
-                      promo_name: product?.title || "",
-                      creative_name: "Product page whatsapp",
-                      location_id: "pdp",
-                      product_id: String(getNumericId(product?.shopifyId || product?.id) || ""),
-                      product_name: product?.title || "",
-                      sku: activeVariant?.sku || "",
-                      variant_id: String(getNumericId(activeVariant?.id || activeVariant?.shopifyId) || ""),
-                      product_url: productPageUrl,
-                      product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
-                      price: Number(activeVariant?.price || 0),
-                      offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
-                    });
-                  }}
-                >
-                  <Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/whatsapp_2eb7b2b4-f6af-4848-893e-8de612c3e6cb.png?v=1782542639" alt="Whatsapp icon" width={20} height={20} className={`${schemeData ? '' : 'mr-1'} shrink-0`} />
-                  <span className={`${schemeData ? 'hidden' : 'inline'} text-[14px] sm:text-base uppercase font-bold tracking-wider`}>Whatsapp Us</span>
-                </a>
-              </Button>
-              {schemeData && (
-                <div
-                  className="relative flex-1"
-                  onMouseEnter={() => {
-                    if (schemeTimeoutRef.current) clearTimeout(schemeTimeoutRef.current);
-                    if (typeof window !== 'undefined' && window.innerWidth > 1023) setIsSchemeOpen(true)
-                  }}
-                  onMouseLeave={() => {
-                    if (typeof window !== 'undefined' && window.innerWidth > 1023) {
-                      schemeTimeoutRef.current = setTimeout(() => {
-                        setIsSchemeOpen(false);
-                      }, 150);
-                    }
-                  }}
-                >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsSchemeOpen((prev) => {
-                        const next = !prev;
-                        if (next) {
-                          // 🔥 Dual-write to Postgres via Internal Sync API
-                          let sessionId = localStorage.getItem("cart_session_id");
-                          if (!sessionId) {
-                            sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
-                            localStorage.setItem("cart_session_id", sessionId);
-                          }
-                          fetch('/api/track', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              event: "scheme_view",
-                              page: window.location.href,
-                              sessionId: sessionId,
-                              productId: product.title,
-                              variantId: activeVariant?.id,
-                            })
-                          }).catch(e => console.error("Scheme tracking failed:", e));
-                        }
-                        return next;
-                      });
-                    }}
-                    className={`w-full h-12 md:h-14 px-1.5 sm:px-3 font-medium flex items-center justify-between gap-1 sm:gap-2 bg-gray-50 hover:cursor-pointer group hover:bg-tertiary hover:text-white transition-all duration-150 active:scale-[0.98] rounded relative overflow-hidden ${isSchemeOpen ? 'bg-tertiary text-white border-primary shadow-[0_5px_20px_rgba(163,110,110,0.4)]' : 'border-[#5A413F] text-[#5A413F] hover:border-tertiary'}`}
-                  >
-                    <div className="w-6 sm:w-8 flex justify-start shrink-0">
-                      <span
-                        className={`p-1 rounded-full transition-colors duration-150 flex items-center justify-center ${isSchemeOpen ? 'bg-white/20' : 'bg-primary/10'}`}
-                      >
-                        <Coins size={16} className={`sm:w-6 sm:h-[18px] ${isSchemeOpen ? 'text-white' : 'text-primary'} group-hover:text-white transition-all`} />
-                      </span>
-                    </div>
-
-                    <span className="flex-1 text-center text-base font-semibold block truncate mt-[2px] font-figtree leading-[1.4] tracking-normal">
-                      SAVE <span className="font-semibold mx-0.5">₹{formatPrice(schemeData.saveAmount)}</span> WITH SCHEME
-                    </span>
-
-                    <div className="w-6 sm:w-8 flex justify-end shrink-0">
-                      <ChevronRight size={16} className={`transition-transform duration-200 ${isSchemeOpen ? 'rotate-90' : ''}`} />
-                    </div>
-                  </Button>
-
-                  {isSchemeOpen && (
-                    <div className="absolute top-full right-0 w-[calc(100vw-32px)] sm:w-[350px] lg:w-full pt-2 z-[100] animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 ease-out origin-top-right">
-                      <div className="bg-white border border-primary/10 rounded overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
-                        <div className="p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5">
-
-                          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                            <h4 className="text-[12px] sm:text-sm font-bold text-black uppercase tracking-[0.12em]">9 + 1 Scheme Breakdown</h4>
-                            <BadgeCheck size={18} className="text-[#2DB36F]" />
-                          </div>
-
-                          <div className="space-y-3 sm:space-y-4">
-                            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
-                              <span className="text-gray-500 font-medium">Product Price</span>
-                              <span className="font-semibold text-black">₹{formatPrice(schemeData.productPrice)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
-                              <span className="text-gray-500 font-medium">Monthly Installment</span>
-                              <div className="text-right">
-                                <span className="font-bold text-primary">₹{formatPrice(schemeData.monthly)}</span>
-                                <span className="text-gray-600 ml-1">x 9 Months</span>
-                              </div>
-                            </div>
-                            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
-                              <span className="text-gray-500 font-medium">You Pay (9 Months)</span>
-                              <span className="font-semibold text-black">₹{formatPrice(schemeData.pay9)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
-                              <span className="text-gray-500 font-medium">10th Month We Pay</span>
-                              <span className="font-bold text-[#2DB36F]">₹{formatPrice(schemeData.monthly)}</span>
-                            </div>
-
-                            <div className="bg-[#FAFAFA] rounded-xl p-4 border border-gray-100 shadow-sm">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm font-bold text-gray-900">Total Redeemable</span>
-                                <span className="text-lg font-bold text-black">₹{formatPrice(schemeData.totalRedeemable)}</span>
-                              </div>
-                              <p className="text-[10px] text-gray-400 mt-1.5 leading-tight font-medium">
-                                Redeem on any diamond product after 10 months. Any remaining amount can be paid at checkout.
-                              </p>
-                            </div>
-                          </div>
-
-                          <Button className="w-full h-12 font-bold uppercase tracking-widest bg-tertiary hover:bg-accent text-white rounded-sm shadow-lg shadow-primary/20 transition-all duration-200 active:scale-[0.97]" asChild>
-                            <a
-                              href={schemeData.schemeUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() =>
-                                pushPromoClick({
-                                  creative_name: "scheme enroll button clicked",
-                                  location_id: "pdp",
-                                  promo_id: getNumericId(activeVariant?.id),
-                                  promo_position: String(schemeData.monthly)
-                                })
-                              }
-                            >
-                              ENROLL NOW <ArrowRight size={16} className="ml-2" />
-                            </a>
-                          </Button>
-
-                          <div className="flex items-center justify-center gap-2 pt-1">
-                            <div className="w-1 h-1 bg-[#2DB36F] rounded-full animate-pulse"></div>
-                            <p className="text-[9px] sm:text-[10px] text-gray-700 font-bold uppercase tracking-widest">
-                              Secure & Instant Enrollment
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Features */}
