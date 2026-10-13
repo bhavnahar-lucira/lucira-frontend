@@ -15,7 +15,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Star, Play, Info, Heart, Video, Store, ChevronRight, Share2, Check, Copy, Loader2, X, ArrowRight, MapPin, Phone, Package, Coins } from "lucide-react";
+import { Star, Play, Info, Heart, Store, ChevronRight, Share2, Check, Copy, Loader2, X, ArrowRight, MapPin, Phone, Package, Coins } from "lucide-react";
 import { BadgeCheck } from "lucide-react";
 import PriceSavingsDetails from "@/components/product/PriceSavingsDetails";
 import ProductAccordion from "@/components/product/ProductAccordion";
@@ -3520,7 +3520,7 @@ export default function ProductPageClient({
               {isCentralInStock && isAvailableInAnyStore && (
                 <div className="border border-gray-200 rounded-xl p-2.5 sm:p-4 flex gap-2 sm:gap-4 bg-white">
                   {/* Left Side: Image */}
-                  <div className="w-[72px] sm:w-[110px] aspect-square shrink-0 self-center rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
+                  <div className="w-[88px] sm:w-[110px] min-h-[72px] shrink-0 self-stretch rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
                     <Image loader={shopifyLoader}
                       src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Available_Store_1.png?v=1784981054"
                       alt="Nearest Store"
@@ -3539,7 +3539,7 @@ export default function ProductPageClient({
                         ) : nearbyAvailableStore ? (
                           <>Nearest Store - <span className="italic font-semibold text-black">{getStoreDisplayName(nearbyAvailableStore.name)}{nearbyAvailableStore.distance !== null ? ` (${Math.round(nearbyAvailableStore.distance)}Km)` : ""}</span></>
                         ) : (
-                          <span className="italic font-semibold text-black">No nearby store available within 25 kms</span>
+                          <span className="italic font-semibold text-black">Available, but not at nearby stores.</span>
                         )}
                       </span>
                     </div>
@@ -3567,36 +3567,59 @@ export default function ProductPageClient({
                     {/* Buttons */}
                     <div className="w-full">
                       {hasConfirmedPincode && !nearbyAvailableStore ? (
-                        <div className="flex flex-col min-[430px]:grid min-[430px]:grid-cols-2 gap-2">
+                        <Button
+                          onClick={() => {
+                            setIsStoreDrawerOpen(true);
+                            pushToDataLayer({
+                              event: "promoClick",
+                              promoClick: {
+                                creative_name: "view all stores cta pdp",
+                                promo_id: getNumericId(activeVariant?.id),
+                                promo_name: "View All Stores",
+                                promo_position: "Product Details Section",
+                                location_id: "pdp",
+                                product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                              }
+                            });
+                          }}
+                          className="w-full h-10 font-figtree font-bold leading-[1.4] tracking-normal rounded text-xs md:text-sm bg-[#5A413F] hover:bg-[#5A413F]/90 text-white uppercase flex items-center justify-center gap-2"
+                        >
+                          VIEW ALL STORES
+                        </Button>
+                      ) : hasConfirmedPincode && nearbyAvailableStore ? (
+                        <>
+                          {otherAvailableStoreCount > 0 && (
+                            <p className="text-xs text-black mb-2">
+                              Also available in {" "}
+                              <button
+                                onClick={() => {
+                                  setIsStoreDrawerOpen(true);
+                                  pushToDataLayer({
+                                    event: "promoClick",
+                                    promoClick: {
+                                      creative_name: "find nearest store cta pdp",
+                                      promo_id: getNumericId(activeVariant?.id),
+                                      promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
+                                      promo_position: "Product Details Section",
+                                      location_id: "pdp",
+                                      product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
+                                    }
+                                  });
+                                }}
+                                className="underline underline-offset-2 font-bold"
+                              >
+                                {otherAvailableStoreCount} {otherAvailableStoreCount === 1 ? "other store" : "other stores"}
+                              </button>
+                            </p>
+                          )}
                           <Button
-                            variant="outline"
                             onClick={() => {
-                              setIsStoreDrawerOpen(true);
                               pushToDataLayer({
                                 event: "promoClick",
                                 promoClick: {
-                                  creative_name: "view all stores cta pdp",
-                                  promo_id: getNumericId(activeVariant?.id),
-                                  promo_name: "View All Stores",
-                                  promo_position: "Product Details Section",
-                                  location_id: "pdp",
-                                  product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                                }
-                              });
-                            }}
-                            className="w-full h-10 font-bold rounded text-xs border-primary text-primary uppercase tracking-wide"
-                          >
-                            <Store size={14} className="mr-1.5" />
-                            VIEW ALL STORES
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              pushToDataLayer({
-                                event: "promoClick",
-                                promoClick: {
-                                  creative_name: "book video call cta pdp",
+                                  creative_name: "book store visit cta pdp",
                                   promo_id: String(getNumericId(activeVariant?.id) || ""),
-                                  promo_name: "Book Video Call",
+                                  promo_name: getStoreDisplayName(nearbyAvailableStore.name),
                                   promo_position: "Product Details Section",
                                   location_id: "pdp",
                                   product_id: String(getNumericId(product?.shopifyId || product?.id) || ""),
@@ -3611,17 +3634,16 @@ export default function ProductPageClient({
                               });
                               window.open(
                                 `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
-                                  `Hi, I'd like to schedule a video call for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
+                                  `Hi, I'd like to book a store visit at your ${getStoreDisplayName(nearbyAvailableStore.name)} store for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
                                 )}&type=phone_number&app_absent=0`,
                                 "_blank"
                               );
                             }}
-                            className="w-full h-10 font-bold rounded text-xs bg-tertiary uppercase tracking-wide"
+                            className="w-full h-10 font-figtree font-bold leading-[1.4] tracking-normal rounded text-xs md:text-sm bg-[#5A413F] hover:bg-[#5A413F]/90 text-white uppercase flex items-center justify-center gap-2"
                           >
-                            <Video size={14} className="mr-1.5" />
-                            BOOK VIDEO CALL
+                            BOOK STORE VISIT
                           </Button>
-                        </div>
+                        </>
                       ) : (
                         <Button
                           onClick={() => {
@@ -3640,35 +3662,8 @@ export default function ProductPageClient({
                           }}
                           className="w-full h-10 font-figtree font-bold leading-[1.4] tracking-normal rounded text-xs md:text-sm bg-[#5A413F] hover:bg-[#5A413F]/90 text-white uppercase flex items-center justify-center gap-2"
                         >
-                          {!hasConfirmedPincode
-                            ? "FIND OUR NEAREST STORE"
-                            : "FIND ALL STORES"}
+                          FIND STORE
                         </Button>
-                      )}
-
-                      {hasConfirmedPincode && nearbyAvailableStore && otherAvailableStoreCount > 0 && (
-                        <p className="text-xs text-black mt-2">
-                          Also available in {" "}
-                          <button
-                            onClick={() => {
-                              setIsStoreDrawerOpen(true);
-                              pushToDataLayer({
-                                event: "promoClick",
-                                promoClick: {
-                                  creative_name: "find nearest store cta pdp",
-                                  promo_id: getNumericId(activeVariant?.id),
-                                  promo_name: nearestStore ? getStoreDisplayName(nearestStore.name) : (availableStoreCount > 0 ? `Available in ${availableStoreCount} stores` : "Find Store"),
-                                  promo_position: "Product Details Section",
-                                  location_id: "pdp",
-                                  product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url))
-                                }
-                              });
-                            }}
-                            className="underline underline-offset-2 font-bold"
-                          >
-                            {otherAvailableStoreCount} {otherAvailableStoreCount === 1 ? "other store" : "other stores"}
-                          </button>
-                        </p>
                       )}
                     </div>
                   </div>
@@ -3677,53 +3672,60 @@ export default function ProductPageClient({
               <Separator />
             </div>
 
-            {/* Explore Section */}
-            {isCentralInStock && (
+            {/* Explore Section - only once the shopper's pincode is known. Without
+                one there is no store context, so the Find Store card above is the
+                only prompt; with one, the nearest-store CTA books the visit and
+                these two cover the remote options. */}
+            {isCentralInStock && hasConfirmedPincode && (
               <div className="space-y-4 mt-4">
                 <h3 className="text-base font-semibold">More Ways To Explore:</h3>
+                {/* A home trial is served from a nearby store, so it is only offered
+                    when one was found; a video call works from anywhere. */}
+                {nearbyAvailableStore && (
+                  <ExploreCard
+                    key="try-at-home"
+                    title="Try At Home"
+                    description="Try your selected pieces from the comfort of your home. Available in all major cities"
+                    action="BOOK HOME TRIAL"
+                    img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_TryAtHome.jpg"
+                    url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                      `Hi, I'd like to book a free home trial for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
+                    )}&type=phone_number&app_absent=0`}
+                    onClick={() => pushToDataLayer({
+                      event: 'promoClick',
+                      promoClick: {
+                        promo_id: activeVariant?.sku || String(getNumericId(product.id) || ""),
+                        promo_name: product.title,
+                        creative_name: 'Try at Home Section',
+                        location_id: 'PDP',
+                        product_id: String(getNumericId(product.shopifyId || product.id) || ""),
+                        product_name: product.title || "",
+                        sku: activeVariant?.sku || "",
+                        variant_id: String(getNumericId(activeVariant?.id) || ""),
+                        product_url: productPageUrl,
+                        product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
+                        price: Number(activeVariant?.price || 0),
+                        offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
+                      }
+                    })}
+                  />
+                )}
                 <ExploreCard
-                  key="visit-store"
-                  title="Visit Our Store"
-                  description="Explore and try your favorite designs in person, with expert guidance from our in-store team."
+                  key="video-call"
+                  title="Video Call"
+                  description="Explore and try your favorite designs virtually, with expert guidance from our in-store team."
                   action="BOOK APPOINTMENT"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
                   url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
-                    `Hi, I'd like to book a store appointment for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
+                    `Hi, I'd like to schedule a video call for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
                   )}&type=phone_number&app_absent=0`}
                   onClick={() => pushToDataLayer({
                     event: 'promoClick',
                     promoClick: {
                       promo_id: String(getNumericId(product.shopifyId || product.id) || ""),
                       promo_name: product.title || "",
-                      creative_name: 'Visit Store Button clicked',
+                      creative_name: 'Video Call Button clicked',
                       location_id: 'Pdp',
-                      product_id: String(getNumericId(product.shopifyId || product.id) || ""),
-                      product_name: product.title || "",
-                      sku: activeVariant?.sku || "",
-                      variant_id: String(getNumericId(activeVariant?.id) || ""),
-                      product_url: productPageUrl,
-                      product_image: getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product?.featuredImage || (product?.media && product?.media[0]?.url)) || "",
-                      price: Number(activeVariant?.price || 0),
-                      offer_price: Number(activeVariant?.compareAtPrice || activeVariant?.price || 0),
-                    }
-                  })}
-                />
-                <ExploreCard
-                  key="try-at-home"
-                  title="Try At Home"
-                  description="Try your selected pieces from the comfort of your home. Available in all major cities"
-                  action="BOOK HOME TRIAL"
-                  img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_subscribe-2.jpg"
-                  url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
-                    `Hi, I'd like to book a free home trial for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
-                  )}&type=phone_number&app_absent=0`}
-                  onClick={() => pushToDataLayer({
-                    event: 'promoClick',
-                    promoClick: {
-                      promo_id: activeVariant?.sku || String(getNumericId(product.id) || ""),
-                      promo_name: product.title,
-                      creative_name: 'Try at Home Section',
-                      location_id: 'PDP',
                       product_id: String(getNumericId(product.shopifyId || product.id) || ""),
                       product_name: product.title || "",
                       sku: activeVariant?.sku || "",
@@ -4743,14 +4745,14 @@ function DiamondDetail({ img, shape, pcs, carat, quality }) {
 
 function ExploreCard({ title, description, action, img, url, onClick }) {
   return (
-    <div className="bg-[#F9F9F9] border border-gray-100 rounded-lg p-3 md:p-4 flex items-start gap-3 md:gap-4">
-      <div className="w-20 sm:w-24 md:w-24 shrink-0 self-stretch rounded-sm bg-gray-200 relative overflow-hidden shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 md:p-4 flex items-center gap-3 md:gap-4">
+      <div className="w-24 sm:w-28 min-h-[4.5rem] shrink-0 self-stretch rounded-sm bg-gray-200 relative overflow-hidden">
         {img && (<Image loader={shopifyLoader} src={getValidSrc(img)} alt={title} fill className="object-cover" />)}
       </div>
-      <div className="flex-1 min-w-0 flex flex-col gap-2">
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5 md:gap-1">
         <p className="text-sm md:text-base font-semibold leading-tight"> {title} </p>
-        <p className="text-xs md:text-sm font-medium leading-[1.5] text-gray-900"> {description} </p>
-        <Button variant="link" className=" p-0 m-0 h-auto w-fit text-sm font-bold underline underline-offset-4 justify-start" asChild>
+        <p className="text-xs md:text-sm font-normal leading-[1.5] text-gray-800"> {description} </p>
+        <Button variant="link" className="mt-0.5 p-0 m-0 h-auto w-fit text-xs md:text-sm font-bold uppercase tracking-wide underline underline-offset-4 text-[#5A413F] justify-start" asChild>
           <a href={url} target="_blank" rel="noopener noreferrer" onClick={onClick}>
             {action}
           </a>
