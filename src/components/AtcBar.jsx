@@ -29,7 +29,6 @@ export default function AtcBar({
   addingToCart,
   onToggleWishlist,
   isWishlisted,
-  schemeData,
   pincode: pincodeProp,
 }) {
   const [hasTopAnimated, setHasTopAnimated] = React.useState(false);
