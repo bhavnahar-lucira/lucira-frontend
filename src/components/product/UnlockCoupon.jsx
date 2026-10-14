@@ -339,7 +339,7 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
     setLoading(true);
     try {
       const sessionId = generateSessionId();
-      const data = await verifyOtpApi(mobile, code, sessionId);
+      const data = await verifyOtpApi(mobile, code, sessionId, { rewardSource: "unlock_coupon" });
 
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         const regData = await registerCustomer({
@@ -349,7 +349,8 @@ export default function UnlockCoupon({ user, dispatch, toast, currentPrice, prod
           mobile: mobile,
           sessionId,
           tags: "pdp-offers-lead",
-          sourcePage: "Cart Drawer",
+          sourcePage: typeof window !== "undefined" ? window.location.pathname : "PDP",
+          rewardSource: "unlock_coupon",
         });
 
         if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {

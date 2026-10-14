@@ -33,6 +33,7 @@ export function useAtcLoginGate() {
       openAuthModal({
         useCheckoutAuth: true,
         keepSavedCart: true,
+        rewardSource: "atc_login",
         overrideHeading: "Login to Add to Cart",
         overrideSubtext: "Login / Signup to save this piece to your cart & unlock member offers",
         overrideButtonText: "CONTINUE",

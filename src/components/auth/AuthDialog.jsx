@@ -154,6 +154,7 @@ export function AuthDialog({
                   buttonText={overrideButtonText || "CONTINUE"}
                   onClose={handleDismiss}
                   keepSavedCart={!!authModalOverrides?.keepSavedCart}
+                  rewardSource={authModalOverrides?.rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login")}
                 />
               </div>
             ) : (
@@ -205,6 +206,7 @@ export function AuthDialog({
               buttonText={overrideButtonText || "CONTINUE"}
               onClose={handleDismiss}
               keepSavedCart={!!authModalOverrides?.keepSavedCart}
+              rewardSource={authModalOverrides?.rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login")}
             />
           </div>
         </DialogContent>
