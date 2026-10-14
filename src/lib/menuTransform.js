@@ -8,6 +8,14 @@
 // Small collection tiles rendered beside the image cards in the desktop
 // Collections menu and below the 2x2 grid in the mobile menu. Cotton Candy is
 // desktop-only: on mobile it stays as a card in the image grid.
+// Display-name overrides for top-level menu items, keyed by the lowercase
+// Shopify menu title. The Shopify menu (and its collection handle) keeps the
+// original name; only what the shopper sees changes. Matchers in MobileHeader
+// accept both names.
+export const MENU_LABEL_OVERRIDES = {
+  "lucira express": "Fast Shipping",
+};
+
 export const COLLECTION_QUICK_LINKS = [
   { label: "Cotton Candy", href: "/collections/cotton-candy", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Ellipse_2966.png?v=1785231957", desktopOnly: true },
   { label: "Evil Eye", href: "/collections/evil-eye", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/evil_eye.png?v=1785231427" },
@@ -49,7 +57,7 @@ export function transformMenuData(shopifyMenuItems) {
     }
     
     let transformedItem = {
-      label: item.title,
+      label: MENU_LABEL_OVERRIDES[label.toLowerCase()] || item.title,
       href: href,
       type: menuType,
       layout: layout,
