@@ -224,8 +224,9 @@ async function generateMenu() {
                     };
                 }
 
+                const title = item.title === "Lucira Express" ? "Fast Shipping" : item.title;
                 return {
-                    title: item.title,
+                    title: title,
                     url: item.url,
                     resource: resource,
                     items: item.items && item.items.length > 0 ? transformItems(item.items) : []

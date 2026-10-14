@@ -1592,6 +1592,7 @@ export default function ProductPageClient({
         image: getValidSrc(activeVariant.image || getColorSpecificImage(product, activeColor) || product.featuredImage || (product.media && product.media[0]?.url)),
         quantity: 1,
         inStock: Boolean(activeVariant.inStock),
+        orderStatus: (activeVariant?.inStock === true || activeVariant?.inStock === "true") ? "RTS" : "MTO",
         color: activeColor,
         karat: activeKarat,
         size: selectedSize,
