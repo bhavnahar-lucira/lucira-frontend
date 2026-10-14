@@ -799,11 +799,20 @@ export default function DigiGoldPage() {
                                 {/* Col 3: Status / Action */}
                                 <div className="col-span-2 sm:col-span-2">
                                   {isPaid ? (
-                                    <span className="font-normal text-zinc-800">Paid</span>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                      <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                      Paid
+                                    </span>
                                   ) : isInsCancelled ? (
-                                    <span className="font-medium text-red-500">Cancelled</span>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-600 border border-red-200 whitespace-nowrap">
+                                      <span className="size-1.5 rounded-full bg-red-500 shrink-0" />
+                                      Cancelled
+                                    </span>
                                   ) : isPreclosed ? (
-                                    <span className="font-normal text-purple-700">Pre-Closed</span>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">
+                                      <span className="size-1.5 rounded-full bg-purple-500 shrink-0" />
+                                      Pre-Closed
+                                    </span>
                                   ) : isFirstUnpaid && isDue && !isCancelled ? (
                                     <button
                                       onClick={() => handlePayInstallment(plan, ins)}
