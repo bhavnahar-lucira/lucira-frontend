@@ -518,6 +518,10 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
     const hasFastShipping = lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"));
     if (hasFastShipping && isVariantInStock) labels.push("Faster Delivery");
+    const hasOnlyPendant = lowerTags.some(
+      (t) => t === "only pendant" || t === "only-pendant" || t === "pendant only" || (t.includes("only") && t.includes("pendant"))
+    );
+    if (hasOnlyPendant) labels.push("Only Pendant");
     if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
     if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
