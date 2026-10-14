@@ -1,11 +1,11 @@
 import Link from "next/link";
 import Header from "@/components/header/Header";
 import Footer from "@/components/common/Footer";
-import { getMenu } from "@/lib/menus";
+import { getHeaderMenu } from "@/lib/menus";
 
 
 export default async function NotFound() {
-  const menuData = await getMenu("main-menu-official");
+  const menuData = await getHeaderMenu("main-menu-official");
 
   // Replace these with CMS / API later if needed
   const data = {

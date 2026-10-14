@@ -10,8 +10,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { clearCart, removeFromCart } from "@/redux/features/cart/cartSlice";
 import { restoreGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
-import { useMenu } from "@/hooks/useMenu";
-import { MEGA_MENU as STATIC_MENU } from "@/data/megaMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@/lib/gtm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -360,7 +358,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { transformMenuData, withChunkyRings } from "@/lib/menus";
+import { withChunkyRings } from "@/lib/menuTransform";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -481,7 +479,8 @@ export default function MobileHeader({ menuData }) {
   const MEGA_MENU = useMemo(() => {
     // Bestsellers is dropped from the mobile grid; New Arrivals / Bracelets /
     // Necklaces are not in the CMS menu yet, so they're appended here.
-    const menu = transformMenuData(menuData || [])
+    // menuData arrives already transformed by getHeaderMenu() on the server.
+    const menu = (Array.isArray(menuData) ? menuData : [])
       .filter(
         (item) => !((item.label || item.title || "").toLowerCase().includes("bestseller"))
       )

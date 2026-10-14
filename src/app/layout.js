@@ -51,6 +51,9 @@ export default async function RootLayout({ children }) {
       <head>
         <link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdn.shopify.com" />
+        {/* Body font, self-hosted (same WOFF2 bytes the Shopify CDN served) and
+            preloaded so text paints in Figtree on first render. */}
+        <link rel="preload" href="/fonts/figtree-wght.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {isProd && (
           <Script id="google-tag-manager" strategy="afterInteractive">
             {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
