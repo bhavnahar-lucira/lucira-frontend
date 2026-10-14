@@ -46,7 +46,8 @@ export function transformMenuData(shopifyMenuItems) {
     const menuIcon = getFileUrl(getMetafield(metafields, "custom", "menu_links_image_icon")) || resource.image?.url;
 
     let href = item.url.replace(/https:\/\/[^/]+/, "");
-    const label = item.title.trim();
+    const rawLabel = item.title.trim();
+    const label = rawLabel.toLowerCase() === "lucira express" ? "Fast Shipping" : rawLabel;
     if (label === "Engagement & Bridal") {
       href = "/collections/engagement-bridal-rings";
     } else if (label === "Rings") {
@@ -57,7 +58,7 @@ export function transformMenuData(shopifyMenuItems) {
     }
     
     let transformedItem = {
-      label: item.title,
+      label: label,
       href: href,
       type: menuType,
       layout: layout,
