@@ -84,6 +84,24 @@ function ProductAudioButton({ src, className = "", productTitle = "", sku = "" }
 export default function ProductGallery({ media = [], title = "", activeColor = "", onViewSimilar, hasSimilar = false, product, activeVariant }) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [mounted, setMounted] = useState(false);
+
+  // One-time "peek": shortly after the Similar Items pill appears, it unfurls
+  // its label and folds back, so shoppers learn the icon is a button. Reuses
+  // the CSS .is-open state (same easing as hover). Gated on `mounted` and
+  // `hasSimilar` because the gallery mounts as a skeleton first and the pill
+  // only renders once similar products are known; keyed on the product so it
+  // re-runs on SPA navigation from one PDP to another.
+  const [peekSimilar, setPeekSimilar] = useState(false);
+  useEffect(() => {
+    if (!mounted || !hasSimilar) return undefined;
+    const open = setTimeout(() => setPeekSimilar(true), 900);
+    const close = setTimeout(() => setPeekSimilar(false), 900 + 2200);
+    return () => {
+      clearTimeout(open);
+      clearTimeout(close);
+      setPeekSimilar(false);
+    };
+  }, [product?.id, mounted, hasSimilar]);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -472,7 +490,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     });
                     onViewSimilar();
                   }}
-                  className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]"
+                  className={`absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]${peekSimilar ? " is-open" : ""}`}
                 >
                   <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
                     <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
@@ -604,7 +622,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   });
                   onViewSimilar();
                 }}
-                className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]"
+                className={`bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]${peekSimilar ? " is-open" : ""}`}
               >
                 <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center pointer-events-none">
                   <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
