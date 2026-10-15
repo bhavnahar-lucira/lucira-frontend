@@ -43,7 +43,7 @@ import shopifyLoader from "@/utils/shopifyLoader";
 
 const STORE_BG_URL = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/DSC02543_2.jpg?v=1792067775";
 const GOLD_COIN_URL = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/gold_coin.png?v=1792067741";
-const WHITE_LOGO_URL = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_Full_White_logo_1.svg?v=1767856155";
+const WHITE_LOGO_URL = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_Full_White_logo_1.svg?v=1767856155&width=256";
 
 export default function EventExhibitionClient() {
   const router = useRouter();
@@ -404,11 +404,12 @@ export default function EventExhibitionClient() {
       <header className="w-full pt-8 pb-3 px-6 flex justify-center items-center z-20">
         <Link href="/" className="inline-block transition-transform hover:scale-105 duration-300">
           <Image
-            src={step === 4 ? "/images/logo.svg" : "/images/lucira-white-logo.svg"}
+            src={step === 4 ? "/images/logo.svg" : WHITE_LOGO_URL}
             alt="Lucira Jewelry"
             width={130}
             height={42}
             priority
+            unoptimized={step !== 4}
             className={`w-[120px] sm:w-[135px] h-auto ${step !== 4 ? "drop-shadow-sm" : ""}`}
           />
         </Link>

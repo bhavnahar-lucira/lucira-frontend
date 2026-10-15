@@ -6,7 +6,7 @@ export const metadata = {
   openGraph: {
     title: "Event Exhibition - Get 1000 Lucira Points",
     description: "Register at the Lucira Event Exhibition and receive 1000 Lucira / Nector Points.",
-    images: ["/images/exhibition/store-bg.jpg"],
+    images: ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/DSC02543_2.jpg?v=1792067775"],
   },
 };
 
