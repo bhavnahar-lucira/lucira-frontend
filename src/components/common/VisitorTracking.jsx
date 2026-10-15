@@ -96,7 +96,28 @@ export default function VisitorTracking() {
   useEffect(() => {
     storeFacebookClickId();
     storeGoogleClickId();
-    requestAndStorePincode();
+
+    // The geolocation prompt + reverse-geocode used to fire during page load.
+    // It now waits for the first interaction (or 6 s, whichever comes first)
+    // so it never competes with first paint. The PDP and header listen for the
+    // "lucira:user-pincode" event, so a late pincode still flows through.
+    let done = false;
+    const events = ["pointerdown", "touchstart", "keydown", "scroll"];
+    const run = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      events.forEach((ev) => window.removeEventListener(ev, run));
+      requestAndStorePincode();
+    };
+    const timer = setTimeout(run, 6000);
+    events.forEach((ev) => window.addEventListener(ev, run, { once: true, passive: true }));
+
+    return () => {
+      done = true;
+      clearTimeout(timer);
+      events.forEach((ev) => window.removeEventListener(ev, run));
+    };
   }, []);
 
   return null;

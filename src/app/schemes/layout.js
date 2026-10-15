@@ -1,7 +1,7 @@
 import Header from "@/components/header/Header";
 import Footer from "@/components/common/Footer";
 import FloatingActionButton from "@/components/common/FloatingActionButton";
-import { getMenu } from "@/lib/menus";
+import { getHeaderMenu } from "@/lib/menus";
 
 export const metadata = {
   title: "Vault of Dreams - Lucira Jewelry",
@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function SchemesLayout({ children }) {
-  const menuData = await getMenu("main-menu-official");
+  const menuData = await getHeaderMenu("main-menu-official");
 
   return (
     <>

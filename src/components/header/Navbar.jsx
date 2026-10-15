@@ -7,12 +7,13 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { transformMenuData, withChunkyRings } from "@/lib/menus";
+import { withChunkyRings } from "@/lib/menuTransform";
 import { pushPromoClick } from "@/lib/gtm";
 
 export default function Navbar({ hideTop, menuData }) {
   const MEGA_MENU = useMemo(() => {
-    const menus = transformMenuData(menuData);
+    // menuData arrives already transformed by getHeaderMenu() on the server.
+    const menus = Array.isArray(menuData) ? menuData : [];
     
     return withChunkyRings(menus.map(menu => {
       const label = (menu.label || menu.title || '').toLowerCase();

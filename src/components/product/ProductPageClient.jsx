@@ -21,19 +21,11 @@ import PriceSavingsDetails from "@/components/product/PriceSavingsDetails";
 import ProductAccordion from "@/components/product/ProductAccordion";
 import LuxuryMarquee from "@/components/product/LuxuryMarquee";
 import ProductStory from "@/components/product/ProductStory";
-const OnTheMoveStory = dynamic(() => import("@/components/product/OnTheMoveStory"), { suspense: true });
-import OurProcess from "@/components/product/OurProcess";
-import CategorySlider from "@/components/product/CategorySlider";
-import CustomerReviews from "@/components/product/CustomerReviews";
-import FAQSection from "@/components/product/FAQSection";
-import DiamondComparison from "@/components/product/DiamondComparison";
-import { FindLuciraStore } from "@/components/product/FindLuciraStore";
+const OnTheMoveStory = dynamic(() => import("@/components/product/OnTheMoveStory"), { loading: () => <div className="h-20 bg-gray-100 animate-pulse" /> });
 import { asStorePages, storeByHandle } from "@/lib/storeContent";
 import { handleFromStoreName, isHeadOffice } from "@/data/stores";
-const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { suspense: true });
-import { JoinLuciraCommunity } from "@/components/product/JoinLuciraCommunity";
+const StoreLocatorSection = dynamic(() => import("@/components/home/StoreLocatorSection"), { loading: () => <div className="h-20 bg-gray-100 animate-pulse" /> });
 import { ProductSlider } from "@/components/product/ProductSlider";
-import ExploreOtherRings from "@/components/product/ExploreOtherRings";
 // import WearThisWith from "@/components/product/WearThisWith";
 import ProductCard from "@/components/product/ProductCard";
 import { Separator } from "@/components/ui/separator";
@@ -46,7 +38,6 @@ import { toast } from 'react-toastify';
 import { apiFetch, fetchVariantPricing } from "@/lib/api";
 import { motion } from "framer-motion";
 import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
-import 'react-toastify/dist/ReactToastify.css';
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
@@ -100,10 +91,6 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-import StyledByLucira from "../home/StyledByLucira";
-import StyledByLuciraCollection from "../home/StyledByLuciraCollection";
-import PdpInfoSheet from "@/components/product/PdpInfoSheet";
-import ShareIntentSheet from "@/components/product/ShareIntentSheet";
 import { useShareIntent } from "@/hooks/useShareIntent";
 import { useAtcLoginGate } from "@/hooks/useAtcLoginGate";
 import { loadNectorReviews } from "@/lib/nector";
@@ -111,15 +98,35 @@ import UnlockCoupon from "@/components/product/UnlockCoupon";
 import { OFFER_CATEGORY, getItemOfferCategory } from "@/lib/coupons";
 
 import { Sheet as MobileSheet } from "react-modal-sheet";
+import { standardizeKarat, getVariantSelection } from "@/lib/variantSelection";
+import { runWhenIdle } from "@/lib/idle";
 
 import { Lobster, Yellowtail, Satisfy, ABeeZee } from "next/font/google";
-import ExploreRange from "../home/ExploreRange";
+
+// Below-the-fold sections and closed-by-default sheets are code-split so the
+// above-the-fold PDP chunk stays small. They still server-render (next/dynamic
+// default), so nothing leaves the HTML; only the JavaScript loads on demand.
+const SectionFallback = () => <div className="h-20 bg-gray-100 animate-pulse" />;
+const CustomerReviews = dynamic(() => import("@/components/product/CustomerReviews"), { loading: SectionFallback });
+const FAQSection = dynamic(() => import("@/components/product/FAQSection"), { loading: SectionFallback });
+const DiamondComparison = dynamic(() => import("@/components/product/DiamondComparison"), { loading: SectionFallback });
+const FindLuciraStore = dynamic(() => import("@/components/product/FindLuciraStore").then((m) => m.FindLuciraStore), { loading: SectionFallback });
+const JoinLuciraCommunity = dynamic(() => import("@/components/product/JoinLuciraCommunity").then((m) => m.JoinLuciraCommunity), { loading: SectionFallback });
+const OurProcess = dynamic(() => import("@/components/product/OurProcess"), { loading: SectionFallback });
+const CategorySlider = dynamic(() => import("@/components/product/CategorySlider"), { loading: SectionFallback });
+const ExploreRange = dynamic(() => import("../home/ExploreRange"), { loading: SectionFallback });
+const StyledByLucira = dynamic(() => import("../home/StyledByLucira"), { loading: SectionFallback });
+const StyledByLuciraCollection = dynamic(() => import("../home/StyledByLuciraCollection"), { loading: SectionFallback });
+// Sheets render nothing until opened, so no placeholder.
+const PdpInfoSheet = dynamic(() => import("@/components/product/PdpInfoSheet"), { loading: () => null });
+const ShareIntentSheet = dynamic(() => import("@/components/product/ShareIntentSheet"), { loading: () => null });
 
 const lobster = Lobster({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-lobster",
   display: "swap",
+  preload: false,
 });
 
 const yellowtail = Yellowtail({
@@ -127,6 +134,7 @@ const yellowtail = Yellowtail({
   weight: ["400"],
   variable: "--font-yellowtail",
   display: "swap",
+  preload: false,
 });
 
 const satisfy = Satisfy({
@@ -134,6 +142,7 @@ const satisfy = Satisfy({
   weight: ["400"],
   variable: "--font-satisfy",
   display: "swap",
+  preload: false,
 });
 
 const abeezee = ABeeZee({
@@ -141,6 +150,7 @@ const abeezee = ABeeZee({
   weight: ["400"],
   variable: "--font-abeezee",
   display: "swap",
+  preload: false,
 });
 
 const USER_PINCODE_COOKIE = "user_pincode";
@@ -307,46 +317,6 @@ const getColorSpecificImage = (product, colorName) => {
   });
 };
 
-const standardizeKarat = (purity) => {
-  if (!purity) return "14KT";
-  const mp = String(purity).replace(/\s+/g, "").toLowerCase();
-  if (mp === "pt950" || mp === "plt" || mp === "platinum") return "PLT";
-  const km = mp.match(/^(\d+)(k|kt|ct)$/);
-  if (km) return `${km[1]}KT`;
-  return purity;
-};
-
-const getVariantSelection = (variant) => {
-  if (variant?.metafields?.metal_purity && variant?.metafields?.metal_color) {
-    return {
-      karat: standardizeKarat(variant.metafields.metal_purity),
-      color: variant.metafields.metal_color,
-    };
-  }
-
-  const fallback = {
-    karat: standardizeKarat(variant?.metafields?.metal_purity),
-    color: "Yellow Gold",
-  };
-
-  if (!variant?.color) {
-    return fallback;
-  }
-
-  const parts = String(variant.color).trim().split(" ");
-  if (parts.length < 2) {
-    return {
-      karat: fallback.karat,
-      color: variant.color || fallback.color,
-    };
-  }
-
-  return {
-    karat: standardizeKarat(parts[0]) || fallback.karat,
-    color: parts.slice(1).join(" ") || fallback.color,
-  };
-};
-
 const parseOrnaverseComponent = (val) => {
   if (!val) return null;
   try {
@@ -466,12 +436,16 @@ export default function ProductPageClient({
   });
 
   const [matchedCollectionTag, setMatchedCollectionTag] = useState(null);
+  // Full dashboard list, passed to StyledByLuciraCollection so it doesn't
+  // request the same endpoint a second time with ?collection=.
+  const [styledCollectionVideos, setStyledCollectionVideos] = useState(null);
 
   useEffect(() => {
     const checkStyledCollections = async () => {
       try {
         const data = await apiFetch('/api/styled-videos-collection');
         if (data.success && data.videos) {
+          setStyledCollectionVideos(data.videos);
           // Get unique collection handles (Product Tags) from the dashboard
           const dashboardTags = [...new Set(data.videos.map(v => v.collectionHandle).filter(Boolean))];
           // Find if any of these tags are present in the current product's tags
@@ -577,8 +551,12 @@ export default function ProductPageClient({
       `;
 
       try {
-        // Try productRecommendations first
-        const result = await shopifyStorefrontFetch(RECOMMENDATIONS_QUERY, { id: gid });
+        // Both queries are always needed (the metafield one also feeds
+        // "From the Same Collection"), so run them in parallel.
+        const [result, metaResult] = await Promise.all([
+          shopifyStorefrontFetch(RECOMMENDATIONS_QUERY, { id: gid }),
+          shopifyStorefrontFetch(METAFIELD_QUERY, { id: gid }),
+        ]);
         let rawProducts = result?.productRecommendations || [];
         console.log("[fetchComplementary] Recommendations result:", rawProducts.length);
 
@@ -635,8 +613,7 @@ export default function ProductPageClient({
           setComplementaryProducts(uniqueMapped);
         }
 
-        // Always fetch metafields to check for matching_product even if recommendations had results
-        const metaResult = await shopifyStorefrontFetch(METAFIELD_QUERY, { id: gid });
+        // Always read metafields to check for matching_product even if recommendations had results
         const metafields = metaResult?.product?.metafields || [];
 
         console.log("[fetchComplementary] Metafields found:", metafields.length);
@@ -814,17 +791,23 @@ export default function ProductPageClient({
         sessionId = "sess_" + Math.random().toString(36).substr(2, 9) + Date.now();
         localStorage.setItem("cart_session_id", sessionId);
       }
-      apiFetch('/api/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: "product_view",
-          page: window.location.href,
-          sessionId: sessionId,
-          productId: product.title,
-          variantId: activeVariant.id,
-        })
-      }).catch(e => console.error("Product view tracking failed:", e));
+      const page = window.location.href;
+      const variantId = activeVariant.id;
+      // Beacon only: runs once the main thread is idle so it never competes
+      // with first paint. Same payload and endpoint as before.
+      runWhenIdle(() => {
+        apiFetch('/api/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: "product_view",
+            page,
+            sessionId: sessionId,
+            productId: product.title,
+            variantId,
+          })
+        }).catch(e => console.error("Product view tracking failed:", e));
+      });
     }
   }, [product?.title, activeVariant?.id]);
   // Live Shopify price for SKUs with no dynamic gold/diamond config, fetched as a
@@ -1438,18 +1421,23 @@ export default function ProductPageClient({
   useEffect(() => {
     if (!product) return;
 
-    // Track product view for Search Analytics
-    trackSearchProductView(String(getNumericId(product.shopifyId || product.id)));
+    const numericProductId = String(getNumericId(product.shopifyId || product.id));
+    // Both beacons run once the main thread is idle (see lib/idle.js); the
+    // Redux dispatch below stays synchronous.
+    runWhenIdle(() => {
+      // Track product view for Search Analytics
+      trackSearchProductView(numericProductId);
 
-    // First-party view beacon for the recommendation engine (all traffic,
-    // anonymous included — the search-analytics call above only fires within
-    // 30 min of an on-site search, and Shopify analytics never sees this
-    // headless storefront). Fire-and-forget; failures are silent.
-    apiFetch("/api/products/track-view", {
-      method: "POST",
-      body: JSON.stringify({ productId: String(getNumericId(product.shopifyId || product.id)) }),
-      suppressErrorLog: true
-    }).catch(() => {});
+      // First-party view beacon for the recommendation engine (all traffic,
+      // anonymous included — the search-analytics call above only fires within
+      // 30 min of an on-site search, and Shopify analytics never sees this
+      // headless storefront). Fire-and-forget; failures are silent.
+      apiFetch("/api/products/track-view", {
+        method: "POST",
+        body: JSON.stringify({ productId: numericProductId }),
+        suppressErrorLog: true
+      }).catch(() => {});
+    });
 
     dispatch(
       addRecentlyViewed({
@@ -1618,12 +1606,6 @@ export default function ProductPageClient({
 
       //gtm            
       // Helper to extract numeric ID from Shopify GID
-      const getNumericId = (gid) => {
-        if (!gid) return 0;
-        if (typeof gid === 'number') return gid;
-        const match = String(gid).match(/\d+$/);
-        return match ? Number(match[0]) : 0;
-      };
 
       const productImageUrl = getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.images?.[0]);
       const currentUrl = typeof window !== 'undefined' ? window.location.origin + `/products/${product.handle}` : "";
@@ -2024,12 +2006,6 @@ export default function ProductPageClient({
       previousVariantId.current = currentVariantId;
       hasFiredProductView.current = true;
 
-      const getNumericId = (gid) => {
-        if (!gid) return 0;
-        if (typeof gid === 'number') return gid;
-        const match = String(gid).match(/\d+$/);
-        return match ? Number(match[0]) : 0;
-      };
 
       const productImageUrl = getValidSrc(activeVariant?.image || getColorSpecificImage(product, activeColor) || product.images?.[0]);
       const currentUrl = typeof window !== 'undefined' ? window.location.origin + `/products/${product.handle}` : "";
@@ -2054,7 +2030,8 @@ export default function ProductPageClient({
       };
 
       pushProductView(productViewData);
-      sendProductViewWebhook(user, productViewData);
+      // CRM webhook is a beacon; GTM push above stays synchronous.
+      runWhenIdle(() => sendProductViewWebhook(user, productViewData));
     }
   }, [activeVariant, product, user]);
 
@@ -4113,7 +4090,7 @@ export default function ProductPageClient({
       </div>
 
       {matchedCollectionTag ? (
-        <StyledByLuciraCollection collectionHandle={matchedCollectionTag} />
+        <StyledByLuciraCollection collectionHandle={matchedCollectionTag} videos={styledCollectionVideos} />
       ) : (
         <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
           <StyledByLucira />

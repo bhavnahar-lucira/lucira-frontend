@@ -6,7 +6,9 @@ import shopifyLoader from "@/utils/shopifyLoader";
 
 const LazyImage = ({ src, alt, className, fill, width, height, priority, sizes, ...props }) => {
   const [loaded, setLoaded] = useState(false);
-  const [isInView, setIsInView] = useState(false);
+  // Priority images (the PDP hero) render on the very first pass so the browser
+  // can start the download before any effect runs.
+  const [isInView, setIsInView] = useState(!!priority);
   const containerRef = useRef(null);
 
   const isShopify = String(src).includes("cdn.shopify.com") || String(src).includes("myshopify.com");
