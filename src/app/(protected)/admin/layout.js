@@ -49,7 +49,7 @@ import {
 import { Menu } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
-import { getMenu } from "@/lib/menus";
+import { getHeaderMenu } from "@/lib/menus";
 
 function SidebarNav({ pathname, handleSignOut, setSheetOpen }) {
   return (
@@ -110,7 +110,7 @@ export default function CustomerDashboardLayout({ children }) {
   useEffect(() => {
     async function fetchInitialData() {
       // Fetch Menu
-      const menu = await getMenu("main-menu-official");
+      const menu = await getHeaderMenu("main-menu-official");
       setMenuData(menu);
 
       // Fetch Avatar

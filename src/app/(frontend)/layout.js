@@ -5,10 +5,10 @@ import PopularSearches from "@/components/common/PopularSearches";
 import VisitorTracking from "@/components/common/VisitorTracking";
 import HomeInformationContent from "@/components/common/HomeInformationContent";
 import FloatingActionButton from "@/components/common/FloatingActionButton";
-import { getMenu } from "@/lib/menus";
+import { getHeaderMenu } from "@/lib/menus";
 
 export default async function FrontendLayout({ children }) {
-  const menuData = await getMenu("main-menu-official");
+  const menuData = await getHeaderMenu("main-menu-official");
 
   return (
     <>

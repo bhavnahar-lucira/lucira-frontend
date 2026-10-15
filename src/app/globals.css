@@ -44,7 +44,7 @@
 
 @font-face {
   font-family: 'Figtree';
-  src: url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Figtree-VariableFont_wght.ttf?v=1779362620') format('truetype');
+  src: url('/fonts/figtree-wght.woff2') format('woff2');
   font-weight: 300 900;
   font-style: normal;
   font-display: swap;
@@ -52,7 +52,7 @@
 
 @font-face {
   font-family: 'Figtree';
-  src: url('https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Figtree-Italic-VariableFont_wght.ttf?v=1779362621') format('truetype');
+  src: url('/fonts/figtree-italic-wght.woff2') format('woff2');
   font-weight: 300 900;
   font-style: italic;
   font-display: swap;
