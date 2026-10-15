@@ -341,6 +341,7 @@ export default function FeaturedOfferBanner({
               }
               openLogin({
                 useCheckoutAuth: true,
+                rewardSource: "cart_login",
                 overrideHeading: headingText,
                 overrideSubtext: "",
                 overrideButtonText: "CONTINUE",

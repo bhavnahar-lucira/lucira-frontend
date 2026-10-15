@@ -1144,6 +1144,7 @@ export default function CartSummary({ onPlaceOrder, breakdownRef = null }) {
                 setIsCouponDrawerOpen(false);
                 openLogin({
                   useCheckoutAuth: true,
+                  rewardSource: "cart_login",
                   overrideHeading: drawerHeadingText,
                   overrideSubtext: "",
                   overrideButtonText: "CONTINUE",
