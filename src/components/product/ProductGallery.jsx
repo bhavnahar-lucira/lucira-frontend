@@ -466,7 +466,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                         productTitle={product?.title}
                         isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                         id="tryonbutton-desktop"
-                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30 h-[42px]"
+                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation z-30"
                       />
                     )}
                   </div>
@@ -490,7 +490,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     });
                     onViewSimilar();
                   }}
-                  className={`absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]${peekSimilar ? " is-open" : ""}`}
+                  className={`absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation${peekSimilar ? " is-open" : ""}`}
                 >
                   <span className="btn-icon">
                     <svg viewBox="5 5.55 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -606,7 +606,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                    productTitle={product?.title}
                    isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                    id="tryonbutton-mobile"
-                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30 h-[42px]"
+                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation z-30"
                  />
                )}
              </div>
@@ -622,7 +622,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   });
                   onViewSimilar();
                 }}
-                className={`bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]${peekSimilar ? " is-open" : ""}`}
+                className={`bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation${peekSimilar ? " is-open" : ""}`}
               >
                 <span className="btn-icon pointer-events-none">
                   <svg viewBox="5 5.55 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
