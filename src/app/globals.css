@@ -1038,7 +1038,7 @@
      with rem the same label renders wider on a phone than on a laptop, which is
      exactly backwards for the space available. */
   .btn-peek-animation .btn-text {
-    @apply overflow-hidden whitespace-nowrap font-bold uppercase;
+    @apply overflow-hidden whitespace-nowrap font-semibold uppercase;
 
     font-size: 11px;
     line-height: 1;
