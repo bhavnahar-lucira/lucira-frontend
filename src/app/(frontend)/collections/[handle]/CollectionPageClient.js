@@ -83,6 +83,18 @@ const FALLBACK_TOP_OVERRIDES = [
   { handles: ["bestsellers"], layout: "strip", alt: "Bestsellers Offer",
     desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg",
     mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg" },
+  { handles: ["50-making-discount"], layout: "strip", alt: "50% Making Discount - Pendants",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pendant-plp.jpg?v=1792042103",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pendant-plp.jpg?v=1792042103" },
+  { handles: ["50-making-discount"], layout: "strip", alt: "50% Making Discount",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond_ring_PLP.jpg?v=1792042102",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/diamond_ring_PLP.jpg?v=1792042102" },
+  { handles: ["100-making-discount"], layout: "strip", alt: "100% Making Discount",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/studs_plp.jpg?v=1792042102",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/studs_plp.jpg?v=1792042102" },
+  { handles: ["20-making-discount"], layout: "strip", alt: "20% Making Discount",
+    desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/gold_ring_plp.jpg?v=1792042102",
+    mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/gold_ring_plp.jpg?v=1792042102" },
 ];
 
 // `mobileSrc` is the key the dashboard's MOBILE BANNER IMAGE field writes and

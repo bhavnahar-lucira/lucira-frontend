@@ -54,6 +54,11 @@ const CATEGORY_IMAGES = {
 
 const MENU_SLIDER_BANNERS = [
   {
+    href: "/offers",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/offer_-_mobile_-_828px_x_463px_jpg.jpg?v=1792047502",
+    alt: "Exclusive Offers"
+  },
+  {
     href: "/collections/bestsellers",
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Best_Seller_V3.jpg_1.jpg?v=1776596789",
     alt: "Best Sellers"
