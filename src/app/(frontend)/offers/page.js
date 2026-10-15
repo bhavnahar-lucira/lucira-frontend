@@ -1,13 +1,6 @@
-import OffersPage from '@/components/pages/offers/OffersPage';
-
-export const metadata = {
-  title: 'Offers & Promotions | Lucira Jewelry',
-  description: 'Explore exclusive jewellery offers, diamond discounts, and making charge waivers at Lucira Jewelry.',
-  alternates: {
-    canonical: '/offers',
-  },
-};
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  return <OffersPage />;
+  redirect('/pages/offers');
 }
+
