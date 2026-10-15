@@ -10,8 +10,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { clearCart, removeFromCart } from "@/redux/features/cart/cartSlice";
 import { restoreGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
-import { useMenu } from "@/hooks/useMenu";
-import { MEGA_MENU as STATIC_MENU } from "@/data/megaMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@/lib/gtm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -360,7 +358,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { transformMenuData, withChunkyRings } from "@/lib/menus";
+import { withChunkyRings } from "@/lib/menuTransform";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -481,7 +479,8 @@ export default function MobileHeader({ menuData }) {
   const MEGA_MENU = useMemo(() => {
     // Bestsellers is dropped from the mobile grid; New Arrivals / Bracelets /
     // Necklaces are not in the CMS menu yet, so they're appended here.
-    const menu = transformMenuData(menuData || [])
+    // menuData arrives already transformed by getHeaderMenu() on the server.
+    const menu = (Array.isArray(menuData) ? menuData : [])
       .filter(
         (item) => !((item.label || item.title || "").toLowerCase().includes("bestseller"))
       )
@@ -489,7 +488,7 @@ export default function MobileHeader({ menuData }) {
         const label = (item.label || item.title || "").toLowerCase();
         // Force the mobile-grid icon for Lucira Express (overrides CMS icon
         // and the hardcoded fallback in renderMainMenu)
-        if (label.includes("lucira express")) {
+        if (label.includes("lucira express") || label.includes("fast shipping")) {
           return { ...item, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" };
         }
         // "View All" row at the top of these sub-drawers (exact match so
@@ -543,7 +542,7 @@ export default function MobileHeader({ menuData }) {
     const getOrderIndex = (label) => {
       const l = (label || "").toLowerCase().trim();
       if (l.includes("new arrival")) return 1;
-      if (l.includes("express")) return 2;
+      if (l.includes("express") || l.includes("fast shipping")) return 2;
       if (l.includes("engagement")) return 3;
       if (l.includes("solitaire")) return 4;
       if (l.includes("9kt")) return 12;
@@ -1397,7 +1396,7 @@ export default function MobileHeader({ menuData }) {
           {MEGA_MENU.map((item, index) => {
             const label = item.label || item.title;
             const is9kt = label.toLowerCase().includes('9kt');
-            const isLuciraExpress = label.toLowerCase().includes('lucira express');
+            const isLuciraExpress = label.toLowerCase().includes('lucira express') || label.toLowerCase().includes('fast shipping');
             const icon = item.menuIcon ||
               (label.toUpperCase() === "GIFTING" ? CATEGORY_IMAGES["GIFTING"] :
                 (isLuciraExpress ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" : null));
