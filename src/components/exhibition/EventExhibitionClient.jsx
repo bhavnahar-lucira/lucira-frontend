@@ -75,13 +75,11 @@ export default function EventExhibitionClient() {
   const otpInputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const timerRef = useRef(null);
 
-  // 1. Splash Screen Auto-Open Animation (mobile auto-opens, desktop can click CTA or auto-advance)
+  // 1. Splash Screen 2-Second Auto-Open Animation
   useEffect(() => {
     const splashTimer = setTimeout(() => {
-      if (typeof window !== "undefined" && window.innerWidth < 640) {
-        setStep((currentStep) => (currentStep === 1 ? 2 : currentStep));
-      }
-    }, 2200);
+      setStep((currentStep) => (currentStep === 1 ? 2 : currentStep));
+    }, 2000);
     return () => clearTimeout(splashTimer);
   }, []);
 
@@ -371,8 +369,8 @@ export default function EventExhibitionClient() {
   ];
 
   return (
-    <div className="min-h-screen w-full relative flex flex-col items-center justify-between font-figtree selection:bg-[#543E3B] selection:text-white overflow-hidden sm:overflow-x-hidden sm:overflow-y-auto bg-[#FAF6F4] transition-colors duration-500">
-      {/* ─── FULL-BLEED BACKGROUND (Edge-to-edge across entire desktop & mobile) ─── */}
+    <div className="h-screen sm:h-auto sm:min-h-screen w-full relative flex flex-col items-center justify-between font-figtree selection:bg-[#543E3B] selection:text-white overflow-hidden sm:overflow-x-hidden sm:overflow-y-auto bg-[#FAF6F4]">
+      {/* ─── FULL-BLEED BACKGROUND (Edge-to-edge across entire desktop & mobile, NO BLACK BARS) ─── */}
       {step !== 4 ? (
         <div className="absolute inset-0 z-0 pointer-events-none">
           <Image
@@ -383,14 +381,12 @@ export default function EventExhibitionClient() {
             sizes="100vw"
             priority
             className={`object-cover object-center transition-all duration-700 ${
-              step >= 2 ? "scale-105 brightness-[0.38] blur-[1px]" : "scale-100 brightness-[0.88]"
+              step >= 2 ? "scale-105 brightness-[0.38] blur-[1px]" : "scale-100 brightness-100"
             }`}
           />
-          {/* Contrast Gradient Overlay (like store-giveaway desktop banner) */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/75" />
-          {/* Dimming overlay when drawer / modal is active (step >= 2) */}
+          {/* Dimming overlay ONLY when drawer is open (step >= 2), ZERO overlay on Splash Screen */}
           {step >= 2 && (
-            <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] transition-opacity duration-500" />
+            <div className="absolute inset-0 bg-black/55 transition-opacity duration-500" />
           )}
         </div>
       ) : (
@@ -401,8 +397,11 @@ export default function EventExhibitionClient() {
         </div>
       )}
 
-      {/* ─── TOP SECTION: LOGO & STEP PROGRESS (Elevated from store-giveaway) ─── */}
-      <div className="w-full max-w-lg flex flex-col items-center gap-3.5 sm:gap-5 pt-6 sm:pt-8 pb-2 px-6 z-20">
+      {/* ─── DESKTOP & MOBILE CONTENT CONTAINER: ONE SCREEN, NO BLACK, PERFECT 500px WIDTH ─── */}
+      <div className="relative w-full max-w-[500px] h-full sm:h-auto sm:min-h-full flex flex-col justify-between z-10 overflow-hidden sm:overflow-x-hidden sm:overflow-y-visible mx-auto">
+
+      {/* ─── HEADER / LOGO (All Steps as in Figma) ─── */}
+      <header className="w-full pt-8 pb-3 px-6 flex justify-center items-center z-20">
         <Link href="/" className="inline-block transition-transform hover:scale-105 duration-300">
           <Image
             src={step === 4 ? "/images/logo.svg" : WHITE_LOGO_URL}
@@ -411,109 +410,17 @@ export default function EventExhibitionClient() {
             height={42}
             priority
             unoptimized={step !== 4}
-            className={`w-[120px] sm:w-[138px] h-auto ${step !== 4 ? "drop-shadow-md" : ""}`}
+            className={`w-[120px] sm:w-[135px] h-auto ${step !== 4 ? "drop-shadow-sm" : ""}`}
           />
         </Link>
-
-        {/* Progress Stepper Indicator */}
-        <div className="flex items-center gap-0 w-full max-w-[210px] sm:max-w-[240px] justify-center mt-1">
-          {/* Dot 1 */}
-          <div className="relative flex items-center justify-center">
-            <div
-              className={`w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full transition-all duration-300 ${
-                step >= 1
-                  ? step === 4
-                    ? "bg-[#543E3B]"
-                    : "bg-white ring-4 sm:ring-6 ring-white/20"
-                  : step === 4
-                  ? "border border-[#543E3B]/40 bg-transparent"
-                  : "border border-white/40 bg-transparent"
-              }`}
-            />
-          </div>
-          {/* Connector 1-2 */}
-          <div
-            className={`h-[1px] w-8 sm:w-11 transition-all duration-300 ${
-              step > 1
-                ? step === 4
-                  ? "bg-[#543E3B]"
-                  : "bg-white"
-                : step === 4
-                ? "bg-[#543E3B]/20"
-                : "bg-white/30"
-            }`}
-          />
-          {/* Dot 2 */}
-          <div className="relative flex items-center justify-center">
-            <div
-              className={`w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full transition-all duration-300 ${
-                step >= 2
-                  ? step === 4
-                    ? "bg-[#543E3B]"
-                    : "bg-white ring-4 sm:ring-6 ring-white/20"
-                  : step === 4
-                  ? "border border-[#543E3B]/40 bg-transparent"
-                  : "border border-white/40 bg-transparent"
-              }`}
-            />
-          </div>
-          {/* Connector 2-3 */}
-          <div
-            className={`h-[1px] w-8 sm:w-11 transition-all duration-300 ${
-              step > 2
-                ? step === 4
-                  ? "bg-[#543E3B]"
-                  : "bg-white"
-                : step === 4
-                ? "bg-[#543E3B]/20"
-                : "bg-white/30"
-            }`}
-          />
-          {/* Dot 3 */}
-          <div className="relative flex items-center justify-center">
-            <div
-              className={`w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full transition-all duration-300 ${
-                step >= 3
-                  ? step === 4
-                    ? "bg-[#543E3B]"
-                    : "bg-white ring-4 sm:ring-6 ring-white/20"
-                  : step === 4
-                  ? "border border-[#543E3B]/40 bg-transparent"
-                  : "border border-white/40 bg-transparent"
-              }`}
-            />
-          </div>
-          {/* Connector 3-4 */}
-          <div
-            className={`h-[1px] w-8 sm:w-11 transition-all duration-300 ${
-              step > 3
-                ? "bg-[#543E3B]"
-                : step === 4
-                ? "bg-[#543E3B]/20"
-                : "bg-white/30"
-            }`}
-          />
-          {/* Dot 4 */}
-          <div className="relative flex items-center justify-center">
-            <div
-              className={`w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full transition-all duration-300 ${
-                step >= 4
-                  ? "bg-[#543E3B] ring-4 sm:ring-6 ring-[#543E3B]/20"
-                  : step === 4
-                  ? "border border-[#543E3B]/40 bg-transparent"
-                  : "border border-white/40 bg-transparent"
-              }`}
-            />
-          </div>
-        </div>
-      </div>
+      </header>
 
       {/* ─── MAIN CONTENT CONTAINER: DRAWER ON MOBILE, CENTERED POPUP ON DESKTOP ─── */}
-      <main className={`w-full flex-1 flex flex-col items-center ${step === 4 ? "justify-center" : "justify-end sm:justify-center"} p-0 sm:p-6 z-20 overflow-hidden sm:overflow-x-hidden sm:overflow-y-visible`}>
+      <main className={`w-full flex-1 flex flex-col items-center ${step === 4 ? "justify-center" : "justify-end sm:justify-center"} p-0 sm:p-4 z-20 overflow-hidden sm:overflow-x-hidden sm:overflow-y-visible`}>
         <AnimatePresence mode="wait">
 
           {/* ══════════════════════════════════════════════════════════════════
-              FRAME 1: SPLASH SCREEN (Hero Layout with Desktop CTA like store-giveaway)
+              FRAME 1: SPLASH SCREEN (Store Photo with Exact Text)
              ══════════════════════════════════════════════════════════════════ */}
           {step === 1 && (
             <motion.div
@@ -522,49 +429,29 @@ export default function EventExhibitionClient() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              className="text-center px-4 flex flex-col items-center cursor-pointer select-none mb-6 sm:mb-12 my-auto"
+              className="text-center px-4 flex flex-col items-center cursor-pointer select-none mb-4 sm:mb-16"
               onClick={() => setStep(2)}
-              title="Click to register"
+              title="Click or wait to register"
             >
-              <div className="inline-block px-3.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-white bg-white/15 backdrop-blur-md border border-white/20 mb-3 sm:mb-4">
-                Event Exhibition Exclusive
-              </div>
               <h1
-                className="text-white font-abhaya font-extrabold text-[28px] sm:text-[38px] leading-tight tracking-tight drop-shadow-md max-w-lg mb-2 sm:mb-3"
+                className="text-[#1A1A1A] font-abhaya font-bold tracking-wide"
+                style={{
+                  fontFamily: "Abhaya Libre, serif",
+                  fontWeight: 700,
+                  fontSize: "24px",
+                  lineHeight: 1.3,
+                  letterSpacing: "0%",
+                  textAlign: "center",
+                  verticalAlign: "middle",
+                  maxWidth: "300px",
+                  marginBottom: "12px",
+                }}
               >
                 Register Now &amp; Get 1000 Lucira Points
               </h1>
-              <p className="text-white/85 text-xs sm:text-[15px] font-figtree max-w-md mx-auto mb-6 sm:mb-8 leading-relaxed">
-                Join the Lucira Family Today. Register to receive 1000 Lucira / Nector Points instantly credited to your account.
+              <p className="text-[#333333] text-xs sm:text-[13px] font-figtree mt-0.5">
+                Join the Lucira Family Today
               </p>
-
-              {/* Action Button like store-giveaway */}
-              <div className="w-full max-w-[340px] flex flex-col items-center gap-3">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setStep(2);
-                  }}
-                  className="w-full bg-[#543E3B] hover:bg-[#43302E] text-white py-3.5 sm:py-4 px-6 font-figtree font-bold uppercase text-[13px] sm:text-[14px] tracking-wider rounded-lg shadow-xl shadow-black/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>CLAIM 1000 POINTS</span>
-                  <ArrowRight size={16} />
-                </button>
-                <p className="text-white/80 text-[11px] sm:text-[12px] font-figtree">
-                  By registering you accept our{" "}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsTermsOpen(true);
-                    }}
-                    className="underline underline-offset-4 hover:text-white transition-colors cursor-pointer"
-                  >
-                    Terms &amp; Conditions
-                  </button>
-                </p>
-              </div>
             </motion.div>
           )}
 
@@ -578,7 +465,7 @@ export default function EventExhibitionClient() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full sm:max-w-[480px] flex flex-col items-center sm:my-auto"
+              className="w-full sm:max-w-[460px] flex flex-col items-center sm:my-auto"
             >
               {/* Dimmed Text above Drawer / Popup */}
               <div
@@ -784,11 +671,11 @@ export default function EventExhibitionClient() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full sm:max-w-[480px] flex flex-col items-center sm:my-auto z-20"
+              className="w-full flex flex-col items-center"
             >
               {/* Dimmed Text above Drawer */}
               <div
-                className="text-center mb-[30px] mt-2 sm:mb-5 sm:mt-0 px-4 flex flex-col items-center"
+                className="text-center mb-[30px] mt-2 sm:mb-[15%] sm:mt-[30px] px-4 flex flex-col items-center"
               >
                 <p
                   className="text-white text-[15px] sm:text-[17px] font-abhaya font-bold tracking-wide drop-shadow-sm"
@@ -801,7 +688,7 @@ export default function EventExhibitionClient() {
                     textAlign: "center",
                     verticalAlign: "middle",
                     maxWidth: "300px",
-                    marginBottom: "8px",
+                    marginBottom: "12px",
                   }}
                 >
                   Register Now &amp; Get 1000 Lucira Points
@@ -811,8 +698,8 @@ export default function EventExhibitionClient() {
                 </p>
               </div>
 
-              {/* White Bottom Sheet Container / Desktop Card */}
-              <div className="w-full bg-white rounded-t-[32px] sm:rounded-[24px] px-6 pt-7 pb-8 sm:p-8 sm:px-9 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] sm:shadow-[0_25px_80px_rgba(0,0,0,0.55)] border border-white/20 sm:border-zinc-200/80">
+              {/* White Bottom Sheet Container */}
+              <div className="w-full bg-white rounded-t-[32px] sm:rounded-[24px] px-6 pt-7 pb-8 sm:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] border border-white/20">
                 
                 {/* Phone Header with Edit Pencil Icon */}
                 <div className="flex items-center justify-between mb-1">
@@ -907,10 +794,10 @@ export default function EventExhibitionClient() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="w-full max-w-md sm:max-w-lg flex flex-col items-center text-center my-auto py-8 sm:py-12 px-6"
+              className="w-full max-w-md flex flex-col items-center text-center my-auto py-8 px-6"
             >
               {/* 3D Gold Coin */}
-              <div className="relative mb-6 sm:mb-8 flex items-center justify-center">
+              <div className="relative mb-8 flex items-center justify-center">
                 <div className="absolute w-56 h-56 rounded-full bg-gradient-to-tr from-[#F8D778]/40 via-[#F3C54E]/20 to-transparent blur-3xl animate-pulse -z-10" />
                 <motion.div
                   animate={{ y: [0, -8, 0] }}
@@ -929,50 +816,32 @@ export default function EventExhibitionClient() {
               </div>
 
               {/* Headline & Subtext */}
-              <div className="space-y-2 mb-6">
+              <div className="space-y-2.5 mb-8">
                 {alreadyClaimed ? (
                   <>
-                    <h2 className="text-[26px] sm:text-[32px] font-abhaya font-extrabold text-zinc-900 leading-tight">
+                    <h2 className="text-[26px] sm:text-[30px] font-abhaya font-extrabold text-zinc-900 leading-tight">
                       Already Claimed!
                     </h2>
-                    <p className="text-[14px] sm:text-[15px] text-zinc-600 font-figtree max-w-xs sm:max-w-sm mx-auto leading-relaxed">
+                    <p className="text-[14px] sm:text-[15px] text-zinc-600 font-figtree max-w-xs mx-auto leading-relaxed">
                       You have already claimed your 1000 Lucira Points.
                     </p>
                   </>
                 ) : (
                   <>
-                    <h2 className="text-[26px] sm:text-[32px] font-abhaya font-extrabold text-zinc-900 leading-tight">
+                    <h2 className="text-[26px] sm:text-[30px] font-abhaya font-extrabold text-zinc-900 leading-tight">
                       Registration Successful!
                     </h2>
-                    <p className="text-[14px] sm:text-[15px] text-zinc-600 font-figtree max-w-xs sm:max-w-sm mx-auto leading-relaxed">
+                    <p className="text-[14px] sm:text-[15px] text-zinc-600 font-figtree max-w-xs mx-auto leading-relaxed">
                       Your 1000 Lucira Points have been credited.
                     </p>
                   </>
                 )}
               </div>
 
-              {/* Reward Summary Card */}
-              <div className="w-full max-w-sm bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 shadow-sm space-y-2.5 mb-8 text-left">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm text-zinc-500 font-figtree">Reward Points Credited</span>
-                  <span className="font-bold font-figtree text-base sm:text-lg text-[#543E3B] flex items-center gap-1.5">
-                    <Sparkles size={16} className="text-[#D4AF37]" />
-                    1,000 Points
-                  </span>
-                </div>
-                <div className="h-[1px] bg-zinc-100" />
-                <div className="flex items-center justify-between text-xs text-zinc-500 font-figtree">
-                  <span>Redeemable across India</span>
-                  <span className="font-medium text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 size={13} /> Active &amp; Ready
-                  </span>
-                </div>
-              </div>
-
               {/* EXPLORE OUR JEWELRY Button */}
               <Link
                 href="/collections/all"
-                className="w-full max-w-sm h-[50px] sm:h-[52px] rounded-lg bg-[#543E3B] hover:bg-[#43302E] text-white font-figtree font-bold uppercase tracking-wider text-[14px] sm:text-[15px] flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-[0.99]"
+                className="w-full h-[50px] rounded-[8px] bg-[#543E3B] hover:bg-[#43302E] text-white font-figtree font-bold uppercase tracking-wider text-[14px] flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-[0.99]"
               >
                 <span>EXPLORE OUR JEWELRY</span>
               </Link>
@@ -1018,6 +887,7 @@ export default function EventExhibitionClient() {
         }
       `}} />
 
+      </div>
     </div>
   );
 }
