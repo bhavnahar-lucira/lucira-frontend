@@ -213,35 +213,83 @@ function getFileUrl(metafield) {
     return null;
 }
 
-// Chunky Rings isn't in the Shopify menu yet, so it's appended to the RINGS
-// "Shop by Style" column at render time. Shared by the desktop mega menu
-// (Navbar) and the mobile drawer (MobileHeader) so the two can't drift apart
-// or end up with different icons.
+// Rings menu extras that aren't in the Shopify menu (yet). They're appended
+// at render time and shared by the desktop mega menu (Navbar) and the mobile
+// drawer (MobileHeader) so the two can't drift apart or get different icons.
+//
+// Shop by Style: Chunky Rings (older) plus the 15 Oct 2026 additions from the
+// marketing sheet. Both the desktop grid (3 columns via `gridCols`) and the
+// mobile icon grid (3 columns) flow row by row, so RINGS_STYLE_ORDER is the
+// row-major reading of the sheet's three columns and reproduces it on both:
+//   Engagement | Solitaire | Infinity Ring
+//   Eternity   | Stackable | Heart Ring
+//   Casual     | Gemstone  | Butterfly Ring
+//   Men's      | Gold      | Evil Eye Ring
+//   Chunky     | Vanki     | Promise Ring
 export const CHUNKY_RINGS_ITEM = {
   label: 'Chunky Rings',
   href: '/collections/chunky-rings',
   menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/chunky_rings.png?v=1787210554',
 };
 
-export function withChunkyRings(menus) {
-  return (menus || []).map((menu) => {
-    const label = (menu.label || menu.title || '').toLowerCase().trim();
-    if (label !== 'rings') return menu;
+export const RINGS_STYLE_EXTRA_ITEMS = [
+  CHUNKY_RINGS_ITEM,
+  { label: 'Infinity Ring', href: '/collections/infinity-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_ring_icon_6c3f75c7-7f62-4e52-b1fb-fc66c669e1c7.png?v=1792055707' },
+  { label: 'Heart Ring', href: '/collections/heart-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_ring_icon_b182dd76-7ff2-44d5-89ef-babd8bba9bf3.png?v=1792055707' },
+  { label: 'Butterfly Ring', href: '/collections/butterfly-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_ring_icon_dcbbb3a1-6bc4-46a8-8b09-0c4ff2db5586.png?v=1792055707' },
+  { label: 'Evil Eye Ring', href: '/collections/evil-eye-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_ring_icon_f35df599-7cef-4328-99fe-20f1e05dedfe.png?v=1792055706' },
+  // No Vanki icon was supplied, so this is the Classic Vanki Ring product shot.
+  { label: 'Vanki', href: '/collections/vanki-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00696YG_1_827510e7-4091-4feb-b52f-a14e9e1953fe.jpg?v=1785412233' },
+  { label: 'Promise Ring', href: '/collections/promise-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Promise_ring_icon_ff6651a8-3183-4875-b4b9-af964e2fa43b.png?v=1792055707' },
+];
 
-    let injected = false;
+export const RINGS_STYLE_ORDER = [
+  'engagement', 'solitaire', 'infinity ring',
+  'eternity', 'stackable', 'heart ring',
+  'casual', 'gemstone', 'butterfly ring',
+  "men's rings", 'gold rings', 'evil eye ring',
+  'chunky rings', 'vanki', 'promise ring',
+];
+
+// Shop by Material: Pearl has a real icon (`menuIcon`), which both headers
+// render in place of the CSS metal swatch.
+export const RINGS_MATERIAL_EXTRA_ITEMS = [
+  { label: 'Pearl', href: '/collections/pearl-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pearl_material_icon_11caf282-5b57-4376-9384-a4177ab53282.png?v=1792055816' },
+];
+
+const norm = (s) => (s || '').toLowerCase().trim();
+
+// Idempotent: the CMS may add an item for real later.
+function appendMissing(items, extras) {
+  const have = new Set((items || []).map((i) => norm(i.label)));
+  return [...(items || []), ...extras.filter((e) => !have.has(norm(e.label)))];
+}
+
+export function withRingsMenuExtras(menus) {
+  return (menus || []).map((menu) => {
+    if (norm(menu.label || menu.title) !== 'rings') return menu;
+
     const columns = (menu.columns || []).map((col) => {
-      if (injected) return col;
-      if (!(col.title || '').toLowerCase().includes('shop by style')) return col;
-      const items = col.items || [];
-      // Idempotent: the CMS may add the item for real later.
-      if (items.some((i) => (i.label || '').toLowerCase().trim() === 'chunky rings')) {
-        injected = true;
-        return col;
+      const title = norm(col.title);
+      if (title.includes('style')) {
+        const rank = (it) => {
+          const i = RINGS_STYLE_ORDER.indexOf(norm(it.label));
+          return i === -1 ? RINGS_STYLE_ORDER.length : i;
+        };
+        const items = appendMissing(col.items, RINGS_STYLE_EXTRA_ITEMS)
+          .map((it, i) => ({ it, i }))
+          .sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i)
+          .map(({ it }) => it);
+        return { ...col, items, gridCols: 3 };
       }
-      injected = true;
-      return { ...col, items: [...items, CHUNKY_RINGS_ITEM] };
+      if (title.includes('material') || title.includes('metal')) {
+        return { ...col, items: appendMissing(col.items, RINGS_MATERIAL_EXTRA_ITEMS) };
+      }
+      return col;
     });
 
-    return injected ? { ...menu, columns } : menu;
+    // The desktop mega menu drops the Trilogy Rings image card so the
+    // three-column Style grid has room; the mobile drawer never showed it.
+    return { ...menu, columns, cards: [] };
   });
 }

@@ -358,7 +358,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { withChunkyRings } from "@/lib/menuTransform";
+import { withRingsMenuExtras } from "@/lib/menuTransform";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -556,9 +556,9 @@ export default function MobileHeader({ menuData }) {
       return 99;
     };
 
-    // Same Chunky Rings entry the desktop mega menu appends, so the RINGS
-    // section matches across breakpoints.
-    return withChunkyRings(
+    // Same Rings extras (Chunky, the new style rings, Pearl) the desktop mega
+    // menu appends, so the RINGS section matches across breakpoints.
+    return withRingsMenuExtras(
       [...menu, ...extraItems].sort(
         (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
       )
@@ -1184,10 +1184,16 @@ export default function MobileHeader({ menuData }) {
                             onClick={() => setIsMenuOpen(false)}
                             className="flex flex-col items-center gap-2"
                           >
-                            <div
-                              className="w-12 h-12 rounded-full border border-gray-100"
-                              style={{ background: METAL_COLORS[item.label] || "#eee" }}
-                            />
+                            {item.menuIcon ? (
+                              <div className="w-12 h-12 rounded-full border border-gray-100 overflow-hidden">
+                                <SafeImage src={item.menuIcon} alt={item.label} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-12 h-12 rounded-full border border-gray-100"
+                                style={{ background: METAL_COLORS[item.label] || "#eee" }}
+                              />
+                            )}
                             <span className="text-[13px] font-figtree text-center font-normal leading-tight">{item.label}</span>
                           </Link>
                         );
