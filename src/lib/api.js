@@ -564,3 +564,32 @@ export const createSchemeRazorpayPlan = (amount, tenure) =>
     body: JSON.stringify({ amount, tenure }),
   });
 
+/* ================= EVENT EXHIBITION APIS ================= */
+
+export const checkExhibitionCustomerApi = (mobile) =>
+  apiFetch("/api/exhibition/check", {
+    method: "POST",
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
+  });
+
+export const sendExhibitionOtpApi = (mobile) =>
+  apiFetch("/api/exhibition/send-otp", {
+    method: "POST",
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
+  });
+
+export const verifyExhibitionOtpApi = (mobile, otp) =>
+  apiFetch("/api/exhibition/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile, otp }),
+  });
+
+export const claimExhibitionRewardApi = (payload) =>
+  apiFetch("/api/exhibition/claim", {
+    method: "POST",
+    body: JSON.stringify({
+      ...payload,
+      mobile: toE164(payload.mobile) || payload.mobile,
+    }),
+  });
+
