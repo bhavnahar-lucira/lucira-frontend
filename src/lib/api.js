@@ -564,3 +564,5 @@ export const createSchemeRazorpayPlan = (amount, tenure) =>
     body: JSON.stringify({ amount, tenure }),
   });
 
+export const fetchOffersPageSettings = () => apiFetch("/api/settings/offers-page");
+

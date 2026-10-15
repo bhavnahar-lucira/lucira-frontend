@@ -52,6 +52,11 @@ const CATEGORY_IMAGES = {
 
 const MENU_SLIDER_BANNERS = [
   {
+    href: "/pages/offers",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/offer_-_mobile_-_828px_x_463px_jpg.jpg?v=1792047502",
+    alt: "Exclusive Offers"
+  },
+  {
     href: "/collections/bestsellers",
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Best_Seller_V3.jpg_1.jpg?v=1776596789",
     alt: "Best Sellers"
@@ -486,7 +491,7 @@ export default function MobileHeader({ menuData }) {
       )
       .map((item) => {
         const label = (item.label || item.title || "").toLowerCase();
-        // Force the mobile-grid icon for Lucira Express (overrides CMS icon
+        // Force the mobile-grid icon for Lucira Express / Fast Shipping (overrides CMS icon
         // and the hardcoded fallback in renderMainMenu)
         if (label.includes("lucira express") || label.includes("fast shipping")) {
           return { ...item, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" };
@@ -1515,6 +1520,32 @@ export default function MobileHeader({ menuData }) {
               </div>
               <ChevronRight size={18} className="text-black" />
             </a>
+
+            <Link
+              href="/pages/offers"
+              prefetch={false}
+              onClick={() => {
+                pushPromoClick({
+                  creative_name: "offers mobile menu card",
+                  location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                  promo_id: "pages_offers",
+                  promo_name: "Mobile Menu % Offers",
+                });
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center justify-between p-4 border border-[#B77767]/40 rounded-lg group active:bg-[#FFECE4] bg-[#FFEFE9]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#B77767] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                  %
+                </div>
+                <div>
+                  <h4 className="block mb-1 font-figtree font-semibold text-sm leading-none align-middle text-[#5A413F]">Exclusive Offers</h4>
+                  <p className="mt-2 font-figtree font-normal text-[12px] leading-[1.4] align-middle text-[#5A413F]/80">Save on making charges, diamond coins & limited-time collections.</p>
+                </div>
+              </div>
+              <ChevronRight size={18} className="text-[#5A413F]" />
+            </Link>
 
             <Link
               href="/schemes"
