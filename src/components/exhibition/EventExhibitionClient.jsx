@@ -369,7 +369,7 @@ export default function EventExhibitionClient() {
   ];
 
   return (
-    <div className="h-screen w-full relative flex flex-col items-center justify-between font-figtree selection:bg-[#543E3B] selection:text-white overflow-hidden bg-[#FAF6F4]">
+    <div className="h-screen sm:h-auto sm:min-h-screen w-full relative flex flex-col items-center justify-between font-figtree selection:bg-[#543E3B] selection:text-white overflow-hidden sm:overflow-x-hidden sm:overflow-y-auto bg-[#FAF6F4]">
       {/* ─── FULL-BLEED BACKGROUND (Edge-to-edge across entire desktop & mobile, NO BLACK BARS) ─── */}
       {step !== 4 ? (
         <div className="absolute inset-0 z-0 pointer-events-none">
@@ -398,7 +398,7 @@ export default function EventExhibitionClient() {
       )}
 
       {/* ─── DESKTOP & MOBILE CONTENT CONTAINER: ONE SCREEN, NO BLACK, PERFECT 500px WIDTH ─── */}
-      <div className="relative w-full max-w-[500px] h-full flex flex-col justify-between z-10 overflow-hidden mx-auto">
+      <div className="relative w-full max-w-[500px] h-full sm:h-auto sm:min-h-full flex flex-col justify-between z-10 overflow-hidden sm:overflow-x-hidden sm:overflow-y-visible mx-auto">
 
       {/* ─── HEADER / LOGO (All Steps as in Figma) ─── */}
       <header className="w-full pt-8 pb-3 px-6 flex justify-center items-center z-20">
@@ -415,7 +415,7 @@ export default function EventExhibitionClient() {
       </header>
 
       {/* ─── MAIN CONTENT CONTAINER: DRAWER ON MOBILE, CENTERED POPUP ON DESKTOP ─── */}
-      <main className={`w-full flex-1 flex flex-col items-center ${step === 4 ? "justify-center" : "justify-end sm:justify-center"} p-0 sm:p-4 z-20 overflow-hidden`}>
+      <main className={`w-full flex-1 flex flex-col items-center ${step === 4 ? "justify-center" : "justify-end sm:justify-center"} p-0 sm:p-4 z-20 overflow-hidden sm:overflow-x-hidden sm:overflow-y-visible`}>
         <AnimatePresence mode="wait">
 
           {/* ══════════════════════════════════════════════════════════════════
@@ -428,7 +428,7 @@ export default function EventExhibitionClient() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              className="text-center px-4 flex flex-col items-center cursor-pointer select-none mb-12 sm:mb-16"
+              className="text-center px-4 flex flex-col items-center cursor-pointer select-none mb-4 sm:mb-16"
               onClick={() => setStep(2)}
               title="Click or wait to register"
             >
@@ -468,7 +468,7 @@ export default function EventExhibitionClient() {
             >
               {/* Dimmed Text above Drawer / Popup */}
               <div
-                className="text-center px-4 flex flex-col items-center mb-3 sm:mb-4 mt-2 sm:mt-0"
+                className="text-center px-4 flex flex-col items-center mb-[30px] sm:mb-4 mt-2 sm:mt-0"
               >
                 <p
                   className="text-white font-abhaya font-bold tracking-wide drop-shadow-sm"
@@ -674,11 +674,7 @@ export default function EventExhibitionClient() {
             >
               {/* Dimmed Text above Drawer */}
               <div
-                className="text-center mb-4 sm:mb-6 px-4 flex flex-col items-center"
-                style={{
-                  marginBottom: "15%",
-                  marginTop: "30px",
-                }}
+                className="text-center mb-[30px] mt-2 sm:mb-[15%] sm:mt-[30px] px-4 flex flex-col items-center"
               >
                 <p
                   className="text-white text-[15px] sm:text-[17px] font-abhaya font-bold tracking-wide drop-shadow-sm"
