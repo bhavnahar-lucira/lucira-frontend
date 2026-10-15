@@ -1323,7 +1323,9 @@ export default function MobileHeader({ menuData }) {
   const renderCollectionsGrid = (activeItem) => {
     const items = activeItem.items || activeItem.cards || [];
     // Cotton Candy is desktopOnly here because on mobile it already has a card
-    // in the image grid above.
+    // in the image grid above. Mobile keeps every image card (including Hexa,
+    // which desktop drops) and renders the quick links as one flat list, in
+    // group order.
     const quickLinks = (activeItem.quickLinks || []).filter((q) => !q.desktopOnly);
     return (
       <div className="flex flex-col pb-8">

@@ -5,9 +5,6 @@
 // same module would drag the whole 811 KB menu file into the browser bundle.
 // `getMenu` (which does read the JSON) lives in `@/lib/menus` and is server-only.
 
-// Small collection tiles rendered beside the image cards in the desktop
-// Collections menu and below the 2x2 grid in the mobile menu. Cotton Candy is
-// desktop-only: on mobile it stays as a card in the image grid.
 // Display-name overrides for top-level menu items, keyed by the lowercase
 // Shopify menu title. The Shopify menu (and its collection handle) keeps the
 // original name; only what the shopper sees changes. Matchers in MobileHeader
@@ -16,7 +13,27 @@ export const MENU_LABEL_OVERRIDES = {
   "lucira express": "Fast Shipping",
 };
 
+// Small collection tiles rendered beside the image cards in the desktop
+// Collections menu and below the image cards in the mobile menu.
+//
+// Desktop flows this list, in order, into 2x4 blocks of DESKTOP_QUICK_LINK_BLOCK
+// tiles (one grid column per block); with 15 tiles the only empty slot is the
+// last one of the last block. Mobile renders the same order as one flat list.
+// Cotton Candy is desktop-only: on mobile it stays as a card in the image grid.
+export const DESKTOP_QUICK_LINK_BLOCK = 8;
+
 export const COLLECTION_QUICK_LINKS = [
+  // Added 15 Oct 2026. Order is the row-major reading of the marketing sheet:
+  // Portuguese, Religious / Infinity, Paperclip / Heart, Twisted / Chrome.
+  // Icons were uploaded to Shopify Files the same day.
+  { label: "Portuguese", href: "/collections/portuguese", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Portuguese_collection_icon_ce3defeb-01bd-47fd-a99d-ce53e70f7908.png?v=1792048808" },
+  { label: "Religious", href: "/collections/religious", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Religious_collection_icon_24db892e-9654-420e-b6d9-14abbc259e7b.png?v=1792048808" },
+  { label: "Infinity", href: "/collections/infinity", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_collection_icon_0a12ace4-072c-40d4-ad57-4dfd52175cd7.png?v=1792048808" },
+  { label: "Paperclip", href: "/collections/paperclip-collection", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paperclip_collection_icon_d2ac7f37-c789-4cd6-be92-677e3af7a3e5.png?v=1792048808" },
+  { label: "Heart", href: "/collections/heart", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_collection_icon_52aa005e-e0e8-43b2-acad-7c54941208f7.png?v=1792048808" },
+  { label: "Twisted", href: "/collections/twisted", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Twisted_collection_icon_78078319-ab50-4ab2-8b81-c35f3e3808ef.png?v=1792048808" },
+  { label: "Chrome", href: "/collections/chrome", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chrome_collection_icon_7acdaecf-484c-473b-9ea4-51500b359101.png?v=1792048808" },
+  // The original tiles.
   { label: "Cotton Candy", href: "/collections/cotton-candy", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Ellipse_2966.png?v=1785231957", desktopOnly: true },
   { label: "Evil Eye", href: "/collections/evil-eye", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/evil_eye.png?v=1785231427" },
   { label: "Pearl", href: "/collections/pearl", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/pearl_030670d5-2823-41f2-8f9c-0e3edc770719.png?v=1785231427" },
@@ -24,11 +41,22 @@ export const COLLECTION_QUICK_LINKS = [
   { label: "Peacock", href: "/collections/peacock", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Peacock.png?v=1785231427" },
   { label: "Hexa Moving Diamond", href: "/collections/hexa-moving-diamond", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_Moving_Diamond.png?v=1785231427" },
   { label: "Petalique", href: "/collections/petalique", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Petalique.png?v=1785231427" },
-  // mobileOnly keeps the desktop Collections grid an even 2x4; drop the flag
-  // once Infinity should appear on desktop too.
-  { label: "Infinity Collection", href: "/collections/infinity", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_collection_icon_91329834-7874-40aa-9871-bc03dc51ac8b.png?v=1787825093", mobileOnly: true },
   { label: "Butterfly Collection", href: "/collections/butterfly-collection", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_collection_icon_868489d6-0006-419f-84c4-f87091b052db.png?v=1789973142" },
 ];
+
+// Image cards from the Shopify Collections menu that the DESKTOP mega menu
+// drops to make room for the quick-link blocks. Mobile keeps them.
+export const DESKTOP_HIDDEN_COLLECTION_CARDS = ["/collections/hexa"];
+
+// Quick links split into consecutive desktop blocks; only the last block can
+// be short, so any empty slot sits at the very end.
+export function chunkQuickLinks(quickLinks, size = DESKTOP_QUICK_LINK_BLOCK) {
+  const blocks = [];
+  for (let i = 0; i < (quickLinks || []).length; i += size) {
+    blocks.push(quickLinks.slice(i, i + size));
+  }
+  return blocks;
+}
 
 export function transformMenuData(shopifyMenuItems) {
   if (!shopifyMenuItems) return [];

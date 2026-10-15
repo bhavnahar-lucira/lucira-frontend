@@ -7,7 +7,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { withChunkyRings } from "@/lib/menuTransform";
+import { withChunkyRings, chunkQuickLinks, DESKTOP_HIDDEN_COLLECTION_CARDS } from "@/lib/menuTransform";
 
 export default function Navbar({ hideTop, menuData }) {
   const MEGA_MENU = useMemo(() => {
@@ -275,14 +275,21 @@ export default function Navbar({ hideTop, menuData }) {
                   const allItems = menu.items || menu.cards || [];
                   const quickLinks = (menu.quickLinks || []).filter((q) => !q.mobileOnly);
                   // Collections whose quick-link tile is desktop-only replace
-                  // their big image card here (e.g. Cotton Candy).
+                  // their big image card here (e.g. Cotton Candy), and some
+                  // cards are dropped on desktop only (e.g. Hexa) to make room
+                  // for the quick-link blocks.
                   const items = quickLinks.length
                     ? allItems.filter(
-                        (it) => !quickLinks.some((q) => q.desktopOnly && q.href === it.href)
+                        (it) =>
+                          !quickLinks.some((q) => q.desktopOnly && q.href === it.href) &&
+                          !DESKTOP_HIDDEN_COLLECTION_CARDS.includes(it.href)
                       )
                     : allItems;
+                  // Consecutive 2x4 blocks, each its own grid column; the
+                  // only empty slot is at the very end.
+                  const quickLinkGroups = chunkQuickLinks(quickLinks);
                   const imageGridTemplate = quickLinks.length
-                    ? `repeat(${items.length}, minmax(0, 1fr)) minmax(0, 1.15fr)`
+                    ? `repeat(${items.length}, minmax(0, 1fr)) repeat(${quickLinkGroups.length}, minmax(0, 1.15fr))`
                     : gridTemplate;
                   return (
                     <div
@@ -326,11 +333,11 @@ export default function Navbar({ hideTop, menuData }) {
                         </Link>
                       ))}
 
-                      {quickLinks.length > 0 && (
-                        <div className="grid grid-cols-2 auto-rows-fr gap-3">
-                          {quickLinks.map((link, i) => (
+                      {quickLinkGroups.map((group, g) => (
+                        <div key={g} className="grid grid-cols-2 auto-rows-fr gap-3">
+                          {group.map((link, i) => (
                             <Link
-                              key={i}
+                              key={link.href || i}
                               href={link.href || "#"}
                               prefetch={false}
                               onClick={closeMenu}
@@ -351,7 +358,7 @@ export default function Navbar({ hideTop, menuData }) {
                             </Link>
                           ))}
                         </div>
-                      )}
+                      ))}
                     </div>
                   );
                 }
