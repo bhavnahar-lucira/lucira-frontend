@@ -17,24 +17,29 @@ export const MENU_LABEL_OVERRIDES = {
 // Collections menu and below the image cards in the mobile menu.
 //
 // Desktop flows this list, in order, into 2x4 blocks of DESKTOP_QUICK_LINK_BLOCK
-// tiles (one grid column per block); with 15 tiles the only empty slot is the
-// last one of the last block. Mobile renders the same order as one flat list.
-// Cotton Candy is desktop-only: on mobile it stays as a card in the image grid.
+// tiles (one grid column per block): 16 tiles, two full blocks. Mobile renders
+// the same order as one flat list. Cotton Candy and Hexa are desktop-only
+// tiles: on mobile they stay as cards in the image grid, and on desktop a
+// desktop-only tile replaces the menu's image card of the same href.
 export const DESKTOP_QUICK_LINK_BLOCK = 8;
 
 export const COLLECTION_QUICK_LINKS = [
-  // Added 15 Oct 2026. Order is the row-major reading of the marketing sheet:
-  // Portuguese, Religious / Infinity, Paperclip / Heart, Twisted / Chrome.
-  // Icons were uploaded to Shopify Files the same day.
+  // Added 15 Oct 2026. Row-major reading of the marketing sheet, except that
+  // the two model-photo tiles (Cotton Candy, Hexa) are stacked in the first
+  // column, so Cotton Candy leads and everything else shifts one slot:
+  // Cotton Candy, Portuguese / Hexa, Religious / Infinity, Paperclip / Heart,
+  // Twisted // Chrome, Evil Eye / Pearl, Nakshatra / ... Hexa reuses the photo
+  // from its former image card with `fit: "cover"` so it fills the round icon.
+  { label: "Cotton Candy", href: "/collections/cotton-candy", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Ellipse_2966.png?v=1785231957", desktopOnly: true },
   { label: "Portuguese", href: "/collections/portuguese", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Portuguese_collection_icon_ce3defeb-01bd-47fd-a99d-ce53e70f7908.png?v=1792048808" },
+  { label: "Hexa", href: "/collections/hexa", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_aug_2564003.jpg_1_1.jpg?v=1778058219", desktopOnly: true, fit: "cover" },
   { label: "Religious", href: "/collections/religious", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Religious_collection_icon_24db892e-9654-420e-b6d9-14abbc259e7b.png?v=1792048808" },
   { label: "Infinity", href: "/collections/infinity", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_collection_icon_0a12ace4-072c-40d4-ad57-4dfd52175cd7.png?v=1792048808" },
   { label: "Paperclip", href: "/collections/paperclip-collection", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paperclip_collection_icon_d2ac7f37-c789-4cd6-be92-677e3af7a3e5.png?v=1792048808" },
   { label: "Heart", href: "/collections/heart", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_collection_icon_52aa005e-e0e8-43b2-acad-7c54941208f7.png?v=1792048808" },
   { label: "Twisted", href: "/collections/twisted", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Twisted_collection_icon_78078319-ab50-4ab2-8b81-c35f3e3808ef.png?v=1792048808" },
   { label: "Chrome", href: "/collections/chrome", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chrome_collection_icon_7acdaecf-484c-473b-9ea4-51500b359101.png?v=1792048808" },
-  // The original tiles.
-  { label: "Cotton Candy", href: "/collections/cotton-candy", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Ellipse_2966.png?v=1785231957", desktopOnly: true },
+  // The original tiles (Cotton Candy moved to the top, above).
   { label: "Evil Eye", href: "/collections/evil-eye", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/evil_eye.png?v=1785231427" },
   { label: "Pearl", href: "/collections/pearl", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/pearl_030670d5-2823-41f2-8f9c-0e3edc770719.png?v=1785231427" },
   { label: "Nakshatra", href: "/collections/nakshatra", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Nakshatra.png?v=1785231427" },
@@ -43,10 +48,6 @@ export const COLLECTION_QUICK_LINKS = [
   { label: "Petalique", href: "/collections/petalique", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Petalique.png?v=1785231427" },
   { label: "Butterfly Collection", href: "/collections/butterfly-collection", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_collection_icon_868489d6-0006-419f-84c4-f87091b052db.png?v=1789973142" },
 ];
-
-// Image cards from the Shopify Collections menu that the DESKTOP mega menu
-// drops to make room for the quick-link blocks. Mobile keeps them.
-export const DESKTOP_HIDDEN_COLLECTION_CARDS = ["/collections/hexa"];
 
 // Quick links split into consecutive desktop blocks; only the last block can
 // be short, so any empty slot sits at the very end.
@@ -222,9 +223,10 @@ function getFileUrl(metafield) {
 // sorts that column: both the desktop grid (3 columns via `gridCols`) and the
 // mobile icon grid (3 columns) flow row by row, so it is the row-major reading
 // of the marketing sheet's three columns and reproduces the sheet on both.
+// `category`: items appended to the end of "Shop By Category" (no reorder).
 // `material`: items appended to "Shop By Material"; one with a `menuIcon`
 // renders that icon in place of the CSS metal swatch.
-// Any Shopify image card on these menus is dropped on desktop so the
+// `dropCards`: drop the menu's Shopify image card on desktop so the
 // three-column Style grid has room (the mobile drawer never showed it).
 const PEARL_ICON = 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pearl_material_icon_11caf282-5b57-4376-9384-a4177ab53282.png?v=1792055816';
 
@@ -260,6 +262,7 @@ export const MENU_EXTRAS = {
       'chunky rings', 'vanki', 'promise ring',
     ],
     material: [{ label: 'Pearl', href: '/collections/pearl-rings', menuIcon: PEARL_ICON }],
+    dropCards: true,
   },
   // 15 Oct 2026 sheet (14 items, so the last grid slot stays empty):
   //   Hoops      | Studs          | Infinity Earrings
@@ -282,7 +285,15 @@ export const MENU_EXTRAS = {
       'gemstone', "men's earrings", 'evil eye earrings',
       'gold earrings', 'kids earrings',
     ],
-    material: [{ label: 'Pearl', href: '/collections/pearl', menuIcon: PEARL_ICON }],
+    material: [{ label: 'Pearl', href: '/collections/pearl-earrings', menuIcon: PEARL_ICON }],
+    dropCards: true,
+  },
+  // 15 Oct 2026 sheet: Solitaire Essentials below Men's Solitaires. The icon
+  // is the "Daily Essential" one from the same icon batch.
+  solitaires: {
+    category: [
+      { label: 'Solitaire Essentials', href: '/collections/solitaire-essential', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Solitaire_essentials_icon_76342201-4d5d-4b53-8392-00a43a59e6fc.png?v=1792057287' },
+    ],
   },
 };
 
@@ -316,12 +327,15 @@ export function withMenuExtras(menus) {
         const items = sortByOrder(appendMissing(col.items, extras.style), extras.styleOrder || []);
         return { ...col, items, gridCols: 3 };
       }
+      if (title.includes('category') && extras.category) {
+        return { ...col, items: appendMissing(col.items, extras.category) };
+      }
       if ((title.includes('material') || title.includes('metal')) && extras.material) {
         return { ...col, items: appendMissing(col.items, extras.material) };
       }
       return col;
     });
 
-    return { ...menu, columns, cards: [] };
+    return extras.dropCards ? { ...menu, columns, cards: [] } : { ...menu, columns };
   });
 }

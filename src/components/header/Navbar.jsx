@@ -7,7 +7,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { withMenuExtras, chunkQuickLinks, DESKTOP_HIDDEN_COLLECTION_CARDS } from "@/lib/menuTransform";
+import { withMenuExtras, chunkQuickLinks } from "@/lib/menuTransform";
 
 export default function Navbar({ hideTop, menuData }) {
   const MEGA_MENU = useMemo(() => {
@@ -275,18 +275,13 @@ export default function Navbar({ hideTop, menuData }) {
                   const allItems = menu.items || menu.cards || [];
                   const quickLinks = (menu.quickLinks || []).filter((q) => !q.mobileOnly);
                   // Collections whose quick-link tile is desktop-only replace
-                  // their big image card here (e.g. Cotton Candy), and some
-                  // cards are dropped on desktop only (e.g. Hexa) to make room
-                  // for the quick-link blocks.
+                  // their big image card here (Cotton Candy, Hexa).
                   const items = quickLinks.length
                     ? allItems.filter(
-                        (it) =>
-                          !quickLinks.some((q) => q.desktopOnly && q.href === it.href) &&
-                          !DESKTOP_HIDDEN_COLLECTION_CARDS.includes(it.href)
+                        (it) => !quickLinks.some((q) => q.desktopOnly && q.href === it.href)
                       )
                     : allItems;
-                  // Consecutive 2x4 blocks, each its own grid column; the
-                  // only empty slot is at the very end.
+                  // Consecutive 2x4 blocks, each its own grid column.
                   const quickLinkGroups = chunkQuickLinks(quickLinks);
                   const imageGridTemplate = quickLinks.length
                     ? `repeat(${items.length}, minmax(0, 1fr)) repeat(${quickLinkGroups.length}, minmax(0, 1.15fr))`
@@ -349,7 +344,7 @@ export default function Navbar({ hideTop, menuData }) {
                                   alt={link.label}
                                   fill
                                   unoptimized={link.image?.includes("cdn.shopify.com")}
-                                  className="object-contain"
+                                  className={link.fit === "cover" ? "object-cover" : "object-contain"}
                                 />
                               </span>
                               <span className="text-sm font-medium text-zinc-900 leading-snug">
