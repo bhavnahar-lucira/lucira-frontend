@@ -358,7 +358,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { withRingsMenuExtras } from "@/lib/menuTransform";
+import { withMenuExtras } from "@/lib/menuTransform";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -556,9 +556,9 @@ export default function MobileHeader({ menuData }) {
       return 99;
     };
 
-    // Same Rings extras (Chunky, the new style rings, Pearl) the desktop mega
-    // menu appends, so the RINGS section matches across breakpoints.
-    return withRingsMenuExtras(
+    // Same Rings / Earrings extras the desktop mega menu appends, so those
+    // sections match across breakpoints.
+    return withMenuExtras(
       [...menu, ...extraItems].sort(
         (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
       )

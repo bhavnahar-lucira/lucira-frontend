@@ -7,14 +7,14 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { withRingsMenuExtras, chunkQuickLinks, DESKTOP_HIDDEN_COLLECTION_CARDS } from "@/lib/menuTransform";
+import { withMenuExtras, chunkQuickLinks, DESKTOP_HIDDEN_COLLECTION_CARDS } from "@/lib/menuTransform";
 
 export default function Navbar({ hideTop, menuData }) {
   const MEGA_MENU = useMemo(() => {
     // menuData arrives already transformed by getHeaderMenu() on the server.
     const menus = Array.isArray(menuData) ? menuData : [];
     
-    return withRingsMenuExtras(menus.map(menu => {
+    return withMenuExtras(menus.map(menu => {
       const label = (menu.label || menu.title || '').toLowerCase();
       
       if (label.includes('more jewelry') || label.includes('more jewellery')) {

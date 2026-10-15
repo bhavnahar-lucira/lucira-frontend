@@ -213,49 +213,78 @@ function getFileUrl(metafield) {
     return null;
 }
 
-// Rings menu extras that aren't in the Shopify menu (yet). They're appended
-// at render time and shared by the desktop mega menu (Navbar) and the mobile
-// drawer (MobileHeader) so the two can't drift apart or get different icons.
+// Menu extras that aren't in the Shopify menu (yet), keyed by the lowercase
+// top-level label. They're appended at render time and shared by the desktop
+// mega menu (Navbar) and the mobile drawer (MobileHeader) so the two can't
+// drift apart or get different icons.
 //
-// Shop by Style: Chunky Rings (older) plus the 15 Oct 2026 additions from the
-// marketing sheet. Both the desktop grid (3 columns via `gridCols`) and the
-// mobile icon grid (3 columns) flow row by row, so RINGS_STYLE_ORDER is the
-// row-major reading of the sheet's three columns and reproduces it on both:
-//   Engagement | Solitaire | Infinity Ring
-//   Eternity   | Stackable | Heart Ring
-//   Casual     | Gemstone  | Butterfly Ring
-//   Men's      | Gold      | Evil Eye Ring
-//   Chunky     | Vanki     | Promise Ring
+// `style`: items appended to the "Shop By Style" column. `styleOrder` then
+// sorts that column: both the desktop grid (3 columns via `gridCols`) and the
+// mobile icon grid (3 columns) flow row by row, so it is the row-major reading
+// of the marketing sheet's three columns and reproduces the sheet on both.
+// `material`: items appended to "Shop By Material"; one with a `menuIcon`
+// renders that icon in place of the CSS metal swatch.
+// Any Shopify image card on these menus is dropped on desktop so the
+// three-column Style grid has room (the mobile drawer never showed it).
+const PEARL_ICON = 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pearl_material_icon_11caf282-5b57-4376-9384-a4177ab53282.png?v=1792055816';
+
 export const CHUNKY_RINGS_ITEM = {
   label: 'Chunky Rings',
   href: '/collections/chunky-rings',
   menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/chunky_rings.png?v=1787210554',
 };
 
-export const RINGS_STYLE_EXTRA_ITEMS = [
-  CHUNKY_RINGS_ITEM,
-  { label: 'Infinity Ring', href: '/collections/infinity-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_ring_icon_6c3f75c7-7f62-4e52-b1fb-fc66c669e1c7.png?v=1792055707' },
-  { label: 'Heart Ring', href: '/collections/heart-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_ring_icon_b182dd76-7ff2-44d5-89ef-babd8bba9bf3.png?v=1792055707' },
-  { label: 'Butterfly Ring', href: '/collections/butterfly-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_ring_icon_dcbbb3a1-6bc4-46a8-8b09-0c4ff2db5586.png?v=1792055707' },
-  { label: 'Evil Eye Ring', href: '/collections/evil-eye-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_ring_icon_f35df599-7cef-4328-99fe-20f1e05dedfe.png?v=1792055706' },
-  // No Vanki icon was supplied, so this is the Classic Vanki Ring product shot.
-  { label: 'Vanki', href: '/collections/vanki-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00696YG_1_827510e7-4091-4feb-b52f-a14e9e1953fe.jpg?v=1785412233' },
-  { label: 'Promise Ring', href: '/collections/promise-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Promise_ring_icon_ff6651a8-3183-4875-b4b9-af964e2fa43b.png?v=1792055707' },
-];
-
-export const RINGS_STYLE_ORDER = [
-  'engagement', 'solitaire', 'infinity ring',
-  'eternity', 'stackable', 'heart ring',
-  'casual', 'gemstone', 'butterfly ring',
-  "men's rings", 'gold rings', 'evil eye ring',
-  'chunky rings', 'vanki', 'promise ring',
-];
-
-// Shop by Material: Pearl has a real icon (`menuIcon`), which both headers
-// render in place of the CSS metal swatch.
-export const RINGS_MATERIAL_EXTRA_ITEMS = [
-  { label: 'Pearl', href: '/collections/pearl-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pearl_material_icon_11caf282-5b57-4376-9384-a4177ab53282.png?v=1792055816' },
-];
+export const MENU_EXTRAS = {
+  // 15 Oct 2026 sheet:
+  //   Engagement | Solitaire | Infinity Ring
+  //   Eternity   | Stackable | Heart Ring
+  //   Casual     | Gemstone  | Butterfly Ring
+  //   Men's      | Gold      | Evil Eye Ring
+  //   Chunky     | Vanki     | Promise Ring
+  rings: {
+    style: [
+      CHUNKY_RINGS_ITEM,
+      { label: 'Infinity Ring', href: '/collections/infinity-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_ring_icon_6c3f75c7-7f62-4e52-b1fb-fc66c669e1c7.png?v=1792055707' },
+      { label: 'Heart Ring', href: '/collections/heart-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_ring_icon_b182dd76-7ff2-44d5-89ef-babd8bba9bf3.png?v=1792055707' },
+      { label: 'Butterfly Ring', href: '/collections/butterfly-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_ring_icon_dcbbb3a1-6bc4-46a8-8b09-0c4ff2db5586.png?v=1792055707' },
+      { label: 'Evil Eye Ring', href: '/collections/evil-eye-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_ring_icon_f35df599-7cef-4328-99fe-20f1e05dedfe.png?v=1792055706' },
+      // No Vanki icon was supplied, so this is the Classic Vanki Ring product shot.
+      { label: 'Vanki', href: '/collections/vanki-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00696YG_1_827510e7-4091-4feb-b52f-a14e9e1953fe.jpg?v=1785412233' },
+      { label: 'Promise Ring', href: '/collections/promise-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Promise_ring_icon_ff6651a8-3183-4875-b4b9-af964e2fa43b.png?v=1792055707' },
+    ],
+    styleOrder: [
+      'engagement', 'solitaire', 'infinity ring',
+      'eternity', 'stackable', 'heart ring',
+      'casual', 'gemstone', 'butterfly ring',
+      "men's rings", 'gold rings', 'evil eye ring',
+      'chunky rings', 'vanki', 'promise ring',
+    ],
+    material: [{ label: 'Pearl', href: '/collections/pearl-rings', menuIcon: PEARL_ICON }],
+  },
+  // 15 Oct 2026 sheet (14 items, so the last grid slot stays empty):
+  //   Hoops      | Studs          | Infinity Earrings
+  //   Sui Dhagas | Dangles        | Heart Earrings
+  //   Solitaire  | Halo           | Butterfly Earrings
+  //   Gemstone   | Men's Earrings | Evil Eye Earrings
+  //   Gold       | Kids Earrings  |
+  earrings: {
+    style: [
+      { label: 'Infinity Earrings', href: '/collections/infinity-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_earring_icon_d4ee59ce-8570-4397-9734-80326b0c764c.png?v=1792056586' },
+      { label: 'Heart Earrings', href: '/collections/heart-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_earring_icon_963f3711-835b-4db3-9bdd-7743cea26881.png?v=1792056586' },
+      { label: 'Butterfly Earrings', href: '/collections/butterfly-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_earring_icon_a7dfd45b-33ee-4602-ba86-ab93722fbb06.png?v=1792056586' },
+      { label: 'Evil Eye Earrings', href: '/collections/evil-eye-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_earring_icon_78e3459f-6400-4d4a-91ff-9e32702837fe.png?v=1792056586' },
+      { label: 'Kids Earrings', href: '/collections/kids-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Kids_earring_icon_c9d8bb7e-707d-4b3a-afd2-e2a417b7b69a.png?v=1792056586' },
+    ],
+    styleOrder: [
+      'hoops', 'studs', 'infinity earrings',
+      'sui dhagas', 'dangles', 'heart earrings',
+      'solitaire', 'halo', 'butterfly earrings',
+      'gemstone', "men's earrings", 'evil eye earrings',
+      'gold earrings', 'kids earrings',
+    ],
+    material: [{ label: 'Pearl', href: '/collections/pearl', menuIcon: PEARL_ICON }],
+  },
+};
 
 const norm = (s) => (s || '').toLowerCase().trim();
 
@@ -265,31 +294,34 @@ function appendMissing(items, extras) {
   return [...(items || []), ...extras.filter((e) => !have.has(norm(e.label)))];
 }
 
-export function withRingsMenuExtras(menus) {
+function sortByOrder(items, order) {
+  const rank = (it) => {
+    const i = order.indexOf(norm(it.label));
+    return i === -1 ? order.length : i;
+  };
+  return items
+    .map((it, i) => ({ it, i }))
+    .sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i)
+    .map(({ it }) => it);
+}
+
+export function withMenuExtras(menus) {
   return (menus || []).map((menu) => {
-    if (norm(menu.label || menu.title) !== 'rings') return menu;
+    const extras = MENU_EXTRAS[norm(menu.label || menu.title)];
+    if (!extras) return menu;
 
     const columns = (menu.columns || []).map((col) => {
       const title = norm(col.title);
-      if (title.includes('style')) {
-        const rank = (it) => {
-          const i = RINGS_STYLE_ORDER.indexOf(norm(it.label));
-          return i === -1 ? RINGS_STYLE_ORDER.length : i;
-        };
-        const items = appendMissing(col.items, RINGS_STYLE_EXTRA_ITEMS)
-          .map((it, i) => ({ it, i }))
-          .sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i)
-          .map(({ it }) => it);
+      if (title.includes('style') && extras.style) {
+        const items = sortByOrder(appendMissing(col.items, extras.style), extras.styleOrder || []);
         return { ...col, items, gridCols: 3 };
       }
-      if (title.includes('material') || title.includes('metal')) {
-        return { ...col, items: appendMissing(col.items, RINGS_MATERIAL_EXTRA_ITEMS) };
+      if ((title.includes('material') || title.includes('metal')) && extras.material) {
+        return { ...col, items: appendMissing(col.items, extras.material) };
       }
       return col;
     });
 
-    // The desktop mega menu drops the Trilogy Rings image card so the
-    // three-column Style grid has room; the mobile drawer never showed it.
     return { ...menu, columns, cards: [] };
   });
 }

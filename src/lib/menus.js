@@ -5,7 +5,7 @@ import { transformMenuData } from "./menuTransform";
 // Server-only: reads the generated menu JSON. The pure transform helpers live in
 // `./menuTransform` so client components can import them without bundling the
 // JSON. They are re-exported here for existing server-side importers.
-export { COLLECTION_QUICK_LINKS, transformMenuData, withRingsMenuExtras } from "./menuTransform";
+export { COLLECTION_QUICK_LINKS, transformMenuData, withMenuExtras } from "./menuTransform";
 
 export async function getMenu(handle = "main-menu-official") {
   try {
