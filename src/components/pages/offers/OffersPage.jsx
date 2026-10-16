@@ -6,7 +6,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import FeatureBar from '@/components/home/FeatureBar';
 import { apiFetch } from '@/lib/api';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { openAuthModal } from '@/redux/features/user/userSlice';
 import { pushPromoClick } from '@/lib/gtm';
 
@@ -167,6 +167,9 @@ function OfferCardItem({ card, index, onOpenPopup }) {
 
 export default function OffersPage({ initialSettings }) {
   const dispatch = useDispatch();
+  const isAuthenticated = useSelector((state) =>
+    Boolean(state.user?.isAuthenticated || state.user?.user)
+  );
   const [settings, setSettings] = useState(initialSettings || DEFAULT_SETTINGS);
 
   const handleOpenPopup = () => {
@@ -192,19 +195,27 @@ export default function OffersPage({ initialSettings }) {
     loadSettings();
 
     const checkHash = () => {
-      if (typeof window !== 'undefined' && window.location.hash.toLowerCase().includes('spin')) {
+      if (
+        !isAuthenticated &&
+        typeof window !== 'undefined' &&
+        window.location.hash.toLowerCase().includes('spin')
+      ) {
         handleOpenPopup();
       }
     };
     checkHash();
     window.addEventListener('hashchange', checkHash);
     return () => window.removeEventListener('hashchange', checkHash);
-  }, [dispatch]);
+  }, [dispatch, isAuthenticated]);
 
   const heroBanner = settings.heroBanner || DEFAULT_SETTINGS.heroBanner;
-  const offerCards = (settings.offerCards || DEFAULT_SETTINGS.offerCards).filter(
-    (c) => c.enabled !== false
-  );
+  const offerCards = (settings.offerCards || DEFAULT_SETTINGS.offerCards).filter((c) => {
+    if (c.enabled === false) return false;
+    if (isAuthenticated && isPopupTrigger(c.link, c)) {
+      return false;
+    }
+    return true;
+  });
 
   const handleHeroBannerClick = () => {
     try {
