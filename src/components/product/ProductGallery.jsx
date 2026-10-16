@@ -622,7 +622,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   });
                   onViewSimilar();
                 }}
-                className={`bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation${peekSimilar ? " is-open" : ""}`}
+                className={`bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation peek-left${peekSimilar ? " is-open" : ""}`}
               >
                 <span className="btn-icon pointer-events-none">
                   <svg viewBox="5 5.55 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

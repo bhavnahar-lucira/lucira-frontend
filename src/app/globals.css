@@ -1022,12 +1022,16 @@
       transform 0.18s ease;
   }
 
+  /* The slot is sized explicitly rather than via align-self: stretch +
+     aspect-ratio: iOS Safari does not transfer a stretched flex cross size
+     through aspect-ratio, so there the slot collapsed to the 18px glyph and
+     the pill rendered as a clipped sliver pinned to the gallery edge. */
   .btn-peek-animation .btn-icon {
     @apply grid place-items-center;
 
-    align-self: stretch;
-    aspect-ratio: 1;
-    flex: none;
+    width: var(--peek-size);
+    height: var(--peek-size);
+    flex: 0 0 var(--peek-size);
   }
 
   .btn-peek-animation .btn-icon svg {
@@ -1044,6 +1048,7 @@
   .btn-peek-animation .btn-text {
     @apply overflow-hidden whitespace-nowrap font-semibold uppercase;
 
+    min-width: 0;
     font-size: 11px;
     line-height: 1;
     letter-spacing: 0.07em;
