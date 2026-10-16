@@ -574,10 +574,13 @@ export const checkExhibitionCustomerApi = (mobile) =>
     body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
   });
 
-export const sendExhibitionOtpApi = (mobile) =>
+export const sendExhibitionOtpApi = (mobile, extra = {}) =>
   apiFetch("/api/exhibition/send-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
+    body: JSON.stringify({
+      mobile: toE164(mobile) || mobile,
+      ...extra,
+    }),
   });
 
 export const verifyExhibitionOtpApi = (mobile, otp) =>

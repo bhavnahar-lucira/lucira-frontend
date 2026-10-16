@@ -50,8 +50,8 @@ export default function EventExhibitionClient() {
   const dispatch = useDispatch();
   const currentUser = useSelector((state) => state.user?.user);
 
-  // Steps: 1 = Splash Screen, 2 = Form Drawer, 3 = OTP Verification, 4 = Success Page
-  const [step, setStep] = useState(1);
+  // Steps: 2 = Form Drawer (Default, no splash animation), 3 = OTP Verification, 4 = Success Page
+  const [step, setStep] = useState(2);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [alreadyClaimed, setAlreadyClaimed] = useState(false);
@@ -74,14 +74,6 @@ export default function EventExhibitionClient() {
   const [timer, setTimer] = useState(118); // 01:58
   const otpInputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const timerRef = useRef(null);
-
-  // 1. Splash Screen 2-Second Auto-Open Animation
-  useEffect(() => {
-    const splashTimer = setTimeout(() => {
-      setStep((currentStep) => (currentStep === 1 ? 2 : currentStep));
-    }, 2000);
-    return () => clearTimeout(splashTimer);
-  }, []);
 
   // Pre-fill form if customer is already logged in
   useEffect(() => {
@@ -221,8 +213,18 @@ export default function EventExhibitionClient() {
         setAlreadyClaimed(true);
       }
 
-      // 2. Send OTP
-      await sendExhibitionOtpApi(cleanPhone);
+      // 2. Send OTP and save initial lead details immediately
+      const parts = (formData.fullName || "").trim().split(/\s+/);
+      const finalFirst = formData.firstName || parts[0] || "";
+      const finalLast = formData.lastName || parts.slice(1).join(" ") || "";
+
+      await sendExhibitionOtpApi(cleanPhone, {
+        fullName: formData.fullName.trim(),
+        firstName: finalFirst,
+        lastName: finalLast,
+        email: formData.email.trim(),
+        dob: formData.dob.trim(),
+      });
       setTimer(118);
       setOtpDigits(["", "", "", ""]);
       setStep(3);
@@ -311,6 +313,7 @@ export default function EventExhibitionClient() {
 
       // 2. Claim Reward (or retrieve claimed state)
       const claimRes = await claimExhibitionRewardApi({
+        fullName: (formData.fullName || "").trim(),
         firstName: finalFirst,
         lastName: finalLast,
         email: formData.email.trim(),
@@ -417,7 +420,7 @@ export default function EventExhibitionClient() {
 
       {/* ─── MAIN CONTENT CONTAINER: DRAWER ON MOBILE, CENTERED POPUP ON DESKTOP ─── */}
       <main className={`w-full flex-1 flex flex-col items-center ${step === 4 ? "justify-center" : "justify-end sm:justify-center"} p-0 sm:p-4 z-20 overflow-hidden sm:overflow-x-hidden sm:overflow-y-visible`}>
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
 
           {/* ══════════════════════════════════════════════════════════════════
               FRAME 1: SPLASH SCREEN (Store Photo with Exact Text)
@@ -456,15 +459,15 @@ export default function EventExhibitionClient() {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════
-              FRAME 2: FORM (Drawer on Mobile, Centered Popup on Desktop)
+              FRAME 2: FORM (Default screen, no animation on load)
              ══════════════════════════════════════════════════════════════════ */}
           {step === 2 && (
             <motion.div
               key="form-drawer"
-              initial={{ opacity: 0, y: "100%" }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0 }}
               className="w-full sm:max-w-[460px] flex flex-col items-center sm:my-auto"
             >
               {/* Dimmed Text above Drawer / Popup */}
