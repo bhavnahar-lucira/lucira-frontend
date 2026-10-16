@@ -30,7 +30,7 @@ import {
 import { login } from "@/redux/features/user/userSlice";
 import { mergeCart } from "@/redux/features/cart/cartSlice";
 import { mergeGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
-import { pushSignup } from "@/lib/gtm";
+import { pushSignup, pushPromoClick, pushToDataLayer } from "@/lib/gtm";
 
 import {
   Drawer,
@@ -225,6 +225,20 @@ export default function EventExhibitionClient() {
         email: formData.email.trim(),
         dob: formData.dob.trim(),
       });
+
+      // Track Form Continue in dataLayer (promoClick)
+      try {
+        pushPromoClick({
+          creative_name: "Event Exhibition Form Continue",
+          location_id: typeof window !== "undefined" ? window.location.pathname : "/pages/event-exhibition",
+          promo_id: "exhibition_lead_initiated",
+          promo_name: `${finalFirst} ${finalLast}`.trim() || `+91${cleanPhone}`,
+          promo_position: "step_2_form",
+        });
+      } catch (e) {
+        console.warn("[GTM] promoClick error on form continue:", e);
+      }
+
       setTimer(118);
       setOtpDigits(["", "", "", ""]);
       setStep(3);
@@ -328,17 +342,59 @@ export default function EventExhibitionClient() {
         setAlreadyClaimed(false);
       }
 
-      // If user session returned, log in to Redux
-      if (claimRes.user && claimRes.accessToken) {
-        const userId = claimRes.user.id;
+      // 1. Send dataLayer signup event (WebEngage listens to 'signup' with user.cuid)
+      const canonicalPhone = `+91${cleanPhone}`;
+      const fullName = `${finalFirst} ${finalLast}`.trim();
+      const cleanEmail = formData.email.trim();
+      const userId = claimRes.user?.id || `exhibition_${cleanPhone}`;
+
+      try {
         pushSignup({
           id: userId,
-          mobile: `+91${cleanPhone}`,
-          phone: `+91${cleanPhone}`,
-          email: formData.email.trim(),
-          name: `${finalFirst} ${finalLast}`.trim(),
+          mobile: canonicalPhone,
+          phone: canonicalPhone,
+          email: cleanEmail,
+          name: fullName,
+          dob: formData.dob.trim(),
         });
+      } catch (e) {
+        console.warn("[GTM] pushSignup error:", e);
+      }
 
+      // 2. Send dataLayer promoClick event
+      try {
+        pushPromoClick({
+          creative_name: "Event Exhibition Claim Reward",
+          location_id: typeof window !== "undefined" ? window.location.pathname : "/pages/event-exhibition",
+          promo_id: "exhibition_1000_coins",
+          promo_name: fullName || canonicalPhone,
+          promo_position: (claimRes.alreadyClaimed || claimRes.status === "ALREADY_CLAIMED") ? "already_claimed" : "new_claim",
+        });
+      } catch (e) {
+        console.warn("[GTM] pushPromoClick error:", e);
+      }
+
+      // 3. Send explicit lead dataLayer event for WebEngage / CRM tracking
+      try {
+        pushToDataLayer({
+          event: "lead",
+          lead_type: "event_exhibition",
+          user: {
+            id: userId,
+            cuid: canonicalPhone,
+            mobile: canonicalPhone,
+            phone: canonicalPhone,
+            email: cleanEmail,
+            name: fullName,
+            dob: formData.dob.trim(),
+          },
+        });
+      } catch (e) {
+        console.warn("[GTM] lead event error:", e);
+      }
+
+      // If user session returned, log in to Redux
+      if (claimRes.user && claimRes.accessToken) {
         dispatch(
           login({
             user: claimRes.user,
