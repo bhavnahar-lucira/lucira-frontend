@@ -1491,7 +1491,18 @@ export default function ProductPageClient({
     }
 
     // Guests must log in first; the add runs after login via the latest handler.
-    if (requireLoginForCart(() => handleAddToCartRef.current?.(ctaSource, { afterLogin: true }))) return;
+    if (requireLoginForCart(
+      () => handleAddToCartRef.current?.(ctaSource, { afterLogin: true }),
+      {
+        productImage: getValidSrc(
+          activeVariant?.image ||
+          getColorSpecificImage(product, activeColor) ||
+          product.featuredImage ||
+          product.media?.[0]?.url,
+          null
+        ),
+      }
+    )) return;
 
     setAddingToCart(true);
     try {

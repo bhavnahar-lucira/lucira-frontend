@@ -676,8 +676,15 @@ export function OtpSpinAuth({
       `}</style>
       
       {showCloseButton && (
-        <button 
-          className="absolute top-5 right-5 z-20 p-1 rounded-full text-black cursor-pointer border-none flex items-center justify-center bg-white/50 backdrop-blur-sm" 
+        /* 44x44 square hit area (Apple HIG minimum) around a 28px visual circle.
+           The old 28px rounded button sat over the wheel wrapper, whose own tap
+           handler focuses the name field, so a slightly-off tap on a phone opened
+           the keyboard instead of closing. No backdrop-filter: iOS Safari
+           hit-tests it unreliably over the composited wheel layers. */
+        <button
+          type="button"
+          className="absolute top-3 right-3 z-30 w-11 h-11 p-0 bg-transparent text-black cursor-pointer border-none flex items-center justify-center"
+          style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
           onClick={() => {
             // Dismissing the coupon screen still leaves the user logged in, so
             // refresh to pick up server-rendered logged-in state.
@@ -686,7 +693,9 @@ export function OtpSpinAuth({
           }}
           aria-label="Close"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <span className="pointer-events-none flex items-center justify-center w-7 h-7 rounded-full bg-white/70">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </span>
         </button>
       )}
 

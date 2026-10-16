@@ -25,8 +25,9 @@ export function useAtcLoginGate() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   // Returns true when the shopper was sent to log in (caller should stop);
-  // `action` then runs once login completes.
-  return (action) => {
+  // `action` then runs once login completes. `productImage` (a URL) is shown
+  // in the modal so the shopper sees the piece they are saving.
+  return (action, { productImage = null } = {}) => {
     if (isAuthenticated) return false;
     pendingAction = action;
     dispatch(
@@ -34,9 +35,13 @@ export function useAtcLoginGate() {
         useCheckoutAuth: true,
         keepSavedCart: true,
         rewardSource: "atc_login",
-        overrideHeading: "Login to Add to Cart",
+        // "atc" switches CheckoutAuthForm/AuthDialog to the add-to-cart design
+        // (product thumbnail, floating close on mobile, title-case button).
+        variant: "atc",
+        productImage: typeof productImage === "string" && productImage ? productImage : null,
+        overrideHeading: "Perfect! Let’s Save Your Selection",
         overrideSubtext: "Login / Signup to save this piece to your cart & unlock member offers",
-        overrideButtonText: "CONTINUE",
+        overrideButtonText: "Save My Selection",
       })
     );
     return true;
