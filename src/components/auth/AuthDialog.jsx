@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Sheet } from "react-modal-sheet";
 import { AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 import { OtpSpinAuth } from "./OtpSpinAuth";
 import { ScratchCardAuth } from "./scratch/ScratchCardAuth";
 import { VARIANT_SCRATCH } from "@/lib/signupExperiment";
@@ -52,6 +53,9 @@ export function AuthDialog({
   const authRedirectPath = open ? liveRedirectPath : heldAuthConfig.redirectPath;
 
   const hideRegisterLink = authRedirectPath === "/checkout/shipping" || pathname === "/checkout/cart";
+  // Add-to-cart login gate (useAtcLoginGate) gets its own design.
+  const isAtc = authModalOverrides?.variant === "atc";
+  const atcImage = authModalOverrides?.productImage || null;
 
   const isCartOrCheckout = 
     useCheckoutAuth || 
@@ -139,21 +143,33 @@ export function AuthDialog({
         avoidKeyboard={true}
         style={{ zIndex: 2000 }}
       >
-        <Sheet.Container className="!bg-white !rounded-t-lg !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !max-h-[95dvh] !z-[2000]">
+        <Sheet.Container className={`!bg-white ${isAtc && isCartOrCheckout ? "!rounded-t-[20px] !overflow-visible" : "!rounded-t-lg"} !shadow-[0_-2px_16px_rgba(0,0,0,0.3)] !h-auto !max-h-[95dvh] !z-[2000]`}>
+          {isAtc && isCartOrCheckout && (
+            <button
+              type="button"
+              onClick={handleDismiss}
+              aria-label="Close"
+              className="absolute left-1/2 -translate-x-1/2 -top-[46px] w-8 h-8 rounded-full bg-[#E4E4E4] text-zinc-800 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            >
+              <X className="w-4 h-4" strokeWidth={2.25} />
+            </button>
+          )}
           <Sheet.Content className="!p-0">
             <div className="sr-only">
               <h2>{finalTitle || (currentStep === "register" ? "Registration" : "Authentication")}</h2>
               <p>{finalSubtitle || (currentStep === "register" ? "Join Lucira to win rewards." : "Login to your account.")}</p>
             </div>
             {isCartOrCheckout ? (
-              <div className="px-5 pt-5 pb-6 relative">
+              <div className={`${isAtc ? "px-4 pt-6 pb-5" : "px-5 pt-5 pb-6"} relative`}>
                 <CheckoutAuthForm
                   onSuccess={handleSuccess}
                   title={finalTitle}
                   subtitle={finalSubtitle}
                   buttonText={overrideButtonText || "CONTINUE"}
-                  onClose={handleDismiss}
+                  onClose={isAtc ? undefined : handleDismiss}
                   keepSavedCart={!!authModalOverrides?.keepSavedCart}
+                  variant={isAtc ? "atc" : undefined}
+                  productImage={atcImage}
                 />
               </div>
             ) : (
@@ -188,7 +204,7 @@ export function AuthDialog({
         onOpenChange={(val) => (val ? onOpenChange(true) : handleDismiss())}
       >
         <DialogContent 
-          className="w-full max-w-[420px] p-0 border-none bg-white shadow-2xl rounded-lg overflow-hidden" 
+          className={`w-full ${isAtc ? "max-w-[384px] sm:max-w-[384px] rounded-[10px]" : "max-w-[420px] rounded-lg"} p-0 border-none bg-white shadow-2xl overflow-hidden`} 
           showCloseButton={false}
         >
           <div className="sr-only">
@@ -205,6 +221,8 @@ export function AuthDialog({
               buttonText={overrideButtonText || "CONTINUE"}
               onClose={handleDismiss}
               keepSavedCart={!!authModalOverrides?.keepSavedCart}
+              variant={isAtc ? "atc" : undefined}
+              productImage={atcImage}
             />
           </div>
         </DialogContent>
