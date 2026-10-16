@@ -1891,7 +1891,7 @@ export default function MobileHeader({ menuData }) {
       </div>
 
       {!isProductPage && !isBYJPage && (
-        <div className="pl-4 pr-0 py-2 bg-white flex items-center gap-2">
+        <div className="px-4 py-2 bg-white">
           <div
             onClick={() => {
               pushPromoClick({
@@ -1902,7 +1902,7 @@ export default function MobileHeader({ menuData }) {
               });
               setShowSearch(true);
             }}
-            className="relative flex-1 min-w-0 bg-[#f9f9f9] h-10 pl-10 pr-2 rounded-sm flex items-center cursor-pointer border border-transparent transition-all overflow-hidden"
+            className="relative w-full bg-[#f9f9f9] h-10 pl-10 pr-4 rounded-sm flex items-center cursor-pointer border border-transparent transition-all overflow-hidden"
           >
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
               <SearchIcon />
@@ -1923,44 +1923,6 @@ export default function MobileHeader({ menuData }) {
               </AnimatePresence>
             </div>
           </div>
-
-          {/* % OFFERS Navigation Item - One side touched to the right with radius 2 & 3 = 0 */}
-          <Link
-            href="/pages/offers"
-            prefetch={false}
-            onClick={() => {
-              try {
-                pushPromoClick({
-                  creative_name: "Mobile Search Bar Offers Link",
-                  location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "internal page",
-                  promo_id: "pages_offers",
-                  promo_name: "Mobile Search % Offers",
-                });
-              } catch (e) {
-                // ignore
-              }
-            }}
-            className={cn(
-              "group relative inline-flex items-center gap-1.5 pl-3 pr-3.5 h-10 rounded-l-full rounded-r-none border border-r-0 border-transparent active:bg-[#FFECE4] bg-[#FFEFE9] transition-all duration-200 select-none shrink-0 shadow-2xs"
-            )}
-            style={{
-              borderTopRightRadius: 0,
-              borderBottomRightRadius: 0,
-            }}
-            aria-label="Exclusive Offers"
-          >
-            {/* The % Badge */}
-            <span
-              className="w-5 h-5 rounded-full bg-[#B77767] text-white flex items-center justify-center text-[10px] font-bold leading-none shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
-            >
-              %
-            </span>
-
-            {/* Offers Text */}
-            <span className="font-figtree text-xs font-bold uppercase tracking-wider text-[#5A413F] leading-none whitespace-nowrap">
-              OFFERS
-            </span>
-          </Link>
         </div>
       )}
 
