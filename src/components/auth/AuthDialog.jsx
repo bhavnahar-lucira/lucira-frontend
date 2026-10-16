@@ -92,6 +92,8 @@ export function AuthDialog({
         ? authModalOverrides.overrideSubtext
         : defaultSubtitle);
 
+  const finalForceShowWheel = forceShowWheel || !!authModalOverrides?.forceShowWheel;
+
   const handleClose = () => {
     setCurrentStep(initialStep); // releases the success latch
     onOpenChange(false);
@@ -164,7 +166,7 @@ export function AuthDialog({
                   onClose={handleClose}
                   initialStep={currentStep}
                   onStepChange={handleStepChange}
-                  forceShowWheel={forceShowWheel}
+                  forceShowWheel={finalForceShowWheel}
                   overrideHeading={overrideHeading}
                   overrideSubtext={overrideSubtext}
                   overrideButtonText={overrideButtonText}
@@ -231,7 +233,7 @@ export function AuthDialog({
           onClose={handleClose}
           initialStep={currentStep}
           onStepChange={handleStepChange}
-          forceShowWheel={forceShowWheel}
+          forceShowWheel={finalForceShowWheel}
           overrideHeading={overrideHeading}
           overrideSubtext={overrideSubtext}
           overrideButtonText={overrideButtonText}

@@ -6,6 +6,9 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import FeatureBar from '@/components/home/FeatureBar';
 import { apiFetch } from '@/lib/api';
+import { useDispatch } from 'react-redux';
+import { openAuthModal } from '@/redux/features/user/userSlice';
+import { pushPromoClick } from '@/lib/gtm';
 
 const DEFAULT_SETTINGS = {
   heroBanner: {
@@ -49,7 +52,7 @@ const DEFAULT_SETTINGS = {
       title: '20% Making Discount - Spin & Win',
       image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/spinthewheel.png?v=1792042017',
       mobileImage: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/spinthewheel.png?v=1792042017',
-      link: '/collections/20-making-discount',
+      link: '#spin-wheel',
       alt: '20% Making Discount - Register & Unlock Rewards',
       enabled: true,
     },
@@ -65,13 +68,86 @@ const DEFAULT_SETTINGS = {
   ],
 };
 
-function OfferCardItem({ card, index }) {
-  const cardHref = card.link || '/collections/all';
+function isPopupTrigger(link, card = {}) {
+  const l = String(link || '').trim().toLowerCase();
+  if (
+    l === '#' ||
+    l === '#spin' ||
+    l === '#spin-wheel' ||
+    l === '#spin_wheel' ||
+    l === '#spinthewheel' ||
+    l === '#popup' ||
+    l === '#rewards' ||
+    l === 'spin-wheel' ||
+    l === 'spin_wheel' ||
+    l === 'popup' ||
+    l.includes('#spin') ||
+    l.includes('#popup') ||
+    l.includes('#reward') ||
+    l.includes('#wheel') ||
+    l.endsWith('spin-wheel') ||
+    l.endsWith('spin_wheel')
+  ) {
+    return true;
+  }
+  const title = String(card.title || '').toLowerCase();
+  const alt = String(card.alt || '').toLowerCase();
+  return (
+    title.includes('spin') ||
+    title.includes('wheel') ||
+    title.includes('reward') ||
+    alt.includes('spin') ||
+    alt.includes('wheel')
+  );
+}
+
+function getFlexibleGridClass(count) {
+  switch (count) {
+    case 1:
+      return 'grid-cols-1 max-w-sm mx-auto';
+    case 2:
+      return 'grid-cols-2 max-w-2xl mx-auto';
+    case 3:
+      return 'grid-cols-1 sm:grid-cols-3 max-w-5xl mx-auto';
+    case 4:
+      return 'grid-cols-2 md:grid-cols-4';
+    case 5:
+      return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5';
+    default:
+      return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
+  }
+}
+
+function OfferCardItem({ card, index, onOpenPopup }) {
+  const isPopup = isPopupTrigger(card.link, card);
+  const cardHref = isPopup ? '#spin-wheel' : (card.link || '/collections/all');
+
+  const handleClick = (e) => {
+    try {
+      pushPromoClick({
+        creative_name: card.title || card.alt || `Offer Card ${index + 1}`,
+        location_id: "offers_page",
+        promo_id: card.id || `offer_${index + 1}`,
+        promo_name: card.title || card.alt || "Offer Card",
+        promo_position: `slot_${index + 1}`,
+      });
+    } catch (err) {
+      console.warn("promoClick push failed", err);
+    }
+
+    if (isPopup) {
+      e.preventDefault();
+      if (onOpenPopup) {
+        onOpenPopup();
+      }
+    }
+  };
 
   return (
     <Link
       href={cardHref}
-      className="group relative block w-full aspect-[4/5] overflow-hidden rounded-[4px] shadow-2xs hover:shadow-md transition-all duration-300"
+      onClick={handleClick}
+      className="group relative block w-full aspect-[4/5] overflow-hidden rounded-[4px] shadow-2xs hover:shadow-md transition-all duration-300 cursor-pointer"
     >
       {/* Card Background Creative Image (Exact same dimensions for all, 4px radius) */}
       <picture className="block w-full h-full">
@@ -90,7 +166,17 @@ function OfferCardItem({ card, index }) {
 }
 
 export default function OffersPage({ initialSettings }) {
+  const dispatch = useDispatch();
   const [settings, setSettings] = useState(initialSettings || DEFAULT_SETTINGS);
+
+  const handleOpenPopup = () => {
+    dispatch(
+      openAuthModal({
+        initialStep: 'register',
+        forceShowWheel: true,
+      })
+    );
+  };
 
   useEffect(() => {
     async function loadSettings() {
@@ -104,12 +190,35 @@ export default function OffersPage({ initialSettings }) {
       }
     }
     loadSettings();
-  }, []);
+
+    const checkHash = () => {
+      if (typeof window !== 'undefined' && window.location.hash.toLowerCase().includes('spin')) {
+        handleOpenPopup();
+      }
+    };
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, [dispatch]);
 
   const heroBanner = settings.heroBanner || DEFAULT_SETTINGS.heroBanner;
   const offerCards = (settings.offerCards || DEFAULT_SETTINGS.offerCards).filter(
     (c) => c.enabled !== false
   );
+
+  const handleHeroBannerClick = () => {
+    try {
+      pushPromoClick({
+        creative_name: heroBanner.alt || heroBanner.title || "Offers Hero Banner",
+        location_id: "offers_page",
+        promo_id: "offers_hero_banner",
+        promo_name: heroBanner.title || "Something Special Awaits",
+        promo_position: "hero_banner",
+      });
+    } catch (err) {
+      console.warn("Hero banner promoClick push failed", err);
+    }
+  };
 
   return (
     <div className="w-full bg-white min-h-screen">
@@ -117,7 +226,7 @@ export default function OffersPage({ initialSettings }) {
       {heroBanner.enabled !== false && (
         <section className="w-full relative overflow-hidden bg-[#C5A07E]">
           {heroBanner.link ? (
-            <Link href={heroBanner.link} className="block group">
+            <Link href={heroBanner.link} onClick={handleHeroBannerClick} className="block group">
               <picture>
                 {heroBanner.mobileImage && (
                   <source media="(max-width: 767px)" srcSet={heroBanner.mobileImage} />
@@ -148,29 +257,37 @@ export default function OffersPage({ initialSettings }) {
         </section>
       )}
 
-      {/* ─── 5 Offer Cards Section ──── */}
+      {/* ─── Offer Cards Section (Flexible Dynamic Grid) ──── */}
       <section className="w-full pt-6 sm:pt-8 md:pt-10 pb-0 bg-white">
         <div className="container-main">
-          {/* Desktop Layout: 5-column balanced grid */}
-          <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-5">
+          {/* Desktop Layout: Flexible balanced grid based on active card count */}
+          <div className={`hidden md:grid ${getFlexibleGridClass(offerCards.length)} gap-3 lg:gap-5 justify-center`}>
             {offerCards.map((card, index) => (
               <div key={card.id || index} className="w-full">
-                <OfferCardItem card={card} index={index} />
+                <OfferCardItem
+                  card={card}
+                  index={index}
+                  onOpenPopup={handleOpenPopup}
+                />
               </div>
             ))}
           </div>
 
-          {/* Mobile Layout: Swiper Slider with loop={true} */}
+          {/* Mobile Layout: Swiper Slider with loop */}
           <div className="block md:hidden -mx-4 px-4 overflow-hidden">
             <Swiper
-              loop={true}
+              loop={offerCards.length > 1}
               spaceBetween={12}
               slidesPerView={1.25}
               className="w-full"
             >
               {offerCards.map((card, index) => (
                 <SwiperSlide key={card.id || index}>
-                  <OfferCardItem card={card} index={index} />
+                  <OfferCardItem
+                    card={card}
+                    index={index}
+                    onOpenPopup={handleOpenPopup}
+                  />
                 </SwiperSlide>
               ))}
             </Swiper>
