@@ -363,7 +363,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { withChunkyRings } from "@/lib/menuTransform";
+import { withMenuExtras } from "@/lib/menuTransform";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -561,9 +561,9 @@ export default function MobileHeader({ menuData }) {
       return 99;
     };
 
-    // Same Chunky Rings entry the desktop mega menu appends, so the RINGS
-    // section matches across breakpoints.
-    return withChunkyRings(
+    // Same Rings / Earrings extras the desktop mega menu appends, so those
+    // sections match across breakpoints.
+    return withMenuExtras(
       [...menu, ...extraItems].sort(
         (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
       )
@@ -1189,10 +1189,16 @@ export default function MobileHeader({ menuData }) {
                             onClick={() => setIsMenuOpen(false)}
                             className="flex flex-col items-center gap-2"
                           >
-                            <div
-                              className="w-12 h-12 rounded-full border border-gray-100"
-                              style={{ background: METAL_COLORS[item.label] || "#eee" }}
-                            />
+                            {item.menuIcon ? (
+                              <div className="w-12 h-12 rounded-full border border-gray-100 overflow-hidden">
+                                <SafeImage src={item.menuIcon} alt={item.label} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-12 h-12 rounded-full border border-gray-100"
+                                style={{ background: METAL_COLORS[item.label] || "#eee" }}
+                              />
+                            )}
                             <span className="text-[13px] font-figtree text-center font-normal leading-tight">{item.label}</span>
                           </Link>
                         );
@@ -1328,7 +1334,9 @@ export default function MobileHeader({ menuData }) {
   const renderCollectionsGrid = (activeItem) => {
     const items = activeItem.items || activeItem.cards || [];
     // Cotton Candy is desktopOnly here because on mobile it already has a card
-    // in the image grid above.
+    // in the image grid above. Mobile keeps every image card (including Hexa,
+    // which desktop drops) and renders the quick links as one flat list, in
+    // group order.
     const quickLinks = (activeItem.quickLinks || []).filter((q) => !q.desktopOnly);
     return (
       <div className="flex flex-col pb-8">
@@ -1371,12 +1379,12 @@ export default function MobileHeader({ menuData }) {
                 onClick={() => setIsMenuOpen(false)}
                 className="bg-[#f8f8f8] rounded-xl p-2 flex items-center gap-2 active:bg-gray-200 transition-all border border-gray-50/50"
               >
-                <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-lg">
+                <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-full">
                   <Image loader={shopifyLoader}
                     src={link.image}
                     alt={link.label}
                     fill
-                    className="object-contain p-0.5"
+                    className={link.fit === "cover" ? "object-cover" : "object-contain"}
                   />
                 </span>
                 <span className="text-[13px] font-medium text-zinc-900 leading-tight truncate">
