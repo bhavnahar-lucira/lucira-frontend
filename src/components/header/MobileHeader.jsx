@@ -1374,12 +1374,12 @@ export default function MobileHeader({ menuData }) {
                 onClick={() => setIsMenuOpen(false)}
                 className="bg-[#f8f8f8] rounded-xl p-2 flex items-center gap-2 active:bg-gray-200 transition-all border border-gray-50/50"
               >
-                <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-lg">
+                <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-full">
                   <Image loader={shopifyLoader}
                     src={link.image}
                     alt={link.label}
                     fill
-                    className="object-contain p-0.5"
+                    className={link.fit === "cover" ? "object-cover" : "object-contain"}
                   />
                 </span>
                 <span className="text-[13px] font-medium text-zinc-900 leading-tight truncate">
