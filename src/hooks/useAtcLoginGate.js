@@ -34,6 +34,7 @@ export function useAtcLoginGate() {
       openAuthModal({
         useCheckoutAuth: true,
         keepSavedCart: true,
+        rewardSource: "atc_login",
         // "atc" switches CheckoutAuthForm/AuthDialog to the add-to-cart design
         // (product thumbnail, floating close on mobile, title-case button).
         variant: "atc",

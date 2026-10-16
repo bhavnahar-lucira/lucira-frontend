@@ -27,7 +27,7 @@ export default function Footer() {
   const pathname = usePathname();
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/build-your-jewelry") || pathname?.includes("store-giveaway")) return null;
+  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/build-your-jewelry") || pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) return null;
 
   if (isMobile) {
     return (
@@ -177,6 +177,7 @@ export default function Footer() {
                     <li><Link prefetch={false} href="/pages/old-gold-exchange">Old Gold Exchange</Link></li>
                     <li><Link prefetch={false} href="/pages/shipping-policy-1">Shipping Policy</Link></li>
                     <li><Link prefetch={false} href="/pages/privacy-policy">Privacy Policy</Link></li>
+                    <li><Link prefetch={false} href="/pages/offers">Offers</Link></li>
                     <li><Link prefetch={false} href="/pages/exclusive-promotions-page">Offers T&C</Link></li>
                     <li><Link prefetch={false} href="/pages/terms-condition">Terms & Conditions</Link></li>
                   </ul>

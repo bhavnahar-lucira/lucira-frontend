@@ -133,7 +133,7 @@ export default function PopularSearchesClient({ storePages = null }) {
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const sections = useMemo(() => buildSections(storePages), [storePages]);
 
-  if (pathname?.startsWith("/build-your-jewelry") || pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway")) {
+  if (pathname?.startsWith("/build-your-jewelry") || pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) {
     return null;
   }
 

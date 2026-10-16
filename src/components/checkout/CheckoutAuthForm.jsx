@@ -59,9 +59,12 @@ export function CheckoutAuthForm({
   // Add-to-cart login gate: keep the account's saved cart and just merge into it,
   // instead of clearing it like the checkout login does.
   keepSavedCart = false,
-  // "atc": add-to-cart gate design for the login step (product thumbnail next
-  // to the heading, filled phone field, centred terms, title-case button).
-  // OTP and register steps are shared with checkout and stay as they are.
+  // Reward attribution for the OTP/register API calls (e.g. "atc_login",
+  // "cart_login", "shipping_login"); falls back to a path-based guess.
+  rewardSource = null,
+  // "atc": add-to-cart gate design (product thumbnail next to the heading,
+  // filled phone field, centred terms, title-case buttons, compact OTP and
+  // register steps). Checkout and cart logins leave it unset.
   variant,
   productImage = null,
 }) {
@@ -258,7 +261,8 @@ export function CheckoutAuthForm({
     setOtpError("");
     setLoading(true);
     try {
-      const data = await verifyOtpApi(mobile, otpValue);
+      const activeSource = rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/checkout") ? "shipping_login" : typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login");
+      const data = await verifyOtpApi(mobile, otpValue, null, { rewardSource: activeSource });
 
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         setStep("register");
@@ -309,11 +313,13 @@ export function CheckoutAuthForm({
     if (!firstName || !email || !mobile) return toast.error("Please fill all fields");
     setLoading(true);
     try {
+      const activeSource = rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/checkout") ? "shipping_login" : typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login");
       const regData = await registerCustomer({
         firstName,
         lastName,
         email,
         mobile,
+        rewardSource: activeSource,
       });
       if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
         await loginSuccess(regData, true);

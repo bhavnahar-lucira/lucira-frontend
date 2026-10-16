@@ -96,6 +96,8 @@ export function AuthDialog({
         ? authModalOverrides.overrideSubtext
         : defaultSubtitle);
 
+  const finalForceShowWheel = forceShowWheel || !!authModalOverrides?.forceShowWheel;
+
   const handleClose = () => {
     setCurrentStep(initialStep); // releases the success latch
     onOpenChange(false);
@@ -170,6 +172,7 @@ export function AuthDialog({
                   keepSavedCart={!!authModalOverrides?.keepSavedCart}
                   variant={isAtc ? "atc" : undefined}
                   productImage={atcImage}
+                  rewardSource={authModalOverrides?.rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login")}
                 />
               </div>
             ) : (
@@ -179,7 +182,7 @@ export function AuthDialog({
                   onClose={handleClose}
                   initialStep={currentStep}
                   onStepChange={handleStepChange}
-                  forceShowWheel={forceShowWheel}
+                  forceShowWheel={finalForceShowWheel}
                   overrideHeading={overrideHeading}
                   overrideSubtext={overrideSubtext}
                   overrideButtonText={overrideButtonText}
@@ -223,6 +226,7 @@ export function AuthDialog({
               keepSavedCart={!!authModalOverrides?.keepSavedCart}
               variant={isAtc ? "atc" : undefined}
               productImage={atcImage}
+              rewardSource={authModalOverrides?.rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login")}
             />
           </div>
         </DialogContent>
@@ -247,7 +251,7 @@ export function AuthDialog({
           onClose={handleClose}
           initialStep={currentStep}
           onStepChange={handleStepChange}
-          forceShowWheel={forceShowWheel}
+          forceShowWheel={finalForceShowWheel}
           overrideHeading={overrideHeading}
           overrideSubtext={overrideSubtext}
           overrideButtonText={overrideButtonText}

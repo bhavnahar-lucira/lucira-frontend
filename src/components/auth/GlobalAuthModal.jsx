@@ -17,6 +17,7 @@ export function GlobalAuthModal() {
       overrideButtonText={authModalOverrides?.overrideButtonText}
       initialStep={authModalOverrides?.initialStep || "login"}
       useCheckoutAuth={authModalOverrides?.useCheckoutAuth}
+      forceShowWheel={authModalOverrides?.forceShowWheel}
     />
   );
 }

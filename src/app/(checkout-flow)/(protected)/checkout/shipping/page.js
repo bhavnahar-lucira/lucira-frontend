@@ -1022,13 +1022,13 @@ export default function ShippingPage() {
         isDesktop ? (
           <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#00000099]">
             <div className="bg-white rounded-lg shadow-2xl max-w-[420px] w-full overflow-hidden">
-              <CheckoutAuthForm onSuccess={() => { }} />
+              <CheckoutAuthForm onSuccess={() => { }} rewardSource="shipping_login" />
             </div>
           </div>
         ) : (
           <div className="fixed inset-0 z-[110] bg-[#00000099]">
             <MobileBottomSheet isOpen={true} onClose={() => { }} title="Checkout Securely" hideHeader={true} detent="content-height" hideDragHandle={true} disableDrag={true}>
-              <CheckoutAuthForm onSuccess={() => { }} />
+              <CheckoutAuthForm onSuccess={() => { }} rewardSource="shipping_login" />
             </MobileBottomSheet>
           </div>
         )

@@ -38,6 +38,7 @@ export function AutoAuthPopup() {
       cleanPath === "/pages/privacy-policy" ||
       cleanPath === "/pages/terms-condition" ||
       cleanPath === "/pages/store-giveaway" ||
+      cleanPath.includes("exhibition") ||
       /\/[a-z-]+-silver-rate-today$/.test(cleanPath)
     ) {
       return;

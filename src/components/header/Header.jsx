@@ -27,7 +27,7 @@ export default function Header({ menuData }) {
     setHideTop(y > 120);
   });
 
-  if (pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway")) return null;
+  if (pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) return null;
 
   if (isMobile) {
     const isProductPage = pathname?.startsWith("/products");

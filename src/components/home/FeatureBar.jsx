@@ -33,7 +33,7 @@ const ReturnIcon = () => (
   </svg>
 );
 
-export default function FeatureBar() {
+export default function FeatureBar({ className = "pt-6 md:pt-10 pb-5 md:pb-10" }) {
   const features = [
     {
       icon: ShippingIcon,
@@ -54,7 +54,7 @@ export default function FeatureBar() {
   ];
 
   return (
-    <div className="w-full pt-6 md:pt-10 pb-5 md:pb-10 bg-white">
+    <div className={`w-full bg-white ${className}`}>
       <div className="container-main">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-6 items-start">
           {features.map((item, index) => {
