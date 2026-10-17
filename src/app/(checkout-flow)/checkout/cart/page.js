@@ -21,7 +21,7 @@ import { isFreeGiftItem, isFreeGiftVariant, mapRemoteFreeGiftTiers, getCachedFre
 // Prefer productId — that's the field carts/wishlists/orders key on (backend normalizes to numeric).
 const getItemProductId = (item) => item.productId || item.shopifyId || item.id || item.handle || "";
 
-import { removeFromCart, removeMultipleFromCart } from "@/redux/features/cart/cartSlice";
+import { removeFromCart, removeMultipleFromCart, getSessionId } from "@/redux/features/cart/cartSlice";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
@@ -48,6 +48,62 @@ export default function CartPage() {
       localStorage.removeItem("auth_redirect_path");
     }
   }, []);
+
+  // Webhook: Track cart visit for returning / direct landing users with 30-min deduplication
+  const visitTrackedRef = useRef(false);
+  useEffect(() => {
+    if (loading || !items || items.length === 0 || visitTrackedRef.current) return;
+
+    // Filter out free products and excluded SKUs
+    const EXCLUDED_SKUS = ['LJ-INS-09RGLGD', 'LJ-GC100-995YGPG'];
+    const EXCLUDED_VARIANT_IDS = ['47709366026458', '47661824082138'];
+    const validItems = items.filter((item) => {
+      const sku = String(item.sku || item.product_sku || item.variantSku || item.variant?.sku || '').trim().toUpperCase();
+      if (EXCLUDED_SKUS.includes(sku)) return false;
+      const vid = String(item.variantId || item.id || '').replace(/\D/g, '');
+      if (EXCLUDED_VARIANT_IDS.includes(vid)) return false;
+      if (item.isFreeGift) return false;
+      return true;
+    });
+
+    if (validItems.length === 0) return;
+
+    const sessionId = getSessionId();
+    const identityKey = user?.id || sessionId;
+    if (!identityKey) return;
+
+    // Build signature of items to detect if cart contents changed
+    const itemsSignature = validItems.map(p => `${p.productId || p.variantId || p.id}_${p.quantity || 1}`).sort().join(',');
+    const storageKey = `atc_visit_cooldown_${identityKey}`;
+    const sigKey = `atc_visit_sig_${identityKey}`;
+    const lastTracked = Number(sessionStorage.getItem(storageKey) || 0);
+    const lastSig = sessionStorage.getItem(sigKey) || '';
+    const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+
+    // Suppress only if same exact items AND within cooldown window
+    if (lastSig === itemsSignature && (Date.now() - lastTracked < COOLDOWN_MS)) {
+      return;
+    }
+
+    visitTrackedRef.current = true;
+    sessionStorage.setItem(storageKey, String(Date.now()));
+    sessionStorage.setItem(sigKey, itemsSignature);
+
+    const context = process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront';
+
+    // Non-blocking fire-and-forget call to backend
+    apiFetch('/api/cart/track-visit', {
+      method: 'POST',
+      suppressErrorLog: true,
+      body: JSON.stringify({
+        userId: user?.id || null,
+        sessionId: sessionId || null,
+        context,
+        nitroId: typeof window !== 'undefined' && window.nitro?.NITRO_ID ? window.nitro.NITRO_ID : null,
+        items: validItems,
+      }),
+    }).catch(() => {});
+  }, [loading, items, user?.id]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
