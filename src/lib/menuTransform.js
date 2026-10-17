@@ -28,11 +28,12 @@ export const COLLECTION_QUICK_LINKS = [
   // the two model-photo tiles (Cotton Candy, Hexa) are stacked in the first
   // column, so Cotton Candy leads and everything else shifts one slot:
   // Cotton Candy, Portuguese / Hexa, Religious / Infinity, Paperclip / Heart,
-  // Twisted // Chrome, Evil Eye / Pearl, Nakshatra / ... Hexa reuses the photo
-  // from its former image card with `fit: "cover"` so it fills the round icon.
-  { label: "Cotton Candy", href: "/collections/cotton-candy", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Ellipse_2966.png?v=1785231957", desktopOnly: true },
+  // Twisted // Chrome, Evil Eye / Pearl, Nakshatra / ... Cotton Candy and Hexa
+  // use dedicated product icons (17 Oct 2026); `fit: "cover"` is available for
+  // a photo icon that should fill the circle.
+  { label: "Cotton Candy", href: "/collections/cotton-candy", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cotton_candy_collection_icon_7b791fd5-efe8-4028-aace-2c47930f07db.png?v=1792216734", desktopOnly: true },
   { label: "Portuguese", href: "/collections/portuguese", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Portuguese_collection_icon_ce3defeb-01bd-47fd-a99d-ce53e70f7908.png?v=1792048808" },
-  { label: "Hexa", href: "/collections/hexa", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Lucira_aug_2564003.jpg_1_1.jpg?v=1778058219", desktopOnly: true, fit: "cover" },
+  { label: "Hexa", href: "/collections/hexa", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_collection_icon_2a5a6dd9-13e3-4efa-b35f-c962471f5f47.png?v=1792216734", desktopOnly: true },
   { label: "Religious", href: "/collections/religious", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Religious_collection_icon_24db892e-9654-420e-b6d9-14abbc259e7b.png?v=1792048808" },
   { label: "Infinity", href: "/collections/infinity", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_collection_icon_0a12ace4-072c-40d4-ad57-4dfd52175cd7.png?v=1792048808" },
   { label: "Paperclip", href: "/collections/paperclip-collection", image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paperclip_collection_icon_d2ac7f37-c789-4cd6-be92-677e3af7a3e5.png?v=1792048808" },
@@ -288,11 +289,11 @@ export const MENU_EXTRAS = {
     material: [{ label: 'Pearl', href: '/collections/pearl-earrings', menuIcon: PEARL_ICON }],
     dropCards: true,
   },
-  // 15 Oct 2026 sheet: Solitaire Essentials below Men's Solitaires. The icon
-  // is the "Daily Essential" one from the same icon batch.
+  // 15 Oct 2026 sheet: Solitaire Essentials below Men's Solitaires. Icon
+  // replaced with a dedicated earrings + pendant set icon on 17 Oct 2026.
   solitaires: {
     category: [
-      { label: 'Solitaire Essentials', href: '/collections/solitaire-essential', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Solitaire_essentials_icon_76342201-4d5d-4b53-8392-00a43a59e6fc.png?v=1792057287' },
+      { label: 'Solitaire Essentials', href: '/collections/solitaire-essential', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Solitaire_essentials_icon_v2.png?v=1792216734' },
     ],
   },
 };
