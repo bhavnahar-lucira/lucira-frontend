@@ -107,8 +107,12 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
   // Making charges: FREE (0) by default, or a custom rupee amount so the
   // calculator can mirror a product's price breakup exactly.
-  const [isCustomMakingCharges, setIsCustomMakingCharges] = useState(false);
-  const [customMakingChargesInput, setCustomMakingChargesInput] = useState("0");
+  const [customMakingChargesInput, setCustomMakingChargesInput] = useState(
+    // Making charges can't be zero, so start from a typical figure: 8% of the
+    // default jewelry value before GST (rounded to ₹100). Shoppers overwrite
+    // it with the product's own making charges.
+    String(Math.round((((calc.defaultValue || 75000) / 1.03) * 0.08) / 100) * 100)
+  );
 
   // GST is fixed at the 3% government rate; there is no 0% option.
   const gstPercent = 3;
@@ -182,16 +186,10 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
   // Entered in rupees; capped so the diamond component (financed amount minus
   // making charges minus GST) never goes negative.
   const makingChargesAmount = useMemo(() => {
-    if (!isCustomMakingCharges) return 0;
     const amt = parseInt(customMakingChargesInput, 10);
     const cap = Math.max(0, financedAmount - gstAmount);
     return Math.min(cap, Math.max(0, isNaN(amt) ? 0 : amt));
-  }, [isCustomMakingCharges, customMakingChargesInput, financedAmount, gstAmount]);
-
-  // Share of the pre-GST jewelry value, shown next to the amount (1 decimal).
-  const makingChargesPercent = preTaxSubtotal > 0
-    ? Math.round((makingChargesAmount / preTaxSubtotal) * 1000) / 10
-    : 0;
+  }, [customMakingChargesInput, financedAmount, gstAmount]);
 
   // Diamond component (eligible financed diamond value)
   const diamondAmount = useMemo(() => {
@@ -680,65 +678,17 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                   <div className="flex items-center justify-between font-figtree">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[13px] font-medium text-zinc-700">Making Charges</span>
-                      {makingChargesPercent === 0 ? (
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                          100% FREE
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-semibold text-zinc-600 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded">
-                          Financed on EMI
-                        </span>
-                      )}
+                      <span className="text-[10px] font-semibold text-zinc-600 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded">
+                        Financed on EMI
+                      </span>
                     </div>
                     <span className="text-[13px] font-semibold text-[#5A413F]">
-                      {makingChargesPercent === 0 ? (
-                        <span className="text-emerald-600 font-bold">₹0 (FREE)</span>
-                      ) : (
-                        <>₹{formatINR(makingChargesAmount)} <span className="text-xs text-zinc-400 font-normal">({makingChargesPercent}%)</span></>
-                      )}
+                      ₹{formatINR(makingChargesAmount)}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Only the free option is offered as a preset (even if the
-                        dashboard sends more); anything else goes through Custom. */}
-                    {[{ percent: 0, label: "0% (FREE)" }].map((opt) => (
-                      <button
-                        key={opt.percent}
-                        type="button"
-                        onClick={() => {
-                          setIsCustomMakingCharges(false);
-                          setCustomMakingChargesInput("0");
-                        }}
-                        className={`h-[38px] text-xs rounded-[6px] border font-figtree transition-all cursor-pointer flex items-center justify-center ${
-                          !isCustomMakingCharges
-                            ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
-                            : opt.percent === 0
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:border-emerald-500 font-semibold"
-                            : "bg-white text-zinc-700 border-[#EBE1D7] hover:border-[#5A413F]"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-
-                    {/* Customer Custom Making Charges Button */}
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomMakingCharges(true)}
-                      className={`h-[38px] text-xs rounded-[6px] border font-figtree transition-all cursor-pointer flex items-center justify-center ${
-                        isCustomMakingCharges
-                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
-                          : "bg-white text-[#5A413F] border-[#5A413F]/40 hover:border-[#5A413F] hover:bg-[#FAF6F4]"
-                      }`}
-                      title="Enter the making charges amount"
-                    >
-                      <span className="text-[12px] font-semibold">Custom</span>
-                    </button>
-                  </div>
-
-                  {/* Custom Making Charges Input Panel (rupee amount) */}
-                  {isCustomMakingCharges && (
+                  {/* Making charges amount (the only way to set it) */}
+                  {(
                     <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 shadow-xs transition-all">
                       <span className="text-xs font-medium text-zinc-600 font-figtree">
                         Enter amount:
@@ -773,9 +723,6 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                           +
                         </button>
                       </div>
-                      <span className="text-[11px] text-zinc-400 font-figtree">
-                        ({makingChargesPercent}% of value)
-                      </span>
                     </div>
                   )}
                 </div>
@@ -939,15 +886,8 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-1">
                         <span>• Making Charges:</span>
-                        {makingChargesPercent === 0 && (
-                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded uppercase">
-                            FREE
-                          </span>
-                        )}
                       </div>
-                      <span className={makingChargesPercent === 0 ? "font-bold text-emerald-600" : "font-medium text-zinc-900"}>
-                        {makingChargesPercent === 0 ? "₹0 (FREE)" : `₹${formatINR(makingChargesAmount)} (${makingChargesPercent}%)`}
-                      </span>
+                      <span className="font-medium text-zinc-900">₹{formatINR(makingChargesAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-1">
