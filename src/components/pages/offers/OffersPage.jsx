@@ -49,11 +49,11 @@ const DEFAULT_SETTINGS = {
     },
     {
       id: 'offer_4',
-      title: '20% Making Discount - Spin & Win',
+      title: 'Scratch & Win Rewards',
       image: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/spinthewheel.png?v=1792042017',
       mobileImage: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/spinthewheel.png?v=1792042017',
-      link: '#spin-wheel',
-      alt: '20% Making Discount - Register & Unlock Rewards',
+      link: '#scratch-card',
+      alt: 'Scratch & Win Rewards - Register & Unlock Rewards',
       enabled: true,
     },
     {
@@ -72,6 +72,16 @@ function isPopupTrigger(link, card = {}) {
   const l = String(link || '').trim().toLowerCase();
   if (
     l === '#' ||
+    l === '#scratch' ||
+    l === '#scratch-card' ||
+    l === '#scratch_card' ||
+    l === '#scratchcard' ||
+    l === 'scratch-card' ||
+    l === 'scratch_card' ||
+    l === 'scratch' ||
+    l.includes('#scratch') ||
+    l.endsWith('scratch-card') ||
+    l.endsWith('scratch_card') ||
     l === '#spin' ||
     l === '#spin-wheel' ||
     l === '#spin_wheel' ||
@@ -93,9 +103,11 @@ function isPopupTrigger(link, card = {}) {
   const title = String(card.title || '').toLowerCase();
   const alt = String(card.alt || '').toLowerCase();
   return (
+    title.includes('scratch') ||
     title.includes('spin') ||
     title.includes('wheel') ||
     title.includes('reward') ||
+    alt.includes('scratch') ||
     alt.includes('spin') ||
     alt.includes('wheel')
   );
@@ -120,7 +132,7 @@ function getFlexibleGridClass(count) {
 
 function OfferCardItem({ card, index, onOpenPopup }) {
   const isPopup = isPopupTrigger(card.link, card);
-  const cardHref = isPopup ? '#spin-wheel' : (card.link || '/collections/all');
+  const cardHref = isPopup ? '#scratch-card' : (card.link || '/collections/all');
 
   const handleClick = (e) => {
     try {
@@ -177,6 +189,7 @@ export default function OffersPage({ initialSettings }) {
       openAuthModal({
         initialStep: 'register',
         forceShowWheel: true,
+        rewardSource: 'scratch_card',
       })
     );
   };
@@ -195,12 +208,11 @@ export default function OffersPage({ initialSettings }) {
     loadSettings();
 
     const checkHash = () => {
-      if (
-        !isAuthenticated &&
-        typeof window !== 'undefined' &&
-        window.location.hash.toLowerCase().includes('spin')
-      ) {
-        handleOpenPopup();
+      if (!isAuthenticated && typeof window !== 'undefined') {
+        const hash = window.location.hash.toLowerCase();
+        if (hash.includes('scratch') || hash.includes('spin') || hash.includes('reward')) {
+          handleOpenPopup();
+        }
       }
     };
     checkHash();
@@ -232,7 +244,7 @@ export default function OffersPage({ initialSettings }) {
   };
 
   return (
-    <div className="w-full bg-white min-h-screen">
+    <div className="w-full bg-white min-h-[auto] md:min-h-screen">
       {/* ─── Hero Banner ────────────────────────────────────────── */}
       {heroBanner.enabled !== false && (
         <section className="w-full relative overflow-hidden bg-[#C5A07E]">

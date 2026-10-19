@@ -13,7 +13,7 @@ import { AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { OtpSpinAuth } from "./OtpSpinAuth";
 import { ScratchCardAuth } from "./scratch/ScratchCardAuth";
-import { VARIANT_SCRATCH } from "@/lib/signupExperiment";
+import { VARIANT_SCRATCH, VARIANT_SPIN } from "@/lib/signupExperiment";
 import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { runPendingLoginAction, clearPendingLoginAction } from "@/hooks/useAtcLoginGate";
@@ -128,7 +128,14 @@ export function AuthDialog({
     setCurrentStep(step);
   };
 
-  if (isMobile && experimentVariant === VARIANT_SCRATCH && !isCartOrCheckout) {
+  // On mobile: 100% rollout for Scratch Card across promotional/signup flows
+  // (unless cart/checkout or QA explicitly forced spin_wheel via URL)
+  const isScratchOnMobile = 
+    isMobile && 
+    !isCartOrCheckout && 
+    (experimentVariant === VARIANT_SCRATCH || (finalForceShowWheel && experimentVariant !== VARIANT_SPIN));
+
+  if (isScratchOnMobile) {
     return (
       <AnimatePresence>
         {isOpen && <ScratchCardAuth key="scratch-card" onClose={handleClose} onSuccess={handleSuccess} />}
