@@ -131,9 +131,10 @@ export const sendOtpApi = (mobile) =>
 // which makes the backend return the customer's signup reward with the login.
 export const verifyOtpApi = (mobile, otp, sessionId = null, extra = {}) => {
   const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const finalSessionId = sessionId || (typeof window !== 'undefined' ? localStorage.getItem("cart_session_id") : null);
   return apiFetch("/api/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ ...extra, mobile: toE164(mobile) || mobile, otp, sessionId, sourcePage }),
+    body: JSON.stringify({ ...extra, mobile: toE164(mobile) || mobile, otp, sessionId: finalSessionId, sourcePage }),
   });
 };
 
@@ -187,6 +188,32 @@ export const trackSpinWheelView = (sessionId, seconds = 1, source = "popup") => 
   } catch {}
 };
 
+// Fire-and-forget (sendBeacon survives page unload) — seconds the ATC / Cart / Auth popup was on screen.
+export const trackAuthModalView = (sessionId, source = "atc_login", seconds = 1) => {
+  if (typeof window === "undefined" || !sessionId || seconds < 1) return;
+  const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+  const cleanSource = (source || "atc_login").toLowerCase().trim();
+  const eventName = cleanSource.endsWith("_view") ? cleanSource : `${cleanSource}_view`;
+  const body = JSON.stringify({
+    event: eventName,
+    sessionId,
+    page: window.location.pathname,
+    metadata: { durationSeconds: Math.max(1, seconds), source: cleanSource },
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(`${base}/api/track`, new Blob([body], { type: "application/json" }));
+    } else {
+      fetch(`${base}/api/track`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch {}
+};
+
 /* ================= SIGNUP REWARD LOOKUP ================= */
 
 // Scratch-card popup, before OTP: { exists, firstName, reward: { label, amount, status } | null }.
@@ -210,10 +237,12 @@ export const checkCustomerApi = (payload) =>
 
 export const registerCustomer = (payload) => {
   const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const sid = payload.sessionId || (typeof window !== 'undefined' ? localStorage.getItem("cart_session_id") : null);
   return apiFetch("/api/auth/register", {
     method: "POST",
     body: JSON.stringify({ 
       ...payload, 
+      sessionId: sid,
       mobile: toE164(payload.mobile) || payload.mobile,
       sourcePage
     }),

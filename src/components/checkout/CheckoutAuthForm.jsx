@@ -262,7 +262,8 @@ export function CheckoutAuthForm({
     setLoading(true);
     try {
       const activeSource = rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/checkout") ? "shipping_login" : typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login");
-      const data = await verifyOtpApi(mobile, otpValue, null, { rewardSource: activeSource });
+      const sid = getSessionId();
+      const data = await verifyOtpApi(mobile, otpValue, sid, { rewardSource: activeSource });
 
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         setStep("register");
@@ -314,11 +315,13 @@ export function CheckoutAuthForm({
     setLoading(true);
     try {
       const activeSource = rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/checkout") ? "shipping_login" : typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login");
+      const sid = getSessionId();
       const regData = await registerCustomer({
         firstName,
         lastName,
         email,
         mobile,
+        sessionId: sid,
         rewardSource: activeSource,
       });
       if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {

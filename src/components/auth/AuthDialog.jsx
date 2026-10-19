@@ -17,6 +17,8 @@ import { VARIANT_SCRATCH, VARIANT_SPIN } from "@/lib/signupExperiment";
 import { CheckoutAuthForm } from "@/components/checkout/CheckoutAuthForm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { runPendingLoginAction, clearPendingLoginAction } from "@/hooks/useAtcLoginGate";
+import { trackAuthModalView } from "@/lib/api";
+import { getSessionId } from "@/redux/features/cart/cartSlice";
 
 import { useSelector } from "react-redux";
 
@@ -97,6 +99,29 @@ export function AuthDialog({
         : defaultSubtitle);
 
   const finalForceShowWheel = forceShowWheel || !!authModalOverrides?.forceShowWheel;
+
+  // Track popup view and on-screen duration for ATC / Cart / Checkout login popups
+  useEffect(() => {
+    if (!isOpen || !isCartOrCheckout) return;
+    const start = Date.now();
+    let sent = false;
+    const sid = getSessionId();
+    const activeSource = authModalOverrides?.rewardSource || 
+      (typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login");
+
+    const flush = () => {
+      if (sent) return;
+      sent = true;
+      const duration = Math.max(1, Math.round((Date.now() - start) / 1000));
+      trackAuthModalView(sid, activeSource, duration);
+    };
+
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [isOpen, isCartOrCheckout, authModalOverrides?.rewardSource]);
 
   const handleClose = () => {
     setCurrentStep(initialStep); // releases the success latch
