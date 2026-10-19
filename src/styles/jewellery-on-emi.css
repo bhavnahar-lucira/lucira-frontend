@@ -46,13 +46,13 @@
   background: #FAF6F4;
   border: 1px solid #EBE1D7;
   border-radius: 10px;
-  padding: 16px 18px;
-  box-shadow: 0 2px 12px -2px rgba(90, 65, 63, 0.06);
+  padding: 24px;
+  box-shadow: 0 4px 20px -4px rgba(90, 65, 63, 0.07);
 }
 
 @media (min-width: 1024px) {
   .emi-calculator-card {
-    padding: 18px 20px;
+    padding: 28px;
   }
 }
 
@@ -149,7 +149,7 @@
 .jewellery-emi-dynamic-hero .hero .lead {
   font-family: var(--font-abhaya), serif;
   font-size: 26px;
-  font-weight: 600;
+  font-weight: 700;
   color: #2B2523;
   line-height: 1.25;
   margin-bottom: 16px;
@@ -169,11 +169,9 @@
   margin: 0 0 4px;
 }
 
-.jewellery-emi-dynamic-hero .hero > p strong,
-.jewellery-emi-dynamic-hero b,
-.jewellery-emi-dynamic-hero strong {
+.jewellery-emi-dynamic-hero .hero > p strong {
   color: #222222;
-  font-weight: 600 !important;
+  font-weight: 600;
 }
 
 .jewellery-emi-dynamic-hero .hero a:not(.btn):not(.btn-p):not(.btn-s),
@@ -295,72 +293,11 @@
   display: block;
   font-family: var(--font-abhaya), serif;
   font-size: 22px;
-  font-weight: 600;
   color: #5A413F;
   line-height: 1;
 }
 
 .jewellery-emi-dynamic-hero .fact span {
-  display: block;
-  font-family: var(--font-figtree), sans-serif;
-  font-size: 12px;
-  color: #71717A;
-  margin-top: 4px;
-  font-weight: 500;
-}
-
-/* Full Width Facts Section below Hero & Calculator */
-.jewellery-emi-facts-fullwidth {
-  width: 100%;
-}
-
-.jewellery-emi-facts-fullwidth p {
-  font-family: var(--font-figtree), sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: #3D2B28;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.jewellery-emi-facts-fullwidth .facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-@media (min-width: 768px) {
-  .jewellery-emi-facts-fullwidth .facts {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-  }
-}
-
-.jewellery-emi-facts-fullwidth .fact {
-  background: #FFFFFF;
-  border: 1px solid #EBE1D7;
-  border-radius: 8px;
-  padding: 16px 14px;
-  text-align: center;
-  box-shadow: 0 1px 3px rgba(90, 65, 63, 0.03);
-  transition: border-color 0.2s ease;
-}
-
-.jewellery-emi-facts-fullwidth .fact:hover {
-  border-color: #5A413F;
-}
-
-.jewellery-emi-facts-fullwidth .fact b {
-  display: block;
-  font-family: var(--font-abhaya), serif;
-  font-size: 22px;
-  font-weight: 600;
-  color: #5A413F;
-  line-height: 1.2;
-}
-
-.jewellery-emi-facts-fullwidth .fact span {
   display: block;
   font-family: var(--font-figtree), sans-serif;
   font-size: 12px;
