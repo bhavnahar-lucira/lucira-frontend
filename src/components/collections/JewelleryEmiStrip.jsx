@@ -204,16 +204,6 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
     }
   };
 
-  // Sync if settings change
-  useEffect(() => {
-    if (calc.defaultValue && totalAmount === 75000) {
-      handleJewelryValueChange(calc.defaultValue, true);
-    }
-    if (calc.defaultTenure && tenure === 6) {
-      setTenure(calc.defaultTenure);
-      setCustomTenureInput(String(calc.defaultTenure));
-    }
-  }, [calc]);
 
   // Total Interest for custom interest rates
   const totalInterest = useMemo(() => {
@@ -237,6 +227,14 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
   const formatINR = (val) => {
     return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(val);
   };
+
+  // The hero lives in the Shopify collection description; dashboard settings / defaults are the fallback.
+  // The hero div ends right before the next HTML comment, the TOC nav or the first section.
+  const legacyHeroHtml = useMemo(() => {
+    if (!descriptionHtml || typeof descriptionHtml !== "string") return null;
+    const match = descriptionHtml.match(/<div class="hero">[\s\S]*?<\/div>\s*(?=<!--|<nav class="toc"|<section|$)/i);
+    return match ? match[0] : null;
+  }, [descriptionHtml]);
 
   const isHeroEnabled = settings.hero.enabled !== false;
   const activeFacts = (settings.facts || []).filter((f) => f.enabled !== false);
