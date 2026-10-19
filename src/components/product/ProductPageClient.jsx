@@ -1377,12 +1377,8 @@ export default function ProductPageClient({
         // Desktop visibility logic:
         const isMainInView = mainRect.top < window.innerHeight && mainRect.bottom > 0;
         const isPastMain = currentScroll > mainAbsoluteTop + mainHeight - (window.innerHeight * 0.1);
-        const isPastReviews = reviewsRect ? reviewsRect.top < window.innerHeight : false;
 
-        if (isPastReviews) {
-          setShowTopAtc(false);
-          setShowBottomAtc(false);
-        } else if (isMainInView) {
+        if (isMainInView) {
           setShowTopAtc(false);
           setShowBottomAtc(false);
         } else if (isPastMain) {
