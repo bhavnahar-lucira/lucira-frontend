@@ -9,7 +9,7 @@ const collections = [
   { name: 'Necklace', url: '/collections/necklaces', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Pendant_jpg_5f30e325-3874-4403-b865-9206d541e1d5_120x120_crop_center.jpg' },
   { name: 'Hexa', url: '/collections/hexa', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Hexa_jpg_120x120_crop_center.jpg' },
   { name: 'On the Move', url: '/collections/sports-collection', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Bezel_Green_BG_V4_120x120_crop_center.jpg' },
-  { name: 'Fast Shipping', url: '/collections/fast-shipping', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Fast_Shipping_jpg_120x120_crop_center.jpg' },
+  { name: 'Fast Shipping', url: '/collections/lucira-express', img: 'https://luciraonline.myshopify.com/cdn/shop/files/Fast_Shipping_jpg_120x120_crop_center.jpg' },
   { name: "Men's", url: '/collections/mens-jewelry', img: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Men_s_Jewelry_icon_9576cc14-952d-4a29-8b11-727590dc1473.png?v=1787826080' },
   { name: 'Mangalsutra', url: '/collections/mangalsutra', img: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mangalsutra_icon_1.png?v=1787826083' },
   { name: '9KT Collection', url: '/collections/9kt-collection', img: 'https://luciraonline.myshopify.com/cdn/shop/files/9KT_jpg_120x120_crop_center.jpg' },

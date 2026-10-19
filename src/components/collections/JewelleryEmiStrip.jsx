@@ -102,31 +102,25 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
   const calc = settings.calculator;
 
   // Calculator state
-  const [totalAmount, setTotalAmount] = useState(calc.defaultValue || 75000);
+  const gstPercent = 3;
+  const initialDefaultVal = calc.defaultValue || 75000;
+  const initialPreTax = Math.round(initialDefaultVal / (1 + gstPercent / 100));
+  const initialDown = Math.round((initialDefaultVal * 20) / 100);
+  const initialMaking = Math.round(((initialPreTax * 0.08) / 100)) * 100;
+  const initialDiamond = Math.max(0, initialPreTax - initialDown - initialMaking);
+
+  const [diamondAmount, setDiamondAmount] = useState(initialDiamond);
   const [tenure, setTenure] = useState(calc.defaultTenure || 6);
 
-  // Making charges: FREE (0) by default, or a custom rupee amount so the
-  // calculator can mirror a product's price breakup exactly.
-  const [customMakingChargesInput, setCustomMakingChargesInput] = useState(
-    // Making charges can't be zero, so start from a typical figure: 8% of the
-    // default jewelry value before GST (rounded to ₹100). Shoppers overwrite
-    // it with the product's own making charges.
-    String(Math.round((((calc.defaultValue || 75000) / 1.03) * 0.08) / 100) * 100)
-  );
+  // Making charges: Rupee amount entered by user
+  const [customMakingChargesInput, setCustomMakingChargesInput] = useState(String(initialMaking));
 
-  // GST is fixed at the 3% government rate; there is no 0% option.
-  const gstPercent = 3;
-
-  // Down payment is a rupee amount the shopper types (no percentage presets;
-  // any options sent from the dashboard are ignored). Starts at 20% of the
-  // default jewelry value.
-  const [customDownPaymentInput, setCustomDownPaymentInput] = useState(
-    String(Math.round(((calc.defaultValue || 75000) * 20) / 100))
-  );
+  // Down payment is a rupee amount the shopper types
+  const [customDownPaymentInput, setCustomDownPaymentInput] = useState(String(initialDown));
 
   // Custom amount state (when user wants to enter custom jewelry value)
   const [isCustomAmount, setIsCustomAmount] = useState(false);
-  const [customAmountInput, setCustomAmountInput] = useState(String(calc.defaultValue || 75000));
+  const [customAmountInput, setCustomAmountInput] = useState(String(initialDefaultVal));
 
   // Custom tenure state (when user wants to enter custom months)
   const [isCustomTenure, setIsCustomTenure] = useState(false);
@@ -137,67 +131,40 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
   const [isCustomInterest, setIsCustomInterest] = useState(false);
   const [customInterestInput, setCustomInterestInput] = useState("0");
 
-  // Sync if settings change
-  useEffect(() => {
-    if (calc.defaultValue && totalAmount === 75000) {
-      setTotalAmount(calc.defaultValue);
-      setCustomAmountInput(String(calc.defaultValue));
-    }
-    if (calc.defaultTenure && tenure === 6) {
-      setTenure(calc.defaultTenure);
-      setCustomTenureInput(String(calc.defaultTenure));
-    }
-  }, [calc]);
-
-  // The hero lives in the Shopify collection description; dashboard settings / defaults are the fallback.
-  // The hero div ends right before the next HTML comment, the TOC nav or the first section.
-  const legacyHeroHtml = useMemo(() => {
-    if (!descriptionHtml || typeof descriptionHtml !== "string") return null;
-    const match = descriptionHtml.match(/<div class="hero">[\s\S]*?<\/div>\s*(?=<!--|<nav class="toc"|<section|$)/i);
-    return match ? match[0] : null;
-  }, [descriptionHtml]);
-
   // Calculations
   const downPaymentAmount = useMemo(() => {
     const amt = parseInt(customDownPaymentInput, 10);
-    return Math.min(totalAmount, Math.max(0, isNaN(amt) ? 0 : amt));
-  }, [totalAmount, customDownPaymentInput]);
+    return Math.max(0, isNaN(amt) ? 0 : amt);
+  }, [customDownPaymentInput]);
 
-  // Share of the jewelry value the down payment covers (shown next to the amount).
-  const downPaymentSharePercent = totalAmount > 0 ? Math.round((downPaymentAmount / totalAmount) * 100) : 0;
+  const makingChargesAmount = useMemo(() => {
+    const amt = parseInt(customMakingChargesInput, 10);
+    return Math.max(0, isNaN(amt) ? 0 : amt);
+  }, [customMakingChargesInput]);
+
+  // Pre-tax subtotal = Down Payment (Gold) + Diamond Component + Making Charges
+  const preTaxSubtotal = useMemo(() => {
+    return downPaymentAmount + diamondAmount + makingChargesAmount;
+  }, [downPaymentAmount, diamondAmount, makingChargesAmount]);
+
+  // GST (3% govt standard for jewelry in India)
+  const gstAmount = useMemo(() => {
+    if (gstPercent <= 0) return 0;
+    return Math.round(preTaxSubtotal * (gstPercent / 100));
+  }, [preTaxSubtotal, gstPercent]);
 
   // Total Financed Amount under 0% EMI (covers Diamond + Making Charges + GST)
   const financedAmount = useMemo(() => {
-    return Math.max(0, totalAmount - downPaymentAmount);
-  }, [totalAmount, downPaymentAmount]);
+    return Math.max(0, diamondAmount + makingChargesAmount + gstAmount);
+  }, [diamondAmount, makingChargesAmount, gstAmount]);
 
-  // Pre-tax subtotal & GST (3% govt standard for jewelry in India)
-  const preTaxSubtotal = useMemo(() => {
-    if (gstPercent <= 0) return totalAmount;
-    return Math.round(totalAmount / (1 + gstPercent / 100));
-  }, [totalAmount, gstPercent]);
+  // Total jewelry value = Gold down payment + Financed amount
+  const totalAmount = useMemo(() => {
+    return downPaymentAmount + financedAmount;
+  }, [downPaymentAmount, financedAmount]);
 
-  const gstAmount = useMemo(() => {
-    if (gstPercent <= 0) return 0;
-    return Math.max(0, totalAmount - preTaxSubtotal);
-  }, [totalAmount, preTaxSubtotal, gstPercent]);
-
-  // Making charges calculation
-  // Entered in rupees; capped so the diamond component (financed amount minus
-  // making charges minus GST) never goes negative.
-  const makingChargesAmount = useMemo(() => {
-    const amt = parseInt(customMakingChargesInput, 10);
-    const cap = Math.max(0, financedAmount - gstAmount);
-    return Math.min(cap, Math.max(0, isNaN(amt) ? 0 : amt));
-  }, [customMakingChargesInput, financedAmount, gstAmount]);
-
-  // Diamond component (eligible financed diamond value)
-  const diamondAmount = useMemo(() => {
-    // Total Financed Amount = Diamond + Making Charges + GST
-    // Diamond = Financed Amount - Making Charges - GST
-    const diamondVal = financedAmount - makingChargesAmount - gstAmount;
-    return Math.max(0, diamondVal);
-  }, [financedAmount, makingChargesAmount, gstAmount]);
+  // Share of the jewelry value the down payment covers (shown next to the amount).
+  const downPaymentSharePercent = totalAmount > 0 ? Math.round((downPaymentAmount / totalAmount) * 100) : 0;
 
   // Monthly EMI (supports 0-cost and custom annual interest rate)
   const monthlyEmi = useMemo(() => {
@@ -209,6 +176,44 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
     const emi = (financedAmount * r * Math.pow(1 + r, tenure)) / (Math.pow(1 + r, tenure) - 1);
     return Math.round(emi);
   }, [financedAmount, tenure, interestRate]);
+
+  const handleJewelryValueChange = (newTotal, fromPreset = false) => {
+    const preTax = Math.round(newTotal / (1 + gstPercent / 100));
+    const downAmt = Math.round((newTotal * 20) / 100);
+    const makingAmt = Math.round(((preTax * 0.08) / 100)) * 100;
+    const diaAmt = Math.max(0, preTax - downAmt - makingAmt);
+
+    setCustomDownPaymentInput(String(downAmt));
+    setCustomMakingChargesInput(String(makingAmt));
+    setDiamondAmount(diaAmt);
+    setCustomAmountInput(String(newTotal));
+    if (fromPreset) {
+      setIsCustomAmount(false);
+    }
+  };
+
+  const handleCustomJewelryValueInput = (val) => {
+    setCustomAmountInput(val);
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num > 0) {
+      const preTax = Math.round(num / (1 + gstPercent / 100));
+      const curDown = parseInt(customDownPaymentInput, 10) || Math.round(num * 0.2);
+      const curMaking = parseInt(customMakingChargesInput, 10) || 0;
+      const diaAmt = Math.max(0, preTax - curDown - curMaking);
+      setDiamondAmount(diaAmt);
+    }
+  };
+
+  // Sync if settings change
+  useEffect(() => {
+    if (calc.defaultValue && totalAmount === 75000) {
+      handleJewelryValueChange(calc.defaultValue, true);
+    }
+    if (calc.defaultTenure && tenure === 6) {
+      setTenure(calc.defaultTenure);
+      setCustomTenureInput(String(calc.defaultTenure));
+    }
+  }, [calc]);
 
   // Total Interest for custom interest rates
   const totalInterest = useMemo(() => {
@@ -401,12 +406,8 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                   value={Math.min(calc.maxValue || 300000, Math.max(calc.minValue || 50000, totalAmount))}
                   onChange={(e) => {
                     const val = Number(e.target.value);
-                    setTotalAmount(val);
-                    setCustomAmountInput(String(val));
                     const isPreset = (calc.presetAmounts || []).includes(val);
-                    if (isPreset) {
-                      setIsCustomAmount(false);
-                    }
+                    handleJewelryValueChange(val, isPreset);
                   }}
                   className="emi-slider w-full"
                 />
@@ -417,9 +418,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                       key={amt}
                       type="button"
                       onClick={() => {
-                        setTotalAmount(amt);
-                        setIsCustomAmount(false);
-                        setCustomAmountInput(String(amt));
+                        handleJewelryValueChange(amt, true);
                       }}
                       className={`text-xs px-3 py-1.5 rounded-[6px] border font-figtree transition-all cursor-pointer ${
                         !isCustomAmount && totalAmount === amt
@@ -461,8 +460,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                         onClick={() => {
                           const step = calc.stepValue || 5000;
                           const nextVal = Math.max(1000, totalAmount - step);
-                          setTotalAmount(nextVal);
-                          setCustomAmountInput(String(nextVal));
+                          handleJewelryValueChange(nextVal);
                         }}
                         className="w-7 h-7 rounded border border-[#EBE1D7] text-zinc-700 hover:bg-zinc-100 font-bold flex items-center justify-center text-sm cursor-pointer"
                         title="Decrease by ₹5,000"
@@ -478,14 +476,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                           step={calc.stepValue || 5000}
                           value={customAmountInput}
                           placeholder="50000"
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setCustomAmountInput(val);
-                            const num = parseInt(val, 10);
-                            if (!isNaN(num) && num > 0) {
-                              setTotalAmount(num);
-                            }
-                          }}
+                          onChange={(e) => handleCustomJewelryValueInput(e.target.value)}
                           className="w-28 h-7 pl-6 pr-2 font-bold text-xs text-[#5A413F] border border-[#EBE1D7] rounded focus:outline-none focus:border-[#5A413F]"
                         />
                       </div>
@@ -494,8 +485,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                         onClick={() => {
                           const step = calc.stepValue || 5000;
                           const nextVal = totalAmount + step;
-                          setTotalAmount(nextVal);
-                          setCustomAmountInput(String(nextVal));
+                          handleJewelryValueChange(nextVal);
                         }}
                         className="w-7 h-7 rounded border border-[#EBE1D7] text-zinc-700 hover:bg-zinc-100 font-bold flex items-center justify-center text-sm cursor-pointer"
                         title="Increase by ₹5,000"
