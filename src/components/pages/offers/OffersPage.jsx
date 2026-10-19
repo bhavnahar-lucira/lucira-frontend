@@ -232,7 +232,7 @@ export default function OffersPage({ initialSettings }) {
   };
 
   return (
-    <div className="w-full bg-white min-h-screen">
+    <div className="w-full bg-white min-h-[auto] md:min-h-screen">
       {/* ─── Hero Banner ────────────────────────────────────────── */}
       {heroBanner.enabled !== false && (
         <section className="w-full relative overflow-hidden bg-[#C5A07E]">

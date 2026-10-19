@@ -22,6 +22,7 @@ import { mergeCart, getSessionId } from "@/redux/features/cart/cartSlice";
 import { pushLogin, pushSignup } from "@/lib/gtm";
 import { toE164, cleanPhoneInput } from "@/lib/phone";
 import { trackSignupSuccess } from "@/lib/signupExperiment";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 const SPIN_PRIZES = [
   { label: "₹1,500 OFF", value: "1500_off", chance: 33.33 },
@@ -107,6 +108,7 @@ export function OtpSpinAuth({
   const experimentTags = experimentVariant
     ? { tags: `signup_${experimentVariant}, signup_popup_${experimentDevice || "mobile"}` }
     : {};
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const pathname = usePathname();
   const dispatch = useDispatch();
   const controls = useAnimation();
@@ -650,10 +652,11 @@ export function OtpSpinAuth({
     setTimeout(() => setCouponCopied(false), 2000);
   };
 
-  const showWheel = step === "register" || forceShowWheel;
+  // Wheel is desktop-only; mobile signup uses 100% Scratch Card (unless QA forced spin_wheel)
+  const showWheel = (!isMobile || experimentVariant === "spin_wheel") && (step === "register" || forceShowWheel);
 
   // Custom animation for mobile
-  const isMobileView = useMemo(() => typeof window !== "undefined" && window.innerWidth < 768, []);
+  const isMobileView = isMobile;
 
   return (
     <div 
