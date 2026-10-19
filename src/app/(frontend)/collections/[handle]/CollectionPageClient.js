@@ -600,6 +600,24 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     }
   }, [collectionData, collection?.descriptionHtml]);
 
+  // Ensure all tables in PLP HTML have horizontal scroll wrappers (overflow-x: auto)
+  const formattedDescriptionHtml = useMemo(() => {
+    if (!collection?.descriptionHtml || typeof collection.descriptionHtml !== "string") {
+      return "";
+    }
+    const html = collection.descriptionHtml;
+    return html.replace(
+      /(<div[^>]*class=["'][^"']*(?:tw|table-scroll-wrapper|overflow-x)[^"']*["'][^>]*>[\s\S]*?<\/div>)|(<table[\s\S]*?<\/table>)/gi,
+      (match, alreadyWrapped, rawTable) => {
+        if (alreadyWrapped) return alreadyWrapped;
+        if (rawTable) {
+          return `<div class="tw table-scroll-wrapper overflow-x-auto max-w-full w-full my-6 rounded-lg border border-[#EADFD8] bg-white shadow-sm" style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;width:100%;display:block;">${rawTable}</div>`;
+        }
+        return match;
+      }
+    );
+  }, [collection?.descriptionHtml]);
+
   const [dbCollection, setDbCollection] = useState(null);
   const [isProfileComplete, setIsProfileComplete] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -1916,8 +1934,8 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         // if (!hasFaq && !hasBestsellers && !hasSeo) return null;
 
         return (
-          <div className="seo-content container-main py-10 md:py-16 border-t border-gray-100">
-            <div className="w-full px-2 lg:px-6">
+          <div className="seo-content container-main py-10 md:py-16 border-t border-gray-100 max-w-full min-w-0">
+            <div className="w-full max-w-full min-w-0 px-2 lg:px-6">
               <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
                 {/* Bestseller Products (SEO Links) */}
                 {hasBestsellers && (
@@ -2019,10 +2037,13 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
 
               {/* SEO Section */}
               {collection?.descriptionHtml && (
-                <div className={`mt-8 border-t pt-10 ${handle === "jewellery-on-emi" ? "jewellery-emi-content border-[#EADFD8]" : "border-gray-100"}`}>
+                <div className={`mt-8 border-t pt-10 max-w-full min-w-0 overflow-hidden ${handle === "jewellery-on-emi" ? "jewellery-emi-content border-[#EADFD8]" : "border-gray-100"}`}>
                   <div
                     className={`
         w-full
+        max-w-full
+        min-w-0
+        overflow-hidden
 
         [&_h1]:text-2xl
         [&_h1]:font-bold
@@ -2121,7 +2142,27 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         [&_blockquote]:text-sm
 
         [&_hr]:my-8
-        [&_hr]:border-gray-100
+        [&_.tw]:block
+        [&_.tw]:w-full
+        [&_.tw]:max-w-full
+        [&_.tw]:overflow-x-auto
+        [&_.tw]:my-6
+        [&_.tw]:rounded-lg
+        [&_.tw]:border
+        [&_.tw]:border-gray-200
+        [&_.tw]:bg-white
+        [&_.tw]:shadow-sm
+
+        [&_.table-scroll-wrapper]:block
+        [&_.table-scroll-wrapper]:w-full
+        [&_.table-scroll-wrapper]:max-w-full
+        [&_.table-scroll-wrapper]:overflow-x-auto
+        [&_.table-scroll-wrapper]:my-6
+        [&_.table-scroll-wrapper]:rounded-lg
+        [&_.table-scroll-wrapper]:border
+        [&_.table-scroll-wrapper]:border-gray-200
+        [&_.table-scroll-wrapper]:bg-white
+        [&_.table-scroll-wrapper]:shadow-sm
 
         [&_table]:block
         [&_table]:w-full
@@ -2134,6 +2175,20 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         [&_table]:shadow-sm
         [&_table]:border
         [&_table]:border-gray-200
+
+        [&_.tw_table]:!table
+        [&_.tw_table]:!w-full
+        [&_.tw_table]:!min-w-[500px]
+        [&_.tw_table]:!my-0
+        [&_.tw_table]:!border-0
+        [&_.tw_table]:!shadow-none
+
+        [&_.table-scroll-wrapper_table]:!table
+        [&_.table-scroll-wrapper_table]:!w-full
+        [&_.table-scroll-wrapper_table]:!min-w-[500px]
+        [&_.table-scroll-wrapper_table]:!my-0
+        [&_.table-scroll-wrapper_table]:!border-0
+        [&_.table-scroll-wrapper_table]:!shadow-none
 
         [&_th]:whitespace-nowrap
         [&_td]:whitespace-nowrap
@@ -2217,7 +2272,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         [&_pre]:text-xs
         [&_pre]:text-gray-700
       `}
-                    dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
+                    dangerouslySetInnerHTML={{ __html: formattedDescriptionHtml }}
                   />
                 </div>
               )}

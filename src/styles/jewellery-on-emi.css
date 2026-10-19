@@ -377,10 +377,14 @@
 
 .jewellery-emi-content {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .jewellery-emi-content .emi-hub {
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 16px 0 64px;
   color: #2B2523;
@@ -632,16 +636,26 @@
   font-size: 14px;
 }
 
-/* Tables */
-.jewellery-emi-content .emi-hub .tw {
-  overflow-x: auto;
+/* Tables with horizontal scroll */
+.jewellery-emi-content .emi-hub .tw,
+.jewellery-emi-content .emi-hub .table-scroll-wrapper,
+.jewellery-emi-content .tw,
+.jewellery-emi-content .table-scroll-wrapper {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   margin: 20px 0;
   border-radius: 12px;
   border: 1px solid #EADFD8;
+  background: #FFFFFF;
 }
 
-.jewellery-emi-content .emi-hub table {
+.jewellery-emi-content .emi-hub table,
+.jewellery-emi-content table {
   width: 100%;
+  min-width: 520px;
   border-collapse: collapse;
   font-size: 14px;
   background: #FFFFFF;
@@ -881,24 +895,47 @@
   margin: 6px 0;
 }
 
-/* Tables: generic description styles shrink-wrap tables and double the border; reset them */
-.jewellery-emi-content .emi-hub .tw {
-  overflow-x: auto;
+/* Tables: ensure responsive overflow-x scrolling across all tables */
+.jewellery-emi-content .emi-hub .tw,
+.jewellery-emi-content .emi-hub .table-scroll-wrapper,
+.jewellery-emi-content .tw,
+.jewellery-emi-content .table-scroll-wrapper {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   margin: 18px 0 22px;
   border: 1px solid #EADFD8;
   border-radius: 10px;
   background: #FFFFFF;
 }
 
-.jewellery-emi-content .emi-hub table {
-  display: table;
-  width: 100%;
+.jewellery-emi-content .emi-hub table,
+.jewellery-emi-content table {
+  display: table !important;
+  width: 100% !important;
+  min-width: 520px;
   margin: 0;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+
+/* Fallback for any unwrapped table */
+.jewellery-emi-content .emi-hub > table:not(.tw table):not(.table-scroll-wrapper table),
+.jewellery-emi-content section > table:not(.tw table):not(.table-scroll-wrapper table) {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  margin: 18px 0 22px;
+  border: 1px solid #EADFD8;
+  border-radius: 10px;
+  background: #FFFFFF;
 }
 
 .jewellery-emi-content .emi-hub th,
