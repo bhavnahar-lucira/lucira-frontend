@@ -200,11 +200,32 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
   const legacyHeroHtml = useMemo(() => {
     if (!descriptionHtml || typeof descriptionHtml !== "string") return null;
     const match = descriptionHtml.match(/<div class="hero">[\s\S]*?<\/div>\s*(?=<!--|<nav class="toc"|<section|$)/i);
-    return match ? match[0] : null;
+    if (!match) return null;
+    let html = match[0];
+    html = html
+      .replace(/<p>\s*(?:&nbsp;|<br\s*\/?>)?\s*<\/p>/gi, "")
+      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, "<br/>")
+      .replace(/Gold\s+As\s+DP\b/gi, "Gold as Downpayment")
+      .replace(/\bAs\s+DP\b/gi, "as Downpayment")
+      .replace(/\bDP\b/g, "Downpayment")
+      .replace(/Gold Component as Down\b(?!\s*payment|\s*Payment)/gi, "Gold Component as Downpayment")
+      .replace(/\bas Down\b(?!\s*payment|\s*Payment)/gi, "as Downpayment")
+      .replace(/Chages\b/gi, "Charges");
+    return html;
   }, [descriptionHtml]);
 
   const isHeroEnabled = settings.hero.enabled !== false;
-  const activeFacts = (settings.facts || []).filter((f) => f.enabled !== false);
+  const activeFacts = (settings.facts || []).filter((f) => f.enabled !== false).map((f) => ({
+    ...f,
+    title: (f.title || "")
+      .replace(/Gold\s+As\s+DP\b/gi, "Gold as Downpayment")
+      .replace(/\bAs\s+DP\b/gi, "as Downpayment")
+      .replace(/\bDP\b/g, "Downpayment"),
+    subtitle: (f.subtitle || "")
+      .replace(/Gold Component as Down\b(?!\s*payment|\s*Payment)/gi, "Gold Component as Downpayment")
+      .replace(/\bas Down\b(?!\s*payment|\s*Payment)/gi, "as Downpayment")
+      .replace(/Chages\b/gi, "Charges")
+  }));
   const activeButtons = (settings.hero.buttons || []).filter((b) => b.enabled !== false);
 
   return (
@@ -310,7 +331,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
           {/* Right Column (or centered when no hero): Spacious, Elegant EMI Calculator */}
           <div className={isHeroEnabled ? "lg:col-span-5" : "w-full"} id="calculator">
-            <div className="bg-[#FAF6F4] border border-[#EBE1D7] rounded-[10px] p-6 lg:p-7 shadow-[0_4px_24px_-4px_rgba(90,65,63,0.07)]">
+            <div className="bg-[#FAF6F4] rounded-[10px] p-6 lg:p-7">
 
               {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-[#EBE1D7]">
@@ -323,7 +344,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                   </p>
                 </div>
                 {/* Interest Badge */}
-                <div className="rounded-[4px] bg-[#EAF7EE] text-[#00A63E] border border-[#B8DAB6] text-[11px] font-semibold px-2.5 py-1 font-figtree uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                <div className="rounded-[4px] bg-[#EAF7EE] text-[#00A63E] border border-[#B8DAB6] text-[11px] font-semibold px-2.5 py-1 font-figtree uppercase tracking-wider flex items-center gap-1.5">
                   <span>{calc.interestBadge || "0% Interest"}</span>
                 </div>
               </div>
@@ -332,7 +353,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
               <div className="mt-5 space-y-3">
                 <div className="flex items-center justify-between font-figtree">
                   <span className="text-[13px] font-medium text-zinc-700">Jewelry Value</span>
-                  <span className="text-[18px] font-bold text-[#5A413F]">
+                  <span className="text-[13px] font-semibold text-[#5A413F]">
                     ₹{formatINR(totalAmount)} {isCustomAmount && <span className="text-xs font-normal text-zinc-400">(Custom)</span>}
                   </span>
                 </div>
@@ -348,7 +369,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                     const isPreset = (calc.presetAmounts || []).includes(val);
                     handleJewelryValueChange(val, isPreset);
                   }}
-                  className="emi-slider w-full"
+                  className="emi-slider w-full mb-5"
                 />
 
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -361,7 +382,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                       }}
                       className={`text-xs px-3 py-1.5 rounded-[6px] border font-figtree transition-all cursor-pointer ${
                         !isCustomAmount && totalAmount === amt
-                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
+                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold"
                           : "bg-white text-zinc-700 border-[#EBE1D7] hover:border-[#5A413F]"
                       }`}
                     >
@@ -378,7 +399,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                     }}
                     className={`text-xs px-3 py-1.5 rounded-[6px] border font-figtree transition-all cursor-pointer ${
                       isCustomAmount
-                        ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
+                        ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold"
                         : "bg-white text-[#5A413F] border-[#5A413F]/40 hover:border-[#5A413F] hover:bg-[#FAF6F4]"
                     }`}
                     title="Enter custom jewelry value"
@@ -389,7 +410,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
                 {/* Custom Amount Input Panel */}
                 {isCustomAmount && (
-                  <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 shadow-xs transition-all">
+                  <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 transition-all">
                     <span className="text-xs font-medium text-zinc-600 font-figtree">
                       Enter amount:
                     </span>
@@ -447,7 +468,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
                 {/* Down Payment amount input (the only way to set it) */}
                 {(
-                  <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 shadow-xs transition-all">
+                  <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 transition-all">
                     <span className="text-xs font-medium text-zinc-600 font-figtree">
                       Enter amount:
                     </span>
@@ -504,24 +525,19 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                   </span>
                 </div>
 
-                <div
-                  className="grid gap-2"
-                  style={{
-                    gridTemplateColumns: `repeat(${calc.tenures.length}, minmax(0, 1fr))`
-                  }}
-                >
+                <div className="flex flex-wrap gap-2">
                   {calc.tenures.map((t) => (
                     <button
                       key={t}
                       type="button"
                       onClick={() => setTenure(t)}
-                      className={`h-[40px] rounded-[6px] border font-figtree transition-all cursor-pointer flex items-center justify-center ${
+                      className={`text-xs px-4 py-1.5 rounded-[6px] border font-figtree transition-all cursor-pointer ${
                         tenure === t
-                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
+                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold"
                           : "bg-white text-zinc-700 border-[#EBE1D7] hover:border-[#5A413F]"
                       }`}
                     >
-                      <span className="text-[13px] font-bold">{t} Mo</span>
+                      {t} Months
                     </button>
                   ))}
                 </div>
@@ -542,7 +558,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                 </div>
 
                 {/* Making charges amount (the only way to set it) */}
-                <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 shadow-xs transition-all">
+                <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 transition-all">
                   <span className="text-xs font-medium text-zinc-600 font-figtree">
                     Enter amount:
                   </span>
@@ -579,23 +595,31 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                 </div>
               </div>
 
-              {/* 6. Results Card (Checkout Summary Breakdown Style) */}
-              <div className="mt-5 bg-white border border-[#EBE1D7] rounded-[8px] p-4 space-y-3 font-figtree shadow-xs">
-                <div className="flex justify-between items-baseline">
-                  <span className="text-[13px] font-medium text-zinc-600">Monthly Installment</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-[24px] font-bold text-[#5A413F] leading-none">
-                      ₹{formatINR(monthlyEmi)}
+              {/* 5. Results Card (Checkout Summary Breakdown Style) */}
+              <div className="mt-5 bg-white border border-[#EBE1D7] rounded-[10px] p-3.5 space-y-3 font-figtree">
+                {/* Monthly Installment Highlight Box */}
+                <div className="bg-[#FAF6F4] rounded-[8px] p-3 border border-[#EBE1D7]/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#5A413F]/80 block">
+                      Monthly Installment
                     </span>
-                    <span className="text-xs text-zinc-500 font-medium">/ month</span>
+                    <span className="text-[11.5px] text-zinc-500 font-medium">For {tenure} months at 0% interest</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-baseline justify-end gap-1">
+                      <span className="text-[18px] font-bold text-[#5A413F] tracking-tight leading-none">
+                        ₹{formatINR(monthlyEmi)}
+                      </span>
+                      <span className="text-[11px] text-zinc-500 font-medium">/ month</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="pt-2.5 border-t border-[#EBE1D7] space-y-2 text-xs">
+                <div className="space-y-2 pt-0.5 text-xs">
                   {/* Financed Amount Row & Badge */}
-                  <div className="flex justify-between items-center text-zinc-700">
+                  <div className="flex justify-between items-center text-zinc-800">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-zinc-800">Financed on No Cost EMI:</span>
+                      <span className="font-semibold text-[12.5px] text-zinc-800">Financed on No Cost EMI:</span>
                       <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
                         0% Interest
                       </span>
@@ -603,21 +627,19 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                     <span className="font-bold text-[#5A413F] text-[13px]">₹{formatINR(financedAmount)}</span>
                   </div>
 
-                  {/* Itemized Components included in EMI */}
-                  <div className="ml-2 pl-2.5 border-l-2 border-[#5A413F]/25 space-y-1 text-[11.5px] text-zinc-600">
+                  {/* Itemized Components included in EMI (Clean Inset Box) */}
+                  <div className="bg-[#FAF6F4]/60 border border-[#EBE1D7]/70 rounded-[6px] p-2.5 space-y-1.5 text-[11.5px] text-zinc-600">
                     <div className="flex justify-between items-center">
-                      <span>• Diamond Component:</span>
+                      <span>Diamond Component:</span>
                       <span className="font-medium text-zinc-900">₹{formatINR(diamondAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-1">
-                        <span>• Making Charges:</span>
-                      </div>
+                      <span>Making Charges:</span>
                       <span className="font-medium text-zinc-900">₹{formatINR(makingChargesAmount)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-1">
-                        <span>• GST:</span>
+                        <span>GST:</span>
                         {gstPercent === 0 && (
                           <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded uppercase">
                             FREE
@@ -632,14 +654,21 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
                   {/* Gold Down Payment */}
                   <div className="pt-1.5 border-t border-[#EBE1D7]/70 flex justify-between items-center text-zinc-700">
-                    <span className="font-medium">Gold Down Payment ({downPaymentSharePercent}%):</span>
-                    <span className="font-semibold text-zinc-900">₹{formatINR(downPaymentAmount)}</span>
+                    <span className="font-medium text-[12px]">Gold Down Payment ({downPaymentSharePercent}%):</span>
+                    <span className="font-semibold text-zinc-900 text-[12px]">₹{formatINR(downPaymentAmount)}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-[#EBE1D7]/60 flex justify-between items-center text-xs font-medium text-[#00A63E]">
-                  <span>Processing Fee: ₹0</span>
-                  <span>0% Interest EMI</span>
+                {/* Reassuring Trust Pill Footer */}
+                <div className="pt-0.5">
+                  <div className="bg-emerald-50/70 border border-emerald-100 rounded-[6px] py-1.5 px-3 flex items-center justify-between text-[11px] font-semibold text-emerald-800">
+                    <span className="flex items-center gap-1">
+                      <span className="text-emerald-600 font-bold">✓</span> ₹0 Processing Fee
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="text-emerald-600 font-bold">✓</span> 0% Interest EMI
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -647,7 +676,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
               <button
                 type="button"
                 onClick={() => scrollToId(calc.ctaTarget || "products")}
-                className="mt-5 w-full h-[46px] rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree font-medium uppercase tracking-wider text-[13px] flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-sm"
+                className="mt-5 w-full h-[46px] rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree font-medium uppercase tracking-wider text-[13px] flex items-center justify-center gap-2 cursor-pointer transition-colors"
               >
                 <ShoppingBag size={15} />
                 <span>{calc.ctaText || "Explore Eligible Jewelry"}</span>
