@@ -827,14 +827,33 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="absolute inset-0 bg-[#1f1f1f]/[0.92]" aria-hidden="true" />
+      {/* Dark backdrop with click-to-close */}
+      <div 
+        className="absolute inset-0 bg-[#1f1f1f]/[0.92] cursor-pointer" 
+        aria-hidden="true" 
+        onClick={handleClose}
+      />
+
+      {/* Top right close button */}
+      <button
+        type="button"
+        onClick={handleClose}
+        aria-label="Close"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 w-9 h-9 rounded-full bg-white/20 hover:bg-white/35 text-white flex items-center justify-center cursor-pointer z-50 transition-colors"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
 
       {/* Sized from the keyboard-closed height so the card stays put */}
       <div
-        className="absolute z-10 left-0 right-0 top-0 flex flex-col items-center justify-center"
+        className="absolute z-10 left-0 right-0 top-0 flex flex-col items-center justify-center pointer-events-none"
         style={{ height: Math.max(cardSize + 60, baseHeight - 170) }}
       >
-        {card}
+        <div className="pointer-events-auto">
+          {card}
+        </div>
         <AnimatePresence>
           {showTapReveal && !revealed && (
             <motion.button
@@ -843,7 +862,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               onClick={handleScratchComplete}
-              className="absolute bottom-6 bg-transparent border-none text-white/85 underline text-[13px] cursor-pointer"
+              className="pointer-events-auto absolute bottom-6 bg-transparent border-none text-white/85 underline text-[13px] cursor-pointer"
             >
               Tap to reveal instead
             </motion.button>
@@ -857,7 +876,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
         style={{ top: vvBox?.top ?? 0, height: vvBox ? vvBox.height : "100%" }}
       >
         <motion.div
-          className="pointer-events-auto bg-white rounded-t-[20px] px-4 pt-5 pb-[max(16px,env(safe-area-inset-bottom))] overflow-hidden"
+          className="pointer-events-auto bg-white rounded-t-[20px] px-4 pt-5 pb-[max(16px,env(safe-area-inset-bottom))] overflow-hidden sm:max-w-[440px] sm:mx-auto sm:rounded-[20px] sm:mb-6 sm:shadow-2xl sm:w-full"
           initial={reduce ? false : { y: "100%" }}
           animate={{ y: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 30 }}

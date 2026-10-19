@@ -18,6 +18,7 @@ export function GlobalAuthModal() {
       initialStep={authModalOverrides?.initialStep || "login"}
       useCheckoutAuth={authModalOverrides?.useCheckoutAuth}
       forceShowWheel={authModalOverrides?.forceShowWheel}
+      forceShowScratch={authModalOverrides?.forceShowScratch}
     />
   );
 }
