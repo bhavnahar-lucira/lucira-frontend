@@ -26,7 +26,6 @@ export function AuthDialog({
   onSuccess, 
   initialStep = "login",
   forceShowWheel = false,
-  forceShowScratch = false,
   overrideHeading = "",
   overrideSubtext = "",
   overrideButtonText = "",
@@ -98,12 +97,6 @@ export function AuthDialog({
         : defaultSubtitle);
 
   const finalForceShowWheel = forceShowWheel || !!authModalOverrides?.forceShowWheel;
-  const finalForceShowScratch = 
-    forceShowScratch || 
-    !!authModalOverrides?.forceShowScratch ||
-    authModalOverrides?.rewardSource === "scratch_card" ||
-    authModalOverrides?.variant === "scratch" ||
-    (typeof window !== "undefined" && window.location.hash.toLowerCase().includes("scratch"));
 
   const handleClose = () => {
     setCurrentStep(initialStep); // releases the success latch
@@ -135,16 +128,14 @@ export function AuthDialog({
     setCurrentStep(step);
   };
 
-  // Scratch card opens:
-  // 1. Explicitly requested via #scratch-card, forceShowScratch, or rewardSource: "scratch_card" on any device
-  // 2. OR on mobile across promotional/signup flows (100% mobile rollout) unless cart/checkout or QA spin forced
-  const isScratch = 
-    !isCartOrCheckout && (
-      finalForceShowScratch ||
-      (isMobile && (experimentVariant === VARIANT_SCRATCH || (finalForceShowWheel && experimentVariant !== VARIANT_SPIN)))
-    );
+  // On mobile: 100% rollout for Scratch Card across promotional/signup flows
+  // (unless cart/checkout or QA explicitly forced spin_wheel via URL)
+  const isScratchOnMobile = 
+    isMobile && 
+    !isCartOrCheckout && 
+    (experimentVariant === VARIANT_SCRATCH || (finalForceShowWheel && experimentVariant !== VARIANT_SPIN));
 
-  if (isScratch) {
+  if (isScratchOnMobile) {
     return (
       <AnimatePresence>
         {isOpen && <ScratchCardAuth key="scratch-card" onClose={handleClose} onSuccess={handleSuccess} />}

@@ -188,7 +188,7 @@ export default function OffersPage({ initialSettings }) {
     dispatch(
       openAuthModal({
         initialStep: 'register',
-        forceShowScratch: true,
+        forceShowWheel: true,
         rewardSource: 'scratch_card',
       })
     );
