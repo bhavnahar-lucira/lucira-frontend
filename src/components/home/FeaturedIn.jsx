@@ -79,10 +79,12 @@ const LOGOS = [
   }
 ];
 
-// Two rows, each starting from a different point in the list so the same
-// logo is never stacked above itself.
-const ROW_ONE = LOGOS;
-const ROW_TWO = [...LOGOS.slice(5), ...LOGOS.slice(0, 5)];
+// Each publication appears in exactly one row: the first half of the list
+// scrolls on top, the second half below. autoFill repeats each row's own set
+// to cover the width, so a logo loops within its row but never shows in both.
+const HALF = Math.ceil(LOGOS.length / 2);
+const ROW_ONE = LOGOS.slice(0, HALF);
+const ROW_TWO = LOGOS.slice(HALF);
 
 function LogoRow({ logos, direction, rowKey }) {
   return (
