@@ -117,9 +117,23 @@ function LogoRow({ logos, direction, rowKey }) {
   );
 }
 
+// iOS Safari only autoplays a video that is muted and inline, and it reads
+// those as *attributes*. React sets `muted` as a DOM property but never writes
+// the attribute, so Safari sees an unmuted video and refuses to start it.
+// Writing the attributes on the element directly closes that gap.
+function primeForAutoplay(node) {
+  node.muted = true;
+  node.defaultMuted = true;
+  node.setAttribute("muted", "");
+  node.setAttribute("playsinline", "");
+  node.setAttribute("webkit-playsinline", "");
+}
+
 function FeaturedVideo() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const videoRef = useRef(null);
+  const isInViewRef = useRef(false);
+  const loadedSrcRef = useRef(null);
   const [hasBeenInView, setHasBeenInView] = useState(false);
   const [isInView, setIsInView] = useState(false);
 
@@ -137,8 +151,11 @@ function FeaturedVideo() {
     const node = videoRef.current;
     if (!node) return;
 
+    primeForAutoplay(node);
+
     const observer = new IntersectionObserver(
       ([entry]) => {
+        isInViewRef.current = entry.isIntersecting;
         if (entry.isIntersecting) {
           setIsInView(true);
           setHasBeenInView(true);
@@ -155,11 +172,38 @@ function FeaturedVideo() {
   }, []);
 
   useEffect(() => {
-    if (isInView && hasBeenInView && videoRef.current) {
-      videoRef.current.play().catch(() => {
-        // Autoplay may be blocked by the browser; the poster stays visible.
-      });
+    const node = videoRef.current;
+    if (!node || !isInView || !hasBeenInView) return;
+
+    primeForAutoplay(node);
+
+    // The src is attached late (after the section comes into view). Safari
+    // does not always pick a src change up on its own, so reload once per
+    // source before asking it to play.
+    if (loadedSrcRef.current !== videoSrc) {
+      loadedSrcRef.current = videoSrc;
+      node.load();
     }
+
+    const playPromise = node.play();
+    if (!playPromise || typeof playPromise.catch !== "function") return;
+
+    // iOS Low Power Mode blocks every autoplay until the shopper touches the
+    // page; the first touch or tap anywhere is enough to start a muted video.
+    const retry = () => {
+      if (isInViewRef.current) node.play().catch(() => {});
+    };
+    const retryOptions = { once: true, passive: true };
+
+    playPromise.catch(() => {
+      document.addEventListener("touchend", retry, retryOptions);
+      document.addEventListener("click", retry, retryOptions);
+    });
+
+    return () => {
+      document.removeEventListener("touchend", retry, retryOptions);
+      document.removeEventListener("click", retry, retryOptions);
+    };
   }, [isInView, hasBeenInView, videoSrc]);
 
   return (
@@ -171,10 +215,12 @@ function FeaturedVideo() {
         src={hasBeenInView ? videoSrc : null}
         poster={poster || undefined}
         aria-label={MEDIA.alt}
+        autoPlay
         loop
         muted
         playsInline
         preload="none"
+        disablePictureInPicture
         className="absolute inset-0 w-full h-full object-cover object-center block"
       />
     </div>
