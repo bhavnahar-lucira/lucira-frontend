@@ -132,24 +132,31 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
     return Math.round(totalAmount / (1 + gstPercent / 100));
   }, [totalAmount, gstPercent]);
 
-  const gstAmount = useMemo(() => {
-    return Math.max(0, totalAmount - preTaxTotal);
-  }, [totalAmount, preTaxTotal]);
+  const defaultMakingCharges = useMemo(() => {
+    return Math.round(((preTaxTotal * 0.08) / 100)) * 100;
+  }, [preTaxTotal]);
 
   const makingChargesAmount = useMemo(() => {
     const amt = parseInt(customMakingChargesInput, 10);
     return Math.max(0, isNaN(amt) ? 0 : amt);
   }, [customMakingChargesInput]);
 
-  // Diamond component covers the rest of the pre-tax total after Gold and Making Charges
+  // Diamond component covers the base diamond portion (pre-tax total minus Gold and base making charges)
   const diamondAmount = useMemo(() => {
-    return Math.max(0, preTaxTotal - downPaymentAmount - makingChargesAmount);
-  }, [preTaxTotal, downPaymentAmount, makingChargesAmount]);
+    return Math.max(0, preTaxTotal - downPaymentAmount - defaultMakingCharges);
+  }, [preTaxTotal, downPaymentAmount, defaultMakingCharges]);
 
-  // Total Financed Amount under 0% EMI (Total - Gold Down Payment)
+  // GST (3% govt standard for jewelry in India)
+  const gstAmount = useMemo(() => {
+    if (gstPercent <= 0) return 0;
+    const currentPreTax = downPaymentAmount + diamondAmount + makingChargesAmount;
+    return Math.round(currentPreTax * (gstPercent / 100));
+  }, [downPaymentAmount, diamondAmount, makingChargesAmount, gstPercent]);
+
+  // Total Financed Amount under 0% EMI (covers Diamond + Making Charges + GST)
   const financedAmount = useMemo(() => {
-    return Math.max(0, totalAmount - downPaymentAmount);
-  }, [totalAmount, downPaymentAmount]);
+    return Math.max(0, diamondAmount + makingChargesAmount + gstAmount);
+  }, [diamondAmount, makingChargesAmount, gstAmount]);
 
   // Share of the jewelry value the down payment covers (shown next to the amount).
   const downPaymentSharePercent = totalAmount > 0 ? Math.round((downPaymentAmount / totalAmount) * 100) : 0;
