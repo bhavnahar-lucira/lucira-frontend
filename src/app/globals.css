@@ -1536,3 +1536,30 @@ img.marquee-img {
 .animate-dialog-close {
   animation: dialog-pop-out 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ==========================================================================
+   Responsive Horizontal Scroll for all Tables in PLP and Content blocks
+   ========================================================================== */
+.table-scroll-wrapper,
+.tw {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.table-scroll-wrapper table,
+.tw table {
+  display: table !important;
+  width: 100% !important;
+  min-width: 520px;
+}
+
+.seo-content,
+.plp-description,
+.jewellery-emi-content {
+  max-width: 100%;
+  min-width: 0;
+}
+
