@@ -3157,6 +3157,19 @@ export default function ProductPageClient({
               </div>
             </div>
 
+            {/* Lock & Key (DGRP) Entry Banner */}
+            {isDgrpGold && (
+              <div className="mb-6">
+                <DgrpPdpBanner
+                  advanceAmount={dgrpAdvanceAmount}
+                  monthlyEmi={dgrpMonthlyEmi}
+                  tenureMonths={dgrpTenureMonths}
+                  isDiamond={isDgrpDiamond}
+                  onClick={() => setIsDgrpDrawerOpen(true)}
+                />
+              </div>
+            )}
+
             {/* Features */}
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-2 gap-y-4 gap-x-6 lg:gap-x-6 text-xs sm:text-sm font-medium text-black">
