@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import CouponCard from "@/components/coupons/CouponCard";
 import CouponDrawer from "@/components/coupons/CouponDrawer";
 import { COUPONS, COUPON_DISCLAIMER, parsePrice, getOfferCategory, OFFER_CATEGORY } from "@/lib/coupons";
 import { pushPromoClick } from "@/lib/gtm";
 import { apiFetch } from "@/lib/api";
 import { useAtcLoginGate } from "@/hooks/useAtcLoginGate";
+
+// Design asset (red tag + string), served from the Shopify CDN like the other
+// PDP promo images. 88x75 with the transparent padding cropped off.
+const OFFER_TAG_IMG = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/offer-tag.png?v=1792483469";
 
 /**
  * Compact "Unlock Exclusive Offers" strip under the PDP "Total saving on this
@@ -16,8 +21,9 @@ import { useAtcLoginGate } from "@/hooks/useAtcLoginGate";
  * through the same compact login popup / bottom sheet as add-to-cart, and the
  * drawer opens for them once that login completes.
  *
- * `attached` tucks the strip under the savings box (inset, bottom-rounded);
- * without it the strip renders as a standalone rounded bar.
+ * `attached` tucks the strip under the savings box (bottom-rounded, joined at
+ * the top); without it the strip renders as a standalone rounded bar of the
+ * same width.
  */
 export default function OffersStrip({
   user,
@@ -116,7 +122,10 @@ export default function OffersStrip({
 
   return (
     <>
-      <div className={`relative z-10 ${attached ? "-mt-2 mx-8 sm:mx-9 pt-2" : ""}`}>
+      {/* Same side inset whether or not the savings box is there, so the strip
+          never changes width when the box appears and the tag overhang always
+          has room; `attached` only changes how the top joins the box. */}
+      <div className={`relative z-10 mx-8 sm:mx-9 ${attached ? "-mt-2 pt-2" : ""}`}>
         {/* Design asset: red tag with its string. The string's curl sits at
             ~(97%, 12%) of the image; that point is anchored a few px inside the
             strip's bottom-left corner and the image paints BENEATH the strip,
@@ -126,7 +135,8 @@ export default function OffersStrip({
             column never clips it; its z-index keeps the body above the card
             below. */}
         <Image
-          src="/images/product/offer-tag.png"
+          loader={shopifyLoader}
+          src={OFFER_TAG_IMG}
           alt=""
           width={88}
           height={75}

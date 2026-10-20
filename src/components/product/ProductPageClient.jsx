@@ -782,6 +782,11 @@ export default function ProductPageClient({
   const [selectedSize, setSelectedSize] = useState(initialSize);
   const [activeVariant, setActiveVariant] = useState(initialVariant);
   const [priceBreakup, setPriceBreakup] = useState(null);
+  // Flips once the first pricing fetch has settled (success, "not found" or
+  // error). The savings box + offers strip wait for it so the strip doesn't
+  // paint standalone and then re-join the box a moment later (visible shift on
+  // mobile).
+  const [pricingSettled, setPricingSettled] = useState(false);
 
   // Track product_view for Postgres DB
   useEffect(() => {
@@ -1822,7 +1827,11 @@ export default function ProductPageClient({
 
   // Fetch variant pricing when active variant changes
   useEffect(() => {
-    if (!activeVariant?.id) return;
+    if (!activeVariant?.id) {
+      // Nothing to price: do not hold the savings/offers block forever.
+      setPricingSettled(true);
+      return;
+    }
 
     const vid = getNumericId(activeVariant.id);
     const pid = getNumericId(product.shopifyId || product.id);
@@ -1841,7 +1850,8 @@ export default function ProductPageClient({
         } else {
           console.error("Pricing fetch failed", err);
         }
-      });
+      })
+      .finally(() => setPricingSettled(true));
   }, [activeVariant, product.shopifyId, product.id]);
 
   // Additional item (e.g. attached chain/material) sourced straight from the variant's
@@ -3911,6 +3921,7 @@ export default function ProductPageClient({
                 !(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold" || tag.toLowerCase() === "byj")) &&
                 !String(product?.handle || "").toLowerCase().includes("byj");
 
+              if (!pricingSettled) return null;
               if (!hasSavingsBox && !showOffersStrip) return null;
 
               return (
