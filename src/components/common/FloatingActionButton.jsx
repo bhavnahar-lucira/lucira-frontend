@@ -229,7 +229,7 @@ export default function FloatingActionButton() {
     pushPromoClick("chatWithExperts");
   };
 
-  if (pathname?.includes("store-giveaway")) return null;
+  if (pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) return null;
 
   const isProductPage = pathname.startsWith('/products');
   const isCollectionPage = pathname.startsWith('/collections');

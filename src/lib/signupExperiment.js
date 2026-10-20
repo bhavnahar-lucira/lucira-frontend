@@ -1,41 +1,42 @@
 import { pushPromoClick } from "@/lib/gtm";
 
-// Mobile signup-popup A/B test: scratch card vs spin the wheel.
-// Only the auto popup (AutoAuthPopup) on mobile is bucketed; desktop always
-// gets the wheel and is reported as device_type "desktop" so it can be
-// filtered out of the comparison.
+// Mobile signup-popup: 100% scratch card rollout on mobile; desktop always gets the wheel.
 export const SIGNUP_EXPERIMENT_ID = "signup_popup_mobile_v1";
 export const VARIANT_SPIN = "spin_wheel";
 export const VARIANT_SCRATCH = "scratch_card";
 
 const STORAGE_KEY = "lucira_signup_exp_v1";
 
-// 0 = kill switch (everyone on the wheel), 50 = even split, 100 = full rollout.
+// 0 = kill switch (everyone on the wheel), 100 = full rollout (default: 100% scratch card on mobile).
 const SCRATCH_PERCENT = (() => {
-  const n = Number(process.env.NEXT_PUBLIC_SCRATCH_CARD_PERCENT);
-  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 50;
+  const envVal = process.env.NEXT_PUBLIC_SCRATCH_CARD_PERCENT;
+  const n = envVal !== undefined && envVal !== "" ? Number(envVal) : 100;
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 100;
 })();
 
 /**
- * Sticky per-device bucket. `?signup_variant=scratch_card|spin_wheel` forces a
- * variant (for QA) and is remembered like a normal assignment.
+ * Mobile signup variant: 100% Scratch Card.
+ * `?signup_variant=spin_wheel|scratch_card` can still be used for QA.
+ * Any legacy "spin_wheel" stored in localStorage from earlier tests is automatically updated.
  */
 export function getSignupVariant() {
-  if (typeof window === "undefined") return VARIANT_SPIN;
+  if (typeof window === "undefined") return VARIANT_SCRATCH;
   try {
     const forced = new URLSearchParams(window.location.search).get("signup_variant");
-    if (forced === VARIANT_SCRATCH || forced === VARIANT_SPIN) {
+    if (forced === VARIANT_SPIN) {
+      localStorage.setItem(STORAGE_KEY, forced);
+      return forced;
+    }
+    if (forced === VARIANT_SCRATCH) {
       localStorage.setItem(STORAGE_KEY, forced);
       return forced;
     }
     if (SCRATCH_PERCENT <= 0) return VARIANT_SPIN;
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === VARIANT_SCRATCH || stored === VARIANT_SPIN) return stored;
-    const assigned = Math.random() * 100 < SCRATCH_PERCENT ? VARIANT_SCRATCH : VARIANT_SPIN;
-    localStorage.setItem(STORAGE_KEY, assigned);
-    return assigned;
+    // 100% rollout: always assign and return scratch_card on mobile
+    localStorage.setItem(STORAGE_KEY, VARIANT_SCRATCH);
+    return VARIANT_SCRATCH;
   } catch {
-    return VARIANT_SPIN;
+    return VARIANT_SCRATCH;
   }
 }
 

@@ -287,6 +287,7 @@ export default function FreeGiftReward({ diamondTotal }) {
           type="button"
           onClick={() => openLogin({
             useCheckoutAuth: true,
+            rewardSource: "cart_login",
             overrideHeading: "Sign Up To Unlock Free Gift",
             overrideSubtext: "",
             overrideButtonText: "CONTINUE",

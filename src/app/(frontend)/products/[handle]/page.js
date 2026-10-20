@@ -3,6 +3,11 @@ import ProductPageClient from "@/components/product/ProductPageClient";
 import { getStorePages } from "@/lib/storeContent";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { shopifyStorefrontFetch, getAllProductHandles } from "@/lib/shopify";
+import { preload } from "react-dom";
+import { getImageProps } from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
+import { sortGalleryMedia, HERO_IMAGE_SIZES } from "@/lib/galleryMedia";
+import { getVariantSelection } from "@/lib/variantSelection";
 import "./product-page.css";
 
 export const revalidate = 86400; // 24 hours
@@ -595,6 +600,45 @@ async function getProduct(handle) {
   };
 }
 
+/**
+ * Emit a <link rel="preload"> for the gallery's first image so the browser
+ * starts the LCP download while parsing the HTML, instead of after hydration.
+ *
+ * Uses the same ordering (sortGalleryMedia), the same initial variant rule as
+ * ProductPageClient (first in-stock variant, else the first one) and
+ * next/image's own srcset generation, so the preload URL is exactly the URL the
+ * gallery <img> will request. A ?variant= link can pick a different colour; in
+ * that case this preload is simply unused, nothing breaks.
+ */
+function preloadHeroImage(product) {
+  try {
+    const variants = product?.variants || [];
+    const initialVariant = variants.find((v) => v.inStock) || variants[0] || null;
+    const { color } = getVariantSelection(initialVariant);
+    const hero = sortGalleryMedia(product?.media || [], color, initialVariant)[0];
+    if (!hero || hero.type !== "IMAGE" || !hero.url) return;
+
+    const isShopify = hero.url.includes("cdn.shopify.com") || hero.url.includes("myshopify.com");
+    const { props } = getImageProps({
+      src: hero.url,
+      alt: "",
+      fill: true,
+      priority: true,
+      sizes: HERO_IMAGE_SIZES,
+      loader: isShopify ? shopifyLoader : undefined,
+    });
+    preload(props.src, {
+      as: "image",
+      fetchPriority: "high",
+      imageSrcSet: props.srcSet,
+      imageSizes: props.sizes,
+    });
+  } catch (err) {
+    // A preload hint is an optimisation only; never let it break the page.
+    console.warn("[product page] hero preload skipped:", err?.message || err);
+  }
+}
+
 export default async function ProductPage({ params }) {
   const { handle } = await params;
   const rawProduct = await getProduct(handle);
@@ -614,6 +658,8 @@ export default async function ProductPage({ params }) {
     { name: rawProduct.title, url: `/products/${rawProduct.handle}` }
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
+
+  preloadHeroImage(rawProduct);
 
   return (
     <>

@@ -18,6 +18,7 @@ import "swiper/css/thumbs";
 import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushPromoClick } from "@/lib/gtm";
+import { sortGalleryMedia, HERO_IMAGE_SIZES } from "@/lib/galleryMedia";
 
 function ProductAudioButton({ src, className = "", productTitle = "", sku = "" }) {
   const audioRef = useRef(null);
@@ -80,14 +81,27 @@ function ProductAudioButton({ src, className = "", productTitle = "", sku = "" }
   );
 }
 
-function formatCdnUrl(url) {
-  if (!url || typeof url !== 'string') return url;
-  return url.replace("https://www.lucirajewelry.com", "https://luciraonline.myshopify.com").replace("http://www.lucirajewelry.com", "https://luciraonline.myshopify.com");
-}
-
 export default function ProductGallery({ media = [], title = "", activeColor = "", onViewSimilar, hasSimilar = false, product, activeVariant }) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [mounted, setMounted] = useState(false);
+
+  // One-time "peek": shortly after the Similar Items pill appears, it unfurls
+  // its label and folds back, so shoppers learn the icon is a button. Reuses
+  // the CSS .is-open state (same easing as hover). Gated on `mounted` and
+  // `hasSimilar` because the gallery mounts as a skeleton first and the pill
+  // only renders once similar products are known; keyed on the product so it
+  // re-runs on SPA navigation from one PDP to another.
+  const [peekSimilar, setPeekSimilar] = useState(false);
+  useEffect(() => {
+    if (!mounted || !hasSimilar) return undefined;
+    const open = setTimeout(() => setPeekSimilar(true), 900);
+    const close = setTimeout(() => setPeekSimilar(false), 900 + 2200);
+    return () => {
+      clearTimeout(open);
+      clearTimeout(close);
+      setPeekSimilar(false);
+    };
+  }, [product?.id, mounted, hasSimilar]);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -155,169 +169,10 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     }
   }, [activeVariant?.id, activeVariant?.shopifyId, activeColor, mainSwiper, thumbsSwiper]);
 
-  const sortedMedia = useMemo(() => {
-    if (!media || media.length === 0) return [];
-
-    const COLOR_TOKENS = ["white", "yellow", "rose", "plt", "platinum"];
-    const ALWAYS_SHOW_CODES = ["mv-ai", "mv_ai", "mv", "mq-ai", "mq_ai", "mq", "mh-ai", "mh_ai", "mh", "ci-ai", "ci_ai", "ci", "360v", "360°"];
-
-    const formattedMedia = media
-      .filter(m => {
-        const altText = m.alt || m.altText || m.previewImage?.altText || "";
-        return altText.trim().length > 0;
-      })
-      .map(m => {
-        const newM = { ...m };
-        if (newM.url) newM.url = formatCdnUrl(newM.url);
-        if (newM.preview) newM.preview = formatCdnUrl(newM.preview);
-        if (newM.previewImage?.url) {
-          newM.previewImage = { ...newM.previewImage, url: formatCdnUrl(newM.previewImage.url) };
-        }
-        if (newM.sources) {
-          newM.sources = newM.sources.map(s => ({ ...s, url: formatCdnUrl(s.url) }));
-        }
-        return newM;
-      });
-
-    const getColorFromAlt = (text) => {
-      const lower = (text || "").toLowerCase();
-      if (lower.includes("white") && lower.includes("yellow")) return "white-yellow";
-      if (lower.includes("white") && lower.includes("rose")) return "white-rose";
-
-      const match = lower.match(/(yellow|white|rose|plt|platinum)[\s-]?(yellow|white|rose|plt|platinum)?/);
-      if (match && match[1]) {
-        const firstColor = match[1];
-        if (firstColor === "platinum") return "plt";
-        return firstColor;
-      }
-      return "";
-    };
-
-    const isColorMatch = (itemColor, target) => {
-      if (!itemColor || !target) return false;
-      if (itemColor === target) return true;
-      if (target === "white-yellow" && itemColor === "yellow") return true;
-      if (target === "white-rose" && itemColor === "rose") return true;
-      return false;
-    };
-
-    const targetColor = getColorFromAlt(activeColor) || (String(activeColor || "").toLowerCase().includes("plt") ? "plt" : String(activeColor || "").toLowerCase());
-
-    const buckets = {
-      color: [],
-      codes: { "mv-ai": [], mv: [], "mq-ai": [], mq: [], "mh-ai": [], mh: [], "ci-ai": [], ci: [], v360: [] },
-      cert: [],
-      extras: []
-    };
-
-    formattedMedia.forEach(item => {
-      const alt = (item.alt || "").toLowerCase();
-      const urlString = (item.url || item.sources?.[0]?.url || item.preview || item.previewImage?.url || "").toLowerCase();
-      const itemColor = getColorFromAlt(alt);
-      const isAnyColor = COLOR_TOKENS.some(c => alt.includes(c));
-
-      if (alt.includes("cert")) {
-        buckets.cert.push(item);
-        return;
-      }
-
-      const isCodeMatch =
-        ALWAYS_SHOW_CODES.some(code => alt.includes(code)) ||
-        (alt.includes("mv") && (urlString.includes("mv_ai") || urlString.includes("mv-ai")));
-      
-      if (isColorMatch(itemColor, targetColor) || (!isAnyColor && isCodeMatch)) {
-        if (
-          alt.includes("mv-ai") ||
-          alt.includes("mv_ai") ||
-          alt.includes("mv ai") ||
-          (alt.includes("mv") && (urlString.includes("mv_ai") || urlString.includes("mv-ai")))
-        ) {
-          buckets.codes["mv-ai"].push(item);
-        } else if (alt.includes("mv")) {
-          buckets.codes.mv.push(item);
-        } else if (alt.includes("mq-ai") || alt.includes("mq_ai") || alt.includes("mq ai")) {
-          buckets.codes["mq-ai"].push(item);
-        } else if (alt.includes("mq")) {
-          buckets.codes.mq.push(item);
-        } else if (alt.includes("mh-ai") || alt.includes("mh_ai") || alt.includes("mh ai")) {
-          buckets.codes["mh-ai"].push(item);
-        } else if (alt.includes("mh")) {
-          buckets.codes.mh.push(item);
-        } else if (alt.includes("ci-ai") || alt.includes("ci_ai") || alt.includes("ci ai")) {
-          buckets.codes["ci-ai"].push(item);
-        } else if (alt.includes("ci")) {
-          buckets.codes.ci.push(item);
-        } else if (alt.includes("360v") || alt.includes("360°")) {
-          buckets.codes.v360.push(item);
-        } else if (isColorMatch(itemColor, targetColor)) {
-          buckets.color.push(item);
-        } else {
-          buckets.extras.push(item);
-        }
-      } else if (itemColor === "" && !isAnyColor) {
-         // Fallback for items with no color tokens at all
-         buckets.extras.push(item);
-      }
-    });
-
-    // Prioritize Shopify variant image if it exists in color bucket
-    if (activeVariant?.image) {
-      const getCompareUrl = (url) => formatCdnUrl(url).split('?')[0].split('&')[0];
-      const variantImgUrl = getCompareUrl(activeVariant.image);
-      const idx = buckets.color.findIndex(m => {
-        const mUrl = m.url || m.previewImage?.url;
-        return mUrl && getCompareUrl(mUrl) === variantImgUrl;
-      });
-      if (idx !== -1) {
-        const vImg = buckets.color.splice(idx, 1)[0];
-        buckets.color.unshift(vImg);
-      }
-    }
-
-    const takeColor = () => buckets.color.shift() || null;
-    const takeCode = () => {
-      for (const key of ["mv-ai", "mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v"]) {
-        const k = key === "360v" ? "v360" : key;
-        if (buckets.codes[k]?.length) return buckets.codes[k].shift();
-      }
-      return null;
-    };
-
-    const slotPattern = [
-      "color", "code", "code",
-      "color", "color", "code", "code",
-      "color", "color", "code", "code",
-      "color"
-    ];
-
-    const result = [];
-
-    for (const slot of slotPattern) {
-      let node = slot === "color" ? takeColor() : takeCode();
-      if (node) result.push(node);
-    }
-
-    // Append remaining
-    Object.values(buckets.codes).forEach(arr => {
-      arr.forEach(node => { if (!result.includes(node)) result.push(node); });
-    });
-
-    buckets.color.forEach(node => {
-      if (!result.includes(node)) result.push(node);
-    });
-
-    buckets.extras.forEach(node => {
-      if (!result.includes(node)) result.push(node);
-    });
-
-    buckets.cert.forEach(node => {
-      if (!result.includes(node)) result.push(node);
-    });
-
-    if (result.length === 0 && formattedMedia.length > 0) return [formattedMedia[0]];
-
-    return result;
-  }, [media, activeColor, activeVariant]);
+  const sortedMedia = useMemo(
+    () => sortGalleryMedia(media, activeColor, activeVariant),
+    [media, activeColor, activeVariant]
+  );
 
   useEffect(() => {
     if (!galleryRef.current || !isDesktop) return;
@@ -575,6 +430,9 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   src={item.url || "/images/product/1.jpg"} 
                   alt={item.alt || title} 
                   fill
+                  priority={isFirst}
+                  fetchPriority={isFirst ? "high" : undefined}
+                  sizes={isFirst ? HERO_IMAGE_SIZES : undefined}
                   className="object-cover transition-transform duration-700 group-hover:scale-110"
                 />
               )}
@@ -608,7 +466,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                         productTitle={product?.title}
                         isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                         id="tryonbutton-desktop"
-                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30 h-[42px]"
+                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation z-30"
                       />
                     )}
                   </div>
@@ -632,16 +490,16 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     });
                     onViewSimilar();
                   }}
-                  className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]"
+                  className={`absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation${peekSimilar ? " is-open" : ""}`}
                 >
-                  <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-                    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                  <span className="btn-icon">
+                    <svg viewBox="5 5.55 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M11.4322 10.4118C11.4293 10.2235 11.5012 10.0417 11.6321 9.90627C11.763 9.77087 11.9422 9.69288 12.1305 9.6894L21.4657 9.52505C21.6544 9.5214 21.8368 9.59284 21.9728 9.72366C22.1088 9.85448 22.1872 10.034 22.1909 10.2226L22.4232 23.5881C22.4262 23.7767 22.3542 23.9588 22.223 24.0943C22.0917 24.2299 21.9121 24.3078 21.7234 24.3109L12.3883 24.4752C12.1998 24.4785 12.0177 24.4068 11.882 24.2759C11.7463 24.1451 11.668 23.9657 11.6645 23.7772L11.4322 10.4118Z" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M11.5349 11.5293L6.05123 12.9986C5.89057 13.0417 5.75356 13.1468 5.67029 13.2908C5.58702 13.4348 5.56428 13.606 5.60707 13.7667L8.65801 25.1594C8.70135 25.3201 8.80674 25.457 8.95101 25.5401C9.09527 25.6231 9.26661 25.6455 9.42735 25.6022L13.8263 24.4235" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M22.4632 11.5293L27.9468 12.9986C28.1075 13.0417 28.2445 13.1468 28.3278 13.2908C28.411 13.4348 28.4338 13.606 28.391 13.7667L25.34 25.1594C25.2967 25.3201 25.1913 25.457 25.047 25.5401C24.9028 25.6231 24.7314 25.6455 24.5707 25.6022L19.8192 24.3291" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </span>
-                  <span className="btn-text text-xs font-bold uppercase tracking-wider">Similar Items</span>
+                  <span className="btn-text">Similar Items</span>
                 </button>
               )}
             </div>
@@ -696,6 +554,9 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                         src={item.url || "/images/product/1.jpg"} 
                         alt={item.alt || title} 
                         fill
+                        priority={index === 0}
+                        fetchPriority={index === 0 ? "high" : undefined}
+                        sizes={index === 0 ? HERO_IMAGE_SIZES : undefined}
                         className="object-cover"
                       />
                     )}
@@ -745,7 +606,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                    productTitle={product?.title}
                    isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                    id="tryonbutton-mobile"
-                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30 h-[42px]"
+                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation z-30"
                  />
                )}
              </div>
@@ -761,16 +622,16 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   });
                   onViewSimilar();
                 }}
-                className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5 h-[42px]"
+                className={`bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation peek-left${peekSimilar ? " is-open" : ""}`}
               >
-                <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center pointer-events-none">
-                  <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                <span className="btn-icon pointer-events-none">
+                  <svg viewBox="5 5.55 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path d="M11.4322 10.4118C11.4293 10.2235 11.5012 10.0417 11.6321 9.90627C11.763 9.77087 11.9422 9.69288 12.1305 9.6894L21.4657 9.52505C21.6544 9.5214 21.8368 9.59284 21.9728 9.72366C22.1088 9.85448 22.1872 10.034 22.1909 10.2226L22.4232 23.5881C22.4262 23.7767 22.3542 23.9588 22.223 24.0943C22.0917 24.2299 21.9121 24.3078 21.7234 24.3109L12.3883 24.4752C12.1998 24.4785 12.0177 24.4068 11.882 24.2759C11.7463 24.1451 11.668 23.9657 11.6645 23.7772L11.4322 10.4118Z" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M11.5349 11.5293L6.05123 12.9986C5.89057 13.0417 5.75356 13.1468 5.67029 13.2908C5.58702 13.4348 5.56428 13.606 5.60707 13.7667L8.65801 25.1594C8.70135 25.3201 8.80674 25.457 8.95101 25.5401C9.09527 25.6231 9.26661 25.6455 9.42735 25.6022L13.8263 24.4235" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M22.4632 11.5293L27.9468 12.9986C28.1075 13.0417 28.2445 13.1468 28.3278 13.2908C28.411 13.4348 28.4338 13.606 28.391 13.7667L25.34 25.1594C25.2967 25.3201 25.1913 25.457 25.047 25.5401C24.9028 25.6231 24.7314 25.6455 24.5707 25.6022L19.8192 24.3291" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </span>
-                <span className="btn-text text-xs font-bold uppercase tracking-wider">Similar Items</span>
+                <span className="btn-text">Similar Items</span>
               </button>
               )}
           </div>

@@ -346,17 +346,32 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
     return () => clearTimeout(t);
   }, [scratching, revealed]);
 
+  const [highlightInput, setHighlightInput] = useState(false);
   const keyboardOpen = !!vvBox && baseHeight - vvBox.height > 120;
   const hasStoredPrize = userType === "existing" && !!lookupReward && !reward?.fresh;
   const scratchEnabled = step === "verified" && !!reward;
   const cardLocked = step === "phone" || step === "otp" || step === "details";
 
-  const nudgeCard = () => {
+  const nudgeCard = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     const target = { phone: phoneRef, otp: otpFirstRef, details: nameRef }[step]?.current ?? null;
-    // Already typing: leave everything alone so the keyboard and card stay still.
-    if (keyboardOpen || (target && document.activeElement === target)) return;
-    if (!reduce) shake.start({ x: [0, -9, 9, -6, 6, -2, 0], transition: { duration: 0.45 } });
-    target?.focus({ preventScroll: true });
+    
+    // Shake the locked card to indicate it needs verification
+    if (!reduce) {
+      shake.start({ x: [0, -9, 9, -6, 6, -2, 0], transition: { duration: 0.45 } });
+    }
+
+    // Highlight the typing input box to guide user's attention without triggering focus fight
+    setHighlightInput(true);
+    setTimeout(() => setHighlightInput(false), 1200);
+
+    // If not already typing, safely focus target without stealing or causing scroll jump
+    if (target && document.activeElement !== target && !keyboardOpen) {
+      try {
+        target.focus({ preventScroll: true });
+      } catch (_) {}
+    }
   };
 
   const handleContinue = async () => {
@@ -586,8 +601,9 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
               type="button"
               aria-label="Verify your number to scratch the card"
               className="absolute inset-0 rounded-[12px] bg-transparent border-none cursor-pointer flex items-end justify-center pb-3"
-              style={{ touchAction: "none" }}
-              onPointerUp={nudgeCard}
+              style={{ touchAction: "manipulation" }}
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={nudgeCard}
             >
               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/45 backdrop-blur-sm text-white text-[11px] tracking-[0.4px]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -661,8 +677,13 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       <motion.div key="phone" {...panelMotion}>
         <p className="m-0 text-[16px] font-semibold text-black">Scratch &amp; Win Assured Rewards</p>
         <p className="m-0 mt-0.5 mb-4 text-[12px] text-black">Verify your number to unlock your Lucira scratch card</p>
-        <div className="flex items-center h-[46px] px-3 border border-[#E2E2E2] bg-[#FAFAFA] rounded-[4px] focus-within:border-[#5a413f]">
-          <span className="text-[14px] pr-2.5 mr-2.5 border-r border-[#bdbdbd]">+91</span>
+        <div 
+          onClick={() => phoneRef.current?.focus()}
+          className={`flex items-center h-[46px] px-3 border bg-[#FAFAFA] rounded-[4px] cursor-text transition-all duration-200 focus-within:border-[#5a413f] ${
+            highlightInput ? "border-[#5a413f] ring-2 ring-[#5a413f]/25" : "border-[#E2E2E2]"
+          }`}
+        >
+          <span className="text-[14px] pr-2.5 mr-2.5 border-r border-[#bdbdbd] select-none text-black">+91</span>
           <input
             ref={phoneRef}
             type="tel"
@@ -670,7 +691,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
             autoComplete="tel-national"
             maxLength={10}
             placeholder="Enter Mobile Number"
-            className="flex-1 h-full bg-transparent border-none outline-none text-[14px] placeholder:text-[#8a8a8a]"
+            className="flex-1 h-full bg-transparent border-none outline-none text-[14px] text-black placeholder:text-[#8a8a8a]"
             value={mobile}
             onChange={(e) => setMobile(cleanPhoneInput(e.target.value))}
             onKeyDown={(e) => e.key === "Enter" && handleContinue()}

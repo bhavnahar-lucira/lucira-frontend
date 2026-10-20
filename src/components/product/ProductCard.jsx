@@ -31,7 +31,7 @@ import { pushProductClick, pushPromoClick, pushAddToWishlist, pushRemoveFromWish
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
 import { apiFetch } from "@/lib/api";
-import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
+import { getLiveVariantPrice } from "@/lib/livePriceBatch";
 import ProductCardCta from "./ProductCardCta";
 import { trackProductClick as trackSearchProductClick } from "@/lib/searchAnalytics";
 
@@ -39,7 +39,6 @@ const clientReviewStatsCache = new Map();
 // Keyed by variant only, since it's a direct Shopify read. Stores the in-flight
 // promise rather than the resolved value so a grid of cards sharing a variant
 // issues one request instead of one per card.
-const clientShopifyPriceCache = new Map();
 
 const colorMap = {
   yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
@@ -407,26 +406,9 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     const variantId = String(pricingVariant.id);
     let ignore = false;
 
-    let pending = clientShopifyPriceCache.get(variantId);
-    if (!pending) {
-      const vid = getNumericId(variantId);
-      pending = shopifyStorefrontFetch(VARIANT_PRICE_QUERY, { id: toShopifyGid(vid, "ProductVariant") })
-        .then((data) => {
-          const node = data?.node;
-          if (!node) return null;
-          return {
-            price: node.price?.amount != null ? Number(node.price.amount) : null,
-            comparePrice: node.compareAtPrice?.amount != null ? Number(node.compareAtPrice.amount) : null,
-          };
-        })
-        .catch((err) => {
-          // Drop the rejected promise so a later mount can retry.
-          clientShopifyPriceCache.delete(variantId);
-          console.warn("[ProductCard] Live Shopify price fetch failed:", err.message);
-          return null;
-        });
-      clientShopifyPriceCache.set(variantId, pending);
-    }
+    // Cards that mount in the same tick share one Storefront `nodes` query
+    // (see lib/livePriceBatch.js); the per-variant promise cache lives there.
+    const pending = getLiveVariantPrice(variantId);
 
     pending.then((res) => {
       if (ignore || !res) return;

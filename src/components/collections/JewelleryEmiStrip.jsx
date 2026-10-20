@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { 
+import {
   ShoppingBag,
   Sliders
 } from "lucide-react";
@@ -27,10 +27,10 @@ const DEFAULT_EMI_SETTINGS = {
     showTrustText: true,
   },
   facts: [
-    { id: "fact_1", title: "3, 6, 9, 12", subtitle: "month EMI tenures", enabled: true },
-    { id: "fact_2", title: "0-cost EMI", subtitle: "on the eligible diamond component", enabled: true },
+    { id: "fact_1", title: "3 or 6", subtitle: "month EMI tenures", enabled: true },
+    { id: "fact_2", title: "No cost EMI", subtitle: "on diamond, making charges and GST", enabled: true },
     { id: "fact_3", title: "₹0", subtitle: "processing fee", enabled: true },
-    { id: "fact_4", title: "No extra cost", subtitle: "charged to you for EMI", enabled: true },
+    { id: "fact_4", title: "No extra cost", subtitle: "on your EMIs when paid on time", enabled: true },
   ],
   calculator: {
     title: "Jewelry EMI Calculator",
@@ -48,6 +48,13 @@ const DEFAULT_EMI_SETTINGS = {
       { percent: 40, label: "40% Gold" },
     ],
     defaultDownPaymentPercent: 20,
+    // Making charges: 0% (free) plus a Custom % input only.
+    makingChargesOptions: [
+      { percent: 0, label: "0% (FREE)" },
+    ],
+    defaultMakingChargesPercent: 0,
+    // GST is always the 3% government rate (no 0% option).
+    gstPercent: 3,
     tenures: [3, 6, 9, 12],
     defaultTenure: 6,
     allowCustomTenure: true,
@@ -80,6 +87,11 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
         downPaymentOptions: Array.isArray(emiSettings.calculator?.downPaymentOptions)
           ? emiSettings.calculator.downPaymentOptions
           : DEFAULT_EMI_SETTINGS.calculator.downPaymentOptions,
+        makingChargesOptions: Array.isArray(emiSettings.calculator?.makingChargesOptions)
+          ? emiSettings.calculator.makingChargesOptions
+          : DEFAULT_EMI_SETTINGS.calculator.makingChargesOptions,
+        defaultMakingChargesPercent: emiSettings.calculator?.defaultMakingChargesPercent ?? DEFAULT_EMI_SETTINGS.calculator.defaultMakingChargesPercent,
+        gstPercent: emiSettings.calculator?.gstPercent ?? DEFAULT_EMI_SETTINGS.calculator.gstPercent,
         tenures: Array.isArray(emiSettings.calculator?.tenures)
           ? emiSettings.calculator.tenures
           : DEFAULT_EMI_SETTINGS.calculator.tenures,
@@ -90,50 +102,92 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
   const calc = settings.calculator;
 
   // Calculator state
-  const [totalAmount, setTotalAmount] = useState(calc.defaultValue || 75000);
-  const [downPaymentPercent, setDownPaymentPercent] = useState(calc.defaultDownPaymentPercent ?? 20);
+  const gstPercent = 3;
+  const initialDefaultVal = calc.defaultValue || 75000;
+  const initialPreTax = Math.round(initialDefaultVal / (1 + gstPercent / 100));
+  const initialDown = Math.round((initialDefaultVal * 20) / 100);
+  const initialMaking = Math.round(((initialPreTax * 0.08) / 100)) * 100;
+
+  // Primary state: Total Jewelry Value (remains stable when Gold Down Payment changes)
+  const [totalAmount, setTotalAmount] = useState(initialDefaultVal);
   const [tenure, setTenure] = useState(calc.defaultTenure || 6);
 
-  // Custom tenure state (when user wants to enter custom months)
-  const [isCustomTenure, setIsCustomTenure] = useState(false);
-  const [customTenureInput, setCustomTenureInput] = useState(String(calc.defaultTenure || 6));
+  // Making charges: Rupee amount entered by user
+  const [customMakingChargesInput, setCustomMakingChargesInput] = useState(String(initialMaking));
 
-  // Sync if settings change
-  useEffect(() => {
-    if (calc.defaultValue && totalAmount === 75000) {
-      setTotalAmount(calc.defaultValue);
-    }
-    if (calc.defaultDownPaymentPercent !== undefined && downPaymentPercent === 20) {
-      setDownPaymentPercent(calc.defaultDownPaymentPercent);
-    }
-    if (calc.defaultTenure && tenure === 6) {
-      setTenure(calc.defaultTenure);
-      setCustomTenureInput(String(calc.defaultTenure));
-    }
-  }, [calc]);
+  // Down payment is a rupee amount the shopper types (portion of Total Jewelry Value)
+  const [customDownPaymentInput, setCustomDownPaymentInput] = useState(String(initialDown));
 
-  // The hero lives in the Shopify collection description; dashboard settings / defaults are the fallback.
-  // The hero div ends right before the next HTML comment, the TOC nav or the first section.
-  const legacyHeroHtml = useMemo(() => {
-    if (!descriptionHtml || typeof descriptionHtml !== "string") return null;
-    const match = descriptionHtml.match(/<div class="hero">[\s\S]*?<\/div>\s*(?=<!--|<nav class="toc"|<section|$)/i);
-    return match ? match[0] : null;
-  }, [descriptionHtml]);
+  // Custom amount state (when user wants to enter custom jewelry value)
+  const [isCustomAmount, setIsCustomAmount] = useState(false);
+  const [customAmountInput, setCustomAmountInput] = useState(String(initialDefaultVal));
 
   // Calculations
   const downPaymentAmount = useMemo(() => {
-    return Math.round((totalAmount * downPaymentPercent) / 100);
-  }, [totalAmount, downPaymentPercent]);
+    const amt = parseInt(customDownPaymentInput, 10);
+    return Math.min(totalAmount, Math.max(0, isNaN(amt) ? 0 : amt));
+  }, [customDownPaymentInput, totalAmount]);
 
-  const financedDiamondAmount = useMemo(() => {
-    return Math.max(0, totalAmount - downPaymentAmount);
-  }, [totalAmount, downPaymentAmount]);
+  const preTaxTotal = useMemo(() => {
+    return Math.round(totalAmount / (1 + gstPercent / 100));
+  }, [totalAmount, gstPercent]);
 
-  // Lucira 0-Cost EMI
+  const defaultMakingCharges = useMemo(() => {
+    return Math.round(((preTaxTotal * 0.08) / 100)) * 100;
+  }, [preTaxTotal]);
+
+  const makingChargesAmount = useMemo(() => {
+    const amt = parseInt(customMakingChargesInput, 10);
+    return Math.max(0, isNaN(amt) ? 0 : amt);
+  }, [customMakingChargesInput]);
+
+  // Diamond component covers the base diamond portion (pre-tax total minus Gold and base making charges)
+  const diamondAmount = useMemo(() => {
+    return Math.max(0, preTaxTotal - downPaymentAmount - defaultMakingCharges);
+  }, [preTaxTotal, downPaymentAmount, defaultMakingCharges]);
+
+  // GST (3% govt standard for jewelry in India)
+  const gstAmount = useMemo(() => {
+    if (gstPercent <= 0) return 0;
+    const currentPreTax = downPaymentAmount + diamondAmount + makingChargesAmount;
+    return Math.round(currentPreTax * (gstPercent / 100));
+  }, [downPaymentAmount, diamondAmount, makingChargesAmount, gstPercent]);
+
+  // Total Financed Amount under 0% EMI (covers Diamond + Making Charges + GST)
+  const financedAmount = useMemo(() => {
+    return Math.max(0, diamondAmount + makingChargesAmount + gstAmount);
+  }, [diamondAmount, makingChargesAmount, gstAmount]);
+
+  // Share of the jewelry value the down payment covers (shown next to the amount).
+  const downPaymentSharePercent = totalAmount > 0 ? Math.round((downPaymentAmount / totalAmount) * 100) : 0;
+
+  // Monthly EMI (0% No Cost EMI)
   const monthlyEmi = useMemo(() => {
-    if (tenure <= 0 || financedDiamondAmount <= 0) return 0;
-    return Math.round(financedDiamondAmount / tenure);
-  }, [financedDiamondAmount, tenure]);
+    if (tenure <= 0 || financedAmount <= 0) return 0;
+    return Math.round(financedAmount / tenure);
+  }, [financedAmount, tenure]);
+
+  const handleJewelryValueChange = (newTotal, fromPreset = false) => {
+    setTotalAmount(newTotal);
+    const preTax = Math.round(newTotal / (1 + gstPercent / 100));
+    const downAmt = Math.round((newTotal * 20) / 100);
+    const makingAmt = Math.round(((preTax * 0.08) / 100)) * 100;
+
+    setCustomDownPaymentInput(String(downAmt));
+    setCustomMakingChargesInput(String(makingAmt));
+    setCustomAmountInput(String(newTotal));
+    if (fromPreset) {
+      setIsCustomAmount(false);
+    }
+  };
+
+  const handleCustomJewelryValueInput = (val) => {
+    setCustomAmountInput(val);
+    const num = parseInt(val, 10);
+    if (!isNaN(num) && num > 0) {
+      setTotalAmount(num);
+    }
+  };
 
   const scrollToId = (id) => {
     const el = document.getElementById(id);
@@ -148,14 +202,43 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
     return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(val);
   };
 
+  // The hero lives in the Shopify collection description; dashboard settings / defaults are the fallback.
+  // The hero div ends right before the next HTML comment, the TOC nav or the first section.
+  const legacyHeroHtml = useMemo(() => {
+    if (!descriptionHtml || typeof descriptionHtml !== "string") return null;
+    const match = descriptionHtml.match(/<div class="hero">[\s\S]*?<\/div>\s*(?=<!--|<nav class="toc"|<section|$)/i);
+    if (!match) return null;
+    let html = match[0];
+    html = html
+      .replace(/<p>\s*(?:&nbsp;|<br\s*\/?>)?\s*<\/p>/gi, "")
+      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, "<br/>")
+      .replace(/Gold\s+As\s+DP\b/gi, "Gold as Downpayment")
+      .replace(/\bAs\s+DP\b/gi, "as Downpayment")
+      .replace(/\bDP\b/g, "Downpayment")
+      .replace(/Gold Component as Down\b(?!\s*payment|\s*Payment)/gi, "Gold Component as Downpayment")
+      .replace(/\bas Down\b(?!\s*payment|\s*Payment)/gi, "as Downpayment")
+      .replace(/Chages\b/gi, "Charges");
+    return html;
+  }, [descriptionHtml]);
+
   const isHeroEnabled = settings.hero.enabled !== false;
-  const activeFacts = (settings.facts || []).filter((f) => f.enabled !== false);
+  const activeFacts = (settings.facts || []).filter((f) => f.enabled !== false).map((f) => ({
+    ...f,
+    title: (f.title || "")
+      .replace(/Gold\s+As\s+DP\b/gi, "Gold as Downpayment")
+      .replace(/\bAs\s+DP\b/gi, "as Downpayment")
+      .replace(/\bDP\b/g, "Downpayment"),
+    subtitle: (f.subtitle || "")
+      .replace(/Gold Component as Down\b(?!\s*payment|\s*Payment)/gi, "Gold Component as Downpayment")
+      .replace(/\bas Down\b(?!\s*payment|\s*Payment)/gi, "as Downpayment")
+      .replace(/Chages\b/gi, "Charges")
+  }));
   const activeButtons = (settings.hero.buttons || []).filter((b) => b.enabled !== false);
 
   return (
     <section className="jewellery-emi-strip w-full bg-white border-b border-[#EBE1D7]">
       <div className="container-main py-8 lg:py-12">
-        
+
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-400 font-figtree mb-6 lg:mb-8">
           <Link href="/" className="hover:text-[#5A413F] transition-colors">Home</Link>
@@ -167,7 +250,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
         {/* Hero & Spacious Calculator Grid */}
         <div className={isHeroEnabled ? "grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start" : "max-w-xl mx-auto"}>
-          
+
           {/* Left Column: Hero Content */}
           {isHeroEnabled && (
             <div className="lg:col-span-7 space-y-6 jewellery-emi-dynamic-hero">
@@ -195,9 +278,10 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
                   {/* Description Paragraph */}
                   {settings.hero.showDescription && settings.hero.description && (
-                    <p className="font-figtree text-[14px] text-zinc-700 leading-relaxed">
-                      {settings.hero.description}
-                    </p>
+                    <p
+                      className="font-figtree text-[14px] text-zinc-700 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: settings.hero.description }}
+                    />
                   )}
 
                   {/* Action Buttons */}
@@ -228,12 +312,12 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
                   {/* Fact Cards (Removable / Customizable from Dashboard) */}
                   {activeFacts.length > 0 && (
-                    <div 
+                    <div
                       className="facts"
                       data-count={activeFacts.length}
                       style={{
-                        gridTemplateColumns: activeFacts.length <= 2 
-                          ? `repeat(${activeFacts.length}, minmax(0, 1fr))` 
+                        gridTemplateColumns: activeFacts.length <= 2
+                          ? `repeat(${activeFacts.length}, minmax(0, 1fr))`
                           : activeFacts.length === 3
                           ? `repeat(3, minmax(0, 1fr))`
                           : undefined
@@ -254,8 +338,8 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
 
           {/* Right Column (or centered when no hero): Spacious, Elegant EMI Calculator */}
           <div className={isHeroEnabled ? "lg:col-span-5" : "w-full"} id="calculator">
-            <div className="bg-[#FAF6F4] border border-[#EBE1D7] rounded-[10px] p-6 lg:p-7 shadow-[0_4px_24px_-4px_rgba(90,65,63,0.07)]">
-              
+            <div className="bg-[#FAF6F4] rounded-[10px] p-6 lg:p-7">
+
               {/* Header */}
               <div className="flex items-center justify-between pb-4 border-b border-[#EBE1D7]">
                 <div>
@@ -266,17 +350,18 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                     {calc.subtitle || "Real-time monthly installment estimate"}
                   </p>
                 </div>
-                <span className="rounded-[4px] bg-[#EAF7EE] text-[#00A63E] border border-[#B8DAB6] text-[11px] font-semibold px-2.5 py-1 font-figtree uppercase tracking-wider">
-                  {calc.interestBadge || "0% Interest"}
-                </span>
+                {/* Interest Badge */}
+                <div className="rounded-[4px] bg-[#EAF7EE] text-[#00A63E] border border-[#B8DAB6] text-[11px] font-semibold px-2.5 py-1 font-figtree uppercase tracking-wider flex items-center gap-1.5">
+                  <span>{calc.interestBadge || "0% Interest"}</span>
+                </div>
               </div>
 
               {/* 1. Value input & slider */}
               <div className="mt-5 space-y-3">
                 <div className="flex items-center justify-between font-figtree">
                   <span className="text-[13px] font-medium text-zinc-700">Jewelry Value</span>
-                  <span className="text-[18px] font-bold text-[#5A413F]">
-                    ₹{formatINR(totalAmount)}
+                  <span className="text-[13px] font-semibold text-[#5A413F]">
+                    ₹{formatINR(totalAmount)} {isCustomAmount && <span className="text-xs font-normal text-zinc-400">(Custom)</span>}
                   </span>
                 </div>
 
@@ -285,9 +370,13 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                   min={calc.minValue || 50000}
                   max={calc.maxValue || 300000}
                   step={calc.stepValue || 5000}
-                  value={totalAmount}
-                  onChange={(e) => setTotalAmount(Number(e.target.value))}
-                  className="emi-slider w-full"
+                  value={Math.min(calc.maxValue || 300000, Math.max(calc.minValue || 50000, totalAmount))}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    const isPreset = (calc.presetAmounts || []).includes(val);
+                    handleJewelryValueChange(val, isPreset);
+                  }}
+                  className="emi-slider w-full mb-5"
                 />
 
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -295,17 +384,84 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                     <button
                       key={amt}
                       type="button"
-                      onClick={() => setTotalAmount(amt)}
+                      onClick={() => {
+                        handleJewelryValueChange(amt, true);
+                      }}
                       className={`text-xs px-3 py-1.5 rounded-[6px] border font-figtree transition-all cursor-pointer ${
-                        totalAmount === amt
-                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
+                        !isCustomAmount && totalAmount === amt
+                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold"
                           : "bg-white text-zinc-700 border-[#EBE1D7] hover:border-[#5A413F]"
                       }`}
                     >
                       ₹{formatINR(amt)}
                     </button>
                   ))}
+
+                  {/* Custom Jewelry Value Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomAmount(true);
+                      setCustomAmountInput(String(totalAmount));
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-[6px] border font-figtree transition-all cursor-pointer ${
+                      isCustomAmount
+                        ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold"
+                        : "bg-white text-[#5A413F] border-[#5A413F]/40 hover:border-[#5A413F] hover:bg-[#FAF6F4]"
+                    }`}
+                    title="Enter custom jewelry value"
+                  >
+                    Custom
+                  </button>
                 </div>
+
+                {/* Custom Amount Input Panel */}
+                {isCustomAmount && (
+                  <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 transition-all">
+                    <span className="text-xs font-medium text-zinc-600 font-figtree">
+                      Enter amount:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const step = calc.stepValue || 5000;
+                          const nextVal = Math.max(1000, totalAmount - step);
+                          handleJewelryValueChange(nextVal);
+                        }}
+                        className="w-7 h-7 rounded border border-[#EBE1D7] text-zinc-700 hover:bg-zinc-100 font-bold flex items-center justify-center text-sm cursor-pointer"
+                        title="Decrease by ₹5,000"
+                      >
+                        −
+                      </button>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-2.5 text-xs font-bold text-[#5A413F]">₹</span>
+                        <input
+                          type="number"
+                          min={1000}
+                          max={5000000}
+                          step={calc.stepValue || 5000}
+                          value={customAmountInput}
+                          placeholder="50000"
+                          onChange={(e) => handleCustomJewelryValueInput(e.target.value)}
+                          className="w-28 h-7 pl-6 pr-2 font-bold text-xs text-[#5A413F] border border-[#EBE1D7] rounded focus:outline-none focus:border-[#5A413F]"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const step = calc.stepValue || 5000;
+                          const nextVal = totalAmount + step;
+                          handleJewelryValueChange(nextVal);
+                        }}
+                        className="w-7 h-7 rounded border border-[#EBE1D7] text-zinc-700 hover:bg-zinc-100 font-bold flex items-center justify-center text-sm cursor-pointer"
+                        title="Increase by ₹5,000"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 2. Down Payment (Gold Component) */}
@@ -313,164 +469,213 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
                 <div className="flex items-center justify-between font-figtree">
                   <span className="text-[13px] font-medium text-zinc-700">Gold Down Payment</span>
                   <span className="text-[13px] font-semibold text-[#5A413F]">
-                    ₹{formatINR(downPaymentAmount)} <span className="text-xs text-zinc-400 font-normal">({downPaymentPercent}%)</span>
+                    ₹{formatINR(downPaymentAmount)} <span className="text-xs text-zinc-400 font-normal">({downPaymentSharePercent}%)</span>
                   </span>
                 </div>
 
-                <div 
-                  className="grid gap-2"
-                  style={{
-                    gridTemplateColumns: `repeat(${Math.min(4, calc.downPaymentOptions.length)}, minmax(0, 1fr))`
-                  }}
-                >
-                  {calc.downPaymentOptions.map((opt) => (
-                    <button
-                      key={opt.percent}
-                      type="button"
-                      onClick={() => setDownPaymentPercent(opt.percent)}
-                      className={`h-[38px] text-xs rounded-[6px] border font-figtree transition-all cursor-pointer flex items-center justify-center ${
-                        downPaymentPercent === opt.percent
-                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
-                          : "bg-white text-zinc-700 border-[#EBE1D7] hover:border-[#5A413F]"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 3. Tenure Selection (Customizable & with User Custom Option) */}
-              <div className="mt-5 space-y-2.5">
-                <div className="flex items-center justify-between font-figtree">
-                  <span className="text-[13px] font-medium text-zinc-700">Tenure</span>
-                  <span className="text-[13px] font-semibold text-[#5A413F]">
-                    {tenure} Months {isCustomTenure && <span className="text-xs font-normal text-zinc-400">(Custom)</span>}
-                  </span>
-                </div>
-
-                <div 
-                  className="grid gap-2"
-                  style={{
-                    gridTemplateColumns: `repeat(${Math.min(5, (calc.tenures.length + (calc.allowCustomTenure ? 1 : 0)))}, minmax(0, 1fr))`
-                  }}
-                >
-                  {calc.tenures.map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        setTenure(t);
-                        setIsCustomTenure(false);
-                      }}
-                      className={`h-[40px] rounded-[6px] border font-figtree transition-all cursor-pointer flex items-center justify-center ${
-                        !isCustomTenure && tenure === t
-                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
-                          : "bg-white text-zinc-700 border-[#EBE1D7] hover:border-[#5A413F]"
-                      }`}
-                    >
-                      <span className="text-[13px] font-bold">{t} Mo</span>
-                    </button>
-                  ))}
-
-                  {/* Customer Custom Tenure Button */}
-                  {calc.allowCustomTenure && (
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomTenure(true)}
-                      className={`h-[40px] rounded-[6px] border font-figtree transition-all cursor-pointer flex items-center justify-center ${
-                        isCustomTenure
-                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold shadow-xs"
-                          : "bg-white text-[#5A413F] border-[#5A413F]/40 hover:border-[#5A413F] hover:bg-[#FAF6F4]"
-                      }`}
-                      title="Enter a custom tenure in months"
-                    >
-                      <span className="text-[12px] font-semibold">Custom</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Custom Tenure Input Panel */}
-                {isCustomTenure && (
-                  <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 shadow-xs transition-all">
+                {/* Down Payment amount input (the only way to set it) */}
+                {(
+                  <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 transition-all">
                     <span className="text-xs font-medium text-zinc-600 font-figtree">
-                      Choose months:
+                      Enter amount:
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => {
-                          const minVal = calc.minCustomTenure || 1;
-                          const nextVal = Math.max(minVal, tenure - 1);
-                          setTenure(nextVal);
-                          setCustomTenureInput(String(nextVal));
+                          const nextVal = Math.max(0, downPaymentAmount - 1000);
+                          setCustomDownPaymentInput(String(nextVal));
                         }}
                         className="w-7 h-7 rounded border border-[#EBE1D7] text-zinc-700 hover:bg-zinc-100 font-bold flex items-center justify-center text-sm cursor-pointer"
+                        title="Decrease by ₹1,000"
                       >
                         −
                       </button>
-                      <input
-                        type="number"
-                        min={calc.minCustomTenure || 1}
-                        max={calc.maxCustomTenure || 36}
-                        value={customTenureInput}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCustomTenureInput(val);
-                          const num = parseInt(val, 10);
-                          if (!isNaN(num) && num > 0) {
-                            const clamped = Math.min(calc.maxCustomTenure || 36, Math.max(calc.minCustomTenure || 1, num));
-                            setTenure(clamped);
-                          }
-                        }}
-                        className="w-14 h-7 text-center font-bold text-xs text-[#5A413F] border border-[#EBE1D7] rounded focus:outline-none focus:border-[#5A413F]"
-                      />
+                      <div className="relative flex items-center">
+                        <span className="absolute left-2.5 text-xs font-bold text-[#5A413F]">₹</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={totalAmount}
+                          step={1000}
+                          value={customDownPaymentInput}
+                          placeholder="15000"
+                          onChange={(e) => setCustomDownPaymentInput(e.target.value)}
+                          className="w-28 h-7 pl-6 pr-2 font-bold text-xs text-[#5A413F] border border-[#EBE1D7] rounded focus:outline-none focus:border-[#5A413F]"
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() => {
-                          const maxVal = calc.maxCustomTenure || 36;
-                          const nextVal = Math.min(maxVal, tenure + 1);
-                          setTenure(nextVal);
-                          setCustomTenureInput(String(nextVal));
+                          const nextVal = Math.min(totalAmount, downPaymentAmount + 1000);
+                          setCustomDownPaymentInput(String(nextVal));
                         }}
                         className="w-7 h-7 rounded border border-[#EBE1D7] text-zinc-700 hover:bg-zinc-100 font-bold flex items-center justify-center text-sm cursor-pointer"
+                        title="Increase by ₹1,000"
                       >
                         +
                       </button>
                     </div>
                     <span className="text-[11px] text-zinc-400 font-figtree">
-                      ({calc.minCustomTenure || 1}–{calc.maxCustomTenure || 36} mos)
+                      (max ₹{formatINR(totalAmount)})
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* 4. Results Card (Checkout Summary Breakdown Style) */}
-              <div className="mt-5 bg-white border border-[#EBE1D7] rounded-[8px] p-4 space-y-3 font-figtree shadow-xs">
-                <div className="flex justify-between items-baseline">
-                  <span className="text-[13px] font-medium text-zinc-600">Monthly Installment</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-[24px] font-bold text-[#5A413F] leading-none">
-                      ₹{formatINR(monthlyEmi)}
+              {/* 3. Tenure Selection */}
+              <div className="mt-5 space-y-2.5">
+                <div className="flex items-center justify-between font-figtree">
+                  <span className="text-[13px] font-medium text-zinc-700">Tenure</span>
+                  <span className="text-[13px] font-semibold text-[#5A413F]">
+                    {tenure} Months
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {calc.tenures.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTenure(t)}
+                      className={`text-xs px-4 py-1.5 rounded-[6px] border font-figtree transition-all cursor-pointer ${
+                        tenure === t
+                          ? "bg-[#5A413F] text-white border-[#5A413F] font-semibold"
+                          : "bg-white text-zinc-700 border-[#EBE1D7] hover:border-[#5A413F]"
+                      }`}
+                    >
+                      {t} Months
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Making Charges */}
+              <div className="mt-5 space-y-2">
+                <div className="flex items-center justify-between font-figtree">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-medium text-zinc-700">Making Charges</span>
+                    <span className="text-[10px] font-semibold text-zinc-600 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded">
+                      Financed on EMI
                     </span>
-                    <span className="text-xs text-zinc-500 font-medium">/ month</span>
+                  </div>
+                  <span className="text-[13px] font-semibold text-[#5A413F]">
+                    ₹{formatINR(makingChargesAmount)}
+                  </span>
+                </div>
+
+                {/* Making charges amount (the only way to set it) */}
+                <div className="mt-2 p-3 rounded-[8px] bg-white border border-[#EBE1D7] flex items-center justify-between gap-2 transition-all">
+                  <span className="text-xs font-medium text-zinc-600 font-figtree">
+                    Enter amount:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCustomMakingChargesInput(String(Math.max(0, makingChargesAmount - 500)))}
+                      className="w-7 h-7 rounded border border-[#EBE1D7] text-zinc-700 hover:bg-zinc-100 font-bold flex items-center justify-center text-sm cursor-pointer"
+                      title="Decrease by ₹500"
+                    >
+                      −
+                    </button>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-2.5 text-xs font-bold text-[#5A413F]">₹</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={500}
+                        value={customMakingChargesInput}
+                        placeholder="0"
+                        onChange={(e) => setCustomMakingChargesInput(e.target.value)}
+                        className="w-28 h-7 pl-6 pr-2 font-bold text-xs text-[#5A413F] border border-[#EBE1D7] rounded focus:outline-none focus:border-[#5A413F]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomMakingChargesInput(String(makingChargesAmount + 500))}
+                      className="w-7 h-7 rounded border border-[#EBE1D7] text-zinc-700 hover:bg-zinc-100 font-bold flex items-center justify-center text-sm cursor-pointer"
+                      title="Increase by ₹500"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Results Card (Checkout Summary Breakdown Style) */}
+              <div className="mt-5 bg-white border border-[#EBE1D7] rounded-[10px] p-3.5 space-y-3 font-figtree">
+                {/* Monthly Installment Highlight Box */}
+                <div className="bg-[#FAF6F4] rounded-[8px] p-3 border border-[#EBE1D7]/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#5A413F]/80 block">
+                      Monthly Installment
+                    </span>
+                    <span className="text-[11.5px] text-zinc-500 font-medium">For {tenure} months at 0% interest</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-baseline justify-end gap-1">
+                      <span className="text-[18px] font-bold text-[#5A413F] tracking-tight leading-none">
+                        ₹{formatINR(monthlyEmi)}
+                      </span>
+                      <span className="text-[11px] text-zinc-500 font-medium">/ month</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-[#EBE1D7] space-y-1.5 text-xs">
-                  <div className="flex justify-between items-center text-zinc-600">
-                    <span>Financed Diamond Amount:</span>
-                    <span className="font-semibold text-zinc-900">₹{formatINR(financedDiamondAmount)}</span>
+                <div className="space-y-2 pt-0.5 text-xs">
+                  {/* Financed Amount Row & Badge */}
+                  <div className="flex justify-between items-center text-zinc-800">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-[12.5px] text-zinc-800">Financed on No Cost EMI:</span>
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                        0% Interest
+                      </span>
+                    </div>
+                    <span className="font-bold text-[#5A413F] text-[13px]">₹{formatINR(financedAmount)}</span>
                   </div>
-                  <div className="flex justify-between items-center text-zinc-600">
-                    <span>Gold Down Payment:</span>
-                    <span className="font-semibold text-zinc-900">₹{formatINR(downPaymentAmount)}</span>
+
+                  {/* Itemized Components included in EMI (Clean Inset Box) */}
+                  <div className="bg-[#FAF6F4]/60 border border-[#EBE1D7]/70 rounded-[6px] p-2.5 space-y-1.5 text-[11.5px] text-zinc-600">
+                    <div className="flex justify-between items-center">
+                      <span>Diamond Component:</span>
+                      <span className="font-medium text-zinc-900">₹{formatINR(diamondAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Making Charges:</span>
+                      <span className="font-medium text-zinc-900">₹{formatINR(makingChargesAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-1">
+                        <span>GST:</span>
+                        {gstPercent === 0 && (
+                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1 py-0.2 rounded uppercase">
+                            FREE
+                          </span>
+                        )}
+                      </div>
+                      <span className={gstPercent === 0 ? "font-bold text-emerald-600" : "font-medium text-zinc-900"}>
+                        {gstPercent === 0 ? "₹0 (FREE)" : `₹${formatINR(gstAmount)} (${gstPercent}%)`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Gold Down Payment */}
+                  <div className="pt-1.5 border-t border-[#EBE1D7]/70 flex justify-between items-center text-zinc-700">
+                    <span className="font-medium text-[12px]">Gold Down Payment ({downPaymentSharePercent}%):</span>
+                    <span className="font-semibold text-zinc-900 text-[12px]">₹{formatINR(downPaymentAmount)}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-[#EBE1D7]/60 flex justify-between items-center text-xs text-[#00A63E] font-medium">
-                  <span>Processing Fee: ₹0</span>
-                  <span>0% Interest EMI</span>
+                {/* Reassuring Trust Pill Footer */}
+                <div className="pt-0.5">
+                  <div className="bg-emerald-50/70 border border-emerald-100 rounded-[6px] py-1.5 px-3 flex items-center justify-between text-[11px] font-semibold text-emerald-800">
+                    <span className="flex items-center gap-1">
+                      <span className="text-emerald-600 font-bold">✓</span> ₹0 Processing Fee
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="text-emerald-600 font-bold">✓</span> 0% Interest EMI
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -478,7 +683,7 @@ export default function JewelleryEmiStrip({ onShopClick, descriptionHtml, emiSet
               <button
                 type="button"
                 onClick={() => scrollToId(calc.ctaTarget || "products")}
-                className="mt-5 w-full h-[46px] rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree font-medium uppercase tracking-wider text-[13px] flex items-center justify-center gap-2 cursor-pointer transition-colors shadow-sm"
+                className="mt-5 w-full h-[46px] rounded-[4px] bg-[#5A413F] hover:bg-[#4A312F] text-white font-figtree font-medium uppercase tracking-wider text-[13px] flex items-center justify-center gap-2 cursor-pointer transition-colors"
               >
                 <ShoppingBag size={15} />
                 <span>{calc.ctaText || "Explore Eligible Jewelry"}</span>

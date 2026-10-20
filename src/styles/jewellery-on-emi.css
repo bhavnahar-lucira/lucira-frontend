@@ -19,17 +19,19 @@
 
 /* Fact Cards in Strip (Checkout style) */
 .emi-fact-card {
-  background: #FFFFFF;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAF6F4 100%);
   border: 1px solid #EBE1D7;
-  border-radius: 8px;
-  padding: 14px 10px;
+  border-radius: 10px;
+  padding: 16px 12px;
   text-align: center;
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px -2px rgba(90, 65, 63, 0.05);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .emi-fact-card:hover {
-  border-color: #5A413F;
-  transform: translateY(-1px);
+  border-color: #CBB9AE;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -4px rgba(90, 65, 63, 0.12);
 }
 
 /* Scope Callout Card */
@@ -148,62 +150,94 @@
 
 .jewellery-emi-dynamic-hero .hero .lead {
   font-family: var(--font-abhaya), serif;
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   color: #2B2523;
   line-height: 1.25;
-  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+  margin-bottom: 18px;
 }
 
 @media (min-width: 640px) {
   .jewellery-emi-dynamic-hero .hero .lead {
-    font-size: 32px;
+    font-size: 34px;
+    line-height: 1.2;
   }
 }
 
 .jewellery-emi-dynamic-hero .hero > p:not(.lead):not(.trust) {
   font-family: var(--font-figtree), sans-serif;
-  font-size: 0.9375rem;
+  font-size: 14.5px;
   line-height: 1.7;
-  color: #52525B;
-  margin: 0 0 4px;
+  color: #554D4A;
+  margin: 0 0 8px;
+}
+
+.jewellery-emi-dynamic-hero .hero p:empty,
+.jewellery-emi-dynamic-hero p:empty,
+.jewellery-emi-dynamic-hero .hero br + br {
+  display: none !important;
 }
 
 .jewellery-emi-dynamic-hero .hero > p strong {
-  color: #222222;
+  color: #2B2523;
   font-weight: 600;
 }
 
-.jewellery-emi-dynamic-hero .scope p {
-  margin: 0 0 4px;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  color: #52525B;
+.jewellery-emi-dynamic-hero .hero a:not(.btn):not(.btn-p):not(.btn-s),
+.jewellery-emi-dynamic-hero a:not(.btn):not(.btn-p):not(.btn-s),
+.jewellery-emi-content a:not(.btn):not(.btn-p):not(.btn-s) {
+  color: #5A413F !important;
+  text-decoration: underline !important;
+  text-underline-offset: 4px !important;
+  text-decoration-color: rgba(90, 65, 63, 0.4) !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease;
+  cursor: pointer;
 }
 
-.jewellery-emi-dynamic-hero .scope p strong {
-  color: #3D2B28;
-  font-weight: 600;
+.jewellery-emi-dynamic-hero .hero a:not(.btn):not(.btn-p):not(.btn-s):hover,
+.jewellery-emi-dynamic-hero a:not(.btn):not(.btn-p):not(.btn-s):hover,
+.jewellery-emi-content a:not(.btn):not(.btn-p):not(.btn-s):hover {
+  color: #2B2523 !important;
+  text-decoration-color: #5A413F !important;
 }
 
 .jewellery-emi-dynamic-hero .scope {
   background: #FAF6F4;
   border: 1px solid #EBE1D7;
-  border-left: 4px solid #5A413F;
+  border-left: 3.5px solid #5A413F;
   border-radius: 8px;
-  padding: 14px 18px;
-  margin: 16px 0;
-  font-size: 13px;
-  color: #52525B;
+  padding: 16px 20px;
+  margin: 20px 0 22px;
+  font-size: 13.5px;
+  color: #4A3E3B;
   font-family: var(--font-figtree), sans-serif;
-  line-height: 1.6;
+  line-height: 1.65;
+  box-shadow: 0 2px 8px -2px rgba(90, 65, 63, 0.03);
+}
+
+.jewellery-emi-dynamic-hero .scope p {
+  margin: 0 0 6px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #4A3E3B;
+}
+
+.jewellery-emi-dynamic-hero .scope p:last-child {
+  margin-bottom: 0;
+}
+
+.jewellery-emi-dynamic-hero .scope p strong {
+  color: #2B2523;
+  font-weight: 600;
 }
 
 .jewellery-emi-dynamic-hero .btns {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 18px 0 12px;
+  margin: 22px 0 20px;
 }
 
 .jewellery-emi-dynamic-hero .btn {
@@ -212,41 +246,45 @@
   justify-content: center;
   height: 44px;
   padding: 0 24px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: var(--font-figtree), sans-serif;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
 
 .jewellery-emi-dynamic-hero .btn-p {
   background: #5A413F;
   color: #FFFFFF !important;
+  box-shadow: 0 2px 8px -2px rgba(90, 65, 63, 0.2);
 }
 
 .jewellery-emi-dynamic-hero .btn-p:hover {
-  background: #4A312F;
+  background: #473230;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px -3px rgba(90, 65, 63, 0.3);
 }
 
 .jewellery-emi-dynamic-hero .btn-s {
   background: #FFFFFF;
-  border: 1px solid #EBE1D7;
+  border: 1px solid #D6C7BC;
   color: #5A413F !important;
 }
 
 .jewellery-emi-dynamic-hero .btn-s:hover {
   border-color: #5A413F;
   background: #FAF6F4;
+  transform: translateY(-1px);
 }
 
 .jewellery-emi-dynamic-hero .trust {
   font-size: 13px;
   color: #71717A;
-  margin: 12px 0 16px;
+  margin: 14px 0 18px;
   font-family: var(--font-figtree), sans-serif;
 }
 
@@ -254,7 +292,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 @media (min-width: 640px) {
@@ -264,29 +302,72 @@
 }
 
 .jewellery-emi-dynamic-hero .fact {
-  background: #FFFFFF;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAF6F4 100%);
   border: 1px solid #EBE1D7;
-  border-radius: 8px;
-  padding: 14px 10px;
+  border-radius: 10px;
+  padding: 16px 12px;
+  min-height: 94px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   text-align: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px -2px rgba(90, 65, 63, 0.05);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.jewellery-emi-dynamic-hero .fact::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #5A413F;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.jewellery-emi-dynamic-hero .fact:hover {
+  border-color: #CBB9AE;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -4px rgba(90, 65, 63, 0.12);
+}
+
+.jewellery-emi-dynamic-hero .fact:hover::before {
+  opacity: 1;
 }
 
 .jewellery-emi-dynamic-hero .fact b {
   display: block;
-  font-family: var(--font-abhaya), serif;
-  font-size: 22px;
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
   color: #5A413F;
-  line-height: 1;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .jewellery-emi-dynamic-hero .fact span {
   display: block;
   font-family: var(--font-figtree), sans-serif;
   font-size: 12px;
-  color: #71717A;
-  margin-top: 4px;
+  color: #6B5E59;
+  margin-top: 5px;
   font-weight: 500;
+  line-height: 1.35;
+}
+
+.jewellery-emi-dynamic-hero p:has(+ .facts),
+.jewellery-emi-dynamic-hero .hero > p:has(+ .facts) {
+  font-family: var(--font-figtree), sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5A413F;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
 }
 
 /* ==========================================================================
@@ -296,10 +377,14 @@
 
 .jewellery-emi-content {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .jewellery-emi-content .emi-hub {
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 16px 0 64px;
   color: #2B2523;
@@ -551,16 +636,26 @@
   font-size: 14px;
 }
 
-/* Tables */
-.jewellery-emi-content .emi-hub .tw {
-  overflow-x: auto;
+/* Tables with horizontal scroll */
+.jewellery-emi-content .emi-hub .tw,
+.jewellery-emi-content .emi-hub .table-scroll-wrapper,
+.jewellery-emi-content .tw,
+.jewellery-emi-content .table-scroll-wrapper {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   margin: 20px 0;
   border-radius: 12px;
   border: 1px solid #EADFD8;
+  background: #FFFFFF;
 }
 
-.jewellery-emi-content .emi-hub table {
+.jewellery-emi-content .emi-hub table,
+.jewellery-emi-content table {
   width: 100%;
+  min-width: 520px;
   border-collapse: collapse;
   font-size: 14px;
   background: #FFFFFF;
@@ -800,24 +895,47 @@
   margin: 6px 0;
 }
 
-/* Tables: generic description styles shrink-wrap tables and double the border; reset them */
-.jewellery-emi-content .emi-hub .tw {
-  overflow-x: auto;
+/* Tables: ensure responsive overflow-x scrolling across all tables */
+.jewellery-emi-content .emi-hub .tw,
+.jewellery-emi-content .emi-hub .table-scroll-wrapper,
+.jewellery-emi-content .tw,
+.jewellery-emi-content .table-scroll-wrapper {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   margin: 18px 0 22px;
   border: 1px solid #EADFD8;
   border-radius: 10px;
   background: #FFFFFF;
 }
 
-.jewellery-emi-content .emi-hub table {
-  display: table;
-  width: 100%;
+.jewellery-emi-content .emi-hub table,
+.jewellery-emi-content table {
+  display: table !important;
+  width: 100% !important;
+  min-width: 520px;
   margin: 0;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+
+/* Fallback for any unwrapped table */
+.jewellery-emi-content .emi-hub > table:not(.tw table):not(.table-scroll-wrapper table),
+.jewellery-emi-content section > table:not(.tw table):not(.table-scroll-wrapper table) {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  margin: 18px 0 22px;
+  border: 1px solid #EADFD8;
+  border-radius: 10px;
+  background: #FFFFFF;
 }
 
 .jewellery-emi-content .emi-hub th,

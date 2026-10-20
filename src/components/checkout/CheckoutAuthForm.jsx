@@ -58,8 +58,17 @@ export function CheckoutAuthForm({
   onClose,
   // Add-to-cart login gate: keep the account's saved cart and just merge into it,
   // instead of clearing it like the checkout login does.
-  keepSavedCart = false
+  keepSavedCart = false,
+  // Reward attribution for the OTP/register API calls (e.g. "atc_login",
+  // "cart_login", "shipping_login"); falls back to a path-based guess.
+  rewardSource = null,
+  // "atc": add-to-cart gate design (product thumbnail next to the heading,
+  // filled phone field, centred terms, title-case buttons, compact OTP and
+  // register steps). Checkout and cart logins leave it unset.
+  variant,
+  productImage = null,
 }) {
+  const isAtc = variant === "atc";
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -252,7 +261,9 @@ export function CheckoutAuthForm({
     setOtpError("");
     setLoading(true);
     try {
-      const data = await verifyOtpApi(mobile, otpValue);
+      const activeSource = rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/checkout") ? "shipping_login" : typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login");
+      const sid = getSessionId();
+      const data = await verifyOtpApi(mobile, otpValue, sid, { rewardSource: activeSource });
 
       if (data.status === "REGISTER_REQUIRED" || data.status === "REGISTER" || data.type === "register") {
         setStep("register");
@@ -303,11 +314,15 @@ export function CheckoutAuthForm({
     if (!firstName || !email || !mobile) return toast.error("Please fill all fields");
     setLoading(true);
     try {
+      const activeSource = rewardSource || (typeof window !== "undefined" && window.location.pathname.includes("/checkout") ? "shipping_login" : typeof window !== "undefined" && window.location.pathname.includes("/cart") ? "cart_login" : "atc_login");
+      const sid = getSessionId();
       const regData = await registerCustomer({
         firstName,
         lastName,
         email,
         mobile,
+        sessionId: sid,
+        rewardSource: activeSource,
       });
       if (regData.status === "REGISTER_SUCCESS" || regData.status === "SUCCESS" || regData.type === "success") {
         await loginSuccess(regData, true);
@@ -327,19 +342,94 @@ export function CheckoutAuthForm({
   };
 
   return (
-    <div className={`relative w-full flex flex-col pt-0 md:pt-8 md:p-8 bg-white h-auto transition-all duration-300 ${isKeyboardOpen ? 'pb-[80px] md:pb-0' : 'pb-0'}`}>
+    <div className={`relative w-full flex flex-col bg-white h-auto transition-all duration-300 ${isAtc ? "pt-0 md:p-[18px]" : "pt-0 md:pt-8 md:p-8"} ${isKeyboardOpen ? 'pb-[80px] md:pb-0' : 'pb-0'}`}>
       {onClose && (
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-1.5 rounded-full text-zinc-400 hover:text-black hover:bg-zinc-100 transition-colors cursor-pointer border-none bg-transparent"
+          className={`absolute z-20 p-1.5 rounded-full transition-colors cursor-pointer border-none bg-transparent ${
+            isAtc
+              ? "top-2 right-2 md:top-[14px] md:right-[14px] text-zinc-900 hover:bg-zinc-100"
+              : "top-2 right-2 md:top-4 md:right-4 text-zinc-400 hover:text-black hover:bg-zinc-100"
+          }`}
           aria-label="Close"
         >
-          <X className="w-4 h-4 md:w-5 md:h-5" />
+          <X className={isAtc ? "w-4 h-4 md:w-3.5 md:h-3.5" : "w-4 h-4 md:w-5 md:h-5"} strokeWidth={isAtc ? 2.25 : 2} />
         </button>
       )}
 
-      {step === "login" && (
+      {step === "login" && isAtc && (
+        <div className="flex flex-col font-figtree">
+          <div className={`flex items-start gap-3 ${onClose ? "pr-7" : ""}`}>
+            {productImage && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={productImage}
+                alt=""
+                width={56}
+                height={56}
+                className="w-14 h-14 md:w-12 md:h-12 shrink-0 rounded-lg md:rounded-md object-contain bg-[#F7F7F7] md:bg-white"
+              />
+            )}
+            <div className="min-w-0">
+              {title && (
+                <h2 className="text-[16px] md:text-[15px] font-semibold text-zinc-900 leading-[1.3]">
+                  {title}
+                </h2>
+              )}
+              {subtitle ? (
+                <p className="text-[12px] md:text-[11px] text-zinc-500 mt-1 md:mt-0.5 leading-[1.45]">
+                  {subtitle}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div
+            className={`mt-4 md:mt-3 flex items-center rounded-md md:rounded-[4px] h-[46px] md:h-[36px] px-3.5 md:px-2.5 bg-[#F7F7F7] transition-colors ${
+              mobileError ? "border border-red-500" : "border border-zinc-200"
+            }`}
+          >
+            <span className="text-[14px] md:text-[12px] font-medium text-zinc-900 mr-2.5 pr-2.5 md:mr-2 md:pr-2 border-r border-zinc-400 leading-none">+91</span>
+            <input
+              ref={mobileRef}
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              placeholder="Enter Mobile Number"
+              aria-label="Mobile number"
+              maxLength="10"
+              className="w-full h-full text-[14px] md:text-[12px] font-medium text-zinc-900 border-none outline-none bg-transparent placeholder:font-normal placeholder:text-zinc-400"
+              value={mobile}
+              onChange={(e) => {
+                setMobile(cleanPhoneInput(e.target.value));
+                if (mobileError) setMobileError("");
+              }}
+              onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+            />
+          </div>
+
+          {mobileError && (
+            <p className="text-[12px] font-medium text-red-500 mt-1.5 animate-in fade-in duration-150">
+              {mobileError}
+            </p>
+          )}
+
+          <p className="mt-3 md:mt-2.5 text-[10.5px] md:text-[9.5px] text-zinc-600 text-center leading-[1.5]">
+            By proceeding you accept Lucira&apos;s <Link href="/pages/exclusive-promotions-page" target="_blank" rel="noopener noreferrer" className="font-semibold text-zinc-900 underline underline-offset-2">Terms & Conditions</Link> & <Link href="/pages/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-semibold text-zinc-900 underline underline-offset-2">Privacy Policy</Link>
+          </p>
+
+          <Button
+            onClick={handleSendOtp}
+            disabled={loading}
+            className="mt-3 md:mt-2.5 w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[46px] md:h-[36px] rounded-md md:rounded-[4px] normal-case font-semibold md:font-medium text-[15px] md:text-[13px] tracking-normal leading-none"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (buttonText || "Save My Selection")}
+          </Button>
+        </div>
+      )}
+
+      {step === "login" && !isAtc && (
         <div className="flex flex-col space-y-4">
           <div>
             {title && (
@@ -402,16 +492,16 @@ export function CheckoutAuthForm({
       )}
 
       {step === "otp" && (
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center gap-2 lg:mb-2">
-            <h2 className="text-[18px] md:text-[20px] lg:text-[1.4rem] font-bold lg:font-semibold text-zinc-900 leading-none">+91 {mobile}</h2>
+        <div className={`flex flex-col ${isAtc ? "space-y-3 font-figtree" : "space-y-4"}`}>
+          <div className={`flex items-center gap-2 ${isAtc ? (onClose ? "pr-7" : "") : "lg:mb-2"}`}>
+            <h2 className={isAtc ? "text-[17px] md:text-[15px] font-semibold text-zinc-900 leading-none" : "text-[18px] md:text-[20px] lg:text-[1.4rem] font-bold lg:font-semibold text-zinc-900 leading-none"}>+91 {mobile}</h2>
             <button onClick={() => setStep("login")} className="text-zinc-600 hover:text-black">
               <Edit2 className="w-[14px] h-[14px]" />
             </button>
           </div>
-          <p className="text-[13px] lg:text-[1rem] lg:mt-0 text-zinc-500 font-medium leading-none">Enter OTP sent to given Number</p>
+          <p className={isAtc ? "text-[12px] md:text-[11px] text-zinc-500 leading-none" : "text-[13px] lg:text-[1rem] lg:mt-0 text-zinc-500 font-medium leading-none"}>Enter OTP sent to given Number</p>
 
-          <div className="flex justify-between gap-3 mt-4 mb-2 px-1 w-full">
+          <div className={isAtc ? "flex justify-between gap-2.5 pt-1 w-full" : "flex justify-between gap-3 mt-4 mb-2 px-1 w-full"}>
             {otp.map((digit, i) => (
               <input
                 key={i}
@@ -420,7 +510,7 @@ export function CheckoutAuthForm({
                 inputMode="numeric"
                 autoComplete="off"
                 maxLength="1"
-                className={`min-w-0 flex-1 aspect-[1.4] max-h-[60px] text-center text-[22px] border ${
+                className={`min-w-0 flex-1 text-center border ${isAtc ? "w-0 h-[46px] md:h-[38px] text-[18px] md:text-[16px]" : "aspect-[1.4] max-h-[60px] text-[22px]"} ${
                   otpError ? "border-red-500" : "border-zinc-200"
                 } rounded-[4px] focus:border-black outline-none font-semibold bg-white text-zinc-800 transition-colors`}
                 value={digit}
@@ -430,7 +520,7 @@ export function CheckoutAuthForm({
             ))}
           </div>
 
-          <p className="text-center text-[12px] text-zinc-500 font-medium">
+          <p className={`text-center ${isAtc ? "text-[11px]" : "text-[12px]"} text-zinc-500 font-medium`}>
             {timer > 0 ? (
               <>Resend OTP in <span className="font-bold text-zinc-800">{formatTimer()}</span></>
             ) : (
@@ -449,16 +539,18 @@ export function CheckoutAuthForm({
           <Button
             onClick={() => handleVerifyOtp()}
             disabled={loading}
-            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-bold tracking-wide mt-2 lg:text-[1rem]"
+            className={isAtc
+              ? "w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[46px] md:h-[36px] rounded-md md:rounded-[4px] normal-case font-semibold md:font-medium text-[15px] md:text-[13px] tracking-normal leading-none"
+              : "w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-bold tracking-wide mt-2 lg:text-[1rem]"}
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "VERIFY"}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isAtc ? "Verify" : "VERIFY")}
           </Button>
         </div>
       )}
 
       {step === "register" && (
-        <div className="flex flex-col space-y-4">
-          <div className="flex items-center gap-2 text-[#00A63E] mb-[6px] md:mb-0 lg:mb-2">
+        <div className={`flex flex-col ${isAtc ? "space-y-3 font-figtree" : "space-y-4"}`}>
+          <div className={`flex items-center gap-2 text-[#00A63E] ${isAtc ? (onClose ? "pr-7" : "") : "mb-[6px] md:mb-0 lg:mb-2"}`}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
               <g clipPath="url(#clip0_3214_261)">
                 <path d="M18.1678 8.33357C18.5484 10.2013 18.2772 12.1431 17.3994 13.8351C16.5216 15.527 15.0902 16.8669 13.3441 17.6313C11.5979 18.3957 9.64252 18.5384 7.80391 18.0355C5.9653 17.5327 4.35465 16.4147 3.24056 14.8681C2.12646 13.3214 1.57626 11.4396 1.68171 9.53639C1.78717 7.63318 2.54189 5.82364 3.82004 4.40954C5.09818 2.99545 6.82248 2.06226 8.70538 1.76561C10.5883 1.46897 12.516 1.82679 14.167 2.7794M7.50033 9.1669L10.0003 11.6669L18.3337 3.33357" stroke="#00A63E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -469,16 +561,16 @@ export function CheckoutAuthForm({
                 </clipPath>
               </defs>
             </svg>
-            <h2 className="text-[16px] md:text-[20px] lg:text-[1.4rem] font-semibold md:font-bold lg:font-semibold leading-[140%] md:leading-none text-black max-md:font-figtree">Verified Successfully</h2>
+            <h2 className={isAtc ? "text-[16px] md:text-[15px] font-semibold leading-none text-black" : "text-[16px] md:text-[20px] lg:text-[1.4rem] font-semibold md:font-bold lg:font-semibold leading-[140%] md:leading-none text-black max-md:font-figtree"}>Verified Successfully</h2>
           </div>
-          <p className="text-[12px] md:text-[13px] lg:text-[1rem] lg:mt-0 text-zinc-800 font-normal md:font-medium leading-[140%] md:leading-normal mb-2 md:mb-0 lg:mb-2 max-md:font-figtree">Welcome to Lucira Jewelry</p>
+          <p className={isAtc ? "text-[12px] md:text-[11px] text-zinc-500 leading-none" : "text-[12px] md:text-[13px] lg:text-[1rem] lg:mt-0 text-zinc-800 font-normal md:font-medium leading-[140%] md:leading-normal mb-2 md:mb-0 lg:mb-2 max-md:font-figtree"}>Welcome to Lucira Jewelry</p>
 
-          <div className="space-y-3 mt-2 mb-1 md:mb-0">
+          <div className={isAtc ? "space-y-2.5 pt-1" : "space-y-3 mt-2 mb-1 md:mb-0"}>
             <input
               ref={firstNameRef}
               type="text"
               placeholder="Enter Your Full Name *"
-              className="w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal max-md:font-figtree max-md:leading-[140%]"
+              className={isAtc ? "w-full h-[46px] md:h-[36px] px-3.5 md:px-2.5 text-[14px] md:text-[12px] font-medium border border-zinc-200 rounded-md md:rounded-[4px] outline-none bg-[#F7F7F7] placeholder:text-zinc-400 placeholder:font-normal" : "w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal max-md:font-figtree max-md:leading-[140%]"}
               value={fullName}
               onChange={(e) => {
                 const value = e.target.value;
@@ -492,7 +584,7 @@ export function CheckoutAuthForm({
             <input
               type="email"
               placeholder="Enter Your Mail Id *"
-              className="w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal max-md:font-figtree max-md:leading-[140%]"
+              className={isAtc ? "w-full h-[46px] md:h-[36px] px-3.5 md:px-2.5 text-[14px] md:text-[12px] font-medium border border-zinc-200 rounded-md md:rounded-[4px] outline-none bg-[#F7F7F7] placeholder:text-zinc-400 placeholder:font-normal" : "w-full h-[45px] px-4 text-[14px] font-medium border border-zinc-200 rounded-[4px] outline-none bg-white placeholder:text-zinc-400 placeholder:font-normal max-md:font-figtree max-md:leading-[140%]"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleRegister()}
@@ -502,9 +594,11 @@ export function CheckoutAuthForm({
           <Button
             onClick={handleRegister}
             disabled={loading}
-            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-4 leading-none max-md:font-figtree lg:text-[1rem]"
+            className={isAtc
+              ? "w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[46px] md:h-[36px] rounded-md md:rounded-[4px] normal-case font-semibold md:font-medium text-[15px] md:text-[13px] tracking-normal leading-none"
+              : "w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-4 leading-none max-md:font-figtree lg:text-[1rem]"}
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "VERIFY"}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isAtc ? "Save My Selection" : "VERIFY")}
           </Button>
         </div>
       )}

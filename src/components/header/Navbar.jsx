@@ -7,13 +7,15 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { transformMenuData, withChunkyRings } from "@/lib/menus";
+import { withMenuExtras, chunkQuickLinks } from "@/lib/menuTransform";
+import { pushPromoClick } from "@/lib/gtm";
 
 export default function Navbar({ hideTop, menuData }) {
   const MEGA_MENU = useMemo(() => {
-    const menus = transformMenuData(menuData);
+    // menuData arrives already transformed by getHeaderMenu() on the server.
+    const menus = Array.isArray(menuData) ? menuData : [];
     
-    return withChunkyRings(menus.map(menu => {
+    return withMenuExtras(menus.map(menu => {
       const label = (menu.label || menu.title || '').toLowerCase();
       
       if (label.includes('more jewelry') || label.includes('more jewellery')) {
@@ -160,7 +162,7 @@ export default function Navbar({ hideTop, menuData }) {
         </div>
 
         {/* Navigation Menu - Stays centered */}
-        <ul className="flex items-center lg:text-xs xl:text-sm uppercase transition-all duration-300 gap-8">
+        <ul className="flex items-center lg:text-xs xl:text-sm uppercase transition-all duration-300 gap-3.5 xl:gap-6 2xl:gap-8">
           {MEGA_MENU.map((menu, index) => {
             const isActive =
               pathname === menu.href ||
@@ -218,6 +220,47 @@ export default function Navbar({ hideTop, menuData }) {
             );
           })}
         </ul>
+
+        {/* % OFFERS Navigation Item - One side touched to the right with radius 2 & 3 = 0 */}
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center z-20">
+          <Link
+            href="/pages/offers"
+            prefetch={false}
+            onClick={() => {
+              closeMenu();
+              try {
+                pushPromoClick({
+                  creative_name: "Navbar Offers Link",
+                  location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "internal page",
+                  promo_id: "pages_offers",
+                  promo_name: "Navbar % Offers",
+                });
+              } catch (e) {
+                // ignore
+              }
+            }}
+            className={cn(
+              "group relative inline-flex items-center gap-1.5 xl:gap-2 pl-3.5 pr-4 xl:pl-4 xl:pr-5 py-1.5 xl:py-2 rounded-l-full rounded-r-none border border-r-0 border-transparent hover:border-[#B77767] bg-[#FFEFE9] hover:bg-[#FFECE4] transition-all duration-200 select-none shadow-2xs hover:shadow-xs"
+            )}
+            style={{
+              borderTopRightRadius: 0,
+              borderBottomRightRadius: 0,
+            }}
+            aria-label="Exclusive Offers"
+          >
+            {/* The % Badge */}
+            <span
+              className="w-4.5 h-4.5 xl:w-5 xl:h-5 rounded-full bg-[#B77767] text-white flex items-center justify-center text-[10px] xl:text-[11px] font-bold leading-none shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+            >
+              %
+            </span>
+
+            {/* Offers Text */}
+            <span className="font-figtree text-xs xl:text-sm font-bold uppercase tracking-wider text-[#5A413F] group-hover:text-[#463230] leading-none">
+              OFFERS
+            </span>
+          </Link>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -259,7 +302,7 @@ export default function Navbar({ hideTop, menuData }) {
                   menu.columns?.forEach(col => {
                     const title = col.title?.toLowerCase();
                     const isByStyle = title.includes("style");
-                    weights.push(isByStyle ? 2.2 : 1); 
+                    weights.push(isByStyle ? (col.gridCols === 3 ? 3.3 : 2.2) : 1); 
                   });
 
                   for (let i = 0; i < cardCols; i++) {
@@ -274,14 +317,16 @@ export default function Navbar({ hideTop, menuData }) {
                   const allItems = menu.items || menu.cards || [];
                   const quickLinks = (menu.quickLinks || []).filter((q) => !q.mobileOnly);
                   // Collections whose quick-link tile is desktop-only replace
-                  // their big image card here (e.g. Cotton Candy).
+                  // their big image card here (Cotton Candy, Hexa).
                   const items = quickLinks.length
                     ? allItems.filter(
                         (it) => !quickLinks.some((q) => q.desktopOnly && q.href === it.href)
                       )
                     : allItems;
+                  // Consecutive 2x4 blocks, each its own grid column.
+                  const quickLinkGroups = chunkQuickLinks(quickLinks);
                   const imageGridTemplate = quickLinks.length
-                    ? `repeat(${items.length}, minmax(0, 1fr)) minmax(0, 1.15fr)`
+                    ? `repeat(${items.length}, minmax(0, 1fr)) repeat(${quickLinkGroups.length}, minmax(0, 1.15fr))`
                     : gridTemplate;
                   return (
                     <div
@@ -325,11 +370,11 @@ export default function Navbar({ hideTop, menuData }) {
                         </Link>
                       ))}
 
-                      {quickLinks.length > 0 && (
-                        <div className="grid grid-cols-2 auto-rows-fr gap-3">
-                          {quickLinks.map((link, i) => (
+                      {quickLinkGroups.map((group, g) => (
+                        <div key={g} className="grid grid-cols-2 auto-rows-fr gap-3">
+                          {group.map((link, i) => (
                             <Link
-                              key={i}
+                              key={link.href || i}
                               href={link.href || "#"}
                               prefetch={false}
                               onClick={closeMenu}
@@ -341,7 +386,7 @@ export default function Navbar({ hideTop, menuData }) {
                                   alt={link.label}
                                   fill
                                   unoptimized={link.image?.includes("cdn.shopify.com")}
-                                  className="object-contain"
+                                  className={link.fit === "cover" ? "object-cover" : "object-contain"}
                                 />
                               </span>
                               <span className="text-sm font-medium text-zinc-900 leading-snug">
@@ -350,7 +395,7 @@ export default function Navbar({ hideTop, menuData }) {
                             </Link>
                           ))}
                         </div>
-                      )}
+                      ))}
                     </div>
                   );
                 }
@@ -397,7 +442,7 @@ export default function Navbar({ hideTop, menuData }) {
 
                             <ul className={cn(
                               "text-[13px] font-medium text-zinc-500",
-                              isGridCol ? "grid grid-cols-2 gap-x-8 gap-y-4" : "space-y-5"
+                              isGridCol ? cn("grid gap-x-8 gap-y-4", col.gridCols === 3 ? "grid-cols-3" : "grid-cols-2") : "space-y-5"
                             )}>
                               {col.items.map((item, j) => {
                                 const isArticle = item.href?.includes("/blogs/") || item.href?.includes("/pages/");
@@ -420,7 +465,7 @@ export default function Navbar({ hideTop, menuData }) {
                                       )}
                                     >
                                       {/* ✅ METAL SWATCH */}
-                                      {col.type === "metal" ? (
+                                      {col.type === "metal" && !item.menuIcon ? (
                                         <span
                                           className={`w-6 h-6 rounded-full border border-zinc-200 ${
                                             item.label.toLowerCase().includes("yellow")
@@ -437,7 +482,7 @@ export default function Navbar({ hideTop, menuData }) {
                                       ) : (!isArticle && (item.menuIcon || item.megaMenuImage || (col.type === "icon" && item.icon))) ? (
                                         <div className={cn(
                                           "relative shrink-0 flex items-center justify-center overflow-hidden transition-all",
-                                          isByShape ? "h-12 w-12" : "h-16 w-16",
+                                          col.type === "metal" ? "h-6 w-6 border border-zinc-200" : isByShape ? "h-12 w-12" : "h-16 w-16",
                                           "rounded-full"
                                         )}>
                                           <Image
@@ -446,7 +491,7 @@ export default function Navbar({ hideTop, menuData }) {
                                             fill
                                             priority={j < 6}
                                             unoptimized={String(item.menuIcon || item.megaMenuImage || item.icon).includes("cdn.shopify.com")}
-                                            className="object-contain p-1 transition-opacity duration-300"
+                                            className={cn(col.type === "metal" ? "object-cover" : "object-contain p-1", "transition-opacity duration-300")}
                                           />
                                         </div>
                                       ) : null}

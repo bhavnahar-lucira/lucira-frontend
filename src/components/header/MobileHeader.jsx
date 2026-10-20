@@ -10,8 +10,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { clearCart, removeFromCart } from "@/redux/features/cart/cartSlice";
 import { restoreGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
-import { useMenu } from "@/hooks/useMenu";
-import { MEGA_MENU as STATIC_MENU } from "@/data/megaMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@/lib/gtm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -53,6 +51,11 @@ const CATEGORY_IMAGES = {
 };
 
 const MENU_SLIDER_BANNERS = [
+  {
+    href: "/pages/offers",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/offer_-_mobile_-_828px_x_463px_jpg.jpg?v=1792047502",
+    alt: "Exclusive Offers"
+  },
   {
     href: "/collections/bestsellers",
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Best_Seller_V3.jpg_1.jpg?v=1776596789",
@@ -360,7 +363,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { transformMenuData, withChunkyRings } from "@/lib/menus";
+import { withMenuExtras } from "@/lib/menuTransform";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -481,15 +484,16 @@ export default function MobileHeader({ menuData }) {
   const MEGA_MENU = useMemo(() => {
     // Bestsellers is dropped from the mobile grid; New Arrivals / Bracelets /
     // Necklaces are not in the CMS menu yet, so they're appended here.
-    const menu = transformMenuData(menuData || [])
+    // menuData arrives already transformed by getHeaderMenu() on the server.
+    const menu = (Array.isArray(menuData) ? menuData : [])
       .filter(
         (item) => !((item.label || item.title || "").toLowerCase().includes("bestseller"))
       )
       .map((item) => {
         const label = (item.label || item.title || "").toLowerCase();
-        // Force the mobile-grid icon for Lucira Express (overrides CMS icon
+        // Force the mobile-grid icon for Lucira Express / Fast Shipping (overrides CMS icon
         // and the hardcoded fallback in renderMainMenu)
-        if (label.includes("lucira express")) {
+        if (label.includes("lucira express") || label.includes("fast shipping")) {
           return { ...item, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" };
         }
         // "View All" row at the top of these sub-drawers (exact match so
@@ -543,7 +547,7 @@ export default function MobileHeader({ menuData }) {
     const getOrderIndex = (label) => {
       const l = (label || "").toLowerCase().trim();
       if (l.includes("new arrival")) return 1;
-      if (l.includes("express")) return 2;
+      if (l.includes("express") || l.includes("fast shipping")) return 2;
       if (l.includes("engagement")) return 3;
       if (l.includes("solitaire")) return 4;
       if (l.includes("9kt")) return 12;
@@ -557,9 +561,9 @@ export default function MobileHeader({ menuData }) {
       return 99;
     };
 
-    // Same Chunky Rings entry the desktop mega menu appends, so the RINGS
-    // section matches across breakpoints.
-    return withChunkyRings(
+    // Same Rings / Earrings extras the desktop mega menu appends, so those
+    // sections match across breakpoints.
+    return withMenuExtras(
       [...menu, ...extraItems].sort(
         (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
       )
@@ -1185,10 +1189,16 @@ export default function MobileHeader({ menuData }) {
                             onClick={() => setIsMenuOpen(false)}
                             className="flex flex-col items-center gap-2"
                           >
-                            <div
-                              className="w-12 h-12 rounded-full border border-gray-100"
-                              style={{ background: METAL_COLORS[item.label] || "#eee" }}
-                            />
+                            {item.menuIcon ? (
+                              <div className="w-12 h-12 rounded-full border border-gray-100 overflow-hidden">
+                                <SafeImage src={item.menuIcon} alt={item.label} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-12 h-12 rounded-full border border-gray-100"
+                                style={{ background: METAL_COLORS[item.label] || "#eee" }}
+                              />
+                            )}
                             <span className="text-[13px] font-figtree text-center font-normal leading-tight">{item.label}</span>
                           </Link>
                         );
@@ -1324,7 +1334,9 @@ export default function MobileHeader({ menuData }) {
   const renderCollectionsGrid = (activeItem) => {
     const items = activeItem.items || activeItem.cards || [];
     // Cotton Candy is desktopOnly here because on mobile it already has a card
-    // in the image grid above.
+    // in the image grid above. Mobile keeps every image card (including Hexa,
+    // which desktop drops) and renders the quick links as one flat list, in
+    // group order.
     const quickLinks = (activeItem.quickLinks || []).filter((q) => !q.desktopOnly);
     return (
       <div className="flex flex-col pb-8">
@@ -1367,12 +1379,12 @@ export default function MobileHeader({ menuData }) {
                 onClick={() => setIsMenuOpen(false)}
                 className="bg-[#f8f8f8] rounded-xl p-2 flex items-center gap-2 active:bg-gray-200 transition-all border border-gray-50/50"
               >
-                <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-lg">
+                <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-full">
                   <Image loader={shopifyLoader}
                     src={link.image}
                     alt={link.label}
                     fill
-                    className="object-contain p-0.5"
+                    className={link.fit === "cover" ? "object-cover" : "object-contain"}
                   />
                 </span>
                 <span className="text-[13px] font-medium text-zinc-900 leading-tight truncate">
@@ -1397,7 +1409,7 @@ export default function MobileHeader({ menuData }) {
           {MEGA_MENU.map((item, index) => {
             const label = item.label || item.title;
             const is9kt = label.toLowerCase().includes('9kt');
-            const isLuciraExpress = label.toLowerCase().includes('lucira express');
+            const isLuciraExpress = label.toLowerCase().includes('lucira express') || label.toLowerCase().includes('fast shipping');
             const icon = item.menuIcon ||
               (label.toUpperCase() === "GIFTING" ? CATEGORY_IMAGES["GIFTING"] :
                 (isLuciraExpress ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" : null));
@@ -1516,6 +1528,32 @@ export default function MobileHeader({ menuData }) {
               </div>
               <ChevronRight size={18} className="text-black" />
             </a>
+
+            <Link
+              href="/pages/offers"
+              prefetch={false}
+              onClick={() => {
+                pushPromoClick({
+                  creative_name: "offers mobile menu card",
+                  location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                  promo_id: "pages_offers",
+                  promo_name: "Mobile Menu % Offers",
+                });
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center justify-between p-4 border border-[#B77767]/40 rounded-lg group active:bg-[#FFECE4] bg-[#FFEFE9]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#B77767] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                  %
+                </div>
+                <div>
+                  <h4 className="block mb-1 font-figtree font-semibold text-sm leading-none align-middle text-[#5A413F]">Exclusive Offers</h4>
+                  <p className="mt-2 font-figtree font-normal text-[12px] leading-[1.4] align-middle text-[#5A413F]/80">Save on making charges, diamond coins & limited-time collections.</p>
+                </div>
+              </div>
+              <ChevronRight size={18} className="text-[#5A413F]" />
+            </Link>
 
             <Link
               href="/schemes"

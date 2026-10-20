@@ -890,7 +890,10 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
     if (!selectedStyle || selectedCharms.length === 0) return;
 
     // Guests must log in before anything is added; the add runs after login.
-    if (requireLoginForCart(() => handleAddToBagRef.current?.({ afterLogin: true }))) {
+    if (requireLoginForCart(
+      () => handleAddToBagRef.current?.({ afterLogin: true }),
+      { productImage: getActiveVersion(selectedStyle, material, length)?.img || null }
+    )) {
       setIsSummaryOpen(false);
       return;
     }
