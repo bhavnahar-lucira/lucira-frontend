@@ -1,6 +1,6 @@
 
 // Single source of truth for the promotional coupon ladder shown on the PDP
-// (UnlockCoupon) and in the cart's Saving Zone drawer. Both surfaces render the
+// (OffersStrip drawer) and in the cart's Saving Zone drawer. Both surfaces render the
 // same list through the shared CouponCard, so edits here reach every surface.
 export const COUPONS = [
   {

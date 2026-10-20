@@ -35,7 +35,7 @@ export default function VideoCallCard({ card, open, fillHeight, onOpen, onClose,
   // The page keeps one card open at a time; a card that gets closed from the
   // outside has to forget whatever the shopper had half-typed. Adjusting state
   // during render (rather than in an effect) is the pattern React asks for when
-  // state is derived from a prop change — same as UnlockCoupon does for `user`.
+  // state is derived from a prop change — same as OffersStrip does for `user`.
   const [prevOpen, setPrevOpen] = React.useState(open);
   if (open !== prevOpen) {
     setPrevOpen(open);
