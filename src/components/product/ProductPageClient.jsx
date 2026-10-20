@@ -94,7 +94,7 @@ import {
 import { useShareIntent } from "@/hooks/useShareIntent";
 import { useAtcLoginGate } from "@/hooks/useAtcLoginGate";
 import { loadNectorReviews } from "@/lib/nector";
-import UnlockCoupon from "@/components/product/UnlockCoupon";
+import OffersStrip from "@/components/product/OffersStrip";
 import { OFFER_CATEGORY, getItemOfferCategory } from "@/lib/coupons";
 
 import { Sheet as MobileSheet } from "react-modal-sheet";
@@ -2678,24 +2678,6 @@ export default function ProductPageClient({
               })()}
             </div>
 
-            {/* Unlock Free Coupons Box */}
-            {!(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold" || tag.toLowerCase() === "byj")) && !String(product?.handle || "").toLowerCase().includes("byj") && (
-              <div className="my-3">
-                <UnlockCoupon
-                  user={user}
-                  dispatch={dispatch}
-                  toast={toast}
-                  currentPrice={currentPrice}
-                  productId={getNumericId(product?.shopifyId || product?.id) || ""}
-                  productCategory={
-                    product?.tags?.some((tag) => tag.toLowerCase().replace("-", " ") === "plain gold")
-                      ? OFFER_CATEGORY.GOLD
-                      : OFFER_CATEGORY.DIAMOND
-                  }
-                />
-              </div>
-            )}
-
             <div className="space-y-6 mt-4">
               {/* Mobile Customizer */}
               <div ref={customizeRef} className="lg:hidden space-y-4 mb-4">
@@ -3917,12 +3899,52 @@ export default function ProductPageClient({
 
             </div>
 
-            {priceBreakupMatches && augmentedPriceBreakup?.total_savings && augmentedPriceBreakup.total_savings !== "₹0" && (
-              <div className="mt-4 flex justify-between items-center bg-success/8 border border-success rounded px-5 py-4">
-                <span className="text-base font-bold text-gray-900 uppercase tracking-tight">Save on this jewelry</span>
-                <span className="text-lg font-bold text-success">{augmentedPriceBreakup.total_savings}</span>
-              </div>
-            )}
+            {/* Total saving box + "Unlock Exclusive Offers" strip. The strip replaced
+                the Unlock Coupon block that used to sit under the price; offers
+                are gated behind login via the add-to-cart style popup/sheet. */}
+            {(() => {
+              const hasSavingsBox =
+                priceBreakupMatches &&
+                augmentedPriceBreakup?.total_savings &&
+                augmentedPriceBreakup.total_savings !== "₹0";
+              const showOffersStrip =
+                !(product?.tags?.some(tag => tag.toLowerCase().replace("-", " ") === "plain gold" || tag.toLowerCase() === "byj")) &&
+                !String(product?.handle || "").toLowerCase().includes("byj");
+
+              if (!hasSavingsBox && !showOffersStrip) return null;
+
+              return (
+                <div className="mt-4">
+                  {hasSavingsBox && (
+                    <div className="relative z-[1] flex justify-between items-center bg-success/8 border border-success rounded px-5 py-4">
+                      <span className="text-base font-bold text-gray-900 uppercase tracking-tight">Total saving on this jewelry</span>
+                      <span className="text-lg font-bold text-success">{augmentedPriceBreakup.total_savings}</span>
+                    </div>
+                  )}
+                  {showOffersStrip && (
+                    <OffersStrip
+                      user={user}
+                      toast={toast}
+                      currentPrice={currentPrice}
+                      productId={getNumericId(product?.shopifyId || product?.id) || ""}
+                      productCategory={
+                        product?.tags?.some((tag) => tag.toLowerCase().replace("-", " ") === "plain gold")
+                          ? OFFER_CATEGORY.GOLD
+                          : OFFER_CATEGORY.DIAMOND
+                      }
+                      productImage={getValidSrc(
+                        activeVariant?.image ||
+                        getColorSpecificImage(product, activeColor) ||
+                        product.featuredImage ||
+                        product.media?.[0]?.url,
+                        null
+                      )}
+                      attached={!!hasSavingsBox}
+                    />
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Promo Cards Slider */}
             {(() => {

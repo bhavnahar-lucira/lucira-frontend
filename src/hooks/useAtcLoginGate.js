@@ -8,6 +8,10 @@ import { openAuthModal, selectIsAuthenticated } from "@/redux/features/user/user
 // it from its success handler, i.e. only after CheckoutAuthForm has finished
 // clearing + merging the account cart (running it on the `login` dispatch would
 // race that cleanup and get the new item deleted). Dismissing the modal drops it.
+//
+// The PDP "Unlock Exclusive Offers" strip reuses the same gate (and the same
+// compact popup / bottom-sheet design) with its own copy, so the gate takes the
+// modal text as options and only defaults to the add-to-cart wording.
 let pendingAction = null;
 
 export function runPendingLoginAction() {
@@ -27,21 +31,30 @@ export function useAtcLoginGate() {
   // Returns true when the shopper was sent to log in (caller should stop);
   // `action` then runs once login completes. `productImage` (a URL) is shown
   // in the modal so the shopper sees the piece they are saving.
-  return (action, { productImage = null } = {}) => {
+  return (
+    action,
+    {
+      productImage = null,
+      heading = "Perfect! Let’s Save Your Selection",
+      subtext = "Login / Signup to save this piece to your cart & unlock member offers",
+      buttonText = "Save My Selection",
+      rewardSource = "atc_login",
+    } = {}
+  ) => {
     if (isAuthenticated) return false;
     pendingAction = action;
     dispatch(
       openAuthModal({
         useCheckoutAuth: true,
         keepSavedCart: true,
-        rewardSource: "atc_login",
+        rewardSource,
         // "atc" switches CheckoutAuthForm/AuthDialog to the add-to-cart design
         // (product thumbnail, floating close on mobile, title-case button).
         variant: "atc",
         productImage: typeof productImage === "string" && productImage ? productImage : null,
-        overrideHeading: "Perfect! Let’s Save Your Selection",
-        overrideSubtext: "Login / Signup to save this piece to your cart & unlock member offers",
-        overrideButtonText: "Save My Selection",
+        overrideHeading: heading,
+        overrideSubtext: subtext,
+        overrideButtonText: buttonText,
       })
     );
     return true;

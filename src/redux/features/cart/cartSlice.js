@@ -893,9 +893,9 @@ export const updateCartItem = createAsyncThunk(
 );
 
 // Module-level, not Redux state — de-dupes concurrent mergeCart calls for the
-// same login. Five different components each call mergeCart on their own
-// successful login (LoginForm, RegisterForm, OtpSpinAuth, CheckoutAuthForm,
-// UnlockCoupon); if a single login event reaches more than one of these —
+// same login. Four different components each call mergeCart on their own
+// successful login (LoginForm, RegisterForm, OtpSpinAuth, CheckoutAuthForm);
+// if a single login event reaches more than one of these —
 // plausible around the checkout auth gate, which can render alongside the
 // global header — two concurrent merges can each read the guest cart before
 // the other's write lands, producing a duplicate line for whatever the guest
