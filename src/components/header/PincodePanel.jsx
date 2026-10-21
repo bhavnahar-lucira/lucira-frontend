@@ -310,16 +310,15 @@ export default function PincodePanel({ ctl, onDone, compact = false }) {
           >
             Find your nearest store
           </h3>
+          {/* The city list that used to sit under this line was dropped: the
+              store list keeps growing and there is no room for it here. */}
           <p
-            className={`mx-auto mt-1.5 max-w-[268px] text-center leading-relaxed text-[#6B5651] ${
+            className={`mx-auto mt-1.5 mb-4 max-w-[268px] text-center leading-relaxed text-[#6B5651] ${
               compact ? "text-[11.5px]" : "text-[12.5px]"
             }`}
           >
             See which Lucira store is closest to you, and what&apos;s ready to try
             on today.
-          </p>
-          <p className="mt-2 mb-4 text-center font-figtree text-[8.5px] font-bold uppercase tracking-[0.14em] text-[#B77767]">
-            Mumbai · Pune · Delhi NCR
           </p>
         </>
       )}
