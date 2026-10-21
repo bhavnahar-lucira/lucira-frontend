@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { repriceCartForCheckout } from "@/redux/features/cart/cartSlice";
 import { toast } from "react-toastify";
+import { withUtms, getCurrentFullPath } from "@/lib/utm";
 
 export default function CheckoutProtectedLayout({ children }) {
   const router = useRouter();
@@ -20,7 +21,9 @@ export default function CheckoutProtectedLayout({ children }) {
   useEffect(() => {
     if (!isAuthenticated || !accessToken || accessToken.startsWith('simulated_')) {
       if (!pathname.startsWith("/checkout")) {
-        router.push("/login"); // Redirect to login page instead of homepage
+        // Redirect to login page instead of homepage. Keep the campaign UTMs on
+        // the URL and remember where to come back to (see (protected)/layout.js).
+        router.push(withUtms("/login", { redirect: getCurrentFullPath() }));
       }
     }
   }, [isAuthenticated, accessToken, router, pathname]);
