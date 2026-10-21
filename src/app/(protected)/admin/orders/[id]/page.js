@@ -32,11 +32,12 @@ import { apiFetch } from "@/lib/api";
 import { getOrderImage } from "@/lib/utils";
 import { shopifyStorefrontFetch, toShopifyGid } from "@/lib/shopify-client";
 
-const CLICKPOST_SECURITY_KEY = "2f6fe169-505f-47d8-bf14-da099427c840";
+const CLICKPOST_SECURITY_KEY = process.env.NEXT_PUBLIC_CLICKPOST_SECURITY_KEY || "";
 
 function getClickpostTrackingUrl(waybill, cpId = 5) {
   if (!waybill) return "";
-  return `https://track.clickpost.in/?waybill=${encodeURIComponent(waybill)}&source=dashboard&cp_id=${encodeURIComponent(cpId)}&security_key=${CLICKPOST_SECURITY_KEY}`;
+  const secParam = CLICKPOST_SECURITY_KEY ? `&security_key=${encodeURIComponent(CLICKPOST_SECURITY_KEY)}` : "";
+  return `https://track.clickpost.in/?waybill=${encodeURIComponent(waybill)}&source=dashboard&cp_id=${encodeURIComponent(cpId)}${secParam}`;
 }
 
 // Specific query to get order details with handles via Customer
