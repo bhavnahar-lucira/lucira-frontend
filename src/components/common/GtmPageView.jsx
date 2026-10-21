@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { pushCustomerData, pushMarketingData, pushPageView } from "@/lib/gtm";
-import { saveUtmsFromUrl } from "@/lib/checkout-crm";
+import { saveUtmsFromUrl, pickUtms, getSessionUtms } from "@/lib/utm";
 import { toE164 } from "@/lib/phone";
 
 // Helper to determine the page type following Shopify conventions
@@ -37,30 +37,33 @@ export default function GtmPageView() {
     const pageType = getPageType(pathname);
     const pageUrl = typeof window !== 'undefined' ? window.location.href : "";
 
-    // 2. Save UTMs to localStorage for later use in checkout
+    // 2. Save UTMs to localStorage / cookie / sessionStorage for later use
     saveUtmsFromUrl(searchParams);
+
+    // UTMs for this page view: the URL wins; when the URL has none (every page
+    // after the landing page) fall back to the ones that opened this browser
+    // session, so the campaign stays attached to the whole journey.
+    const urlUtms = pickUtms(searchParams);
+    const sessionUtms = getSessionUtms();
+    const utm = (key) => urlUtms[key] || sessionUtms[key] || "";
+    const utmFields = {
+      utmSource: utm("utm_source"),
+      utmMedium: utm("utm_medium"),
+      utmCampaign: utm("utm_campaign"),
+      utmTerm: utm("utm_term"),
+      utmContent: utm("utm_content"),
+      utmId: utm("utm_id"),
+    };
 
     // 3. Push the specific pageView event as requested
     pushPageView({
       pageType: pageType,
       pageUrl: pageUrl,
-      utmSource: searchParams.get("utm_source") || "",
-      utmMedium: searchParams.get("utm_medium") || "",
-      utmCampaign: searchParams.get("utm_campaign") || "",
-      utmTerm: searchParams.get("utm_term") || "",
-      utmContent: searchParams.get("utm_content") || "",
-      utmId: searchParams.get("utm_id") || ""
+      ...utmFields,
     });
 
     // 4. Push Marketing Data
-    pushMarketingData({
-      utmSource: searchParams.get("utm_source") || "",
-      utmMedium: searchParams.get("utm_medium") || "",
-      utmCampaign: searchParams.get("utm_campaign") || "",
-      utmTerm: searchParams.get("utm_term") || "",
-      utmContent: searchParams.get("utm_content") || "",
-      utmId: searchParams.get("utm_id") || ""
-    });
+    pushMarketingData({ ...utmFields });
 
   }, [pathname, searchParams]);
 

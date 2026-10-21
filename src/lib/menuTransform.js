@@ -13,6 +13,14 @@ export const MENU_LABEL_OVERRIDES = {
   "lucira express": "Fast Shipping",
 };
 
+// Same idea for the links inside a mega-menu column (Shop By Style etc.),
+// keyed by the lowercase Shopify title. Keeps the display name even after
+// `npm run generate-menu` refreshes menu-data.json from Shopify.
+export const MENU_ITEM_LABEL_OVERRIDES = {
+  // Earrings → Shop By Style. Renamed 21 Oct 2026; collection handle unchanged.
+  "dangles": "Danglers",
+};
+
 // Small collection tiles rendered beside the image cards in the desktop
 // Collections menu and below the image cards in the mobile menu.
 //
@@ -154,7 +162,7 @@ export function transformMenuData(shopifyMenuItems) {
             } else {
                 const isMetal = child.title.toLowerCase().includes("metal") || child.title.toLowerCase().includes("material");
                 const processedItems = (child.items || []).map(sub => ({
-                    label: sub.title,
+                    label: MENU_ITEM_LABEL_OVERRIDES[(sub.title || "").toLowerCase().trim()] || sub.title,
                     href: sub.url.replace(/https:\/\/[^/]+/, ""),
                     icon: getFileUrl(getMetafield(sub.resource?.metafields?.nodes || [], "custom", "icon")),
                     megaMenuImage: getFileUrl(getMetafield(sub.resource?.metafields?.nodes || [], "custom", "mega_menu_image")),
@@ -267,7 +275,7 @@ export const MENU_EXTRAS = {
   },
   // 15 Oct 2026 sheet (14 items, so the last grid slot stays empty):
   //   Hoops      | Studs          | Infinity Earrings
-  //   Sui Dhagas | Dangles        | Heart Earrings
+  //   Sui Dhagas | Danglers       | Heart Earrings
   //   Solitaire  | Halo           | Butterfly Earrings
   //   Gemstone   | Men's Earrings | Evil Eye Earrings
   //   Gold       | Kids Earrings  |
@@ -281,7 +289,7 @@ export const MENU_EXTRAS = {
     ],
     styleOrder: [
       'hoops', 'studs', 'infinity earrings',
-      'sui dhagas', 'dangles', 'heart earrings',
+      'sui dhagas', 'danglers', 'heart earrings',
       'solitaire', 'halo', 'butterfly earrings',
       'gemstone', "men's earrings", 'evil eye earrings',
       'gold earrings', 'kids earrings',

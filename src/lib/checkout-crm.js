@@ -1,67 +1,13 @@
 import { getNumericId } from "./gtm";
 import { apiFetch } from "./api";
 import { toE164 } from "@/lib/phone";
+import { getStoredUtms, saveUtmsFromUrl } from "@/lib/utm";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
 
-export const getStoredUtms = () => {
-  if (typeof window === 'undefined') return {};
-  try {
-    const getCookie = (name) => {
-      const nameEQ = name + "=";
-      const ca = document.cookie.split(';');
-      for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-      }
-      return null;
-    };
-
-    const cookieUtmsStr = getCookie("lucira_utms");
-    if (cookieUtmsStr) {
-      try {
-        return JSON.parse(decodeURIComponent(cookieUtmsStr));
-      } catch(e) {}
-    }
-
-    return JSON.parse(localStorage.getItem("lucira_utms") || "{}");
-  } catch (e) {
-    return {};
-  }
-};
-
-export const saveUtmsFromUrl = (searchParams) => {
-  if (typeof window === 'undefined') return;
-  const utms = {
-    utm_source: searchParams.get("utm_source"),
-    utm_medium: searchParams.get("utm_medium"),
-    utm_campaign: searchParams.get("utm_campaign"),
-    utm_term: searchParams.get("utm_term"),
-    utm_content: searchParams.get("utm_content"),
-  };
-  
-  const existingUtms = getStoredUtms();
-  const newUtms = { ...existingUtms };
-  let changed = false;
-  
-  Object.keys(utms).forEach(key => {
-    if (utms[key]) {
-      newUtms[key] = utms[key];
-      changed = true;
-    }
-  });
-  
-  if (changed) {
-    const strUtms = JSON.stringify(newUtms);
-    localStorage.setItem("lucira_utms", strUtms);
-
-    // Save in cookie for 30 days
-    const date = new Date();
-    date.setTime(date.getTime() + (30 * 24 * 60 * 60 * 1000));
-    document.cookie = "lucira_utms=" + encodeURIComponent(strUtms) + "; expires=" + date.toUTCString() + "; path=/; SameSite=Lax";
-  }
-};
+// UTM capture/read now lives in src/lib/utm.js (shared with the auth redirects
+// and GtmPageView). Re-exported here so existing importers keep working.
+export { getStoredUtms, saveUtmsFromUrl };
 
 export const sendCheckoutCrmEvent = async (type, data) => {
   try {
