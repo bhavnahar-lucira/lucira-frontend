@@ -32,6 +32,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
 import { apiFetch } from "@/lib/api";
 import { getLiveVariantPrice } from "@/lib/livePriceBatch";
+import { fetchSameCollectionProducts } from "@/lib/sameCollection";
 import ProductCardCta from "./ProductCardCta";
 import { trackProductClick as trackSearchProductClick } from "@/lib/searchAnalytics";
 
@@ -592,9 +593,18 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
-      // Priority: complementaryProducts > matchingProducts > products
-      let products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      // Same products the PDP shows under "From the Same Collection" for this
+      // product (the custom.from_the_same_collection_headless metafield, with
+      // the legacy matching_product fallback) — see lib/sameCollection.js.
+      let products = await fetchSameCollectionProducts(product.shopifyId || product.id);
+
+      // Products without that metafield keep the previous behaviour: Shopify's
+      // related recommendations, then a product-type search.
+      if (products.length === 0) {
+        const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
+        // Priority: complementaryProducts > matchingProducts > products
+        products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      }
 
       // Fallback: If no related products found, use search API based on product type
       if (products.length === 0 && (product.type || product.category)) {
