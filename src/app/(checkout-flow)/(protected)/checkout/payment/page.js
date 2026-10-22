@@ -889,15 +889,15 @@ export default function PaymentPage() {
                 ifr.style.setProperty("max-width", "min(1180px, 95vw)", "important");
                 ifr.style.setProperty("height", "715px", "important");
                 ifr.style.setProperty("max-height", "min(715px, 94vh)", "important");
-                ifr.style.setProperty("border-radius", "16px", "important");
+                ifr.style.setProperty("border-radius", "24px", "important");
                 ifr.style.setProperty("overflow", "hidden", "important");
-                ifr.style.setProperty("box-shadow", "0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.08)", "important");
+                ifr.style.setProperty("box-shadow", "0 25px 50px -12px rgba(0, 0, 0, 0.35)", "important");
               } else {
                 ifr.style.setProperty("width", "100vw", "important");
                 ifr.style.setProperty("max-width", "100vw", "important");
                 ifr.style.setProperty("height", "564px", "important");
                 ifr.style.setProperty("max-height", "90vh", "important");
-                ifr.style.setProperty("border-radius", "16px 16px 0 0", "important");
+                ifr.style.setProperty("border-radius", "20px 20px 0 0", "important");
                 ifr.style.setProperty("overflow", "hidden", "important");
               }
             });
