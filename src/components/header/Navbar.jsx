@@ -7,27 +7,27 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { withMenuExtras, chunkQuickLinks } from "@/lib/menuTransform";
+import { withMenuExtras, withDesktopNecklaces, chunkQuickLinks } from "@/lib/menuTransform";
 import { pushPromoClick } from "@/lib/gtm";
 
 export default function Navbar({ hideTop, menuData }) {
   const MEGA_MENU = useMemo(() => {
     // menuData arrives already transformed by getHeaderMenu() on the server.
-    const menus = Array.isArray(menuData) ? menuData : [];
+    // Desktop only: "9KT Collection" reads "9KT", and the More Jewelry
+    // Necklaces column becomes its own Necklaces tab after Earrings.
+    const menus = withDesktopNecklaces(Array.isArray(menuData) ? menuData : []);
     
     return withMenuExtras(menus.map(menu => {
       const label = (menu.label || menu.title || '').toLowerCase();
       
       if (label.includes('more jewelry') || label.includes('more jewellery')) {
         let goldBracelets = null;
-        let goldNecklaces = null;
 
         // First find the items in PLAIN GOLD column
         menu.columns?.forEach(col => {
           if ((col.title || '').toLowerCase().includes('plain gold')) {
             col.items?.forEach(item => {
               if (item.label === 'Gold Bracelets') goldBracelets = item;
-              if (item.label === 'Gold Necklaces') goldNecklaces = item;
             });
           }
         });
@@ -60,15 +60,6 @@ export default function Navbar({ hideTop, menuData }) {
               items = [...items, goldBracelets];
             }
             return { ...col, items };
-          }
-          
-          if (colTitle === 'necklaces' && goldNecklaces) {
-            if (!col.items?.find(i => i.label === 'Gold Necklaces')) {
-              return {
-                ...col,
-                items: [...(col.items || []), goldNecklaces]
-              };
-            }
           }
           
           return col;

@@ -348,3 +348,142 @@ export function withMenuExtras(menus) {
     return extras.dropCards ? { ...menu, columns, cards: [] } : { ...menu, columns };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Desktop-only Necklaces tab (23 Oct 2026).
+//
+// The Shopify menu has no top-level Necklaces item yet: necklaces live as a
+// column inside More Jewelry. On desktop the Navbar lifts that column out into
+// its own tab (between Earrings and More Jewelry), adds the marketing sheet's
+// new necklace/pendant styles, and gives it the same Shop By Shape / Material /
+// Price columns as Earrings. The mobile drawer keeps its own Necklaces tile
+// (built from the More Jewelry column in MobileHeader) and is untouched.
+//
+// Display-name overrides that apply on desktop only. The mobile grid keeps the
+// full name because its icon map and matchers key on it.
+export const DESKTOP_MENU_LABEL_OVERRIDES = {
+  // Shortened so the Necklaces tab fits on one line beside OFFERS.
+  "9kt collection": "9KT",
+};
+
+// Shape / Material / Price redirects for necklaces are still pending from
+// marketing. Until they arrive every one of those links lands on the main
+// necklaces collection; replace this with the real hrefs below when received.
+export const NECKLACE_LINK_PENDING = "/collections/necklaces";
+
+// Marketing sheet (23 Oct 2026), two columns read row by row:
+//   Statement Necklaces | Infinity Necklace
+//   Chain Necklaces     | Heart Pendant
+//   Pendant Necklaces   | Butterfly Pendant
+//   Tennis Necklaces    | Evil Eye Pendant
+//   Gold Necklaces      | Kids Pendant
+// The first column comes from the CMS (More Jewelry > Necklaces, plus Gold
+// Necklaces from Plain Gold); the second is appended here. The pendant icons
+// are the white-background product shots uploaded to Shopify Files on
+// 17 Oct 2026 (same style as the CMS necklace icons). No Kids Pendant icon was
+// supplied, so it borrows the More Jewelry > Pendants icon until one arrives.
+export const NECKLACE_STYLE_EXTRAS = [
+  { label: 'Infinity Necklace', href: '/collections/infinity-necklace', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_pendant_icon_6dbb24c1-f58a-47fa-90c8-870c44b6cde8.png?v=1792219203' },
+  { label: 'Heart Pendant', href: '/collections/heart-pendant', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_pendant_icon_ef395e2f-66b9-4e02-8e7d-57696bd1de50.png?v=1792219203' },
+  { label: 'Butterfly Pendant', href: '/collections/butterfly-pendant', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_pendant_icon_ee655fc2-f89d-4efb-b91c-fca07f90866a.png?v=1792219203' },
+  { label: 'Evil Eye Pendant', href: '/collections/evil-eye-pendant', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_pendant_icon_fdc9374c-ca2d-448e-9d05-f82caa5ef7c8.png?v=1792219203' },
+  { label: 'Kids Pendant', href: '/collections/kids-pendant', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pendants_More_Jewelry_F2.png?v=1777357190' },
+];
+
+export const NECKLACE_STYLE_ORDER = [
+  'statement necklaces', 'infinity necklace',
+  'chain necklaces', 'heart pendant',
+  'pendant necklaces', 'butterfly pendant',
+  'tennis necklaces', 'evil eye pendant',
+  'gold necklaces', 'kids pendant',
+];
+
+// Same shape icons the Rings / Earrings tabs use (the shared Shop By Shape set).
+export const NECKLACE_SHAPE_ITEMS = [
+  { label: 'Round', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Round_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697896' },
+  { label: 'Emerald', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Emerald_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697823' },
+  { label: 'Marquise', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Marquise_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697835' },
+  { label: 'Cushion', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cushion_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697929' },
+  { label: 'Oval', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Oval_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697847' },
+  { label: 'Pear', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pear_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697857' },
+  { label: 'Princess', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Princess_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697884' },
+  { label: 'Special Cuts', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_1.png?v=1777724104' },
+];
+
+// Gold swatches are drawn in CSS from the label (see Navbar); Pearl uses the
+// same icon as the Rings / Earrings material columns.
+export const NECKLACE_MATERIAL_ITEMS = [
+  { label: 'Yellow Gold', href: NECKLACE_LINK_PENDING },
+  { label: 'Rose Gold', href: NECKLACE_LINK_PENDING },
+  { label: 'White Gold', href: NECKLACE_LINK_PENDING },
+  { label: 'Platinum', href: NECKLACE_LINK_PENDING },
+  { label: 'Pearl', href: NECKLACE_LINK_PENDING, menuIcon: PEARL_ICON },
+];
+
+export const NECKLACE_PRICE_ITEMS = [
+  { label: 'Below 15k', href: NECKLACE_LINK_PENDING },
+  { label: '15k - 30k', href: NECKLACE_LINK_PENDING },
+  { label: '30k - 50k', href: NECKLACE_LINK_PENDING },
+  { label: '50k - 75k', href: NECKLACE_LINK_PENDING },
+  { label: '75k - 100k', href: NECKLACE_LINK_PENDING },
+  { label: '100k - 150k', href: NECKLACE_LINK_PENDING },
+  { label: '150k and above', href: NECKLACE_LINK_PENDING },
+];
+
+const isMoreJewelry = (menu) => {
+  const l = norm(menu.label || menu.title);
+  return l.includes('more jewelry') || l.includes('more jewellery');
+};
+
+// The Necklaces mega menu assembled from the More Jewelry columns of an
+// already-transformed menu list. Returns null when More Jewelry has no
+// Necklaces column (nothing to lift out).
+export function buildNecklacesMenu(menus) {
+  const moreJewelry = (menus || []).find(isMoreJewelry);
+  const necklaceCol = moreJewelry?.columns?.find((c) => norm(c.title) === 'necklaces');
+  if (!necklaceCol?.items?.length) return null;
+
+  const plainGold = moreJewelry.columns.find((c) => norm(c.title).includes('plain gold'));
+  const goldNecklaces = plainGold?.items?.find((i) => i.label === 'Gold Necklaces');
+  const cmsItems = goldNecklaces
+    ? appendMissing(necklaceCol.items, [goldNecklaces])
+    : necklaceCol.items;
+
+  const styleItems = sortByOrder(appendMissing(cmsItems, NECKLACE_STYLE_EXTRAS), NECKLACE_STYLE_ORDER);
+
+  return {
+    label: 'Necklaces',
+    href: '/collections/necklaces',
+    type: 'mega',
+    layout: '5-col-featured',
+    columns: [
+      { title: 'Shop By Style', type: 'icon', items: styleItems, gridCols: 2 },
+      { title: 'Shop By Shape', type: 'icon', items: NECKLACE_SHAPE_ITEMS },
+      { title: 'Shop By Material', type: 'metal', items: NECKLACE_MATERIAL_ITEMS },
+      { title: 'Shop By Price', type: 'text', items: NECKLACE_PRICE_ITEMS },
+    ],
+    cards: [],
+  };
+}
+
+// Desktop menu list: top-level labels shortened per DESKTOP_MENU_LABEL_OVERRIDES,
+// the Necklaces column dropped from More Jewelry, and the Necklaces tab inserted
+// right after Earrings (or before More Jewelry if Earrings is missing).
+export function withDesktopNecklaces(menus) {
+  const necklaces = buildNecklacesMenu(menus);
+  const list = (menus || []).map((menu) => {
+    const label = DESKTOP_MENU_LABEL_OVERRIDES[norm(menu.label || menu.title)] || menu.label;
+    const renamed = label === menu.label ? menu : { ...menu, label };
+    if (!necklaces || !isMoreJewelry(renamed)) return renamed;
+    return {
+      ...renamed,
+      columns: (renamed.columns || []).filter((c) => norm(c.title) !== 'necklaces'),
+    };
+  });
+  if (!necklaces) return list;
+
+  let at = list.findIndex((m) => norm(m.label || m.title) === 'earrings');
+  if (at === -1) at = list.findIndex(isMoreJewelry) - 1;
+  const insertAt = at === -1 ? list.length : at + 1;
+  return [...list.slice(0, insertAt), necklaces, ...list.slice(insertAt)];
+}
