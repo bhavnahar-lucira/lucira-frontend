@@ -728,8 +728,8 @@ export default function PaymentPage() {
           ? [customer?.firstName, customer?.lastName].filter(Boolean).join(" ")
           : user?.name || "Lucira Customer";
 
-      // PhonePe UPI payment flow
-      if (selectedPaymentGateway === "phonepe") {
+      // PhonePe payment flow (for UPI full payment or Partial COD via PhonePe)
+      if (selectedPaymentGateway === "phonepe" || selectedPaymentGateway === "partial_cod") {
         const phonePeOrder = await createPhonePeOrder({
           userId: user?.id || "",
           context: process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront',
