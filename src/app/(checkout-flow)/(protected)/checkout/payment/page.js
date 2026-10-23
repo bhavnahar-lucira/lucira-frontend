@@ -1133,6 +1133,13 @@ export default function PaymentPage() {
             setPaymentLoading(false);
           }
         },
+        method: {
+          upi: false,
+          card: true,
+          netbanking: true,
+          wallet: true,
+          emi: true,
+        },
         modal: {
           ondismiss: () => {
             toast.info("Payment window closed.");
@@ -1143,7 +1150,6 @@ export default function PaymentPage() {
           name: order.customer?.name || customerName,
           email: order.customer?.email || checkoutSelection?.customerEmail || "",
           contact: order.customer?.phone || order.customer?.contact || normalizePhone(customer?.phone || user?.mobile || selectedAddress?.phone || ""),
-          method: "upi",
         },
         notes: {
           shipping_address: isPickup ? checkoutSelection.selectedStore?.address : formatAddressPreview(selectedAddress),
@@ -1154,12 +1160,16 @@ export default function PaymentPage() {
         config: {
           display: {
             blocks: {
-              upi: {
-                name: "Pay via UPI",
-                methods: ["vpa", "qr"],
+              cards: {
+                name: "Cards",
+                instruments: [{ method: "card" }],
+              },
+              netbanking: {
+                name: "Net Banking",
+                instruments: [{ method: "netbanking" }],
               },
             },
-            sequence: ["block.upi", "block.cards", "block.netbanking"],
+            sequence: ["block.cards", "block.netbanking"],
             preferences: {
               show_default_blocks: true,
             },
