@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/accordion";
 import { useSelector, useDispatch } from "react-redux";
 import { openAuthModal } from "@/redux/features/user/userSlice";
-import CategoryCarousel, { loadCategoryGroups } from "@/components/collection/CategoryCarousel";
+import CategoryCarousel from "@/components/collection/CategoryCarousel";
 import { selectRecentlyViewed } from "@/redux/features/recentlyViewed/recentlyViewedSlice";
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -39,6 +39,7 @@ import StoreCollectionBanner from "@/components/collections/StoreCollectionBanne
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
 import JewelleryEmiStrip from "@/components/collections/JewelleryEmiStrip";
+import PlpHeroPicture from "@/components/collections/PlpHeroPicture";
 import { apiFetch } from "@/lib/api";
 import { storeCollectionHandles } from "@/lib/storeContent";
 
@@ -186,6 +187,17 @@ const PREFETCH_CACHE = new Map();
 // reads as ticked. Painting that and correcting it seconds later is
 // indistinguishable from the filter returning the wrong products, so when this is
 // true the grid starts empty and shows skeletons.
+// Any query key other than ad/analytics tracking means the URL asks for a
+// view the server payload does not describe (a filter, a sort, a cursor, …).
+// Unknown keys deliberately count as "different" so the fetch runs, as before.
+const TRACKING_PARAM = /^(utm_|fbclid$|gclid$|_)/;
+function urlAsksForADifferentView(searchParams) {
+  for (const key of searchParams.keys()) {
+    if (!TRACKING_PARAM.test(key)) return true;
+  }
+  return false;
+}
+
 function urlHasActiveFilters(searchParams, baseFilters) {
   for (const [key, value] of searchParams.entries()) {
     if (key.startsWith("filter.")) return true;
@@ -354,7 +366,7 @@ function RecentlyViewedRow({ products }) {
   );
 }
 
-export default function CollectionPage({ params: paramsPromise, initialData, storePages = null, collectionData = null }) {
+export default function CollectionPage({ params: paramsPromise, initialData, storePages = null, collectionData = null, categoryGroups = [] }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
 
@@ -425,22 +437,8 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
 
   // "Shop by …" category carousels — one per menu group that exists for this
-  // collection's category (empty for categories without such groups).
-  const [categoryGroups, setCategoryGroups] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const groups = await loadCategoryGroups(handle);
-        if (!cancelled) setCategoryGroups(groups);
-      } catch {
-        /* no carousels on failure */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [handle]);
+  // collection's category (empty for categories without such groups). Built on
+  // the server (page.js) and passed in as `categoryGroups`.
 
   // Helper to process filters
   const processFilters = useCallback((filtersData) => {
@@ -1119,6 +1117,32 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       const storeOrderOnly = viewKeyRef.current === viewKey;
       viewKeyRef.current = viewKey;
 
+      // The server-rendered payload IS this view when the URL carries nothing
+      // (no filter, sort or cursor; tracking params don't count) and no store
+      // ordering applies. Re-requesting it only repainted identical data: the
+      // route re-renders every minute and the backend caches ten, so this
+      // request can never be fresher than the HTML, and every card still checks
+      // its own price live. Keep the grid as is. Anything that changes the
+      // view — a filter, a sort, a pincode ordering resolving, a missing SSR
+      // payload — re-runs this effect with different inputs and fetches exactly
+      // as before.
+      if (
+        isInitialMount &&
+        initialData?.collData?.products?.length > 0 &&
+        !ssgIsStale &&
+        storeOrderParam === "" &&
+        !urlAsksForADifferentView(searchParams)
+      ) {
+        rememberView(viewCacheKey, {
+          products: (initialData.collData.products || []).filter(
+            (p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden")
+          ),
+          pagination: initialData.collData.pageInfo || { hasNextPage: false, endCursor: null },
+          totalCount: initialData.collData.totalProducts || 0,
+        });
+        return;
+      }
+
       // Only show loading skeletons if this is NOT the initial mount (e.g. user clicked a filter)
       // On initial mount, we keep the SSG data visible while we fetch fresh data in the background (SWR pattern).
       if (!isInitialMount && !storeOrderOnly) {
@@ -1664,37 +1688,18 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
           </div>
 
           <div className="relative w-full">
-            {/* Desktop Image */}
-            <div className="hidden lg:block w-full">
-              <Image
-                loader={shopifyLoader}
-                src={topBannerOverride.desktopImage}
-                alt={topBannerOverride.alt || displayTitle}
-                width={1920}
-                height={800}
-                priority
-                loading="eager"
-                className="w-full h-auto object-cover object-center"
-                sizes="100vw"
-                draggable={false}
-              />
-            </div>
-
-            {/* Mobile Image */}
-            <div className="block lg:hidden w-full">
-              <Image
-                loader={shopifyLoader}
-                src={topBannerOverride.mobileImage}
-                alt={topBannerOverride.alt || displayTitle}
-                width={768}
-                height={960}
-                priority
-                loading="eager"
-                className="w-full h-auto object-cover object-center"
-                sizes="100vw"
-                draggable={false}
-              />
-            </div>
+            {/* One <picture>: the desktop file at lg and up, the mobile file
+                below it. Only the matching source downloads (see
+                PlpHeroPicture); the previous two priority <Image>s fetched both
+                files on every device. */}
+            <PlpHeroPicture
+              desktop={{ src: topBannerOverride.desktopImage, width: 1920, height: 800 }}
+              mobile={{ src: topBannerOverride.mobileImage, width: 768, height: 960 }}
+              alt={topBannerOverride.alt || displayTitle}
+              className="w-full h-auto object-cover object-center"
+              draggable={false}
+              preload
+            />
           </div>
         </div>
       ) : storeHandles.includes(handle) ? (

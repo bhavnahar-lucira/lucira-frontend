@@ -100,6 +100,7 @@ import { OFFER_CATEGORY, getItemOfferCategory } from "@/lib/coupons";
 import { Sheet as MobileSheet } from "react-modal-sheet";
 import { standardizeKarat, getVariantSelection } from "@/lib/variantSelection";
 import { runWhenIdle } from "@/lib/idle";
+import { fetchSameCollectionProducts } from "@/lib/sameCollection";
 
 import { Lobster, Yellowtail, Satisfy, ABeeZee } from "next/font/google";
 
@@ -2067,9 +2068,19 @@ export default function ProductPageClient({
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
-      // Priority: complementaryProducts > matchingProducts > products
-      let products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      // Same source as the "From the Same Collection" grid below (and the
+      // ProductCard drawer): the custom.from_the_same_collection_headless
+      // metafield with the legacy matching_product fallback — see
+      // lib/sameCollection.js. Cached per product, so this is instant when the
+      // grid's own fetch has already run.
+      let products = await fetchSameCollectionProducts(product.shopifyId || product.id);
+
+      // Products without that metafield keep the previous behaviour.
+      if (products.length === 0) {
+        const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
+        // Priority: complementaryProducts > matchingProducts > products
+        products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      }
 
       // Fallback: If no related products found, use search API based on product type
       if (products.length === 0 && (product.type || product.category)) {
