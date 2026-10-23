@@ -36,8 +36,17 @@ import MobileCategorySlider from "@/components/home/MobileCategorySlider";
 import { getStorePages } from "@/lib/storeContent";
 
 export const metadata = {
+  title: "Lab Grown Diamond Jewellery Online in India | Lucira Jewelry",
+  description:
+    "Discover modern lab grown diamond rings, earrings, bracelets and mangalsutras at Lucira Jewelry. Shop online, or book a video call or store visit.",
   alternates: {
     canonical: "/",
+  },
+  openGraph: {
+    title: "Lab Grown Diamond Jewellery Online in India | Lucira Jewelry",
+    description:
+      "Discover modern lab grown diamond rings, earrings, bracelets and mangalsutras at Lucira Jewelry. Shop online, or book a video call or store visit.",
+    url: "/",
   },
 };
 
