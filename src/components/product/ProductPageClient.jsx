@@ -3774,10 +3774,10 @@ export default function ProductPageClient({
                           <span className="font-medium text-right whitespace-nowrap">{activeVariant.metafields.gemstones[0].color}</span>
                         </div>
                       )}
-                      {activeVariant.metafields.gemstones[0].shape && activeVariant.metafields.gemstones[0].shape !== "NA" && (
+                      {activeVariant.metafields.gemstones[0].shape && activeVariant.metafields.gemstones[0].shape !== "NA" && mapShapeCode(activeVariant.metafields.gemstones[0].shape) && (
                         <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
                           <span className="text-gray-500 shrink-0">Shape</span>
-                          <span className="font-medium text-right whitespace-nowrap">{mapShapeCode(activeVariant.metafields.gemstones[0].shape) || activeVariant.metafields.gemstones[0].shape}</span>
+                          <span className="font-medium text-right whitespace-nowrap">{mapShapeCode(activeVariant.metafields.gemstones[0].shape)}</span>
                         </div>
                       )}
                       <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
@@ -3804,7 +3804,7 @@ export default function ProductPageClient({
                       {/* Labels Column */}
                       <div className="space-y-3 shrink-0">
                         <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Color :</div>
-                        {activeVariant.metafields.gemstones.some(g => g.shape && g.shape !== "NA") && (
+                        {activeVariant.metafields.gemstones.some(g => g.shape && g.shape !== "NA" && mapShapeCode(g.shape)) && (
                           <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Shape :</div>
                         )}
                         <div className="text-sm text-gray-500 font-medium h-5 flex items-center">Quantity :</div>
@@ -3815,8 +3815,8 @@ export default function ProductPageClient({
                       {activeVariant.metafields.gemstones.map((g, i) => (
                         <div key={`gem-col-${i}`} className="space-y-3 shrink-0">
                           <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.color || "-"}</div>
-                          {activeVariant.metafields.gemstones.some(item => item.shape && item.shape !== "NA") && (
-                            <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{(g.shape && g.shape !== "NA") ? (mapShapeCode(g.shape) || g.shape) : "-"}</div>
+                          {activeVariant.metafields.gemstones.some(gem => gem.shape && gem.shape !== "NA" && mapShapeCode(gem.shape)) && (
+                            <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{mapShapeCode(g.shape) || "-"}</div>
                           )}
                           <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.pieces || "1"}pcs</div>
                           <div className="text-sm font-semibold h-5 flex items-center text-gray-900 whitespace-nowrap">{g.weight || "0"}ct</div>
@@ -3833,12 +3833,16 @@ export default function ProductPageClient({
                     config = JSON.parse(activeVariant?.metafields?.variant_config || "{}");
                   } catch (e) { }
 
+                  const hasVariantConfigMaterial = Boolean(
+                    config.additional_item_type ||
+                    (config.additional_item_charges && Number(config.additional_item_charges) > 0)
+                  );
+
                   const filteredOtherMaterials = (activeVariant?.metafields?.otherMaterials || []).filter(m => {
                     const mat = String(m?.material || "").toLowerCase();
                     return !mat.includes("platin") && !mat.includes("gold") && !mat.includes("silver");
                   });
                   const hasOtherMaterials = filteredOtherMaterials.length > 0;
-                  const hasVariantConfigMaterial = config.additional_item_charges && Number(config.additional_item_charges) > 0;
 
                   if (!hasOtherMaterials && !hasVariantConfigMaterial) return null;
 
@@ -3853,15 +3857,23 @@ export default function ProductPageClient({
                       </div>
 
                       <div className="space-y-2">
-                        {hasOtherMaterials && filteredOtherMaterials.map((m, i) => {
-                          const displayMaterial = (m.material?.toLowerCase()?.includes("accessor") && config.additional_item_type)
-                            ? config.additional_item_type
-                            : (m.material || "-");
-                          return (
+                        {hasVariantConfigMaterial ? (
+                          <>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Material</span>
+                              <span className="font-medium text-right whitespace-nowrap">{config.additional_item_type || "-"}</span>
+                            </div>
+                            <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
+                              <span className="text-gray-500 shrink-0">Weight</span>
+                              <span className="font-medium text-right whitespace-nowrap">{config.additional_item_weight ? `${config.additional_item_weight} gm` : "-"}</span>
+                            </div>
+                          </>
+                        ) : (
+                          filteredOtherMaterials.map((m, i) => (
                             <div key={`other-mat-${i}`} className="space-y-2">
                               <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
                                 <span className="text-gray-500 shrink-0">Material</span>
-                                <span className="font-medium text-right whitespace-nowrap capitalize">{displayMaterial}</span>
+                                <span className="font-medium text-right whitespace-nowrap">{m.material || "-"}</span>
                               </div>
                               {m.color && m.color !== "NA" && (
                                 <div className="flex justify-between items-center gap-1.5 text-xs xl:text-sm">
@@ -3881,19 +3893,7 @@ export default function ProductPageClient({
                                 <div className="h-px bg-gray-200 my-3" />
                               )}
                             </div>
-                          );
-                        })}
-                        {hasVariantConfigMaterial && !hasOtherMaterials && (
-                          <>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Material</span>
-                              <span className="font-medium capitalize">{config.additional_item_type || "-"}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Weight</span>
-                              <span className="font-medium">{config.additional_item_weight || "0"} gm</span>
-                            </div>
-                          </>
+                          ))
                         )}
                       </div>
                     </div>
