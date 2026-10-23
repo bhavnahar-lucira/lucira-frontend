@@ -35,7 +35,7 @@ export async function GET() {
   });
 
   const pageEntries = pages
-    .filter((page) => !isRatePage(page.handle))
+    .filter((page) => !isRatePage(page.handle) && page.handle !== "jewellery-on-emi")
     .map((page) => ({
       url: `${BASE_URL}/pages/${page.handle}`,
       lastModified: new Date(),
