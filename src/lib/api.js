@@ -14,7 +14,10 @@ export const apiFetch = async (url, options = {}) => {
   // We ensure the URL is absolute to avoid hitting the Next.js server on port 3000
   let finalUrl = url;
   if (url.startsWith("/api") && !url.startsWith("/api/proxy/")) {
-    const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+    let base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+    if (typeof window !== "undefined" && window.location.protocol === "https:" && base.startsWith("http://") && !base.includes("localhost") && !base.includes("127.0.0.1")) {
+      base = base.replace(/^http:\/\//i, "https://");
+    }
     finalUrl = `${base}${url}`;
     
     // Debug log to confirm where requests are actually going
