@@ -1172,24 +1172,6 @@ export default function PaymentPage() {
           shipping_gstin: selectedAddress?.gstin || "",
           billing_gstin: selectedBillingAddress?.gstin || "",
         },
-        config: {
-          display: {
-            blocks: {
-              cards: {
-                name: "Cards",
-                instruments: [{ method: "card" }],
-              },
-              netbanking: {
-                name: "Net Banking",
-                instruments: [{ method: "netbanking" }],
-              },
-            },
-            sequence: ["block.cards", "block.netbanking"],
-            preferences: {
-              show_default_blocks: true,
-            },
-          },
-        },
         theme: {
           color: "#111111",
         },
