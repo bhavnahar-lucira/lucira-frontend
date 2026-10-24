@@ -263,68 +263,70 @@ export const DESKTOP_MENU_LABEL_OVERRIDES = {
   "9kt collection": "9KT",
 };
 
-// Shape / Material / Price redirects for necklaces are still pending from
-// marketing. Until they arrive every one of those links lands on the main
-// necklaces collection; replace this with the real hrefs below when received.
-export const NECKLACE_LINK_PENDING = "/collections/necklaces";
-
-// Marketing sheet (23 Oct 2026), two columns read row by row:
-//   Statement Necklaces | Infinity Necklace
-//   Chain Necklaces     | Heart Pendant
-//   Pendant Necklaces   | Butterfly Pendant
-//   Tennis Necklaces    | Evil Eye Pendant
-//   Gold Necklaces      | Kids Pendant
+// Marketing sheet (24 Oct 2026), two Shop By Style columns read row by row:
+//   Statement Necklaces | Infinity Necklaces
+//   Chain Necklaces     | Heart Pendants
+//   Pendant Necklaces   | Butterfly Pendants
+//   Tennis Necklaces    | Evil Eye Pendants
+//   Gold Necklaces      | Kids Pendants
 // The first column comes from the CMS (More Jewelry > Necklaces, plus Gold
 // Necklaces from Plain Gold); the second is appended here. The pendant icons
 // are the white-background product shots uploaded to Shopify Files on
-// 17 Oct 2026 (same style as the CMS necklace icons). No Kids Pendant icon was
+// 17 Oct 2026 (same style as the CMS necklace icons). No Kids Pendants icon was
 // supplied, so it borrows the More Jewelry > Pendants icon until one arrives.
 export const NECKLACE_STYLE_EXTRAS = [
-  { label: 'Infinity Necklace', href: '/collections/infinity-necklace', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_pendant_icon_6dbb24c1-f58a-47fa-90c8-870c44b6cde8.png?v=1792219203' },
-  { label: 'Heart Pendant', href: '/collections/heart-pendant', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_pendant_icon_ef395e2f-66b9-4e02-8e7d-57696bd1de50.png?v=1792219203' },
-  { label: 'Butterfly Pendant', href: '/collections/butterfly-pendant', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_pendant_icon_ee655fc2-f89d-4efb-b91c-fca07f90866a.png?v=1792219203' },
-  { label: 'Evil Eye Pendant', href: '/collections/evil-eye-pendant', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_pendant_icon_fdc9374c-ca2d-448e-9d05-f82caa5ef7c8.png?v=1792219203' },
-  { label: 'Kids Pendant', href: '/collections/kids-pendant', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pendants_More_Jewelry_F2.png?v=1777357190' },
+  { label: 'Infinity Necklaces', href: '/collections/infinity-necklaces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_pendant_icon_6dbb24c1-f58a-47fa-90c8-870c44b6cde8.png?v=1792219203' },
+  { label: 'Heart Pendants', href: '/collections/heart-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_pendant_icon_ef395e2f-66b9-4e02-8e7d-57696bd1de50.png?v=1792219203' },
+  { label: 'Butterfly Pendants', href: '/collections/butterfly-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_pendant_icon_ee655fc2-f89d-4efb-b91c-fca07f90866a.png?v=1792219203' },
+  { label: 'Evil Eye Pendants', href: '/collections/evil-eye-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_pendant_icon_fdc9374c-ca2d-448e-9d05-f82caa5ef7c8.png?v=1792219203' },
+  { label: 'Kids Pendants', href: '/collections/kids-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pendants_More_Jewelry_F2.png?v=1777357190' },
 ];
 
 export const NECKLACE_STYLE_ORDER = [
-  'statement necklaces', 'infinity necklace',
-  'chain necklaces', 'heart pendant',
-  'pendant necklaces', 'butterfly pendant',
-  'tennis necklaces', 'evil eye pendant',
-  'gold necklaces', 'kids pendant',
+  'statement necklaces', 'infinity necklaces',
+  'chain necklaces', 'heart pendants',
+  'pendant necklaces', 'butterfly pendants',
+  'tennis necklaces', 'evil eye pendants',
+  'gold necklaces', 'kids pendants',
 ];
 
-// Same shape icons the Rings / Earrings tabs use (the shared Shop By Shape set).
+// Same shape icons the Rings / Earrings tabs use (the shared Shop By Shape
+// set), plus Heart, which only the necklaces sheet lists. The collection
+// handles are copied from the sheet verbatim: every shape except Round is
+// spelled "neckalces" in Shopify, and that misspelled handle is the one that
+// resolves (the correctly spelled URL falls through to the generic page).
+// If the handles are ever corrected in Shopify, update them here too.
 export const NECKLACE_SHAPE_ITEMS = [
-  { label: 'Round', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Round_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697896' },
-  { label: 'Emerald', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Emerald_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697823' },
-  { label: 'Marquise', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Marquise_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697835' },
-  { label: 'Cushion', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cushion_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697929' },
-  { label: 'Oval', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Oval_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697847' },
-  { label: 'Pear', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pear_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697857' },
-  { label: 'Princess', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Princess_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697884' },
-  { label: 'Special Cuts', href: NECKLACE_LINK_PENDING, menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_1.png?v=1777724104' },
+  { label: 'Round', href: '/collections/round-lab-grown-diamond-necklaces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Round_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697896' },
+  { label: 'Emerald', href: '/collections/emerald-cut-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Emerald_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697823' },
+  { label: 'Marquise', href: '/collections/marquise-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Marquise_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697835' },
+  { label: 'Cushion', href: '/collections/cushion-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cushion_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697929' },
+  { label: 'Oval', href: '/collections/oval-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Oval_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697847' },
+  { label: 'Pear', href: '/collections/pear-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pear_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697857' },
+  { label: 'Princess', href: '/collections/princess-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Princess_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697884' },
+  { label: 'Heart', href: '/collections/heart-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697936' },
+  { label: 'Special Cuts', href: '/collections/special-cuts-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_1.png?v=1777724104' },
 ];
 
-// Gold swatches are drawn in CSS from the label (see Navbar); Pearl uses the
-// same icon as the Rings / Earrings material columns.
+// Gold swatches are drawn in CSS from the label (see Navbar). Necklaces have
+// no Platinum or Pearl range, so only the three golds are listed.
 export const NECKLACE_MATERIAL_ITEMS = [
-  { label: 'Yellow Gold', href: NECKLACE_LINK_PENDING },
-  { label: 'Rose Gold', href: NECKLACE_LINK_PENDING },
-  { label: 'White Gold', href: NECKLACE_LINK_PENDING },
-  { label: 'Platinum', href: NECKLACE_LINK_PENDING },
-  { label: 'Pearl', href: NECKLACE_LINK_PENDING, menuIcon: PEARL_ICON },
+  { label: 'Yellow Gold', href: '/collections/yellow-gold-necklaces' },
+  { label: 'Rose Gold', href: '/collections/rose-gold-necklaces' },
+  { label: 'White Gold', href: '/collections/white-gold-necklaces' },
 ];
 
+// Necklace price bands start higher and run further than the Rings / Earrings
+// ones (sheet of 24 Oct 2026).
 export const NECKLACE_PRICE_ITEMS = [
-  { label: 'Below 15k', href: NECKLACE_LINK_PENDING },
-  { label: '15k - 30k', href: NECKLACE_LINK_PENDING },
-  { label: '30k - 50k', href: NECKLACE_LINK_PENDING },
-  { label: '50k - 75k', href: NECKLACE_LINK_PENDING },
-  { label: '75k - 100k', href: NECKLACE_LINK_PENDING },
-  { label: '100k - 150k', href: NECKLACE_LINK_PENDING },
-  { label: '150k and above', href: NECKLACE_LINK_PENDING },
+  { label: 'Below 50k', href: '/collections/necklaces-below-50k' },
+  { label: '50k - 75k', href: '/collections/necklaces-between-50k-75k' },
+  { label: '75k - 100k', href: '/collections/necklaces-between-75k-100k' },
+  { label: '100k - 150k', href: '/collections/necklaces-between-100k-150k' },
+  { label: '150k - 200k', href: '/collections/necklaces-between-150k-200k' },
+  { label: '200k - 300k', href: '/collections/necklaces-between-200k-300k' },
+  { label: '300k - 500k', href: '/collections/necklaces-between-300k-500k' },
+  { label: '500k and above', href: '/collections/necklaces-above-500k' },
 ];
 
 // The Shape / Material / Price columns, shared by the desktop Necklaces tab
