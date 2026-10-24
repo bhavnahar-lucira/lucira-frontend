@@ -491,6 +491,10 @@ export default function PaymentPage() {
     };
   }, [finalAmount, items]);
 
+  const isUpiEligible = useMemo(() => {
+    return Number(finalAmount || 0) <= 100000;
+  }, [finalAmount]);
+
   const paymentGateways = useMemo(() => {
     const gateways = [
       {
@@ -498,12 +502,15 @@ export default function PaymentPage() {
         name: "Full Payment (Cards, Netbanking, Wallets)",
         amount: finalAmount,
       },
-      {
+    ];
+
+    if (isUpiEligible) {
+      gateways.push({
         id: "phonepe",
         name: "Pay with UPI (PhonePe)",
         amount: finalAmount,
-      },
-    ];
+      });
+    }
 
     if (partialCodDetails.isEligible) {
       gateways.push({
@@ -514,7 +521,7 @@ export default function PaymentPage() {
     }
 
     return gateways;
-  }, [finalAmount, partialCodDetails]);
+  }, [finalAmount, isUpiEligible, partialCodDetails]);
 
   const selectedPayableAmount = selectedPaymentGateway === "partial_cod"
     ? partialCodDetails.prepaidAmount
@@ -524,7 +531,10 @@ export default function PaymentPage() {
     if (selectedPaymentGateway === "partial_cod" && !partialCodDetails.isEligible) {
       setSelectedPaymentGateway("razorpay");
     }
-  }, [partialCodDetails.isEligible, selectedPaymentGateway]);
+    if (selectedPaymentGateway === "phonepe" && !isUpiEligible) {
+      setSelectedPaymentGateway("razorpay");
+    }
+  }, [partialCodDetails.isEligible, isUpiEligible, selectedPaymentGateway]);
 
   useEffect(() => {
     if (nectorPoints) {
@@ -566,6 +576,11 @@ export default function PaymentPage() {
   const handlePayNow = async () => {
     if (selectedPaymentGateway === "partial_cod" && !partialCodDetails.isEligible) {
       toast.info("Partial COD is available only below ₹50,000 cart value.");
+      return;
+    }
+
+    if (selectedPaymentGateway === "phonepe" && !isUpiEligible) {
+      toast.info("UPI payment is not available for orders above ₹1,00,000.");
       return;
     }
 
