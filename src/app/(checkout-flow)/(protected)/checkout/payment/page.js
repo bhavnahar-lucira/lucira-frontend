@@ -231,7 +231,7 @@ export default function PaymentPage() {
   const hasFiredPaymentStep = useRef(false);
   
 
-  const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
+  const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("phonepe");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [checkoutSelection, setCheckoutSelection] = useState(() => {
     if (typeof window !== "undefined") {
@@ -496,13 +496,7 @@ export default function PaymentPage() {
   }, [finalAmount]);
 
   const paymentGateways = useMemo(() => {
-    const gateways = [
-      {
-        id: "razorpay",
-        name: "Full Payment (Cards, Netbanking, Wallets)",
-        amount: finalAmount,
-      },
-    ];
+    const gateways = [];
 
     if (isUpiEligible) {
       gateways.push({
@@ -511,6 +505,12 @@ export default function PaymentPage() {
         amount: finalAmount,
       });
     }
+
+    gateways.push({
+      id: "razorpay",
+      name: "Full Payment (Cards, Netbanking, Wallets)",
+      amount: finalAmount,
+    });
 
     if (partialCodDetails.isEligible) {
       gateways.push({
@@ -529,7 +529,7 @@ export default function PaymentPage() {
 
   useEffect(() => {
     if (selectedPaymentGateway === "partial_cod" && !partialCodDetails.isEligible) {
-      setSelectedPaymentGateway("razorpay");
+      setSelectedPaymentGateway(isUpiEligible ? "phonepe" : "razorpay");
     }
     if (selectedPaymentGateway === "phonepe" && !isUpiEligible) {
       setSelectedPaymentGateway("razorpay");
