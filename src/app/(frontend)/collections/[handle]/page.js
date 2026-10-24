@@ -3,6 +3,8 @@ import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import { getStorePages } from "@/lib/storeContent";
+import { getMenu } from "@/lib/menus";
+import { buildCategoryGroups } from "@/lib/categoryGroups";
 
 export const revalidate = 86400; // 24 hours
 
@@ -132,6 +134,11 @@ export default async function Page({ params }) {
   // the store hero, and supplies everything in it.
   const storePages = await getStorePages();
 
+  // "Shop by …" carousels for this collection, built here from the menu so the
+  // client never has to import the menu JSON. Same function, same input the
+  // client used to call on mount, so the groups are identical.
+  const categoryGroups = buildCategoryGroups(await getMenu("main-menu-official"), handle);
+
   let initialData = null;
   try {
     const [collRes, filterRes, plpBannersRes, emiSettingsRes] = await Promise.all([
@@ -214,6 +221,7 @@ export default async function Page({ params }) {
         initialData={initialData} 
         storePages={storePages} 
         collectionData={collection}
+        categoryGroups={categoryGroups}
       />
     </>
   );
