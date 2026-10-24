@@ -424,7 +424,7 @@ function sortByOrder(items, order) {
 }
 
 export function withMenuExtras(menus) {
-  return (menus || []).map((menu) => {
+  return withSizedMenuImages((menus || []).map((menu) => {
     const extras = MENU_EXTRAS[norm(menu.label || menu.title)];
     if (!extras) return menu;
 
@@ -444,6 +444,62 @@ export function withMenuExtras(menus) {
     });
 
     return extras.dropCards ? { ...menu, columns, cards: [] } : { ...menu, columns };
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Image sizing (24 Oct 2026).
+//
+// Menu images come straight from Shopify Files at whatever size marketing
+// uploaded (one Gifting icon was 6.6 MB) and are rendered through
+// `unoptimized` <Image> / plain <img>, so the browser downloaded the original
+// for a 64-80 px circle. The Shopify CDN resizes on request through a `width`
+// query param (the same thing `utils/shopifyLoader` does for product shots),
+// so every menu image is rewritten here to the largest size it is ever drawn
+// at. SVGs are left alone (the CDN doesn't resize them) and so is any URL that
+// already carries a width.
+//
+// Rendered sizes: icons are at most 80 px (mobile style tiles) -> 240 covers
+// 3x phones; desktop image cards and the mobile category grid are ~300 px
+// squares -> 640; mobile menu banners span the 375-430 px drawer -> 828.
+export const MENU_IMAGE_WIDTHS = { icon: 240, card: 640, banner: 828 };
+
+export function sizedMenuImage(url, width) {
+  if (typeof url !== 'string' || !url.includes('cdn.shopify.com')) return url;
+  if (/\.svg(\?|$)/i.test(url) || /[?&]width=/.test(url)) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}width=${width}`;
+}
+
+const sizeIconFields = (item) =>
+  item && (item.menuIcon || item.icon || item.megaMenuImage)
+    ? {
+        ...item,
+        menuIcon: sizedMenuImage(item.menuIcon, MENU_IMAGE_WIDTHS.icon),
+        icon: sizedMenuImage(item.icon, MENU_IMAGE_WIDTHS.icon),
+        megaMenuImage: sizedMenuImage(item.megaMenuImage, MENU_IMAGE_WIDTHS.icon),
+      }
+    : item;
+
+const sizeImageField = (entry, width) =>
+  entry && entry.image ? { ...entry, image: sizedMenuImage(entry.image, width) } : entry;
+
+export function withSizedMenuImages(menus) {
+  return (menus || []).map((menu) => {
+    const out = sizeIconFields(menu);
+    if (menu.mobileBanner) out.mobileBanner = sizedMenuImage(menu.mobileBanner, MENU_IMAGE_WIDTHS.banner);
+    if (menu.columns) out.columns = menu.columns.map((col) => ({ ...col, items: (col.items || []).map(sizeIconFields) }));
+    if (menu.featured) {
+      out.featured = { ...menu.featured };
+      if (menu.featured.items) out.featured.items = menu.featured.items.map(sizeIconFields);
+      if (menu.featured.featuredIn?.items) {
+        out.featured.featuredIn = { ...menu.featured.featuredIn, items: menu.featured.featuredIn.items.map(sizeIconFields) };
+      }
+    }
+    if (menu.cards) out.cards = menu.cards.map((c) => sizeImageField(c, MENU_IMAGE_WIDTHS.card));
+    if (menu.items) out.items = menu.items.map((c) => sizeImageField(c, MENU_IMAGE_WIDTHS.card));
+    if (menu.quickLinks) out.quickLinks = menu.quickLinks.map((q) => sizeImageField(q, MENU_IMAGE_WIDTHS.icon));
+    if (menu.banner) out.banner = sizeImageField(menu.banner, MENU_IMAGE_WIDTHS.card);
+    return out;
   });
 }
 
