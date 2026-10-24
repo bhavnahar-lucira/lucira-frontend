@@ -185,6 +185,9 @@ export default async function Page({ params }) {
       // Keep product descriptions lean in the grid and filter hidden products
       if (collData?.products) {
         collData.products = collData.products.filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
+        if (handle === "lucira-express" || handle === "fast-shipping") {
+          collData.products = collData.products.filter(p => p.variants?.some(v => v.inStock));
+        }
         collData.products.forEach(p => {
           delete p.descriptionHtml;
         });

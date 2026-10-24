@@ -721,10 +721,17 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   const awaitingPincodeOrder =
     !cachedView && (storeOrderParam !== "" || (pincode.length === 6 && !storesReady));
 
+  const isExpressCollection = handle === "lucira-express" || handle === "fast-shipping";
+  const isValidCollectionProduct = (p) => {
+    if (!p || p.tags?.some((t) => t?.toLowerCase() === "hidden")) return false;
+    if (isExpressCollection && !p.variants?.some((v) => v.inStock)) return false;
+    return true;
+  };
+
   const [products, setProducts] = useState(() => {
     if (cachedView) return cachedView.products;
     if (ssgIsStale || awaitingPincodeOrder) return [];
-    return (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
+    return (initialData?.collData?.products || []).filter(isValidCollectionProduct);
   });
   const [pagination, setPagination] = useState(() =>
     cachedView?.pagination ||
@@ -757,7 +764,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       setProducts((prev) =>
         prev.length > 0
           ? prev
-          : (initialData?.collData?.products || []).filter((p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden"))
+          : (initialData?.collData?.products || []).filter(isValidCollectionProduct)
       );
       setProductsLoading((prev) => (prev ? false : prev));
     }, PINCODE_ORDER_WAIT_TIMEOUT_MS);
@@ -1237,7 +1244,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
         }
         setFiltersLoading(false);
 
-        const freshProducts = (collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
+        const freshProducts = (collData.products || []).filter(isValidCollectionProduct);
         const freshPagination = collData.pageInfo || { hasNextPage: false, endCursor: null };
         const freshTotal = collData.totalProducts || 0;
 
@@ -1333,7 +1340,7 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       setProducts((prev) => {
         const nextProducts = collData.products || [];
         const existingIds = new Set(prev.map(p => p.id));
-        const filteredNew = nextProducts.filter(p => !existingIds.has(p.id) && !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
+        const filteredNew = nextProducts.filter(p => !existingIds.has(p.id) && isValidCollectionProduct(p));
         const merged = [...prev, ...filteredNew];
         // Keep the memo at the full scrolled depth, so Back from a PDP restores
         // everything the shopper had loaded rather than snapping to page one.
