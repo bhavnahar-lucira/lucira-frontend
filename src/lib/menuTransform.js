@@ -245,119 +245,16 @@ export const CHUNKY_RINGS_ITEM = {
   menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/chunky_rings.png?v=1787210554',
 };
 
-export const MENU_EXTRAS = {
-  // 15 Oct 2026 sheet:
-  //   Engagement | Solitaire | Infinity Ring
-  //   Eternity   | Stackable | Heart Ring
-  //   Casual     | Gemstone  | Butterfly Ring
-  //   Men's      | Gold      | Evil Eye Ring
-  //   Chunky     | Vanki     | Promise Ring
-  rings: {
-    style: [
-      CHUNKY_RINGS_ITEM,
-      { label: 'Infinity Ring', href: '/collections/infinity-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_ring_icon_6c3f75c7-7f62-4e52-b1fb-fc66c669e1c7.png?v=1792055707' },
-      { label: 'Heart Ring', href: '/collections/heart-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_ring_icon_b182dd76-7ff2-44d5-89ef-babd8bba9bf3.png?v=1792055707' },
-      { label: 'Butterfly Ring', href: '/collections/butterfly-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_ring_icon_dcbbb3a1-6bc4-46a8-8b09-0c4ff2db5586.png?v=1792055707' },
-      { label: 'Evil Eye Ring', href: '/collections/evil-eye-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_ring_icon_f35df599-7cef-4328-99fe-20f1e05dedfe.png?v=1792055706' },
-      // No Vanki icon was supplied, so this is the Classic Vanki Ring product shot.
-      { label: 'Vanki', href: '/collections/vanki-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00696YG_1_827510e7-4091-4feb-b52f-a14e9e1953fe.jpg?v=1785412233' },
-      { label: 'Promise Ring', href: '/collections/promise-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Promise_ring_icon_ff6651a8-3183-4875-b4b9-af964e2fa43b.png?v=1792055707' },
-    ],
-    styleOrder: [
-      'engagement', 'solitaire', 'infinity ring',
-      'eternity', 'stackable', 'heart ring',
-      'casual', 'gemstone', 'butterfly ring',
-      "men's rings", 'gold rings', 'evil eye ring',
-      'chunky rings', 'vanki', 'promise ring',
-    ],
-    material: [{ label: 'Pearl', href: '/collections/pearl-rings', menuIcon: PEARL_ICON }],
-    dropCards: true,
-  },
-  // 15 Oct 2026 sheet (14 items, so the last grid slot stays empty):
-  //   Hoops      | Studs          | Infinity Earrings
-  //   Sui Dhagas | Danglers       | Heart Earrings
-  //   Solitaire  | Halo           | Butterfly Earrings
-  //   Gemstone   | Men's Earrings | Evil Eye Earrings
-  //   Gold       | Kids Earrings  |
-  earrings: {
-    style: [
-      { label: 'Infinity Earrings', href: '/collections/infinity-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_earring_icon_d4ee59ce-8570-4397-9734-80326b0c764c.png?v=1792056586' },
-      { label: 'Heart Earrings', href: '/collections/heart-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_earring_icon_963f3711-835b-4db3-9bdd-7743cea26881.png?v=1792056586' },
-      { label: 'Butterfly Earrings', href: '/collections/butterfly-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_earring_icon_a7dfd45b-33ee-4602-ba86-ab93722fbb06.png?v=1792056586' },
-      { label: 'Evil Eye Earrings', href: '/collections/evil-eye-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_earring_icon_78e3459f-6400-4d4a-91ff-9e32702837fe.png?v=1792056586' },
-      { label: 'Kids Earrings', href: '/collections/kids-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Kids_earring_icon_c9d8bb7e-707d-4b3a-afd2-e2a417b7b69a.png?v=1792056586' },
-    ],
-    styleOrder: [
-      'hoops', 'studs', 'infinity earrings',
-      'sui dhagas', 'danglers', 'heart earrings',
-      'solitaire', 'halo', 'butterfly earrings',
-      'gemstone', "men's earrings", 'evil eye earrings',
-      'gold earrings', 'kids earrings',
-    ],
-    material: [{ label: 'Pearl', href: '/collections/pearl-earrings', menuIcon: PEARL_ICON }],
-    dropCards: true,
-  },
-  // 15 Oct 2026 sheet: Solitaire Essentials below Men's Solitaires. Icon
-  // replaced with a dedicated earrings + pendant set icon on 17 Oct 2026.
-  solitaires: {
-    category: [
-      { label: 'Solitaire Essentials', href: '/collections/solitaire-essential', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Solitaire_essentials_icon_v2.png?v=1792216734' },
-    ],
-  },
-};
-
-const norm = (s) => (s || '').toLowerCase().trim();
-
-// Idempotent: the CMS may add an item for real later.
-function appendMissing(items, extras) {
-  const have = new Set((items || []).map((i) => norm(i.label)));
-  return [...(items || []), ...extras.filter((e) => !have.has(norm(e.label)))];
-}
-
-function sortByOrder(items, order) {
-  const rank = (it) => {
-    const i = order.indexOf(norm(it.label));
-    return i === -1 ? order.length : i;
-  };
-  return items
-    .map((it, i) => ({ it, i }))
-    .sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i)
-    .map(({ it }) => it);
-}
-
-export function withMenuExtras(menus) {
-  return (menus || []).map((menu) => {
-    const extras = MENU_EXTRAS[norm(menu.label || menu.title)];
-    if (!extras) return menu;
-
-    const columns = (menu.columns || []).map((col) => {
-      const title = norm(col.title);
-      if (title.includes('style') && extras.style) {
-        const items = sortByOrder(appendMissing(col.items, extras.style), extras.styleOrder || []);
-        return { ...col, items, gridCols: 3 };
-      }
-      if (title.includes('category') && extras.category) {
-        return { ...col, items: appendMissing(col.items, extras.category) };
-      }
-      if ((title.includes('material') || title.includes('metal')) && extras.material) {
-        return { ...col, items: appendMissing(col.items, extras.material) };
-      }
-      return col;
-    });
-
-    return extras.dropCards ? { ...menu, columns, cards: [] } : { ...menu, columns };
-  });
-}
-
 // ---------------------------------------------------------------------------
-// Desktop-only Necklaces tab (23 Oct 2026).
+// Necklaces tab (23 Oct 2026).
 //
 // The Shopify menu has no top-level Necklaces item yet: necklaces live as a
 // column inside More Jewelry. On desktop the Navbar lifts that column out into
 // its own tab (between Earrings and More Jewelry), adds the marketing sheet's
 // new necklace/pendant styles, and gives it the same Shop By Shape / Material /
 // Price columns as Earrings. The mobile drawer keeps its own Necklaces tile
-// (built from the More Jewelry column in MobileHeader) and is untouched.
+// (built from the More Jewelry column in MobileHeader) and picks up the same
+// five new pendants through MENU_EXTRAS.necklaces below.
 //
 // Display-name overrides that apply on desktop only. The mobile grid keeps the
 // full name because its icon map and matchers key on it.
@@ -430,6 +327,126 @@ export const NECKLACE_PRICE_ITEMS = [
   { label: '150k and above', href: NECKLACE_LINK_PENDING },
 ];
 
+// The Shape / Material / Price columns, shared by the desktop Necklaces tab
+// (buildNecklacesMenu) and the mobile Necklaces drawer (MobileHeader), so the
+// two can't drift apart.
+export const NECKLACE_FILTER_COLUMNS = [
+  { title: 'Shop By Shape', type: 'icon', items: NECKLACE_SHAPE_ITEMS },
+  { title: 'Shop By Material', type: 'metal', items: NECKLACE_MATERIAL_ITEMS },
+  { title: 'Shop By Price', type: 'text', items: NECKLACE_PRICE_ITEMS },
+];
+
+export const MENU_EXTRAS = {
+  // 15 Oct 2026 sheet:
+  //   Engagement | Solitaire | Infinity Ring
+  //   Eternity   | Stackable | Heart Ring
+  //   Casual     | Gemstone  | Butterfly Ring
+  //   Men's      | Gold      | Evil Eye Ring
+  //   Chunky     | Vanki     | Promise Ring
+  rings: {
+    style: [
+      CHUNKY_RINGS_ITEM,
+      { label: 'Infinity Ring', href: '/collections/infinity-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_ring_icon_6c3f75c7-7f62-4e52-b1fb-fc66c669e1c7.png?v=1792055707' },
+      { label: 'Heart Ring', href: '/collections/heart-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_ring_icon_b182dd76-7ff2-44d5-89ef-babd8bba9bf3.png?v=1792055707' },
+      { label: 'Butterfly Ring', href: '/collections/butterfly-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_ring_icon_dcbbb3a1-6bc4-46a8-8b09-0c4ff2db5586.png?v=1792055707' },
+      { label: 'Evil Eye Ring', href: '/collections/evil-eye-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_ring_icon_f35df599-7cef-4328-99fe-20f1e05dedfe.png?v=1792055706' },
+      // No Vanki icon was supplied, so this is the Classic Vanki Ring product shot.
+      { label: 'Vanki', href: '/collections/vanki-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/LJ-R00696YG_1_827510e7-4091-4feb-b52f-a14e9e1953fe.jpg?v=1785412233' },
+      { label: 'Promise Ring', href: '/collections/promise-rings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Promise_ring_icon_ff6651a8-3183-4875-b4b9-af964e2fa43b.png?v=1792055707' },
+    ],
+    styleOrder: [
+      'engagement', 'solitaire', 'infinity ring',
+      'eternity', 'stackable', 'heart ring',
+      'casual', 'gemstone', 'butterfly ring',
+      "men's rings", 'gold rings', 'evil eye ring',
+      'chunky rings', 'vanki', 'promise ring',
+    ],
+    material: [{ label: 'Pearl', href: '/collections/pearl-rings', menuIcon: PEARL_ICON }],
+    dropCards: true,
+  },
+  // 15 Oct 2026 sheet (14 items, so the last grid slot stays empty):
+  //   Hoops      | Studs          | Infinity Earrings
+  //   Sui Dhagas | Danglers       | Heart Earrings
+  //   Solitaire  | Halo           | Butterfly Earrings
+  //   Gemstone   | Men's Earrings | Evil Eye Earrings
+  //   Gold       | Kids Earrings  |
+  earrings: {
+    style: [
+      { label: 'Infinity Earrings', href: '/collections/infinity-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_earring_icon_d4ee59ce-8570-4397-9734-80326b0c764c.png?v=1792056586' },
+      { label: 'Heart Earrings', href: '/collections/heart-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_earring_icon_963f3711-835b-4db3-9bdd-7743cea26881.png?v=1792056586' },
+      { label: 'Butterfly Earrings', href: '/collections/butterfly-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_earring_icon_a7dfd45b-33ee-4602-ba86-ab93722fbb06.png?v=1792056586' },
+      { label: 'Evil Eye Earrings', href: '/collections/evil-eye-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_earring_icon_78e3459f-6400-4d4a-91ff-9e32702837fe.png?v=1792056586' },
+      { label: 'Kids Earrings', href: '/collections/kids-earrings', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Kids_earring_icon_c9d8bb7e-707d-4b3a-afd2-e2a417b7b69a.png?v=1792056586' },
+    ],
+    styleOrder: [
+      'hoops', 'studs', 'infinity earrings',
+      'sui dhagas', 'danglers', 'heart earrings',
+      'solitaire', 'halo', 'butterfly earrings',
+      'gemstone', "men's earrings", 'evil eye earrings',
+      'gold earrings', 'kids earrings',
+    ],
+    material: [{ label: 'Pearl', href: '/collections/pearl-earrings', menuIcon: PEARL_ICON }],
+    dropCards: true,
+  },
+  // 15 Oct 2026 sheet: Solitaire Essentials below Men's Solitaires. Icon
+  // replaced with a dedicated earrings + pendant set icon on 17 Oct 2026.
+  solitaires: {
+    category: [
+      { label: 'Solitaire Essentials', href: '/collections/solitaire-essential', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Solitaire_essentials_icon_v2.png?v=1792216734' },
+    ],
+  },
+  // 23 Oct 2026 sheet. Desktop builds its Necklaces tab in buildNecklacesMenu
+  // (two sheet columns); here the same five pendants reach the mobile
+  // Necklaces drawer, whose 3-column grid reads the CMS styles first and then
+  // the new pendants in sheet order.
+  necklaces: {
+    style: NECKLACE_STYLE_EXTRAS,
+  },
+};
+
+const norm = (s) => (s || '').toLowerCase().trim();
+
+// Idempotent: the CMS may add an item for real later.
+function appendMissing(items, extras) {
+  const have = new Set((items || []).map((i) => norm(i.label)));
+  return [...(items || []), ...extras.filter((e) => !have.has(norm(e.label)))];
+}
+
+function sortByOrder(items, order) {
+  const rank = (it) => {
+    const i = order.indexOf(norm(it.label));
+    return i === -1 ? order.length : i;
+  };
+  return items
+    .map((it, i) => ({ it, i }))
+    .sort((a, b) => rank(a.it) - rank(b.it) || a.i - b.i)
+    .map(({ it }) => it);
+}
+
+export function withMenuExtras(menus) {
+  return (menus || []).map((menu) => {
+    const extras = MENU_EXTRAS[norm(menu.label || menu.title)];
+    if (!extras) return menu;
+
+    const columns = (menu.columns || []).map((col) => {
+      const title = norm(col.title);
+      if (title.includes('style') && extras.style) {
+        const items = sortByOrder(appendMissing(col.items, extras.style), extras.styleOrder || []);
+        return { ...col, items, gridCols: col.gridCols || 3 };
+      }
+      if (title.includes('category') && extras.category) {
+        return { ...col, items: appendMissing(col.items, extras.category) };
+      }
+      if ((title.includes('material') || title.includes('metal')) && extras.material) {
+        return { ...col, items: appendMissing(col.items, extras.material) };
+      }
+      return col;
+    });
+
+    return extras.dropCards ? { ...menu, columns, cards: [] } : { ...menu, columns };
+  });
+}
+
 const isMoreJewelry = (menu) => {
   const l = norm(menu.label || menu.title);
   return l.includes('more jewelry') || l.includes('more jewellery');
@@ -458,9 +475,7 @@ export function buildNecklacesMenu(menus) {
     layout: '5-col-featured',
     columns: [
       { title: 'Shop By Style', type: 'icon', items: styleItems, gridCols: 2 },
-      { title: 'Shop By Shape', type: 'icon', items: NECKLACE_SHAPE_ITEMS },
-      { title: 'Shop By Material', type: 'metal', items: NECKLACE_MATERIAL_ITEMS },
-      { title: 'Shop By Price', type: 'text', items: NECKLACE_PRICE_ITEMS },
+      ...NECKLACE_FILTER_COLUMNS,
     ],
     cards: [],
   };
