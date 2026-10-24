@@ -123,7 +123,7 @@ export default function Navbar({ hideTop, menuData }) {
 
   return (
     <nav className="relative bg-white border-b border-gray-100 z-[90]">
-      <div className="container-main relative flex items-center min-h-[40px] justify-center">
+      <div className="container-main relative flex items-center min-h-[40px]">
         {/* Sticky Logo - Absolute positioned to align with main logo */}
         <div className="absolute left-4 lg:left-17 top-1/2 -translate-y-1/2">
           <motion.div
@@ -152,8 +152,15 @@ export default function Navbar({ hideTop, menuData }) {
           </motion.div>
         </div>
 
-        {/* Navigation Menu - Stays centered */}
-        <ul className="flex items-center lg:text-xs xl:text-sm uppercase transition-all duration-300 gap-3.5 xl:gap-6 2xl:gap-8">
+        {/* Navigation Menu - centred between the viewport's left edge and
+            the OFFERS pill (both spacers reach through the container padding,
+            as the pill does). The two flex spacers split the free space
+            equally, so the gap left of the first item matches the gap between
+            the last item and OFFERS; the left spacer's min-width keeps the
+            list clear of the sticky logo that fades in on scroll (logo at
+            left-17 + w-9 = 6.5rem, plus 1rem breathing room). */}
+        <div aria-hidden className="flex-1 -ml-4 lg:-ml-17 min-w-14 lg:min-w-[7.5rem]" />
+        <ul className="flex items-center shrink-0 lg:text-xs xl:text-sm uppercase transition-all duration-300 gap-3.5 xl:gap-6 2xl:gap-8">
           {MEGA_MENU.map((menu, index) => {
             const isActive =
               pathname === menu.href ||
@@ -211,9 +218,11 @@ export default function Navbar({ hideTop, menuData }) {
             );
           })}
         </ul>
+        <div aria-hidden className="flex-1" />
 
-        {/* % OFFERS Navigation Item - One side touched to the right with radius 2 & 3 = 0 */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center z-20">
+        {/* % OFFERS Navigation Item - in flow, pulled through the container
+            padding so it still touches the right edge with radius 2 & 3 = 0 */}
+        <div className="flex items-center shrink-0 -mr-4 lg:-mr-17">
           <Link
             href="/pages/offers"
             prefetch={false}
