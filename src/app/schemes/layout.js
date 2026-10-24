@@ -4,8 +4,17 @@ import FloatingActionButton from "@/components/common/FloatingActionButton";
 import { getHeaderMenu } from "@/lib/menus";
 
 export const metadata = {
-  title: "Vault of Dreams - Lucira Jewelry",
-  description: "Save for your precious jewelry with Lucira's flexible Vault of Dreams scheme. 9 monthly payments + 1 free month!",
+  title: "Jewellery Savings Scheme: Vault of Dreams | Lucira Jewelry",
+  description:
+    "Save for your jewellery with Lucira's Vault of Dreams scheme: 9 monthly payments plus 1 free month. Read the terms and start saving.",
+  alternates: { canonical: "/schemes" },
+  openGraph: {
+    title: "Jewellery Savings Scheme: Vault of Dreams | Lucira Jewelry",
+    description:
+      "Save for your jewellery with Lucira's Vault of Dreams scheme: 9 monthly payments plus 1 free month. Read the terms and start saving.",
+    url: "/schemes",
+    type: "website",
+  },
 };
 
 export default async function SchemesLayout({ children }) {

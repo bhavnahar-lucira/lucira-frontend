@@ -407,6 +407,20 @@ export const completeRazorpayPayment = (payload, accessToken) =>
     body: JSON.stringify(payload),
   });
 
+export const createPhonePeOrder = (payload, accessToken) =>
+  apiFetch("/api/payment/phonepe/order", {
+    method: "POST",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
+    body: JSON.stringify(payload),
+  });
+
+export const verifyPhonePePayment = (payload, accessToken) =>
+  apiFetch("/api/payment/phonepe/verify", {
+    method: "POST",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
+    body: JSON.stringify(payload),
+  });
+
 /* ================= ATTACH CART ================= */
 
 export const attachCartApi = ({ cartId }, accessToken) =>

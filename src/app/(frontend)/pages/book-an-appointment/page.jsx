@@ -12,14 +12,14 @@ import { APPOINTMENT_FAQ_ITEMS } from "@/components/pages/book-appointment/faq";
 export const revalidate = 86400; // 24 hours
 
 export const metadata = {
-  title: "Book an Appointment - Lucira Jewelry",
+  title: "Book a Jewellery Appointment: Video Call or Store Visit | Lucira",
   description:
-    "Book a Lucira appointment your way - shop live over a video call, visit a Lucira store near you, or try your favourite pieces at home before you decide.",
+    "Book a Lucira appointment: shop live over a video call or visit a store near you, with an option to try favourite pieces at home before you decide.",
   alternates: { canonical: "/pages/book-an-appointment" },
   openGraph: {
-    title: "Book an Appointment - Lucira Jewelry",
+    title: "Book a Jewellery Appointment: Video Call or Store Visit | Lucira",
     description:
-      "Shop live over a video call, visit a Lucira store near you, or try your favourite pieces at home before you decide.",
+      "Book a Lucira appointment: shop live over a video call or visit a store near you, with an option to try favourite pieces at home before you decide.",
     url: "/pages/book-an-appointment",
     type: "website",
   },
