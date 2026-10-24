@@ -35,7 +35,9 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { toast } from 'react-toastify';
-import { apiFetch, fetchVariantPricing } from "@/lib/api";
+import { apiFetch, fetchVariantPricing, fetchLocalRates } from "@/lib/api";
+import DgrpPdpBanner from "@/components/product/dgrp/DgrpPdpBanner";
+import DgrpDrawer from "@/components/product/dgrp/DgrpDrawer";
 import { motion } from "framer-motion";
 import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
 import Link from "next/link";
@@ -437,6 +439,19 @@ export default function ProductPageClient({
   });
 
   const [matchedCollectionTag, setMatchedCollectionTag] = useState(null);
+  const [isDgrpDrawerOpen, setIsDgrpDrawerOpen] = useState(false);
+  const [liveGoldRate, setLiveGoldRate] = useState(15802);
+
+  useEffect(() => {
+    fetchLocalRates()
+      .then((rates) => {
+        if (rates?.gold_price_24k) {
+          setLiveGoldRate(Number(rates.gold_price_24k) || 15802);
+        }
+      })
+      .catch((err) => console.error("Failed to load local gold rates:", err));
+  }, []);
+
   // Full dashboard list, passed to StyledByLuciraCollection so it doesn't
   // request the same endpoint a second time with ?collection=.
   const [styledCollectionVideos, setStyledCollectionVideos] = useState(null);
@@ -1972,6 +1987,31 @@ export default function ProductPageClient({
     };
   }, [priceBreakup, priceBreakupMatches, additionalItemInfo, currentPrice, currentComparePrice]);
 
+  // DGRP ("Lock & Key") Calculations & Detection
+  const isDgrpDiamond = useMemo(() => {
+    const variantMeta = activeVariant?.metafields;
+    const prodMeta = product?.productMetafields;
+    const pricingDiamond = priceBreakup?.diamond_info;
+    const ornaverseComp = parseOrnaverseComponent(variantMeta?.components || prodMeta?.components);
+    const firstDiamond = ornaverseComp?.components?.find(c =>
+      (c.item_group_name === "Diamond" || (c.quality_code && c.quality_code !== "NA")) && (parseFloat(c.weight) > 0 || parseInt(c.pieces) > 0)
+    );
+    const variantDiamonds = variantMeta?.diamonds?.filter(d => parseFloat(d.weight) > 0 || parseInt(d.pieces) > 0) || [];
+    return !!firstDiamond || variantDiamonds.length > 0 || (!!pricingDiamond && (parseFloat(pricingDiamond.carat) > 0 || parseInt(pricingDiamond.pcs) > 0));
+  }, [activeVariant, product, priceBreakup]);
+
+  const isDgrpGold = useMemo(() => {
+    const variantMeta = activeVariant?.metafields;
+    const purity = String(variantMeta?.metal_purity || activeKarat || "").toLowerCase();
+    const color = String(variantMeta?.metal_color || activeColor || "").toLowerCase();
+    const title = String(product?.title || "").toLowerCase();
+    return /gold|\d+k|\d+kt/.test(purity) || /gold/.test(color) || /gold/.test(title);
+  }, [activeVariant, activeKarat, activeColor, product]);
+
+  const dgrpTenureMonths = isDgrpDiamond ? 6 : 3;
+  const dgrpAdvanceAmount = Math.round((Number(currentPrice || 0) * 10) / 100);
+  const dgrpMonthlyEmi = Math.round((Number(currentPrice || 0) - dgrpAdvanceAmount) / dgrpTenureMonths);
+
   // Fetch the live Shopify price for the active variant, independent of the
   // backend's gold/diamond breakup lookup above. That breakup is served from the
   // Fastify backend's own in-memory price cache (see api/revalidate/route.js,
@@ -3127,6 +3167,19 @@ export default function ProductPageClient({
                 </Button>
               </div>
             </div>
+
+            {/* Lock & Key (DGRP) Entry Banner */}
+            {isDgrpGold && (
+              <div className="mb-6">
+                <DgrpPdpBanner
+                  advanceAmount={dgrpAdvanceAmount}
+                  monthlyEmi={dgrpMonthlyEmi}
+                  tenureMonths={dgrpTenureMonths}
+                  isDiamond={isDgrpDiamond}
+                  onClick={() => setIsDgrpDrawerOpen(true)}
+                />
+              </div>
+            )}
 
             {/* Features */}
             <div className="space-y-4">
@@ -4483,6 +4536,28 @@ export default function ProductPageClient({
           onToggleWishlist={handleToggleWishlist}
         />
       )}
+
+      {/* Lock & Key (DGRP) Drawer Flow */}
+      <DgrpDrawer
+        isOpen={isDgrpDrawerOpen}
+        onClose={() => setIsDgrpDrawerOpen(false)}
+        product={product}
+        activeVariant={activeVariant}
+        currentPrice={currentPrice}
+        lockedGoldRate={liveGoldRate}
+        isDiamond={isDgrpDiamond}
+        tenureMonths={dgrpTenureMonths}
+        advanceAmount={dgrpAdvanceAmount}
+        monthlyEmi={dgrpMonthlyEmi}
+        priceBreakup={priceBreakup}
+        activeColor={activeColor}
+        activeKarat={activeKarat}
+        selectedSize={selectedSize}
+        shippingDate={getShippingDateValue(dispatchConfig, {
+          inStock: activeVariant?.inStock === true || activeVariant?.inStock === "true",
+          leadTime: product?.productMetafields?.lead_time,
+        })}
+      />
     </div>
   );
 }

@@ -39,6 +39,9 @@ export function useAtcLoginGate() {
       subtext = "Login / Signup to save this piece to your cart & unlock member offers",
       buttonText = "Save My Selection",
       rewardSource = "atc_login",
+      overrideHeading,
+      overrideSubtext,
+      overrideButtonText,
     } = {}
   ) => {
     if (isAuthenticated) return false;
@@ -52,11 +55,14 @@ export function useAtcLoginGate() {
         // (product thumbnail, floating close on mobile, title-case button).
         variant: "atc",
         productImage: typeof productImage === "string" && productImage ? productImage : null,
-        overrideHeading: heading,
-        overrideSubtext: subtext,
-        overrideButtonText: buttonText,
+        overrideHeading: overrideHeading !== undefined ? overrideHeading : heading,
+        overrideSubtext: overrideSubtext !== undefined ? overrideSubtext : subtext,
+        overrideButtonText: overrideButtonText !== undefined ? overrideButtonText : buttonText,
       })
     );
     return true;
   };
 }
+
+export { useAtcLoginGate as useLoginGate };
+

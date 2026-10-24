@@ -59,6 +59,17 @@ const FALLBACK_TOP_DEFAULT = {
   alt: "Offers",
 };
 
+const FALLBACK_TOP_PLAIN_GOLD = {
+  desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/gold_ring_plp.jpg?v=1792042102&width=1920",
+  mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/gold_ring_plp.jpg?v=1792042102&width=1920",
+  alt: "Plain Gold Jewellery Offers",
+  handles: [
+    'plain-gold-rings', 'plain-gold-earrings', 'plain-gold-chains', 'plain-gold-necklaces', 'plain-gold-coins', 'plain-gold-nose-rings',
+    'gold-jewelry', 'gold-rings', 'gold-chains', 'gold-earrings', 'gold-bracelets', 'gold-necklaces', 'gold-coins',
+    '1-gram-gold-jewellery', '10-gram-gold-jewellery', '14k-gold-jewellery', '18k-gold-jewellery', '22k-gold-jewellery'
+  ],
+};
+
 // `mobileSrc` is the key the dashboard's MOBILE BANNER IMAGE field writes and
 // the one /api/settings/plp-banners persists, so these carry it too — the
 // comment above promises these mirror PLP_BANNER_DEFAULTS, and that default
@@ -373,10 +384,22 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
   // Dashboard-managed PLP banners (falls back to the default banner if no override exists).
   const plpBanners = initialData?.plpBanners || {};
   const topBannerDefault = plpBanners.topBanner?.default || FALLBACK_TOP_DEFAULT;
+  const topBannerPlainGold = plpBanners.topBanner?.plainGold || FALLBACK_TOP_PLAIN_GOLD;
   const topBannerOverrides = Array.isArray(plpBanners.topBanner?.overrides)
     ? plpBanners.topBanner.overrides
     : [];
   const topBannerOverride = topBannerOverrides.find((o) => o.handles?.includes(handle)) || null;
+
+  const isPlainGold = !topBannerOverride && Boolean(
+    (topBannerPlainGold?.handles && topBannerPlainGold.handles.includes(handle)) ||
+    handle.startsWith("plain-gold") ||
+    handle.startsWith("gold-") ||
+    handle.includes("plain-gold") ||
+    handle.includes("gold-jewellery")
+  );
+  const effectiveTopDefault = (isPlainGold && topBannerPlainGold?.desktopImage)
+    ? topBannerPlainGold
+    : topBannerDefault;
   const allInpageBanners = plpBanners.inpageBanners?.length
     ? plpBanners.inpageBanners
     : FALLBACK_INPAGE_BANNERS;
@@ -1705,9 +1728,9 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
       ) : storeHandles.includes(handle) ? (
         <StoreCollectionBanner collectionHandle={handle} storePages={storePages} />
       ) : (() => {
-        const stripAlt = topBannerOverride?.alt || displayTitle;
-        const stripDesktop = topBannerOverride?.desktopImage || topBannerDefault.desktopImage;
-        const stripMobile = topBannerOverride?.mobileImage || topBannerDefault.mobileImage;
+        const stripAlt = topBannerOverride?.alt || effectiveTopDefault.alt || displayTitle;
+        const stripDesktop = topBannerOverride?.desktopImage || effectiveTopDefault.desktopImage;
+        const stripMobile = topBannerOverride?.mobileImage || effectiveTopDefault.mobileImage;
 
         return isMobile ? (
           <div className="w-full">
