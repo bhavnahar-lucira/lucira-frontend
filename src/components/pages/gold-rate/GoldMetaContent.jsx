@@ -422,7 +422,7 @@ export default function GoldMetaContent({
         />
       )}
 
-      <style jsx global>{`
+      <style>{`
         /* ── Minimal FAQ (gold-faq) ─────────────────────────────────── */
         .gold-faq-title {
           font-family: var(--font-abhaya), serif;

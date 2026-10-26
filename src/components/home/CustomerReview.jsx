@@ -287,7 +287,7 @@ export default function CustomerReview({
         />
       )}
 
-      <style jsx global>{`
+      <style>{`
         .${paginationElClass} .swiper-pagination-bullet {
           width: 8px;
           height: 8px;

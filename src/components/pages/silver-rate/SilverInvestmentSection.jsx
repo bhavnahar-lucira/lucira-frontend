@@ -50,7 +50,7 @@ export default function InvestmentSection({ cityName, settings }) {
           </div>
         </div>
       </div>
-      <style jsx global>{`
+      <style>{`
         .custom-quick-links li {
             position: relative;
             padding-left: 1.5rem;

@@ -373,7 +373,7 @@ export default function CustomerReviews({
 
       <ReviewDetailedPopup isOpen={popupState.isOpen} onClose={() => setPopupState({ ...popupState, isOpen: false })} reviews={mappedReviews} activeIndex={popupState.index} onIndexChange={(index) => setPopupState({ ...popupState, index })} />
       <WriteReviewForm isOpen={isWriteReviewOpen} onClose={() => setIsWriteReviewOpen(false)} productId={productId} onSuccess={() => setRefreshTrigger((prev) => prev + 1)} productTitle={productTitle} productImage={productImage} productHandle={productHandle} />
-      <style jsx global>{` .product-review-scrollbar .swiper-scrollbar-drag { background: #5a413f !important; } `}</style>
+      <style>{` .product-review-scrollbar .swiper-scrollbar-drag { background: #5a413f !important; } `}</style>
     </section>
   );
 }

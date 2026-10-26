@@ -309,7 +309,7 @@ export default function ExploreBottomSheet({ activeType, onClose }) {
       </Sheet.Container>
       <Sheet.Backdrop onTap={handleClose} />
 
-      <style jsx global>{`
+      <style>{`
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
           background: transparent;

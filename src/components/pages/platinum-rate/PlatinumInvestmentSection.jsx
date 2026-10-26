@@ -44,10 +44,8 @@ export default function PlatinumInvestmentSection({ cityName, settings }) {
           </div>
         </div>
       </div>
-      <style jsx>{`
-        .font-abhaya { font-family: var(--font-abhaya), serif; }
-        .font-figtree { font-family: var(--font-figtree), sans-serif; }
-        .quick-links-wrapper :global(ul) {
+      <style>{`
+        .quick-links-wrapper ul {
           list-style: none;
           padding: 0;
           margin: 0;
@@ -55,10 +53,10 @@ export default function PlatinumInvestmentSection({ cityName, settings }) {
           flex-direction: column;
           gap: 1rem;
         }
-        .quick-links-wrapper :global(li) {
+        .quick-links-wrapper li {
           padding-left: 0;
         }
-        .quick-links-wrapper :global(a) {
+        .quick-links-wrapper a {
           color: #71717a;
           text-decoration: none;
           font-size: 14px;
@@ -70,11 +68,11 @@ export default function PlatinumInvestmentSection({ cityName, settings }) {
           letter-spacing: 0.05em;
           font-weight: 500;
         }
-        .quick-links-wrapper :global(a:hover) {
+        .quick-links-wrapper a:hover {
           color: #18181b;
           transform: translateX(4px);
         }
-        .quick-links-wrapper :global(a::before) {
+        .quick-links-wrapper a::before {
           content: "";
           width: 6px;
           height: 6px;
@@ -82,12 +80,12 @@ export default function PlatinumInvestmentSection({ cityName, settings }) {
           border-radius: 50%;
           transition: background 0.3s ease;
         }
-        .quick-links-wrapper :global(a:hover::before) {
+        .quick-links-wrapper a:hover::before {
           background: #8094A6;
         }
 
         @media (min-width: 768px) {
-          .quick-links-wrapper :global(a) {
+          .quick-links-wrapper a {
             font-size: 16px;
           }
         }

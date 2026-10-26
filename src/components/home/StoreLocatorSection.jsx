@@ -424,7 +424,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
         />
 
         {/* Scoped and global styles for store section */}
-        <style jsx global>{`
+        <style>{`
           .no-scrollbar::-webkit-scrollbar {
             display: none !important;
           }

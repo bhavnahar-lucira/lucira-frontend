@@ -353,7 +353,7 @@ export default function CuratedLooks() {
         </div>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         .curated-swiper .swiper-pagination { display: none; }
         /* Desktop only: let a slide fill the square column the flex row leaves. */
         @media (min-width: 1024px) {

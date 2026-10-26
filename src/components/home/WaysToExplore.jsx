@@ -126,7 +126,7 @@ export default function WaysToExplore() {
         </AppointmentCards>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         .explore-pagination .swiper-pagination-bullet {
           width: 8px;
           height: 8px;

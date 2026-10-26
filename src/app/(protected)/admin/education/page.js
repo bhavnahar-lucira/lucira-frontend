@@ -100,7 +100,7 @@ const featureSections = [
 export default function EducationPage() {
   return (
     <div className="font-figtree w-full relative overflow-x-hidden">
-      <style jsx global>{`
+      <style>{`
         .edu-swiper .swiper-button-next,
         .edu-swiper .swiper-button-prev {
           background-color: white;
