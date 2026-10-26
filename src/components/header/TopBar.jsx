@@ -10,6 +10,22 @@ import "swiper/css";
 import "swiper/css/navigation";
 import { apiFetch } from "@/lib/api";
 
+// One request per page load, shared by every TopBar instance. While React is
+// hydrating, the header renders both its mobile and desktop variants (CSS
+// shows one), so two TopBars mount briefly; without this they would each
+// fetch the announcements. A failed request is forgotten so a later mount can
+// retry.
+let announcementsRequest = null;
+const loadAnnouncements = () => {
+  if (!announcementsRequest) {
+    announcementsRequest = apiFetch("/api/announcements").catch((err) => {
+      announcementsRequest = null;
+      throw err;
+    });
+  }
+  return announcementsRequest;
+};
+
 export default function TopBar() {
   const pathname = usePathname();
 
@@ -41,7 +57,7 @@ export default function TopBar() {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const data = await apiFetch("/api/announcements");
+        const data = await loadAnnouncements();
         setSettingsVisible(data.isVisible ?? true);
         if (data.announcements && data.announcements.length > 0) {
           setAnnouncements(data.announcements);
@@ -55,7 +71,13 @@ export default function TopBar() {
     fetchAnnouncements();
   }, []);
 
-  if (!hasLoaded || !settingsVisible || announcements.length === 0) return null;
+  // Until the announcements arrive, hold the bar's exact box (black, 40px) so
+  // the header and page below do not drop by 40px a moment after first paint.
+  // The bar collapses only if the dashboard has it switched off or empty.
+  if (!hasLoaded) {
+    return <div className="bg-[#000000] h-10" aria-hidden="true" />;
+  }
+  if (!settingsVisible || announcements.length === 0) return null;
 
   return (
     <div className="bg-[#000000] text-white group relative h-10 overflow-hidden">

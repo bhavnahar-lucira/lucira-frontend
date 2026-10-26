@@ -9,7 +9,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import { footerStoreLinks } from "@/lib/storeContent";
 
 const STORE_LINKS_TITLE = "Visit our stores:";
@@ -130,7 +130,6 @@ function buildSections(storePages) {
 
 export default function PopularSearchesClient({ storePages = null }) {
   const pathname = usePathname();
-  const isMobile = useMediaQuery("(max-width: 1024px)");
   const sections = useMemo(() => buildSections(storePages), [storePages]);
 
   if (pathname?.startsWith("/build-your-jewelry") || pathname?.startsWith("/dashboard") || pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) {
@@ -144,7 +143,9 @@ export default function PopularSearchesClient({ storePages = null }) {
           Popular Searches
         </h2>
 
-        {isMobile ? (
+        {<Responsive
+          maxMobilePx={1024}
+          mobile={(
           <Accordion type="single" collapsible defaultValue="item-0" className="w-full">
             {sections.map((section, idx) => (
               <AccordionItem key={idx} value={`item-${idx}`} className="border-b border-gray-200">
@@ -171,7 +172,8 @@ export default function PopularSearchesClient({ storePages = null }) {
               </AccordionItem>
             ))}
           </Accordion>
-        ) : (
+          )}
+          desktop={(
           <div className="flex flex-col gap-6 lg:gap-8">
             {sections.map((section, idx) => (
               <div key={idx} className="search-section">
@@ -196,7 +198,8 @@ export default function PopularSearchesClient({ storePages = null }) {
               </div>
             ))}
           </div>
-        )}
+          )}
+        />}
       </div>
     </div>
   );

@@ -8,15 +8,16 @@ import { resolveShopifyImage, resolveShopifyLink } from "@/utils/helpers";
 import ProductCard from "@/components/product/ProductCard";
 import LazyImage from "@/components/common/LazyImage";
 import { Loader2, ArrowRight, Sparkles } from "lucide-react";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { motion } from "framer-motion";
 
 /* ================= COMPONENT LOGIC CONSOLIDATED ================= */
 
-const BannerSection = ({ settings, isMobile }) => {
+const BannerSection = ({ settings }) => {
   const desktopImage = resolveShopifyImage(settings.background_image_desktop);
   const mobileImage = resolveShopifyImage(settings.background_image_mobile);
-  const backgroundImage = isMobile && mobileImage ? mobileImage : desktopImage;
+  // The browser picks the creative by width, so the server-rendered page
+  // already shows the right one and nothing switches after hydration.
+  const backgroundImage = desktopImage || mobileImage;
   const overlayColor = settings.overlay_color || "#000000";
 
   return (
@@ -24,12 +25,17 @@ const BannerSection = ({ settings, isMobile }) => {
       <div className="relative w-full h-auto">
         {/* Background Image that dictates height */}
         {backgroundImage ? (
-          <img
-            src={backgroundImage}
-            alt={settings.heading || "Banner"}
-            className="w-full h-auto block object-cover"
-            loading="eager"
-          />
+          <picture>
+            {mobileImage && desktopImage && mobileImage !== desktopImage && (
+              <source media="(max-width: 768px)" srcSet={mobileImage} />
+            )}
+            <img
+              src={backgroundImage}
+              alt={settings.heading || "Banner"}
+              className="w-full h-auto block object-cover"
+              loading="eager"
+            />
+          </picture>
         ) : (
           <div className="w-full h-[60vh] bg-zinc-100" />
         )}
@@ -215,7 +221,6 @@ const CollectionSection = ({ settings, products = [], index }) => {
 /* ================= MAIN CLIENT COMPONENT ================= */
 
 export default function JewelryGiftGuideClient() {
-  const isMobile = useMediaQuery("(max-width: 768px)");
   const [sectionsWithProducts, setSectionsWithProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -270,7 +275,7 @@ export default function JewelryGiftGuideClient() {
 
         switch (section.type) {
           case "Store-main-banner":
-            return <BannerSection key={idx} settings={section.settings} isMobile={isMobile} />;
+            return <BannerSection key={idx} settings={section.settings} />;
           case "rich-text":
             return <RichTextSection key={idx} settings={section.settings} blocks={section.blocks} blockOrder={section.block_order} />;
           case "jewelry-gift-guide-section":

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Marquee from "react-fast-marquee";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 
 // Homepage "Featured In".
 //
@@ -129,8 +129,10 @@ function primeForAutoplay(node) {
   node.setAttribute("webkit-playsinline", "");
 }
 
-function FeaturedVideo() {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+function FeaturedVideo({ desktop }) {
+  // Which creative to use is decided by the parent (see Responsive below),
+  // so the server-rendered poster already matches the device.
+  const isDesktop = desktop;
   const videoRef = useRef(null);
   const isInViewRef = useRef(false);
   const loadedSrcRef = useRef(null);
@@ -237,7 +239,11 @@ export default function FeaturedIn() {
 
       <div className="container-main">
         <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
-          <FeaturedVideo />
+          <Responsive
+            maxMobilePx={767}
+            mobile={<FeaturedVideo desktop={false} />}
+            desktop={<FeaturedVideo desktop />}
+          />
 
           <div className="flex flex-col gap-4 md:gap-6 w-full min-w-0">
             <LogoRow logos={ROW_ONE} direction="left" rowKey="row-1" />

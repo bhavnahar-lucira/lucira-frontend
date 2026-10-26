@@ -16,7 +16,7 @@ import React, { useRef } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination } from "swiper/modules";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import AppointmentCards from "@/components/pages/book-appointment/AppointmentCards";
 
 import "swiper/css";
@@ -59,17 +59,18 @@ function SectionHeader() {
 }
 
 export default function WaysToExplore() {
-  const isMobile = useMediaQuery("(max-width: 768px)");
   const swiperRef = useRef(null);
 
   return (
-    <section className={`w-full ${isMobile ? "mt-12 bg-[#FEF5F1] py-12" : "mt-0 bg-[#FEF5F1] py-16"} overflow-hidden`}>
+    <section className="w-full mt-12 bg-[#FEF5F1] py-12 min-[769px]:mt-0 min-[769px]:py-16 overflow-hidden">
       <div className="container-main mx-auto">
         <SectionHeader />
 
         <AppointmentCards locationId="homepage" cards={CARDS}>
           {(cards) =>
-            isMobile ? (
+            <Responsive
+              maxMobilePx={768}
+              mobile={(
               <div className="relative group">
                 <Swiper
                   modules={[Pagination]}
@@ -115,13 +116,15 @@ export default function WaysToExplore() {
                   </div>
                 </div>
               </div>
-            ) : (
+              )}
+              desktop={(
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 lg:gap-8 items-start">
                 {cards.video}
                 {cards.home}
                 {cards.store}
               </div>
-            )
+              )}
+            />
           }
         </AppointmentCards>
       </div>
