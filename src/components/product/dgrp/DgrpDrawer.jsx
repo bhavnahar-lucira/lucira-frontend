@@ -91,8 +91,34 @@ export default function DgrpDrawer({
   shippingDate = "",
 }) {
   const router = useRouter();
-  const { user, accessToken } = useSelector((state) => state.user || {});
+  const { user, accessToken, isAuthModalOpen } = useSelector((state) => state.user || {});
   const requireLogin = useLoginGate();
+
+  // Helper to prevent closing DGRP drawer when clicking inside login popup or other portals
+  const shouldBlockOutsideClose = (e) => {
+    if (isRazorpayOpen || isAuthModalOpen) return true;
+    if (typeof document !== "undefined") {
+      if (document.querySelector(".razorpay-container")) return true;
+      if (document.querySelector(".react-modal-sheet-container")) return true;
+      if (document.querySelector(".react-modal-sheet-root")) return true;
+      if (document.querySelector(".react-modal-sheet-backdrop")) return true;
+      if (document.querySelector('[data-slot="dialog-content"]')) return true;
+      if (document.querySelector('[role="dialog"]:not(.dgrp-drawer-sheet)')) return true;
+    }
+    const target = e?.target;
+    if (target && typeof target.closest === "function") {
+      if (
+        target.closest(".react-modal-sheet-root") ||
+        target.closest(".react-modal-sheet-container") ||
+        target.closest(".react-modal-sheet-backdrop") ||
+        target.closest("[data-radix-portal]") ||
+        target.closest('[role="dialog"]:not(.dgrp-drawer-sheet)')
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   // Steps: 1 = Offer Breakdown, 2 = Address & Payment, 3 = Success
   const [step, setStep] = useState(1);
@@ -455,22 +481,24 @@ export default function DgrpDrawer({
     <Sheet
       open={isOpen}
       onOpenChange={(open) => {
-        if (isRazorpayOpen) return;
-        if (!open) onClose?.();
+        if (!open) {
+          if (shouldBlockOutsideClose()) return;
+          onClose?.();
+        }
       }}
     >
       <SheetContent
         side="right"
-        className="dgrp-drawer-sheet w-full sm:max-w-[440px] p-0 overflow-y-auto bg-white border-l border-zinc-200 z-[600]"
+        className="dgrp-drawer-sheet w-full sm:max-w-[440px] p-0 flex flex-col h-full max-h-[100dvh] bg-white border-l border-zinc-200 z-[600] overflow-hidden gap-0"
         style={{ maxWidth: "440px" }}
         showCloseButton={false}
         onPointerDownOutside={(e) => {
-          if (isRazorpayOpen || document.querySelector(".razorpay-container")) {
+          if (shouldBlockOutsideClose(e)) {
             e.preventDefault();
           }
         }}
         onInteractOutside={(e) => {
-          if (isRazorpayOpen || document.querySelector(".razorpay-container")) {
+          if (shouldBlockOutsideClose(e)) {
             e.preventDefault();
           }
         }}
@@ -555,7 +583,7 @@ export default function DgrpDrawer({
         <SheetTitle className="sr-only">Lock &amp; Key - Gold Rate Protection</SheetTitle>
 
         {/* Header Bar */}
-        <div className="sticky top-0 z-40 flex items-center justify-between bg-white px-5 sm:px-6 pt-5 pb-3 font-figtree border-b border-zinc-100/60 transition-colors">
+        <div className="shrink-0 flex items-center justify-between bg-white px-5 sm:px-6 pt-5 pb-3 font-figtree border-b border-zinc-100/60 transition-colors">
           <div className="flex items-center gap-1.5">
             {step === 2 && (
               <button
@@ -579,6 +607,9 @@ export default function DgrpDrawer({
             <X size={20} strokeWidth={1.8} />
           </button>
         </div>
+
+        {/* Scrollable Body Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
 
         {/* ───────────────────────────────────────────────────────────── */}
         {/* STEP 1: Offer Breakdown (Exact Figma Frame 1 Design) */}
@@ -758,14 +789,6 @@ export default function DgrpDrawer({
                 Win - Win Situation
               </p>
             </div>
-
-            {/* Continue Button */}
-            <Button
-              onClick={handleContinueToStep2}
-              className="w-full h-[50px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[13px] sm:text-[14px] rounded-[6px] transition-colors cursor-pointer shadow-xs"
-            >
-              CONTINUE
-            </Button>
           </div>
         )}
 
@@ -1096,33 +1119,6 @@ export default function DgrpDrawer({
               </div>
             </div>
 
-            {/* Bottom Button Action */}
-            <div className="pt-1.5">
-              {deliveryMethod === "pickup" && pickup.showStoreDialog ? (
-                <Button
-                  type="button"
-                  onClick={pickup.saveStoreSelection}
-                  className="w-full h-[44px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[12.5px] sm:text-[13px] rounded-[6px] transition-colors cursor-pointer"
-                >
-                  {pickup.sortedStores.length === 0 ? "CLOSE" : "CONFIRM"}
-                </Button>
-              ) : (
-                <Button
-                  disabled={loading}
-                  onClick={handlePayAdvance}
-                  className="w-full h-[44px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[12.5px] sm:text-[13px] rounded-[6px] transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60 shadow-xs"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>PROCESSING...</span>
-                    </>
-                  ) : (
-                    <span>PAY ₹{formatPrice(advanceAmount)}</span>
-                  )}
-                </Button>
-              )}
-            </div>
           </div>
         )}
 
@@ -1168,6 +1164,51 @@ export default function DgrpDrawer({
             >
               GO TO MY ACCOUNT
             </Button>
+          </div>
+        )}
+        </div>
+
+        {/* Fixed / Sticky Bottom Action Bar for Step 1 & Step 2 */}
+        {(step === 1 || step === 2) && (
+          <div
+            className="shrink-0 sticky bottom-0 z-30 bg-white/95 backdrop-blur-sm border-t border-zinc-100 px-5 sm:px-6 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+            style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}
+          >
+            {step === 1 && (
+              <Button
+                onClick={handleContinueToStep2}
+                className="w-full h-[44px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[12.5px] sm:text-[13px] rounded-[6px] transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+              >
+                CONTINUE
+              </Button>
+            )}
+
+            {step === 2 && (
+              deliveryMethod === "pickup" && pickup.showStoreDialog ? (
+                <Button
+                  type="button"
+                  onClick={pickup.saveStoreSelection}
+                  className="w-full h-[44px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[12.5px] sm:text-[13px] rounded-[6px] transition-colors cursor-pointer"
+                >
+                  {pickup.sortedStores.length === 0 ? "CLOSE" : "CONFIRM"}
+                </Button>
+              ) : (
+                <Button
+                  disabled={loading}
+                  onClick={handlePayAdvance}
+                  className="w-full h-[44px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[12.5px] sm:text-[13px] rounded-[6px] transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60 shadow-xs"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>PROCESSING...</span>
+                    </>
+                  ) : (
+                    <span>PAY ₹{formatPrice(advanceAmount)}</span>
+                  )}
+                </Button>
+              )
+            )}
           </div>
         )}
       </SheetContent>

@@ -422,7 +422,11 @@ export function CheckoutAuthForm({
           <Button
             onClick={handleSendOtp}
             disabled={loading}
-            className="mt-3 md:mt-2.5 w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[46px] md:h-[36px] rounded-md md:rounded-[4px] normal-case font-semibold md:font-medium text-[15px] md:text-[13px] tracking-normal leading-none"
+            className={
+              buttonText === "CONTINUE"
+                ? "mt-3 md:mt-2.5 w-full h-[44px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[12.5px] sm:text-[13px] rounded-[6px] transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+                : "mt-3 md:mt-2.5 w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[46px] md:h-[36px] rounded-md md:rounded-[4px] normal-case font-semibold md:font-medium text-[15px] md:text-[13px] tracking-normal leading-none"
+            }
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (buttonText || "Save My Selection")}
           </Button>
@@ -484,7 +488,11 @@ export function CheckoutAuthForm({
           <Button
             onClick={handleSendOtp}
             disabled={loading}
-            className="w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-2 leading-none max-md:font-figtree lg:text-[1rem]"
+            className={
+              buttonText === "CONTINUE"
+                ? "w-full h-[44px] bg-[#523A36] hover:bg-[#422D2A] text-white font-figtree font-semibold uppercase tracking-wider text-[12.5px] sm:text-[13px] rounded-[6px] transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-xs mt-2"
+                : "w-full bg-[#5A413F] hover:bg-[#4A312F] text-white h-[45px] rounded-[4px] uppercase font-semibold md:font-bold tracking-wide mt-2 leading-none max-md:font-figtree lg:text-[1rem]"
+            }
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (buttonText || "CONTINUE")}
           </Button>
