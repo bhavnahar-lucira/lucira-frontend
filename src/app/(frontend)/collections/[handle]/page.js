@@ -60,10 +60,20 @@ export async function generateMetadata({ params }) {
       },
     };
   }
-  if (handle === "all") {
+  if (handle === "jewelry" || handle === "all") {
+    const title = collection?.seo?.title || "Lab Grown Diamond Jewellery Collection: Rings to Pendants | Lucira";
+    const description = collection?.seo?.description || "Browse the full Lucira lab grown diamond jewellery collection: rings, earrings, bracelets, pendants and more. Pick a category and shop modern luxury.";
     return {
-      title: "All Lab Grown Diamond Jewelry | Lucira Jewelry",
-      description: "Explore our complete collection of ethically sourced, lab-grown diamond jewelry. From stunning rings to elegant necklaces, find your perfect piece at Lucira.",
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: collection?.image ? [collection.image.url] : [],
+      },
+      alternates: {
+        canonical: `/collections/${handle}`,
+      },
     };
   }
 

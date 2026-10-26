@@ -209,6 +209,34 @@ export async function generateMetadata({ params }) {
   // the rate-page detection below and 404ing.
   const handle = rawHandle.toLowerCase();
 
+  if (handle === "jewellery-on-emi") {
+    return {
+      title: "Jewellery On EMI | Lucira Jewelry",
+      description: "Explore 0-cost EMI plans on certified diamond jewelry at Lucira Jewelry.",
+      robots: {
+        index: false,
+        follow: false,
+        nocache: true,
+        googleBot: {
+          index: false,
+          follow: false,
+          noimageindex: true,
+          "max-video-preview": -1,
+          "max-image-preview": "none",
+          "max-snippet": -1,
+        },
+      },
+      alternates: {
+        canonical: `/pages/${handle}`,
+      },
+      openGraph: {
+        title: "Jewellery On EMI | Lucira Jewelry",
+        description: "Explore 0-cost EMI plans on certified diamond jewelry at Lucira Jewelry.",
+        url: `/pages/${handle}`,
+      },
+    };
+  }
+
   const isSilverRatePage = handle.includes("silver-rate-today");
   const isPlatinumRatePage = handle.includes("platinum-rate-today");
   const isGoldRatePage = handle.includes("gold-rate-today");
@@ -400,6 +428,13 @@ export default async function Page({ params }) {
       page.city = { value: cityCapitalized };
       page.state = { value: resolvedState || 'Maharashtra' };
     }
+  }
+
+  if (handle === "jewellery-on-emi" && !page) {
+    page = {
+      title: "Jewellery On EMI",
+      body: "",
+    };
   }
 
   if (!page) return notFound();

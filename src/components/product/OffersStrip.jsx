@@ -81,7 +81,23 @@ export default function OffersStrip({
     }
   };
 
+  // Every tap on "View Offers", logged in or not (24 Oct 2026). Same shape as
+  // the unlock event above, which keeps firing only once a guest has logged in.
+  const trackViewOffersClick = () => {
+    try {
+      pushPromoClick({
+        creative_name: "view offer pdp",
+        location_id: typeof window !== "undefined" ? window.location.href : "",
+        promo_id: String(productId || ""),
+        promo_name: user?.mobile || user?.phone || "",
+      });
+    } catch (error) {
+      console.error("Error pushing to dataLayer:", error);
+    }
+  };
+
   const handleViewOffers = () => {
+    trackViewOffersClick();
     const openDrawer = () => setIsDrawerOpen(true);
     const sentToLogin = requireLogin(
       () => {

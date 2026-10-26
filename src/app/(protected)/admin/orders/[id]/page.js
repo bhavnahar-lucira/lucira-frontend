@@ -32,12 +32,10 @@ import { apiFetch } from "@/lib/api";
 import { getOrderImage } from "@/lib/utils";
 import { shopifyStorefrontFetch, toShopifyGid } from "@/lib/shopify-client";
 
-const CLICKPOST_SECURITY_KEY = process.env.NEXT_PUBLIC_CLICKPOST_SECURITY_KEY || "";
-
-function getClickpostTrackingUrl(waybill, cpId = 5) {
+function getClickpostTrackingUrl(waybill, cpId) {
   if (!waybill) return "";
-  const secParam = CLICKPOST_SECURITY_KEY ? `&security_key=${encodeURIComponent(CLICKPOST_SECURITY_KEY)}` : "";
-  return `https://track.clickpost.in/?waybill=${encodeURIComponent(waybill)}&source=dashboard&cp_id=${encodeURIComponent(cpId)}${secParam}`;
+  const cpParam = cpId ? `&cp_id=${encodeURIComponent(cpId)}` : "";
+  return `https://lucirajewelry.clickpost.in/en?waybill=${encodeURIComponent(waybill)}&source=dashboard${cpParam}`;
 }
 
 // Specific query to get order details with handles via Customer
@@ -160,10 +158,8 @@ export default function OrderDetailsPage() {
         try {
           const cpRes = await apiFetch(`/api/clickpost/track/${id}`);
           if (cpRes?.success && (cpRes.clickpostUrl || cpRes.waybill || cpRes.tracking)) {
-            const partnerId = cpRes.tracking?.additional?.courier_partner_id || 5;
-            const finalUrl = (cpRes.clickpostUrl && cpRes.clickpostUrl.includes('security_key'))
-              ? cpRes.clickpostUrl
-              : getClickpostTrackingUrl(cpRes.waybill || orderData?.trackingInfo?.waybill, partnerId);
+            const partnerId = cpRes.tracking?.additional?.courier_partner_id || orderData?.trackingInfo?.cp_id || orderData?.customStatus?.clickpost_courier_partner_id || null;
+            const finalUrl = cpRes.clickpostUrl || getClickpostTrackingUrl(cpRes.waybill || orderData?.trackingInfo?.waybill, partnerId);
             setClickpostData({
               ...cpRes,
               clickpostUrl: finalUrl
@@ -172,9 +168,7 @@ export default function OrderDetailsPage() {
             setClickpostData({
               waybill: orderData.trackingInfo.waybill,
               courierName: orderData.trackingInfo.courier,
-              clickpostUrl: (orderData.trackingInfo.trackingUrl && orderData.trackingInfo.trackingUrl.includes('security_key'))
-                ? orderData.trackingInfo.trackingUrl
-                : getClickpostTrackingUrl(orderData.trackingInfo.waybill, 5),
+              clickpostUrl: orderData.trackingInfo.trackingUrl || getClickpostTrackingUrl(orderData.trackingInfo.waybill, orderData.trackingInfo.cp_id || orderData.customStatus?.clickpost_courier_partner_id),
               tracking: null
             });
           }
@@ -184,9 +178,7 @@ export default function OrderDetailsPage() {
             setClickpostData({
               waybill: orderData.trackingInfo.waybill,
               courierName: orderData.trackingInfo.courier,
-              clickpostUrl: (orderData.trackingInfo.trackingUrl && orderData.trackingInfo.trackingUrl.includes('security_key'))
-                ? orderData.trackingInfo.trackingUrl
-                : getClickpostTrackingUrl(orderData.trackingInfo.waybill, 5),
+              clickpostUrl: orderData.trackingInfo.trackingUrl || getClickpostTrackingUrl(orderData.trackingInfo.waybill, orderData.trackingInfo.cp_id || orderData.customStatus?.clickpost_courier_partner_id),
               tracking: null
             });
           }

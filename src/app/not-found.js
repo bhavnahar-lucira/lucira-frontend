@@ -20,6 +20,7 @@ export default async function NotFound() {
 
   return (
     <div className="w-full">
+      <meta name="robots" content="noindex, nofollow" />
       <Header menuData={menuData} />
       <section className="pt-7.5">
         <div className="text-center pb-12.5 md:pt-7.5">

@@ -245,6 +245,99 @@ export const CHUNKY_RINGS_ITEM = {
   menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/chunky_rings.png?v=1787210554',
 };
 
+// ---------------------------------------------------------------------------
+// Necklaces tab (23 Oct 2026).
+//
+// The Shopify menu has no top-level Necklaces item yet: necklaces live as a
+// column inside More Jewelry. On desktop the Navbar lifts that column out into
+// its own tab (between Earrings and More Jewelry), adds the marketing sheet's
+// new necklace/pendant styles, and gives it the same Shop By Shape / Material /
+// Price columns as Earrings. The mobile drawer keeps its own Necklaces tile
+// (built from the More Jewelry column in MobileHeader) and picks up the same
+// five new pendants through MENU_EXTRAS.necklaces below.
+//
+// Display-name overrides that apply on desktop only. The mobile grid keeps the
+// full name because its icon map and matchers key on it.
+export const DESKTOP_MENU_LABEL_OVERRIDES = {
+  // Shortened so the Necklaces tab fits on one line beside OFFERS.
+  "9kt collection": "9KT",
+};
+
+// Marketing sheet (24 Oct 2026), two Shop By Style columns read row by row:
+//   Statement Necklaces | Infinity Necklaces
+//   Chain Necklaces     | Heart Pendants
+//   Pendant Necklaces   | Butterfly Pendants
+//   Tennis Necklaces    | Evil Eye Pendants
+//   Gold Necklaces      | Kids Pendants
+// The first column comes from the CMS (More Jewelry > Necklaces, plus Gold
+// Necklaces from Plain Gold); the second is appended here. The pendant icons
+// are the white-background product shots uploaded to Shopify Files on
+// 17 Oct 2026 (same style as the CMS necklace icons). No Kids Pendants icon was
+// supplied, so it borrows the More Jewelry > Pendants icon until one arrives.
+export const NECKLACE_STYLE_EXTRAS = [
+  { label: 'Infinity Necklaces', href: '/collections/infinity-necklaces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_pendant_icon_6dbb24c1-f58a-47fa-90c8-870c44b6cde8.png?v=1792219203' },
+  { label: 'Heart Pendants', href: '/collections/heart-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_pendant_icon_ef395e2f-66b9-4e02-8e7d-57696bd1de50.png?v=1792219203' },
+  { label: 'Butterfly Pendants', href: '/collections/butterfly-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_pendant_icon_ee655fc2-f89d-4efb-b91c-fca07f90866a.png?v=1792219203' },
+  { label: 'Evil Eye Pendants', href: '/collections/evil-eye-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_pendant_icon_fdc9374c-ca2d-448e-9d05-f82caa5ef7c8.png?v=1792219203' },
+  { label: 'Kids Pendants', href: '/collections/kids-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pendants_More_Jewelry_F2.png?v=1777357190' },
+];
+
+export const NECKLACE_STYLE_ORDER = [
+  'statement necklaces', 'infinity necklaces',
+  'chain necklaces', 'heart pendants',
+  'pendant necklaces', 'butterfly pendants',
+  'tennis necklaces', 'evil eye pendants',
+  'gold necklaces', 'kids pendants',
+];
+
+// Same shape icons the Rings / Earrings tabs use (the shared Shop By Shape
+// set), plus Heart, which only the necklaces sheet lists. The collection
+// handles are copied from the sheet verbatim: every shape except Round is
+// spelled "neckalces" in Shopify, and that misspelled handle is the one that
+// resolves (the correctly spelled URL falls through to the generic page).
+// If the handles are ever corrected in Shopify, update them here too.
+export const NECKLACE_SHAPE_ITEMS = [
+  { label: 'Round', href: '/collections/round-lab-grown-diamond-necklaces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Round_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697896' },
+  { label: 'Emerald', href: '/collections/emerald-cut-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Emerald_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697823' },
+  { label: 'Marquise', href: '/collections/marquise-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Marquise_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697835' },
+  { label: 'Cushion', href: '/collections/cushion-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Cushion_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697929' },
+  { label: 'Oval', href: '/collections/oval-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Oval_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697847' },
+  { label: 'Pear', href: '/collections/pear-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pear_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697857' },
+  { label: 'Princess', href: '/collections/princess-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Princess_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697884' },
+  { label: 'Heart', href: '/collections/heart-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_Shop_by_Shape_Engagement_Ring_F2.png?v=1777697936' },
+  { label: 'Special Cuts', href: '/collections/special-cuts-lab-grown-diamond-neckalces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa_1.png?v=1777724104' },
+];
+
+// Gold swatches are drawn in CSS from the label (see Navbar). Necklaces have
+// no Platinum or Pearl range, so only the three golds are listed.
+export const NECKLACE_MATERIAL_ITEMS = [
+  { label: 'Yellow Gold', href: '/collections/yellow-gold-necklaces' },
+  { label: 'Rose Gold', href: '/collections/rose-gold-necklaces' },
+  { label: 'White Gold', href: '/collections/white-gold-necklaces' },
+];
+
+// Necklace price bands start higher and run further than the Rings / Earrings
+// ones (sheet of 24 Oct 2026).
+export const NECKLACE_PRICE_ITEMS = [
+  { label: 'Below 50k', href: '/collections/necklaces-below-50k' },
+  { label: '50k - 75k', href: '/collections/necklaces-between-50k-75k' },
+  { label: '75k - 100k', href: '/collections/necklaces-between-75k-100k' },
+  { label: '100k - 150k', href: '/collections/necklaces-between-100k-150k' },
+  { label: '150k - 200k', href: '/collections/necklaces-between-150k-200k' },
+  { label: '200k - 300k', href: '/collections/necklaces-between-200k-300k' },
+  { label: '300k - 500k', href: '/collections/necklaces-between-300k-500k' },
+  { label: '500k and above', href: '/collections/necklaces-above-500k' },
+];
+
+// The Shape / Material / Price columns, shared by the desktop Necklaces tab
+// (buildNecklacesMenu) and the mobile Necklaces drawer (MobileHeader), so the
+// two can't drift apart.
+export const NECKLACE_FILTER_COLUMNS = [
+  { title: 'Shop By Shape', type: 'icon', items: NECKLACE_SHAPE_ITEMS },
+  { title: 'Shop By Material', type: 'metal', items: NECKLACE_MATERIAL_ITEMS },
+  { title: 'Shop By Price', type: 'text', items: NECKLACE_PRICE_ITEMS },
+];
+
 export const MENU_EXTRAS = {
   // 15 Oct 2026 sheet:
   //   Engagement | Solitaire | Infinity Ring
@@ -304,6 +397,13 @@ export const MENU_EXTRAS = {
       { label: 'Solitaire Essentials', href: '/collections/solitaire-essential', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Solitaire_essentials_icon_v2.png?v=1792216734' },
     ],
   },
+  // 23 Oct 2026 sheet. Desktop builds its Necklaces tab in buildNecklacesMenu
+  // (two sheet columns); here the same five pendants reach the mobile
+  // Necklaces drawer, whose 3-column grid reads the CMS styles first and then
+  // the new pendants in sheet order.
+  necklaces: {
+    style: NECKLACE_STYLE_EXTRAS,
+  },
 };
 
 const norm = (s) => (s || '').toLowerCase().trim();
@@ -326,7 +426,7 @@ function sortByOrder(items, order) {
 }
 
 export function withMenuExtras(menus) {
-  return (menus || []).map((menu) => {
+  return withSizedMenuImages((menus || []).map((menu) => {
     const extras = MENU_EXTRAS[norm(menu.label || menu.title)];
     if (!extras) return menu;
 
@@ -334,7 +434,7 @@ export function withMenuExtras(menus) {
       const title = norm(col.title);
       if (title.includes('style') && extras.style) {
         const items = sortByOrder(appendMissing(col.items, extras.style), extras.styleOrder || []);
-        return { ...col, items, gridCols: 3 };
+        return { ...col, items, gridCols: col.gridCols || 3 };
       }
       if (title.includes('category') && extras.category) {
         return { ...col, items: appendMissing(col.items, extras.category) };
@@ -346,5 +446,117 @@ export function withMenuExtras(menus) {
     });
 
     return extras.dropCards ? { ...menu, columns, cards: [] } : { ...menu, columns };
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Image sizing (24 Oct 2026).
+//
+// Menu images come straight from Shopify Files at whatever size marketing
+// uploaded (one Gifting icon was 6.6 MB) and are rendered through
+// `unoptimized` <Image> / plain <img>, so the browser downloaded the original
+// for a 64-80 px circle. The Shopify CDN resizes on request through a `width`
+// query param (the same thing `utils/shopifyLoader` does for product shots),
+// so every menu image is rewritten here to the largest size it is ever drawn
+// at. SVGs are left alone (the CDN doesn't resize them) and so is any URL that
+// already carries a width.
+//
+// Rendered sizes: icons are at most 80 px (mobile style tiles) -> 240 covers
+// 3x phones; desktop image cards and the mobile category grid are ~300 px
+// squares -> 640; mobile menu banners span the 375-430 px drawer -> 828.
+export const MENU_IMAGE_WIDTHS = { icon: 240, card: 640, banner: 828 };
+
+export function sizedMenuImage(url, width) {
+  if (typeof url !== 'string' || !url.includes('cdn.shopify.com')) return url;
+  if (/\.svg(\?|$)/i.test(url) || /[?&]width=/.test(url)) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}width=${width}`;
+}
+
+const sizeIconFields = (item) =>
+  item && (item.menuIcon || item.icon || item.megaMenuImage)
+    ? {
+        ...item,
+        menuIcon: sizedMenuImage(item.menuIcon, MENU_IMAGE_WIDTHS.icon),
+        icon: sizedMenuImage(item.icon, MENU_IMAGE_WIDTHS.icon),
+        megaMenuImage: sizedMenuImage(item.megaMenuImage, MENU_IMAGE_WIDTHS.icon),
+      }
+    : item;
+
+const sizeImageField = (entry, width) =>
+  entry && entry.image ? { ...entry, image: sizedMenuImage(entry.image, width) } : entry;
+
+export function withSizedMenuImages(menus) {
+  return (menus || []).map((menu) => {
+    const out = sizeIconFields(menu);
+    if (menu.mobileBanner) out.mobileBanner = sizedMenuImage(menu.mobileBanner, MENU_IMAGE_WIDTHS.banner);
+    if (menu.columns) out.columns = menu.columns.map((col) => ({ ...col, items: (col.items || []).map(sizeIconFields) }));
+    if (menu.featured) {
+      out.featured = { ...menu.featured };
+      if (menu.featured.items) out.featured.items = menu.featured.items.map(sizeIconFields);
+      if (menu.featured.featuredIn?.items) {
+        out.featured.featuredIn = { ...menu.featured.featuredIn, items: menu.featured.featuredIn.items.map(sizeIconFields) };
+      }
+    }
+    if (menu.cards) out.cards = menu.cards.map((c) => sizeImageField(c, MENU_IMAGE_WIDTHS.card));
+    if (menu.items) out.items = menu.items.map((c) => sizeImageField(c, MENU_IMAGE_WIDTHS.card));
+    if (menu.quickLinks) out.quickLinks = menu.quickLinks.map((q) => sizeImageField(q, MENU_IMAGE_WIDTHS.icon));
+    if (menu.banner) out.banner = sizeImageField(menu.banner, MENU_IMAGE_WIDTHS.card);
+    return out;
   });
+}
+
+const isMoreJewelry = (menu) => {
+  const l = norm(menu.label || menu.title);
+  return l.includes('more jewelry') || l.includes('more jewellery');
+};
+
+// The Necklaces mega menu assembled from the More Jewelry columns of an
+// already-transformed menu list. Returns null when More Jewelry has no
+// Necklaces column (nothing to lift out).
+export function buildNecklacesMenu(menus) {
+  const moreJewelry = (menus || []).find(isMoreJewelry);
+  const necklaceCol = moreJewelry?.columns?.find((c) => norm(c.title) === 'necklaces');
+  if (!necklaceCol?.items?.length) return null;
+
+  const plainGold = moreJewelry.columns.find((c) => norm(c.title).includes('plain gold'));
+  const goldNecklaces = plainGold?.items?.find((i) => i.label === 'Gold Necklaces');
+  const cmsItems = goldNecklaces
+    ? appendMissing(necklaceCol.items, [goldNecklaces])
+    : necklaceCol.items;
+
+  const styleItems = sortByOrder(appendMissing(cmsItems, NECKLACE_STYLE_EXTRAS), NECKLACE_STYLE_ORDER);
+
+  return {
+    label: 'Necklaces',
+    href: '/collections/necklaces',
+    type: 'mega',
+    layout: '5-col-featured',
+    columns: [
+      { title: 'Shop By Style', type: 'icon', items: styleItems, gridCols: 2 },
+      ...NECKLACE_FILTER_COLUMNS,
+    ],
+    cards: [],
+  };
+}
+
+// Desktop menu list: top-level labels shortened per DESKTOP_MENU_LABEL_OVERRIDES,
+// the Necklaces column dropped from More Jewelry, and the Necklaces tab inserted
+// right after Earrings (or before More Jewelry if Earrings is missing).
+export function withDesktopNecklaces(menus) {
+  const necklaces = buildNecklacesMenu(menus);
+  const list = (menus || []).map((menu) => {
+    const label = DESKTOP_MENU_LABEL_OVERRIDES[norm(menu.label || menu.title)] || menu.label;
+    const renamed = label === menu.label ? menu : { ...menu, label };
+    if (!necklaces || !isMoreJewelry(renamed)) return renamed;
+    return {
+      ...renamed,
+      columns: (renamed.columns || []).filter((c) => norm(c.title) !== 'necklaces'),
+    };
+  });
+  if (!necklaces) return list;
+
+  let at = list.findIndex((m) => norm(m.label || m.title) === 'earrings');
+  if (at === -1) at = list.findIndex(isMoreJewelry) - 1;
+  const insertAt = at === -1 ? list.length : at + 1;
+  return [...list.slice(0, insertAt), necklaces, ...list.slice(insertAt)];
 }

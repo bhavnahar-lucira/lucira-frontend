@@ -8,6 +8,20 @@ import OtherStores from "@/components/pages/old-gold-exchange/OtherStores";
 import FAQSection from "@/components/pages/old-gold-exchange/FAQSection";
 import LuxuryMarquee from "@/components/product/LuxuryMarquee";
 
+export const metadata = {
+  title: "Old Gold Exchange at Lucira Jewelry",
+  description:
+    "Learn how old gold exchange works at Lucira Jewelry, then book a store visit or video call to talk through your pieces with the team.",
+  alternates: { canonical: "/pages/old-gold-exchange" },
+  openGraph: {
+    title: "Old Gold Exchange at Lucira Jewelry",
+    description:
+      "Learn how old gold exchange works at Lucira Jewelry, then book a store visit or video call to talk through your pieces with the team.",
+    url: "/pages/old-gold-exchange",
+    type: "website",
+  },
+};
+
 export default function OldGoldExchangePage() {
   const { banner, calculator, how_it_works, store_locator, other_stores, usp, faq } = PAGE_DATA.sections;
 

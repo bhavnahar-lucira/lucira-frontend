@@ -283,14 +283,25 @@ async function getProduct(handle) {
       return g.includes('gemstone') || g.includes('color stone');
     }) || [];
 
-    // Any component that isn't precious metal / diamond / gemstone (beads, evil eye, steel, etc.)
-    const otherComps = comps?.components?.filter(c => c.item_group_name && !isMetalGroup(c.item_group_name) && !isStoneGroup(c.item_group_name)) || [];
-    const otherMaterials = otherComps.map(c => ({
-      material: c.item_group_name,
-      color: c.stone_color_code && c.stone_color_code !== "NA" ? c.stone_color_code : "",
-      pieces: c.pieces || "1",
-      weight: c.weight || "0",
-    }));
+    // Any component that isn't precious metal / diamond / gemstone (beads, evil eye, steel, flexi belt, etc.)
+    // Prioritize additional_item_type from DI-GoldPrice.variant_config if present
+    let otherMaterials = [];
+    if (variantConfig?.additional_item_type) {
+      otherMaterials = [{
+        material: variantConfig.additional_item_type,
+        color: "",
+        pieces: "1",
+        weight: variantConfig.additional_item_weight ? String(variantConfig.additional_item_weight) : "0",
+      }];
+    } else {
+      const otherComps = comps?.components?.filter(c => c.item_group_name && !isMetalGroup(c.item_group_name) && !isStoneGroup(c.item_group_name)) || [];
+      otherMaterials = otherComps.map(c => ({
+        material: c.item_group_name,
+        color: c.stone_color_code && c.stone_color_code !== "NA" ? c.stone_color_code : "",
+        pieces: c.pieces || "1",
+        weight: c.weight || "0",
+      }));
+    }
     const rawStoreData = v.in_store_available?.value || v.custom_in_store_available?.value;
     const in_store_available = rawStoreData ? JSON.parse(rawStoreData) : [];
 
@@ -443,9 +454,12 @@ async function getProduct(handle) {
     if (gemstoneComps && gemstoneComps.length > 0) {
       gemstones = gemstoneComps.map((g, index) => {
         const i = index + 1;
+        const rawShape = (g.shape_code && g.shape_code !== "NA")
+          ? g.shape_code
+          : (v[`g${i}_shape`]?.value && v[`g${i}_shape`]?.value !== "NA" ? v[`g${i}_shape`]?.value : "");
         return {
           color: g.stone_color_code && g.stone_color_code !== "NA" ? g.stone_color_code : (v[`g${i}_color`]?.value || "Other"),
-          shape: g.shape_code && g.shape_code !== "NA" ? g.shape_code : (v[`g${i}_shape`]?.value || "Round"),
+          shape: rawShape,
           pieces: g.pieces || v[`g${i}_pcs`]?.value || "1",
           weight: g.weight || v[`g${i}_wt`]?.value || "0"
         };
@@ -456,9 +470,10 @@ async function getProduct(handle) {
     if (gemstones.length === 0) {
       [1, 2, 3, 4].forEach(i => {
         if (v[`g${i}_color`]?.value || v[`g${i}_wt`]?.value || v[`g${i}_type`]?.value) {
+          const rawShape = v[`g${i}_shape`]?.value && v[`g${i}_shape`]?.value !== "NA" ? v[`g${i}_shape`]?.value : "";
           gemstones.push({
             color: v[`g${i}_color`]?.value || "Other",
-            shape: v[`g${i}_shape`]?.value || "Round",
+            shape: rawShape,
             pieces: v[`g${i}_pcs`]?.value || "1",
             weight: v[`g${i}_wt`]?.value || "0",
             quality: v[`g${i}_clarity`]?.value || "Na",
@@ -474,9 +489,12 @@ async function getProduct(handle) {
           .filter(s => s.stone_type === 'gemstone')
           .map((s, index) => {
             const i = index + 1;
+            const rawShape = (v[`g${i}_shape`]?.value && v[`g${i}_shape`]?.value !== "NA")
+              ? v[`g${i}_shape`]?.value
+              : (s.shape_code && s.shape_code !== "NA" ? s.shape_code : "");
             return {
               color: v[`g${i}_color`]?.value || "Other",
-              shape: v[`g${i}_shape`]?.value || s.shape_code || "RD",
+              shape: rawShape,
               pieces: s.stone_quantity || v[`g${i}_pcs`]?.value || "1",
               weight: s.stone_weight || v[`g${i}_wt`]?.value || "0",
               quality: v[`g${i}_clarity`]?.value || "Na",

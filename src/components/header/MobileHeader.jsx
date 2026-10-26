@@ -363,7 +363,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { withMenuExtras } from "@/lib/menuTransform";
+import { withMenuExtras, NECKLACE_FILTER_COLUMNS } from "@/lib/menuTransform";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -539,7 +539,9 @@ export default function MobileHeader({ menuData }) {
     const extraItems = [
       { label: "New Arrivals", href: "/collections/new-arrivals", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/New_arrival_bracelet.png?v=1785159196" },
       { label: "Bracelets", href: "/collections/bracelets", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_50.png?v=1785157008", columns: buildStyleColumn("bracelets", "Gold Bracelets"), viewAll: true },
-      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_52.png?v=1785159194", columns: buildStyleColumn("necklaces", "Gold Necklaces"), viewAll: true },
+      // Necklaces gets the same Shape / Material / Price sections as the
+      // desktop Necklaces tab (shared definitions, 24 Oct 2026).
+      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_52.png?v=1785159194", columns: [...(buildStyleColumn("necklaces", "Gold Necklaces") || []), ...NECKLACE_FILTER_COLUMNS], viewAll: true },
     ].filter(
       (extra) => !menu.some((item) => (item.label || item.title || "").toLowerCase().includes(extra.label.toLowerCase()))
     );
