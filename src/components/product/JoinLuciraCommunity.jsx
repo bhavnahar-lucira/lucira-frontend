@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import LazyImage from "../common/LazyImage";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
 import { pushNewsletterSubscription } from "@/lib/gtm";
@@ -13,7 +13,6 @@ import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 
 export function JoinLuciraCommunity() {
-  const isMobile = useMediaQuery("(max-width: 768px)");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +59,9 @@ export function JoinLuciraCommunity() {
       <div className="max-w-480 mx-auto grid lg:grid-cols-2 items-stretch">
 
         {/* Mobile: Top Content | Desktop: Left Side (Images) */}
-        {!isMobile && (
+        {<Responsive
+          maxMobilePx={768}
+          desktop={(
           <div className="flex h-full min-h-[400px]">
             <div className="w-1/2 relative">
               <LazyImage
@@ -79,7 +80,8 @@ export function JoinLuciraCommunity() {
               />
             </div>
           </div>
-        )}
+          )}
+        />}
 
         {/* Content Side */}
         <div className="flex flex-col justify-center py-6 px-10">
@@ -128,7 +130,9 @@ export function JoinLuciraCommunity() {
         </div>
 
         {/* Mobile: Bottom Images */}
-        {isMobile && (
+        {<Responsive
+          maxMobilePx={768}
+          mobile={(
           <div className="flex h-64 w-full">
             <div className="w-1/2 relative">
               <LazyImage
@@ -147,7 +151,8 @@ export function JoinLuciraCommunity() {
               />
             </div>
           </div>
-        )}
+          )}
+        />}
 
         {/* Desktop: Right Content is handled by the "Content Side" div above in the grid */}
       </div>

@@ -13,7 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
 import { isStoreActive } from "@/data/stores";
 import { storeByHandle, formatTimings, storeStatus } from "@/lib/storeContent";
@@ -49,7 +49,6 @@ function ServiceCard({ item }) {
  * campaign can override the carousel for a single render.
  */
 export default function StoreCollectionBanner({ collectionHandle, bannerImages = [], storePages = null }) {
-  const isMobile = useMediaQuery("(max-width: 1023px)");
   const store = storeByHandle(storePages, collectionHandle);
 
   // `isStoreActive` is the older site-wide kill switch in src/data/stores.js and
@@ -65,8 +64,7 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
   const links = store.links || {};
   const displayImages = bannerImages.length > 0 ? bannerImages : (store.images?.collection || []);
 
-  if (isMobile) {
-    return (
+  const mobileView = (
       <section className="w-full bg-[#FEF5F1] py-6.5 mt-0 overflow-hidden">
         <div className="container-main">
           <div className="flex flex-col gap-8">
@@ -178,11 +176,10 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
           </div>
         </div>
       </section>
-    );
-  }
+  );
 
   // DESKTOP VIEW
-  return (
+  const desktopView = (
     <section className="w-full bg-[#FEF5F1] py-14">
       <div className="container-main max-w-360">
         <div className="grid grid-cols-1 xl:gap-10 lg:gap-8 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)]">
@@ -316,4 +313,6 @@ export default function StoreCollectionBanner({ collectionHandle, bannerImages =
       </div>
     </section>
   );
+
+  return <Responsive maxMobilePx={1023} mobile={mobileView} desktop={desktopView} />;
 }

@@ -14,7 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import {
   Accordion,
   AccordionContent,
@@ -25,12 +25,10 @@ import { usePathname } from "next/navigation";
 
 export default function Footer() {
   const pathname = usePathname();
-  const isMobile = useMediaQuery("(max-width: 1024px)");
 
   if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/build-your-jewelry") || pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) return null;
 
-  if (isMobile) {
-    return (
+  const mobileView = (
       <footer className="w-full bg-primary text-white pt-10 pb-6">
         <div className="px-6 flex flex-col items-center">
           {/* LOGO & TAGLINE */}
@@ -232,10 +230,9 @@ export default function Footer() {
           </div>
         </div>
       </footer>
-    );
-  }
+  );
 
-  return (
+  const desktopView = (
 
     <footer className="w-full bg-primary text-white">
 
@@ -431,4 +428,6 @@ export default function Footer() {
       </div>
     </footer>
   );
+
+  return <Responsive maxMobilePx={1024} mobile={mobileView} desktop={desktopView} />;
 }
