@@ -45,8 +45,8 @@ export async function generateMetadata({ params }) {
   const collection = await getCollectionData(handle);
 
   if (handle === "jewellery-on-emi") {
-    const title = collection?.seo?.title || collection?.title || "Jewelry on EMI: 0-Cost EMI on Diamond Jewelry | Lucira";
-    const description = collection?.seo?.description || collection?.description?.slice(0, 160) || "Buy jewelry on EMI where eligible: 0-cost EMI on the diamond component, tenures of 3, 6, 9 and 12 months, ₹0 processing fee. Try the EMI calculator.";
+    const title = collection?.seo?.title || collection?.title || "Buy Diamond Jewellery on EMI Online";
+    const description = collection?.seo?.description || collection?.description?.slice(0, 160) || "Explore diamond jewellery on emi at Lucira. Discover thoughtful designs for everyday wear and special occasions, and find jewellery that reflects your.";
     return {
       title,
       description,
@@ -60,9 +60,57 @@ export async function generateMetadata({ params }) {
       },
     };
   }
-  if (handle === "jewelry" || handle === "all") {
-    const title = collection?.seo?.title || "Lab Grown Diamond Jewellery Collection: Rings to Pendants | Lucira";
-    const description = collection?.seo?.description || "Browse the full Lucira lab grown diamond jewellery collection: rings, earrings, bracelets, pendants and more. Pick a category and shop modern luxury.";
+  if (handle === "all") {
+    const title = collection?.seo?.title || "Buy Lab Grown Diamond Jewellery Online in India";
+    const description = collection?.seo?.description || "Discover lab grown diamond rings, earrings, necklaces and bracelets in one place. Browse modern designs and shop online at Lucira.";
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: collection?.image ? [collection.image.url] : [],
+      },
+      alternates: {
+        canonical: `/collections/${handle}`,
+      },
+    };
+  }
+  if (handle === "jewelry") {
+    const title = collection?.seo?.title || "Shop Lab Grown Diamond Jewellery Online";
+    const description = collection?.seo?.description || "Browse modern lab grown diamond jewellery for gifting and everyday wear. Explore rings, earrings, pendants and more at Lucira.";
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: collection?.image ? [collection.image.url] : [],
+      },
+      alternates: {
+        canonical: `/collections/${handle}`,
+      },
+    };
+  }
+  if (handle === "paschim-vihar") {
+    const title = collection?.seo?.title || "Jewellery Store in Paschim Vihar | Lucira";
+    const description = collection?.seo?.description || "Explore Lucira jewellery and discover rings, earrings and more. Check store information and available shopping services before visiting.";
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: collection?.image ? [collection.image.url] : [],
+      },
+      alternates: {
+        canonical: `/collections/${handle}`,
+      },
+    };
+  }
+  if (handle === "lab-grown-diamonds-in-mumbai") {
+    const title = collection?.seo?.title || "Buy Lab Grown Diamond Jewellery in Mumbai";
+    const description = collection?.seo?.description || "Explore lab grown diamonds in mumbai at Lucira. Discover thoughtful designs for everyday wear and special occasions, and find jewellery that reflects your.";
     return {
       title,
       description,
@@ -114,14 +162,26 @@ export default async function Page({ params }) {
   const { handle } = await params;
   const collection = await getCollectionData(handle);
 
-  if (!collection && handle !== "all" && handle !== "jewellery-on-emi") {
+  const VIRTUAL_HANDLES = new Set(["all", "jewellery-on-emi", "jewelry", "paschim-vihar", "lab-grown-diamonds-in-mumbai"]);
+  if (!collection && !VIRTUAL_HANDLES.has(handle)) {
     notFound();
   }
 
   const collectionSchema = collection ? getCollectionSchema(collection, collection.products?.nodes || []) : [];
+  const breadcrumbTitle = collection?.title || (
+    handle === "all"
+      ? "Lab Grown Diamond Jewellery"
+      : handle === "jewelry"
+        ? "Lab Grown Diamond Jewellery Online"
+        : handle === "paschim-vihar"
+          ? "Jewellery Store in Paschim Vihar"
+          : handle === "lab-grown-diamonds-in-mumbai"
+            ? "Lab Grown Diamonds In Mumbai"
+            : "All Products"
+  );
   const breadcrumbs = [
     { name: "Home", url: "/" },
-    { name: collection?.title || "All Products", url: `/collections/${handle}` }
+    { name: breadcrumbTitle, url: `/collections/${handle}` }
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
 
@@ -197,7 +257,7 @@ export default async function Page({ params }) {
   }
 
   // Check if collection is empty after fetching data
-  if (handle !== "jewellery-on-emi" && initialData?.collData && (!initialData.collData.products || initialData.collData.products.length === 0)) {
+  if (!VIRTUAL_HANDLES.has(handle) && initialData?.collData && (!initialData.collData.products || initialData.collData.products.length === 0)) {
     if (!initialData.collData.pageInfo?.hasNextPage) {
       notFound();
     }

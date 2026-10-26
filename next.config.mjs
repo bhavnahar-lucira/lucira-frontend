@@ -102,6 +102,11 @@ const nextConfig = {
         destination: '/admin/wishlist',
         permanent: true,
       },
+      {
+        source: '/collections/engagement-rings-above-rs-200k',
+        destination: '/collections/engagement-bridal-rings-above-200k',
+        permanent: true,
+      },
     ];
   },
   async headers() {
