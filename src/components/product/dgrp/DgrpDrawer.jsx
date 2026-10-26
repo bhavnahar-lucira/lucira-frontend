@@ -863,8 +863,8 @@ export default function DgrpDrawer({
             </div>
 
             {/* Delivery Method Tabs — matching checkout shipping page */}
-            <div className="space-y-1.5 pt-1">
-              <label className="text-[10.5px] sm:text-[11px] font-semibold uppercase tracking-wider text-zinc-800 font-figtree">
+            <div className="pt-1">
+              <label className="block mb-2 text-[10.5px] sm:text-[11px] font-semibold uppercase tracking-wider text-zinc-800 font-figtree">
                 DELIVERY METHOD
               </label>
 
