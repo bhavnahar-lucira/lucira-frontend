@@ -90,7 +90,10 @@ export function JoinLuciraCommunity() {
             </div>
 
             <div className="space-y-4">
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3">
+              {/* Zoho SalesIQ stamps a `siq_id` attribute on forms as soon as its
+                  script runs, which can be before React hydrates this form; the
+                  attribute is harmless, so don't report it as a mismatch. */}
+              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3" suppressHydrationWarning>
                 <Input
                   type="email"
                   value={email}

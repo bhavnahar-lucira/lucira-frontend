@@ -147,7 +147,7 @@ export default function InstaPopup({ isOpen, onClose, data, activeIndex }) {
         ))}
       </div>
 
-      <style jsx global>{`
+      <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
         }

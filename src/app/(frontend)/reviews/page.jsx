@@ -345,7 +345,7 @@ export default function ReviewsPage() {
         onClose={() => setIsWriteReviewOpen(false)}
       />
 
-      <style jsx global>{`
+      <style>{`
         .reviews-page-scrollbar .swiper-scrollbar-drag {
           background: #5a413f !important;
           height: 100% !important;

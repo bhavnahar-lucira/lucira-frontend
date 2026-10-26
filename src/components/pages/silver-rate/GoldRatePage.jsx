@@ -366,24 +366,7 @@
 //                 </section>
 //             )}
 
-//             <style jsx>{`
-//                 .perspective-2000 { perspective: 2000px; }
-//                 .preserve-3d { transform-style: preserve-3d; }
-//                 .backface-hidden { 
-//                   backface-visibility: hidden; 
-//                   -webkit-backface-visibility: hidden;
-//                   -webkit-transform-style: preserve-3d;
-//                 }
-//                 .rotate-x-180 { transform: rotateX(180deg); }
-//                 .font-abhaya { font-family: var(--font-abhaya), serif; }
-//                 .font-figtree { font-family: var(--font-figtree), sans-serif; }
-                
-//                 .gold-flip-back {
-//                   transform: rotateX(180deg) translateZ(2px);
-//                   backface-visibility: hidden;
-//                   -webkit-backface-visibility: hidden;
-//                 }
-//             `}</style>
+//             
 //         </div>
 //     );
 // }

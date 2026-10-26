@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const quotes = [
   "Jewelry is like the perfect spice - it always complements what’s already there.",
@@ -16,12 +16,13 @@ const quotes = [
 ];
 
 export default function Loading() {
-  const [quote, setQuote] = useState("");
-
-  useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * quotes.length);
-    setQuote(quotes[randomIndex]);
-  }, []);
+  // Picked during render, not in an effect: this component is now the
+  // server-rendered Suspense fallback, and React never hydrates a pending
+  // fallback (it swaps the streamed content in instead), so an effect here
+  // would never run and the quote would stay empty. The lazy initializer runs
+  // once per render pass, on the server for streamed pages and on the client
+  // for in-app navigations, so a quote is always present.
+  const [quote] = useState(() => quotes[Math.floor(Math.random() * quotes.length)]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-black p-6">

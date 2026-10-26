@@ -184,7 +184,7 @@ export default function CollectionSlider ({ products = [], loading = false, coll
           </div>
         </div>
       </div>  
-      <style jsx global>{`
+      <style>{`
         .swiper-pagination-tracker {
             position: relative !important;
             width: 100% !important;
