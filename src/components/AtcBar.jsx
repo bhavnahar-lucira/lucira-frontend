@@ -9,6 +9,7 @@ import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { pushPromoClick } from "@/lib/gtm";
 import { useUserPincode } from "@/hooks/useUserPincode";
+import { productPageUrl } from "@/lib/siteOrigin";
 
 // ─── Cart Icon SVG ─────────────────────────────────────────────────────────────
 function CartSvg() {
@@ -39,13 +40,9 @@ export default function AtcBar({
   const currentPincode = String(pincodeProp || hookPincode || "").replace(/\D/g, "").slice(0, 6);
   const hasPincode = currentPincode.length === 6;
 
-  const productUrl = React.useMemo(() => {
-    if (!product?.handle) return "";
-    const origin = typeof window !== "undefined" && window.location.origin
-      ? window.location.origin
-      : "https://www.lucirajewelry.com";
-    return `${origin}/products/${product.handle}`;
-  }, [product?.handle]);
+  // Fixed origin: a window-based one differs between server and client
+  // markup and breaks hydration (see lib/siteOrigin).
+  const productUrl = React.useMemo(() => productPageUrl(product?.handle), [product?.handle]);
 
   const storesNearbyWhatsAppUrl = React.useMemo(() => {
     const text = hasPincode
