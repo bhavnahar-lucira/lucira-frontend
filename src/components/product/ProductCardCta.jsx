@@ -19,6 +19,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Home, Video, Gem } from "lucide-react";
 import TryOnButton from "../common/TryOnButton";
 import { pushPromoClick, getNumericId } from "@/lib/gtm";
+import { productPageUrl } from "@/lib/siteOrigin";
 
 const WHATSAPP_NUMBER = "+917208934782";
 
@@ -84,13 +85,14 @@ export default function ProductCardCta({
           : "inner pages";
 
   const promoProduct = React.useMemo(() => {
-    const origin = typeof window !== "undefined" && window.location.origin ? window.location.origin : "https://www.lucirajewelry.com";
     return {
       product_id: String(getNumericId(product?.shopifyId || product?.id) || ""),
       product_name: product?.title || "",
       sku,
       variant_id: String(getNumericId(currentVariant?.id || currentVariant?.shopifyId) || ""),
-      product_url: product?.handle ? `${origin}/products/${product.handle}` : "",
+      // Fixed origin: a window-based one differs between server and client
+      // markup and breaks hydration (see lib/siteOrigin).
+      product_url: productPageUrl(product?.handle),
       product_image: image || "",
       price: Number(price || 0),
       offer_price: Number(comparePrice || price || 0),

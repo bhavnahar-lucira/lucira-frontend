@@ -338,6 +338,49 @@ export const NECKLACE_FILTER_COLUMNS = [
   { title: 'Shop By Price', type: 'text', items: NECKLACE_PRICE_ITEMS },
 ];
 
+// ---------------------------------------------------------------------------
+// More Jewelry > Bracelets (27 Oct 2026 sheet).
+//
+// The sheet lists the five CMS bracelets in one column and seven new styles
+// in a second one:
+//   Chain Bracelets   | Infinity Bracelet
+//   Cuff Bracelets    | Heart Bracelet
+//   Tennis Bracelets  | Butterfly Bracelet
+//   Men's Bracelet    | Evil Eye Bracelet
+//   Gold Bracelet     | Kids Bracelet
+//                     | Initials Bracelets
+//                     | Love Bracelet
+// The icons are the white-background product shots uploaded to Shopify Files
+// on 27 Oct 2026. The sheet wrote the handles in the singular (infinity-bracelet
+// etc.), but only the plural handles exist on the store (checked via the
+// Storefront API, 27 Oct 2026; initials-bracelets is plural on the sheet too),
+// so those are used. No Butterfly Bracelet icon was supplied, so it borrows the
+// Butterfly Pendants icon until one arrives.
+export const BRACELET_STYLE_EXTRAS = [
+  { label: 'Infinity Bracelet', href: '/collections/infinity-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_bracelet_icon_cafb063d-faa7-42b3-a0db-60ad30de912a.png?v=1793081897' },
+  { label: 'Heart Bracelet', href: '/collections/heart-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_bracelet_icon_998be630-454b-4f64-ab48-6fa74a0690a2.png?v=1793081901' },
+  { label: 'Butterfly Bracelet', href: '/collections/butterfly-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_pendant_icon_ee655fc2-f89d-4efb-b91c-fca07f90866a.png?v=1792219203' },
+  { label: 'Evil Eye Bracelet', href: '/collections/evil-eye-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_bracelet_icon_aeb0ca3d-3899-45bc-82e4-178b8248095d.png?v=1793081904' },
+  { label: 'Kids Bracelet', href: '/collections/kids-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Kids_bracelet_icon_4f4e4ee2-db30-4656-bdc5-d993b3dd8ac2.png?v=1793081908' },
+  { label: 'Initials Bracelets', href: '/collections/initials-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Initials_bracelet_icon_67b0f174-a2e9-4634-a66b-78b2ea9aa598.png?v=1793081911' },
+  { label: 'Love Bracelet', href: '/collections/love-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Love_bracelet_icon_e18971e1-7550-45b1-bbeb-5e4b4c19fb6f.png?v=1793081915' },
+];
+
+// Desktop only: the Bracelets column becomes a two-column grid that flows row
+// by row, so this is the row-major reading of the sheet's two columns. With
+// twelve items the grid is six rows, the same height as Plain Gold. (Initials
+// lands in the first column of the last row; row-major can't do 5 + 7.)
+// Mobile keeps the natural order (CMS items, then the new styles) in its own
+// three-column grid.
+export const BRACELET_DESKTOP_ORDER = [
+  'chain bracelets', 'infinity bracelet',
+  'cuff bracelets', 'heart bracelet',
+  'tennis bracelets', 'butterfly bracelet',
+  "men's bracelets", 'evil eye bracelet',
+  'gold bracelets', 'kids bracelet',
+  'initials bracelets', 'love bracelet',
+];
+
 export const MENU_EXTRAS = {
   // 15 Oct 2026 sheet:
   //   Engagement | Solitaire | Infinity Ring
@@ -404,6 +447,20 @@ export const MENU_EXTRAS = {
   necklaces: {
     style: NECKLACE_STYLE_EXTRAS,
   },
+  // 27 Oct 2026 sheet. `columns` appends to a column by its lowercase title:
+  // the Bracelets column of the desktop More Jewelry menu and of the mobile
+  // More Jewelry drawer. The mobile Bracelets tile (MobileHeader builds it
+  // from the same column as a "Shop by Style" drawer) picks the same seven up
+  // through the `bracelets` entry below.
+  'more jewelry': {
+    columns: { bracelets: BRACELET_STYLE_EXTRAS },
+  },
+  'more jewellery': {
+    columns: { bracelets: BRACELET_STYLE_EXTRAS },
+  },
+  bracelets: {
+    style: BRACELET_STYLE_EXTRAS,
+  },
 };
 
 const norm = (s) => (s || '').toLowerCase().trim();
@@ -441,6 +498,9 @@ export function withMenuExtras(menus) {
       }
       if ((title.includes('material') || title.includes('metal')) && extras.material) {
         return { ...col, items: appendMissing(col.items, extras.material) };
+      }
+      if (extras.columns?.[title]) {
+        return { ...col, items: appendMissing(col.items, extras.columns[title]) };
       }
       return col;
     });
@@ -559,4 +619,22 @@ export function withDesktopNecklaces(menus) {
   if (at === -1) at = list.findIndex(isMoreJewelry) - 1;
   const insertAt = at === -1 ? list.length : at + 1;
   return [...list.slice(0, insertAt), necklaces, ...list.slice(insertAt)];
+}
+
+// Desktop menu list, after withMenuExtras: the More Jewelry Bracelets column
+// (CMS items, Gold Bracelets from Plain Gold, and BRACELET_STYLE_EXTRAS) laid
+// out as a two-column grid in BRACELET_DESKTOP_ORDER. The Navbar treats any
+// column with `gridCols` as a grid, like Shop By Style.
+export function withDesktopBracelets(menus) {
+  return (menus || []).map((menu) => {
+    if (!isMoreJewelry(menu)) return menu;
+    return {
+      ...menu,
+      columns: (menu.columns || []).map((col) =>
+        norm(col.title) === 'bracelets'
+          ? { ...col, items: sortByOrder(col.items, BRACELET_DESKTOP_ORDER), gridCols: 2 }
+          : col
+      ),
+    };
+  });
 }

@@ -23,6 +23,48 @@ import {
 } from "@/components/ui/accordion";
 import { usePathname } from "next/navigation";
 
+const APP_BADGES = [
+  {
+    href: "https://play.google.com/store/apps/details?id=app.lucira.jewelry",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Type_White_BG.png?v=1793078695",
+    alt: "Get it on Google Play",
+  },
+  {
+    href: "https://apps.apple.com/in/app/lucira-jewelry/id6798963905",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_0bef0840-b1bd-4ca4-b5a6-333fb6461923.png?v=1793078694",
+    alt: "Download on the App Store",
+  },
+];
+
+// Store badges shown in the footer. Same next/image + shopifyLoader structure as the footer logo,
+// so the CDN serves width-based variants (?width=180 1x, ?width=360 2x) instead of Next's optimizer.
+function AppStoreBadges({ className = "", imgClassName = "", linkClassName = "shrink-0" }) {
+  return (
+    <div className={`flex items-center justify-center ${className}`}>
+      {APP_BADGES.map((badge) => (
+        <a
+          key={badge.href}
+          href={badge.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={badge.alt}
+          className={`inline-block ${linkClassName}`}
+        >
+          <Image
+            loader={shopifyLoader}
+            src={badge.src}
+            alt={badge.alt}
+            width={180}
+            height={52}
+            loading="lazy"
+            className={`h-auto ${imgClassName}`}
+          />
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export default function Footer() {
   const pathname = usePathname();
 
@@ -199,8 +241,15 @@ export default function Footer() {
             </Accordion>
           </div>
 
+          {/* APP STORE BADGES */}
+          <AppStoreBadges
+            className="w-full mt-6 flex-row gap-2"
+            linkClassName="flex-1 max-w-[180px]"
+            imgClassName="w-full"
+          />
+
           {/* FOLLOW US */}
-          <div className="w-full mt-10 mb-8 flex items-center gap-4">
+          <div className="w-full mt-6 mb-8 flex items-center justify-center gap-4">
             <span className="font-abhaya text-lg font-bold">Follow Us</span>
             <div className="flex items-center gap-5">
               <Link prefetch={false} href="https://www.facebook.com/lucirajewelry" target="_blank"><Facebook size={20} /></Link>
@@ -253,6 +302,7 @@ export default function Footer() {
             <p className="text-sm text-white/80">
               Love, Joy & Comfort.
             </p>
+            <AppStoreBadges className="mt-7 flex-col gap-2" imgClassName="w-[180px]" />
           </div>
 
           {/* RIGHT LINKS */}
