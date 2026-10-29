@@ -48,7 +48,7 @@ export default function AtcBar({
     const text = hasPincode
       ? `I'd like to visit a store near ${currentPincode} to explore ${product?.title || ""}`
       : `I would like to visit the store near me to know more about product: ${product?.title || ""}${productUrl ? ` ${productUrl}` : ""}`;
-    return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
+    return `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
   }, [hasPincode, currentPincode, product?.title, productUrl]);
 
   const handleStoresNearbyClick = (device) => {
@@ -221,7 +221,7 @@ export default function AtcBar({
                 <div className="hidden xl:flex items-center gap-2">
                   <Button asChild className="h-14 w-14 border border-accent text-accent rounded-sm flex items-center justify-center bg-white hover:bg-[#FFF5F5] transition-colors">
                     <a
-                      href={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                      href={`https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(
                         `Hi, I'd like to book a free home trial for ${product?.title || ""}${productUrl ? ` ${productUrl}` : ""}`
                       )}&type=phone_number&app_absent=0`}
                       target="_blank"
@@ -292,7 +292,7 @@ export default function AtcBar({
           <div className="lg:hidden pointer-events-auto bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] -mx-4 px-4 py-3 flex items-center gap-2 w-screen">
             {/* WhatsApp */}
             <a
-              href={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+              href={`https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(
                 `Hi, I'd like more details on the: ${product?.title || ""}${productUrl ? ` ${productUrl}` : ""}`
               )}&type=phone_number&app_absent=0`}
               target="_blank"
