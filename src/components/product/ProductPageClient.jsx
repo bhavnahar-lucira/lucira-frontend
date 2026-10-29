@@ -105,6 +105,7 @@ import { runWhenIdle } from "@/lib/idle";
 import { fetchSameCollectionProducts } from "@/lib/sameCollection";
 
 import { Lobster, Yellowtail, Satisfy, ABeeZee } from "next/font/google";
+import { productPageUrl as buildProductPageUrl } from "@/lib/siteOrigin";
 
 // Below-the-fold sections and closed-by-default sheets are code-split so the
 // above-the-fold PDP chunk stays small. They still server-render (next/dynamic
@@ -890,13 +891,9 @@ export default function ProductPageClient({
     return isPlain;
   }, [product]);
 
-  const productPageUrl = useMemo(() => {
-    if (!product?.handle) return "";
-    const origin = typeof window !== "undefined" && window.location.origin
-      ? window.location.origin
-      : "https://www.lucirajewelry.com";
-    return `${origin}/products/${product.handle}`;
-  }, [product?.handle]);
+  // Fixed origin: a window-based one differs between server and client
+  // markup and breaks hydration (see lib/siteOrigin).
+  const productPageUrl = useMemo(() => buildProductPageUrl(product?.handle), [product?.handle]);
 
   // Pincode & Dispatch Logic
   const globalPincode = useSelector(selectPincode);

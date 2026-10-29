@@ -154,7 +154,7 @@ export default function LoveStorySlider({
         </div>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         .${paginationElClass} {
           position: static !important;
           width: auto !important;

@@ -7,7 +7,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { withMenuExtras, withDesktopNecklaces, chunkQuickLinks } from "@/lib/menuTransform";
+import { withMenuExtras, withDesktopNecklaces, withDesktopBracelets, chunkQuickLinks } from "@/lib/menuTransform";
 import { pushPromoClick } from "@/lib/gtm";
 
 export default function Navbar({ hideTop, menuData }) {
@@ -17,7 +17,9 @@ export default function Navbar({ hideTop, menuData }) {
     // Necklaces column becomes its own Necklaces tab after Earrings.
     const menus = withDesktopNecklaces(Array.isArray(menuData) ? menuData : []);
     
-    return withMenuExtras(menus.map(menu => {
+    // withDesktopBracelets runs last so it sees the Bracelets column with the
+    // sheet's extras already appended by withMenuExtras.
+    return withDesktopBracelets(withMenuExtras(menus.map(menu => {
       const label = (menu.label || menu.title || '').toLowerCase();
       
       if (label.includes('more jewelry') || label.includes('more jewellery')) {
@@ -69,7 +71,7 @@ export default function Navbar({ hideTop, menuData }) {
       }
       
       return menu;
-    }));
+    })));
   }, [menuData]);
   const [activeMenu, setActiveMenu] = useState(null);
   const pathname = usePathname();
@@ -302,7 +304,8 @@ export default function Navbar({ hideTop, menuData }) {
                   menu.columns?.forEach(col => {
                     const title = col.title?.toLowerCase();
                     const isByStyle = title.includes("style");
-                    weights.push(isByStyle ? (col.gridCols === 3 ? 3.3 : 2.2) : 1); 
+                    const isGrid = isByStyle || !!col.gridCols;
+                    weights.push(isGrid ? (col.gridCols === 3 ? 3.3 : 2.2) : 1); 
                   });
 
                   for (let i = 0; i < cardCols; i++) {
@@ -432,7 +435,7 @@ export default function Navbar({ hideTop, menuData }) {
                         const title = col.title?.toLowerCase();
                         const isByStyle = title.includes("style");
                         const isByShape = title.includes("shape");
-                        const isGridCol = isByStyle; // Only Style is a grid column
+                        const isGridCol = isByStyle || !!col.gridCols; // Style, or any column given gridCols (More Jewelry > Bracelets)
 
                         return (
                           <div key={i} className={cn(isGridCol && "col-span-1")}>

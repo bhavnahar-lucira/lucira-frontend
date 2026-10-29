@@ -13,7 +13,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import { pushPromoClick } from "@/lib/gtm";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
 import { isStoreActive } from "@/data/stores";
@@ -41,7 +41,6 @@ function ServiceCard({ item }) {
  * On other surfaces (like PDP), it retains the tabbed details view.
  */
 export default function StoreLocatorSection({ locationId = "homepage", storePages = null, surface = "homepage" }) {
-  const isMobile = useMediaQuery("(max-width: 1023px)");
   const [activeIndex, setActiveIndex] = useState(0);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isDraggingState, setIsDraggingState] = useState(false);
@@ -424,7 +423,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
         />
 
         {/* Scoped and global styles for store section */}
-        <style jsx global>{`
+        <style>{`
           .no-scrollbar::-webkit-scrollbar {
             display: none !important;
           }
@@ -479,8 +478,7 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
   const image = activeStore.images?.homepage || "";
   const designs = designsLink(activeStore);
 
-  if (isMobile) {
-    return (
+  const mobileView = (
       <section className="w-full bg-[#FEF5F1] py-6.5 mt-10 overflow-hidden">
         <div className="container-main">
           <div className="text-center mb-2 px-1 md:px-0">
@@ -598,11 +596,10 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
           </div>
         </div>
       </section>
-    );
-  }
+  );
 
   // DESKTOP VIEW
-  return (
+  const desktopView = (
     <section className="w-full bg-[#FEF5F1] py-14 mt-15">
       <div className="container-main max-w-360">
         <div className="text-left mb-4">
@@ -724,4 +721,6 @@ export default function StoreLocatorSection({ locationId = "homepage", storePage
       </div>
     </section>
   );
+
+  return <Responsive maxMobilePx={1023} mobile={mobileView} desktop={desktopView} />;
 }

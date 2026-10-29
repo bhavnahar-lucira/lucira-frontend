@@ -89,7 +89,7 @@ export function ProductSlider({ title, subtitle, products = [], preservePriceOnC
           </div>
         </div>
       </div>
-      <style jsx global>{`
+      <style>{`
         .swiper-pagination-tracker {
             position: relative !important;
             width: 100% !important;

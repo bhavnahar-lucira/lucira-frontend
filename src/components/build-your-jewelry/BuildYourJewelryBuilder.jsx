@@ -986,7 +986,7 @@ export default function BuildYourJewelryBuilder({ initialType = 'bracelets' }) {
 
   return (
     <div className="build-your-jewelry-bracelets">
-      <style jsx global>{`
+      <style>{`
         @media (min-width: 861px) {
           html.byj-no-scroll, body.byj-no-scroll {
             height: 100vh !important;

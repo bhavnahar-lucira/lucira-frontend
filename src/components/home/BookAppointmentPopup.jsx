@@ -241,7 +241,7 @@ export default function BookAppointmentPopup({ isOpen, onClose }) {
       </DialogContent>
       
       {/* Remove browser default date/time icons to use our custom ones */}
-      <style jsx global>{`
+      <style>{`
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
           background: transparent;

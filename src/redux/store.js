@@ -60,4 +60,19 @@ export const store = configureStore({
     }),
 });
 
-export const persistor = persistStore(store);
+// manualPersist: rehydration from localStorage does NOT start at module load.
+// ReduxProvider calls persistor.persist() after React has hydrated, so the first
+// client render sees the same un-rehydrated store the server rendered with
+// (no hydration mismatch) and the persisted cart / user state lands a tick
+// later as an ordinary REHYDRATE update.
+export const persistor = persistStore(store, { manualPersist: true });
+
+// The state the server rendered with: reducer defaults, nothing persisted.
+// ReduxProvider hands it to react-redux as `serverState`, so that while React
+// is hydrating, every useSelector reads this snapshot instead of the live
+// store. React hydrates the root layout before the page's Suspense boundary,
+// and rehydration (started from the root layout's effect) can therefore land
+// before the header hydrates; without this snapshot a logged-in visitor's
+// header would render the avatar while the server HTML has the guest icon,
+// and React would throw the whole server-rendered tree away.
+export const serverState = store.getState();

@@ -14,7 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import {
   Accordion,
   AccordionContent,
@@ -22,15 +22,73 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { usePathname } from "next/navigation";
+import { pushPromoClick } from "@/lib/gtm";
+
+const APP_BADGES = [
+  {
+    href: "https://play.google.com/store/apps/details?id=app.lucira.jewelry",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Type_White_BG.png?v=1793078695",
+    alt: "Get it on Google Play",
+    creative: "google playstore footer",
+  },
+  {
+    href: "https://apps.apple.com/in/app/lucira-jewelry/id6798963905",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_0bef0840-b1bd-4ca4-b5a6-333fb6461923.png?v=1793078694",
+    alt: "Download on the App Store",
+    creative: "apple appstore footer",
+  },
+];
+
+// Store badges shown in the footer. Same next/image + shopifyLoader structure as the footer logo,
+// so the CDN serves width-based variants (?width=180 1x, ?width=360 2x) instead of Next's optimizer.
+// Each badge click pushes a `promoClick` dataLayer event (same shape as the
+// header link promos: creative_name + location_id, plus the store URL as
+// promo_id) so app downloads from the footer can be tracked in GTM / GA4.
+function AppStoreBadges({ className = "", imgClassName = "", linkClassName = "shrink-0" }) {
+  const pathname = usePathname() || "";
+  const locationId = pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages";
+
+  return (
+    <div className={`flex items-center justify-center ${className}`}>
+      {APP_BADGES.map((badge) => (
+        <a
+          key={badge.href}
+          href={badge.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={badge.alt}
+          className={`inline-block ${linkClassName}`}
+          onClick={() =>
+            pushPromoClick({
+              creative_name: badge.creative,
+              promo_id: badge.href,
+              promo_name: badge.alt,
+              promo_position: "Footer",
+              location_id: locationId,
+            })
+          }
+        >
+          <Image
+            loader={shopifyLoader}
+            src={badge.src}
+            alt={badge.alt}
+            width={180}
+            height={52}
+            loading="lazy"
+            className={`h-auto ${imgClassName}`}
+          />
+        </a>
+      ))}
+    </div>
+  );
+}
 
 export default function Footer() {
   const pathname = usePathname();
-  const isMobile = useMediaQuery("(max-width: 1024px)");
 
   if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/build-your-jewelry") || pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) return null;
 
-  if (isMobile) {
-    return (
+  const mobileView = (
       <footer className="w-full bg-primary text-white pt-10 pb-6">
         <div className="px-6 flex flex-col items-center">
           {/* LOGO & TAGLINE */}
@@ -201,8 +259,15 @@ export default function Footer() {
             </Accordion>
           </div>
 
+          {/* APP STORE BADGES */}
+          <AppStoreBadges
+            className="w-full mt-6 flex-row gap-2"
+            linkClassName="flex-1 max-w-[180px]"
+            imgClassName="w-full"
+          />
+
           {/* FOLLOW US */}
-          <div className="w-full mt-10 mb-8 flex items-center gap-4">
+          <div className="w-full mt-6 mb-8 flex items-center justify-center gap-4">
             <span className="font-abhaya text-lg font-bold">Follow Us</span>
             <div className="flex items-center gap-5">
               <Link prefetch={false} href="https://www.facebook.com/lucirajewelry" target="_blank"><Facebook size={20} /></Link>
@@ -232,10 +297,9 @@ export default function Footer() {
           </div>
         </div>
       </footer>
-    );
-  }
+  );
 
-  return (
+  const desktopView = (
 
     <footer className="w-full bg-primary text-white">
 
@@ -256,6 +320,7 @@ export default function Footer() {
             <p className="text-sm text-white/80">
               Love, Joy & Comfort.
             </p>
+            <AppStoreBadges className="mt-7 flex-col gap-2" imgClassName="w-[180px]" />
           </div>
 
           {/* RIGHT LINKS */}
@@ -431,4 +496,6 @@ export default function Footer() {
       </div>
     </footer>
   );
+
+  return <Responsive maxMobilePx={1024} mobile={mobileView} desktop={desktopView} />;
 }

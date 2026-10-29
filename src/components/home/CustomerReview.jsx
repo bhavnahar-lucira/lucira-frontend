@@ -8,20 +8,21 @@ import { Navigation, Pagination } from "swiper/modules";
 import { ChevronLeft, ChevronRight, Star, BadgeCheck, X } from "lucide-react";
 import ReviewDetailedPopup from "@/components/review/ReviewDetailedPopup";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import { Sheet } from "react-modal-sheet";
 
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-function ReviewCard({ item, onClick, isMobile }) {
+function ReviewCard({ item, onClick }) {
   return (
     <div 
         onClick={onClick}
-        className={`overflow-hidden ${isMobile ? "rounded-2xl shadow-md" : "rounded-sm"} border border-[#e6e1de] bg-white transition-all hover:border-black/10 h-full flex flex-col cursor-pointer group`}
+        className={`overflow-hidden rounded-2xl shadow-md min-[769px]:rounded-sm min-[769px]:shadow-none border border-[#e6e1de] bg-white transition-all hover:border-black/10 h-full flex flex-col cursor-pointer group`}
     >
       <div className="block">
-        <div className={`relative ${isMobile ? "aspect-4/4.5" : "aspect-[0.92/1]"} w-full bg-gray-50 overflow-hidden`}>
+        <div className="relative aspect-4/4.5 min-[769px]:aspect-[0.92/1] w-full bg-gray-50 overflow-hidden">
           <LazyImage
             src={item.personImage || "/images/review/1.jpg"}
             alt={item.personName}
@@ -46,7 +47,7 @@ function ReviewCard({ item, onClick, isMobile }) {
 
           <p className="mb-4 line-clamp-3 text-[13px] leading-relaxed text-zinc-600 min-h-15">
             “{item.review}”
-            {isMobile && item.review.length > 100 && <span className="text-zinc-900 font-bold ml-1 underline">Read more</span>}
+            {item.review.length > 100 && <span className="text-zinc-900 font-bold ml-1 underline min-[769px]:hidden">Read more</span>}
           </p>
         </div>
       </div>
@@ -183,7 +184,7 @@ export default function CustomerReview({
   return (
     <section className="w-full my-8 md:my-12 bg-white overflow-hidden">
       <div className="container-main">
-        <div className={`mb-8 ${isMobile ? "text-left" : "text-center md:text-left"}`}>
+        <div className="mb-8 text-left">
           <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
             {title}
           </h2>
@@ -193,8 +194,8 @@ export default function CustomerReview({
         <div className="relative">
           <Swiper
             modules={[Navigation, Pagination]}
-            spaceBetween={isMobile ? 12 : 20}
-            slidesPerView={isMobile ? 1.5 : 4.2}
+            spaceBetween={12}
+            slidesPerView={1.5}
             loop={false}
             onSwiper={(swiper) => {
               swiperRef.current = swiper;
@@ -208,10 +209,14 @@ export default function CustomerReview({
               el: `.${paginationElClass}`,
               clickable: true,
             }}
+            // Base values are the phone layout (1.5 cards, 12px); the breakpoints
+            // reproduce the previous desktop values from 769px, so the layout is
+            // chosen by width alone and the server-rendered markup never switches.
             breakpoints={{
               640: { slidesPerView: 2 },
-              1024: { slidesPerView: 3 },
-              1280: { slidesPerView: 4.2 },
+              769: { slidesPerView: 2, spaceBetween: 20 },
+              1024: { slidesPerView: 3, spaceBetween: 20 },
+              1280: { slidesPerView: 4.2, spaceBetween: 20 },
             }}
             className="w-full overflow-visible!"
           >
@@ -219,7 +224,6 @@ export default function CustomerReview({
               <SwiperSlide key={item.id} className="h-auto">
                 <ReviewCard 
                     item={item} 
-                    isMobile={isMobile}
                     onClick={() => setPopupState({ isOpen: true, index: idx })} 
                 />
               </SwiperSlide>
@@ -228,16 +232,20 @@ export default function CustomerReview({
 
           {/* Controls */}
           <div className="mt-8 md:mt-6 px-1 flex items-center justify-between">
-            {isMobile ? (
+            {<Responsive
+              maxMobilePx={768}
+              mobile={(
               <Link prefetch={false} 
                 href="/reviews"
                 className="font-black text-[10px] tracking-[0.2em] uppercase border-b border-zinc-900 pb-0.5 text-zinc-900"
               >
                 View All Reviews
               </Link>
-            ) : (
+              )}
+              desktop={(
               <div className={`${paginationElClass} flex gap-2`}></div>
-            )}
+              )}
+            />}
 
             <div className="flex items-center gap-3">
               <button
@@ -259,7 +267,9 @@ export default function CustomerReview({
           </div>
         </div>
 
-        {!isMobile && (
+        {<Responsive
+          maxMobilePx={768}
+          desktop={(
           <div className="mt-12 text-center">
               <Link prefetch={false} 
                   href="/reviews"
@@ -268,7 +278,8 @@ export default function CustomerReview({
                   View All Reviews
               </Link>
           </div>
-        )}
+          )}
+        />}
       </div>
 
       {isMobile ? (
@@ -287,7 +298,7 @@ export default function CustomerReview({
         />
       )}
 
-      <style jsx global>{`
+      <style>{`
         .${paginationElClass} .swiper-pagination-bullet {
           width: 8px;
           height: 8px;

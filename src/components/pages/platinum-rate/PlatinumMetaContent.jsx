@@ -390,7 +390,7 @@ export default function PlatinumMetaContent({
         />
       )}
 
-      <style jsx global>{`
+      <style>{`
         /* ── Minimal FAQ (gold-faq) — shared look with the gold rate pages ── */
         .gold-faq-title {
           font-family: var(--font-abhaya), serif;

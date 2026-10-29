@@ -960,7 +960,7 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
       )}
 
       {/* Embedded Animations and Custom Scrollbar Styling */}
-      <style jsx global>{`
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
