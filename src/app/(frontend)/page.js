@@ -33,6 +33,7 @@ import BestsellerSection from "@/components/home/homeCollection/BestsellerSectio
 import GemstoneSection from "@/components/home/homeCollection/GemstoneSection";
 import ExploreCollectionSection from "@/components/home/homeCollection/ExploreCollectionSection";
 import MobileCategorySlider from "@/components/home/MobileCategorySlider";
+import StoryBannerSection from "@/components/home/StoryBannerSection";
 import { getStorePages } from "@/lib/storeContent";
 
 export const metadata = {
@@ -66,16 +67,18 @@ export default async function Home() {
   let bannersInitial = [];
   let heroSettingsInitial = { videoSlideDelay: 8, imageSlideDelay: 6 };
   let exploreRangeInitial = null;
+  let storyBannersInitial = null;
 
   try {
     // Use force-cache so these fetches inherit the page-level revalidate=21600
-    const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes, bannersRes, exploreRangeRes] = await Promise.all([
+    const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes, bannersRes, exploreRangeRes, storyBannersRes] = await Promise.all([
       fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { cache: 'force-cache' }),
       fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { cache: 'force-cache' }),
       fetch(`${base}/api/products/filters?q=gemstone`, { cache: 'force-cache' }),
       fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { cache: 'force-cache' }),
       fetch(`${base}/api/settings/hero-banners`, { cache: 'force-cache' }),
-      fetch(`${base}/api/settings/explore-range`, { cache: 'force-cache' })
+      fetch(`${base}/api/settings/explore-range`, { cache: 'force-cache' }),
+      fetch(`${base}/api/settings/story-banners`, { cache: 'force-cache' })
     ]);
 
     if (bestsellersRes.ok) bestsellersInitial = await bestsellersRes.json();
@@ -94,6 +97,10 @@ export default async function Home() {
 
     if (exploreRangeRes && exploreRangeRes.ok) {
       exploreRangeInitial = await exploreRangeRes.json();
+    }
+
+    if (storyBannersRes && storyBannersRes.ok) {
+      storyBannersInitial = await storyBannersRes.json();
     }
 
     // Helper to strip heavy fields and save Vercel bandwidth
@@ -129,6 +136,8 @@ export default async function Home() {
       <AspirationalCollections />
 
       <BestsellerSection initialData={bestsellersInitial} />
+
+      <StoryBannerSection initialData={storyBannersInitial} />
 
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <StoreLocatorSection storePages={storePages} surface="homepage" />
