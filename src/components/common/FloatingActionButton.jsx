@@ -18,7 +18,7 @@ const STICKY_CTA_BAR_OFFSETS = {
 
 // Page-independent enquiry link: the only href the server can render, and what
 // the client renders too until hydration completes (see whatsAppHref below).
-const GENERIC_WHATSAPP_URL = `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent("Hi, I want to get more information about Lucira")}&type=phone_number&app_absent=0`;
+const GENERIC_WHATSAPP_URL = `https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent("Hi, I want to get more information about Lucira")}&type=phone_number&app_absent=0`;
 
 // false during server rendering and hydration, true once React has hydrated —
 // the hydration-safe way to branch on "are we in the browser yet".
@@ -98,16 +98,16 @@ export default function FloatingActionButton() {
       message = `Tell me more about ${getRateCity(ctx.slug, 'silver')} silver rate`;
     } else if (ctx.type === "schemes") {
       // Scheme enquiries go to a dedicated line, not the main store number.
-      return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}&type=phone_number&app_absent=0`;
+      return `https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}&type=phone_number&app_absent=0`;
     } else if (ctx.type === "old-gold-exchange") {
       // Old Gold Exchange enquiries share the same dedicated line.
-      return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}&type=phone_number&app_absent=0`;
+      return `https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}&type=phone_number&app_absent=0`;
     } else if (ctx.type === "store-locator") {
       // Store-locator enquiries also go to the dedicated line (default message).
-      return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+      return `https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
     }
 
-    return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+    return `https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
   };
 
   const whatsAppHref = hydrated ? getWhatsAppUrl() : GENERIC_WHATSAPP_URL;

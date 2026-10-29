@@ -3373,7 +3373,7 @@ export default function ProductPageClient({
                                 }
                               });
                               window.open(
-                                `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                                `https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent(
                                   `Hi, I'd like to book a store visit at your ${getStoreDisplayName(nearbyAvailableStore.name)} store for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
                                 )}&type=phone_number&app_absent=0`,
                                 "_blank"
@@ -3428,7 +3428,7 @@ export default function ProductPageClient({
                     description="Try your selected pieces from the comfort of your home. Available in all major cities"
                     action="BOOK HOME TRIAL"
                     img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Explore_TryAtHome.jpg"
-                    url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                    url={`https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent(
                       `Hi, I'd like to book a free home trial for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
                     )}&type=phone_number&app_absent=0`}
                     onClick={() => pushToDataLayer({
@@ -3456,7 +3456,7 @@ export default function ProductPageClient({
                   description="Explore and try your favorite designs virtually, with expert guidance from our in-store team."
                   action="BOOK APPOINTMENT"
                   img="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_5f7eef5f-e3ba-4088-8fc0-c2b42ce7624e.jpg"
-                  url={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                  url={`https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent(
                     `Hi, I'd like to schedule a video call for ${product?.title || ""}${productPageUrl ? ` ${productPageUrl}` : ""}`
                   )}&type=phone_number&app_absent=0`}
                   onClick={() => pushToDataLayer({
@@ -4283,7 +4283,7 @@ export default function ProductPageClient({
 
                         <div className="flex flex-1 gap-3 pt-2">
                           <a
-                            href={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                            href={`https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent(
                               `Hi, is the ${product?.title || ""} available to see at your ${store.displayName || getStoreDisplayName(store.name)} store?${productPageUrl ? ` ${productPageUrl}` : ""}`
                             )}&type=phone_number&app_absent=0`}
                             target="_blank"
@@ -4312,7 +4312,7 @@ export default function ProductPageClient({
                             </div>
                           </a>
                           <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                            <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
+                            <a href={`tel:${store.phone || "+917208934785"}`}>CALL STORE</a>
                           </Button>
                           <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                             <a
@@ -4392,7 +4392,7 @@ export default function ProductPageClient({
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Phone size={18} className="shrink-0 text-gray-400" />
-                          <p className="font-medium">{store.phone || "+91 7208934782"}</p>
+                          <p className="font-medium">{store.phone || "+91 7208934785"}</p>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
                           <Package size={18} className="shrink-0 text-gray-400" />
@@ -4410,7 +4410,7 @@ export default function ProductPageClient({
 
                       <div className="flex flex-1 gap-3 pt-2">
                         <a
-                          href={`https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(
+                          href={`https://api.whatsapp.com/send/?phone=+917208934785&text=${encodeURIComponent(
                             `Hi, is the ${product?.title || ""} available to see at your ${store.displayName || getStoreDisplayName(store.name)} store?${productPageUrl ? ` ${productPageUrl}` : ""}`
                           )}&type=phone_number&app_absent=0`}
                           target="_blank"
@@ -4439,7 +4439,7 @@ export default function ProductPageClient({
                           </div>
                         </a>
                         <Button variant="outline" className="flex-1 font-bold h-11 rounded-sm border-gray-200" asChild>
-                          <a href={`tel:${store.phone || "+917208934782"}`}>CALL STORE</a>
+                          <a href={`tel:${store.phone || "+917208934785"}`}>CALL STORE</a>
                         </Button>
                         <Button className="flex-1 font-bold h-11 rounded-sm bg-tertiary" asChild>
                           <a

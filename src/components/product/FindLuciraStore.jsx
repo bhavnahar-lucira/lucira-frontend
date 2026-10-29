@@ -241,12 +241,12 @@ export function FindLuciraStore({
                     : null) ||
                   (store.phone
                     ? (store.phone.startsWith("tel:") ? store.phone : `tel:${store.phone.replace(/\s+/g, "")}`)
-                    : "tel:+917208934782");
+                    : "tel:+917208934785");
 
                 const appointmentUrl =
                   storeConfig?.links?.appointment ||
                   storeConfig?.links?.whatsapp ||
-                  `https://wa.me/+917208934782?text=${encodeURIComponent(
+                  `https://wa.me/+917208934785?text=${encodeURIComponent(
                     `I'd like to book an appointment at ${displayName} for ${product?.title || "Lucira jewelry"}`
                   )}`;
 
