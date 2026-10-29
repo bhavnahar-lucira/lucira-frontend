@@ -144,7 +144,7 @@ export default function Footer() {
                     </div>
                     <div className="flex items-center gap-3">
                       <Phone size={18} className="text-white/70 shrink-0" />
-                      <a href="tel:+917208934782" className="text-sm">+91 72089 34784</a>
+                      <a href="tel:+917304464910" className="text-sm">+91 72089 34784</a>
                     </div>
                     <div className="flex items-center gap-3">
                       <Clock size={18} className="text-white/70 shrink-0" />
@@ -430,7 +430,7 @@ export default function Footer() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone size={16} className="shrink-0" />
-                    <a href="tel:+917208934782" target="_blank">+91 72089 34784</a>
+                    <a href="tel:+917304464910" target="_blank">+91 72089 34784</a>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="shrink-0" />

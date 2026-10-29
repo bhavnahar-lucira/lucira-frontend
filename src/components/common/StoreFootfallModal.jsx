@@ -82,7 +82,7 @@ function getBaseVisitableStores() {
         displayName: getCleanStoreName(s),
         city: s.city,
         address: s.address,
-        phone: s.phone || "+917208934782",
+        phone: s.phone || "+917304464910",
         mapLink: s.links?.map || "",
         lat: coords?.lat ?? null,
         lng: coords?.lng ?? null,
@@ -109,7 +109,7 @@ function mergeStoresWithApi(baseList, apiStores) {
       displayName: getCleanStoreName(apiStore),
       city: apiStore.city || (existingIdx !== -1 ? merged[existingIdx].city : ""),
       address: apiStore.address || (existingIdx !== -1 ? merged[existingIdx].address : ""),
-      phone: apiStore.phone || (existingIdx !== -1 ? merged[existingIdx].phone : "+917208934782"),
+      phone: apiStore.phone || (existingIdx !== -1 ? merged[existingIdx].phone : "+917304464910"),
       mapLink: apiStore.mapLink || (existingIdx !== -1 ? merged[existingIdx].mapLink : ""),
       lat: coords?.lat ?? (existingIdx !== -1 ? merged[existingIdx].lat : null),
       lng: coords?.lng ?? (existingIdx !== -1 ? merged[existingIdx].lng : null),
@@ -526,7 +526,7 @@ export default function StoreFootfallModal({
 
                       <div className="flex items-center gap-2 pt-0.5">
                         <a
-                          href={`https://wa.me/+917208934782?text=${encodeURIComponent(
+                          href={`https://wa.me/+917304464910?text=${encodeURIComponent(
                             `Hi, I would like to book an appointment at the ${selectedStoreObj.displayName} store.`
                           )}`}
                           target="_blank"
@@ -538,7 +538,7 @@ export default function StoreFootfallModal({
                           </div>
                         </a>
                         <a
-                          href={`tel:${selectedStoreObj.phone || "+917208934782"}`}
+                          href={`tel:${selectedStoreObj.phone || "+917304464910"}`}
                           className="h-9 flex-1 border border-gray-200 bg-white text-black font-figtree font-bold text-[11px] uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-colors"
                         >
                           <Phone size={12} />
@@ -632,7 +632,7 @@ export default function StoreFootfallModal({
 
                           <div className="flex items-center gap-2 pt-0.5">
                             <a
-                              href={`https://wa.me/+917208934782?text=${encodeURIComponent(waText)}`}
+                              href={`https://wa.me/+917304464910?text=${encodeURIComponent(waText)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="h-9 aspect-square bg-[#29a319] rounded-sm flex items-center justify-center shrink-0"
@@ -642,7 +642,7 @@ export default function StoreFootfallModal({
                               </div>
                             </a>
                             <a
-                              href={`tel:${store.phone || "+917208934782"}`}
+                              href={`tel:${store.phone || "+917304464910"}`}
                               className="h-9 flex-1 border border-gray-200 bg-white text-black font-figtree font-bold text-[11px] uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-colors"
                             >
                               <Phone size={12} />
