@@ -1631,9 +1631,19 @@ export default function CollectionPage({ params: paramsPromise, initialData, sto
     plpBanners.inpageBanners
   ]);
 
-  const displayTitle = isMobile
-    ? (handle === "all" ? "All Products" : handle.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "))
-    : (collection.title || (handle === "all" ? "All Products" : handle.replace(/-/g, " ")));
+  const displayTitle = collection.title || (
+    handle === "all"
+      ? "Lab Grown Diamond Jewellery"
+      : handle === "jewelry"
+        ? "Lab Grown Diamond Jewellery Online"
+        : handle === "paschim-vihar"
+          ? "Jewellery Store in Paschim Vihar"
+          : handle === "lab-grown-diamonds-in-mumbai"
+            ? "Lab Grown Diamonds In Mumbai"
+            : isMobile
+              ? handle.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+              : handle.replace(/-/g, " ")
+  );
 
   const countDisplay = useMemo(() => {
     const loaded = products.length;
