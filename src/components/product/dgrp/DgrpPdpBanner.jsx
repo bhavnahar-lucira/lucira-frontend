@@ -67,7 +67,7 @@ export default function DgrpPdpBanner({
             LOCK AND KEY OFFER
           </div>
           <div className="my-0.5 truncate font-figtree font-semibold text-[#3B2A25] text-xs sm:text-[15px] md:text-[1.05rem] leading-tight sm:leading-snug">
-            ₹{formatPrice(advanceAmount)} now + ₹{formatPrice(monthlyEmi)}/mo
+            {"\u20B9"}{formatPrice(advanceAmount)} now + {"\u20B9"}{formatPrice(monthlyEmi)}/mo{" \u00B7 "}{tenureMonths} months
           </div>
           <div className="truncate font-figtree text-[#6B5249] text-[10px] sm:text-xs">
             {isDiamond
