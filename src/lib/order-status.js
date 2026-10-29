@@ -117,6 +117,17 @@ export function getOrderMilestoneStatus(order, clickpostData = null) {
     return "Delivered";
   }
 
+  // Actual delivery / transit / dispatch milestones take precedence over calendar estimates
+  if (cpBucket === 4 || cpDesc.includes("outfordelivery") || normalizedStatus.includes("outfordelivery")) {
+    return "Out For Delivery";
+  }
+  if (cpBucket === 3 || cpDesc.includes("intransit") || cpDesc.includes("transit") || cpDesc.includes("reachedhub") || cpDesc.includes("departed") || normalizedStatus.includes("transit")) {
+    return "In Transit";
+  }
+  if (cpBucket === 2 || cpDesc.includes("pickedup") || cpDesc.includes("dispatched") || normalizedStatus.includes("dispatch") || normalizedStatus.includes("shipped") || normalizedStatus.includes("invoice") || normalizedStatus.includes("readytoinvoice") || normalizedStatus.includes("readytoship") || fStatus === "SHIPPED") {
+    return "Dispatch";
+  }
+
   const placedDate = order.processedAt || order.processed_at || order.date || Date.now();
   const placed = new Date(placedDate);
   const placedDay = new Date(placed.getFullYear(), placed.getMonth(), placed.getDate());
@@ -185,7 +196,7 @@ export function getOrderMilestoneStatus(order, clickpostData = null) {
   if (cpBucket === 3 || cpDesc.includes("intransit") || cpDesc.includes("transit") || cpDesc.includes("reachedhub") || cpDesc.includes("departed") || normalizedStatus.includes("transit")) {
     return "In Transit";
   }
-  if (cpBucket === 2 || cpDesc.includes("pickedup") || cpDesc.includes("dispatched") || normalizedStatus.includes("dispatch") || normalizedStatus.includes("shipped") || fStatus === "SHIPPED") {
+  if (cpBucket === 2 || cpDesc.includes("pickedup") || cpDesc.includes("dispatched") || normalizedStatus.includes("dispatch") || normalizedStatus.includes("shipped") || normalizedStatus.includes("invoice") || normalizedStatus.includes("readytoinvoice") || normalizedStatus.includes("readytoship") || fStatus === "SHIPPED") {
     return "Dispatch";
   }
 
