@@ -465,7 +465,10 @@ export default function SophisticatedMetalCalculator({ initialMetal = "gold", in
 
         {/* Calculator Header Row */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <h2 className="text-zinc-900 text-xl font-extrabold tracking-tight">Calculator</h2>
+          {/* Capitalised in JS, not CSS, so the server-rendered H2 text crawlers read is "Gold Rate Calculator" */}
+          <h2 className="text-zinc-900 text-xl font-extrabold tracking-tight">
+            {`${activeMetal.charAt(0).toUpperCase()}${activeMetal.slice(1)} Rate Calculator`}
+          </h2>
           {/* Mode Tabs */}
           <div className="flex bg-[#FAF3EC]/50 border border-[#F2E3C6] p-1 rounded-xl w-full md:w-fit">
             <button

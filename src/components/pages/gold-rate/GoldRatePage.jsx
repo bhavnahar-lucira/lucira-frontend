@@ -285,7 +285,7 @@ export default function GoldRatePage({ page }) {
 
             {/* Jump links, directly under the calculator. Ids are city-independent,
                 so #todays-rate is the same fragment on every city page. */}
-            <OnThisPage sections={tocSections} />
+            <OnThisPage sections={tocSections} title={`Gold Rate in ${cityNameDisplay} – Table of Contents`} />
 
             {/* Loop through all sections from template JSON in exact order */}
             <div className="sections-wrapper">

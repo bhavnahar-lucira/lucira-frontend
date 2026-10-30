@@ -290,7 +290,7 @@ export default function SilverRatePage({ page }) {
 
             {/* Jump links, directly under the calculator. Ids are city-independent,
                 so #silver-todays-rate is the same fragment on every city page. */}
-            <OnThisPage sections={tocSections} />
+            <OnThisPage sections={tocSections} title={`Silver Rate in ${cityNameDisplay} – Table of Contents`} />
 
             {/* Metaobject content first (same pattern as gold). Cities without a
                 linked silver_rate_city metaobject keep rendering the hardcoded

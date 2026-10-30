@@ -290,7 +290,7 @@ export default function PlatinumRatePage({ page }) {
 
             {/* Jump links, directly under the calculator. Ids are city-independent,
                 so #platinum-purity is the same fragment on every city page. */}
-            <OnThisPage sections={tocSections} />
+            <OnThisPage sections={tocSections} title={`Platinum Rate in ${cityNameDisplay} – Table of Contents`} />
 
             {/* Metaobject content first (same pattern as gold). Cities without a
                 linked platinum_rate_city metaobject keep rendering the hardcoded
