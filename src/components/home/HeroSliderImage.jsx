@@ -208,7 +208,14 @@ export default function HeroBanner({ initialData = [], surface = "homepage", set
 
                     <div className="relative text-center text-white max-w-3xl mx-auto pointer-events-auto">
                       {slide.title && (
-                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-abhaya text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] mb-1.5 sm:mb-2 leading-tight tracking-tight uppercase">
+                        <h2
+                          className="text-2xl sm:text-3xl lg:text-4xl font-semibold font-abhaya text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] mb-0 leading-tight tracking-tight capitalize"
+                          style={{
+                            textTransform: "capitalize",
+                            fontWeight: 600,
+                            marginBottom: 0,
+                          }}
+                        >
                           {slide.title}
                         </h2>
                       )}
