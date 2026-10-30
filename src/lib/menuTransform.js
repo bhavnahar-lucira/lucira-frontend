@@ -272,14 +272,14 @@ export const DESKTOP_MENU_LABEL_OVERRIDES = {
 // The first column comes from the CMS (More Jewelry > Necklaces, plus Gold
 // Necklaces from Plain Gold); the second is appended here. The pendant icons
 // are the white-background product shots uploaded to Shopify Files on
-// 17 Oct 2026 (same style as the CMS necklace icons). No Kids Pendants icon was
-// supplied, so it borrows the More Jewelry > Pendants icon until one arrives.
+// 17 Oct 2026 (same style as the CMS necklace icons); Kids Pendants got its own
+// icon on 30 Oct 2026.
 export const NECKLACE_STYLE_EXTRAS = [
   { label: 'Infinity Necklaces', href: '/collections/infinity-necklaces', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_pendant_icon_6dbb24c1-f58a-47fa-90c8-870c44b6cde8.png?v=1792219203' },
   { label: 'Heart Pendants', href: '/collections/heart-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_pendant_icon_ef395e2f-66b9-4e02-8e7d-57696bd1de50.png?v=1792219203' },
   { label: 'Butterfly Pendants', href: '/collections/butterfly-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_pendant_icon_ee655fc2-f89d-4efb-b91c-fca07f90866a.png?v=1792219203' },
   { label: 'Evil Eye Pendants', href: '/collections/evil-eye-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_pendant_icon_fdc9374c-ca2d-448e-9d05-f82caa5ef7c8.png?v=1792219203' },
-  { label: 'Kids Pendants', href: '/collections/kids-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pendants_More_Jewelry_F2.png?v=1777357190' },
+  { label: 'Kids Pendants', href: '/collections/kids-pendants', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/kid_s_pendant_icon_9172babb-728c-4fa2-a453-086f78957b96.png?v=1793353933' },
 ];
 
 export const NECKLACE_STYLE_ORDER = [
@@ -354,12 +354,11 @@ export const NECKLACE_FILTER_COLUMNS = [
 // on 27 Oct 2026. The sheet wrote the handles in the singular (infinity-bracelet
 // etc.), but only the plural handles exist on the store (checked via the
 // Storefront API, 27 Oct 2026; initials-bracelets is plural on the sheet too),
-// so those are used. No Butterfly Bracelet icon was supplied, so it borrows the
-// Butterfly Pendants icon until one arrives.
+// so those are used. Butterfly Bracelet got its own icon on 30 Oct 2026.
 export const BRACELET_STYLE_EXTRAS = [
   { label: 'Infinity Bracelet', href: '/collections/infinity-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Infinity_bracelet_icon_cafb063d-faa7-42b3-a0db-60ad30de912a.png?v=1793081897' },
   { label: 'Heart Bracelet', href: '/collections/heart-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Heart_bracelet_icon_998be630-454b-4f64-ab48-6fa74a0690a2.png?v=1793081901' },
-  { label: 'Butterfly Bracelet', href: '/collections/butterfly-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_pendant_icon_ee655fc2-f89d-4efb-b91c-fca07f90866a.png?v=1792219203' },
+  { label: 'Butterfly Bracelet', href: '/collections/butterfly-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Butterfly_bracelet_icon_39485312-81f5-4706-a0d5-56a2c6607701.png?v=1793353932' },
   { label: 'Evil Eye Bracelet', href: '/collections/evil-eye-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Evil_eye_bracelet_icon_aeb0ca3d-3899-45bc-82e4-178b8248095d.png?v=1793081904' },
   { label: 'Kids Bracelet', href: '/collections/kids-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Kids_bracelet_icon_4f4e4ee2-db30-4656-bdc5-d993b3dd8ac2.png?v=1793081908' },
   { label: 'Initials Bracelets', href: '/collections/initials-bracelets', menuIcon: 'https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Initials_bracelet_icon_67b0f174-a2e9-4634-a66b-78b2ea9aa598.png?v=1793081911' },
