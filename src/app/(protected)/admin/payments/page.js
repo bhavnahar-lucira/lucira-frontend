@@ -2,6 +2,7 @@
 
 import { CreditCard, Plus, ShieldCheck, Trash2, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
 
@@ -64,7 +65,7 @@ export default function PaymentMethodsPage() {
                         <div className="size-10 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center">
                           <CreditCard size={24} />
                         </div>
-                        <Image src={card.logo} alt={card.type} height={16} width={48} className="h-4 w-auto brightness-0 invert opacity-80" />
+                        <Image loader={shopifyLoader} src={card.logo} alt={card.type} height={16} width={48} className="h-4 w-auto brightness-0 invert opacity-80" />
                         </div>
                         <div>
                         <p className="text-sm font-black tracking-[0.2em] mb-1">{card.number}</p>

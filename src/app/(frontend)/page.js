@@ -33,10 +33,21 @@ import BestsellerSection from "@/components/home/homeCollection/BestsellerSectio
 import GemstoneSection from "@/components/home/homeCollection/GemstoneSection";
 import ExploreCollectionSection from "@/components/home/homeCollection/ExploreCollectionSection";
 import MobileCategorySlider from "@/components/home/MobileCategorySlider";
+import StoryBannerSection from "@/components/home/StoryBannerSection";
+import { getStorePages } from "@/lib/storeContent";
 
 export const metadata = {
+  title: "Lab Grown Diamond Jewellery Online in India | Lucira Jewelry",
+  description:
+    "Discover modern lab grown diamond rings, earrings, bracelets and mangalsutras at Lucira Jewelry. Shop online, or book a video call or store visit.",
   alternates: {
     canonical: "/",
+  },
+  openGraph: {
+    title: "Lab Grown Diamond Jewellery Online in India | Lucira Jewelry",
+    description:
+      "Discover modern lab grown diamond rings, earrings, bracelets and mangalsutras at Lucira Jewelry. Shop online, or book a video call or store visit.",
+    url: "/",
   },
 };
 
@@ -46,20 +57,28 @@ export default async function Home() {
     : "http://127.0.0.1:8080";
   const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
 
+  // Dashboard-managed store content for the "Visit Lucira Store Near You" section.
+  const storePages = await getStorePages();
+
   let bestsellersInitial = null;
   let gemstoneInitial = null;
   let gemstoneCategoriesInitial = null;
   let exploreInitial = null;
   let bannersInitial = [];
+  let heroSettingsInitial = { videoSlideDelay: 8, imageSlideDelay: 6 };
+  let exploreRangeInitial = null;
+  let storyBannersInitial = null;
 
   try {
     // Use force-cache so these fetches inherit the page-level revalidate=21600
-    const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes, bannersRes] = await Promise.all([
+    const [bestsellersRes, gemstoneRes, gemstoneCatRes, exploreRes, bannersRes, exploreRangeRes, storyBannersRes] = await Promise.all([
       fetch(`${base}/api/collection?handle=bestsellers&limit=15`, { cache: 'force-cache' }),
       fetch(`${base}/api/collection?handle=gemstone-jewelry&limit=15`, { cache: 'force-cache' }),
       fetch(`${base}/api/products/filters?q=gemstone`, { cache: 'force-cache' }),
       fetch(`${base}/api/collection?handle=sports-collection&limit=15`, { cache: 'force-cache' }),
-      fetch(`${base}/api/settings/hero-banners`, { cache: 'force-cache' })
+      fetch(`${base}/api/settings/hero-banners`, { cache: 'force-cache' }),
+      fetch(`${base}/api/settings/explore-range`, { cache: 'force-cache' }),
+      fetch(`${base}/api/settings/story-banners`, { cache: 'force-cache' })
     ]);
 
     if (bestsellersRes.ok) bestsellersInitial = await bestsellersRes.json();
@@ -70,6 +89,18 @@ export default async function Home() {
     if (bannersRes.ok) {
       const bData = await bannersRes.json();
       bannersInitial = bData.banners || [];
+      heroSettingsInitial = {
+        videoSlideDelay: bData.videoSlideDelay !== undefined ? Number(bData.videoSlideDelay) : 8,
+        imageSlideDelay: bData.imageSlideDelay !== undefined ? Number(bData.imageSlideDelay) : 6,
+      };
+    }
+
+    if (exploreRangeRes && exploreRangeRes.ok) {
+      exploreRangeInitial = await exploreRangeRes.json();
+    }
+
+    if (storyBannersRes && storyBannersRes.ok) {
+      storyBannersInitial = await storyBannersRes.json();
     }
 
     // Helper to strip heavy fields and save Vercel bandwidth
@@ -99,14 +130,22 @@ export default async function Home() {
   return (
     <div className="w-full">
       <MobileCategorySlider />
-      <HeroSliderImage initialData={bannersInitial} />
+      <HeroSliderImage initialData={bannersInitial} settings={heroSettingsInitial} />
       <FeatureBar />
-      <ExploreRange />
+      <ExploreRange initialData={exploreRangeInitial} />
       <AspirationalCollections />
 
       <BestsellerSection initialData={bestsellersInitial} />
 
-      <StoreLocatorSection />
+      <StoryBannerSection initialData={storyBannersInitial} />
+
+      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+        <StoreLocatorSection storePages={storePages} surface="homepage" />
+      </Suspense>
+
+      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
+        <CuratedLooks />
+      </Suspense>
 
       <DiamondCuts />
       {/* <ShopByCategory /> */}
@@ -119,6 +158,9 @@ export default async function Home() {
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <ShopByOccasion />
       </Suspense>
+
+      <GemstoneSection initialProducts={gemstoneInitial} initialCategories={gemstoneCategoriesInitial} />
+
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <BuildYourJewelry />
       </Suspense>
@@ -129,21 +171,12 @@ export default async function Home() {
         <WaysToExplore />
       </Suspense>
 
-      <GemstoneSection initialProducts={gemstoneInitial} initialCategories={gemstoneCategoriesInitial} />
-
       {/* For Everyone You Love - hidden on the homepage */}
       {/* <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <EveryoneYouLove />
       </Suspense> */}
 
       <ExploreCollectionSection initialData={exploreInitial} />
-
-      <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <CuratedLooks />
-      </Suspense>
-      {/* <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
-        <StoreLocatorSection />
-      </Suspense> */}
       <Suspense fallback={<div className="h-20 bg-gray-100 animate-pulse"></div>}>
         <CustomerReview />
       </Suspense>

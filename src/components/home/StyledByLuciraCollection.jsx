@@ -11,7 +11,7 @@ import { apiFetch } from "@/lib/api";
 import "swiper/css";
 import "swiper/css/navigation";
 
-export default function StyledByLuciraCollection({ collectionHandle }) {
+export default function StyledByLuciraCollection({ collectionHandle, videos = null }) {
   const [videoData, setVideoData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [popupState, setPopupState] = useState({ isOpen: false, index: 0 });
@@ -34,8 +34,17 @@ export default function StyledByLuciraCollection({ collectionHandle }) {
   };
 
   useEffect(() => {
+    // The PDP already holds the full dashboard list (same endpoint, no filter);
+    // filtering it here is equivalent to the backend's `?collection=` match and
+    // saves a second request. Other callers without `videos` still fetch.
+    if (Array.isArray(videos)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setVideoData(collectionHandle ? videos.filter((v) => v.collectionHandle === collectionHandle) : videos);
+      setLoading(false);
+      return;
+    }
     fetchVideos();
-  }, [collectionHandle]);
+  }, [collectionHandle, videos]);
 
   if (loading || videoData.length === 0) return null;
 

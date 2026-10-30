@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import {
   Mail,
   Phone,
+  Clock,
   Facebook,
   Instagram,
   Youtube,
@@ -12,7 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import {
   Accordion,
   AccordionContent,
@@ -20,20 +22,78 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { usePathname } from "next/navigation";
+import { pushPromoClick } from "@/lib/gtm";
+
+const APP_BADGES = [
+  {
+    href: "https://play.google.com/store/apps/details?id=app.lucira.jewelry",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Type_White_BG.png?v=1793078695",
+    alt: "Get it on Google Play",
+    creative: "google playstore footer",
+  },
+  {
+    href: "https://apps.apple.com/in/app/lucira-jewelry/id6798963905",
+    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_0bef0840-b1bd-4ca4-b5a6-333fb6461923.png?v=1793078694",
+    alt: "Download on the App Store",
+    creative: "apple appstore footer",
+  },
+];
+
+// Store badges shown in the footer. Same next/image + shopifyLoader structure as the footer logo,
+// so the CDN serves width-based variants (?width=180 1x, ?width=360 2x) instead of Next's optimizer.
+// Each badge click pushes a `promoClick` dataLayer event (same shape as the
+// header link promos: creative_name + location_id, plus the store URL as
+// promo_id) so app downloads from the footer can be tracked in GTM / GA4.
+function AppStoreBadges({ className = "", imgClassName = "", linkClassName = "shrink-0" }) {
+  const pathname = usePathname() || "";
+  const locationId = pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages";
+
+  return (
+    <div className={`flex items-center justify-center ${className}`}>
+      {APP_BADGES.map((badge) => (
+        <a
+          key={badge.href}
+          href={badge.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={badge.alt}
+          className={`inline-block ${linkClassName}`}
+          onClick={() =>
+            pushPromoClick({
+              creative_name: badge.creative,
+              promo_id: badge.href,
+              promo_name: badge.alt,
+              promo_position: "Footer",
+              location_id: locationId,
+            })
+          }
+        >
+          <Image
+            loader={shopifyLoader}
+            src={badge.src}
+            alt={badge.alt}
+            width={180}
+            height={52}
+            loading="lazy"
+            className={`h-auto ${imgClassName}`}
+          />
+        </a>
+      ))}
+    </div>
+  );
+}
 
 export default function Footer() {
   const pathname = usePathname();
-  const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/build-your-jewelry") || pathname?.includes("store-giveaway")) return null;
+  if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/build-your-jewelry") || pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) return null;
 
-  if (isMobile) {
-    return (
+  const mobileView = (
       <footer className="w-full bg-primary text-white pt-10 pb-6">
         <div className="px-6 flex flex-col items-center">
           {/* LOGO & TAGLINE */}
           <div className="mb-10 text-center">
-            <Image
+            <Image loader={shopifyLoader}
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/footer-logo.svg"
               alt="Lucira"
               width={50}
@@ -56,12 +116,39 @@ export default function Footer() {
                 <AccordionContent className="pb-6">
                   <div className="space-y-4 font-figtree">
                     <div className="flex items-center gap-3">
-                      <Mail size={18} className="text-white/70" />
+                      <Mail size={18} className="text-white/70 shrink-0" />
+                      <a href="mailto:sales@lucirajewelry.com" className="text-sm">sales@lucirajewelry.com</a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Phone size={18} className="text-white/70 shrink-0" />
+                      <a href="tel:+919004436052" className="text-sm">+91 9004436052</a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock size={18} className="text-white/70 shrink-0" />
+                      <span className="text-sm text-white">10 AM - 9 PM</span>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* CUSTOMER SERVICE */}
+              <AccordionItem value="customer-care" className="border-b border-white/10">
+                <AccordionTrigger className="py-5 font-abhaya text-lg font-bold hover:no-underline">
+                  Customer Service
+                </AccordionTrigger>
+                <AccordionContent className="pb-6">
+                  <div className="space-y-4 font-figtree">
+                    <div className="flex items-center gap-3">
+                      <Mail size={18} className="text-white/70 shrink-0" />
                       <a href="mailto:care@lucirajewelry.com" className="text-sm">care@lucirajewelry.com</a>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Phone size={18} className="text-white/70" />
-                      <a href="tel:+919004436052" className="text-sm">+91 9004436052</a>
+                      <Phone size={18} className="text-white/70 shrink-0" />
+                      <a href="tel:+917304464910" className="text-sm">+91 72089 34784</a>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Clock size={18} className="text-white/70 shrink-0" />
+                      <span className="text-sm text-white">10 AM - 7 PM</span>
                     </div>
                   </div>
                 </AccordionContent>
@@ -148,6 +235,7 @@ export default function Footer() {
                     <li><Link prefetch={false} href="/pages/old-gold-exchange">Old Gold Exchange</Link></li>
                     <li><Link prefetch={false} href="/pages/shipping-policy-1">Shipping Policy</Link></li>
                     <li><Link prefetch={false} href="/pages/privacy-policy">Privacy Policy</Link></li>
+                    <li><Link prefetch={false} href="/pages/offers">Offers</Link></li>
                     <li><Link prefetch={false} href="/pages/exclusive-promotions-page">Offers T&C</Link></li>
                     <li><Link prefetch={false} href="/pages/terms-condition">Terms & Conditions</Link></li>
                   </ul>
@@ -171,8 +259,15 @@ export default function Footer() {
             </Accordion>
           </div>
 
+          {/* APP STORE BADGES */}
+          <AppStoreBadges
+            className="w-full mt-6 flex-row gap-2"
+            linkClassName="flex-1 max-w-[180px]"
+            imgClassName="w-full"
+          />
+
           {/* FOLLOW US */}
-          <div className="w-full mt-10 mb-8 flex items-center gap-4">
+          <div className="w-full mt-6 mb-8 flex items-center justify-center gap-4">
             <span className="font-abhaya text-lg font-bold">Follow Us</span>
             <div className="flex items-center gap-5">
               <Link prefetch={false} href="https://www.facebook.com/lucirajewelry" target="_blank"><Facebook size={20} /></Link>
@@ -202,10 +297,9 @@ export default function Footer() {
           </div>
         </div>
       </footer>
-    );
-  }
+  );
 
-  return (
+  const desktopView = (
 
     <footer className="w-full bg-primary text-white">
 
@@ -215,7 +309,7 @@ export default function Footer() {
           {/* LEFT LOGO */}
           <div className="text-center">
             <div className="mb-4 opacity-75">
-              <Image
+              <Image loader={shopifyLoader}
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/footer-logo.svg"
                 alt="Lucira"
                 width={90}
@@ -226,6 +320,7 @@ export default function Footer() {
             <p className="text-sm text-white/80">
               Love, Joy & Comfort.
             </p>
+            <AppStoreBadges className="mt-7 flex-col gap-2" imgClassName="w-[180px]" />
           </div>
 
           {/* RIGHT LINKS */}
@@ -311,17 +406,40 @@ export default function Footer() {
 
               <div className="space-y-2.5 text-sm text-white font-figtree">
                 <div className="flex items-center gap-2">
-                  <Mail size={16} />
-                  <a href="mailto:care@lucirajewelry.com" target="_blank">care@lucirajewelry.com</a>
+                  <Mail size={16} className="shrink-0" />
+                  <a href="mailto:sales@lucirajewelry.com" target="_blank">sales@lucirajewelry.com</a>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Phone size={16} />
-                  <a href="tel:+91 9004436052" target="_blank">+91 9004436052</a>
+                  <Phone size={16} className="shrink-0" />
+                  <a href="tel:+919004436052" target="_blank">+91 9004436052</a>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="shrink-0" />
+                  <span>10 AM - 9 PM</span>
                 </div>
               </div>
 
-              <div className="mt-15">
+              <div className="mt-8">
+                <h4 className="mb-4 text-lg font-extrabold font-abhaya">Customer Service</h4>
+                <div className="space-y-2.5 text-sm text-white font-figtree">
+                  <div className="flex items-center gap-2">
+                    <Mail size={16} className="shrink-0" />
+                    <a href="mailto:care@lucirajewelry.com" target="_blank">care@lucirajewelry.com</a>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone size={16} className="shrink-0" />
+                    <a href="tel:+917304464910" target="_blank">+91 72089 34784</a>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="shrink-0" />
+                    <span>10 AM - 7 PM</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8">
                 <h5 className="mb-3 text-lg font-extrabold font-abhaya">
                   Experience Lucira
                 </h5>
@@ -378,4 +496,6 @@ export default function Footer() {
       </div>
     </footer>
   );
+
+  return <Responsive maxMobilePx={1024} mobile={mobileView} desktop={desktopView} />;
 }

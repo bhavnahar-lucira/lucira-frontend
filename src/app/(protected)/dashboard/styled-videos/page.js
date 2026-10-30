@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, Plus, Trash2, Save, MoveUp, MoveDown, Video, Package, X, Loader2 } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { apiFetch } from "@/lib/api";
 import "./dashboard.css";
 
@@ -293,7 +294,7 @@ export default function StyledVideosDashboard() {
                       {video.products?.map((product, pIndex) => (
                         <div key={`p-${vIndex}-${pIndex}`} className="bg-white dark:bg-zinc-900 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 flex gap-3 relative group/prod hover:shadow-md transition-shadow">
                           <div className="w-14 h-14 bg-zinc-50 dark:bg-zinc-950 rounded-lg overflow-hidden relative shrink-0 border border-zinc-100 dark:border-zinc-800">
-                            {product.image && <Image src={product.image} alt={product.title} fill className="object-cover" />}
+                            {product.image && <Image loader={shopifyLoader} src={product.image} alt={product.title} fill className="object-cover" />}
                           </div>
                           <div className="flex-1 min-w-0 py-0.5">
                             <h4 className="text-[11px] font-bold truncate pr-6 leading-tight">{product.title}</h4>
@@ -394,7 +395,7 @@ export default function StyledVideosDashboard() {
                       className="w-full flex items-center gap-5 p-4 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all text-left group/item border border-transparent hover:border-zinc-100 dark:hover:border-zinc-700"
                     >
                       <div className="w-16 h-16 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800 overflow-hidden relative shrink-0 group-hover/item:scale-105 transition-transform">
-                        {product.images?.[0]?.url && <Image src={product.images[0].url} alt={product.title} fill className="object-cover" />}
+                        {product.images?.[0]?.url && <Image loader={shopifyLoader} src={product.images[0].url} alt={product.title} fill className="object-cover" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm truncate group-hover/item:text-black dark:group-hover/item:text-white transition-colors">{product.title}</p>

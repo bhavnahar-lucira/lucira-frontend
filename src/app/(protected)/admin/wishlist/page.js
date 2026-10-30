@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Heart, ShoppingCart, Trash2, Star, ChevronRight, Video, Play, Copy, X, Loader2, ShieldCheck, Eye, ArrowRight, MapPin, Phone, Package, Coins, Check } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { getValidSrc } from "@/lib/utils";
@@ -27,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { fetchWishlist, removeWishlistItem } from "@/redux/features/wishlist/wishlistSlice";
 import { addToCart, openCart } from "@/redux/features/cart/cartSlice";
-import { getEstimatedDispatchDate } from "@/lib/utils";
+import { getEstimatedDispatchDate, getShippingDateValue } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 import { formatSizeLabel } from "@/lib/metal";
 
@@ -192,17 +193,13 @@ export default function WishlistPage() {
         gst: selectedVariant.price_breakup?.gst?.amount || 0,
         finalPrice: selectedVariant.price_breakup?.total || selectedVariant.price,
         diamondTotalPcs: selectedVariant.price_breakup?.diamond?.pcs || 0,
-         shippingDate: (() => {
-           const isInStock = Boolean(selectedVariant?.inStock);
-           const leadTime = parseInt(product?.productMetafields?.lead_time) || 12;
-           const totalDays = isInStock ? 2 : leadTime + 3;
-           const date = new Date();
-           date.setDate(date.getDate() + totalDays);
-           const d = String(date.getDate()).padStart(2, "0");
-           const m = String(date.getMonth() + 1).padStart(2, "0");
-           const y = date.getFullYear();
-           return `${d}/${m}/${y}`;
-         })(),
+         // Placeholder only — the payment page re-stamps this from the same
+         // dispatch config the storefront renders. The hardcoded "+2 days /
+         // lead+3" this replaced agreed with nothing the shopper ever saw.
+         shippingDate: getShippingDateValue(null, {
+           inStock: Boolean(selectedVariant?.inStock),
+           leadTime: product?.productMetafields?.lead_time,
+         }),
 
         hasVideo: Boolean(product.media?.some((m) => m.type === "VIDEO" || m.type === "EXTERNAL_VIDEO")),
         hasSimilar: Boolean(product.handle),
@@ -299,7 +296,7 @@ export default function WishlistPage() {
                 <div className="relative aspect-square w-full bg-[#fafafa] overflow-hidden rounded-2xl border border-zinc-100 transition-all duration-300 group-hover:shadow-md">
                   <Link prefetch={false} href={`/products/${item.productHandle || item.productId}${item.variantId ? `?variant=${item.variantId}` : ""}`} className="block w-full h-full mix-blend-multiply relative">
                     {item.image ? (
-                      <Image
+                      <Image loader={shopifyLoader}
                         src={getValidSrc(item.image)}
                         alt={item.title}
                         fill
@@ -446,7 +443,7 @@ export default function WishlistPage() {
                     <div key={item.shopifyId || item._id || item.id} className="space-y-4">
                       <Link prefetch={false} href={`/products/${item.handle}`} onClick={() => setShowSimilar(false)} className="block space-y-4 group">
                         <div className="aspect-square relative rounded-md bg-[#F9F9F9] overflow-hidden transition-all duration-300 group-hover:bg-[#f3f3f3]">
-                          <Image
+                          <Image loader={shopifyLoader}
                             src={getValidSrc(item.image)}
                             alt={item.title}
                             fill

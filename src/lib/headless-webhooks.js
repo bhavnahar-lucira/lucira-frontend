@@ -1,11 +1,12 @@
 import { getStoredUtms } from "./checkout-crm";
 import { apiFetch } from "./api";
+import { toE164 } from "@/lib/phone";
 
 const buildLeadDetails = (user, utms, eventType) => {
   const details = {
     First_Name: user.firstName || (user.name ? user.name.split(' ')[0] : "") || "Unknown",
     Last_Name: user.lastName || (user.name ? user.name.split(' ').slice(1).join(' ') : "") || "Unknown",
-    Mobile: user.mobile || user.phone || "",
+    Mobile: toE164(user.mobile || user.phone) || user.mobile || user.phone || "",
     Email: user.email || "",
     Lead_Source: "Website",
     Allocation_Type: "Auto",

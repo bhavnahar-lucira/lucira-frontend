@@ -74,6 +74,20 @@ export function toShopifyGid(id, type = "ProductVariant") {
   return `gid://shopify/${type}/${stringId}`;
 }
 
+/* ================= PRODUCT VARIANT PRICE (live PDP price fallback) ================= */
+
+export const VARIANT_PRICE_QUERY = `
+  query getVariantPrice($id: ID!) {
+    node(id: $id) {
+      ... on ProductVariant {
+        id
+        price { amount }
+        compareAtPrice { amount }
+      }
+    }
+  }
+`;
+
 /* ================= CART QUERIES & MUTATIONS ================= */
 
 export const CART_QUERY = `

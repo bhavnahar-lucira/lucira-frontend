@@ -11,6 +11,7 @@ import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 import { fetchOrnaverseCustomer, createOrnaverseCustomer } from "@/lib/api";
+import { toE164 } from "@/lib/phone";
 
 const PRESETS = [3000, 5000, 10000, 19000];
 const DEFAULT_AMOUNT = 10000;
@@ -254,7 +255,7 @@ const DesktpSavingCalculator = () => {
                     creative_name: "scheme page Continue cta",
                     location_id: "schemes page",
                     promo_id: String(amount),
-                    promo_name: get10DigitMobile(user?.mobile || user?.phone) || "",
+                    promo_name: toE164(user?.mobile || user?.phone) || "",
                   });
                 } catch (error) {
                   console.error("Error pushing to dataLayer:", error);
@@ -266,14 +267,14 @@ const DesktpSavingCalculator = () => {
                     const mobile10 = get10DigitMobile(user.mobile || user.phone);
                     if (mobile10) {
                       // Check if customer exists in Ornaverse
-                      const ornaData = await fetchOrnaverseCustomer(mobile10);
+                      const ornaData = await fetchOrnaverseCustomer({ mobile: mobile10, email: user.email });
                       const ornaProfile = ornaData?.Entities?.[0];
 
                       if (!ornaProfile?.party_id) {
                         // Create customer in Ornaverse in background
                         await createOrnaverseCustomer({
-                          first_name: user.first_name || "User",
-                          last_name: user.last_name || "Customer",
+                          first_name: user.first_name || mobile10 || "",
+                          last_name: user.last_name || "",
                           phone: mobile10,
                           email: user.email || `${mobile10}@lucira.internal`,
                         });

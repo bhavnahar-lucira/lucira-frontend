@@ -11,10 +11,10 @@ import {
 } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 import { trackAddToCart as trackSearchAddToCart } from "@/lib/searchAnalytics";
+import { isFreeGiftVariant, isFreeGiftProduct, isFreeGiftItem, setCachedFreeGiftTiers } from "@/lib/freeGifts";
 
 const DEFAULT_CONTEXT = process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront';
 
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 // Helper to get or create Shopify Cart ID
 const getCartId = () => {
@@ -88,7 +88,15 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         else if (shopifyColor.toLowerCase().includes("white")) fallbackColor = "White Gold";
       }
 
-      const isFreeGift = backendItem?.isFreeGift || false;
+      const isFreeGift = Boolean(
+        backendItem?.isFreeGift ||
+        shopifyProperties['_is_free_gift'] === 'true' ||
+        shopifyProperties['is_free_gift'] === 'true' ||
+        isFreeGiftVariant(variantId) ||
+        isFreeGiftProduct(node.merchandise.product?.id) ||
+        String(node.merchandise.title || '').toLowerCase().includes('free gift') ||
+        String(node.merchandise.product?.title || '').toLowerCase().startsWith('free ')
+      );
       const backendPrice = Number(backendItem?.finalPrice || backendItem?.price || 0);
       const shopifyPrice = Number(node.merchandise.price.amount);
       const finalUnitPrice = isFreeGift ? 0 : (backendPrice > 0 ? backendPrice : shopifyPrice);
@@ -106,8 +114,8 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         lineId: node.id,
         variantId,
         quantity: computedQuantity,
-        title: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gold Coin" : node.merchandise.product.title,
-        variantTitle: (isFreeGift && variantId === GOLDCOIN_VARIANT_ID) ? "Free Gift" : node.merchandise.title,
+        title: isFreeGift ? (backendItem?.title || `Free ${node.merchandise.product.title}`) : node.merchandise.product.title,
+        variantTitle: isFreeGift ? "Free Gift" : node.merchandise.title,
         handle: node.merchandise.product.handle,
         tags: node.merchandise.product.tags || [],
         sku: node.merchandise.sku,
@@ -122,6 +130,11 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         estDelivery: backendItem?.estDelivery || null,
         leadTime: backendItem?.leadTime || 12,
         availableSizes: backendItem?.availableSizes || [],
+        // Which dashboard rules' "Exclusions" cover this line. Tagged by the
+        // backend because the browser has no view of a product's collections
+        // — without it the cart keeps offering a discount the server will
+        // refuse. This object is a whitelist, so it has to be named here.
+        excludedFromRuleIds: backendItem?.excludedFromRuleIds || [],
 
         // Dynamic metal / diamond attributes from backend cart
         goldWeight: backendItem?.goldWeight || 0,
@@ -156,7 +169,7 @@ export const mapShopifyCart = (cart, backendCart = null) => {
         return false;
       }
       seenFreeGifts.add(item.variantId);
-      item.quantity = 1; // Force max 1 quantity for free gifts
+      item.quantity = Math.max(1, Number(item.quantity || 1));
     } else {
       // Basic deduplication for identical UI line items (if no custom properties)
       const propKeys = Object.keys(item.properties || {}).filter(k => !k.startsWith('_'));
@@ -236,7 +249,11 @@ export const mapShopifyCart = (cart, backendCart = null) => {
     items,
     totalQuantity,
     totalAmount,
-    duplicateLineIds
+    duplicateLineIds,
+    // Drawer-gated automatic product discounts currently eligible for this
+    // cart (lib/cartPricing.js:repriceItems on the backend) — the claim/
+    // unclaim buttons (FreeGiftReward's discount banner) read this.
+    activeDiscounts: backendCart?.activeDiscounts || [],
   };
 };
 
@@ -264,7 +281,13 @@ export const fetchCart = createAsyncThunk(
       });
 
     const shopifyPromise = cartId ? shopifyStorefrontFetch(CART_QUERY, { cartId }) : Promise.resolve(null);
-    let [data, backendCart] = await Promise.all([shopifyPromise, backendPromise]);
+    // Fetch gift tiers concurrently to prevent UI delay in FreeGiftReward
+    const settingsPromise = apiFetch("/api/settings/silver-bracelet", { suppressErrorLog: true }).catch(() => null);
+
+    let [data, backendCart, settingsData] = await Promise.all([shopifyPromise, backendPromise, settingsPromise]);
+    if (settingsData?.tiers) {
+      setCachedFreeGiftTiers(settingsData.tiers);
+    }
     
     // Heal stale cart if shopifyPromise returned nothing but we had a cartId
     if (cartId && !data?.cart) {
@@ -402,7 +425,28 @@ export const fetchCart = createAsyncThunk(
               }
             }
           }
-          return mappedState;
+
+          // 6. Aggressive cleanup of excess quantities in Shopify (e.g. Free Gifts > 1)
+          const linesToUpdate = [];
+          mappedState.items.forEach(mappedItem => {
+            const shopifyNode = updatedShopifyData.cart.lines.edges.find(e => e.node.id === mappedItem.lineId)?.node;
+            if (shopifyNode && shopifyNode.quantity > mappedItem.quantity) {
+              linesToUpdate.push({
+                id: mappedItem.lineId,
+                quantity: mappedItem.quantity
+              });
+            }
+          });
+          
+          if (linesToUpdate.length > 0) {
+            console.warn("[fetchCart] Reducing excess Shopify quantities:", linesToUpdate);
+            shopifyStorefrontFetch(CART_LINES_UPDATE_MUTATION, {
+              cartId: updatedShopifyData.cart.id,
+              lines: linesToUpdate
+            }).catch(err => console.error("Failed to reduce excess Shopify quantities", err));
+          }
+
+          return { ...mappedState, settingsData };
         }
       }
     }
@@ -431,7 +475,7 @@ export const fetchCart = createAsyncThunk(
       }
     }
     
-    return mappedState;
+    return { ...mappedState, settingsData };
   }
 );
 
@@ -500,6 +544,11 @@ export const addToCart = createAsyncThunk(
         key,
         value: String(value)
       })) : [];
+
+      if (p.isFreeGift) {
+        attributes.push({ key: "_is_free_gift", value: "true" });
+        attributes.push({ key: "is_free_gift", value: "true" });
+      }
 
       return {
         merchandiseId: toShopifyGid(rawId, "ProductVariant"),
@@ -844,9 +893,9 @@ export const updateCartItem = createAsyncThunk(
 );
 
 // Module-level, not Redux state — de-dupes concurrent mergeCart calls for the
-// same login. Five different components each call mergeCart on their own
-// successful login (LoginForm, RegisterForm, OtpSpinAuth, CheckoutAuthForm,
-// UnlockCoupon); if a single login event reaches more than one of these —
+// same login. Four different components each call mergeCart on their own
+// successful login (LoginForm, RegisterForm, OtpSpinAuth, CheckoutAuthForm);
+// if a single login event reaches more than one of these —
 // plausible around the checkout auth gate, which can render alongside the
 // global header — two concurrent merges can each read the guest cart before
 // the other's write lands, producing a duplicate line for whatever the guest
@@ -965,12 +1014,20 @@ const initialState = {
   items: [],
   totalQuantity: 0,
   totalAmount: 0,
+  // `appliedCoupons` is the source of truth — a cart can hold two offers at
+  // once when they cover different metals (see canCombineOffers).
+  // `appliedCoupon` is a denormalised "first one" for the many call sites
+  // that only ever need a single code to display; every reducer that writes
+  // one writes the other, so the two cannot drift.
+  appliedCoupons: [],
   appliedCoupon: null,
   nectorPoints: null, // { coin_value: 0, fiat_value: 0, points_label: "" }
   gyftrRedeem: null, // { amount: 0, mobile: "" }
   isCartOpen: false,
   loading: false,
   error: null,
+  giftTiersConfig: null,
+  activeDiscounts: [],
 };
 
 const cartSlice = createSlice({
@@ -981,6 +1038,7 @@ const cartSlice = createSlice({
       state.items = [];
       state.totalQuantity = 0;
       state.totalAmount = 0;
+      state.appliedCoupons = [];
       state.appliedCoupon = null;
       state.nectorPoints = null;
       state.gyftrRedeem = null;
@@ -992,10 +1050,16 @@ const cartSlice = createSlice({
         localStorage.removeItem("checkoutBillingAddressSelection");
       }
     },
+    setGiftTiersConfig: (state, action) => {
+      state.giftTiersConfig = action.payload;
+      if (action.payload?.tiers) {
+        setCachedFreeGiftTiers(action.payload.tiers);
+      }
+    },
     applyCoupon: (state, action) => {
       state.appliedCoupon = action.payload;
-      state.nectorPoints = null; // Enforce only one discount type
-      state.gyftrRedeem = null;
+      state.nectorPoints = null;
+      state.gyftrRedeem = null; // Enforce only one discount type
     },
     removeCoupon: (state) => {
       state.appliedCoupon = null;
@@ -1003,7 +1067,6 @@ const cartSlice = createSlice({
     applyPoints: (state, action) => {
       state.nectorPoints = action.payload;
       state.appliedCoupon = null; // Enforce only one discount type
-      state.gyftrRedeem = null;
     },
     removePoints: (state) => {
       state.nectorPoints = null;
@@ -1039,6 +1102,7 @@ const cartSlice = createSlice({
         state.items = [];
         state.totalQuantity = 0;
         state.totalAmount = 0;
+        state.appliedCoupons = [];
         state.appliedCoupon = null;
         state.nectorPoints = null;
         state.error = null;
@@ -1060,6 +1124,13 @@ const cartSlice = createSlice({
           state.items = action.payload.items || [];
           state.totalQuantity = action.payload.totalQuantity || 0;
           state.totalAmount = action.payload.totalAmount || 0;
+          state.activeDiscounts = action.payload.activeDiscounts || [];
+          if (action.payload?.settingsData) {
+            state.giftTiersConfig = action.payload.settingsData;
+            if (action.payload.settingsData.tiers) {
+              setCachedFreeGiftTiers(action.payload.settingsData.tiers);
+            }
+          }
         }
       })
       .addCase(fetchCart.rejected, (state, action) => {
@@ -1168,7 +1239,9 @@ const cartSlice = createSlice({
 
 export const { 
   clearCart, 
+  setGiftTiersConfig,
   applyCoupon, 
+  addCoupon,
   removeCoupon, 
   applyPoints,
   removePoints,

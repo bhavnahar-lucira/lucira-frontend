@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { StepHeader, Footer, PrimaryButton } from "./chrome";
 import { RingProductGlyph } from "./illustrations";
@@ -104,7 +105,7 @@ function ProductCarousel({ products, size }) {
             style={{ height: `${CAROUSEL_SIZE_PX}px`, width: `${CAROUSEL_SIZE_PX}px` }}
           >
             {product.image ? (
-              <Image
+              <Image loader={shopifyLoader}
                 src={product.image}
                 alt={product.alt || product.title}
                 width={CAROUSEL_SIZE_PX}
@@ -253,7 +254,7 @@ export function ResultStep({ result, products = [], onBack, onClose, onApply }) 
 
           <Link
             prefetch={false}
-            href="https://wa.me/919004435760?text=Hi,%20I%20want%20to%20book%20an%20appointment"
+            href="https://wa.me/+917304464910?text=Hi,%20I%20want%20to%20book%20an%20appointment"
             target="_blank"
             className="block"
             onClick={() =>

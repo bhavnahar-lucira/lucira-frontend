@@ -35,6 +35,53 @@ const SORT_OPTIONS = [
   { value: "az", label: "Alphabetically: A-Z" },
 ];
 
+const URL_PARAM_TO_GROUP = {
+  "filter.p.product_type": "Product Type",
+  "product_type": "Product Type",
+  "producttype": "Product Type",
+  "filter.v.m.custom.in_store_available": "In Store Available",
+  "in_store_available": "In Store Available",
+  "store": "In Store Available",
+  "filter.v.m.custom.metal_purity": "Metal Purity",
+  "metal_purity": "Metal Purity",
+  "filter.p.m.custom.material_type": "Material",
+  "material_type": "Material",
+  "material": "Material",
+  "filter.v.m.custom.diamond_1_shape": "Diamond Shape",
+  "diamond_1_shape": "Diamond Shape",
+  "diamond_shape": "Diamond Shape",
+  "filter.v.m.custom.gemstone_1_shape": "Gemstone Shape",
+  "gemstone_1_shape": "Gemstone Shape",
+  "gemstone_shape": "Gemstone Shape",
+  "filter.p.m.custom.carat_range": "Carat Range",
+  "carat_range": "Carat Range",
+  "filter.p.m.custom.shop_for": "Shop For",
+  "shop_for": "Shop For",
+  "filter.p.m.custom.weight": "Weight Ranges",
+  "weight": "Weight Ranges",
+  "filter.p.m.custom.finishing": "Finishing",
+  "finishing": "Finishing",
+  "filter.p.m.custom.fit": "Fit",
+  "fit": "Fit",
+  "filter.v.m.custom.ring_size": "Ring Size",
+  "ring_size": "Ring Size",
+};
+
+const GROUP_TO_URL_PARAMS = {
+  "Product Type": ["filter.p.product_type", "Product Type", "product_type", "productType"],
+  "In Store Available": ["filter.v.m.custom.in_store_available", "In Store Available", "in_store_available", "store"],
+  "Metal Purity": ["filter.v.m.custom.metal_purity", "Metal Purity", "metal_purity"],
+  "Material": ["filter.p.m.custom.material_type", "Material", "material_type"],
+  "Diamond Shape": ["filter.v.m.custom.diamond_1_shape", "Diamond Shape", "diamond_shape"],
+  "Gemstone Shape": ["filter.v.m.custom.gemstone_1_shape", "Gemstone Shape", "gemstone_shape"],
+  "Carat Range": ["filter.p.m.custom.carat_range", "Carat Range", "carat_range"],
+  "Shop For": ["filter.p.m.custom.shop_for", "Shop For", "shop_for"],
+  "Weight Ranges": ["filter.p.m.custom.weight", "Weight Ranges", "weight"],
+  "Finishing": ["filter.p.m.custom.finishing", "Finishing", "finishing"],
+  "Fit": ["filter.p.m.custom.fit", "Fit", "fit"],
+  "Ring Size": ["filter.v.m.custom.ring_size", "Ring Size", "ring_size"],
+};
+
 // Same caret the collection filters use — points up, rotated 180° when collapsed.
 const FilterChevron = ({ className = "" }) => (
   <svg
@@ -117,14 +164,19 @@ export default function SearchPage() {
     let detectedType = null;
     const lowerQ = query.toLowerCase();
     
-    if (/\bring(s)?\b/i.test(lowerQ)) detectedType = "Rings";
-    else if (/\bearring(s)?\b/i.test(lowerQ)) detectedType = "Earrings";
-    else if (/\bnecklace(s)?\b/i.test(lowerQ)) detectedType = "Necklaces";
-    else if (/\bbracelet(s)?\b/i.test(lowerQ)) detectedType = "Bracelets";
-    else if (/\bpendant(s)?\b/i.test(lowerQ)) detectedType = "Pendants";
-    else if (/\bbangle(s)?\b/i.test(lowerQ)) detectedType = "Bangles";
+    // 1. Compound terms first
+    if (/\bnosering(s)?|nose\s*pin(s)?|nose-pin(s)?\b/i.test(lowerQ)) detectedType = "Nosepins";
+    else if (/\bmangal\s*sutra\s+bracelet(s)?\b/i.test(lowerQ)) detectedType = "Bracelets";
+    else if (/\bmangal\s*sutra\s+ring(s)?\b/i.test(lowerQ)) detectedType = "Rings";
+    else if (/\bmangal\s*sutra\s+pendant(s)?\b/i.test(lowerQ)) detectedType = "Pendants";
     else if (/\bmangal\s*sutra(s)?\b/i.test(lowerQ)) detectedType = "Mangalsutra";
-    else if (/\bnosering(s)?|nose pin(s)?|nose-pin(s)?\b/i.test(lowerQ)) detectedType = "Nosepins";
+    // 2. Base category terms
+    else if (/\bbracelet(s)?\b/i.test(lowerQ)) detectedType = "Bracelets";
+    else if (/\bbangle(s)?\b/i.test(lowerQ)) detectedType = "Bangles";
+    else if (/\bearring(s)?|stud(s)?|jhumka(s)?|hoop(s)?\b/i.test(lowerQ)) detectedType = "Earrings";
+    else if (/\bnecklace(s)?|choker(s)?|haar\b/i.test(lowerQ)) detectedType = "Necklaces";
+    else if (/\bpendant(s)?|locket(s)?\b/i.test(lowerQ)) detectedType = "Pendants";
+    else if (/\bring(s)?|band(s)?\b/i.test(lowerQ)) detectedType = "Rings";
 
     if (detectedType) {
        const currentTypes = searchParams.getAll("filter.p.product_type");
@@ -290,44 +342,44 @@ export default function SearchPage() {
   const getActiveFiltersForShopify = useCallback((currentSearchParams, currentAvailableFilters) => {
     const filters = {};
     currentSearchParams.forEach((value, key) => {
-      if (key.startsWith("filter.")) {
-        if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
-          if (!filters["Price"]) filters["Price"] = [{ min: 0, max: 5000000 }];
-          if (key === "filter.v.price.gte") filters["Price"][0].min = parseFloat(value);
-          else filters["Price"][0].max = parseFloat(value);
-        } else if (key === "filter.p.product_type") {
-          if (!filters["Product Type"]) filters["Product Type"] = [];
-          filters["Product Type"].push({ label: value });
-        }
-      } else if (!["sort", "cursor", "limit", "q", "page"].includes(key)) {
-        let actualGroupKey = null;
+      if (key === "filter.v.price.gte" || key === "filter.v.price.lte") {
+        if (!filters["Price"]) filters["Price"] = [{ min: 0, max: 5000000 }];
+        if (key === "filter.v.price.gte") filters["Price"][0].min = parseFloat(value);
+        else filters["Price"][0].max = parseFloat(value);
+        return;
+      }
+      
+      if (["sort", "cursor", "limit", "q", "page"].includes(key)) return;
+
+      let actualGroupKey = URL_PARAM_TO_GROUP[key] || null;
+      if (!actualGroupKey) {
         Object.keys(currentAvailableFilters || {}).forEach((groupName) => {
           if (groupName.toLowerCase() === key.toLowerCase()) {
             actualGroupKey = groupName;
           }
         });
+      }
+      
+      if (actualGroupKey) {
+        if (!filters[actualGroupKey]) filters[actualGroupKey] = [];
         
-        if (actualGroupKey) {
-          if (!filters[actualGroupKey]) filters[actualGroupKey] = [];
-          
-          let optInput = null;
-          if (allSeenFilters.current[actualGroupKey] && allSeenFilters.current[actualGroupKey][value]) {
-            optInput = allSeenFilters.current[actualGroupKey][value];
-          } else if (currentAvailableFilters && currentAvailableFilters[actualGroupKey]) {
-            const foundOpt = currentAvailableFilters[actualGroupKey].find(o => (o.value === value || o.label === value));
-            if (foundOpt && foundOpt.input) {
-              optInput = foundOpt.input;
-            }
+        let optInput = null;
+        if (allSeenFilters.current[actualGroupKey] && allSeenFilters.current[actualGroupKey][value]) {
+          optInput = allSeenFilters.current[actualGroupKey][value];
+        } else if (currentAvailableFilters && currentAvailableFilters[actualGroupKey]) {
+          const foundOpt = currentAvailableFilters[actualGroupKey].find(o => (
+            String(o.value).toLowerCase() === String(value).toLowerCase() || 
+            String(o.label).toLowerCase() === String(value).toLowerCase()
+          ));
+          if (foundOpt && foundOpt.input) {
+            optInput = foundOpt.input;
           }
+        }
 
-          if (optInput) {
-            filters[actualGroupKey].push({ label: value, input: optInput });
-          } else {
-            filters[actualGroupKey].push({ label: value });
-          }
-        } else if (key.toLowerCase() === "producttype") {
-          if (!filters["Product Type"]) filters["Product Type"] = [];
-          filters["Product Type"].push({ label: value });
+        if (optInput) {
+          filters[actualGroupKey].push({ label: value, input: optInput });
+        } else {
+          filters[actualGroupKey].push({ label: value });
         }
       }
     });
@@ -461,6 +513,18 @@ export default function SearchPage() {
     return () => observer.disconnect();
   }, [pagination.hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const isOptionSelected = useCallback((groupKey, opt) => {
+    if (!opt) return false;
+    const optVal = String(opt.value ?? opt.label ?? "");
+    const optLbl = String(opt.label ?? optVal);
+    const aliases = GROUP_TO_URL_PARAMS[groupKey] || (opt.urlKey ? [opt.urlKey] : [groupKey]);
+    
+    return aliases.some(k => {
+      const vals = searchParams.getAll(k);
+      return vals.some(v => String(v).toLowerCase() === optVal.toLowerCase() || String(v).toLowerCase() === optLbl.toLowerCase());
+    });
+  }, [searchParams]);
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
     Object.entries(availableFilters).forEach(([groupKey, options]) => {
@@ -468,27 +532,42 @@ export default function SearchPage() {
         if (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) count++;
       } else if (Array.isArray(options)) {
         options.forEach((opt) => {
-          if (searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))) count++;
+          if (isOptionSelected(groupKey, opt)) count++;
         });
       }
     });
     return count;
-  }, [availableFilters, searchParams]);
+  }, [availableFilters, isOptionSelected, searchParams]);
 
-  const toggleFilter = (urlKey, value, groupKey, optLabel) => {
+  const toggleFilter = (groupKey, opt) => {
+    const optValue = String(opt?.value ?? opt?.label ?? opt);
+    const optLabel = String(opt?.label ?? optValue);
+    const aliases = GROUP_TO_URL_PARAMS[groupKey] || (opt?.urlKey ? [opt.urlKey] : [groupKey]);
+    const primaryUrlKey = groupKey === "Product Type" ? "filter.p.product_type" : (aliases[0] || groupKey);
+
     const params = new URLSearchParams(searchParams.toString());
-    const currentValues = params.getAll(urlKey);
-    if (currentValues.includes(value)) {
-      const remaining = currentValues.filter((v) => v !== value);
-      params.delete(urlKey);
-      remaining.forEach((v) => params.append(urlKey, v));
+    
+    let isCurrentlySelected = false;
+    aliases.forEach(k => {
+      const currentVals = params.getAll(k);
+      if (currentVals.some(v => String(v).toLowerCase() === optValue.toLowerCase() || String(v).toLowerCase() === optLabel.toLowerCase())) {
+        isCurrentlySelected = true;
+      }
+    });
+
+    if (isCurrentlySelected) {
+      aliases.forEach(k => {
+        const remaining = params.getAll(k).filter(v => String(v).toLowerCase() !== optValue.toLowerCase() && String(v).toLowerCase() !== optLabel.toLowerCase());
+        params.delete(k);
+        remaining.forEach(v => params.append(k, v));
+      });
     } else {
-      params.append(urlKey, value);
+      params.append(primaryUrlKey, optValue);
       pushPromoClick({
         creative_name: "Search Filters",
         location_id: pathname,
-        promo_id: urlKey,
-        promo_name: `${groupKey || urlKey}: ${optLabel || value}`,
+        promo_id: primaryUrlKey,
+        promo_name: `${groupKey}: ${optLabel}`,
       });
     }
     params.delete("cursor");
@@ -641,9 +720,9 @@ export default function SearchPage() {
                         {isExpanded && (
                           <div className="space-y-4 mt-2 mb-4 pb-5">
                             {Array.isArray(options) && options.map((opt) => {
-                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
+                              const isChecked = isOptionSelected(groupKey, opt);
                               return (
-                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(groupKey, opt)}>
                                   <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
                                     {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
                                   </span>
@@ -702,8 +781,8 @@ export default function SearchPage() {
                       </Badge>
                     )
                   ) : (
-                    Array.isArray(options) && options.filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))).map((opt) => (
-                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                    Array.isArray(options) && options.filter(opt => isOptionSelected(groupKey, opt)).map((opt) => (
+                      <Badge key={`${groupKey}-${opt.label}`} variant="secondary" className="bg-[#F4E9E3] text-black hover:bg-[#EADBD3] border border-[#5a413f] pl-3.5 pr-3 py-1.5 rounded-full flex items-center gap-2 cursor-pointer font-normal" onClick={() => toggleFilter(groupKey, opt)}>
                         <span className="font-figtree text-sm font-normal leading-[1.2]">{opt.label.split(" (")[0]}</span>
                         <XIcon className="size-3.5 text-[#696969]" />
                       </Badge>
@@ -843,7 +922,7 @@ export default function SearchPage() {
                   {Object.entries(availableFilters).map(([groupKey]) => {
                     let count = 0;
                     if (groupKey === "Price") { if (localPriceRange.min || localPriceRange.max) count = 1; }
-                    else { count = (availableFilters[groupKey] || []).filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))).length; }
+                    else { count = (availableFilters[groupKey] || []).filter(opt => isOptionSelected(groupKey, opt)).length; }
                     const isActive = activeMobileGroup === groupKey;
                     return (
                       <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left pl-5 pr-9 py-4 font-figtree text-[0.8125rem] tracking-normal relative leading-snug transition-colors ${isActive ? "bg-white text-[#5a413f] font-semibold" : "text-gray-500 font-medium active:bg-white/60"}`}>
@@ -878,9 +957,9 @@ export default function SearchPage() {
                         </div>
                       ) : (
                         availableFilters[activeMobileGroup].map((option) => {
-                          const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
+                          const isSelected = isOptionSelected(activeMobileGroup, option);
                           return (
-                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
+                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onClick={() => toggleFilter(activeMobileGroup, option)}>
                               <div className="flex items-center gap-3 min-w-0">
                                 {isSelected ? <div className="w-[19px] h-[19px] shrink-0 bg-[#5a413f] rounded-[5px] flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[19px] h-[19px] shrink-0 border border-gray-300 rounded-[5px] group-hover:border-[#5a413f] transition-colors" />}
                                 <span className={`font-figtree text-sm leading-snug truncate ${isSelected ? "text-[#5a413f] font-semibold" : "text-gray-600"}`}>{option.label}</span>

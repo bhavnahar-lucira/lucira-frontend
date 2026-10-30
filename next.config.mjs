@@ -104,8 +104,38 @@ const nextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: '/pages/jewellery-on-emi',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/pages/jewellery-on-emi/',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
+      {
+        source: '/api/track',
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080'}/api/track`,
+      },
+      {
+        source: '/api/track/:path*',
+        destination: `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080'}/api/track/:path*`,
+      },
       {
         source: '/feeds/products.xml',
         destination: '/api/feeds/products',

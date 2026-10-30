@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Lock, ArrowLeft } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -27,7 +28,7 @@ export default function CheckoutHeader() {
           {/* Left: Logo */}
           <div className="flex-1">
             <Link prefetch={false} href="/">
-              <Image
+              <Image loader={shopifyLoader}
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
                 alt="Lucira"
                 width={95}

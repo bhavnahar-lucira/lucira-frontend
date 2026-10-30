@@ -12,7 +12,7 @@ const SHOW_Y = 64;
 const HIDE_Y = 40;
 
 // Extra breathing room between the subheader and the section scrolled to
-const SCROLL_PADDING = 12;
+const SCROLL_PADDING = 28;
 
 // How long the scroll-spy stays quiet after a tab click, so the smooth scroll
 // passing over intermediate sections doesn't flicker the active state.
@@ -104,7 +104,9 @@ export default function PdpSubHeader({ sectionRefs }) {
     spySuppressedUntil.current = Date.now() + SPY_SUPPRESS_MS;
 
     const header = document.querySelector("header");
-    const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+    const headerBottom = header
+      ? (window.scrollY > 40 ? header.getBoundingClientRect().bottom : Math.max(56, header.offsetHeight - 40))
+      : 56;
     const offset = headerBottom + getBarHeight() + SCROLL_PADDING;
     const target = el.getBoundingClientRect().top + window.scrollY - offset;
 
@@ -114,6 +116,7 @@ export default function PdpSubHeader({ sectionRefs }) {
   return (
     <div
       ref={barRef}
+      id="pdp-sub-header"
       style={{ top: `${topOffset}px` }}
       className={cn(
         "lg:hidden fixed left-0 right-0 z-90 bg-white border-b border-gray-100",

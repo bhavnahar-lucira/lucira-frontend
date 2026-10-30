@@ -12,13 +12,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
 // Only used if SalesIQ has not loaded yet - same number and message shape the
 // floating action button and AtcBar already use, so the shopper still lands in
 // an existing thread rather than nowhere.
-const EXPERT_WHATSAPP_NUMBER = "919004435760";
+const EXPERT_WHATSAPP_NUMBER = "+917304464910";
 
 // The clipboard fallback field is looked up by id rather than held in a ref:
 // the action list is built during render, and a ref read reachable from it trips
@@ -130,9 +131,9 @@ export default function ShareIntentSheet({
     } else {
       // SalesIQ script has not finished loading - send them to the WhatsApp
       // expert thread rather than leaving the tap dead.
-      const message = `Hi, I want to get more information about this product: ${productTitle || ""}`;
+      const message = `Hi, I'd like more details on the: ${productTitle || ""}${shareUrl ? ` ${shareUrl}` : ""}`;
       window.open(
-        `https://wa.me/${EXPERT_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`,
+        `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`,
         "_blank",
         "noopener,noreferrer"
       );
@@ -140,7 +141,7 @@ export default function ShareIntentSheet({
 
     // Closed either way, so the chat window is not left behind this sheet.
     handleClose();
-  }, [onShare, productTitle, handleClose]);
+  }, [onShare, productTitle, shareUrl, handleClose]);
 
   const handleNativeShare = useCallback(async () => {
     onShare?.("native_share");
@@ -262,7 +263,7 @@ export default function ShareIntentSheet({
               {/* What they're about to send */}
               <div className="flex items-center gap-3 rounded-[10px] border border-[#EFE7E5] bg-[#FDFBFA] p-2.5">
                 {image ? (
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={image}
                     alt={productTitle || "Product"}
                     width={64}

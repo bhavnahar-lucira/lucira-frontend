@@ -3,14 +3,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Menu, Search, TrendingUp, LayoutGrid, Heart, ShoppingBag, Home, X, ChevronRight, ChevronLeft, User as UserIcon, LogOut, MessageCircle, Package, Video, Store, ChevronDown } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { clearCart, removeFromCart } from "@/redux/features/cart/cartSlice";
 import { restoreGuestWishlist } from "@/redux/features/wishlist/wishlistSlice";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
-import { useMenu } from "@/hooks/useMenu";
-import { MEGA_MENU as STATIC_MENU } from "@/data/megaMenu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { pushLogout, pushViewCart, getStandardCartItem, pushPromoClick } from "@/lib/gtm";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -35,7 +34,6 @@ const SEARCH_EASE = "transition-[width,background-color] duration-[450ms] ease-[
 const SEARCH_FADE = "transition-opacity duration-300";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 const CATEGORY_IMAGES = {
   "BEST SELLERS": "/images/menu/engagement-ring.jpg",
@@ -53,6 +51,11 @@ const CATEGORY_IMAGES = {
 };
 
 const MENU_SLIDER_BANNERS = [
+  {
+    href: "/pages/offers",
+    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/offer_-_mobile_-_828px_x_463px_jpg.jpg?v=1792047502",
+    alt: "Exclusive Offers"
+  },
   {
     href: "/collections/bestsellers",
     image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Best_Seller_V3.jpg_1.jpg?v=1776596789",
@@ -229,7 +232,7 @@ function MenuBannerSlider({ onBannerClick }) {
           className="shrink-0 snap-center rounded-xl overflow-hidden relative"
           style={{ width: 'calc(100% - 32px)', height: '165px' }}
         >
-          <Image
+          <Image loader={shopifyLoader}
             src={banner.image}
             alt={banner.alt}
             fill
@@ -360,7 +363,7 @@ const MOCK_CATEGORIES = [
   { title: "Solitaire Nosering", image: "/images/menu/more-jewellery.jpg", href: "/collections/solitaire-noserings" },
   { title: "Solitaire Mangalsutra", image: "/images/menu/engagement-ring.jpg", href: "/collections/solitaire-mangalsutras" },
 ];
-import { transformMenuData, withChunkyRings } from "@/lib/menus";
+import { withMenuExtras, NECKLACE_FILTER_COLUMNS } from "@/lib/menuTransform";
 
 export default function MobileHeader({ menuData }) {
   const router = useRouter();
@@ -481,24 +484,64 @@ export default function MobileHeader({ menuData }) {
   const MEGA_MENU = useMemo(() => {
     // Bestsellers is dropped from the mobile grid; New Arrivals / Bracelets /
     // Necklaces are not in the CMS menu yet, so they're appended here.
-    const menu = transformMenuData(menuData || [])
+    // menuData arrives already transformed by getHeaderMenu() on the server.
+    const menu = (Array.isArray(menuData) ? menuData : [])
       .filter(
         (item) => !((item.label || item.title || "").toLowerCase().includes("bestseller"))
       )
       .map((item) => {
         const label = (item.label || item.title || "").toLowerCase();
-        // Force the mobile-grid icon for Lucira Express (overrides CMS icon
+        // Force the mobile-grid icon for Lucira Express / Fast Shipping (overrides CMS icon
         // and the hardcoded fallback in renderMainMenu)
-        if (label.includes("lucira express")) {
+        if (label.includes("lucira express") || label.includes("fast shipping")) {
           return { ...item, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" };
+        }
+        // "View All" row at the top of these sub-drawers (exact match so
+        // Engagement & Bridal and Solitaires don't pick it up).
+        const trimmed = label.trim();
+        if (trimmed === "rings") {
+          return { ...item, viewAll: true, href: "/collections/rings" };
+        }
+        if (trimmed === "earrings") {
+          return { ...item, viewAll: true, href: item.href || "/collections/earrings" };
         }
         return item;
       });
 
+    // Mirror the desktop More Jewelry columns so the Bracelets / Necklaces
+    // tiles open a sub-drawer (like Rings) instead of linking straight to the
+    // collection: same items, icons, and hrefs as the desktop mega menu,
+    // including the Gold item borrowed from the PLAIN GOLD column.
+    const moreJewelry = menu.find((item) => {
+      const l = (item.label || item.title || "").toLowerCase();
+      return l.includes("more jewelry") || l.includes("more jewellery");
+    });
+    const buildStyleColumn = (colName, goldLabel) => {
+      const col = moreJewelry?.columns?.find(
+        (c) => (c.title || "").toLowerCase().trim() === colName
+      );
+      if (!col?.items?.length) return undefined;
+      let items = col.items.map((i) =>
+        i.label === "Chain Bracelets"
+          ? { ...i, menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chain_Bracelets.png?v=1787823937" }
+          : i
+      );
+      const plainGold = moreJewelry.columns.find((c) =>
+        (c.title || "").toLowerCase().includes("plain gold")
+      );
+      const gold = plainGold?.items?.find((i) => i.label === goldLabel);
+      if (gold && !items.some((i) => i.label === goldLabel)) {
+        items = [...items, gold];
+      }
+      return [{ title: "Shop by Style", type: "icon", items }];
+    };
+
     const extraItems = [
       { label: "New Arrivals", href: "/collections/new-arrivals", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/New_arrival_bracelet.png?v=1785159196" },
-      { label: "Bracelets", href: "/collections/bracelets", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_50.png?v=1785157008" },
-      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_52.png?v=1785159194" },
+      { label: "Bracelets", href: "/collections/bracelets", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_50.png?v=1785157008", columns: buildStyleColumn("bracelets", "Gold Bracelets"), viewAll: true },
+      // Necklaces gets the same Shape / Material / Price sections as the
+      // desktop Necklaces tab (shared definitions, 24 Oct 2026).
+      { label: "Necklaces", href: "/collections/necklaces", menuIcon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Untitled_design_52.png?v=1785159194", columns: [...(buildStyleColumn("necklaces", "Gold Necklaces") || []), ...NECKLACE_FILTER_COLUMNS], viewAll: true },
     ].filter(
       (extra) => !menu.some((item) => (item.label || item.title || "").toLowerCase().includes(extra.label.toLowerCase()))
     );
@@ -506,7 +549,7 @@ export default function MobileHeader({ menuData }) {
     const getOrderIndex = (label) => {
       const l = (label || "").toLowerCase().trim();
       if (l.includes("new arrival")) return 1;
-      if (l.includes("express")) return 2;
+      if (l.includes("express") || l.includes("fast shipping")) return 2;
       if (l.includes("engagement")) return 3;
       if (l.includes("solitaire")) return 4;
       if (l.includes("9kt")) return 12;
@@ -520,9 +563,9 @@ export default function MobileHeader({ menuData }) {
       return 99;
     };
 
-    // Same Chunky Rings entry the desktop mega menu appends, so the RINGS
-    // section matches across breakpoints.
-    return withChunkyRings(
+    // Same Rings / Earrings extras the desktop mega menu appends, so those
+    // sections match across breakpoints.
+    return withMenuExtras(
       [...menu, ...extraItems].sort(
         (a, b) => getOrderIndex(a.label || a.title) - getOrderIndex(b.label || b.title)
       )
@@ -537,7 +580,7 @@ export default function MobileHeader({ menuData }) {
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] &&
@@ -563,7 +606,7 @@ export default function MobileHeader({ menuData }) {
       const filteredItemsForGtm = items.filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.isFreeGift &&
           !isFreeGiftVariant(item.variantId) &&
           !item.properties?.['_byj_parent'] &&
           !item.properties?.[' _byj_parent'] &&
@@ -838,7 +881,7 @@ export default function MobileHeader({ menuData }) {
                             className="flex items-center gap-3 p-2 rounded-md active:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors"
                           >
                             <div className="w-16 h-16 relative rounded-md overflow-hidden shrink-0 bg-transparent">
-                              <Image
+                              <Image loader={shopifyLoader}
                                 src={item.image || "/images/product/1.jpg"}
                                 alt={item.title}
                                 fill
@@ -1099,14 +1142,40 @@ export default function MobileHeader({ menuData }) {
   const renderSubMenu = (activeItem) => {
     return (
       <div className="flex flex-col px-4 py-2">
+        {activeItem.viewAll && activeItem.href && (
+          <Link
+            href={activeItem.href}
+            prefetch={false}
+            onClick={() => setIsMenuOpen(false)}
+            className="mt-2 flex items-center justify-between bg-[#f8f8f8] rounded-xl px-4 py-3 active:bg-gray-200 transition-all border border-gray-50/50"
+          >
+            <span className="text-[13px] font-semibold font-figtree text-gray-900 leading-none">
+              View All {activeItem.label || activeItem.title}
+            </span>
+            <ChevronRight size={16} className="text-gray-500 shrink-0" />
+          </Link>
+        )}
         <Accordion type="multiple" className="w-full" defaultValue={activeItem.columns?.map((_, i) => `item-${i}`)}>
-          {activeItem.columns?.map((col, idx) => (
+          {activeItem.columns?.map((col, idx) => {
+            // transformMenuData types any column it can't read as "text" as an
+            // icon grid. When none of the items actually carry an icon — the
+            // Solitaires > Education blog links, for instance — that grid
+            // renders a row of empty 80x80 tiles, so fall back to the text
+            // layout. Same reasoning as the `featured` block below, which only
+            // draws its thumbnail when there is one.
+            const hasAnyIcon = (col.items || []).some(
+              (i) => i.menuIcon || i.megaMenuImage || i.icon
+            );
+            const colType =
+              col.type === "icon" && !hasAnyIcon ? "text" : col.type;
+
+            return (
             <AccordionItem key={idx} value={`item-${idx}`} className="border-none">
               <AccordionTrigger className="text-sm font-semibold capitalize font-figtree tracking-widest hover:no-underline py-4">
                 {col.title}
               </AccordionTrigger>
               <AccordionContent>
-                {(col.type === "icon" || col.type === "metal") && (
+                {(colType === "icon" || colType === "metal") && (
                   <div className="grid grid-cols-3 gap-y-6 gap-x-2 pt-2">
                     {col.items.map((item, i) => {
                       const titleLower = col.title.toLowerCase();
@@ -1122,10 +1191,16 @@ export default function MobileHeader({ menuData }) {
                             onClick={() => setIsMenuOpen(false)}
                             className="flex flex-col items-center gap-2"
                           >
-                            <div
-                              className="w-12 h-12 rounded-full border border-gray-100"
-                              style={{ background: METAL_COLORS[item.label] || "#eee" }}
-                            />
+                            {item.menuIcon ? (
+                              <div className="w-12 h-12 rounded-full border border-gray-100 overflow-hidden">
+                                <SafeImage src={item.menuIcon} alt={item.label} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div
+                                className="w-12 h-12 rounded-full border border-gray-100"
+                                style={{ background: METAL_COLORS[item.label] || "#eee" }}
+                              />
+                            )}
                             <span className="text-[13px] font-figtree text-center font-normal leading-tight">{item.label}</span>
                           </Link>
                         );
@@ -1160,7 +1235,7 @@ export default function MobileHeader({ menuData }) {
                     })}
                   </div>
                 )}
-                {col.type === "text" && (
+                {colType === "text" && (
                   <div className="grid grid-cols-2 gap-2 pt-2">
                     {col.items.map((item, i) => (
                       <Link
@@ -1177,7 +1252,8 @@ export default function MobileHeader({ menuData }) {
                 )}
               </AccordionContent>
             </AccordionItem>
-          ))}
+            );
+          })}
 
           {activeItem.featured && (Array.isArray(activeItem.featured) ? activeItem.featured.length > 0 : activeItem.featured.items?.length > 0) && (
             <>
@@ -1260,7 +1336,9 @@ export default function MobileHeader({ menuData }) {
   const renderCollectionsGrid = (activeItem) => {
     const items = activeItem.items || activeItem.cards || [];
     // Cotton Candy is desktopOnly here because on mobile it already has a card
-    // in the image grid above.
+    // in the image grid above. Mobile keeps every image card (including Hexa,
+    // which desktop drops) and renders the quick links as one flat list, in
+    // group order.
     const quickLinks = (activeItem.quickLinks || []).filter((q) => !q.desktopOnly);
     return (
       <div className="flex flex-col pb-8">
@@ -1276,7 +1354,7 @@ export default function MobileHeader({ menuData }) {
                 onClick={() => setIsMenuOpen(false)}
                 className="relative aspect-4/4 overflow-hidden rounded-lg group bg-zinc-100"
               >
-                <Image
+                <Image loader={shopifyLoader}
                   src={image}
                   alt={label}
                   fill
@@ -1303,12 +1381,12 @@ export default function MobileHeader({ menuData }) {
                 onClick={() => setIsMenuOpen(false)}
                 className="bg-[#f8f8f8] rounded-xl p-2 flex items-center gap-2 active:bg-gray-200 transition-all border border-gray-50/50"
               >
-                <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-lg">
-                  <Image
+                <span className="relative w-10 h-10 shrink-0 overflow-hidden rounded-full">
+                  <Image loader={shopifyLoader}
                     src={link.image}
                     alt={link.label}
                     fill
-                    className="object-contain p-0.5"
+                    className={link.fit === "cover" ? "object-cover" : "object-contain"}
                   />
                 </span>
                 <span className="text-[13px] font-medium text-zinc-900 leading-tight truncate">
@@ -1333,7 +1411,7 @@ export default function MobileHeader({ menuData }) {
           {MEGA_MENU.map((item, index) => {
             const label = item.label || item.title;
             const is9kt = label.toLowerCase().includes('9kt');
-            const isLuciraExpress = label.toLowerCase().includes('lucira express');
+            const isLuciraExpress = label.toLowerCase().includes('lucira express') || label.toLowerCase().includes('fast shipping');
             const icon = item.menuIcon ||
               (label.toUpperCase() === "GIFTING" ? CATEGORY_IMAGES["GIFTING"] :
                 (isLuciraExpress ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Fast_Shipping_Icon_a59cbbf2-0962-4b25-b9f3-c0237705eb35.png?v=1785157622" : null));
@@ -1355,7 +1433,7 @@ export default function MobileHeader({ menuData }) {
                   isLuciraExpress ? "w-10 h-10" : "w-11 h-11"
                 )}>
                   {icon && (
-                    <Image
+                    <Image loader={shopifyLoader}
                       src={icon}
                       alt={label}
                       fill
@@ -1421,7 +1499,7 @@ export default function MobileHeader({ menuData }) {
           </div>
 
           <div className="px-4 space-y-1">
-            <a href="https://api.whatsapp.com/send/?phone=%2B919004435760&text=I+want+to+know+more+about+Lucira+Jewelry" target="_blank" className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
+            <a href="https://api.whatsapp.com/send/?phone=%2B917304464910&text=I+want+to+know+more+about+Lucira+Jewelry" target="_blank" className="flex items-center justify-between p-4 border border-gray-100 rounded-lg group active:bg-gray-50 bg-[#FBF7F2]">
               <div className="flex items-center gap-4">
                 <div className="flex items-center justify-center">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1452,6 +1530,32 @@ export default function MobileHeader({ menuData }) {
               </div>
               <ChevronRight size={18} className="text-black" />
             </a>
+
+            <Link
+              href="/pages/offers"
+              prefetch={false}
+              onClick={() => {
+                pushPromoClick({
+                  creative_name: "offers mobile menu card",
+                  location_id: pathname === "/" ? "homepage" : pathname.startsWith("/products/") ? "pdp" : pathname.startsWith("/collections/") ? "plp" : "inner pages",
+                  promo_id: "pages_offers",
+                  promo_name: "Mobile Menu % Offers",
+                });
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center justify-between p-4 border border-[#B77767]/40 rounded-lg group active:bg-[#FFECE4] bg-[#FFEFE9]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#B77767] text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                  %
+                </div>
+                <div>
+                  <h4 className="block mb-1 font-figtree font-semibold text-sm leading-none align-middle text-[#5A413F]">Exclusive Offers</h4>
+                  <p className="mt-2 font-figtree font-normal text-[12px] leading-[1.4] align-middle text-[#5A413F]/80">Save on making charges, diamond coins & limited-time collections.</p>
+                </div>
+              </div>
+              <ChevronRight size={18} className="text-[#5A413F]" />
+            </Link>
 
             <Link
               href="/schemes"
@@ -1594,7 +1698,7 @@ export default function MobileHeader({ menuData }) {
                       </>
                     ) : (
                       <SheetTitle className="flex items-center">
-                        <Image
+                        <Image loader={shopifyLoader}
                           src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
                           alt="Lucira Jewelry"
                           width={100}
@@ -1694,7 +1798,7 @@ export default function MobileHeader({ menuData }) {
               // whose site this is — is already done by the time the shopper is
               // deep enough to need a header, and the 56px it gives back is what
               // lets the pincode readout sit in this row at all.
-              <Image
+              <Image loader={shopifyLoader}
                 src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/lucira-logo-small.png?v=1782455718"
                 alt="Lucira Jewelry"
                 width={24}

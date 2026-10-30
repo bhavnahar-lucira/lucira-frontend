@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Phone, Mail, MapPin, ArrowRight } from "lucide-react";
 import { toast } from "react-toastify";
 import { setCookie } from "@/lib/utils";
@@ -105,7 +106,7 @@ export default function ContactSection() {
 
     setCookie("contactFormData", formData, 30);
     const waMessage = `Hi Lucira, I'd like to get in touch.\nName: ${formData.name}\nEmail: ${formData.email}\nPhone: ${formData.phone}\nMessage: ${formData.message || "No message provided"}`;
-    const whatsappUrl = `https://api.whatsapp.com/send?phone=+919004435760&text=${encodeURIComponent(waMessage)}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=+917304464910&text=${encodeURIComponent(waMessage)}`;
 
     window.open(whatsappUrl, "_blank");
     setSubmitted(true);
@@ -153,7 +154,7 @@ export default function ContactSection() {
                 {/* IMAGE - Reversible pattern */}
                 <div className={`relative aspect-[16/9] md:aspect-[4/3] overflow-hidden ${index % 2 === 1 ? "lg:order-2" : ""}`}>
                 <div className={`${store.isHeadOffice ? "rounded-none" : "rounded-[4px] shadow-sm"} w-full h-full overflow-hidden bg-zinc-50`}>
-                    <Image
+                    <Image loader={shopifyLoader}
                         src={store.image}
                         alt={store.name}
                         fill

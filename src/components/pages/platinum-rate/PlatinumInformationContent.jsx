@@ -127,10 +127,6 @@ export default function PlatinumInformationContent({ cityName, stateName, sectio
           })}
         </div>
       </div>
-      <style jsx>{`
-        .font-abhaya { font-family: var(--font-abhaya), serif; }
-        .font-figtree { font-family: var(--font-figtree), sans-serif; }
-      `}</style>
     </section>
   );
 }

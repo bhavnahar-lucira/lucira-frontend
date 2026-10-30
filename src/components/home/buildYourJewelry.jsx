@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { pushPromoClick } from "@/lib/gtm";
 
 export default function BuildYourJewelry() {
@@ -18,7 +19,7 @@ export default function BuildYourJewelry() {
             <Link href="/build-your-jewelry" onClick={handleBannerClick} className="block w-full">
                 {/* Desktop Banner */}
                 <div className="hidden md:block w-full">
-                    <Image
+                    <Image loader={shopifyLoader}
                         src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Build_Your_Jewelry_Desktop_Upscale_jpg.jpg?v=1783416047"
                         alt="Build Your Jewelry"
                         width={1920}
@@ -29,7 +30,7 @@ export default function BuildYourJewelry() {
                 </div>
                 {/* Mobile Banner */}
                 <div className="block md:hidden w-full">
-                    <Image
+                    <Image loader={shopifyLoader}
                         src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Build_Your_Jewelry_Mobile_Upscale_jpg.jpg?v=1783416048"
                         alt="Build Your Jewelry"
                         width={768}

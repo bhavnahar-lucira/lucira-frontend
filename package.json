@@ -20,6 +20,7 @@
     "konva": "^10.3.0",
     "lucide-react": "^0.575.0",
     "mongodb": "^7.1.1",
+    "motion": "^13.3.0",
     "next": "16.1.6",
     "qrcode.react": "^4.2.0",
     "radix-ui": "^1.4.3",

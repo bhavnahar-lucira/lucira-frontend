@@ -2,6 +2,9 @@ import { shopifyStorefrontFetch, getAllCollectionHandles } from "@/lib/shopify";
 import CollectionPageClient from "./CollectionPageClient";
 import { getCollectionSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { notFound } from "next/navigation";
+import { getStorePages } from "@/lib/storeContent";
+import { getMenu } from "@/lib/menus";
+import { buildCategoryGroups } from "@/lib/categoryGroups";
 
 export const revalidate = 86400; // 24 hours
 
@@ -12,6 +15,7 @@ async function getCollectionData(handle) {
         title
         handle
         description
+        descriptionHtml
         seo { title description }
         image { url altText }
         products(first: 24) {
@@ -24,22 +28,55 @@ async function getCollectionData(handle) {
       }
     }
   `;
-  
-  // Use force-cache so the fetch is cached and inherits the page-level revalidate=86400
-  const data = await shopifyStorefrontFetch(query, { handle }, { cache: 'force-cache' });
+
+  // Revalidate frequently so Shopify admin updates reflect quickly
+  const data = await shopifyStorefrontFetch(
+    query, 
+    { handle }, 
+    process.env.NODE_ENV === 'development' 
+      ? { cache: 'no-store' } 
+      : { next: { revalidate: 60 } }
+  );
   return data?.collectionByHandle;
 }
 
 export async function generateMetadata({ params }) {
   const { handle } = await params;
-  if (handle === "all") {
+  const collection = await getCollectionData(handle);
+
+  if (handle === "jewellery-on-emi") {
+    const title = collection?.seo?.title || collection?.title || "Jewelry on EMI: 0-Cost EMI on Diamond Jewelry | Lucira";
+    const description = collection?.seo?.description || collection?.description?.slice(0, 160) || "Buy jewelry on EMI where eligible: 0-cost EMI on the diamond component, tenures of 3, 6, 9 and 12 months, ₹0 processing fee. Try the EMI calculator.";
     return {
-      title: "All Lab Grown Diamond Jewelry | Lucira Jewelry",
-      description: "Explore our complete collection of ethically sourced, lab-grown diamond jewelry. From stunning rings to elegant necklaces, find your perfect piece at Lucira.",
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: collection?.image ? [collection.image.url] : [],
+      },
+      alternates: {
+        canonical: `/collections/${handle}`,
+      },
+    };
+  }
+  if (handle === "jewelry" || handle === "all") {
+    const title = collection?.seo?.title || "Lab Grown Diamond Jewellery Collection: Rings to Pendants | Lucira";
+    const description = collection?.seo?.description || "Browse the full Lucira lab grown diamond jewellery collection: rings, earrings, bracelets, pendants and more. Pick a category and shop modern luxury.";
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        images: collection?.image ? [collection.image.url] : [],
+      },
+      alternates: {
+        canonical: `/collections/${handle}`,
+      },
     };
   }
 
-  const collection = await getCollectionData(handle);
   if (!collection) return {};
 
   return {
@@ -57,36 +94,27 @@ export async function generateMetadata({ params }) {
 }
 
 export async function generateStaticParams() {
-  // Pre-render ALL collection pages at build time as static HTML.
-  // These are served from Vercel CDN (FREE — no function invocations on first visit).
-  // ISR (revalidate=86400) + webhook revalidation still applies to all of these pages.
-  try {
-    const handles = await getAllCollectionHandles();
-    return [
-      { handle: "all" },
-      ...handles.map(handle => ({ handle }))
-    ];
-  } catch (error) {
-    console.warn("[generateStaticParams/collections] Failed to fetch all handles, falling back to basic set.", error.message);
-    return [
-      { handle: "all" },
-      { handle: "jewelry" },
-      { handle: "rings" },
-      { handle: "earrings" },
-      { handle: "necklaces" },
-      { handle: "bracelets" },
-      { handle: "pendants" },
-      { handle: "bangles" },
-      { handle: "bestsellers" },
-    ];
-  }
+  return [
+    { handle: "rings" },
+    { handle: "bestsellers" },
+    { handle: "gemstone-jewelry" },
+    { handle: "sports-collection" },
+    { handle: "cotton-candy" },
+    { handle: "hexa" },
+    { handle: "9kt-collection" },
+    { handle: "lucira-express" },
+    { handle: "necklaces" },
+    { handle: "bracelets" },
+    { handle: "pendants" },
+    { handle: "jewellery-on-emi" }
+  ];
 }
 
 export default async function Page({ params }) {
   const { handle } = await params;
   const collection = await getCollectionData(handle);
 
-  if (!collection && handle !== "all") {
+  if (!collection && handle !== "all" && handle !== "jewellery-on-emi") {
     notFound();
   }
 
@@ -97,17 +125,38 @@ export default async function Page({ params }) {
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
 
-  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "") 
-    ? process.env.NEXT_PUBLIC_BACKEND_URL 
+  const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL && process.env.NEXT_PUBLIC_BACKEND_URL.trim() !== "")
+    ? process.env.NEXT_PUBLIC_BACKEND_URL
     : "http://127.0.0.1:8080";
   const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
-  
+
+  // Dashboard-managed store content — decides whether this collection renders
+  // the store hero, and supplies everything in it.
+  const storePages = await getStorePages();
+
+  // "Shop by …" carousels for this collection, built here from the menu so the
+  // client never has to import the menu JSON. Same function, same input the
+  // client used to call on mount, so the groups are identical.
+  const categoryGroups = buildCategoryGroups(await getMenu("main-menu-official"), handle);
+
   let initialData = null;
   try {
-    const [collRes, filterRes] = await Promise.all([
-      fetch(`${base}/api/collection?handle=${handle}&limit=25&sort=manual`, { cache: 'force-cache' }),
-      fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' })
+    const [collRes, filterRes, plpBannersRes, emiSettingsRes] = await Promise.all([
+      fetch(`${base}/api/collection?handle=${handle}&limit=16&sort=manual`, { cache: 'force-cache' }),
+      fetch(`${base}/api/products/filters?handle=${handle}`, { cache: 'force-cache' }),
+      fetch(`${base}/api/settings/plp-banners`, { cache: 'force-cache' }),
+      handle === "jewellery-on-emi"
+        ? fetch(`${base}/api/settings/jewellery-on-emi`, { cache: 'force-cache' }).catch(() => null)
+        : Promise.resolve(null),
     ]);
+    let plpBanners = null;
+    if (plpBannersRes.ok) {
+      plpBanners = await plpBannersRes.json().catch(() => null);
+    }
+    let emiSettings = null;
+    if (emiSettingsRes && emiSettingsRes.ok) {
+      emiSettings = await emiSettingsRes.json().catch(() => null);
+    }
     if (collRes.ok && filterRes.ok) {
       const collData = await collRes.json();
       const filterDataObj = await filterRes.json();
@@ -119,6 +168,18 @@ export default async function Page({ params }) {
           delete collData.collection.metafields.custom.bestsellers_html;
           delete collData.collection.metafields.custom.seo_content_data;
         }
+        if (!collData.collection.descriptionHtml && collection?.descriptionHtml) {
+          collData.collection.descriptionHtml = collection.descriptionHtml;
+        }
+      } else if (collData && collection) {
+        collData.collection = {
+          title: collection.title,
+          handle: collection.handle,
+          description: collection.description,
+          descriptionHtml: collection.descriptionHtml,
+          seo: collection.seo,
+          image: collection.image,
+        };
       }
 
       // Keep product descriptions lean in the grid and filter hidden products
@@ -129,14 +190,14 @@ export default async function Page({ params }) {
         });
       }
 
-      initialData = { collData, filterData: filterDataObj || {} };
+      initialData = { collData, filterData: filterDataObj || {}, plpBanners, emiSettings };
     }
-  } catch(e) {
+  } catch (e) {
     console.error("Failed to fetch initial data for SSG", e);
   }
 
   // Check if collection is empty after fetching data
-  if (initialData?.collData && (!initialData.collData.products || initialData.collData.products.length === 0)) {
+  if (handle !== "jewellery-on-emi" && initialData?.collData && (!initialData.collData.products || initialData.collData.products.length === 0)) {
     if (!initialData.collData.pageInfo?.hasNextPage) {
       notFound();
     }
@@ -155,7 +216,13 @@ export default async function Page({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <CollectionPageClient params={params} initialData={initialData} />
+      <CollectionPageClient 
+        params={params} 
+        initialData={initialData} 
+        storePages={storePages} 
+        collectionData={collection}
+        categoryGroups={categoryGroups}
+      />
     </>
   );
 }

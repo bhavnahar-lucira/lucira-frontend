@@ -5,9 +5,11 @@ import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { AuthDialog } from "./AuthDialog";
 import { selectIsAuthenticated, selectIsAuthModalOpen } from "@/redux/features/user/userSlice";
+import { getSignupVariant, VARIANT_SPIN, VARIANT_SCRATCH } from "@/lib/signupExperiment";
 
 export function AutoAuthPopup() {
   const [open, setOpen] = useState(false);
+  const [experiment, setExperiment] = useState({ variant: null, device: null });
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const isAuthModalOpen = useSelector(selectIsAuthModalOpen);
   const pathname = usePathname();
@@ -20,10 +22,11 @@ export function AutoAuthPopup() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    // 15 seconds delay
-    const SHOW_DELAY = 15000;
-
     const cleanPath = pathname?.replace(/\/$/, "") || "";
+    const isPdp = cleanPath.startsWith("/products/");
+
+    // 10 seconds delay for PDP, 15 seconds for others
+    const SHOW_DELAY = isPdp ? 10000 : 15000;
 
     // Exclude account pages and specific paths
     if (
@@ -35,6 +38,7 @@ export function AutoAuthPopup() {
       cleanPath === "/pages/privacy-policy" ||
       cleanPath === "/pages/terms-condition" ||
       cleanPath === "/pages/store-giveaway" ||
+      cleanPath.includes("exhibition") ||
       /\/[a-z-]+-silver-rate-today$/.test(cleanPath)
     ) {
       return;
@@ -53,6 +57,14 @@ export function AutoAuthPopup() {
       
       const manuallyOpened = sessionStorage.getItem("lucira_login_manually_opened") === "true";
       if (manuallyOpened) return;
+
+      // Signup popup: mobile gets 100% scratch card; desktop always gets the wheel. Checkout
+      // paths render CheckoutAuthForm instead, so they stay out of the test.
+      const isCheckout = cleanPath.startsWith("/checkout");
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+      const device = isMobile ? "mobile" : "desktop";
+      const variant = isCheckout ? null : isMobile ? getSignupVariant() : VARIANT_SPIN;
+      setExperiment({ variant, device });
 
       setOpen(true);
       sessionStorage.setItem("lucira_login_popup_seen", "true");
@@ -74,11 +86,10 @@ export function AutoAuthPopup() {
           sessionStorage.setItem("lucira_login_popup_seen", "true");
         }
       }} 
-      initialStep="login"
+      initialStep="register"
       forceShowWheel={true}
-      overrideHeading="Register to Win a Reward"
-      overrideSubtext="Try Your Luck! Win a Diamond Pendant"
-      overrideButtonText="Request OTP & Spin"
+      experimentVariant={experiment.variant || (typeof window !== "undefined" && window.innerWidth <= 768 ? VARIANT_SCRATCH : VARIANT_SPIN)}
+      experimentDevice={experiment.device || (typeof window !== "undefined" && window.innerWidth <= 768 ? "mobile" : "desktop")}
     />
   );
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import FAQ from "@/components/common/FAQ";
 import { Suspense, useState } from "react";
@@ -171,7 +172,7 @@ export default function BespokePage() {
         <>
             <section className="relative w-full">
                 <div className="hidden md:block">
-                    <Image
+                    <Image loader={shopifyLoader}
                         src="https://luciraonline.myshopify.com/cdn/shop/files/Bespoke-Desktop-Banner_2.jpg"
                         alt="Bespoke Jewelry"
                         width={1600}
@@ -182,7 +183,7 @@ export default function BespokePage() {
                 </div>
 
                 <div className="md:hidden">
-                    <Image
+                    <Image loader={shopifyLoader}
                         src="https://luciraonline.myshopify.com/cdn/shop/files/7df9539829becce028c90cc314b6e75fad295914_1.jpg"
                         alt="Bespoke Jewelry"
                         width={800}
@@ -204,7 +205,7 @@ export default function BespokePage() {
             </section>
             <section className="max-w-7xl mx-auto px-4 py-16 flex flex-col md:flex-row items-center">
                 <div className="w-full md:w-1/2">
-                    <Image
+                    <Image loader={shopifyLoader}
                         src="https://luciraonline.myshopify.com/cdn/shop/files/Middle-Banner-Desktop_2eb2e51d-562a-4640-97a6-d43497a9ec67_1200x.jpg"
                         alt="Jewelry design"
                         width={1000}
@@ -347,7 +348,7 @@ export default function BespokePage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mx-auto">
                 {bespokeDesign.map((item, i) => (
                     <div key={i} className="relative group overflow-hidden rounded-xl">
-                    <Image
+                    <Image loader={shopifyLoader}
                         src={item.img}
                         alt="Jewelry"
                         width={400}

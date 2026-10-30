@@ -27,36 +27,26 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogOverlay,
-  DialogPortal,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { pushProductClick, pushPromoClick, pushAddToWishlist, pushRemoveFromWishlist, formatGtmPrice, getNumericId, getStandardWishlistPayload } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { loadNectorReviews } from "@/lib/nector";
-import { apiFetch, fetchVariantPricing, fetchProductMedia } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { getLiveVariantPrice } from "@/lib/livePriceBatch";
+import { fetchSameCollectionProducts } from "@/lib/sameCollection";
+import ProductCardCta from "./ProductCardCta";
 import { trackProductClick as trackSearchProductClick } from "@/lib/searchAnalytics";
 
 const clientReviewStatsCache = new Map();
-const clientPriceCache = new Map();
+// Keyed by variant only, since it's a direct Shopify read. Stores the in-flight
+// promise rather than the resolved value so a grid of cards sharing a variant
+// issues one request instead of one per card.
 
 const colorMap = {
   yellow: "linear-gradient(147.45deg, #c59922 17.98%, #ead59e 48.14%, #c59922 83.84%)",
   rose: "linear-gradient(154.36deg, #f2b5b5 10.36%, #f8dbdb 68.09%)",
   white: "linear-gradient(143.06deg, #dfdfdf 29.61%, #f3f3f3 48.83%, #dfdfdf 66.43%)",
-};
-
-const parseOrnaverseComponent = (val) => {
-  if (!val) return null;
-  try {
-    return JSON.parse(val);
-  } catch (e) {
-    return null;
-  }
+  "white-yellow": "linear-gradient(to right, #c59922 50%, #dfdfdf 50%)",
+  "white-rose": "linear-gradient(to right, #f2b5b5 50%, #dfdfdf 50%)",
 };
 
 const formatPrice = (num) => {
@@ -75,6 +65,8 @@ function formatCdnUrl(url) {
 
 function getBaseColor(color = "") {
   const normalized = String(color).toLowerCase();
+  if (normalized.includes("white") && normalized.includes("yellow")) return "white-yellow";
+  if (normalized.includes("white") && normalized.includes("rose")) return "white-rose";
   if (normalized.includes("rose")) return "rose";
   if (normalized.includes("white") || normalized.includes("silver") || normalized.includes("platinum")) return "white";
   if (normalized.includes("yellow") || normalized.includes("gold")) return "yellow";
@@ -82,7 +74,7 @@ function getBaseColor(color = "") {
 }
 
 function getUniqueBaseColors(colors = []) {
-  const order = ["white", "yellow", "rose"];
+  const order = ["white-yellow", "white-rose", "white", "yellow", "rose"];
   const availableBaseColors = new Set();
   colors.forEach((color) => {
     const base = getBaseColor(color);
@@ -115,6 +107,44 @@ function getVariantForBase(product, selectedBase, prefer9KT = false) {
   );
 }
 
+// Alt codes for the shots that are NOT colour-specific: the model wearing the
+// piece (MQ / MH), the video (MV), the close-up (CI) and the 360 spin. They
+// carry no colour token in their alt text, which is exactly why the colour
+// matching below dropped them — the card showed the flat product shots only,
+// while the PDP, which reads these same codes, showed the model too.
+//
+// Listed in the priority ProductGallery gives them (see its ALWAYS_SHOW_CODES
+// and takeCode), so a card and the product page it opens agree on which extra
+// shot comes first. Longer codes lead their own family: "mq-ai" is checked
+// before "mq" so MQ_AI is claimed by the right slot.
+const EXTRA_SHOT_CODES = [
+  "mv-ai", "mv_ai", "mv",
+  "mq-ai", "mq_ai", "mq",
+  "mh-ai", "mh_ai", "mh",
+  "ci-ai", "ci_ai", "ci",
+  "360v", "360°",
+];
+
+// Never on a card. A certificate scan and a size chart are documents about the
+// piece, not pictures of it — the PDP gives them their own place, and a grid
+// tile that swipes into a PDF-looking page reads as a bug. ProductGallery
+// drops "cert" from its carousel for the same reason.
+const NON_PRODUCT_ALTS = ["cert", "size"];
+
+const COLOR_ALT_TOKENS = ["white", "yellow", "rose", "plt", "platinum"];
+
+// Colour shot, then the two extras, then back to colour — ProductGallery's own
+// slot pattern. Interleaving rather than appending is the point: a card with
+// five yellow shots would bury the model image sixth, where nobody swipes.
+// Position 0 stays a colour shot, which matters beyond looks — galleryImages[0]
+// is the thumbnail the wishlist and the GTM payloads send.
+const CARD_SLOT_PATTERN = [
+  "color", "extra", "extra",
+  "color", "color", "extra", "extra",
+  "color", "color", "extra", "extra",
+  "color",
+];
+
 function getImagesForBase(product, selectedBase) {
   const variant = getVariantForBase(product, selectedBase);
   const variantColor = String(variant?.color || variant?.title || "").toLowerCase();
@@ -130,8 +160,18 @@ function getImagesForBase(product, selectedBase) {
 
   // 2. Find images whose alt text matches the selected base color (e.g., "yellow")
   if (selectedBase) {
+    const isTarget = (alt) => {
+      const lower = alt.toLowerCase();
+      if (selectedBase === "white-yellow") {
+        return (lower.includes("white") && lower.includes("yellow")) || (lower.includes("yellow") && !lower.includes("rose"));
+      }
+      if (selectedBase === "white-rose") {
+        return (lower.includes("white") && lower.includes("rose")) || (lower.includes("rose") && !lower.includes("yellow"));
+      }
+      return lower.includes(selectedBase.toLowerCase());
+    };
     const baseImages = allImages.filter(img =>
-      String(img.alt || "").toLowerCase().includes(selectedBase.toLowerCase()) &&
+      isTarget(String(img.alt || "")) &&
       !colorSpecificImages.some(p => p.url === img.url)
     );
     colorSpecificImages = [...colorSpecificImages, ...baseImages];
@@ -146,12 +186,122 @@ function getImagesForBase(product, selectedBase) {
     colorSpecificImages = [...colorSpecificImages, ...colorImages];
   }
 
-  // If we found color-specific images, ONLY show those
-  if (colorSpecificImages.length > 0) return colorSpecificImages;
+  // 4. The colour-agnostic shots, matched on their alt code. Walked code-first
+  //    so the result is in ProductGallery's priority order rather than whatever
+  //    order Shopify happens to return the media in.
+  const extraShots = [];
+  EXTRA_SHOT_CODES.forEach((code) => {
+    allImages.forEach((img) => {
+      const alt = String(img.alt || "").toLowerCase();
+      if (!alt || !alt.includes(code)) return;
+      if (NON_PRODUCT_ALTS.some((skip) => alt.includes(skip))) return;
+      // A shot whose alt names a colour is a colour shot; steps 1–3 own those,
+      // and picking it up here would put another colour's photo on this card.
+      if (COLOR_ALT_TOKENS.some((token) => alt.includes(token))) return;
+      if (extraShots.some((e) => e.url === img.url)) return;
+      if (colorSpecificImages.some((p) => p.url === img.url)) return;
+      extraShots.push(img);
+    });
+  });
 
-  // Fallback to variant image or main image if no color-specific images are found
-  const fallbackImage = variant?.image || product?.image || null;
-  return fallbackImage ? [{ url: fallbackImage, alt: product?.title || "Product image" }] : [];
+  // Colour shots lead; where there are none, fall back to the variant or main
+  // image so a card is never blank.
+  const colorQueue = colorSpecificImages.length > 0
+    ? [...colorSpecificImages]
+    : (() => {
+        const fallbackImage = variant?.image || product?.image || null;
+        return fallbackImage ? [{ url: fallbackImage, alt: product?.title || "Product image" }] : [];
+      })();
+
+  if (colorQueue.length === 0 && extraShots.length === 0) return [];
+
+  const extraQueue = [...extraShots];
+  const ordered = [];
+  CARD_SLOT_PATTERN.forEach((slot) => {
+    const next = slot === "color" ? colorQueue.shift() : extraQueue.shift();
+    if (next) ordered.push(next);
+  });
+
+  // Whatever the pattern did not reach still belongs on the card — it just
+  // belongs after the shots that earned a slot.
+  return [...ordered, ...extraQueue, ...colorQueue];
+}
+
+const isVideoMedia = (m) =>
+  m?.mediaContentType === "VIDEO" || m?.type === "VIDEO" || String(m?.mimeType || "").includes("video");
+
+/**
+ * The lightest MP4 a product carries. Shopify hands each video over as an HLS
+ * playlist plus 1080p / 720p / 480p MP4s; a card is a quarter of the screen at
+ * most, so the 480p one is plenty — and a grid can have several of these
+ * playing at once.
+ */
+function cardVideoUrl(product) {
+  const video = product?.video || product?.media?.find(isVideoMedia);
+  if (typeof video === "string") return video;
+
+  const mp4s = (video?.sources || []).filter(
+    (s) => s?.url && (String(s.mimeType).includes("mp4") || s.format === "mp4" || /\.mp4(\?|$)/.test(s.url))
+  );
+  if (mp4s.length > 0) {
+    const height = (s) => Number(s.height) || Number((s.url.match(/(\d{3,4})p/) || [])[1]) || Infinity;
+    return [...mp4s].sort((a, b) => height(a) - height(b))[0].url;
+  }
+  if (video?.url && !String(video.url).includes(".m3u8")) return video.url;
+
+  return product?.videoUrl || product?.video_url || product?.productMetafields?.video_url || null;
+}
+
+/**
+ * The video, as one slide of the card's gallery.
+ *
+ * Nothing is fetched until the shopper actually reaches this slide — a grid of
+ * 25 cards must not pull 25 videos to show the first image of each. Once
+ * reached it stays loaded, so swiping back is instant, but it only plays while
+ * it is the slide on screen AND the card is in the viewport.
+ */
+function CardVideoSlide({ src, poster, active }) {
+  const videoRef = useRef(null);
+  const [reached, setReached] = useState(active);
+  const [inView, setInView] = useState(true);
+  if (active && !reached) setReached(true);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.25 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [reached]);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (active && inView) el.play().catch(() => {});
+    else el.pause();
+  }, [active, inView, reached]);
+
+  return (
+    <div className="relative w-full h-full overflow-hidden rounded-sm">
+      {reached ? (
+        <video
+          ref={videoRef}
+          src={formatCdnUrl(src)}
+          poster={poster ? formatCdnUrl(poster) : undefined}
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          disablePictureInPicture
+          controlsList="nodownload"
+          onContextMenu={(e) => e.preventDefault()}
+          className="w-full h-full object-contain"
+        />
+      ) : poster ? (
+        <LazyImage src={formatCdnUrl(poster)} alt="" fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-contain" />
+      ) : null}
+    </div>
+  );
 }
 
 function getPrioritizedVariant(product, collectionHandle) {
@@ -183,7 +333,7 @@ function getPrioritizedVariant(product, collectionHandle) {
   return variants[0];
 }
 
-const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, singleStarRating = false, disableLivePricing = false, disableReviews = false, priority = false, disableLastViewed = false, promoClickMeta = null }) => {
+const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle, index, disableLivePricing = false, disableReviews = false, priority = false, disableLastViewed = false, disableCtas = false, promoClickMeta = null }) => {
   const isMobile = useMediaQuery("(max-width: 1023px)");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
@@ -216,27 +366,26 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [user, wishlist, guestWishlist, productId]);
 
   const [isWishlistAnimating, setIsWishlistAnimating] = useState(false);
-  const baseColors = getUniqueBaseColors(product.colors || product.variants?.map((v) => v.color) || []);
   const prioritizedVariant = useMemo(() => getPrioritizedVariant(product, collectionHandle), [product, collectionHandle]);
 
-  const initialBase = useMemo(() => {
+  // The one colour this card shows. There are no swatches to change it any
+  // more — they made every tile a row taller for a choice the PDP offers
+  // anyway — so it is fixed by the collection's colour filter where one is on,
+  // and otherwise by the variant the card prices.
+  const activeBase = useMemo(() => {
     if (product.selectedColor) return getBaseColor(product.selectedColor);
     if (prioritizedVariant) return getBaseColor(prioritizedVariant.color || prioritizedVariant.title);
-    return getBaseColor(baseColors[0] || "white");
-  }, [product.selectedColor, prioritizedVariant, baseColors]);
-
-  const [activeBase, setActiveBase] = useState(initialBase);
-  useEffect(() => { setActiveBase(initialBase); }, [initialBase]);
+    return getBaseColor(product.colors?.[0] || product.variants?.[0]?.color || "white");
+  }, [product.selectedColor, prioritizedVariant, product.colors, product.variants]);
 
   const [showSimilar, setShowSimilar] = useState(false);
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
-  const [showVideoPopup, setShowVideoPopup] = useState(false);
-  const [videoLoading, setVideoLoading] = useState(false);
-  const [fetchedVideoMedia, setFetchedVideoMedia] = useState(null);
   const [reviewStats, setReviewStats] = useState(product.reviews || product.reviewStats || { count: 0, average: 0 });
-  const [livePrice, setLivePrice] = useState(null);
-  const [liveComparePrice, setLiveComparePrice] = useState(null);
+  // Holds the actual live Shopify variant price — the same source cart/checkout
+  // read — which wins over the price carried in the listing payload.
+  const [shopifyLivePrice, setShopifyLivePrice] = useState(null);
+  const [shopifyLiveComparePrice, setShopifyLiveComparePrice] = useState(null);
 
   useEffect(() => {
     setReviewStats(product.reviews || product.reviewStats || { count: 0, average: 0 });
@@ -248,51 +397,28 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
 
   const pricingVariant = prioritizedVariant || currentVariant;
 
-  // Live Pricing Fetch
+  // Live Shopify Price Fetch — cross-checks the listing payload's price against
+  // Shopify's actual current price (the same source cart/checkout use), so a
+  // stale cached figure can never be the one the shopper acts on. Skipped
+  // wherever the caller opted out (e.g. search results) or set a fixed price.
   useEffect(() => {
     if (disableLivePricing || fixedPrice || !pricingVariant?.id) return;
 
     const variantId = String(pricingVariant.id);
-    const productId = String(product.shopifyId || product.id);
-    const cacheKey = `${productId}-${variantId}`;
-
-    if (clientPriceCache.has(cacheKey)) {
-      const cached = clientPriceCache.get(cacheKey);
-      setLivePrice(cached.price);
-      setLiveComparePrice(cached.comparePrice);
-      return;
-    }
-
     let ignore = false;
-    const vid = getNumericId(variantId);
-    const pid = getNumericId(productId);
 
-    fetchVariantPricing(vid, pid)
-      .then((data) => {
-        if (ignore) return;
-        if (data?.raw_breakup?.total) {
-          const p = data.raw_breakup.total;
-          const cp = data.raw_breakup.original_total > p ? data.raw_breakup.original_total : null;
-          clientPriceCache.set(cacheKey, { price: p, comparePrice: cp });
-          setLivePrice(p);
-          setLiveComparePrice(cp);
-        } else {
-          // If response is valid but no breakup, cache as null to prevent re-fetch
-          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
-        }
-      })
-      .catch((err) => {
-        // Silently handle "Variant config not found" or other 404s
-        // These are expected for items not yet configured in the backend
-        if (err.message?.includes("not found")) {
-          clientPriceCache.set(cacheKey, { price: null, comparePrice: null });
-        } else {
-          console.warn("[ProductCard] Pricing fetch failed:", err.message);
-        }
-      });
+    // Cards that mount in the same tick share one Storefront `nodes` query
+    // (see lib/livePriceBatch.js); the per-variant promise cache lives there.
+    const pending = getLiveVariantPrice(variantId);
+
+    pending.then((res) => {
+      if (ignore || !res) return;
+      setShopifyLivePrice(res.price);
+      setShopifyLiveComparePrice(res.comparePrice);
+    });
 
     return () => { ignore = true; };
-  }, [pricingVariant?.id, product.shopifyId, product.id, fixedPrice]);
+  }, [pricingVariant?.id, fixedPrice, disableLivePricing]);
 
   useEffect(() => {
     const productReviewId = product.shopifyId || product.id;
@@ -327,73 +453,60 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [product.shopifyId, product.id, reviewStats?.count]);
 
   const hasSimilar = true; // Always allow viewing similar products as we can fetch them by handle
-  const videoMedia = useMemo(() => {
-    // 1. Check if product.video is an object or a direct string URL
-    if (product.video) {
-      if (typeof product.video === "string") return { url: product.video, mimeType: "video/mp4" };
-      return product.video;
-    }
 
-    // 2. Search in media array for VIDEO or EXTERNAL_VIDEO
-    const mediaVideo = product.media?.find(m =>
-      m.mediaContentType === "VIDEO" ||
-      m.mediaContentType === "EXTERNAL_VIDEO" ||
-      m.type === "VIDEO" ||
-      m.type === "EXTERNAL_VIDEO" ||
-      m.mimeType?.includes("video") ||
-      m.url?.includes(".mp4")
-    );
-    if (mediaVideo) return mediaVideo;
+  // The MP4 the gallery plays as one of its slides, or null. Only a real,
+  // playable file counts: the old play button also fired on a bare "has video"
+  // flag by guessing a CDN path from the SKU, which on search results (no
+  // variants, so no SKU) opened an empty player.
+  const videoUrl = useMemo(
+    () => cardVideoUrl(product),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [product.video, product.media, product.videoUrl, product.video_url, product.productMetafields?.video_url]
+  );
 
-    // 3. Check if any image is actually a video URL or if direct URL fields exist
-    const videoUrl = (product.images || product.media)?.find(img =>
-      img.url?.includes(".mp4") ||
-      img.url?.includes("video") ||
-      img.mediaContentType === "VIDEO"
-    )?.url || product.videoUrl || product.video_url || product.productMetafields?.video_url;
-
-    if (videoUrl) return { url: videoUrl, mimeType: "video/mp4" };
-
-    // 4. Fallback to boolean flags from Shopify/Backend
-    const hasVideoFlag = product.hasVideo === true || product.hasVideo === "true" ||
-      product.productMetafields?.has_video === true || product.productMetafields?.has_video === "true";
-
-    if (hasVideoFlag) {
-      const sku = currentVariant?.sku || product.variants?.[0]?.sku;
-      if (sku) {
-        // Standard Lucira CDN pattern
-        return { url: `https://luciraonline.myshopify.com/cdn/shop/files/${sku}.mp4`, isPlaceholder: true };
-      }
-      return { url: null, isPlaceholder: true };
-    }
-
-    return null;
-  }, [product.video, product.media, product.images, product.videoUrl, product.video_url, product.hasVideo, product.productMetafields, currentVariant?.sku, product.variants]);
-
-  const showVideoIcon = Boolean(videoMedia);
-
-  const displayPrice = fixedPrice || livePrice || pricingVariant?.price_breakup?.total || pricingVariant?.price || product.price_breakup?.total || product.price;
-  const displayComparePrice = fixedComparePrice || liveComparePrice || pricingVariant?.compare_price || pricingVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
+  // shopifyLivePrice (Shopify's actual current price) takes priority once it
+  // resolves; until then the listing payload's own price renders immediately.
+  const displayPrice = fixedPrice || shopifyLivePrice || pricingVariant?.price_breakup?.total || pricingVariant?.price || product.price_breakup?.total || product.price;
+  const displayComparePrice = fixedComparePrice || shopifyLiveComparePrice || pricingVariant?.compare_price || pricingVariant?.compareAtPrice || product.compare_price || product.compareAtPrice;
   const discountPercent = useMemo(() => {
     if (!displayComparePrice || displayComparePrice <= displayPrice) return 0;
     return Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100);
   }, [displayPrice, displayComparePrice]);
 
+  const isVariantInStock = useMemo(() => {
+    if (currentVariant) {
+      return (
+        currentVariant.inStock === true ||
+        currentVariant.inStock === "true" ||
+        (currentVariant.inventoryQuantity !== undefined && currentVariant.inventoryQuantity > 0)
+      );
+    }
+    if (product?.variants && product.variants.length > 0) {
+      return product.variants.some(
+        (v) => v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && v.inventoryQuantity > 0)
+      );
+    }
+    return Boolean(product?.inStock);
+  }, [currentVariant, product.variants, product.inStock]);
+
   const displayLabels = useMemo(() => {
-    const tags = Array.isArray(product.tags) ? product.tags : [];
+    const tags = Array.isArray(product?.tags)
+      ? product.tags
+      : (typeof product?.tags === "string" ? product.tags.split(",").map(t => t.trim()) : []);
     const lowerTags = tags.map(t => String(t).toLowerCase());
 
     const labels = [];
-    if (product.label) labels.push(product.label);
-    const bestsellerMeta = String(product.productMetafields?.bestsellers || "").toLowerCase();
+    if (product?.label) labels.push(product.label);
+    const bestsellerMeta = String(product?.productMetafields?.bestsellers || "").toLowerCase();
 
-    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Faster Delivery");
+    const hasFastShipping = lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"));
+    if (hasFastShipping && isVariantInStock) labels.push("Faster Delivery");
     if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
-    if (lowerTags.some(t => t.includes("new arrival") || t === "new")) labels.push("New Arrival");
+    if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
     if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product.label, product.tags, product.productMetafields?.bestsellers]);
+  }, [product.label, product.tags, product.productMetafields?.bestsellers, isVariantInStock]);
 
   const [currentLabelIndex, setCurrentLabelIndex] = useState(0);
   // The label we just rotated away from — it lifts out while the next one rises in.
@@ -429,34 +542,69 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   }, [displayLabels.length]);
 
 
-  const galleryImages = getImagesForBase(product, activeBase);
+  // Memoised on what actually changes the list, and both reasons are
+  // load-bearing. The effect below resets the carousel whenever this array's
+  // identity changes — recomputed every render, it dragged the shopper back to
+  // the first slide each time a live price or a review count landed, which also
+  // made the model shot behind slide 1 nearly unreachable. And the lookup now
+  // walks every alt code against every image, once per tile in a grid of 25.
+  // Keyed on the fields the lookup actually reads, not on `product` itself: the
+  // collection grid passes `{ ...prod, selectedColor }` whenever a colour
+  // filter is on, so the object is a new reference every render while the arrays
+  // inside it are not.
+  const galleryImages = useMemo(
+    () => getImagesForBase(product, activeBase),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [product.images, product.variants, product.image, product.title, activeBase]
+  );
+  // What the carousel actually shows: the images, with the video as the SECOND
+  // slide. Not first — slide 0 is the tile's face in the grid and the thumbnail
+  // every payload sends — but the very first swipe, so it is found by anyone
+  // who looks past the cover rather than parked behind a dozen photos.
+  const slides = useMemo(() => {
+    const images = galleryImages.map((image) => ({ kind: "image", image }));
+    if (!videoUrl) return images;
+    return [...images.slice(0, 1), { kind: "video", url: videoUrl }, ...images.slice(1)];
+  }, [galleryImages, videoUrl]);
+
   const swiperId = `card-swiper-${String(product.id || product.shopifyId || product.handle).replace(/[^a-zA-Z0-9]/g, "")}`;
   const swiperRef = useRef(null);
+  const [activeSlide, setActiveSlide] = useState(0);
 
-  // Reset swiper to first slide when gallery images change
+  // Back to the first slide whenever the slides change. The index is reset
+  // during render (state following a prop); the swiper, being outside React,
+  // is moved in the effect.
+  const [prevSlides, setPrevSlides] = useState(slides);
+  if (slides !== prevSlides) {
+    setPrevSlides(slides);
+    setActiveSlide(0);
+  }
   useEffect(() => {
     if (swiperRef.current && !swiperRef.current.destroyed) {
       swiperRef.current.slideTo(0, 0);
     }
-  }, [galleryImages]);
+  }, [slides]);
 
   const prevImageBtnRef = useRef(null);
   const nextImageBtnRef = useRef(null);
-
-  const handleBeforeInit = (swiper) => {
-    if (galleryImages.length <= 1 || !swiper.params.navigation) return;
-    if (prevImageBtnRef.current) swiper.params.navigation.prevEl = prevImageBtnRef.current;
-    if (nextImageBtnRef.current) swiper.params.navigation.nextEl = nextImageBtnRef.current;
-  };
 
   const fetchSimilar = async () => {
     if (similarProducts.length > 0) { setShowSimilar(true); return; }
     setLoadingSimilar(true);
     setShowSimilar(true);
     try {
-      const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
-      // Priority: complementaryProducts > matchingProducts > products
-      let products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      // Same products the PDP shows under "From the Same Collection" for this
+      // product (the custom.from_the_same_collection_headless metafield, with
+      // the legacy matching_product fallback) — see lib/sameCollection.js.
+      let products = await fetchSameCollectionProducts(product.shopifyId || product.id);
+
+      // Products without that metafield keep the previous behaviour: Shopify's
+      // related recommendations, then a product-type search.
+      if (products.length === 0) {
+        const data = await apiFetch(`/api/products/related?handle=${product.handle}`);
+        // Priority: complementaryProducts > matchingProducts > products
+        products = data.complementaryProducts || data.matchingProducts || data.products || [];
+      }
 
       // Fallback: If no related products found, use search API based on product type
       if (products.length === 0 && (product.type || product.category)) {
@@ -470,10 +618,10 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
   };
 
   useEffect(() => {
-    if (showSimilar || showVideoPopup) document.body.style.overflow = "hidden";
+    if (showSimilar) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "unset";
     return () => { document.body.style.overflow = "unset"; };
-  }, [showSimilar, showVideoPopup]);
+  }, [showSimilar]);
 
   const handleProductClick = useCallback(() => {
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : "";
@@ -498,10 +646,11 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     trackSearchProductClick(String(getNumericId(product.shopifyId || product.id)), index || 0);
 
     if (promoClickMeta) {
+      const variantPromoId = String(getNumericId(currentVariant?.id || currentVariant?.shopifyId));
       pushPromoClick({
         creative_name: promoClickMeta.creative_name,
         location_id: promoClickMeta.location_id,
-        promo_id: promoClickMeta.promo_id,
+        promo_id: promoClickMeta.promoIdFromVariant ? variantPromoId : promoClickMeta.promo_id,
         promo_name: product.title,
       });
     }
@@ -540,29 +689,53 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
     return [...new Set(offers)];
   }, [product, currentVariant]);
 
+  // What the deals pill shows. The diamond / making-charges offers where the
+  // piece has them; otherwise the overall discount, phrased and styled like
+  // them ("13% OFF On Product") so every card carries the same green pill.
+  // Never both: an overall % beside a component % reads as two competing
+  // discounts.
+  const dealLabels = useMemo(() => {
+    if (productOffers.length > 0) return productOffers;
+    return discountPercent > 0 ? [`${discountPercent}% OFF On Product`] : [];
+  }, [productOffers, discountPercent]);
+
   return (
     <>
-      <div className="space-y-4">
-        <div className="group/card block space-y-4">
+      {/* Fills its grid cell, and the details column takes whatever height is
+          left, so the CTA row can sit on the bottom edge: cards in one row then
+          line their buttons up even when only some of them carry an offer pill
+          (or a price that wraps). The slack lands above the buttons, and only in
+          rows that mix the two — a row with no offers stays compact. */}
+      <div className="h-full">
+        <div className="group/card h-full flex flex-col gap-4">
           <div className="relative aspect-square w-full bg-[#fafafa] overflow-hidden">
             <Link href={`/products/${product.handle}`} prefetch={false} className="block w-full h-full mix-blend-multiply cursor-pointer" onClick={handleProductClick}>
-              {galleryImages.length > 0 ? (
+              {slides.length > 0 ? (
                 <Swiper
                   spaceBetween={0}
-                  loop={galleryImages.length > 1}
+                  loop={slides.length > 1}
                   slidesPerView={1}
                   nested={true}
                   touchStartPreventDefault={false}
                   modules={[Navigation, Pagination]}
-                  pagination={galleryImages.length > 1 ? { type: 'progressbar', el: `.pagination-${swiperId}` } : false}
+                  pagination={slides.length > 1 ? { type: 'progressbar', el: `.pagination-${swiperId}` } : false}
                   navigation={{
                     prevEl: `.custom-prev-${swiperId}`,
                     nextEl: `.custom-next-${swiperId}`,
                   }}
                   onSwiper={(swiper) => { swiperRef.current = swiper; }}
+                  onSlideChange={(swiper) => setActiveSlide(swiper.realIndex)}
                   className="w-full h-full custom-product-swiper"
                 >
-                  {galleryImages.map((image, idx) => {
+                  {slides.map((slide, idx) => {
+                    if (slide.kind === "video") {
+                      return (
+                        <SwiperSlide key={`video-${idx}`}>
+                          <CardVideoSlide src={slide.url} poster={galleryImages[0]?.url} active={activeSlide === idx} />
+                        </SwiperSlide>
+                      );
+                    }
+                    const { image } = slide;
                     const handleWords = product?.handle?.toLowerCase().split("-") || [];
                     const targetKeywords = ['rings', 'ring', 'earrings', 'earring', 'nosepin', 'nose', 'band', 'bali', 'stud'];
                     const hasMatchingWord = handleWords.some(word => targetKeywords.includes(word));
@@ -585,7 +758,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                       </SwiperSlide>
                     );
                   })}
-                  {galleryImages.length > 1 && <div className={`pagination-${swiperId} swiper-pagination bottom-0!`} />}
+                  {slides.length > 1 && <div className={`pagination-${swiperId} swiper-pagination bottom-0!`} />}
                 </Swiper>
               ) : <div className="w-full h-full flex items-center justify-center text-zinc-400">No Image</div>}
             </Link>
@@ -726,60 +899,17 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               </div>
             )}
 
-            {/* Video - Bottom Left */}
-            {videoMedia && (
-              <button 
-                onClick={async (e) => { 
-                  e.preventDefault(); 
-                  
-                  if (fetchedVideoMedia) {
-                    setShowVideoPopup(true);
-                    return;
-                  }
-
-                  if (videoMedia && !videoMedia.isPlaceholder) {
-                    setShowVideoPopup(true);
-                    return;
-                  }
-
-                  if (videoLoading) return;
-
-                  setVideoLoading(true);
-                  try {
-                    const data = await fetchProductMedia(product.handle);
-                    // The API returns { media: [...] }
-                    const mediaVideo = data?.media?.find(m =>
-                      m.mediaContentType === "VIDEO" ||
-                      m.mediaContentType === "EXTERNAL_VIDEO" ||
-                      m.type === "VIDEO" ||
-                      m.type === "EXTERNAL_VIDEO"
-                    );
-                    
-                    if (mediaVideo) {
-                      setFetchedVideoMedia(mediaVideo);
-                      setShowVideoPopup(true);
-                    } else {
-                      // fallback to placeholder or show an error
-                      if (videoMedia) setShowVideoPopup(true);
-                    }
-                  } catch (err) {
-                    console.error("Failed to fetch product media:", err);
-                    if (videoMedia) setShowVideoPopup(true);
-                  } finally {
-                    setVideoLoading(false);
-                  }
-                }} 
-                className="absolute bottom-4 left-2 lg:left-4 z-10 w-6 h-6 lg:w-8 lg:h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 text-zinc-900 shadow-sm hover:bg-black hover:text-white transition-all duration-300 cursor-pointer"
-              >
-                {videoLoading ? (
-                  <Loader2 className="animate-spin text-zinc-900 w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                ) : (
-                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-                    <path d="M11.084 18.1814V9.81869C11.0842 9.71406 11.1125 9.6114 11.166 9.52147C11.2194 9.43155 11.2961 9.35766 11.388 9.30756C11.4798 9.25745 11.5835 9.23298 11.688 9.2367C11.7926 9.24042 11.8943 9.27219 11.9823 9.32869L18.4877 13.5089C18.57 13.5616 18.6378 13.6343 18.6847 13.7201C18.7317 13.8059 18.7563 13.9022 18.7563 14C18.7563 14.0979 18.7317 14.1941 18.6847 14.2799C18.6378 14.3658 18.57 14.4384 18.4877 14.4912L11.9823 18.6725C11.8943 18.729 11.7926 18.7608 11.688 18.7645C11.5835 18.7682 11.4798 18.7438 11.388 18.6937C11.2961 18.6436 11.2194 18.5697 11.166 18.4797C11.1125 18.3898 11.0842 18.2872 11.084 18.1825V18.1814Z" fill="currentColor" />
-                    <path d="M1.16602 14.0001C1.16602 6.91258 6.91185 1.16675 13.9993 1.16675C21.0868 1.16675 26.8327 6.91258 26.8327 14.0001C26.8327 21.0876 21.0868 26.8334 13.9993 26.8334C6.91185 26.8334 1.16602 21.0876 1.16602 14.0001ZM13.9993 2.91675C11.0599 2.91675 8.24078 4.08445 6.16225 6.16298C4.08372 8.24151 2.91602 11.0606 2.91602 14.0001C2.91602 16.9396 4.08372 19.7587 6.16225 21.8372C8.24078 23.9157 11.0599 25.0834 13.9993 25.0834C16.9388 25.0834 19.7579 23.9157 21.8364 21.8372C23.915 19.7587 25.0827 16.9396 25.0827 14.0001C25.0827 11.0606 23.915 8.24151 21.8364 6.16298C19.7579 4.08445 16.9388 2.91675 13.9993 2.91675Z" fill="currentColor" />
-                  </svg>
-                )}
-              </button>
+            {/* Rating - Bottom Left. Where the video button used to sit: the video is
+                a slide of its own now, and the rating moved up out of the row the
+                colour swatches shared, which is gone. One star and the average —
+                the count and the five-star strip are the PDP's job. */}
+            {(reviewStats?.count || 0) > 0 && (
+              <div className="absolute bottom-4 left-2 lg:left-4 z-10 h-6 lg:h-8 px-2 lg:px-2.5 flex items-center gap-1 rounded-full bg-white/90 backdrop-blur-sm border border-zinc-200 shadow-sm pointer-events-none">
+                <Star size={12} fill="currentColor" className="text-amber-400 shrink-0 lg:w-3.5 lg:h-3.5" />
+                <span className="font-figtree text-xs lg:text-sm font-semibold leading-none text-black">
+                  {Number(reviewStats.average || 0).toFixed(1)}
+                </span>
+              </div>
             )}
 
             {/* Wishlist - Top Right */}
@@ -798,7 +928,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
                       else dispatch(removeGuestWishlistItem(productId));
                       pushRemoveFromWishlist(commonTrackingData); toast.error("Removed from wishlist", { icon: <Check className="w-4 h-4" /> });
                     } else {
-                      const payload = { productId, productHandle, title: product.title, image: thumbnailImage, price: displayPrice, comparePrice: displayComparePrice || "", reviews: product.reviews || null, hasVideo: Boolean(videoMedia), hasSimilar: Boolean(product.handle), variantId: String(getNumericId(currentVariant?.id || currentVariant?.shopifyId)), size: currentVariant?.size || "", color: currentVariant?.color || currentVariant?.title || "" };
+                      const payload = { productId, productHandle, title: product.title, image: thumbnailImage, price: displayPrice, comparePrice: displayComparePrice || "", reviews: product.reviews || null, hasVideo: Boolean(videoUrl), hasSimilar: Boolean(product.handle), variantId: String(getNumericId(currentVariant?.id || currentVariant?.shopifyId)), size: currentVariant?.size || "", color: currentVariant?.color || currentVariant?.title || "" };
                       if (user?.id) await dispatch(addWishlistItem(payload)).unwrap();
                       else {
                         dispatch(addGuestWishlistItem(payload));
@@ -815,7 +945,7 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
               <Heart fill={isWishlisted ? "currentColor" : "none"} className={`${isWishlisted ? "text-rose-500" : "text-black"} stroke-[1.5px] w-5 h-5 lg:w-6 lg:h-6`} />
             </button>
 
-            {galleryImages.length > 1 && (
+            {slides.length > 1 && (
               <>
                 <button
                   ref={prevImageBtnRef}
@@ -835,95 +965,63 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
             )}
           </div>
 
-          <div className="flex flex-col gap-1.5 px-1">
-            <div className="flex flex-row items-center justify-between gap-2">
-              {baseColors.length > 0 && (
-                <div className="flex gap-3 lg:gap-4 items-center">
-                  {baseColors.map((base) => {
-                    const isActive = base === activeBase;
-                    return (
-                      <button key={`${product.shopifyId}-${base}`} type="button" title={base} onClick={() => setActiveBase(base)} className={`rounded-full transition-all hover:scale-110 cursor-pointer ${isActive ? "ring-1 ring-black ring-offset-[1.5px] lg:ring-offset-2 ring-offset-white w-[18px] h-[18px] lg:w-[20px] lg:h-[20px]" : "w-[22px] h-[22px] lg:w-[24px] lg:h-[24px]"}`} style={{ background: colorMap[base] }} />
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Rating Section */}
-              {(() => {
-                const reviews = reviewStats;
-                const count = reviews?.count || 0;
-                if (count > 0) {
-                  const average = reviews.average || 0;
-                  return (
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex items-center gap-0.5 text-amber-400">
-                        {singleStarRating || isMobile ? <Star size={12} fill="currentColor" /> :
-                          [...Array(5)].map((_, i) => <Star key={i} size={12} fill={i < Math.floor(average) ? "currentColor" : "none"} className={i < Math.floor(average) ? "" : "text-zinc-200"} />)
-                        }
-                      </div>
-                      <span className="text-sm font-semibold text-black mt-0.5">{Number(average).toFixed(1)}</span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-            </div>
-
-            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-2 font-figtree">
+          <div className="@container flex-1 flex flex-col gap-1.5 px-1">
+            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 font-figtree">
               <p className="text-base lg:text-xl font-bold">₹{formatPrice(displayPrice)}</p>
               {displayComparePrice > displayPrice && <p className="text-[14px] lg:text-base text-[#909090] line-through">₹{formatPrice(displayComparePrice)}</p>}
-              {displayComparePrice > displayPrice && discountPercent > 0 && <span className="hidden lg:inline-block bg-[#EFE5DE] text-black px-2 py-0.5 rounded-full text-sm font-semibold font-figtree leading-[1.6] tracking-normal uppercase">{discountPercent}% OFF</span>}
             </div>
 
             <div className="flex flex-col items-start gap-0.5">
               <Link href={`/products/${product.handle}`} prefetch={false} onClick={handleProductClick} className="cursor-pointer">
                 <h3 className="text-[14px] lg:text-base font-figtree font-[450] leading-[1.6] tracking-normal hover:underline underline-offset-4 hover:text-gray-900 transition-colors line-clamp-1 min-h-5">{product.title}</h3>
               </Link>
-              <div className="flex flex-col justify-center items-start gap-2">
-                {(() => {
-                  const variantMeta = currentVariant?.metafields;
-                  const prodMeta = product.productMetafields;
-                  const ornaverseComp = parseOrnaverseComponent(variantMeta?.components || prodMeta?.components);
-                  const firstDiamond = ornaverseComp?.components?.find(c => (c.item_group_name === "Diamond" || (c.quality_code && c.quality_code !== "NA")) && (parseFloat(c.weight) > 0 || parseInt(c.pieces) > 0));
-                  const variantDiamonds = variantMeta?.diamonds?.filter(d => parseFloat(d.weight) > 0 || parseInt(d.pieces) > 0) || [];
-                  const parts = [];
-                  if (!!firstDiamond || variantDiamonds.length > 0) {
-                    const quality = (firstDiamond?.quality_code && firstDiamond?.stone_color_code && firstDiamond.quality_code !== "NA" && firstDiamond.stone_color_code !== "NA") ? `${firstDiamond.quality_code}, ${firstDiamond.stone_color_code}` : (firstDiamond?.purity || variantDiamonds[0]?.quality || prodMeta?.quality);
-                    const totalWeight = variantDiamonds.length > 0 ? variantDiamonds.reduce((sum, d) => sum + parseFloat(d.weight || 0), 0) : 0;
-                    const carat = totalWeight > 0 ? `${Number(totalWeight.toFixed(3))}ct` : (firstDiamond?.weight ? `${firstDiamond.weight}ct` : prodMeta?.carat_range);
-                    if (quality && quality !== "NA") parts.push(quality);
-                    if (carat && carat !== "NA" && !String(carat).startsWith("0ct")) parts.push(carat);
-                  }
-                  if (parts.length === 0) {
-                    let metalPurity = variantMeta?.metal_purity;
-                    if (metalPurity) {
-                      const mp = String(metalPurity).replace(/\s+/g, "").toLowerCase();
-                      if (mp === "9k" || mp === "9kt" || mp === "9ct") metalPurity = "9KT";
-                      parts.push(metalPurity);
-                    }
-                  }
-                  const weightVal = variantMeta?.metal_weight || prodMeta?.weight;
-                  const weight = weightVal ? `${weightVal}${String(weightVal).toLowerCase().includes('g') ? '' : 'g'}` : null;
-                  if (weight) parts.push(weight);
-                  if (parts.length === 0) return null;
-                  return <p className="font-figtree text-[12px] lg:text-sm font-light lg:font-medium text-black lg:text-gray-500 leading-[1.4] tracking-normal mt-0.5">{parts.join(" · ")}</p>;
-                })()}
-              </div>
             </div>
 
-            {productOffers.length > 0 && (
-              <div className="inline-flex items-center gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 lg:px-3 py-1 mt-1 w-fit">
-                <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 lg:w-5 lg:h-5 shrink-0">
-                  <path d="M8.7583 3.05392C8.91463 2.87933 9.10601 2.73967 9.31996 2.64406C9.53391 2.54844 9.76563 2.49902 9.99997 2.49902C10.2343 2.49902 10.466 2.54844 10.68 2.64406C10.8939 2.73967 11.0853 2.87933 11.2416 3.05392L11.825 3.70558C11.9917 3.89183 12.1982 4.03819 12.4291 4.13383C12.6601 4.22947 12.9096 4.27193 13.1591 4.25808L14.0341 4.20975C14.2682 4.19685 14.5023 4.23346 14.7212 4.31718C14.9402 4.40091 15.139 4.52988 15.3047 4.69566C15.4704 4.86144 15.5992 5.0603 15.6829 5.27927C15.7665 5.49824 15.803 5.73238 15.79 5.96642L15.7416 6.84058C15.7279 7.09003 15.7704 7.33936 15.8661 7.57016C15.9617 7.80095 16.108 8.00729 16.2941 8.17392L16.9458 8.75725C17.1205 8.91358 17.2603 9.10501 17.356 9.31904C17.4517 9.53307 17.5012 9.76488 17.5012 9.99933C17.5012 10.2338 17.4517 10.4656 17.356 10.6796C17.2603 10.8937 17.1205 11.0851 16.9458 11.2414L16.2941 11.8247C16.1079 11.9915 15.9615 12.1979 15.8659 12.4289C15.7703 12.6598 15.7278 12.9093 15.7416 13.1589L15.79 14.0339C15.8029 14.268 15.7663 14.5021 15.6825 14.721C15.5988 14.9399 15.4698 15.1387 15.3041 15.3044C15.1383 15.4701 14.9394 15.599 14.7204 15.6826C14.5015 15.7663 14.2673 15.8028 14.0333 15.7898L13.1591 15.7414C12.9097 15.7277 12.6604 15.7702 12.4296 15.8659C12.1988 15.9615 11.9924 16.1078 11.8258 16.2939L11.2425 16.9456C11.0861 17.1203 10.8947 17.2601 10.6807 17.3558C10.4666 17.4515 10.2348 17.5009 10.0004 17.5009C9.76594 17.5009 9.53412 17.4515 9.32009 17.3558C9.10606 17.2601 8.91463 17.1203 8.7583 16.9456L8.17497 16.2939C8.00825 16.1077 7.80178 15.9613 7.57083 15.8657C7.33989 15.77 7.09038 15.7276 6.8408 15.7414L5.9658 15.7898C5.73177 15.8027 5.49764 15.766 5.27871 15.6823C5.05978 15.5986 4.86098 15.4696 4.69528 15.3038C4.52957 15.1381 4.4007 14.9392 4.31708 14.7202C4.23346 14.5013 4.19696 14.2671 4.20997 14.0331L4.2583 13.1589C4.27203 12.9095 4.2295 12.6601 4.13387 12.4293C4.03823 12.1986 3.89194 11.9922 3.7058 11.8256L3.05414 11.2422C2.87941 11.0859 2.73964 10.8945 2.64394 10.6805C2.54824 10.4664 2.49878 10.2346 2.49878 10.0002C2.49878 9.76572 2.54824 9.5339 2.64394 9.31987C2.73964 9.10584 2.87941 8.91441 3.05414 8.75808L3.7058 8.17475C3.89205 8.00803 4.03841 7.80156 4.13405 7.57061C4.22969 7.33966 4.27215 7.09016 4.2583 6.84058L4.20997 5.96558C4.19719 5.73161 4.23389 5.49758 4.31767 5.27875C4.40145 5.05992 4.53044 4.86122 4.6962 4.69561C4.86197 4.53 5.0608 4.40121 5.2797 4.31763C5.49861 4.23406 5.73268 4.19758 5.96664 4.21058L6.8408 4.25892C7.09025 4.27264 7.33959 4.23011 7.57038 4.13448C7.80117 4.03884 8.00751 3.89255 8.17414 3.70642L8.7583 3.05392Z" stroke="#189351" strokeWidth="1.5" />
-                  <path d="M7.91675 7.91602H7.92508V7.92435H7.91675V7.91602ZM12.0834 12.0827H12.0917V12.091H12.0834V12.0827Z" stroke="#189351" strokeWidth="2" strokeLinejoin="round" />
-                  <path d="M12.5 7.5L7.5 12.5" stroke="#189351" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <div className="overflow-hidden">
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.span key={currentLabelIndex % productOffers.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="font-figtree font-semibold text-[10px] lg:text-sm leading-[1.4] tracking-normal capitalize whitespace-nowrap block">{productOffers[currentLabelIndex % productOffers.length]}</motion.span>
-                  </AnimatePresence>
+            {/* Deals row: ONE green pill (see dealLabels). The diamond / making-charges
+                offer where the piece has one; otherwise the overall % OFF. Never both — "9% OFF" beside
+                "20% OFF On Diamonds" reads as two competing discounts and leaves the
+                shopper guessing which one they actually get. Every discounted piece
+                has one or the other, so the row is filled on every card, which is
+                what keeps the Try At Home buttons level across a grid row.
+
+                Sized by the CARD, not the screen (@container on the column above):
+                the same card is ~330px wide in a 3-up grid but ~215px beside the
+                filters and ~170px on a phone. The text steps down with it, the icon
+                drops under 13rem, and a label that still does not fit truncates
+                rather than wrapping the row. */}
+            {dealLabels.length > 0 && (
+              <div className="flex items-center gap-1.5 min-w-0 mt-1 font-figtree font-semibold text-[10px] @[13rem]:text-[11px] @[19rem]:text-sm leading-[1.4] tracking-normal">
+                <div className="min-w-0 inline-flex items-center gap-1 @[19rem]:gap-1.5 text-[#108548] bg-[#F0F9F4] rounded-full px-1.5 @[19rem]:px-3 py-1">
+                  <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 @[19rem]:w-5 @[19rem]:h-5 shrink-0 hidden @[13rem]:block">
+                    <path d="M8.7583 3.05392C8.91463 2.87933 9.10601 2.73967 9.31996 2.64406C9.53391 2.54844 9.76563 2.49902 9.99997 2.49902C10.2343 2.49902 10.466 2.54844 10.68 2.64406C10.8939 2.73967 11.0853 2.87933 11.2416 3.05392L11.825 3.70558C11.9917 3.89183 12.1982 4.03819 12.4291 4.13383C12.6601 4.22947 12.9096 4.27193 13.1591 4.25808L14.0341 4.20975C14.2682 4.19685 14.5023 4.23346 14.7212 4.31718C14.9402 4.40091 15.139 4.52988 15.3047 4.69566C15.4704 4.86144 15.5992 5.0603 15.6829 5.27927C15.7665 5.49824 15.803 5.73238 15.79 5.96642L15.7416 6.84058C15.7279 7.09003 15.7704 7.33936 15.8661 7.57016C15.9617 7.80095 16.108 8.00729 16.2941 8.17392L16.9458 8.75725C17.1205 8.91358 17.2603 9.10501 17.356 9.31904C17.4517 9.53307 17.5012 9.76488 17.5012 9.99933C17.5012 10.2338 17.4517 10.4656 17.356 10.6796C17.2603 10.8937 17.1205 11.0851 16.9458 11.2414L16.2941 11.8247C16.1079 11.9915 15.9615 12.1979 15.8659 12.4289C15.7703 12.6598 15.7278 12.9093 15.7416 13.1589L15.79 14.0339C15.8029 14.268 15.7663 14.5021 15.6825 14.721C15.5988 14.9399 15.4698 15.1387 15.3041 15.3044C15.1383 15.4701 14.9394 15.599 14.7204 15.6826C14.5015 15.7663 14.2673 15.8028 14.0333 15.7898L13.1591 15.7414C12.9097 15.7277 12.6604 15.7702 12.4296 15.8659C12.1988 15.9615 11.9924 16.1078 11.8258 16.2939L11.2425 16.9456C11.0861 17.1203 10.8947 17.2601 10.6807 17.3558C10.4666 17.4515 10.2348 17.5009 10.0004 17.5009C9.76594 17.5009 9.53412 17.4515 9.32009 17.3558C9.10606 17.2601 8.91463 17.1203 8.7583 16.9456L8.17497 16.2939C8.00825 16.1077 7.80178 15.9613 7.57083 15.8657C7.33989 15.77 7.09038 15.7276 6.8408 15.7414L5.9658 15.7898C5.73177 15.8027 5.49764 15.766 5.27871 15.6823C5.05978 15.5986 4.86098 15.4696 4.69528 15.3038C4.52957 15.1381 4.4007 14.9392 4.31708 14.7202C4.23346 14.5013 4.19696 14.2671 4.20997 14.0331L4.2583 13.1589C4.27203 12.9095 4.2295 12.6601 4.13387 12.4293C4.03823 12.1986 3.89194 11.9922 3.7058 11.8256L3.05414 11.2422C2.87941 11.0859 2.73964 10.8945 2.64394 10.6805C2.54824 10.4664 2.49878 10.2346 2.49878 10.0002C2.49878 9.76572 2.54824 9.5339 2.64394 9.31987C2.73964 9.10584 2.87941 8.91441 3.05414 8.75808L3.7058 8.17475C3.89205 8.00803 4.03841 7.80156 4.13405 7.57061C4.22969 7.33966 4.27215 7.09016 4.2583 6.84058L4.20997 5.96558C4.19719 5.73161 4.23389 5.49758 4.31767 5.27875C4.40145 5.05992 4.53044 4.86122 4.6962 4.69561C4.86197 4.53 5.0608 4.40121 5.2797 4.31763C5.49861 4.23406 5.73268 4.19758 5.96664 4.21058L6.8408 4.25892C7.09025 4.27264 7.33959 4.23011 7.57038 4.13448C7.80117 4.03884 8.00751 3.89255 8.17414 3.70642L8.7583 3.05392Z" stroke="#189351" strokeWidth="1.5" />
+                    <path d="M7.91675 7.91602H7.92508V7.92435H7.91675V7.91602ZM12.0834 12.0827H12.0917V12.091H12.0834V12.0827Z" stroke="#189351" strokeWidth="2" strokeLinejoin="round" />
+                    <path d="M12.5 7.5L7.5 12.5" stroke="#189351" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div className="min-w-0 overflow-hidden">
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.span key={currentLabelIndex % dealLabels.length} initial={{ opacity: 0, y: 2 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -2 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="block capitalize whitespace-nowrap truncate">
+                        {dealLabels[currentLabelIndex % dealLabels.length]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
+            )}
+
+            {/* Browsing surfaces opt out: a homepage carousel is there to get the
+                shopper INTO a collection, and a booking CTA on every tile competes
+                with that. It stays on the collection grid, where they are already
+                looking at one piece at a time. */}
+            {!disableCtas && (
+              <ProductCardCta
+                product={product}
+                currentVariant={currentVariant}
+                inStock={isVariantInStock}
+                index={index}
+                price={displayPrice}
+                comparePrice={displayComparePrice}
+                image={galleryImages?.[0]?.url || product.image?.url || ""}
+              />
             )}
           </div>
         </div>
@@ -937,33 +1035,6 @@ const ProductCard = ({ product, fixedPrice, fixedComparePrice, collectionHandle,
         @media (min-width: 1024px) { .custom-product-swiper .swiper-pagination { display: none !important; } }
       ` }} />
 
-      <Dialog open={showVideoPopup} onOpenChange={setShowVideoPopup}>
-        <DialogContent className="max-w-2xl aspect-square bg-transparent border-none p-0 overflow-hidden shadow-2xl rounded-3xl w-4/5" showCloseButton={false}>
-          <DialogTitle className="sr-only">Product Video: {product.title}</DialogTitle>
-          <DialogDescription className="sr-only">Video preview of the product</DialogDescription>
-          <button onClick={() => setShowVideoPopup(false)} className="absolute top-4 right-4 z-[210] p-2 bg-black/50 hover:bg-black text-white rounded-full transition-all shadow-lg border border-white/10 cursor-pointer"><X size={24} /></button>
-          
-          <video autoPlay muted loop playsInline controlsList="nodownload" onContextMenu={(e) => e.preventDefault()} disablePictureInPicture className="w-full h-full object-contain bg-transparent rounded-3xl" poster={formatCdnUrl((fetchedVideoMedia || videoMedia)?.preview)}>
-            {(fetchedVideoMedia || videoMedia)?.sources?.length > 0 ? (
-              <>
-                {(fetchedVideoMedia || videoMedia).sources.filter(s => s.format === 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
-                {(fetchedVideoMedia || videoMedia).sources.filter(s => s.format !== 'mp4').map((source, sIdx) => <source key={sIdx} src={formatCdnUrl(source.url)} type={source.mimeType} />)}
-              </>
-            ) : <source src={formatCdnUrl((fetchedVideoMedia || videoMedia)?.url)} type={(fetchedVideoMedia || videoMedia)?.mimeType || "video/mp4"} />}
-            Your browser does not support the video tag.
-          </video>
-
-          <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 flex justify-center z-[210]">
-            <Link
-              href={`/products/${product.handle}`}
-              onClick={() => setShowVideoPopup(false)}
-              className="bg-white/95 backdrop-blur-sm text-black border border-gray-100 px-5 py-2.5 text-xs sm:px-8 sm:py-3.5 sm:text-sm rounded-full font-bold tracking-wide flex items-center gap-1.5 sm:gap-2 hover:bg-white hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
-            >
-              View Details <ArrowRight size={14} className="sm:w-4 sm:h-4" />
-            </Link>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

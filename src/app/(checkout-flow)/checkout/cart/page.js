@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import Link from "next/link";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import CartItem from "@/components/cart/CartItem";
 import CartViewLiveBanner from "@/components/cart/CartViewLiveBanner";
 import CartSummary from "@/components/cart/CartSummary";
@@ -15,21 +16,24 @@ import { calculateCouponDiscount } from "@/lib/coupons";
 import { useAuth } from "@/hooks/useAuth";
 
 import { apiFetch } from "@/lib/api";
-import { isFreeGiftVariant } from "@/lib/freeGifts";
+import { isFreeGiftItem, isFreeGiftVariant, mapRemoteFreeGiftTiers, getCachedFreeGiftTiers } from "@/lib/freeGifts";
 
 // Prefer productId — that's the field carts/wishlists/orders key on (backend normalizes to numeric).
 const getItemProductId = (item) => item.productId || item.shopifyId || item.id || item.handle || "";
 
-import { removeFromCart, removeMultipleFromCart } from "@/redux/features/cart/cartSlice";
+import { removeFromCart, removeMultipleFromCart, getSessionId } from "@/redux/features/cart/cartSlice";
 
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 export default function CartPage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { items, totalQuantity, totalAmount, appliedCoupon, loading } = useSelector((state) => state.cart);
+  const { items, totalQuantity, totalAmount, appliedCoupon, loading, giftTiersConfig } = useSelector((state) => state.cart);
+  const effectiveGifts = useMemo(() => {
+    if (giftTiersConfig?.tiers) return mapRemoteFreeGiftTiers(giftTiersConfig.tiers);
+    return getCachedFreeGiftTiers();
+  }, [giftTiersConfig]);
   const { user, isAuthenticated, openLogin } = useAuth();
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
@@ -44,6 +48,62 @@ export default function CartPage() {
       localStorage.removeItem("auth_redirect_path");
     }
   }, []);
+
+  // Webhook: Track cart visit for returning / direct landing users with 30-min deduplication
+  const visitTrackedRef = useRef(false);
+  useEffect(() => {
+    if (loading || !items || items.length === 0 || visitTrackedRef.current) return;
+
+    // Filter out free products and excluded SKUs
+    const EXCLUDED_SKUS = ['LJ-INS-09RGLGD', 'LJ-GC100-995YGPG'];
+    const EXCLUDED_VARIANT_IDS = ['47709366026458', '47661824082138'];
+    const validItems = items.filter((item) => {
+      const sku = String(item.sku || item.product_sku || item.variantSku || item.variant?.sku || '').trim().toUpperCase();
+      if (EXCLUDED_SKUS.includes(sku)) return false;
+      const vid = String(item.variantId || item.id || '').replace(/\D/g, '');
+      if (EXCLUDED_VARIANT_IDS.includes(vid)) return false;
+      if (item.isFreeGift) return false;
+      return true;
+    });
+
+    if (validItems.length === 0) return;
+
+    const sessionId = getSessionId();
+    const identityKey = user?.id || sessionId;
+    if (!identityKey) return;
+
+    // Build signature of items to detect if cart contents changed
+    const itemsSignature = validItems.map(p => `${p.productId || p.variantId || p.id}_${p.quantity || 1}`).sort().join(',');
+    const storageKey = `atc_visit_cooldown_${identityKey}`;
+    const sigKey = `atc_visit_sig_${identityKey}`;
+    const lastTracked = Number(sessionStorage.getItem(storageKey) || 0);
+    const lastSig = sessionStorage.getItem(sigKey) || '';
+    const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+
+    // Suppress only if same exact items AND within cooldown window
+    if (lastSig === itemsSignature && (Date.now() - lastTracked < COOLDOWN_MS)) {
+      return;
+    }
+
+    visitTrackedRef.current = true;
+    sessionStorage.setItem(storageKey, String(Date.now()));
+    sessionStorage.setItem(sigKey, itemsSignature);
+
+    const context = process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront';
+
+    // Non-blocking fire-and-forget call to backend
+    apiFetch('/api/cart/track-visit', {
+      method: 'POST',
+      suppressErrorLog: true,
+      body: JSON.stringify({
+        userId: user?.id || null,
+        sessionId: sessionId || null,
+        context,
+        nitroId: typeof window !== 'undefined' && window.nitro?.NITRO_ID ? window.nitro.NITRO_ID : null,
+        items: validItems,
+      }),
+    }).catch(() => {});
+  }, [loading, items, user?.id]);
 
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
@@ -64,11 +124,10 @@ export default function CartPage() {
     }
   };
 
-const filteredItems = items.filter(
+  const filteredItems = items.filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
-      !isFreeGiftVariant(item.variantId) &&
+      !isFreeGiftItem(item, effectiveGifts) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] && // Handle potential space in key
       !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
@@ -235,7 +294,7 @@ const filteredItems = items.filter(
               {/* Trust Badges */}
               <div className="flex items-center justify-center gap-10 mt-8">
                 <div className="flex items-center gap-3">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/igi-certified.png?v=1786168166"
                     alt="IGI Certified"
                     width={64}
@@ -245,14 +304,14 @@ const filteredItems = items.filter(
                   <span className="font-figtree text-[13px] font-semibold text-black leading-tight">IGI Certified</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bsi-hallmarked.png?v=1786168167"
-                    alt="BSI Hallmarked"
+                    alt="BIS Hallmarked"
                     width={64}
                     height={64}
                     className="w-9 h-9 shrink-0 object-contain"
                   />
-                  <span className="font-figtree text-[13px] font-semibold text-black leading-tight">BSI Hallmarked</span>
+                  <span className="font-figtree text-[13px] font-semibold text-black leading-tight">BIS Hallmarked</span>
                 </div>
               </div>
             </div>
@@ -274,7 +333,7 @@ const filteredItems = items.filter(
             {/* Trust Badges (Mobile) */}
             <div className="lg:hidden flex items-center justify-center gap-10 pt-0 pb-[6px] border-b border-zinc-100 mb-4">
               <div className="flex items-center gap-3">
-                <Image
+                <Image loader={shopifyLoader}
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/igi-certified.png?v=1786168166"
                   alt="IGI Certified"
                   width={64}
@@ -284,14 +343,14 @@ const filteredItems = items.filter(
                 <span className="font-figtree text-[14px] font-semibold text-black leading-tight">IGI Certified</span>
               </div>
               <div className="flex items-center gap-3">
-                <Image
+                <Image loader={shopifyLoader}
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/bsi-hallmarked.png?v=1786168167"
-                  alt="BSI Hallmarked"
+                  alt="BIS Hallmarked"
                   width={64}
                   height={64}
                   className="w-10 h-10 shrink-0 object-contain"
                 />
-                <span className="font-figtree text-[14px] font-semibold text-black leading-tight">BSI Hallmarked</span>
+                <span className="font-figtree text-[14px] font-semibold text-black leading-tight">BIS Hallmarked</span>
               </div>
             </div>
 

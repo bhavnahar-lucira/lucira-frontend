@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,16 +16,31 @@ const STICKY_CTA_BAR_OFFSETS = {
   '/schemes/payment': 'bottom-[90px] md:bottom-10',  // bar  73px, md:hidden
 };
 
+// Page-independent enquiry link: the only href the server can render, and what
+// the client renders too until hydration completes (see whatsAppHref below).
+const GENERIC_WHATSAPP_URL = `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent("Hi, I want to get more information about Lucira")}&type=phone_number&app_absent=0`;
+
+// false during server rendering and hydration, true once React has hydrated —
+// the hydration-safe way to branch on "are we in the browser yet".
+const subscribeToNothing = () => () => {};
+const useHydrated = () => useSyncExternalStore(subscribeToNothing, () => true, () => false);
+
 export default function FloatingActionButton() {
   const pathname = usePathname();
 
-  if (pathname?.includes("store-giveaway")) return null;
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [tooltipShown, setTooltipShown] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isZohoActive, setIsZohoActive] = useState(false);
-  
+
   const fabTooltipRef = useRef(null);
+
+  // The WhatsApp href depends on document.title and window.location, which the
+  // server does not have. The server HTML and the hydrating client render must
+  // agree, so the link starts as the generic enquiry URL and switches to the
+  // page-specific one once hydration is done. The click handler below also
+  // recomputes it at click time, so the message sent is always current.
+  const hydrated = useHydrated();
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -69,7 +84,8 @@ export default function FloatingActionButton() {
     } else if (ctx.type === "collection") {
       message = `Hi, I want to get more information about this collection: ${ctx.title}`;
     } else if (ctx.type === "product") {
-      message = `Hi, I want to get more information about this product: ${ctx.title}`;
+      const productUrl = typeof window !== 'undefined' ? window.location.href : "";
+      message = `Hi, I'd like more details on the: ${ctx.title}${productUrl ? ` ${productUrl}` : ""}`;
     } else if (ctx.type === "blog") {
       message = pathname.split('/').length > 2 
         ? `Hi, can you tell me more about this blog: ${ctx.title}`
@@ -82,17 +98,19 @@ export default function FloatingActionButton() {
       message = `Tell me more about ${getRateCity(ctx.slug, 'silver')} silver rate`;
     } else if (ctx.type === "schemes") {
       // Scheme enquiries go to a dedicated line, not the main store number.
-      return `https://wa.me/918976740895?text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}`;
+      return `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent("Hi, I want to know more about Lucira's scheme.")}&type=phone_number&app_absent=0`;
     } else if (ctx.type === "old-gold-exchange") {
       // Old Gold Exchange enquiries share the same dedicated line.
-      return `https://wa.me/918976740895?text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}`;
+      return `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent("Hi, I want to get more information about Lucira's Old Gold Exchange")}&type=phone_number&app_absent=0`;
     } else if (ctx.type === "store-locator") {
       // Store-locator enquiries also go to the dedicated line (default message).
-      return `https://wa.me/918976740895?text=${encodeURIComponent(message)}`;
+      return `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
     }
 
-    return `https://wa.me/919004435760?text=${encodeURIComponent(message)}`;
+    return `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
   };
+
+  const whatsAppHref = hydrated ? getWhatsAppUrl() : GENERIC_WHATSAPP_URL;
 
   const pushPromoClick = (creativeName) => {
     const ctx = getPageContext();
@@ -229,6 +247,8 @@ export default function FloatingActionButton() {
     pushPromoClick("chatWithExperts");
   };
 
+  if (pathname?.includes("store-giveaway") || pathname?.includes("exhibition")) return null;
+
   const isProductPage = pathname.startsWith('/products');
   const isCollectionPage = pathname.startsWith('/collections');
 
@@ -254,7 +274,7 @@ export default function FloatingActionButton() {
         {/* WhatsApp (Inside menu for mobile product pages) */}
         {isProductPage && (
           <a 
-            href={getWhatsAppUrl()} 
+            href={whatsAppHref} 
             onClick={handleWhatsAppClick}
             target="_blank"
             rel="noopener noreferrer"
@@ -294,7 +314,7 @@ export default function FloatingActionButton() {
 
       {/* WhatsApp (Outside menu - persistent unless mobile product page) */}
       <a 
-        href={getWhatsAppUrl()} 
+        href={whatsAppHref} 
         onClick={handleWhatsAppClick}
         target="_blank"
         rel="noopener noreferrer"

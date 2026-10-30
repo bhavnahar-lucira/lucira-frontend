@@ -7,11 +7,13 @@ import {
   CheckCircle2, Clock, Loader2, ChevronDown, RefreshCcw
 } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
 import { apiFetch } from "@/lib/api";
 import { getOrderImage } from "@/lib/utils";
+import { getOrderMilestoneStatus } from "@/lib/order-status";
 
 export default function MyOrdersPage() {
   const { accessToken } = useSelector((state) => state.user);
@@ -70,7 +72,23 @@ export default function MyOrdersPage() {
                 displayImage = props['_byj_preview'] || sortedItems[0]?.image || sortedItems[0]?.variant?.image?.url || displayImage;
               }
 
+              const isCancelled = Boolean(
+                order.cancelledAt || 
+                order.cancelled_at || 
+                order.cancelReason || 
+                order.cancel_reason || 
+                order.status === 'Cancelled' || 
+                order.status === 'Canceled' ||
+                (typeof order.status === 'string' && order.status.toUpperCase() === 'CANCELLED')
+              );
               const fStatus = (order.fulfillmentStatus || order.status || "").toUpperCase();
+              let customStatus = order.status;
+              if (customStatus) {
+                const normalized = customStatus.toLowerCase().replace(/[^a-z]/g, '');
+                if (normalized === 'pogenerated') customStatus = 'In Progress';
+                if (normalized === 'readytoinvoice' || normalized === 'readytoship') customStatus = 'Dispatch';
+              }
+
               return {
                 ...order,
                 id: order.id,
@@ -80,8 +98,11 @@ export default function MyOrdersPage() {
                   month: 'long',
                   day: 'numeric'
                 }) : "N/A"),
-                status: (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
-                  (fStatus === 'PARTIAL' || fStatus === 'IN_TRANSIT' || fStatus === 'IN_PROGRESS') ? 'In Transit' : 'Processing',
+                status: isCancelled ? 'Cancelled' : (getOrderMilestoneStatus(order) || (
+                  (customStatus && !['FULFILLED', 'UNFULFILLED', 'PARTIAL'].includes(customStatus.toUpperCase())) ? customStatus :
+                  (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
+                  (fStatus === 'PARTIAL' || fStatus === 'IN_TRANSIT' || fStatus === 'IN_PROGRESS') ? 'In Transit' : 'Processing'
+                )),
                 amount: order.amount || new Intl.NumberFormat('en-IN', {
                   style: 'currency',
                   currency: order.totalPrice?.currencyCode || order.currency || 'INR',
@@ -126,6 +147,7 @@ export default function MyOrdersPage() {
               const props = mainItem?.customAttributes?.reduce((acc, a) => ({ ...acc, [a.key]: a.value }), {}) || {};
               const displayImage = getOrderImage(props['_byj_preview'] || mainItem?.variant?.image?.url);
 
+              const isCancelled = Boolean(node.canceledAt || node.cancelReason || node.financialStatus === 'VOIDED');
               return {
                 id: node.id,
                 orderNumber: node.orderNumber.toString(),
@@ -134,8 +156,10 @@ export default function MyOrdersPage() {
                   month: 'long',
                   day: 'numeric'
                 }),
-                status: (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
-                  fStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+                status: isCancelled ? 'Cancelled' : (getOrderMilestoneStatus(node) || (
+                  (fStatus === 'FULFILLED' || fStatus === 'DELIVERED') ? 'Delivered' :
+                  fStatus === 'PARTIAL' ? 'In Transit' : 'Processing'
+                )),
                 amount: new Intl.NumberFormat('en-IN', {
                   style: 'currency',
                   currency: node.totalPrice.currencyCode,
@@ -264,8 +288,18 @@ export default function MyOrdersPage() {
       {/* ── Order Cards ── */}
       <div className="space-y-6 md:space-y-6">
         {filteredOrders.map((order) => {
+          const isCancelled = order.status === "Cancelled" || order.status === "Canceled";
           const isDelivered = order.status === "Delivered";
-          const isInTransit = order.status === "In Transit";
+          const isBlueStatus = [
+            "In Transit",
+            "Manufacturing",
+            "Processing",
+            "In Progress",
+            "Dispatch",
+            "Quality Control",
+            "Certification",
+            "Out For Delivery"
+          ].some(s => s.toLowerCase() === (order.status || "").toLowerCase());
 
           return (
             <div
@@ -279,7 +313,7 @@ export default function MyOrdersPage() {
                   {/* Product image - Left aligned on mobile */}
                   {order.image && (
                     <div className="size-24 md:size-36 bg-[#FBFBFB] rounded-2xl md:rounded-[2.25rem] overflow-hidden shrink-0 border border-zinc-50 relative flex items-center justify-center p-2 md:p-4">
-                      <Image
+                      <Image loader={shopifyLoader}
                         src={order.image}
                         alt={order.product}
                         width={140}
@@ -298,15 +332,23 @@ export default function MyOrdersPage() {
                         #{order.orderNumber}
                       </span>
                       <span
-                        className={`font-figtree px-2.5 md:px-4 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-[0.05em] flex items-center gap-1.5 border ${isDelivered
-                          ? "text-emerald-600 bg-emerald-50/40 border-emerald-100/60"
-                          : isInTransit
-                            ? "text-blue-600 bg-blue-50/40 border-blue-100/60"
-                            : "text-orange-600 bg-orange-50/40 border-orange-100/60"
+                        className={`font-figtree px-2.5 md:px-4 py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-[0.05em] flex items-center gap-1.5 border ${isCancelled
+                          ? "text-red-600 bg-red-50/50 border-red-200"
+                          : isDelivered
+                            ? "text-emerald-600 bg-emerald-50/40 border-emerald-100/60"
+                            : isBlueStatus
+                              ? "text-blue-600 bg-blue-50/40 border-blue-100/60"
+                              : "text-orange-600 bg-orange-50/40 border-orange-100/60"
                           }`}
                       >
-                        <div className={`size-1 md:size-1.5 rounded-full ${isDelivered ? "bg-emerald-500" : isInTransit ? "bg-blue-500" : "bg-orange-500"
-                          } animate-pulse`} />
+                        <div className={`size-1 md:size-1.5 rounded-full ${isCancelled
+                          ? "bg-red-500"
+                          : isDelivered
+                            ? "bg-emerald-500"
+                            : isBlueStatus
+                              ? "bg-blue-500"
+                              : "bg-orange-500 animate-pulse"
+                          }`} />
                         {order.status}
                       </span>
                     </div>
@@ -338,6 +380,20 @@ export default function MyOrdersPage() {
                   {(() => {
                     const numericId = order.id.split("/").pop();
                     const existingReturn = returnsByOrder[order.id];
+
+                    if (isCancelled) {
+                      return (
+                        <button
+                          type="button"
+                          disabled
+                          title="This order has been cancelled."
+                          className="font-figtree flex-1 md:w-full py-3 md:py-4 border-[1.5px] border-zinc-200 text-zinc-400 text-[9px] md:text-[11px] text-center font-bold uppercase tracking-[0.05em] md:tracking-[0.15em] rounded-xl md:rounded-[1.25rem] cursor-not-allowed flex items-center justify-center gap-1.5 md:gap-2.5"
+                        >
+                          <RefreshCcw size={13} className="opacity-40" />
+                          <span className="truncate">Cancelled</span>
+                        </button>
+                      );
+                    }
 
                     if (existingReturn) {
                       return (

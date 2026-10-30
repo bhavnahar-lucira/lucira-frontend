@@ -1,11 +1,11 @@
 import Link from "next/link";
 import Header from "@/components/header/Header";
 import Footer from "@/components/common/Footer";
-import { getMenu } from "@/lib/menus";
+import { getHeaderMenu } from "@/lib/menus";
 
 
 export default async function NotFound() {
-  const menuData = await getMenu("main-menu-official");
+  const menuData = await getHeaderMenu("main-menu-official");
 
   // Replace these with CMS / API later if needed
   const data = {
@@ -20,6 +20,7 @@ export default async function NotFound() {
 
   return (
     <div className="w-full">
+      <meta name="robots" content="noindex, nofollow" />
       <Header menuData={menuData} />
       <section className="pt-7.5">
         <div className="text-center pb-12.5 md:pt-7.5">

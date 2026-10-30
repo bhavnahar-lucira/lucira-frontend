@@ -75,7 +75,7 @@ export default function HowItWorks({ data }) {
 
       </div>
 
-      <style jsx>{`
+      <style>{`
         @media (max-width: 1024px) {
           .how-it-works-right {
             display: none; /* Hide video on smaller screens as per original design's flow if needed, or place below */

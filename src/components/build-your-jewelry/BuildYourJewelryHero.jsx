@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from 'next/link';
 import { pushPromoClick } from '@/lib/gtm';
 
@@ -34,7 +35,7 @@ const BuildYourJewelryHero = () => {
         <div className="grid grid-cols-1 md:grid-cols-[45%_55%] max-w-[1440px] mx-auto h-full items-center min-[1024px]:max-[1600px]:px-12">
           {/* Image Column - Hidden on desktop (using background instead), visible on mobile */}
           <div className="md:hidden w-full">
-            <Image 
+            <Image loader={shopifyLoader} 
               src={bgImageUrl}
               alt="Build Your Jewelry Hero"
               width={800}
@@ -74,7 +75,7 @@ const BuildYourJewelryHero = () => {
                   className="flex flex-col items-center group w-full"
                 >
                   <div className="w-full relative overflow-hidden rounded-[5px]">
-                    <Image 
+                    <Image loader={shopifyLoader} 
                       src={cat.image} 
                       alt={cat.title} 
                       width={600}

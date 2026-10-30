@@ -1,3 +1,5 @@
+import { storesForSurface, designsLink, STORE_SURFACES } from "@/lib/storeContent";
+
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
 
 export const organizationSchema = {
@@ -78,96 +80,89 @@ export const websiteSchema = {
   }
 };
 
-export const storesSchema = [
-  {
-    "@type": "Store",
-    "@id": `${baseUrl}/#chembur-store`,
-    "name": "Chembur Lucira Store",
-    "url": `${baseUrl}/`,
-    "image": "https://luciraonline.myshopify.com/cdn/shop/files/LJ_Logo_Pink.svg?v=1759481962",
-    "telephone": "+919004402038",
-    "parentOrganization": { "@id": `${baseUrl}/#org` },
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Shop No. 3, Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd",
-      "addressLocality": "Chembur",
-      "addressRegion": "MH",
-      "postalCode": "400071",
-      "addressCountry": "IN"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "76"
-    }
-  },
-  {
-    "@type": "Store",
-    "@id": `${baseUrl}/#pune-store`,
-    "name": "Pune Lucira Store",
-    "url": `${baseUrl}/`,
-    "image": "https://luciraonline.myshopify.com/cdn/shop/files/LJ_Logo_Pink.svg?v=1759481962",
-    "telephone": "+918433667236",
-    "parentOrganization": { "@id": `${baseUrl}/#org` },
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Shop No. 3, 4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd",
-      "addressLocality": "Pune",
-      "addressRegion": "MH",
-      "postalCode": "411005",
-      "addressCountry": "IN"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "86"
-    }
-  },
-  {
-    "@type": "Store",
-    "@id": `${baseUrl}/#borivali-store`,
-    "name": "Sky City Borivali Store",
-    "url": `${baseUrl}/`,
-    "image": "https://luciraonline.myshopify.com/cdn/shop/files/LJ_Logo_Pink.svg?v=1759481962",
-    "telephone": "+918433667238",
-    "parentOrganization": { "@id": `${baseUrl}/#org` },
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "Sky City Mall, S-40, 2nd Floor, Western Express Hwy",
-      "addressLocality": "Borivali East",
-      "addressRegion": "MH",
-      "postalCode": "400066",
-      "addressCountry": "IN"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "86"
-    }
-  },
-  {
-    "@type": "Store",
-    "@id": `${baseUrl}/#lajpat-nagar-store`,
-    "name": "Lajpat Nagar Lucira Store",
-    "url": `${baseUrl}/`,
-    "image": "https://luciraonline.myshopify.com/cdn/shop/files/LJ_Logo_Pink.svg?v=1759481962",
-    "telephone": "+917208007495",
-    "parentOrganization": { "@id": `${baseUrl}/#org` },
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "A-59A, Ground Floor, Left Side, Lajpat Nagar-2",
-      "addressLocality": "New Delhi",
-      "addressRegion": "DL",
-      "postalCode": "110024",
-      "addressCountry": "IN"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "40"
-    }
-  }
+// State → the two-letter code the old hand-written entries used. Read off the
+// dashboard address (or the city, where the address never names the state —
+// "Borivali East, Mumbai - 400066").
+const REGION_BY_PLACE = [
+  [/maharashtra|mumbai|pune/i, "MH"],
+  [/delhi/i, "DL"],
+  [/uttar pradesh|noida/i, "UP"],
+  [/karnataka|bengaluru|bangalore/i, "KA"],
 ];
+
+const absoluteUrl = (path) => (/^https?:\/\//.test(path) ? path : `${baseUrl}${path.startsWith("/") ? "" : "/"}${path}`);
+
+function storeAddressSchema(store) {
+  const address = String(store.address || "").trim();
+  const postalCode = (address.match(/\b\d{6}\b(?!.*\b\d{6}\b)/) || [])[0];
+  const region = REGION_BY_PLACE.find(([pattern]) => pattern.test(`${address} ${store.city || ""}`))?.[1];
+  return {
+    "@type": "PostalAddress",
+    "streetAddress": address,
+    "addressLocality": store.city || undefined,
+    "addressRegion": region,
+    "postalCode": postalCode,
+    "addressCountry": "IN",
+  };
+}
+
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const WEEKEND = ["Saturday", "Sunday"];
+const isTime = (t) => /^\d{1,2}:\d{2}$/.test(String(t || ""));
+
+function openingHoursSchema(hours) {
+  return [
+    [WEEKDAYS, hours?.weekday],
+    [WEEKEND, hours?.weekend],
+  ]
+    .filter(([, h]) => isTime(h?.open) && isTime(h?.close))
+    .map(([days, h]) => ({
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": days,
+      "opens": h.open,
+      "closes": h.close,
+    }));
+}
+
+/**
+ * One Store entry per physical store, built from the dashboard's store content
+ * (Dashboard → Stores, see lib/storeContent.js) — so a store added, edited or
+ * closed there is reflected here with no code change.
+ *
+ * The stores listed are the ones the store locator shows, minus the two kinds
+ * a shopper cannot walk into yet: the head office (`visitable: false`) and a
+ * store still marked Opening Soon, which joins on its own once it opens.
+ *
+ * Each entry points at the store's own page and its own photo, not the
+ * homepage and the logo. There is no aggregateRating: the dashboard keeps a
+ * star value but no review count, which the property requires, and Google
+ * does not show stars a business publishes about itself anyway.
+ */
+export function getStoresSchema(storePages) {
+  return storesForSurface(storePages, STORE_SURFACES.storeLocator)
+    .filter((store) => store.visitable !== false && store.status !== "opening_soon")
+    .map((store) => {
+      const image = store.images?.locator || store.images?.homepage || store.images?.collection?.[0] || organizationSchema.image.url;
+      const lat = Number(store.geo?.lat);
+      const lng = Number(store.geo?.lng);
+      const hours = openingHoursSchema(store.hours);
+      const phone = String(store.phone || "").replace(/[^\d+]/g, "");
+      return {
+        "@type": "Store",
+        "@id": `${baseUrl}/#${store.handle}`,
+        "name": store.name,
+        "url": absoluteUrl(designsLink(store)),
+        "image": image,
+        ...(phone ? { "telephone": phone } : {}),
+        ...(store.email ? { "email": store.email } : {}),
+        "parentOrganization": { "@id": `${baseUrl}/#org` },
+        "address": storeAddressSchema(store),
+        ...(lat && lng ? { "geo": { "@type": "GeoCoordinates", "latitude": lat, "longitude": lng } } : {}),
+        ...(store.links?.map ? { "hasMap": store.links.map } : {}),
+        ...(hours.length ? { "openingHoursSpecification": hours } : {}),
+      };
+    });
+}
 
 export function getBreadcrumbSchema(items) {
   return {

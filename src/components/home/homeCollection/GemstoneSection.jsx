@@ -119,6 +119,14 @@ export default function GemstoneSection({ initialProducts, initialCategories }) 
       colLink="/collections/gemstone-jewelry"
       onTabChange={(tab) => setActiveTab(tab)}
       loading={loading || tabsLoading}
+      /*
+       * The gap above is already supplied by ShopByOccasion's my-8 md:my-12
+       * margin, so the shared pt-6 md:pt-15 default doubled it to ~56/108px,
+       * while BuildYourJewelry below adds nothing. No extra top padding here,
+       * and a bottom padding matching the occasion margins keeps the section
+       * visually centred: ~32/48px above and below.
+       */
+      spacingClassName="pb-8 md:pb-12"
     >
       <CollectionSlider
         products={products.length > 0 ? products : (loading ? [] : null)}

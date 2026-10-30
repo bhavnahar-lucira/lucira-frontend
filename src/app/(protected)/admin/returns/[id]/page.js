@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import {
@@ -226,7 +227,7 @@ export default function ReturnDetailPage() {
             <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex gap-4">
               <div className="size-16 bg-[#FBFBFB] rounded-xl overflow-hidden shrink-0 border border-zinc-50 flex items-center justify-center p-1.5">
                 {item.image ? (
-                  <Image src={item.image} alt={item.title} width={80} height={80} className="object-contain w-full h-full" />
+                  <Image loader={shopifyLoader} src={item.image} alt={item.title} width={80} height={80} className="object-contain w-full h-full" />
                 ) : (
                   <RefreshCcw className="text-zinc-200" size={22} />
                 )}

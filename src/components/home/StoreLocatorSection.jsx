@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import LazyImage from "../common/LazyImage";
 import {
   MapPinned,
@@ -9,248 +10,15 @@ import {
   Clock3,
   Star,
   Circle,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import Responsive from "@/components/common/Responsive";
 import { pushPromoClick } from "@/lib/gtm";
 import OpeningSoonOverlay from "@/components/common/OpeningSoonOverlay";
-import { isStoreActive, handleFromDesignLink } from "@/data/stores";
-
-function isStoreOpenIST(store) {
-  const indiaNow = new Date(
-    new Date().toLocaleString("en-US", {
-      timeZone: "Asia/Kolkata",
-    })
-  );
-
-  const day = indiaNow.getDay();
-  const isWeekend = day === 0 || day === 6;
-
-  const hours = isWeekend
-    ? store.storeHours.weekend
-    : store.storeHours.weekday;
-
-  const [openHour, openMinute] = hours.open.split(":").map(Number);
-  const [closeHour, closeMinute] = hours.close.split(":").map(Number);
-
-  const currentMinutes =
-    indiaNow.getHours() * 60 + indiaNow.getMinutes();
-
-  const openMinutes = openHour * 60 + openMinute;
-  const closeMinutes = closeHour * 60 + closeMinute;
-
-  if (closeMinutes < openMinutes) {
-    return currentMinutes >= openMinutes || currentMinutes <= closeMinutes;
-  }
-
-  return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
-}
-
-function formatTimings(store) {
-  const { weekday, weekend } = store.storeHours;
-
-  const formatTime = (time) => {
-    let [h, m] = time.split(":").map(Number);
-    const ampm = h >= 12 ? "pm" : "am";
-    h = h % 12 || 12;
-    return `${h}:${m.toString().padStart(2, "0")} ${ampm}`;
-  };
-
-  const same =
-    weekday.open === weekend.open &&
-    weekday.close === weekend.close;
-
-  if (same) {
-    return `Monday - Sunday | ${formatTime(weekday.open)} - ${formatTime(weekday.close)}`;
-  }
-
-  return `Mon-Fri | ${formatTime(weekday.open)} - ${formatTime(weekday.close)}  •  Sat-Sun | ${formatTime(weekend.open)} - ${formatTime(weekend.close)}`;
-}
-
-const ALL_STORES = [
-  {
-    city: "Pune",
-    name: "Pune Lucira Store",
-    rating: 4.8,
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_Pune.jpg",
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://maps.google.com/?q=Pune+Lucira+Store",
-    callLink: "tel:+918433667236",
-    designLink: "/collections/pune-store",
-    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Pune%20Store",
-    facilities: [
-      "Kids Area",
-      "Design Your Ring",
-      "Open Weekends",
-      "Banks Nearby",
-      "Parking Available",
-      "Exclusive Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
-      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
-    ],
-    address:
-      "Shop no. 3,4, Balgandharv Chowk, Sai Square, 5 & 6, Jangali Maharaj Rd, Pune, Maharashtra 411005",
-  },
-  {
-    city: "Chembur",
-    name: "Chembur Lucira Store",
-    rating: 4.7,
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_Chembur.jpg",
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://maps.google.com/?q=Chembur+Lucira+Store",
-    callLink: "tel:+919004402038",
-    designLink: "/collections/chembur-store",
-    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Chembur%20Store",
-    facilities: [
-      "Open on Weekends",
-      "Banks Nearby",
-      "Parking Availability",
-      "Daily Offers",      
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
-      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
-    ],
-    address:
-      "Shop No. 3 Ground Floor, 487, Geraldine CHS LTD, Central Ave Rd, Chembur, Mumbai, Maharashtra 400071",
-  },
-  {
-    city: "Borivali",
-    name: "Borivali Lucira Store",
-    rating: 4.9,
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_Borivali.jpg",
-    storeHours: {
-      weekday: { open: "10:30", close: "21:30" },
-      weekend: { open: "10:30", close: "21:30" },
-    },
-    mapLink: "https://maps.google.com/?q=Borivali+Lucira+Store",
-    callLink: "tel:+918433667238",
-    designLink: "/collections/sky-city-borivali-store",
-    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Borivali%20Store",
-    facilities: [
-      "Design Your Ring",
-      "Open Weekends",
-      "Parking Available",
-      "Exclusive Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
-      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
-    ],
-    address:
-      "Sky City Mall, S-40, 2nd Floor, Western Express Hwy, Borivali East, Mumbai - 400066",
-  },
-  {
-    city: "Noida",
-    name: "Noida Lucira Store",
-    rating: 4.9,
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_Noida.jpg",
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://maps.google.com/?q=Noida+Lucira+Store",
-    callLink: "tel:+918657392887",
-    designLink: "/collections/noida-store",
-    appointmentLink: "https://wa.me/919004435760?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Noida%20Store",
-    facilities: [
-      "Kids Area",
-      "Design Your Ring",
-      "Open Weekends",
-      "Banks Nearby",
-      "Parking Available",
-      "Exclusive Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
-      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
-    ],
-    address:
-      "SCO-17, Wave One Courtyard, Sector 18, Gautam Buddha Nagar, Noida, Uttar Pradesh: 201301",
-  },
-  {
-    city: "Paschim Vihar",
-    name: "Paschim Vihar Lucira Store",
-    rating: 4.7,
-    image: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982",
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://www.google.com/maps/place/Lucira+Jewelry+%7C+Jewellery+Store+in+Paschim+Vihar/@28.6690057,77.0913898,17z/data=!3m1!4b1!4m6!3m5!1s0x390d05249d584873:0xc8f976a13ee1921d!8m2!3d28.669001!4d77.0939647!16s%2Fg%2F11nq100hwp?entry=ttu&g_ep=EgoyMDI2MDYyNC4wIKXMDSoASAFQAw%3D%3D",
-    callLink: "tel:+917208007494",
-    designLink: "/collections/paschim-vihar",
-    appointmentLink: "https://wa.me/917208007494?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Paschim%20Vihar%20Store",
-    facilities: [
-      "Open on Weekends",
-      "Banks Nearby",
-      "Parking Availability",
-      "Daily Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
-      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
-    ],
-    address:
-      "B-8, Shubham Enclave, Paschim Vihar, New Delhi -110063.",
-  },
-  {
-    city: "Lajpat Nagar",
-    name: "Lajpat Nagar Lucira Store",
-    openingSoon: false,
-    image: "https://luciraonline.myshopify.com/cdn/shop/files/Noida_Store_1920_823_jpg_1920x823_crop_center.jpg?v=1776422892",
-    storeHours: {
-      weekday: { open: "10:30", close: "22:00" },
-      weekend: { open: "10:30", close: "22:00" },
-    },
-    mapLink: "https://www.google.com/maps/search/Lucira+Jewelry+Lajpat+Nagar+New+Delhi",
-    callLink: "tel:+917208007495",
-    designLink: "/collections/lajpat-nagar-store",
-    appointmentLink: "https://wa.me/917208007495?text=Hi,%20I%20would%20like%20to%20book%20an%20appointment%20at%20the%20Lajpat%20Nagar%20Store",
-    facilities: [
-      "Open on Weekends",
-      "Banks Nearby",
-      "Parking Availability",
-      "Daily Offers",
-      "Piercing"
-    ],
-    services: [
-      { title: "Gold Exchange", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_gold-exchange.svg" },
-      { title: "Vault of Dreams", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_vault.svg" },
-      { title: "Carat Tester", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_carat-tester.svg" },
-      { title: "Jewelry Cleaning", icon: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Homepage_Store_jewelry-cleaning.svg" },
-    ],
-    address:
-      "A-59A, Ground Floor, Left Side, Lajpat Nagar-2, New Delhi 110024",
-  },
-];
-
-// Only stores marked active in the central registry (src/data/stores.js) are shown.
-const stores = ALL_STORES.filter((s) => isStoreActive(handleFromDesignLink(s.designLink)));
-
+import { isStoreActive } from "@/data/stores";
+import { storesForSurface, formatTimings, storeStatus, designsLink } from "@/lib/storeContent";
+import StoreFootfallModal from "@/components/common/StoreFootfallModal";
 function ServiceCard({ item }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-md bg-white px-3 py-4 text-center">
@@ -264,24 +32,453 @@ function ServiceCard({ item }) {
   );
 }
 
-export default function StoreLocatorSection({ locationId = "homepage" }) {
-  const isMobile = useMediaQuery("(max-width: 1023px)");
+/**
+ * "Visit Lucira Stores Near You"
+ *
+ * Stores, their order, and images come directly from Dashboard → Stores via `storePages`.
+ * On the homepage (`surface === "homepage"`), it displays a modern carousel of experience stores
+ * with direct design links and a "BOOK A STORE VISIT" action.
+ * On other surfaces (like PDP), it retains the tabbed details view.
+ */
+export default function StoreLocatorSection({ locationId = "homepage", storePages = null, surface = "homepage" }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeStore = stores[activeIndex];
-  const storeOpeningSoon = !!activeStore.openingSoon;
-  const storeIsOpen = !storeOpeningSoon && isStoreOpenIST(activeStore);
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+  const [isDraggingState, setIsDraggingState] = useState(false);
 
-  const handleStoreCtaClick = (action) => {
+  // `isStoreActive` is the site-wide kill switch in src/data/stores.js;
+  // the dashboard's own `published` flag is applied by `storesForSurface`.
+  const stores = storesForSurface(storePages, surface).filter((s) => isStoreActive(s.handle));
+
+  const handleStoreCtaClick = (action, storeCity) => {
     pushPromoClick({
       creative_name: `visit store section ${locationId}`,
       location_id: locationId,
-      promo_id: activeStore.city,
+      promo_id: storeCity || "all",
       promo_name: action,
     });
   };
 
-  if (isMobile) {
+  // Ensure each group has at least 5 stores so that 1 set is always > viewport width
+  const baseStores = stores.length > 0 && stores.length < 5 ? [...stores, ...stores] : stores;
+
+  const containerRef = useRef(null);
+  const trackRef = useRef(null);
+  const group1Ref = useRef(null);
+
+  const xPosRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const isHoveredRef = useRef(false);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const lastMoveXRef = useRef(0);
+  const lastMoveTimeRef = useRef(0);
+  const dragVelocityRef = useRef(0);
+  const momentumRef = useRef(0);
+  const isDirectionDeterminedRef = useRef(false);
+  const isScrollingVerticalRef = useRef(false);
+
+  // Unified Drag Handlers
+  const onDragStart = (clientX, clientY) => {
+    isDraggingRef.current = true;
+    setIsDraggingState(true);
+    hasDraggedRef.current = false;
+    isDirectionDeterminedRef.current = false;
+    isScrollingVerticalRef.current = false;
+    momentumRef.current = 0;
+    startXRef.current = clientX;
+    startYRef.current = clientY;
+    lastMoveXRef.current = clientX;
+    lastMoveTimeRef.current = performance.now();
+    dragVelocityRef.current = 0;
+  };
+
+  const onDragMove = (clientX, clientY, e) => {
+    if (!isDraggingRef.current) return;
+
+    const dx = clientX - startXRef.current;
+    const dy = clientY - startYRef.current;
+
+    // For touch devices, verify whether this gesture is vertical page scrolling or horizontal carousel drag
+    if (!isDirectionDeterminedRef.current) {
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+        isDirectionDeterminedRef.current = true;
+        if (Math.abs(dy) > Math.abs(dx)) {
+          // Vertical page scroll: release horizontal drag immediately
+          isScrollingVerticalRef.current = true;
+          isDraggingRef.current = false;
+          setIsDraggingState(false);
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+
+    if (isScrollingVerticalRef.current) return;
+
+    if (e && e.cancelable) {
+      e.preventDefault();
+    }
+
+    if (Math.abs(dx) > 5) {
+      hasDraggedRef.current = true;
+    }
+
+    const stepDx = clientX - lastMoveXRef.current;
+    xPosRef.current += stepDx;
+
+    const singleWidth = group1Ref.current?.offsetWidth || 0;
+    if (singleWidth > 0) {
+      while (xPosRef.current <= -singleWidth) xPosRef.current += singleWidth;
+      while (xPosRef.current > 0) xPosRef.current -= singleWidth;
+    }
+
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translate3d(${xPosRef.current}px, 0, 0)`;
+    }
+
+    const now = performance.now();
+    const dt = Math.max(now - lastMoveTimeRef.current, 8);
+    const v = (stepDx / dt) * 16.67;
+    dragVelocityRef.current = dragVelocityRef.current * 0.3 + v * 0.7;
+    lastMoveXRef.current = clientX;
+    lastMoveTimeRef.current = now;
+  };
+
+  const onDragEnd = () => {
+    if (!isDraggingRef.current && !isScrollingVerticalRef.current) return;
+    isDraggingRef.current = false;
+    setIsDraggingState(false);
+
+    const timeSinceLast = performance.now() - lastMoveTimeRef.current;
+    if (hasDraggedRef.current && timeSinceLast < 100 && Math.abs(dragVelocityRef.current) > 0.8) {
+      momentumRef.current = Math.max(Math.min(dragVelocityRef.current, 28), -28);
+    } else {
+      momentumRef.current = 0;
+    }
+
+    if (hasDraggedRef.current) {
+      setTimeout(() => {
+        hasDraggedRef.current = false;
+      }, 150);
+    }
+  };
+
+  // Hardware-accelerated 60/120fps auto-scroll + momentum loop
+  useEffect(() => {
+    if (surface !== "homepage") return;
+
+    let animId;
+    let lastTime = performance.now();
+    const autoSpeed = 1.8; // Brisk and lively speed (~110px/sec)
+
+    const tick = (now) => {
+      const dt = Math.min(now - lastTime, 50);
+      const factor = dt / 16.67;
+      lastTime = now;
+
+      const singleWidth = group1Ref.current?.offsetWidth || 0;
+
+      if (singleWidth > 0 && trackRef.current) {
+        if (!isDraggingRef.current) {
+          if (Math.abs(momentumRef.current) > 0.1) {
+            xPosRef.current += momentumRef.current * factor;
+            momentumRef.current *= Math.pow(0.92, factor);
+          } else {
+            momentumRef.current = 0;
+            if (!isHoveredRef.current) {
+              xPosRef.current -= autoSpeed * factor;
+            }
+          }
+
+          while (xPosRef.current <= -singleWidth) {
+            xPosRef.current += singleWidth;
+          }
+          while (xPosRef.current > 0) {
+            xPosRef.current -= singleWidth;
+          }
+
+          trackRef.current.style.transform = `translate3d(${xPosRef.current}px, 0, 0)`;
+        }
+      }
+
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, [surface, stores.length]);
+
+  // Global mouse event listeners for desktop drag outside container bounds
+  useEffect(() => {
+    if (surface !== "homepage") return;
+
+    const onWindowMouseMove = (e) => {
+      if (isDraggingRef.current) {
+        onDragMove(e.clientX, e.clientY, e);
+      }
+    };
+
+    const onWindowMouseUp = () => {
+      if (isDraggingRef.current) {
+        onDragEnd();
+      }
+    };
+
+    window.addEventListener("mousemove", onWindowMouseMove);
+    window.addEventListener("mouseup", onWindowMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", onWindowMouseMove);
+      window.removeEventListener("mouseup", onWindowMouseUp);
+    };
+  }, [surface]);
+
+  // Touch event listeners attached directly with { passive: false } for 1:1 mobile tracking
+  useEffect(() => {
+    if (surface !== "homepage") return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 1) {
+        onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleTouchMove = (e) => {
+      if (e.touches.length === 1 && isDraggingRef.current) {
+        onDragMove(e.touches[0].clientX, e.touches[0].clientY, e);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      onDragEnd();
+    };
+
+    container.addEventListener("touchstart", handleTouchStart, { passive: true });
+    container.addEventListener("touchmove", handleTouchMove, { passive: false });
+    container.addEventListener("touchend", handleTouchEnd, { passive: true });
+    container.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", handleTouchEnd);
+      container.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [surface]);
+
+  const renderStoreCard = (store, key) => {
+    const storeStatusObj = storeStatus(store);
+    const storeImage = store.images?.homepage || store.images?.locator || store.images?.collection?.[0] || "";
+    const storeLabel = store.experienceLabel || (store.city ? `${store.city} Store` : store.name);
+    const targetHref = designsLink(store);
+
     return (
+      <div
+        key={key}
+        className="flex-shrink-0 w-[82vw] sm:w-[45vw] lg:w-[31vw] xl:w-[29vw] pr-3.5 sm:pr-4 lg:pr-5 select-none"
+      >
+        <Link
+          href={targetHref}
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
+          onClick={(e) => {
+            if (hasDraggedRef.current) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            handleStoreCtaClick("Store Card", store.city);
+          }}
+          className="group block relative w-full aspect-[16/10] select-none cursor-pointer"
+        >
+          {/* Masked Card Visual (Image + Gradient + Store Name) */}
+          <div className="store-card-inverted-mask absolute inset-0 w-full h-full overflow-hidden bg-neutral-100">
+            {/* Store Photo */}
+            {storeImage ? (
+              <LazyImage
+                src={storeImage}
+                alt={storeLabel}
+                fill
+                sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 30vw"
+                className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none select-none"
+                draggable={false}
+              />
+            ) : (
+              <div className="w-full h-full bg-neutral-200" />
+            )}
+
+            {/* Localized dark shadow overlay only around the h2 heading */}
+            <div
+              className="absolute bottom-0 left-0 w-[75%] sm:w-[65%] h-[48%] pointer-events-none"
+              style={{
+                background: "radial-gradient(ellipse at 0% 100%, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.38) 40%, rgba(0, 0, 0, 0.08) 70%, transparent 100%)",
+              }}
+            />
+
+            {/* Opening Soon Overlay */}
+            {storeStatusObj.openingSoon && <OpeningSoonOverlay />}
+
+            {/* Bottom-Left: Store Name */}
+            <div className="absolute bottom-4 sm:bottom-5 left-4 sm:left-[18px] z-10 pr-16 pointer-events-none select-none">
+              <h2 className="font-figtree font-medium text-white text-[16px] leading-[100%] tracking-normal drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">
+                {storeLabel}
+              </h2>
+            </div>
+          </div>
+
+          {/* Bottom-Right Circular Action Button synced edge-to-edge */}
+          <div className="arrow-parent absolute right-[2px] bottom-[2px] z-20 pointer-events-auto">
+            <div className="w-[44px] h-[44px] rounded-full border border-primary flex items-center justify-center bg-white text-primary transition-colors duration-300 group-hover:bg-primary group-hover:border-primary group-hover:text-white shadow-sm box-border cursor-pointer">
+              <ArrowUpRight className="w-[18px] h-[18px] stroke-[1.8]" style={{ width: "18px", height: "18px" }} />
+            </div>
+          </div>
+        </Link>
+      </div>
+    );
+  };
+
+  // HOMEPAGE: Modern visual slider view matching Figma mockup & continuous marquee
+  if (surface === "homepage") {
+    if (!stores.length) return null;
+
+    return (
+      <section className="w-full bg-white pt-10 md:pt-16 pb-[30px] md:pb-[30px] overflow-hidden">
+        {/* Section Heading inside container-main */}
+        <div className="container-main">
+          <div className="text-center mb-6 sm:mb-8 lg:mb-10">
+            <h2 className="text-2xl lg:text-4xl font-extrabold font-abhaya mb-1 text-black">
+              Visit Lucira Stores Near You
+            </h2>
+          </div>
+        </div>
+
+        {/* Stores Marquee Carousel: Full-width edge-to-edge with smooth drag */}
+        <div
+          ref={containerRef}
+          onMouseDown={(e) => {
+            if (e.button === 0) {
+              onDragStart(e.clientX, e.clientY);
+            }
+          }}
+          onMouseEnter={() => {
+            isHoveredRef.current = true;
+          }}
+          onMouseLeave={() => {
+            if (!isDraggingRef.current) {
+              isHoveredRef.current = false;
+            }
+          }}
+          className={`w-full relative overflow-hidden select-none ${
+            isDraggingState ? "cursor-grabbing" : "cursor-grab"
+          }`}
+          style={{ touchAction: "pan-y" }}
+          aria-label="Lucira stores"
+        >
+          <div
+            ref={trackRef}
+            className="flex w-max"
+            style={{ willChange: "transform" }}
+          >
+            {/* Group 1 */}
+            <div ref={group1Ref} className="flex shrink-0">
+              {baseStores.map((store, idx) => renderStoreCard(store, `g1-${store.handle || store.id}-${idx}`))}
+            </div>
+
+            {/* Group 2: an exact duplicate for seamless infinite loop */}
+            <div className="flex shrink-0" aria-hidden="true">
+              {baseStores.map((store, idx) => renderStoreCard(store, `g2-${store.handle || store.id}-${idx}`))}
+            </div>
+          </div>
+        </div>
+
+        {/* Centered CTA - opens StoreFootfallModal with appointment mode for homepage */}
+        <div className="container-main relative z-10">
+          <div className="mt-8 sm:mt-10 flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                handleStoreCtaClick("Book An Appointment");
+                setIsStoreModalOpen(true);
+              }}
+              className="inline-flex items-center justify-center w-fit md:w-auto px-7 py-3 h-auto text-sm md:text-base font-bold uppercase rounded-sm bg-primary hover:bg-[#4A3934] text-white transition-colors cursor-pointer shadow-sm"
+            >
+              BOOK AN APPOINTMENT
+            </button>
+          </div>
+        </div>
+
+        {/* Store Appointment Modal for Homepage */}
+        <StoreFootfallModal
+          open={isStoreModalOpen}
+          onClose={() => setIsStoreModalOpen(false)}
+          locationId={locationId}
+          isAppointment={true}
+          title="Book an Appointment"
+          subtitle="Select your preferred store to schedule a visit"
+          buttonLabel="Book an Appointment"
+        />
+
+        {/* Scoped and global styles for store section */}
+        <style>{`
+          .no-scrollbar::-webkit-scrollbar {
+            display: none !important;
+          }
+          .no-scrollbar {
+            -ms-overflow-style: none !important;
+            scrollbar-width: none !important;
+          }
+
+          /* Inverted Radius Cutout Mask */
+          .store-card-inverted-mask {
+            --r: 12px;
+            --s: 30px;
+            --x: 12px;
+            --y: 12px;
+
+            border-radius: var(--r);
+            --_m: /calc(2 * var(--r)) calc(2 * var(--r)) radial-gradient(#000 70%, #0000 72%);
+            --_g: conic-gradient(from 90deg at calc(100% - var(--r)) calc(100% - var(--r)), #0000 25%, #000 0);
+            --_d: (var(--s) + var(--r));
+            mask:
+              calc(100% - var(--_d) - var(--x)) 100% var(--_m),
+              100% calc(100% - var(--_d) - var(--y)) var(--_m),
+              radial-gradient(var(--s) at 100% 100%, #0000 99%, #000 calc(100% + 1px))
+                calc(-1 * var(--r) - var(--x)) calc(-1 * var(--r) - var(--y)),
+              var(--_g) calc(-1 * var(--_d) - var(--x)) 0,
+              var(--_g) 0 calc(-1 * var(--_d) - var(--y));
+            mask-repeat: no-repeat;
+            -webkit-mask:
+              calc(100% - var(--_d) - var(--x)) 100% var(--_m),
+              100% calc(100% - var(--_d) - var(--y)) var(--_m),
+              radial-gradient(var(--s) at 100% 100%, #0000 99%, #000 calc(100% + 1px))
+                calc(-1 * var(--r) - var(--x)) calc(-1 * var(--r) - var(--y)),
+              var(--_g) calc(-1 * var(--_d) - var(--x)) 0,
+              var(--_g) 0 calc(-1 * var(--_d) - var(--y));
+            -webkit-mask-repeat: no-repeat;
+          }
+        `}</style>
+      </section>
+    );
+  }
+
+  // OTHER SURFACES (e.g. PDP): Detailed tabbed view remains intact
+  const activeStore = stores[Math.min(activeIndex, stores.length - 1)];
+  if (!activeStore) return null;
+
+  const status = storeStatus(activeStore);
+  const isOpenTone = status.tone === "open";
+  const timings = formatTimings(activeStore);
+  const facilities = activeStore.facilities || [];
+  const services = activeStore.services || [];
+  const links = activeStore.links || {};
+  const image = activeStore.images?.homepage || "";
+  const designs = designsLink(activeStore);
+
+  const mobileView = (
       <section className="w-full bg-[#FEF5F1] py-6.5 mt-10 overflow-hidden">
         <div className="container-main">
           <div className="text-center mb-2 px-1 md:px-0">
@@ -292,7 +489,7 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
             <div className="flex gap-1.5 min-w-max px-1">
               {stores.map((store, index) => (
                 <button
-                  key={store.city}
+                  key={store.handle}
                   type="button"
                   onClick={() => setActiveIndex(index)}
                   className={`relative py-2.25 px-3.5 text-base text-black transition-all ${
@@ -309,12 +506,12 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
           <div className="flex flex-col gap-8">
             <div className="relative overflow-hidden rounded-2xl shadow-xl">
               <div className="relative aspect-[4/3.5] w-full">
-                <LazyImage src={activeStore.image} alt={activeStore.name} fill className="object-cover" />
+                <LazyImage src={image} alt={activeStore.name} fill className="object-cover" />
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }}
                 />
-                {storeOpeningSoon && <OpeningSoonOverlay />}
+                {status.openingSoon && <OpeningSoonOverlay />}
               </div>
 
               <div className="absolute left-5 right-5 top-5 flex items-start justify-between">
@@ -328,42 +525,46 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
               </div>
 
               <div className="absolute right-4 bottom-18">
-                <div className={`inline-flex items-center gap-2 rounded-full ${(storeOpeningSoon || storeIsOpen) ? "border-success bg-[#E8F5E9] text-[#28a745]" : "border-danger bg-[#f5e8e8] text-[#dc2626]"} border px-4 py-1.5 text-xs font-bold shadow-lg`}>
-                  <Circle size={8} className={ (storeOpeningSoon || storeIsOpen) ? "fill-[#28a745]" : "fill-[#dc2626]"} />
-                  {storeOpeningSoon ? "Opening Soon" : (storeIsOpen ? "Open Now" : "Closed")}
+                <div className={`inline-flex items-center gap-2 rounded-full ${isOpenTone ? "border-success bg-[#E8F5E9] text-[#28a745]" : "border-danger bg-[#f5e8e8] text-[#dc2626]"} border px-4 py-1.5 text-xs font-bold shadow-lg`}>
+                  <Circle size={8} className={isOpenTone ? "fill-[#28a745]" : "fill-[#dc2626]"} />
+                  {status.label}
                 </div>
               </div>
 
               <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-5 py-3 flex items-center gap-3">
                 <Clock3 size={18} className="text-[#5B4740]" />
                 <div className="text-[11px] font-bold text-zinc-800 uppercase tracking-tighter leading-tight">
-                  <span className="text-zinc-500 mr-1">Timings:</span> {formatTimings(activeStore)}
+                  <span className="text-zinc-500 mr-1">Timings:</span> {timings}
                 </div>
               </div>
             </div>
 
-            <div>
-              <h4 className="mb-3 text-base font-semibold text-black">Facilities at Store:</h4>
-              <div className="flex flex-wrap gap-2.5">
-                {activeStore.facilities.map((item) => (
-                  <span key={item} className="inline-block rounded-full bg-[#F7EEEA] py-1.25 px-[13.5px] text-black text-sm font-normal">{item}</span>
-                ))}
+            {facilities.length > 0 && (
+              <div>
+                <h4 className="mb-3 text-base font-semibold text-black">Facilities at Store:</h4>
+                <div className="flex flex-wrap gap-2.5">
+                  {facilities.map((item) => (
+                    <span key={item} className="inline-block rounded-full bg-[#F7EEEA] py-1.25 px-[13.5px] text-black text-sm font-normal">{item}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <h4 className="mb-3 text-base font-semibold text-black">Services Offered at Store:</h4>
-              <div className="grid grid-cols-2 gap-4">
-                {activeStore.services.map((item) => (
-                  <div key={item.title} className="flex flex-col items-center justify-center rounded-lg bg-white py-2.5 px-9 text-center">
-                     <div className="relative mb-3 h-10 w-10">
-                        <LazyImage src={item.icon} alt={item.title} fill className="object-contain" />
-                     </div>
-                     <p className="text-sm text-primary">{item.title}</p>
-                  </div>
-                ))}
+            {services.length > 0 && (
+              <div>
+                <h4 className="mb-3 text-base font-semibold text-black">Services Offered at Store:</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {services.map((item) => (
+                    <div key={item.title} className="flex flex-col items-center justify-center rounded-lg bg-white py-2.5 px-9 text-center">
+                       <div className="relative mb-3 h-10 w-10">
+                          <LazyImage src={item.icon} alt={item.title} fill className="object-contain" />
+                       </div>
+                       <p className="text-sm text-primary">{item.title}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <h4 className="mb-3 text-base font-semibold text-black">Address:</h4>
@@ -372,28 +573,33 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
 
             <div className="space-y-3">
                <div className="grid grid-cols-2 gap-3">
-                 <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                   <a href={activeStore.mapLink} target="_blank" rel="noopener noreferrer" onClick={() => handleStoreCtaClick("Direct Me")}><MapPinned className="mr-2 h-4 w-4" /> DIRECT ME</a>
-                 </Button>
-                 <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                   <a href={activeStore.callLink} onClick={() => handleStoreCtaClick("Call Us")}><Phone className="mr-2 h-4 w-4" /> CALL US</a>
-                 </Button>
+                 {links.map && (
+                   <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
+                     <a href={links.map} target="_blank" rel="noopener noreferrer" onClick={() => handleStoreCtaClick("Direct Me")}><MapPinned className="mr-2 h-4 w-4" /> DIRECT ME</a>
+                   </Button>
+                 )}
+                 {links.call && (
+                   <Button asChild variant="outline" className="h-12 rounded-sm border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
+                     <a href={links.call} onClick={() => handleStoreCtaClick("Call Us")}><Phone className="mr-2 h-4 w-4" /> CALL US</a>
+                   </Button>
+                 )}
                </div>
                <Button asChild variant="outline" className="h-12 w-full rounded-sm border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                 <a href={activeStore.designLink} onClick={() => handleStoreCtaClick("View Available Designs")}>VIEW AVAILABLE DESIGNS</a>
+                 <a href={designs} onClick={() => handleStoreCtaClick("View Available Designs")}>VIEW AVAILABLE DESIGNS</a>
                </Button>
-               <Button asChild className="h-12 w-full rounded-sm bg-[#5A413F] text-white font-medium text-sm sm:text-base uppercase shadow-lg">
-                 <a href={activeStore.appointmentLink} target="_blank" onClick={() => handleStoreCtaClick("Book Appointment")}><CalendarDays className="mr-2 h-4 w-4" />BOOK APPOINTMENT</a>
-               </Button>
+               {links.appointment && (
+                 <Button asChild className="h-12 w-full rounded-sm bg-[#5A413F] text-white font-medium text-sm sm:text-base uppercase shadow-lg">
+                   <a href={links.appointment} target="_blank" onClick={() => handleStoreCtaClick("Book Appointment")}><CalendarDays className="mr-2 h-4 w-4" />BOOK APPOINTMENT</a>
+                 </Button>
+               )}
             </div>
           </div>
         </div>
       </section>
-    );
-  }
+  );
 
   // DESKTOP VIEW
-  return (
+  const desktopView = (
     <section className="w-full bg-[#FEF5F1] py-14 mt-15">
       <div className="container-main max-w-360">
         <div className="text-left mb-4">
@@ -403,7 +609,7 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
         <div className="mb-6 flex flex-wrap gap-8">
           {stores.map((store, index) => (
             <button
-              key={store.city}
+              key={store.handle}
               type="button"
               onClick={() => setActiveIndex(index)}
               className={`relative py-2.25 px-3.5 text-base text-black transition ${
@@ -419,12 +625,12 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
         <div className="grid grid-cols-1 xl:gap-6 lg:gap-4 lg:grid-cols-[minmax(0,45fr)_minmax(0,55fr)]">
           <div className="relative overflow-hidden rounded-sm">
             <div className="relative aspect-[4/4.3] w-full h-full">
-              <LazyImage src={activeStore.image} alt={activeStore.name} fill className="object-cover" />
+              <LazyImage src={image} alt={activeStore.name} fill className="object-cover" />
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{ background: "linear-gradient(180deg, #000000 -25.71%, rgba(0, 0, 0, 0.751968) 3.02%, rgba(0, 0, 0, 0) 18.55%)" }}
               />
-              {storeOpeningSoon && <OpeningSoonOverlay />}
+              {status.openingSoon && <OpeningSoonOverlay />}
             </div>
 
             <div className="absolute left-4 right-4 top-4 flex items-start justify-between gap-4">
@@ -445,35 +651,39 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
               <div className="flex items-center gap-2 xl:text-sm lg:text-xs uppercase">
                 <Clock3 size={16} />
                 <span className="font-medium">
-                  <span className="font-semibold">Timings:</span> {formatTimings(activeStore)}
+                  <span className="font-semibold">Timings:</span> {timings}
                 </span>
               </div>
 
-              <div  className={`inline-flex items-center gap-2 rounded-full border ${(storeOpeningSoon || storeIsOpen) ? "border-success bg-success/10 text-[#28a745]" : "border-danger bg-danger/10 text-[#dc2626]"} px-3 py-1 text-base font-bold`}>
-                <Circle size={8} className={ (storeOpeningSoon || storeIsOpen) ? "fill-[#28a745]" : "fill-[#dc2626]"} />
-                {storeOpeningSoon ? "Opening Soon" : (storeIsOpen ? "Open Now" : "Closed")}
+              <div className={`inline-flex items-center gap-2 rounded-full border ${isOpenTone ? "border-success bg-success/10 text-[#28a745]" : "border-danger bg-danger/10 text-[#dc2626]"} px-3 py-1 text-base font-bold`}>
+                <Circle size={8} className={isOpenTone ? "fill-[#28a745]" : "fill-[#dc2626]"} />
+                {status.label}
               </div>
             </div>
           </div>
 
           <div className="min-w-0">
-            <div className="mb-6">
-              <h4 className="mb-3 text-base font-semibold text-black">Facilities at Store:</h4>
-              <div className="flex flex-wrap gap-3">
-                {activeStore.facilities.map((item) => (
-                  <span key={item} className="rounded-full bg-[#F7EEEA] px-4 py-2 text-base text-black">{item}</span>
-                ))}
+            {facilities.length > 0 && (
+              <div className="mb-6">
+                <h4 className="mb-3 text-base font-semibold text-black">Facilities at Store:</h4>
+                <div className="flex flex-wrap gap-3">
+                  {facilities.map((item) => (
+                    <span key={item} className="rounded-full bg-[#F7EEEA] px-4 py-2 text-base text-black">{item}</span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mb-6">
-              <h4 className="mb-3 text-base font-semibold text-black">Services Offered at Store:</h4>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {activeStore.services.map((item) => (
-                  <ServiceCard key={item.title} item={item} />
-                ))}
+            {services.length > 0 && (
+              <div className="mb-6">
+                <h4 className="mb-3 text-base font-semibold text-black">Services Offered at Store:</h4>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {services.map((item) => (
+                    <ServiceCard key={item.title} item={item} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="mb-6">
               <h4 className="mb-3 text-base font-semibold text-black">Address:</h4>
@@ -481,28 +691,36 @@ export default function StoreLocatorSection({ locationId = "homepage" }) {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                <a href={activeStore.mapLink} target="_blank" rel="noopener noreferrer" onClick={() => handleStoreCtaClick("Direct Me")}><MapPinned className="mr-2 h-6 w-6" /> DIRECT ME</a>
-              </Button>
-              <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                <a href={activeStore.callLink} onClick={() => handleStoreCtaClick("Call Us")}><Phone className="mr-2 h-6 w-6" /> CALL US</a>
-              </Button>
+              {links.map && (
+                <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
+                  <a href={links.map} target="_blank" rel="noopener noreferrer" onClick={() => handleStoreCtaClick("Direct Me")}><MapPinned className="mr-2 h-6 w-6" /> DIRECT ME</a>
+                </Button>
+              )}
+              {links.call && (
+                <Button asChild variant="outline" className="h-12 border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
+                  <a href={links.call} onClick={() => handleStoreCtaClick("Call Us")}><Phone className="mr-2 h-6 w-6" /> CALL US</a>
+                </Button>
+              )}
             </div>
 
             <div className="mt-3">
               <Button asChild variant="outline" className="h-12 w-full border-primary bg-transparent text-black font-medium text-sm sm:text-base uppercase shadow-sm">
-                <a href={activeStore.designLink} onClick={() => handleStoreCtaClick("View Available Designs")}>VIEW AVAILABLE DESIGNS</a>
+                <a href={designs} onClick={() => handleStoreCtaClick("View Available Designs")}>VIEW AVAILABLE DESIGNS</a>
               </Button>
             </div>
 
-            <div className="mt-3">
-              <Button asChild className="h-12 w-full text-white font-medium text-sm sm:text-base uppercase">
-                <a href={activeStore.appointmentLink} target="_blank" onClick={() => handleStoreCtaClick("Book Appointment")}><CalendarDays className="mr-2 h-6 w-6" /> BOOK APPOINTMENT</a>
-              </Button>
-            </div>
+            {links.appointment && (
+              <div className="mt-3">
+                <Button asChild className="h-12 w-full text-white font-medium text-sm sm:text-base uppercase">
+                  <a href={links.appointment} target="_blank" onClick={() => handleStoreCtaClick("Book Appointment")}><CalendarDays className="mr-2 h-6 w-6" /> BOOK APPOINTMENT</a>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </section>
   );
+
+  return <Responsive maxMobilePx={1023} mobile={mobileView} desktop={desktopView} />;
 }

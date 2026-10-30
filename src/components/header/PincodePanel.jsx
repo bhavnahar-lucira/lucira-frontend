@@ -26,7 +26,6 @@ import {
   CalendarCheck, Truck, Sparkles, AlertCircle, ArrowRight,
 } from "lucide-react";
 import { resolveNearestStores, formatKm, NO_PINCODE } from "@/lib/nearestStore";
-import { NEAREST_STORE_MAX_KM } from "@/data/storeGeo";
 import { useUserPincode } from "@/hooks/useUserPincode";
 import { pushPromoClick, pushToDataLayer } from "@/lib/gtm";
 
@@ -244,12 +243,18 @@ function StoreCard({ store, rank, onNavigate }) {
 export default function PincodePanel({ ctl, onDone, compact = false }) {
   const {
     draft, setDraft, attempt, resolved, busy, locating,
-    resolve, locateMe, reset, showResult, setEditing,
+    resolve, locateMe, showResult, setEditing,
   } = ctl;
 
   const inputRef = useRef(null);
   const invalid = attempt.status === "invalid" && !!attempt.pincode;
   const outOfRange = showResult && resolved.status === "out_of_range";
+
+  // The results block already links to the locator in two cases — "See all
+  // Lucira stores" when out of range, and "+N more stores near you" when the
+  // list is truncated. The footer stands down for those, so the panel never
+  // stacks two links to the same page.
+  const locatorLinkedAbove = outOfRange || resolved.nearby.length > 2;
 
   // Deliberately does NOT close the panel on success. Showing the nearest store
   // is the payoff for entering a pincode — closing here would hide the one thing
@@ -305,16 +310,15 @@ export default function PincodePanel({ ctl, onDone, compact = false }) {
           >
             Find your nearest store
           </h3>
+          {/* The city list that used to sit under this line was dropped: the
+              store list keeps growing and there is no room for it here. */}
           <p
-            className={`mx-auto mt-1.5 max-w-[268px] text-center leading-relaxed text-[#6B5651] ${
+            className={`mx-auto mt-1.5 mb-4 max-w-[268px] text-center leading-relaxed text-[#6B5651] ${
               compact ? "text-[11.5px]" : "text-[12.5px]"
             }`}
           >
             See which Lucira store is closest to you, and what&apos;s ready to try
             on today.
-          </p>
-          <p className="mt-2 mb-4 text-center font-figtree text-[8.5px] font-bold uppercase tracking-[0.14em] text-[#B77767]">
-            Mumbai · Pune · Delhi NCR
           </p>
         </>
       )}
@@ -398,8 +402,8 @@ export default function PincodePanel({ ctl, onDone, compact = false }) {
                   <b className="block text-[12.5px] font-bold text-[#241B19]">
                     We deliver here
                   </b>
-                  Our closest store is over {NEAREST_STORE_MAX_KM}&nbsp;km away, so
-                  shop the full collection online.
+                  No Lucira store near you yet — the full collection is
+                  available to order online.
                 </span>
               </div>
               <Link
@@ -466,14 +470,21 @@ export default function PincodePanel({ ctl, onDone, compact = false }) {
         </div>
       )}
 
-      {showResult && (
-        <button
-          type="button"
-          onClick={reset}
-          className="mt-2.5 w-full rounded-md py-1 text-center font-figtree text-[10px] font-semibold uppercase tracking-[0.08em] text-[#B09993] transition-colors hover:text-[#8C5A4C]"
+      {/* Tertiary slot. It used to hold "Clear pincode", which sat directly
+          under "Change" and duplicated it — changing a pincode is what a
+          shopper actually wants, and clearing one left the panel with nothing
+          to say. The locator is the more useful destination, so it takes the
+          slot. Quiet rose text keeps it below the solid "Directions" CTA. */}
+      {showResult && !locatorLinkedAbove && (
+        <Link
+          href="/pages/store-locator"
+          prefetch={false}
+          onClick={onDone}
+          className="mt-2.5 flex w-full items-center justify-center gap-1 rounded-md py-1 font-figtree text-[10px] font-semibold uppercase tracking-[0.08em] text-[#B77767] transition-colors hover:text-[#8C5A4C] hover:underline"
         >
-          Clear pincode
-        </button>
+          View all stores
+          <ChevronRight size={12} strokeWidth={2.4} />
+        </Link>
       )}
     </div>
   );

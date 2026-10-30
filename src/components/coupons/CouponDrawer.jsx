@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
  * Saving Zone. Slides in from the right on desktop and up from the bottom on
  * mobile, matching the PDP presentation exactly.
  */
-export default function CouponDrawer({ open, onClose, title = "Available Coupons", children }) {
+export default function CouponDrawer({ open, onClose, title = "Available Coupons", subtitle, children }) {
   const [isMobile, setIsMobile] = useState(false);
 
   // Track responsive screen size for drawer presentation
@@ -78,14 +78,21 @@ export default function CouponDrawer({ open, onClose, title = "Available Coupons
             {/* Header */}
             <div className="p-5 border-b border-[#FBE3DC] flex flex-col bg-white rounded-t-3xl sm:rounded-none shrink-0">
 
-              <div className="flex items-center justify-between w-full">
-                <h3 className="text-base font-figtree font-semibold text-[#5C3E35] tracking-wide uppercase">
-                  {title}
-                </h3>
+              <div className="flex items-center justify-between w-full gap-3">
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <h3 className="text-base font-figtree font-semibold text-[#5C3E35] tracking-wide uppercase truncate">
+                    {title}
+                  </h3>
+                  {subtitle && (
+                    <span className="font-figtree text-[11px] font-medium normal-case tracking-normal text-zinc-500">
+                      {subtitle}
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={onClose}
                   aria-label="Close coupon panel"
-                  className="p-1.5 hover:bg-[#FFF8F6] rounded-full transition-colors text-zinc-500 hover:text-zinc-900 cursor-pointer"
+                  className="shrink-0 p-1.5 hover:bg-[#FFF8F6] rounded-full transition-colors text-zinc-500 hover:text-zinc-900 cursor-pointer"
                 >
                   <X size={20} />
                 </button>

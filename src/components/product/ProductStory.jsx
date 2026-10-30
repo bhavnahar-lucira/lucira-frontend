@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 
 export default function ProductStory({ description }) {
   if (!description) return null;
@@ -22,7 +23,7 @@ export default function ProductStory({ description }) {
 
         {/* RIGHT IMAGE */}
         <div className="relative w-full h-70 lg:h-80 rounded-xl overflow-hidden bg-gray-100">
-          <Image
+          <Image loader={shopifyLoader}
             src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/story-ring.jpg"
             alt="Story Behind Product"
             fill

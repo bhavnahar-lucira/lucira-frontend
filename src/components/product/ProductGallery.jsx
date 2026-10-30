@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import LazyImage from "../common/LazyImage";
-import { Play, Copy, X, ChevronLeft, ChevronRight, Maximize2, Share2, ZoomIn, ZoomOut, Eye, BookCopy, Info } from "lucide-react";
+import { Play, Pause, Volume2, Copy, X, ChevronLeft, ChevronRight, Maximize2, Share2, ZoomIn, ZoomOut, Eye, BookCopy, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductGallerySkeleton from "./ProductGallerySkeleton";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -18,39 +18,142 @@ import "swiper/css/thumbs";
 import TryOnButton from "../common/TryOnButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { pushPromoClick } from "@/lib/gtm";
+import { sortGalleryMedia, HERO_IMAGE_SIZES } from "@/lib/galleryMedia";
 
-function formatCdnUrl(url) {
-  if (!url || typeof url !== 'string') return url;
-  return url.replace("https://www.lucirajewelry.com", "https://luciraonline.myshopify.com").replace("http://www.lucirajewelry.com", "https://luciraonline.myshopify.com");
+function ProductAudioButton({ src, className = "", productTitle = "", sku = "" }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!src) return;
+    const audio = new Audio(src);
+    audio.preload = "none";
+    audioRef.current = audio;
+    const onEnded = () => setIsPlaying(false);
+    const onPause = () => setIsPlaying(false);
+    const onPlay = () => setIsPlaying(true);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
+    return () => {
+      audio.pause();
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
+      audioRef.current = null;
+    };
+  }, [src]);
+
+  const toggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      pushPromoClick({
+        creative_name: "Product Audio",
+        promo_id: sku || productTitle,
+        promo_name: productTitle,
+        promo_position: "Above Media Gallery",
+        location_id: "pdp",
+      });
+      audio.play().catch(() => setIsPlaying(false));
+    } else {
+      audio.pause();
+    }
+  };
+
+  if (!src) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={isPlaying ? "Pause product audio" : "Play product audio"}
+      aria-pressed={isPlaying}
+      className={className}
+    >
+      <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center pointer-events-none">
+        <Pause size={16} strokeWidth={1.8} className={isPlaying ? "" : "hidden"} />
+        <Volume2 size={16} strokeWidth={1.8} className={isPlaying ? "hidden" : ""} />
+      </span>
+    </button>
+  );
 }
 
 export default function ProductGallery({ media = [], title = "", activeColor = "", onViewSimilar, hasSimilar = false, product, activeVariant }) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [mounted, setMounted] = useState(false);
+
+  // One-time "peek": shortly after the Similar Items pill appears, it unfurls
+  // its label and folds back, so shoppers learn the icon is a button. Reuses
+  // the CSS .is-open state (same easing as hover). Gated on `mounted` and
+  // `hasSimilar` because the gallery mounts as a skeleton first and the pill
+  // only renders once similar products are known; keyed on the product so it
+  // re-runs on SPA navigation from one PDP to another.
+  const [peekSimilar, setPeekSimilar] = useState(false);
+  useEffect(() => {
+    if (!mounted || !hasSimilar) return undefined;
+    const open = setTimeout(() => setPeekSimilar(true), 900);
+    const close = setTimeout(() => setPeekSimilar(false), 900 + 2200);
+    return () => {
+      clearTimeout(open);
+      clearTimeout(close);
+      setPeekSimilar(false);
+    };
+  }, [product?.id, mounted, hasSimilar]);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
+  const [mainSwiper, setMainSwiper] = useState(null);
   const galleryRef = React.useRef(null);
+  const currentIndexRef = useRef(0);
+  const isSharingRef = useRef(false);
   const [stickyTop, setStickyTop] = useState("5rem");
   
+  const isVariantInStock = useMemo(() => {
+    if (activeVariant) {
+      return (
+        activeVariant.inStock === true ||
+        activeVariant.inStock === "true" ||
+        (activeVariant.inventoryQuantity !== undefined && Number(activeVariant.inventoryQuantity) > 0)
+      );
+    }
+    if (product?.variants && product.variants.length > 0) {
+      return product.variants.some(
+        (v) => v.inStock === true || v.inStock === "true" || (v.inventoryQuantity !== undefined && Number(v.inventoryQuantity) > 0)
+      );
+    }
+    return Boolean(product?.inStock);
+  }, [activeVariant, product?.variants, product?.inStock]);
+
+  const normalizedTags = useMemo(() => {
+    if (!product?.tags) return [];
+    if (Array.isArray(product.tags)) return product.tags.map((t) => String(t).trim().toLowerCase());
+    if (typeof product.tags === "string") return product.tags.split(",").map((t) => t.trim().toLowerCase());
+    return [];
+  }, [product?.tags]);
+
   const displayLabels = useMemo(() => {
-    const tags = Array.isArray(product.tags) ? product.tags : [];
-    const lowerTags = tags.map(t => String(t).toLowerCase());
-
-
-
     const labels = [];
-    if (product.label) labels.push(product.label);
+    if (product?.label) labels.push(product.label);
+    const bestsellerMeta = String(product?.productMetafields?.bestsellers || "").toLowerCase();
 
-    // Priority order: Fast Shipping > Best Seller > New Arrival > Trending
-    if (lowerTags.some(t => t.includes("fast shipping") || t.includes("fastshipping"))) labels.push("Faster Delivery");
-    if (lowerTags.some(t => t.includes("best seller") || t.includes("bestseller"))) labels.push("Best Seller");
-    if (lowerTags.some(t => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
-    if (lowerTags.some(t => t.includes("trending"))) labels.push("Trending");
+    const hasFastShipping = normalizedTags.some((t) => t.includes("fast shipping") || t.includes("fastshipping"));
+
+    // Priority order: Fast Shipping (only when in stock) > Best Seller > New Arrival > Trending
+    if (hasFastShipping && isVariantInStock) labels.push("Faster Delivery");
+    if (normalizedTags.some((t) => t.includes("best seller") || t.includes("bestseller")) || bestsellerMeta === "bestseller") labels.push("Best Seller");
+    if (normalizedTags.some((t) => t.includes("new arrival") || t === "new" || t.includes("newarrival"))) labels.push("New Arrival");
+    if (normalizedTags.some((t) => t.includes("trending"))) labels.push("Trending");
 
     return [...new Set(labels)].slice(0, 2);
-  }, [product.label, product.tags]);
+  }, [product?.label, normalizedTags, product?.productMetafields?.bestsellers, isVariantInStock]);
+
+  const isOnlyPendant = useMemo(() => {
+    return normalizedTags.some((s) => s === "only pendant" || s === "only-pendant" || s === "pendant only");
+  }, [normalizedTags]);
 
   useEffect(() => {
     setMounted(true);
@@ -58,139 +161,18 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [activeVariant?.id, activeVariant?.shopifyId, activeColor]);
-
-  const sortedMedia = useMemo(() => {
-    if (!media || media.length === 0) return [];
-
-    const COLOR_TOKENS = ["white", "yellow", "rose", "plt", "platinum"];
-    const ALWAYS_SHOW_CODES = ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v", "360°"];
-
-    const formattedMedia = media
-      .filter(m => {
-        const altText = m.alt || m.altText || m.previewImage?.altText || "";
-        return altText.trim().length > 0;
-      })
-      .map(m => {
-        const newM = { ...m };
-        if (newM.url) newM.url = formatCdnUrl(newM.url);
-        if (newM.preview) newM.preview = formatCdnUrl(newM.preview);
-        if (newM.previewImage?.url) {
-          newM.previewImage = { ...newM.previewImage, url: formatCdnUrl(newM.previewImage.url) };
-        }
-        if (newM.sources) {
-          newM.sources = newM.sources.map(s => ({ ...s, url: formatCdnUrl(s.url) }));
-        }
-        return newM;
-      });
-
-    const getColorFromAlt = (text) => {
-      const lower = (text || "").toLowerCase();
-      const match = lower.match(/(yellow|white|rose|plt|platinum)[\s-]?(yellow|white|rose|plt|platinum)?/);
-      if (match && match[1]) {
-        const firstColor = match[1];
-        if (firstColor === "platinum") return "plt";
-        return firstColor;
-      }
-      return "";
-    };
-
-    const targetColor = getColorFromAlt(activeColor) || (activeColor.toLowerCase().includes("plt") ? "plt" : activeColor.toLowerCase());
-
-    const buckets = {
-      color: [],
-      codes: { mv: [], "mq-ai": [], mq: [], "mh-ai": [], mh: [], "ci-ai": [], ci: [], v360: [] },
-      cert: [],
-      extras: []
-    };
-
-    formattedMedia.forEach(item => {
-      const alt = (item.alt || "").toLowerCase();
-      const itemColor = getColorFromAlt(alt);
-      const isAnyColor = COLOR_TOKENS.some(c => alt.includes(c));
-
-      if (alt.includes("cert")) {
-        buckets.cert.push(item);
-        return;
-      }
-
-      const isCodeMatch = ALWAYS_SHOW_CODES.some(code => alt.includes(code));
-      
-      if (itemColor === targetColor || (!isAnyColor && isCodeMatch)) {
-        if (alt.includes("mv")) buckets.codes.mv.push(item);
-        else if (alt.includes("mq-ai")) buckets.codes["mq-ai"].push(item);
-        else if (alt.includes("mq")) buckets.codes.mq.push(item);
-        else if (alt.includes("mh-ai")) buckets.codes["mh-ai"].push(item);
-        else if (alt.includes("mh")) buckets.codes.mh.push(item);
-        else if (alt.includes("ci-ai")) buckets.codes["ci-ai"].push(item);
-        else if (alt.includes("ci")) buckets.codes.ci.push(item);
-        else if (alt.includes("360v") || alt.includes("360°")) buckets.codes.v360.push(item);
-        else if (itemColor === targetColor) buckets.color.push(item);
-        else buckets.extras.push(item);
-      } else if (itemColor === "" && !isAnyColor) {
-         // Fallback for items with no color tokens at all
-         buckets.extras.push(item);
-      }
-    });
-
-    // Prioritize Shopify variant image if it exists in color bucket
-    if (activeVariant?.image) {
-      const getCompareUrl = (url) => formatCdnUrl(url).split('?')[0].split('&')[0];
-      const variantImgUrl = getCompareUrl(activeVariant.image);
-      const idx = buckets.color.findIndex(m => {
-        const mUrl = m.url || m.previewImage?.url;
-        return mUrl && getCompareUrl(mUrl) === variantImgUrl;
-      });
-      if (idx !== -1) {
-        const vImg = buckets.color.splice(idx, 1)[0];
-        buckets.color.unshift(vImg);
-      }
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(0, 0);
     }
-
-    const takeColor = () => buckets.color.shift() || null;
-    const takeCode = () => {
-      for (const key of ["mv", "mq-ai", "mq", "mh-ai", "mh", "ci-ai", "ci", "360v"]) {
-        const k = key === "360v" ? "v360" : key;
-        if (buckets.codes[k]?.length) return buckets.codes[k].shift();
-      }
-      return null;
-    };
-
-    const slotPattern = [
-      "color", "code", "code",
-      "color", "color", "code", "code",
-      "color", "color", "code", "code",
-      "color"
-    ];
-
-    const result = [];
-
-    for (const slot of slotPattern) {
-      let node = slot === "color" ? takeColor() : takeCode();
-      if (node) result.push(node);
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(0);
     }
+  }, [activeVariant?.id, activeVariant?.shopifyId, activeColor, mainSwiper, thumbsSwiper]);
 
-    // Append remaining
-    Object.values(buckets.codes).forEach(arr => {
-      arr.forEach(node => { if (!result.includes(node)) result.push(node); });
-    });
-
-    buckets.color.forEach(node => {
-      if (!result.includes(node)) result.push(node);
-    });
-
-    buckets.extras.forEach(node => {
-      if (!result.includes(node)) result.push(node);
-    });
-
-    buckets.cert.forEach(node => {
-      if (!result.includes(node)) result.push(node);
-    });
-
-    if (result.length === 0 && formattedMedia.length > 0) return [formattedMedia[0]];
-
-    return result;
-  }, [media, activeColor, activeVariant]);
+  const sortedMedia = useMemo(
+    () => sortGalleryMedia(media, activeColor, activeVariant),
+    [media, activeColor, activeVariant]
+  );
 
   useEffect(() => {
     if (!galleryRef.current || !isDesktop) return;
@@ -211,16 +193,46 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     return () => observer.disconnect();
   }, [isDesktop, sortedMedia]);
 
+  // Lock the background while the lightbox is open. Keyed on isLightboxOpen
+  // alone: including currentIndex here would tear this down and re-run it on
+  // every lightbox navigation, and that unlock/relock round-trip makes iOS
+  // Safari restore the background scroll position mid-session.
   useEffect(() => {
-    if (isLightboxOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    if (!isLightboxOpen) return;
+    document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [isLightboxOpen]);
+
+  // Keep mainSwiper and thumbsSwiper in sync with currentIndex (e.g. after lightbox navigation)
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+    if (mainSwiper && !mainSwiper.destroyed && mainSwiper.activeIndex !== currentIndex) {
+      mainSwiper.slideTo(currentIndex, isLightboxOpen ? 0 : 300);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(currentIndex);
+    }
+  }, [currentIndex, isLightboxOpen, mainSwiper, thumbsSwiper]);
+
+  // On close, re-measure the inline swipers: they were behind the overlay, so
+  // their slide widths can be stale. Reads the index from a ref so that closing
+  // is the only thing that triggers this, not each navigation.
+  useEffect(() => {
+    if (isLightboxOpen) return;
+    const idx = currentIndexRef.current;
+    if (mainSwiper && !mainSwiper.destroyed) {
+      if (mainSwiper.activeIndex !== idx) {
+        mainSwiper.slideTo(idx, 0);
+      }
+      mainSwiper.update();
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(idx);
+      thumbsSwiper.update();
+    }
+  }, [isLightboxOpen, mainSwiper, thumbsSwiper]);
 
   useEffect(() => {
     if (sortedMedia.length > 0) {
@@ -234,14 +246,40 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     setIsLightboxOpen(true);
   };
 
+  const closeLightbox = () => {
+    setIsLightboxOpen(false);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(currentIndex, 0);
+      mainSwiper.update();
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(currentIndex);
+      thumbsSwiper.update();
+    }
+  };
+
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % sortedMedia.length);
+    const nextIdx = (currentIndex + 1) % sortedMedia.length;
+    setCurrentIndex(nextIdx);
     setZoomLevel(1);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(nextIdx, 0);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(nextIdx);
+    }
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + sortedMedia.length) % sortedMedia.length);
+    const prevIdx = (currentIndex - 1 + sortedMedia.length) % sortedMedia.length;
+    setCurrentIndex(prevIdx);
     setZoomLevel(1);
+    if (mainSwiper && !mainSwiper.destroyed) {
+      mainSwiper.slideTo(prevIdx, 0);
+    }
+    if (thumbsSwiper && !thumbsSwiper.destroyed) {
+      thumbsSwiper.slideTo(prevIdx);
+    }
   };
 
   const initialPinchDistance = useRef(null);
@@ -306,6 +344,10 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
   };
 
   const handleShare = async () => {
+    // navigator.share() throws InvalidStateError when called while an earlier
+    // sheet is still open, so swallow repeat taps until that one settles.
+    if (isSharingRef.current) return;
+
     const shareData = {
       title: title,
       text: `Check out this ${title}`,
@@ -313,19 +355,26 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
     };
     try {
       if (navigator.share) {
+        isSharingRef.current = true;
         await navigator.share(shareData);
       } else {
         navigator.clipboard.writeText(window.location.href);
       }
     } catch (err) {
-      console.error("Error sharing:", err);
+      // Dismissing the OS share sheet rejects with AbortError - that is a
+      // cancellation, not a failure. Real share errors still surface.
+      if (err?.name !== "AbortError") {
+        console.error("Error sharing:", err);
+      }
+    } finally {
+      isSharingRef.current = false;
     }
   };
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isLightboxOpen) return;
-      if (e.key === "Escape") setIsLightboxOpen(false);
+      if (e.key === "Escape") closeLightbox();
       if (e.key === "ArrowRight") nextSlide();
       if (e.key === "ArrowLeft") prevSlide();
     };
@@ -381,19 +430,34 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   src={item.url || "/images/product/1.jpg"} 
                   alt={item.alt || title} 
                   fill
+                  priority={isFirst}
+                  fetchPriority={isFirst ? "high" : undefined}
+                  sizes={isFirst ? HERO_IMAGE_SIZES : undefined}
                   className="object-cover transition-transform duration-700 group-hover:scale-110"
                 />
               )}
               
               {isFirst && (
                 <>
-                  <div className="absolute top-4 left-4 flex flex-row gap-2 z-10">
-                    {displayLabels.map((label, index) => {
-                      const isBrandBadge = label === "Eterna";
-                      return (
-                        <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
-                      );
-                    })}
+                  <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none">
+                    {isOnlyPendant && (
+                      <div 
+                        className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3.5 lg:px-4 text-center flex items-center justify-center font-figtree font-semibold text-xs lg:text-sm uppercase tracking-wider"
+                        style={{ fontSize: "0.75rem" }}
+                      >
+                        Chain is not included in the purchase
+                      </div>
+                    )}
+                    {displayLabels.length > 0 && (
+                      <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-3 pl-3 lg:pt-3.5 lg:pl-4" : "pt-3 pl-3 lg:pt-4 lg:pl-4"}`}>
+                        {displayLabels.map((label, index) => {
+                          const isBrandBadge = label === "Eterna";
+                          return (
+                            <span key={index} className={`w-fit px-3 py-1 font-figtree font-semibold text-sm leading-[1.6] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div onClick={(e) => e.stopPropagation()}>
                     {mounted && isDesktop && (
@@ -402,7 +466,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                         productTitle={product?.title}
                         isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                         id="tryonbutton-desktop"
-                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30"
+                        className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation z-30"
                       />
                     )}
                   </div>
@@ -426,25 +490,17 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                     });
                     onViewSimilar();
                   }}
-                  className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
+                  className={`absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation${peekSimilar ? " is-open" : ""}`}
                 >
-                  <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-                    <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                  <span className="btn-icon">
+                    <svg viewBox="5 5.55 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path d="M11.4322 10.4118C11.4293 10.2235 11.5012 10.0417 11.6321 9.90627C11.763 9.77087 11.9422 9.69288 12.1305 9.6894L21.4657 9.52505C21.6544 9.5214 21.8368 9.59284 21.9728 9.72366C22.1088 9.85448 22.1872 10.034 22.1909 10.2226L22.4232 23.5881C22.4262 23.7767 22.3542 23.9588 22.223 24.0943C22.0917 24.2299 21.9121 24.3078 21.7234 24.3109L12.3883 24.4752C12.1998 24.4785 12.0177 24.4068 11.882 24.2759C11.7463 24.1451 11.668 23.9657 11.6645 23.7772L11.4322 10.4118Z" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M11.5349 11.5293L6.05123 12.9986C5.89057 13.0417 5.75356 13.1468 5.67029 13.2908C5.58702 13.4348 5.56428 13.606 5.60707 13.7667L8.65801 25.1594C8.70135 25.3201 8.80674 25.457 8.95101 25.5401C9.09527 25.6231 9.26661 25.6455 9.42735 25.6022L13.8263 24.4235" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M22.4632 11.5293L27.9468 12.9986C28.1075 13.0417 28.2445 13.1468 28.3278 13.2908C28.411 13.4348 28.4338 13.606 28.391 13.7667L25.34 25.1594C25.2967 25.3201 25.1913 25.457 25.047 25.5401C24.9028 25.6231 24.7314 25.6455 24.5707 25.6022L19.8192 24.3291" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </span>
-                  <span className="btn-text text-xs font-bold uppercase tracking-wider">Similar Items</span>
+                  <span className="btn-text">Similar Items</span>
                 </button>
-              )}
-              {index === 1 && product.tags?.includes("Only Pendant") && (
-                <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation">
-                  <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-                    <Info size={16} />
-                  </span>
-                  <span className="btn-text text-xs font-bold uppercase tracking-wider">Chain is not included in the purchase</span>
-                </div>
               )}
             </div>
           );
@@ -455,12 +511,18 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
       {/* data-pdp-gallery-mobile scopes the share-intent long-press listener to
           this gallery only (see hooks/useShareIntent.js). */}
       <div data-pdp-gallery-mobile className="lg:hidden flex flex-col gap-3">
-        <div className="relative aspect-square rounded-xl overflow-hidden bg-[#F7F7F7]">
+        <div className="relative aspect-square rounded-none overflow-hidden bg-[#F7F7F7]">
           <Swiper
+            onSwiper={setMainSwiper}
             spaceBetween={0}
             thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
             modules={[FreeMode, Thumbs]}
-            onSlideChange={(swiper) => setCurrentIndex(swiper.activeIndex)}
+            onSlideChange={(swiper) => {
+              setCurrentIndex(swiper.activeIndex);
+              if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                thumbsSwiper.slideTo(swiper.activeIndex);
+              }
+            }}
             className="w-full h-full"
           >
             {sortedMedia.map((item, index) => {
@@ -470,7 +532,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   <div className="w-full h-full relative">
                     {isVideo ? (
                       <video 
-                        poster={item.preview || null}
+                        poster={item.previewImage?.url || item.preview || null}
                         autoPlay 
                         muted 
                         loop 
@@ -492,6 +554,9 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                         src={item.url || "/images/product/1.jpg"} 
                         alt={item.alt || title} 
                         fill
+                        priority={index === 0}
+                        fetchPriority={index === 0 ? "high" : undefined}
+                        sizes={index === 0 ? HERO_IMAGE_SIZES : undefined}
                         className="object-cover"
                       />
                     )}
@@ -501,34 +566,47 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
             })}
           </Swiper>
 
-          {/* Badges Overlay */}
-          <div className="absolute top-3 left-3 flex flex-row gap-2 z-10 pointer-events-none">
-            {displayLabels.map((label, index) => {
-              const isBrandBadge = label === "Eterna";
-              return (
-                <span key={index} className={`w-fit px-2 py-0.5 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
-              );
-            })}
+          {/* Badges & Chain Note Banner Overlay */}
+          <div className="absolute top-0 left-0 z-10 flex flex-col items-start pointer-events-none">
+            {isOnlyPendant && (
+              <div 
+                className="w-max rounded-br-[12px] overflow-hidden bg-[#B77767] text-white py-2 px-3 text-center flex items-center justify-center font-figtree font-semibold text-[10px] sm:text-xs uppercase tracking-wider"
+                style={{ fontSize: "0.65rem" }}
+              >
+                Chain is not included in the purchase
+              </div>
+            )}
+            {displayLabels.length > 0 && (
+              <div className={`flex flex-row gap-2 ${isOnlyPendant ? "pt-2.5 pl-3" : "pt-3 pl-3"}`}>
+                {displayLabels.map((label, index) => {
+                  const isBrandBadge = label === "Eterna";
+                  return (
+                    <span key={index} className={`w-fit px-2 py-0.5 font-figtree font-semibold text-xs leading-[1.4] capitalize rounded-card ${isBrandBadge ? "bg-[#B77767] text-white" : "bg-[#F1E4D1] text-black"}`}>{label}</span>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          {product.tags?.includes("Only Pendant") && (
-            <div className="absolute top-4 right-2 bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 px-2.5 py-2.5 z-10 btn-peek-animation">
-              <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center">
-                <Info size={16} />
-              </span>
-              <span className="btn-text text-xs font-bold uppercase tracking-wider">Chain is not included in the purchase</span>
-            </div>
-          )}
+
 
           {/* Action Buttons Overlay */}
-          <div className="absolute bottom-4 left-2 right-2 flex justify-between items-center z-10">
-             <div onClick={(e) => e.stopPropagation()} className="data-no-swiping">
+          <div className="absolute bottom-4 left-2 right-2 flex justify-between items-end z-10">
+             <div onClick={(e) => e.stopPropagation()} className="data-no-swiping flex flex-col items-start gap-2">
+               {mounted && !isDesktop && product?.audioUrl && (
+                 <ProductAudioButton
+                   src={product.audioUrl}
+                   productTitle={product?.title}
+                   sku={activeVariant?.sku || product?.variants?.[0]?.sku}
+                   className="flex items-center justify-center bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 px-2.5 py-2.5 z-30 h-[42px]"
+                 />
+               )}
                {mounted && !isDesktop && (
-                 <TryOnButton 
+                 <TryOnButton
                    sku={activeVariant?.sku || product?.variants?.[0]?.sku}
                    productTitle={product?.title}
                    isAvailable={activeVariant ? activeVariant.inStock : product?.available}
                    id="tryonbutton-mobile"
-                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 btn-peek-animation px-2.5 py-2.5 z-30"
+                   className="bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 btn-peek-animation z-30"
                  />
                )}
              </div>
@@ -544,51 +622,142 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   });
                   onViewSimilar();
                 }}
-                className="bg-white/95 backdrop-blur-sm rounded-full shadow-md border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation px-2.5 py-2.5"
+                className={`bg-white/95 backdrop-blur-sm rounded-full shadow-none border border-gray-100 hover:bg-gray-50 z-10 btn-peek-animation peek-left${peekSimilar ? " is-open" : ""}`}
               >
-                <span className="w-[24px] h-[24px] shrink-0 flex items-center justify-center pointer-events-none">
-                  <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                <span className="btn-icon pointer-events-none">
+                  <svg viewBox="5 5.55 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <path d="M11.4322 10.4118C11.4293 10.2235 11.5012 10.0417 11.6321 9.90627C11.763 9.77087 11.9422 9.69288 12.1305 9.6894L21.4657 9.52505C21.6544 9.5214 21.8368 9.59284 21.9728 9.72366C22.1088 9.85448 22.1872 10.034 22.1909 10.2226L22.4232 23.5881C22.4262 23.7767 22.3542 23.9588 22.223 24.0943C22.0917 24.2299 21.9121 24.3078 21.7234 24.3109L12.3883 24.4752C12.1998 24.4785 12.0177 24.4068 11.882 24.2759C11.7463 24.1451 11.668 23.9657 11.6645 23.7772L11.4322 10.4118Z" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M11.5349 11.5293L6.05123 12.9986C5.89057 13.0417 5.75356 13.1468 5.67029 13.2908C5.58702 13.4348 5.56428 13.606 5.60707 13.7667L8.65801 25.1594C8.70135 25.3201 8.80674 25.457 8.95101 25.5401C9.09527 25.6231 9.26661 25.6455 9.42735 25.6022L13.8263 24.4235" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M22.4632 11.5293L27.9468 12.9986C28.1075 13.0417 28.2445 13.1468 28.3278 13.2908C28.411 13.4348 28.4338 13.606 28.391 13.7667L25.34 25.1594C25.2967 25.3201 25.1913 25.457 25.047 25.5401C24.9028 25.6231 24.7314 25.6455 24.5707 25.6022L19.8192 24.3291" stroke="currentColor" strokeWidth="1.17241" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </span>
-                <span className="btn-text text-xs font-bold uppercase tracking-wider">Similar Items</span>
+                <span className="btn-text">Similar Items</span>
               </button>
               )}
           </div>
         </div>
 
         {/* Thumbnail Slider */}
-        <Swiper
-          onSwiper={setThumbsSwiper}
-          spaceBetween={10}
-          slidesPerView="auto"
-          freeMode={true}
-          watchSlidesProgress={true}
-          modules={[FreeMode, Thumbs]}
-          className="w-full thumbnails-swiper"
-        >
-          {sortedMedia.map((item, index) => {
-             const isVideo = item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
-             return (
-               <SwiperSlide key={index} className="!w-[70px]">
-                 <div className={`aspect-square relative rounded-lg overflow-hidden bg-[#F7F7F7] border-2 transition-colors ${currentIndex === index ? 'border-black' : 'border-transparent'}`}>
-                    {isVideo ? (
-                      <div className="w-full h-full relative">
-                        <LazyImage src={item.preview || item.url} alt={item.alt} fill className="object-cover" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Play size={12} fill="black" className="opacity-70" />
+        <div className="w-full px-2 sm:px-4 flex items-center gap-1.5 sm:gap-2">
+          <style>{`
+            .thumbnails-swiper {
+              width: 100% !important;
+            }
+            .thumbnails-swiper .swiper-wrapper {
+              display: flex !important;
+              justify-content: flex-start !important;
+            }
+          `}</style>
+          {sortedMedia.length > 1 && (
+            <button
+              type="button"
+              aria-label="Previous thumbnail"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentIndex > 0) {
+                  const prevIdx = currentIndex - 1;
+                  setCurrentIndex(prevIdx);
+                  if (mainSwiper && !mainSwiper.destroyed) {
+                    mainSwiper.slideTo(prevIdx);
+                  }
+                  if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                    thumbsSwiper.slideTo(prevIdx);
+                  }
+                } else if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                  thumbsSwiper.slidePrev();
+                }
+              }}
+              disabled={currentIndex === 0}
+              className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white border border-[#eaeaea] shadow-xs text-[#5a413f] transition-all ${
+                currentIndex === 0
+                  ? "opacity-25 cursor-not-allowed pointer-events-none"
+                  : "opacity-100 hover:bg-zinc-50 active:scale-95 cursor-pointer hover:border-zinc-300"
+              }`}
+            >
+              <ChevronLeft size={16} strokeWidth={2} />
+            </button>
+          )}
+
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <Swiper
+              onSwiper={setThumbsSwiper}
+              spaceBetween={8}
+              slidesPerView="auto"
+              freeMode={true}
+              watchSlidesProgress={true}
+              modules={[FreeMode, Thumbs]}
+              className="thumbnails-swiper py-1 w-full"
+            >
+              {sortedMedia.map((item, index) => {
+                const isVideo = item.type === "VIDEO" || item.type === "EXTERNAL_VIDEO";
+                const isActive = currentIndex === index;
+                return (
+                  <SwiperSlide key={index} className="!w-[66px] sm:!w-[72px]">
+                    <div
+                      onClick={() => {
+                        setCurrentIndex(index);
+                        if (mainSwiper && !mainSwiper.destroyed) {
+                          mainSwiper.slideTo(index);
+                        }
+                        if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                          thumbsSwiper.slideTo(index);
+                        }
+                      }}
+                      className={`group aspect-square relative rounded-[6px] overflow-hidden cursor-pointer transition-all duration-200 ${
+                        isActive
+                          ? 'border-[1.5px] border-[#5a413f] shadow-none bg-white'
+                          : 'border border-[#eaeaea] hover:border-zinc-300 bg-[#FAFAFA]'
+                      }`}
+                    >
+                      {isVideo ? (
+                        <div className="w-full h-full relative rounded-[6px] overflow-hidden">
+                          <LazyImage src={item.previewImage?.url || item.preview || item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/15">
+                            <div className="w-6 h-6 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center shadow-sm">
+                              <Play size={10} className="fill-zinc-900 text-zinc-900 ml-0.5" />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <LazyImage src={item.url} alt={item.alt} fill className="object-cover" />
-                    )}
-                 </div>
-               </SwiperSlide>
-             );
-          })}
-        </Swiper>
+                      ) : (
+                        <LazyImage src={item.url} alt={item.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[6px]" />
+                      )}
+                    </div>
+                  </SwiperSlide>
+                );
+              })}
+            </Swiper>
+          </div>
+
+          {sortedMedia.length > 1 && (
+            <button
+              type="button"
+              aria-label="Next thumbnail"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentIndex < sortedMedia.length - 1) {
+                  const nextIdx = currentIndex + 1;
+                  setCurrentIndex(nextIdx);
+                  if (mainSwiper && !mainSwiper.destroyed) {
+                    mainSwiper.slideTo(nextIdx);
+                  }
+                  if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                    thumbsSwiper.slideTo(nextIdx);
+                  }
+                } else if (thumbsSwiper && !thumbsSwiper.destroyed) {
+                  thumbsSwiper.slideNext();
+                }
+              }}
+              disabled={currentIndex === sortedMedia.length - 1}
+              className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white border border-[#eaeaea] shadow-xs text-[#5a413f] transition-all ${
+                currentIndex === sortedMedia.length - 1
+                  ? "opacity-25 cursor-not-allowed pointer-events-none"
+                  : "opacity-100 hover:bg-zinc-50 active:scale-95 cursor-pointer hover:border-zinc-300"
+              }`}
+            >
+              <ChevronRight size={16} strokeWidth={2} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Lightbox */}
@@ -625,7 +794,7 @@ export default function ProductGallery({ media = [], title = "", activeColor = "
                   {zoomLevel === 1 ? <ZoomIn size={24} /> : <ZoomOut size={24} />}
                 </button>
                 <button 
-                  onClick={() => setIsLightboxOpen(false)}
+                  onClick={closeLightbox}
                   className="hover:text-gray-300 transition-colors p-1"
                 >
                   <X size={36} strokeWidth={1.5} />

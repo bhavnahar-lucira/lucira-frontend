@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Loader2, Gift, Check, ChevronDown, ChevronUp, AlertCircle, MapPin, Plus, ChevronRight,
   UserRound, CalendarHeart
 } from "lucide-react";
-import { apiFetch, fetchCustomerDashboardStats } from "@/lib/api";
-import { shopifyStorefrontFetch, CUSTOMER_QUERY } from "@/lib/shopify-client";
+import { apiFetch, fetchCustomerDashboardStats, fetchOccasionCoupons } from "@/lib/api";
+import { shopifyStorefrontFetch, CUSTOMER_QUERY, CUSTOMER_UPDATE_MUTATION } from "@/lib/shopify-client";
 import { pushPromoClick } from "@/lib/gtm";
 import { OccasionForm, OccasionCards } from "@/components/rewards/OccasionStep";
 import {
@@ -15,6 +15,10 @@ import {
   occasionAnalytics, newFormSessionId,
 } from "@/lib/occasions";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { OccasionCoupons } from "@/components/coupons/CouponBanner";
+import { updateUser } from "@/redux/features/user/userSlice";
+import { toast } from "react-toastify";
+import { toE164 } from "@/lib/phone";
 
 const CONFIG = {
   storageKey: "lucira_profile_data",
@@ -24,14 +28,6 @@ const CONFIG = {
 const PERSONAL_INFO_API = "https://personal-information-api-385594025448.asia-south1.run.app/";
 const WEBENGAGE_SYNC_API = "https://complete-my-profile-385594025448.asia-south1.run.app";
 
-/* Normalise an Indian mobile number to E.164 (+91XXXXXXXXXX) — used as the WebEngage userId */
-function toE164(phone) {
-  const raw = String(phone || "").trim();
-  if (!raw) return "";
-  if (raw.startsWith("+")) return raw.replace(/\s|-/g, "");
-  const digits = raw.replace(/\D/g, "");
-  return digits ? `+91${digits.slice(-10)}` : "";
-}
 
 /* Push the saved profile to WebEngage via the GCP Cloud Function ({ userId, attributes }) */
 async function syncWebEngageProfile(d = {}) {
@@ -163,6 +159,7 @@ function ChipGroup({ options, value, onChange }) {
 
 export default function EarnRewardsPage() {
   const { accessToken, user } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
   const userStorageKey = user?.id ? `${CONFIG.storageKey}_${extractNumericId(user.id)}` : CONFIG.storageKey;
 
   const [formData, setFormData] = useState({
@@ -196,6 +193,29 @@ export default function EarnRewardsPage() {
 
   // Did the user successfully save a complete profile during this session?
   const [savedThisSession, setSavedThisSession] = useState(false);
+
+  // Birthday / anniversary coupons — the treat the birthday field promises.
+  // Open from 7 days before the date saved here and for 14 days; the backend
+  // decides, so this is simply empty outside that window. Re-fetched after a
+  // save, since that is when a date can first become eligible.
+  const [occasionCoupons, setOccasionCoupons] = useState([]);
+  const [copiedCode, setCopiedCode] = useState(null);
+
+  const loadOccasionCoupons = () => {
+    if (!accessToken) return;
+    fetchOccasionCoupons(accessToken)
+      .then((data) => setOccasionCoupons(data?.coupons || []))
+      .catch(() => setOccasionCoupons([]));
+  };
+
+  useEffect(loadOccasionCoupons, [accessToken]);
+
+  const copyCouponCode = (code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast.success(`Coupon code ${code} copied!`);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
 
   const profileFilled = isProfileFilled(formData);
 
@@ -384,14 +404,14 @@ export default function EarnRewardsPage() {
     setCompleting(true);
     pushPromoClick({
       creative_name: "Complete My Profile CTA",
-      location_id: formData.mobile_number || "",
+      location_id: toE164(formData.mobile_number) || formData.mobile_number || "",
       promo_id: "profile_completion",
       promo_name: `${profileFillPercent(formData)}%`,
       // full personal-details payload
       first_name: formData.first_name || "",
       last_name: formData.last_name || "",
       email: formData.email || "",
-      mobile_number: formData.mobile_number || "",
+      mobile_number: toE164(formData.mobile_number) || formData.mobile_number || "",
       date_of_birth: formData.date_of_birth || "",
       gender: formData.gender || "",
       marital_status: formData.marital_status || "",
@@ -410,9 +430,29 @@ export default function EarnRewardsPage() {
         });
       }
     } catch {}
+    // The name typed here used to go only to the rewards API and the
+    // metafields, so the account kept whatever it was created with — a
+    // signup with no name left the header greeting "Hi, User" forever.
+    // Mirror it onto the Shopify customer and into redux, exactly as My
+    // Profile does with the same two fields.
+    if (formData.first_name && accessToken && !accessToken.startsWith("simulated_")) {
+      try {
+        await shopifyStorefrontFetch(CUSTOMER_UPDATE_MUTATION, {
+          customerAccessToken: accessToken,
+          customer: { firstName: formData.first_name, lastName: formData.last_name || "" },
+        });
+      } catch (e) {
+        console.warn("[EarnRewards] Name sync to Shopify failed:", e);
+      }
+      dispatch(updateUser({ firstName: formData.first_name, lastName: formData.last_name || "" }));
+    }
+
     setProfileComplete(true);
     setSavedThisSession(true);
     fetchCoins();
+    // The birthday/anniversary they just saved may already be inside its
+    // 14-day window — check now rather than on the next visit.
+    loadOccasionCoupons();
     try {
       const raw = localStorage.getItem(userStorageKey) || "{}";
       const p = JSON.parse(raw);
@@ -449,7 +489,7 @@ export default function EarnRewardsPage() {
       occasionAnalytics.created(occFormSession, form, next.length); // shared session id (PII-free)
       pushPromoClick({
         creative_name: "Add Occasion CTA",
-        location_id: formData.mobile_number || "",
+        location_id: toE164(formData.mobile_number) || formData.mobile_number || "",
         promo_id: "occasion_added",
         promo_name: form.occasion_title || "",
         relationship_name: form.relationship_name || "",
@@ -535,6 +575,9 @@ export default function EarnRewardsPage() {
            </div>
         </div>
       </div>
+
+      {/* ── Birthday / anniversary coupons, while the window is open ── */}
+      <OccasionCoupons coupons={occasionCoupons} copiedCode={copiedCode} onCopy={copyCouponCode} />
 
       {/* ── Personal Details Card ── */}
       <div className="bg-white rounded-[2rem] md:rounded-[4px] border border-zinc-100 shadow-sm overflow-hidden">

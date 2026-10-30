@@ -1,3 +1,5 @@
+import { toTenDigit } from "@/lib/phone";
+
 export const INDIAN_STATES = [
   "Andaman and Nicobar Islands",
   "Andhra Pradesh",
@@ -53,12 +55,8 @@ export const emptyAddressForm = {
 };
 
 export function normalizeAddressForm(address = {}, customer = {}) {
-  let phone = address.phone || customer.phone || customer.phoneNumber || customer.mobile || "";
-  if (phone.startsWith("+91")) {
-    phone = phone.replace("+91", "").trim();
-  } else if (phone.startsWith("91") && phone.length === 12) {
-    phone = phone.substring(2).trim();
-  }
+  let rawPhone = address.phone || customer.phone || customer.phoneNumber || customer.mobile || "";
+  let phone = toTenDigit(rawPhone);
 
   // Extract GSTIN from company field if it was packed there
   let rawCompany = address.company || "";
@@ -98,3 +96,39 @@ export function formatAddressLines(address) {
     address.country,
   ].filter(Boolean);
 }
+
+export function validateAddressForm(form = {}) {
+  if (!form.firstName?.trim()) return "First name is required";
+  if (!form.lastName?.trim()) return "Last name is required";
+  if (!form.address1?.trim()) return "Address is required";
+  if (!form.city?.trim()) return "City is required";
+  if (!form.province?.trim()) return "State is required";
+  if (!form.zip?.trim()) return "PIN code is required";
+
+  if (!/^\d{6}$/.test(form.zip?.trim() || "")) {
+    return "Please enter a valid 6-digit PIN code";
+  }
+
+  if (!form.country?.trim()) return "Country is required";
+
+  const cleanPhone = (form.phone || "").replace(/\D/g, "");
+  if (!cleanPhone) {
+    return "Phone number is required";
+  }
+  if (cleanPhone.length !== 10) {
+    return "Phone number must be exactly 10 digits";
+  }
+  if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+    return "Please enter a valid 10-digit Indian mobile number";
+  }
+
+  if (form.gstin?.trim()) {
+    const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstinRegex.test(form.gstin.trim())) {
+      return "Please enter a valid 15-digit GSTIN";
+    }
+  }
+
+  return "";
+}
+

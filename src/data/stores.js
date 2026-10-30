@@ -1,17 +1,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Canonical store registry — SINGLE SOURCE OF TRUTH for which retail stores are
-// live on the website.
+// Legacy store registry — NO LONGER where you add a store.
 //
-// The presentational data (images, hours, facilities, ratings, map links) still
-// lives inside each surface component, because those surfaces intentionally use
-// different imagery/copy. What is centralised here is the store IDENTITY and the
-// `active` flag, so a store can be switched on/off across the ENTIRE site from
-// one place.
+// Store content and which surfaces a store appears on are managed in
+// Dashboard → Stores (/api/settings/store-pages) and read through
+// src/lib/storeContent.js. Adding a store is a dashboard edit, not a code
+// change, and an unknown handle is treated as live by everything below.
 //
-// To hide a store everywhere (store locator, home "Experience Stores", contact
-// us, PDP nearest store, collection banner): set `active: false` below.
-// To add a store: add an entry here, then add its presentational data to the
-// relevant surface(s).
+// What still lives here:
+//   • `active: false` — an emergency, deploy-level kill switch that overrides
+//     the dashboard on the store surfaces. Prefer the dashboard's own
+//     "Published" toggle; this stays for the cases where you cannot reach it.
+//   • `handleFromStoreName` — maps a Shopify location's name/code (BO1, PS1…)
+//     to a collection handle for the PDP nearest-store surface. The backend
+//     mirrors this table in lucira-backend/lib/storePages.js.
+//
+// See also src/data/storeGeo.js for the coordinate fallbacks.
 //
 // `handle` is the Shopify collection handle used at /collections/<handle>.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,6 +36,9 @@ const _byHandle = Object.fromEntries(STORES.map((s) => [s.handle, s]));
 // store surface can respect the same active flag.
 const _backendNameToHandle = [
   { match: "divinecarat", handle: "malad" },
+  { match: "head office", handle: "malad" },
+  { match: "malad", handle: "malad" },
+  { match: "goregaon", handle: "malad" },
   { match: "bo1", handle: "sky-city-borivali-store" },
   { match: "borivali", handle: "sky-city-borivali-store" },
   { match: "cs1", handle: "chembur-store" },
@@ -80,3 +86,24 @@ export function isStoreOpeningSoon(handle) {
   const s = _byHandle[handle];
   return !!(s && s.openingSoon);
 }
+
+/**
+ * Check whether a store object represents the corporate Head Office / warehouse.
+ * Head Office is not a walk-in retail store, so it should be excluded from
+ * customer-facing store availability on the PDP.
+ */
+export function isHeadOffice(store) {
+  if (!store) return false;
+  const name = String(store.displayName || store.name || "").toLowerCase();
+  const handle = String(store.handle || handleFromStoreName(store.name || "")).toLowerCase();
+  const city = String(store.city || "").toLowerCase();
+  const address = String(store.addressFormatted || store.address || store.address1 || "").toLowerCase();
+
+  if (name.includes("divinecarat") || name.includes("head office") || name.includes("head_office")) return true;
+  if (handle === "malad" || city === "malad") return true;
+  if (address.includes("dlh park") || address.includes("office 1402")) return true;
+  if (store.visitable === false && (handle === "malad" || name.includes("malad") || address.includes("dlh park"))) return true;
+  if (store.isHeadOffice) return true;
+  return false;
+}
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, use, useRef, Fragment } from "react";
+import { useState, useEffect, useCallback, useMemo, use, useRef, Fragment, useTransition } from "react";
 import { useStoreOrdering } from "@/hooks/useStoreOrdering";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -31,69 +31,52 @@ import {
 } from "@/components/ui/accordion";
 import { useSelector, useDispatch } from "react-redux";
 import { openAuthModal } from "@/redux/features/user/userSlice";
-import CategoryCarousel, { loadCategoryGroups } from "@/components/collection/CategoryCarousel";
+import CategoryCarousel from "@/components/collection/CategoryCarousel";
 import { selectRecentlyViewed } from "@/redux/features/recentlyViewed/recentlyViewedSlice";
 import { pushProductImpression, getStandardImpressionProducts, pushPromoClick } from "@/lib/gtm";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import StoreCollectionBanner from "@/components/collections/StoreCollectionBanner";
 import EternaBandsSection from "@/components/collections/EternaBandsSection";
 import RakhiLandingPage from "@/components/collections/RakhiLandingPage";
+import JewelleryEmiStrip from "@/components/collections/JewelleryEmiStrip";
+import PlpHeroPicture from "@/components/collections/PlpHeroPicture";
 import { apiFetch } from "@/lib/api";
+import { storeCollectionHandles } from "@/lib/storeContent";
 
-const STORE_HANDLES = ["pune-store", "chembur-store", "noida-store", "sky-city-borivali-store", "malad", "paschim-vihar", "lajpat-nagar-store"];
+// Which collections show the store hero instead of the usual PLP banner, and
+// the hero's content, are both managed in Dashboard → Stores and delivered via
+// /api/settings/store-pages (see initialData.storePages, fetched in
+// collections/[handle]/page.js). A new store needs no change here.
 
-const STORE_IMAGES = {
-  "pune-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Pune.jpg"],
-  "chembur-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Chembur_73ce3ac6-7515-473d-a2dd-2385fd065eaa.jpg"],
-  "noida-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Noida.jpg"],
-  "sky-city-borivali-store": ["/images/store/Borivali.jpg"],
-  "malad": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/store_4ee3a4f7-ce43-4373-9830-67ab62a8a2e6.jpg"],
-  "paschim-vihar": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982", "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Paschim_vihar_store_a.png?v=1784362982"],
-  "lajpat-nagar-store": ["https://cdn.shopify.com/s/files/1/0739/8516/3482/files/1800_x_1350_Noida_Store_Image_jpg.jpg?v=1776425633"],
+// PLP banners (top banner + in-grid promo banners) are managed from the admin
+// dashboard and delivered via /api/settings/plp-banners (see initialData.plpBanners,
+// fetched in collections/[handle]/page.js). These fallbacks only apply if that
+// endpoint is unreachable at build/render time — they mirror the dashboard's
+// own PLP_BANNER_DEFAULTS so there's no visual regression either way.
+const FALLBACK_TOP_DEFAULT = {
+  desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg?v=1787998995",
+  mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg?v=1787998995",
+  alt: "Offers",
 };
 
-// Define custom collection banners here (e.g. to bypass the default pink layout with full-width images)
-// You can easily add other collections here by adding their handle and desktop/mobile image URLs
-const CUSTOM_COLLECTION_BANNERS = {
-  "eterna": {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Desktop_PLP_jpg.jpg?v=1783673522",
-    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Embrace_Banner_Mobile_PLP_jpg.jpg?v=1783673523"
-  },
-  "hexa": {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Desktop.jpg?v=1783767788",
-    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Hexa-Mobile.jpg?v=1783767788"
-  },
-  "cotton-candy": {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Desktop.jpg?v=1783767788",
-    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/CC-Mobile.jpg?v=1783767788"
-  },
-  "sports-collection": {
-    desktop: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Desktop.jpg?v=1783767788",
-    mobile: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/OTM-Mobile.jpg?v=1783767788"
-  }
+const FALLBACK_TOP_PLAIN_GOLD = {
+  desktopImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/gold_ring_plp.jpg?v=1792042102&width=1920",
+  mobileImage: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/gold_ring_plp.jpg?v=1792042102&width=1920",
+  alt: "Plain Gold Jewellery Offers",
+  handles: [
+    'plain-gold-rings', 'plain-gold-earrings', 'plain-gold-chains', 'plain-gold-necklaces', 'plain-gold-coins', 'plain-gold-nose-rings',
+    'gold-jewelry', 'gold-rings', 'gold-chains', 'gold-earrings', 'gold-bracelets', 'gold-necklaces', 'gold-coins',
+    '1-gram-gold-jewellery', '10-gram-gold-jewellery', '14k-gold-jewellery', '18k-gold-jewellery', '22k-gold-jewellery'
+  ],
 };
 
-// Plain Gold sub-collections (see "Plain Gold" menu group in menu-data.json) use a
-// dedicated hero image in place of the generic collection banner's default image.
-const PLAIN_GOLD_HANDLES = ["gold-jewelry", "gold-rings", "gold-chains", "gold-earrings", "gold-bracelets", "gold-necklaces", "gold-coins"];
-const PLAIN_GOLD_BANNER_IMAGE = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Gold_jpg_44047036-a66f-4e34-8332-f226a6d24073.jpg";
-
-// In-page promo banners injected into the product grid. They alternate in order
-// (A, B, A, B, ...) each time a banner slot appears — first after 6 products,
-// then every 10 products after that.
-// TODO(banner): replace creative B's `src` with the second (right) banner image URL.
-const INPAGE_BANNERS = [
-  {
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
-    alt: "Promo",
-    href: "/collections/rakhi",
-  },
-  {
-    // Placeholder — falls back to creative A until the second image is provided.
-    src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg",
-    alt: "Promo",
-    href: "/collections/rakhi",
-  },
+// `mobileSrc` is the key the dashboard's MOBILE BANNER IMAGE field writes and
+// the one /api/settings/plp-banners persists, so these carry it too — the
+// comment above promises these mirror PLP_BANNER_DEFAULTS, and that default
+// points both at the same creative.
+const FALLBACK_INPAGE_BANNERS = [
+  { src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", mobileSrc: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", alt: "Promo", href: "/collections/rakhi" },
+  { src: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", mobileSrc: "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Desktop-Inpage_3_eaa604a9-de30-4c5c-be84-ab17a0812a15.jpg", alt: "Promo", href: "/collections/rakhi" },
 ];
 
 const SORT_OPTIONS = [
@@ -148,9 +131,106 @@ const FilterSidebarSkeleton = () => (
   </div>
 );
 
+// Instant, for the same reason as scrollToProductsTop: sort, price and Clear All
+// all replace the grid, so an animated scroll would race the reflow.
 const scrollToTop = () => {
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0 });
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Last-rendered grid per (view + ordering), so returning to a collection does
+// not visibly re-sort itself.
+//
+// WHY: this page is statically generated, and the SSG payload is fetched with no
+// `stores` parameter (see page.js), so `initialData` is always the UN-ordered
+// build-time order. React state dies on unmount, so every arrival — including
+// Back from a PDP — used to paint that un-ordered order and then swap the
+// store-ordered one in. On /collections/earrings the two pages share only 7 of
+// 25 products with 0 in the same position, so that swap reads as the whole grid
+// reshuffling under the shopper.
+//
+// Module scope, so it survives client-side navigation (Back included) but not a
+// full reload — exactly the lifetime of the problem. The fetch still runs and
+// still refreshes the grid; it just no longer has anything visible to change.
+// ─────────────────────────────────────────────────────────────────────────────
+const ORDERED_VIEW_CACHE = new Map();
+const MAX_CACHED_VIEWS = 8;
+
+// How long the first paint may wait for a known pincode's store-ordered page
+// before giving up and showing the default order anyway (see
+// awaitingPincodeOrder below). This is a last resort for a dead network or a
+// backend outage, NOT the expected path: a warm store-ordered response is a few
+// hundred ms and a cold one is well under this, so the shopper sees skeletons
+// and then the correct order — never the default order followed by a reshuffle.
+const PINCODE_ORDER_WAIT_TIMEOUT_MS = 4000;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The collection's UNNARROWED facet list, per handle.
+//
+// Two different jobs need it, and neither can use the narrowed list a filtered
+// response comes back with:
+//
+//   1. Translating URL params back into Shopify filter inputs. A selected value
+//      the narrowed list no longer mentions used to translate to nothing, so the
+//      filter was silently dropped — visible on page 2 of infinite scroll, which
+//      rebuilt the payload from the narrowed list.
+//   2. Rendering the sidebar. Options are sorted by count, so every apply
+//      re-sorted every other group and rows moved under the shopper's cursor; an
+//      option that fell to zero disappeared even when it was ticked, leaving a
+//      filter that was applied but had no checkbox and no chip to remove it.
+//
+// Module scope so a second visit to the same collection reuses it, and the
+// blocking `limit=1` request that used to precede EVERY product fetch is gone.
+// On a statically rendered page it is never fetched at all: page.js already ships
+// the same unfiltered facet list in initialData.collData.filters.
+// ─────────────────────────────────────────────────────────────────────────────
+const BASE_FILTER_CACHE = new Map();
+
+// Predictive cache to store in-flight API requests when the user hovers over a filter
+const PREFETCH_CACHE = new Map();
+
+// Does the URL actually select any facet? Matched against the collection's own
+// facet list rather than "has any query param", so UTM/gclid/fbclid landings are
+// not mistaken for a filtered view.
+//
+// Needed because page.js builds initialData with NO filters, so on a filtered URL
+// the statically rendered grid is the whole collection while the checkbox already
+// reads as ticked. Painting that and correcting it seconds later is
+// indistinguishable from the filter returning the wrong products, so when this is
+// true the grid starts empty and shows skeletons.
+// Any query key other than ad/analytics tracking means the URL asks for a
+// view the server payload does not describe (a filter, a sort, a cursor, …).
+// Unknown keys deliberately count as "different" so the fetch runs, as before.
+const TRACKING_PARAM = /^(utm_|fbclid$|gclid$|_)/;
+function urlAsksForADifferentView(searchParams) {
+  for (const key of searchParams.keys()) {
+    if (!TRACKING_PARAM.test(key)) return true;
+  }
+  return false;
+}
+
+function urlHasActiveFilters(searchParams, baseFilters) {
+  for (const [key, value] of searchParams.entries()) {
+    if (key.startsWith("filter.")) return true;
+    if (["sort", "cursor", "limit", "q", "page"].includes(key)) continue;
+    const group = Object.entries(baseFilters || {}).find(
+      ([groupKey]) => groupKey.toLowerCase() === key.toLowerCase()
+    );
+    const options = group?.[1];
+    if (!Array.isArray(options)) continue;
+    if (options.some((opt) => String(opt.value) === value || opt.label === value)) return true;
+  }
+  return false;
+}
+
+function rememberView(key, value) {
+  if (!key) return;
+  ORDERED_VIEW_CACHE.delete(key); // re-insert so iteration order is LRU-ish
+  ORDERED_VIEW_CACHE.set(key, value);
+  while (ORDERED_VIEW_CACHE.size > MAX_CACHED_VIEWS) {
+    ORDERED_VIEW_CACHE.delete(ORDERED_VIEW_CACHE.keys().next().value);
+  }
+}
 
 // Simple rich text renderer for SEO content
 const renderShopifyRichText = (content) => {
@@ -297,19 +377,65 @@ function RecentlyViewedRow({ products }) {
   );
 }
 
-export default function CollectionPage({ params: paramsPromise, initialData }) {
+export default function CollectionPage({ params: paramsPromise, initialData, storePages = null, collectionData = null, categoryGroups = [] }) {
   const params = use(paramsPromise);
   const handle = params?.handle || "all";
+
+  // Dashboard-managed PLP banners (falls back to the default banner if no override exists).
+  const plpBanners = initialData?.plpBanners || {};
+  const topBannerDefault = plpBanners.topBanner?.default || FALLBACK_TOP_DEFAULT;
+  const topBannerPlainGold = plpBanners.topBanner?.plainGold || FALLBACK_TOP_PLAIN_GOLD;
+  const topBannerOverrides = Array.isArray(plpBanners.topBanner?.overrides)
+    ? plpBanners.topBanner.overrides
+    : [];
+  const topBannerOverride = topBannerOverrides.find((o) => o.handles?.includes(handle)) || null;
+
+  const isPlainGold = !topBannerOverride && Boolean(
+    (topBannerPlainGold?.handles && topBannerPlainGold.handles.includes(handle)) ||
+    handle.startsWith("plain-gold") ||
+    handle.startsWith("gold-") ||
+    handle.includes("plain-gold") ||
+    handle.includes("gold-jewellery")
+  );
+  const effectiveTopDefault = (isPlainGold && topBannerPlainGold?.desktopImage)
+    ? topBannerPlainGold
+    : topBannerDefault;
+  const allInpageBanners = plpBanners.inpageBanners?.length
+    ? plpBanners.inpageBanners
+    : FALLBACK_INPAGE_BANNERS;
+  // Banners targeted at this collection (`handles`) replace the global ones here,
+  // each shown once at its own `after` position; untargeted ones keep the 6/16 cadence.
+  const scopedInpageBanners = allInpageBanners
+    .filter((b) => b.handles?.includes(handle))
+    .sort((a, b) => (a.after ?? 6) - (b.after ?? 6));
+  const inpageBanners = scopedInpageBanners.length
+    ? scopedInpageBanners
+    : allInpageBanners.filter((b) => !b.handles?.length);
+
+  // Dashboard-managed Jewelry on EMI content & calculator settings
+  const emiSettings = initialData?.emiSettings || null;
+
+  // Dashboard-managed store pages. `storeHandles` covers every store, including
+  // ones whose hero is switched off — those collections then render no top
+  // banner at all, which is what the old hard-coded STORE_HANDLES list did.
+  const storeHandles = storeCollectionHandles(storePages);
 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [optimisticParams, setOptimisticParams] = useState(searchParams);
+
+  useEffect(() => {
+    setOptimisticParams(searchParams);
+  }, [searchParams]);
+
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.user);
   const recentlyViewed = useSelector(selectRecentlyViewed);
   const recentlyViewedProducts = recentlyViewed?.products || [];
 
-  const limit = 25;
+  const limit = 16;
 
   const [expandedFilters, setExpandedFilters] = useState({ "In Store Available": true });
   const loadMoreRef = useRef(null);
@@ -317,8 +443,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   // Scroll up to where the product grid starts (just below the header/banner),
   // instead of jumping all the way to the top of the page.
+  //
+  // Deliberately INSTANT. A smooth scroll here animates for about a second while
+  // the grid underneath it is being replaced — the result set changes length, the
+  // sidebar reflows, and infinite scroll drops from whatever depth the shopper had
+  // reached back to one page — so the animation spends its whole duration chasing a
+  // target that keeps moving. Landing at the top immediately also means the height
+  // changes that follow happen below the fold instead of shoving the viewport around.
   const scrollToProductsTop = useCallback(() => {
-    productsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    productsTopRef.current?.scrollIntoView({ block: "start" });
   }, []);
 
   const isMobile = useMediaQuery("(max-width: 1023px)");
@@ -327,22 +460,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
 
   // "Shop by …" category carousels — one per menu group that exists for this
-  // collection's category (empty for categories without such groups).
-  const [categoryGroups, setCategoryGroups] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const groups = await loadCategoryGroups(handle);
-        if (!cancelled) setCategoryGroups(groups);
-      } catch {
-        /* no carousels on failure */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [handle]);
+  // collection's category (empty for categories without such groups). Built on
+  // the server (page.js) and passed in as `categoryGroups`.
 
   // Helper to process filters
   const processFilters = useCallback((filtersData) => {
@@ -445,24 +564,81 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   }, []);
 
   // Data State
+  // `availableFilters` is the NARROWED facet list from the last response — the live
+  // counts. `baseFilters` is the collection's full facet list, which never narrows;
+  // it is what URL params are translated against and what fixes the sidebar's
+  // option order. See BASE_FILTER_CACHE above.
   const [availableFilters, setAvailableFilters] = useState(() => {
+    // collData.filters FIRST. Both payloads are in initialData, but only this one is
+    // the same facet list every later response carries. initialData.filterData comes
+    // from the EXPO endpoint /api/products/filters, which names the same groups
+    // differently ("Weight Ranges" vs "Weight", "Carat Range" vs "Carat range",
+    // "Material" vs "Material Type", "Product Type" vs "Product Category"), reports
+    // different counts (Chembur 272 vs 282) and carries Location-GID inputs instead
+    // of native filter inputs. Seeding the sidebar from it meant every single page
+    // load rewrote the whole filter panel — headings renamed, rows re-sorted, counts
+    // jumping — the moment the real response landed. It stays only as a fallback.
+    if (initialData?.collData?.filters) {
+      return processFilters(initialData.collData.filters);
+    }
     if (initialData && initialData.filterData) {
       return processFilters(initialData.filterData);
     }
     return {};
   });
+  const [baseFilters, setBaseFilters] = useState(() => {
+    const cached = BASE_FILTER_CACHE.get(handle);
+    if (cached) return cached;
+    if (initialData?.collData?.filters) {
+      const processed = processFilters(initialData.collData.filters);
+      BASE_FILTER_CACHE.set(handle, processed);
+      return processed;
+    }
+    return {};
+  });
   const [filtersLoading, setFiltersLoading] = useState(!initialData);
   const [collection, setCollection] = useState(() => {
-    if (initialData && initialData.collData && initialData.collData.collection) {
+    const src = initialData?.collData?.collection || collectionData;
+    if (src) {
       return {
-        title: initialData.collData.collection.title || handle.replace(/-/g, " "),
-        description: initialData.collData.collection.description || "",
-        descriptionHtml: initialData.collData.collection.descriptionHtml || "",
-        metafields: initialData.collData.collection.metafields || {}
+        title: src.title || collectionData?.title || handle.replace(/-/g, " "),
+        description: src.description || collectionData?.description || "",
+        descriptionHtml: src.descriptionHtml || collectionData?.descriptionHtml || "",
+        metafields: src.metafields || collectionData?.metafields || {}
       };
     }
     return { title: "", description: "", descriptionHtml: "" };
   });
+
+  useEffect(() => {
+    if (!collection?.descriptionHtml && collectionData?.descriptionHtml) {
+      setCollection(prev => ({
+        ...prev,
+        title: prev.title || collectionData.title,
+        description: prev.description || collectionData.description,
+        descriptionHtml: collectionData.descriptionHtml,
+      }));
+    }
+  }, [collectionData, collection?.descriptionHtml]);
+
+  // Ensure all tables in PLP HTML have horizontal scroll wrappers (overflow-x: auto)
+  const formattedDescriptionHtml = useMemo(() => {
+    if (!collection?.descriptionHtml || typeof collection.descriptionHtml !== "string") {
+      return "";
+    }
+    const html = collection.descriptionHtml;
+    return html.replace(
+      /(<div[^>]*class=["'][^"']*(?:tw|table-scroll-wrapper|overflow-x)[^"']*["'][^>]*>[\s\S]*?<\/div>)|(<table[\s\S]*?<\/table>)/gi,
+      (match, alreadyWrapped, rawTable) => {
+        if (alreadyWrapped) return alreadyWrapped;
+        if (rawTable) {
+          return `<div class="tw table-scroll-wrapper overflow-x-auto max-w-full w-full my-6 rounded-lg border border-[#EADFD8] bg-white shadow-sm" style="overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;width:100%;display:block;">${rawTable}</div>`;
+        }
+        return match;
+      }
+    );
+  }, [collection?.descriptionHtml]);
+
   const [dbCollection, setDbCollection] = useState(null);
   const [isProfileComplete, setIsProfileComplete] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -504,25 +680,11 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     };
   }, [collection?.title]);
 
-  const [products, setProducts] = useState(() => (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
-  const [pagination, setPagination] = useState(() => initialData?.collData?.pageInfo || { hasNextPage: false, endCursor: null });
-  const [productsLoading, setProductsLoading] = useState(!initialData);
-  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
-  const [totalCount, setTotalCount] = useState(() => initialData?.collData?.totalProducts || 0);
-
-  // Set initial active mobile group if needed
-  useEffect(() => {
-    if (initialData && Object.keys(availableFilters).length > 0 && !activeMobileGroup) {
-      setActiveMobileGroup(Object.keys(availableFilters)[0]);
-    }
-  }, []);
-
-  const isFirstRender = useRef(true);
-
   // Store-proximity ordering. Empty string = no pincode, unknown pincode, or no
   // store in range — in which case every request below is byte-for-byte what it
-  // was before this feature existed.
-  const { storesParam } = useStoreOrdering();
+  // was before this feature existed. Resolved BEFORE the product state below so
+  // the memo key is known while that state is still initialising.
+  const { storesParam, storesReady, pincode } = useStoreOrdering();
   // Only the default sort is reordered; an explicit Price/Newest choice must win
   // outright. The backend enforces this too, but not sending the parameter keeps
   // sorted views on the same server cache entries they already had.
@@ -530,6 +692,88 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     storesParam && (searchParams.get("sort") || "manual") === "manual"
       ? `&stores=${encodeURIComponent(storesParam)}`
       : "";
+
+  // Identifies one exact rendered result: the view AND the ordering applied to it.
+  const viewCacheKey = `${handle}|${searchParams.toString()}|${limit}|${storeOrderParam}`;
+  const cachedView = ORDERED_VIEW_CACHE.get(viewCacheKey);
+
+  // The SSG payload is the WHOLE collection (page.js sends no filters), so it is
+  // only a valid first paint for an unfiltered URL. On a filtered one it is the
+  // wrong answer to the question the URL asked — see urlHasActiveFilters above.
+  // A cached view always wins: that one was fetched for this exact URL.
+  const ssgIsStale = !cachedView && urlHasActiveFilters(searchParams, baseFilters);
+
+  // True whenever this mount WILL show a store-ordered grid but that ordering
+  // has not arrived yet, so `initialData` (build-time order) must not be painted:
+  //
+  //   - storeOrderParam !== "" — the ranking is already known and this view's
+  //     request carries it. This is the collection -> collection case: the
+  //     ranking resolved on the PREVIOUS page, so storesReady is already true on
+  //     arrival and the old `!storesReady` test missed it entirely. Measured on
+  //     earrings -> rings: 1.2s of build-time order on screen before the ordered
+  //     response replaced it, in full view of the shopper.
+  //   - pincode saved but not yet resolved — the first page load in a tab.
+  //
+  // A cached view always wins: that one was fetched for this exact key already.
+  // Read only at mount (via the lazy initializers below and the ref that freezes
+  // it), because it describes a FIRST-PAINT decision, not a live one — later
+  // renders are handled by the fetch effect's own reshuffle-avoidance logic.
+  const awaitingPincodeOrder =
+    !cachedView && (storeOrderParam !== "" || (pincode.length === 6 && !storesReady));
+
+  const [products, setProducts] = useState(() => {
+    if (cachedView) return cachedView.products;
+    if (ssgIsStale || awaitingPincodeOrder) return [];
+    return (initialData?.collData?.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
+  });
+  const [pagination, setPagination] = useState(() =>
+    cachedView?.pagination ||
+    (ssgIsStale ? { hasNextPage: false, endCursor: null } : initialData?.collData?.pageInfo) ||
+    { hasNextPage: false, endCursor: null }
+  );
+  const [productsLoading, setProductsLoading] = useState(
+    ((!initialData || ssgIsStale) && !cachedView) || awaitingPincodeOrder
+  );
+  const [isFetchingNextPage, setIsFetchingNextPage] = useState(false);
+  const [totalCount, setTotalCount] = useState(() =>
+    cachedView?.totalCount || (ssgIsStale ? 0 : initialData?.collData?.totalProducts) || 0
+  );
+
+  // Safety valve: if the pincode -> store ranking lookup is unusually slow (flaky
+  // network, backend hiccup — resolution is normally a ~40ms memoised lookup),
+  // don't leave the shopper looking at skeletons forever. After the timeout, fall
+  // back to painting `initialData`'s default order — exactly what happens today
+  // when no wait is applied — and let the store-ordered fetch swap it in silently
+  // whenever it does land. Mirrors the backend's own STORE_ORDER_BUDGET_MS
+  // fallback: past the budget, serve the un-personalised order rather than block.
+  //
+  // Never paints a stale SSG payload though: on a filtered URL the whole
+  // collection is the wrong answer (see ssgIsStale), so there the skeletons stay
+  // until the real fetch settles.
+  const awaitingPincodeOrderAtMount = useRef(awaitingPincodeOrder && !ssgIsStale).current;
+  useEffect(() => {
+    if (!awaitingPincodeOrderAtMount) return;
+    const timer = setTimeout(() => {
+      setProducts((prev) =>
+        prev.length > 0
+          ? prev
+          : (initialData?.collData?.products || []).filter((p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden"))
+      );
+      setProductsLoading((prev) => (prev ? false : prev));
+    }, PINCODE_ORDER_WAIT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [awaitingPincodeOrderAtMount, initialData]);
+
+  // Set initial active mobile group if needed. Seeded from the base list so the
+  // sheet always opens on the same group, whatever the current selection is.
+  useEffect(() => {
+    const seed = Object.keys(baseFilters).length > 0 ? baseFilters : availableFilters;
+    if (initialData && Object.keys(seed).length > 0 && !activeMobileGroup) {
+      setActiveMobileGroup(Object.keys(seed)[0]);
+    }
+  }, []);
+
+  const isFirstRender = useRef(true);
 
   // Identifies "the same view" — handle, filters, sort, page size. When only the
   // store ordering changed, the grid on screen is still valid, so it is swapped
@@ -539,7 +783,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   const [trueMinPrice, setTrueMinPrice] = useState(null);
   const [trueMaxPrice, setTrueMaxPrice] = useState(null);
 
+  // These two only refine the price SLIDER's end stops — availableFilters.Price
+  // already carries usable bounds — yet they used to fire on every mount and take
+  // ~5s each on the live backend, holding two of the browser's six connections to
+  // that host while the product fetch queued behind them. Deferred until the shopper
+  // actually opens Price, which is the only moment the value is visible.
+  const priceBoundsWanted = !!expandedFilters?.Price || activeMobileGroup === "Price";
+
   useEffect(() => {
+    if (!priceBoundsWanted) return;
     let isMounted = true;
     async function fetchTrueBounds() {
       try {
@@ -564,7 +816,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     }
     fetchTrueBounds();
     return () => { isMounted = false; };
-  }, [handle]);
+  }, [handle, priceBoundsWanted]);
 
   const [absolutePrice, setAbsolutePrice] = useState({ min: null, max: null });
 
@@ -608,22 +860,98 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     });
   }, [searchParams]);
 
+  const isOptionSelected = useCallback(
+    (groupKey, opt) => optimisticParams.getAll(opt.urlKey || groupKey).includes(String(opt.value)),
+    [optimisticParams]
+  );
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // What the sidebar, the chips and the filter count all read.
+  //
+  // Membership and ORDER come from `baseFilters`, so applying one filter can no
+  // longer re-sort the groups it did not touch — the rows a shopper is aiming at
+  // stay where they were. Counts come from `availableFilters`, so they still
+  // narrow live.
+  //
+  // A group is rendered only while its options are reachable: anything the current
+  // selection has driven to zero drops out, EXCEPT an option that is itself
+  // selected — that one always stays, otherwise the shopper is left with a filter
+  // that is applied but has no checkbox and no chip to switch it off.
+  // ───────────────────────────────────────────────────────────────────────────
+  const displayFilters = useMemo(() => {
+    const base = Object.keys(baseFilters).length > 0 ? baseFilters : availableFilters;
+    const out = {};
+
+    Object.entries(base).forEach(([groupKey, options]) => {
+      if (groupKey === "Price") {
+        out.Price = availableFilters.Price ?? options;
+        return;
+      }
+      if (!Array.isArray(options)) return;
+
+      // Absent group = this response carried no facet for it, so treat every option
+      // as unreachable rather than silently keeping stale counts.
+      const narrowed = Array.isArray(availableFilters[groupKey]) ? availableFilters[groupKey] : null;
+      const liveCounts = new Map();
+      if (narrowed) narrowed.forEach((o) => liveCounts.set(String(o.value), o.count || 0));
+
+      const rows = options
+        .map((opt) => {
+          const isChecked = isOptionSelected(groupKey, opt);
+          // Shopify already reports the right number for a checked row. Inside a group
+          // that has a selection it counts as if only THIS value were ticked, narrowed by
+          // every OTHER group — the convention for an OR group, which this is (Chembur 8 +
+          // Malad 10 returns 15 items, the union). Two consequences: the response's count
+          // beats the base count even when the row is checked, because the base one ignores
+          // every other active group (Chembur+18KT shows 52 items; the API says 52, the base
+          // list says 216); and a count above the view total is CORRECT, so capping it is
+          // wrong — that flattened distinct rows onto one number (Chembur+Round gives 5
+          // items with true counts 6/5/6/6/9/7/4, all but one printed as 5).
+          //
+          // The base count survives only as the fallback for a checked option this response
+          // omitted, so its row keeps a number instead of dropping to 0 and being filtered
+          // out below, which would leave an applied filter with no checkbox to switch off.
+          const liveCount = narrowed ? liveCounts.get(String(opt.value)) : (opt.count || 0);
+          const currentCount = liveCount ?? (isChecked ? (opt.count || 0) : 0);
+
+          return {
+            ...opt,
+            count: currentCount,
+          };
+        })
+        .filter((opt) => opt.count > 0 || isOptionSelected(groupKey, opt));
+
+      if (rows.length > 0) out[groupKey] = rows;
+    });
+
+    return out;
+  }, [baseFilters, availableFilters, isOptionSelected]);
+
+  // A group whose every option has been narrowed away is no longer rendered, so the
+  // mobile sheet would show an empty right-hand pane if it was the one open.
+  useEffect(() => {
+    const keys = Object.keys(displayFilters);
+    if (keys.length > 0 && activeMobileGroup && !keys.includes(activeMobileGroup)) {
+      setActiveMobileGroup(keys[0]);
+    }
+  }, [displayFilters, activeMobileGroup]);
+
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    Object.entries(availableFilters).forEach(([groupKey, options]) => {
+    Object.entries(displayFilters).forEach(([groupKey, options]) => {
       if (groupKey === "Price") {
-        if (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) count++;
+        if (optimisticParams.get("filter.v.price.gte") || optimisticParams.get("filter.v.price.lte")) count++;
       } else if (Array.isArray(options)) {
         options.forEach((opt) => {
-          if (searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))) count++;
+          if (isOptionSelected(groupKey, opt)) count++;
         });
       }
     });
     return count;
-  }, [availableFilters, searchParams]);
+  }, [displayFilters, optimisticParams, isOptionSelected]);
 
   const applyPriceFilter = useCallback((committedValues) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     const minVal = committedValues && Array.isArray(committedValues) ? String(committedValues[0]) : localPriceRange.min;
     const maxVal = committedValues && Array.isArray(committedValues) ? String(committedValues[1]) : localPriceRange.max;
 
@@ -641,22 +969,53 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     });
 
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    setOptimisticParams(params);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToTop();
-  }, [localPriceRange, searchParams, pathname, router]);
+  }, [localPriceRange, optimisticParams, pathname, router]);
+
+  // Live-drag: apply after a short pause so results update while dragging,
+  // not only on release, without firing a fetch on every pixel of movement.
+  const priceDebounceRef = useRef(null);
+
+  const handlePriceDrag = useCallback(([min, max]) => {
+    setLocalPriceRange({ min: String(min), max: String(max) });
+    if (priceDebounceRef.current) clearTimeout(priceDebounceRef.current);
+    priceDebounceRef.current = setTimeout(() => {
+      priceDebounceRef.current = null;
+      applyPriceFilter([min, max]);
+    }, 400);
+  }, [applyPriceFilter]);
+
+  const handlePriceCommit = useCallback((values) => {
+    if (priceDebounceRef.current) {
+      clearTimeout(priceDebounceRef.current);
+      priceDebounceRef.current = null;
+    }
+    applyPriceFilter(values);
+  }, [applyPriceFilter]);
+
+  useEffect(() => () => {
+    if (priceDebounceRef.current) clearTimeout(priceDebounceRef.current);
+  }, []);
 
   const resetPriceFilter = useCallback(() => {
     setLocalPriceRange({ min: "", max: "" });
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     params.delete("filter.v.price.gte");
     params.delete("filter.v.price.lte");
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    setOptimisticParams(params);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToTop();
-  }, [searchParams, pathname, router]);
+  }, [optimisticParams, pathname, router]);
 
   const toggleFilter = (urlKey, value, groupKey, optLabel) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(optimisticParams.toString());
     const currentValues = params.getAll(urlKey);
     const isRemoving = currentValues.includes(value);
     if (isRemoving) {
@@ -674,7 +1033,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       });
     }
     params.delete("cursor");
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    setOptimisticParams(params);
+    startTransition(() => {
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    });
     scrollToProductsTop();
   };
 
@@ -729,10 +1091,44 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     return filters;
   }, []);
 
+  const prefetchFilter = useCallback((urlKey, value) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const currentValues = params.getAll(urlKey);
+    if (currentValues.includes(value)) return;
+
+    params.append(urlKey, value);
+    params.delete("cursor");
+
+    const sort = params.get("sort") || "manual";
+    const baseSortedData = BASE_FILTER_CACHE.get(handle) || baseFilters || availableFilters;
+    const activeFilters = getActiveFiltersForShopify(params, baseSortedData);
+    const filterParams = activeFilters.length > 0 ? `&filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
+
+    const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}${storeOrderParam}`;
+
+    if (!PREFETCH_CACHE.has(apiUrl)) {
+      const promise = apiFetch(apiUrl).catch(() => null);
+      PREFETCH_CACHE.set(apiUrl, promise);
+      setTimeout(() => PREFETCH_CACHE.delete(apiUrl), 10000);
+    }
+  }, [searchParams, handle, baseFilters, availableFilters, limit, storeOrderParam, getActiveFiltersForShopify]);
+
   // Initial Fetch & Filter Changes
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     async function fetchData() {
+      // A real pincode whose ordering has not resolved yet. Firing now would
+      // fetch the un-ordered page, paint it, and then immediately refetch and
+      // repaint the ordered one — two product fetches and the reshuffle the memo
+      // above exists to prevent. Resolution is a memoised ~40ms pincode lookup,
+      // so waiting for it is cheaper than the request being skipped.
+      //
+      // Gated on `initialData` so this can never leave an empty grid: with no SSG
+      // payload to display there is nothing to protect, and fetching something
+      // beats showing nothing.
+      if (!storesReady && initialData) return;
+
       const isInitialMount = isFirstRender.current;
       isFirstRender.current = false;
 
@@ -744,6 +1140,32 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       const storeOrderOnly = viewKeyRef.current === viewKey;
       viewKeyRef.current = viewKey;
 
+      // The server-rendered payload IS this view when the URL carries nothing
+      // (no filter, sort or cursor; tracking params don't count) and no store
+      // ordering applies. Re-requesting it only repainted identical data: the
+      // route re-renders every minute and the backend caches ten, so this
+      // request can never be fresher than the HTML, and every card still checks
+      // its own price live. Keep the grid as is. Anything that changes the
+      // view — a filter, a sort, a pincode ordering resolving, a missing SSR
+      // payload — re-runs this effect with different inputs and fetches exactly
+      // as before.
+      if (
+        isInitialMount &&
+        initialData?.collData?.products?.length > 0 &&
+        !ssgIsStale &&
+        storeOrderParam === "" &&
+        !urlAsksForADifferentView(searchParams)
+      ) {
+        rememberView(viewCacheKey, {
+          products: (initialData.collData.products || []).filter(
+            (p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden")
+          ),
+          pagination: initialData.collData.pageInfo || { hasNextPage: false, endCursor: null },
+          totalCount: initialData.collData.totalProducts || 0,
+        });
+        return;
+      }
+
       // Only show loading skeletons if this is NOT the initial mount (e.g. user clicked a filter)
       // On initial mount, we keep the SSG data visible while we fetch fresh data in the background (SWR pattern).
       if (!isInitialMount && !storeOrderOnly) {
@@ -754,11 +1176,22 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       try {
         const sort = searchParams.get("sort") || "manual";
 
-        // 1. Fetch base mappings directly from Shopify GraphQL via /api/collection
-        // This avoids the EXPO proxy at /api/products/filters which returns incompatible Location GIDs
-        const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`);
-        const baseSortedData = processFilters(baseData.filters || {});
-        if (cancelled) return;
+        // 1. Base mappings. Taken from initialData / the module cache whenever we
+        // already have them, which is the normal case — the collection's facet list
+        // does not depend on the filters, so re-fetching it on every apply only added
+        // a serialised round-trip in front of the products (measured at 2-5s on the
+        // live backend) with nothing new to show for it. The request survives purely
+        // as the cold path: no SSG payload, first visit. It deliberately does NOT use
+        // /api/products/filters, whose Location GIDs are incompatible with the native
+        // Shopify filter inputs.
+        let baseSortedData = BASE_FILTER_CACHE.get(handle);
+        if (!baseSortedData) {
+          const baseData = await apiFetch(`/api/collection?handle=${handle}&limit=1`, { signal: controller.signal });
+          if (cancelled) return;
+          baseSortedData = processFilters(baseData.filters || {});
+          BASE_FILTER_CACHE.set(handle, baseSortedData);
+          setBaseFilters(baseSortedData);
+        }
 
         // 2. Map the URL parameters to native Shopify input payloads using the base mappings
         const activeFilters = getActiveFiltersForShopify(searchParams, baseSortedData);
@@ -767,42 +1200,126 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         // 3. Fetch products and narrowed filters from Shopify
         const apiUrl = `/api/collection?handle=${handle}${filterParams}&sort=${sort}&limit=${limit}${storeOrderParam}`;
 
-        const collData = await apiFetch(apiUrl);
+        let collData;
+        if (PREFETCH_CACHE.has(apiUrl)) {
+          const promise = PREFETCH_CACHE.get(apiUrl);
+          PREFETCH_CACHE.delete(apiUrl);
+          try {
+            collData = await promise;
+          } catch (e) {
+            collData = null;
+          }
+          // prefetchFilter swallows its own failures into null, so a failed
+          // prefetch lands here as a resolved null rather than a rejection —
+          // without this the null falls through to collData.filters and throws.
+          if (!collData) collData = await apiFetch(apiUrl, { signal: controller.signal });
+        } else {
+          collData = await apiFetch(apiUrl, { signal: controller.signal });
+        }
+        
         if (cancelled) return;
 
         // Update UI with narrowed filters
         const narrowedSortedData = processFilters(collData.filters || {});
         setAvailableFilters(narrowedSortedData);
-        if (Object.keys(narrowedSortedData).length > 0 && !activeMobileGroup) {
-          setActiveMobileGroup(Object.keys(narrowedSortedData)[0]);
+        if (activeFilters.length === 0) {
+          BASE_FILTER_CACHE.set(handle, narrowedSortedData);
+          setBaseFilters(narrowedSortedData);
+        }
+        // Seeded from the base list, not the narrowed one, so the mobile sheet's
+        // opening group is the same every time rather than whatever the current
+        // selection happens to leave first.
+        const groupSeed = Object.keys(baseSortedData).length > 0
+          ? Object.keys(baseSortedData)
+          : Object.keys(narrowedSortedData);
+        if (groupSeed.length > 0 && !activeMobileGroup) {
+          setActiveMobileGroup(groupSeed[0]);
         }
         setFiltersLoading(false);
 
-        setProducts((collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden')));
-        setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
-        setTotalCount(collData.totalProducts || 0);
+        const freshProducts = (collData.products || []).filter(p => !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
+        const freshPagination = collData.pageInfo || { hasNextPage: false, endCursor: null };
+        const freshTotal = collData.totalProducts || 0;
+
+        setProducts(freshProducts);
+        setPagination(freshPagination);
+        setTotalCount(freshTotal);
+
+        // Remember this exact (view + ordering) so coming back to it repaints
+        // the same grid instead of the un-ordered build-time one.
+        rememberView(viewCacheKey, {
+          products: freshProducts,
+          pagination: freshPagination,
+          totalCount: freshTotal,
+        });
 
         try {
-          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`);
+          const dbData = await apiFetch(`/api/collection/metadata?handle=${handle}`, { signal: controller.signal });
           if (dbData.success) setDbCollection(dbData.collection);
         } catch (e) { }
       } catch (err) {
+        // Ask the signal, not the error: an aborted fetch can surface as a
+        // DOMException, a wrapped Error, or the raw abort reason depending on
+        // the runtime, and name-matching misses the ones that are not "AbortError".
+        if (controller.signal.aborted || err?.name === "AbortError") return;
         console.error("Failed to fetch initial data:", err);
+        // The store-ordered first paint starts from an EMPTY grid (see
+        // awaitingPincodeOrder). If that fetch fails, fall back to the build-time
+        // order rather than leaving the shopper with nothing. Except on a filtered
+        // URL, where that payload is the wrong answer (see ssgIsStale).
+        if (!cancelled && !ssgIsStale) {
+          setProducts((prev) =>
+            prev.length > 0
+              ? prev
+              : (initialData?.collData?.products || []).filter((p) => !p.tags?.some((t) => t?.toLowerCase() === "hidden"))
+          );
+        }
       } finally {
         if (!cancelled) setProductsLoading(false);
       }
     }
-    fetchData();
-    return () => { cancelled = true; };
-  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam]);
+    fetchData().catch((err) => {
+      const isAbort =
+        err?.name === "AbortError" ||
+        err?.code === 20 ||
+        controller.signal.aborted ||
+        cancelled ||
+        String(err?.message || "").toLowerCase().includes("abort");
+      if (!isAbort) {
+        console.error("Unhandled error in collection fetchData:", err);
+      }
+    });
+    // Abort WITH a reason. Without one the browser mints an anonymous
+    // "signal is aborted without reason" DOMException whose only stack frame is
+    // this abort() call — the construction site, not whatever promise failed to
+    // handle it — which is why this error was untraceable in the dev overlay.
+    // Named, any future sighting says where it came from. `name` stays
+    // "AbortError" so every existing abort check below still matches.
+    return () => {
+      cancelled = true;
+      controller.abort(new DOMException("collection view changed", "AbortError"));
+    };
+  }, [handle, searchParams, limit, getActiveFiltersForShopify, processFilters, initialData, storeOrderParam, storesReady, viewCacheKey]);
 
   // Fetch Next Page
   const fetchNextPage = useCallback(async () => {
     if (!pagination.hasNextPage || isFetchingNextPage) return;
+    // `pagination` still describes the PREVIOUS view while a filter change is in
+    // flight, so paging here would append a slice of the old result set — or, in
+    // store-order mode where the cursor is an offset, an arbitrary slice of the new
+    // one — on top of products that are about to be replaced wholesale.
+    if (productsLoading) return;
     setIsFetchingNextPage(true);
     try {
       const sort = searchParams.get("sort") || "manual";
-      const activeFilters = getActiveFiltersForShopify(searchParams, availableFilters);
+      // Mapped against the base facets, exactly as page one was. Using the narrowed
+      // list here dropped any selected option the current response no longer
+      // mentioned, so page two could arrive filtered more loosely than page one and
+      // mix in products the shopper had filtered out.
+      const activeFilters = getActiveFiltersForShopify(
+        searchParams,
+        BASE_FILTER_CACHE.get(handle) || baseFilters || availableFilters
+      );
       const filterParams = activeFilters.length > 0 ? `filters=${encodeURIComponent(JSON.stringify(activeFilters))}` : "";
 
       // `stores` must be carried on every page, not just the first: it is what
@@ -811,14 +1328,24 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
       const collData = await apiFetch(apiUrl);
 
+      const nextPagination = collData.pageInfo || { hasNextPage: false, endCursor: null };
+
       setProducts((prev) => {
         const nextProducts = collData.products || [];
         const existingIds = new Set(prev.map(p => p.id));
         const filteredNew = nextProducts.filter(p => !existingIds.has(p.id) && !p.tags?.some(t => t?.toLowerCase() === 'hidden'));
-        return [...prev, ...filteredNew];
+        const merged = [...prev, ...filteredNew];
+        // Keep the memo at the full scrolled depth, so Back from a PDP restores
+        // everything the shopper had loaded rather than snapping to page one.
+        rememberView(viewCacheKey, {
+          products: merged,
+          pagination: nextPagination,
+          totalCount: collData.totalProducts || collData.pagination?.total || 0,
+        });
+        return merged;
       });
 
-      setPagination(collData.pageInfo || { hasNextPage: false, endCursor: null });
+      setPagination(nextPagination);
 
       if (collData.totalProducts) setTotalCount(collData.totalProducts);
       else if (collData.pagination?.total) setTotalCount(collData.pagination.total);
@@ -827,13 +1354,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     } finally {
       setIsFetchingNextPage(false);
     }
-  }, [handle, searchParams, pagination, isFetchingNextPage, limit, availableFilters, getActiveFiltersForShopify, storeOrderParam]);
+  }, [handle, searchParams, pagination, isFetchingNextPage, productsLoading, limit, baseFilters, availableFilters, getActiveFiltersForShopify, storeOrderParam, viewCacheKey]);
 
   // Infinite scroll trigger
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && pagination.hasNextPage && !isFetchingNextPage) {
+        if (entries[0].isIntersecting && pagination.hasNextPage && !isFetchingNextPage && !productsLoading) {
           fetchNextPage();
         }
       },
@@ -844,7 +1371,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     );
     if (loadMoreRef.current) observer.observe(loadMoreRef.current);
     return () => observer.disconnect();
-  }, [pagination.hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [pagination.hasNextPage, isFetchingNextPage, productsLoading, fetchNextPage]);
 
   // Track product impressions when products are loaded
   const impressionSentRef = useRef(false);
@@ -858,7 +1385,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   }, [products]);
 
   const clearAllFilters = () => {
-    router.push(pathname, { scroll: false });
+    setOptimisticParams(new URLSearchParams());
+    startTransition(() => {
+      router.push(pathname, { scroll: false });
+    });
     scrollToTop();
   };
 
@@ -867,11 +1397,14 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
   };
 
   const handleSort = (value) => {
-    const p = new URLSearchParams(searchParams.toString());
+    const p = new URLSearchParams(optimisticParams.toString());
     if (value === "manual") p.delete("sort");
     else p.set("sort", value);
     p.delete("cursor");
-    router.push(`${pathname}?${p.toString()}`, { scroll: false });
+    setOptimisticParams(p);
+    startTransition(() => {
+      router.push(`${pathname}?${p.toString()}`, { scroll: false });
+    });
     scrollToTop();
     // Fire promoClick datalayer for sort-by
     const sortLabel = SORT_OPTIONS.find((o) => o.value === value)?.label || value;
@@ -905,7 +1438,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     const items = [];
     let renderedCount = 0;
     let bannerCount = 0;
-    let cellCount = 0;            // grid cells occupied so far (a col-span-full block = 2)
+    let wideBeside = 0;           // products placed beside wide (2x2) banners so far
+    let cellCount = 0;           // grid cells occupied so far (a col-span-full block = 2)
     let rewardBannerAdded = false;
     let rewardBannerAt = -1;      // renderedCount when the claim banner was inserted
     let recentlyViewedAdded = false;
@@ -915,16 +1449,58 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       if (!prod) return;
       // First banner after 6 products, the second 10 later (6, 16). Each creative shows
       // once and then stops — the row is not repeated further down the grid.
-      if (bannerCount < INPAGE_BANNERS.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0) {
-        const banner = INPAGE_BANNERS[bannerCount];
+      const showScopedBanner = scopedInpageBanners.length > 0
+        && bannerCount < inpageBanners.length
+        // Products sitting beside an earlier wide tile (2 rows x 1 spare column on the
+        // 3-up grid) don't count toward the dashboard's "after N" gap.
+        && renderedCount >= (inpageBanners[bannerCount].after ?? 6) + wideBeside;
+      if (showScopedBanner || (!scopedInpageBanners.length && bannerCount < inpageBanners.length && renderedCount >= 6 && (renderedCount - 6) % 10 === 0)) {
+        const banner = inpageBanners[bannerCount];
+        // Mobile takes its own creative, the way the top banner already does.
+        // The dashboard stores both (`mobileSrc` beside `src`) because they are
+        // cut for different tiles — 270×495 against the desktop 413×615 — and
+        // rendering the desktop one on a phone threw away 30% of its width.
+        const bannerSrc = (isMobile && banner.mobileSrc) || banner.src;
+        const bannerPosition = bannerCount + 1;
         items.push(
-          <div key={`inpage-${idx}`} className="overflow-hidden rounded-[4px]">
-            <Link prefetch={false} className="cursor-default" href={banner.href} onClick={(e) => e.preventDefault()}>
-              <Image src={banner.src} alt={banner.alt} width={800} height={400} className="w-full h-full object-cover rounded-[4px]" />
+          <div key={`inpage-${idx}`} className={`overflow-hidden rounded-[4px] ${banner.size === "wide" ? "lg:col-span-2 lg:row-span-2" : banner.size === "double" ? (isMobile ? "col-span-2 row-span-2" : "col-span-2") : ""}`}>
+            <Link
+              prefetch={false}
+              className="cursor-pointer block w-full h-full"
+              href={banner.href || banner.linkUrl || "#"}
+              onClick={() =>
+                pushPromoClick({
+                  creative_name: `Plp Inpage Banner - ${banner.alt || "Promo"}`,
+                  promo_id: banner.id || banner.href || "",
+                  promo_name: banner.alt || "",
+                  promo_position: `Position ${bannerPosition}`,
+                  location_id: pathname,
+                })
+              }
+            >
+              {/* Contained, not covered. This cell's height is set by the
+                  product cards beside it, and the Try At Home / video call row
+                  made those ~50px taller than either creative was cut for — so
+                  filling the cell scales the banner up and crops its width,
+                  which is precisely where the "20% OFF" and "50% OFF" boxes
+                  sit (within a few pixels of the creative's own edges). Any
+                  crop at all clips them, so there is none: the banner keeps its
+                  own proportions and is pinned to the top of the cell, where
+                  its top edge lines up with the card image next to it. */}
+              <Image
+                loader={shopifyLoader}
+                src={bannerSrc}
+                alt={banner.alt}
+                width={800}
+                height={400}
+                sizes="(max-width: 1023px) 50vw, 33vw"
+                className={`w-full h-full rounded-[4px] ${banner.size === "wide" || banner.size === "double" ? "object-cover" : "object-contain object-top"}`}
+              />
             </Link>
           </div>
         );
-        cellCount += 1;
+        cellCount += banner.size === "double" ? (isMobile ? 4 : 2) : 1;
+        if (banner.size === "wide" && !isMobile) wideBeside += 2;
         bannerCount++;
       }
 
@@ -954,7 +1530,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               className="flex items-center justify-between gap-3 w-full bg-[#5A413F] rounded-[10px] px-4 py-3.5 lg:px-5 lg:py-4 cursor-pointer"
             >
               <div className="flex items-center gap-3">
-                <Image
+                <Image loader={shopifyLoader}
                   src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/image_3494.png?v=1784099419"
                   alt="Reward coin"
                   width={28}
@@ -1023,12 +1599,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         cellCount += 2;
       }
 
-      // Trigger pagination when 10 products are scrolled
-      // For a batch of 25, this is the 11th product (index 10, or length - 15)
-      const isTrigger = pagination.hasNextPage && idx === products.length - 15;
-
       items.push(
-        <div key={`${prod.id || idx}-${idx}`} ref={isTrigger ? loadMoreRef : null}>
+        <div key={prod.id || `idx-${idx}`}>
           <ProductCard
             product={selectedColor ? { ...prod, selectedColor } : prod}
             collectionHandle={handle}
@@ -1055,7 +1627,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
     isFetchingNextPage,
     handle,
     selectedColor,
-    dispatch
+    dispatch,
+    plpBanners.inpageBanners
   ]);
 
   const displayTitle = isMobile
@@ -1119,8 +1692,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      {CUSTOM_COLLECTION_BANNERS[handle] ? (
+      {/* Hero Section — top banner is dashboard-managed (see plpBanners above) */}
+      {topBannerOverride?.layout === "fullwidth" ? (
         <div className="w-full bg-white">
           {/* Mobile Breadcrumbs */}
           <div className="block lg:hidden">
@@ -1138,51 +1711,26 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
           </div>
 
           <div className="relative w-full">
-            {/* Desktop Image */}
-            <div className="hidden lg:block w-full">
-              <Image
-                loader={shopifyLoader}
-                src={CUSTOM_COLLECTION_BANNERS[handle].desktop}
-                alt={displayTitle}
-                width={1920}
-                height={800}
-                priority
-                loading="eager"
-                className="w-full h-auto object-cover object-center"
-                sizes="100vw"
-                draggable={false}
-              />
-            </div>
-
-            {/* Mobile Image */}
-            <div className="block lg:hidden w-full">
-              <Image
-                loader={shopifyLoader}
-                src={CUSTOM_COLLECTION_BANNERS[handle].mobile}
-                alt={displayTitle}
-                width={768}
-                height={960}
-                priority
-                loading="eager"
-                className="w-full h-auto object-cover object-center"
-                sizes="100vw"
-                draggable={false}
-              />
-            </div>
+            {/* One <picture>: the desktop file at lg and up, the mobile file
+                below it. Only the matching source downloads (see
+                PlpHeroPicture); the previous two priority <Image>s fetched both
+                files on every device. */}
+            <PlpHeroPicture
+              desktop={{ src: topBannerOverride.desktopImage, width: 1920, height: 800 }}
+              mobile={{ src: topBannerOverride.mobileImage, width: 768, height: 960 }}
+              alt={topBannerOverride.alt || displayTitle}
+              className="w-full h-auto object-cover object-center"
+              draggable={false}
+              preload
+            />
           </div>
         </div>
-      ) : STORE_HANDLES.includes(handle) ? (
-        <StoreCollectionBanner collectionHandle={handle} bannerImages={STORE_IMAGES[handle] || []} />
+      ) : storeHandles.includes(handle) ? (
+        <StoreCollectionBanner collectionHandle={handle} storePages={storePages} />
       ) : (() => {
-        const heroBannerSrc = PLAIN_GOLD_HANDLES.includes(handle) 
-          ? PLAIN_GOLD_BANNER_IMAGE 
-          : handle === "earrings"
-            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product-3_f6e49a5f-f9a3-4af7-9fca-c9bce18aa4c4.jpg"
-          : handle === "all-earrings"
-            ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product1_jpg.jpg?v=1787210650"
-            : handle === "bestsellers"
-              ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile-Product_8ddc9bb5-09ff-46f1-bf24-e3b1b5172a80.jpg"
-              : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Offer-Mobile1.jpg";
+        const stripAlt = topBannerOverride?.alt || effectiveTopDefault.alt || displayTitle;
+        const stripDesktop = topBannerOverride?.desktopImage || effectiveTopDefault.desktopImage;
+        const stripMobile = topBannerOverride?.mobileImage || effectiveTopDefault.mobileImage;
 
         return isMobile ? (
           <div className="w-full">
@@ -1198,7 +1746,15 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </Breadcrumb>
             </div>
             <div className="w-full relative">
-              <Image src={heroBannerSrc} alt={displayTitle} width={768} height={480} className="w-full h-auto object-contain" priority />
+              <Image
+                loader={shopifyLoader}
+                src={stripMobile}
+                alt={stripAlt}
+                width={768}
+                height={480}
+                className="w-full h-auto object-contain"
+                priority
+              />
             </div>
           </div>
         ) : (
@@ -1207,15 +1763,16 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               <div className="flex-1">
                 <h1 className="text-4xl font-abhaya font-extrabold leading-[1.3] tracking-normal align-middle mb-[10px] capitalize">{displayTitle}</h1>
                 <div className="flex flex-wrap gap-6 text-xs md:text-sm font-medium">
-                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
-                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
-                  <div className="flex items-center gap-2"><Image src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
+                  <div className="flex items-center gap-2"><Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_f573cba5-716e-47c9-baeb-8303cf3ba2e8.png" alt="Shipping" width={20} height={20} className="md:w-6" /><span>Free & secure shipping</span></div>
+                  <div className="flex items-center gap-2"><Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/streamline_star-badge_1.png" alt="Certified" width={20} height={20} className="md:w-6" /><span>100% value guarantee</span></div>
+                  <div className="flex items-center gap-2"><Image loader={shopifyLoader} src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/hugeicons_delivery-return-01.png" alt="Return" width={20} height={20} className="md:w-6" /><span>15-day Money Back Guarantee</span></div>
                 </div>
               </div>
               <div className="flex-1 w-full h-auto">
                 <Image
-                  src={heroBannerSrc}
-                  alt={displayTitle}
+                  loader={shopifyLoader}
+                  src={stripDesktop}
+                  alt={stripAlt}
                   width={640}
                   height={223}
                   className="w-full h-auto object-contain"
@@ -1227,16 +1784,23 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
       })()}
 
       {handle === "eterna" && <EternaBandsSection />}
+      {handle === "jewellery-on-emi" && (
+        <JewelleryEmiStrip 
+          onShopClick={scrollToProductsTop} 
+          descriptionHtml={collection?.descriptionHtml} 
+          emiSettings={emiSettings}
+        />
+      )}
 
-      <div ref={productsTopRef} className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
+      <div ref={productsTopRef} id="products" className={`scroll-mt-20 ${isMobile ? "" : "flex xl:gap-12 lg:gap-6 py-6 container-main mx-auto"}`}>
         {/* ================= FILTERS SIDEBAR ================= */}
         <div className="hidden lg:block xl:w-78 lg:w-60 shrink-0">
           <div className="sticky top-19 self-start h-fit">
             <ScrollArea className="w-full h-[calc(100dvh-5rem)]">
-              {filtersLoading && Object.keys(availableFilters).length === 0 ? <FilterSidebarSkeleton /> : (
+              {filtersLoading && Object.keys(displayFilters).length === 0 ? <FilterSidebarSkeleton /> : (
                 <div className={`space-y-3 pr-4 ${filtersLoading ? "opacity-50 pointer-events-none" : ""}`}>
                   <div className="flex justify-between items-center border-b border-[#CECACA] pb-3"><h3 className="font-figtree font-bold text-black text-xl leading-none tracking-normal">Filters</h3><button onClick={clearAllFilters} className="font-figtree text-xs font-semibold uppercase tracking-wide text-[#696969] hover:text-black transition-colors">Clear All</button></div>
-                  {Object.entries(availableFilters).map(([groupKey, options]) => {
+                  {Object.entries(displayFilters).map(([groupKey, options]) => {
                     const isExpanded = expandedFilters[groupKey] ?? false;
                     if (groupKey === "Price") {
                       return (
@@ -1252,8 +1816,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                                   localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
                                   localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
                                 ]}
-                                onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
-                                onValueCommit={applyPriceFilter}
+                                onValueChange={handlePriceDrag}
+                                onValueCommit={handlePriceCommit}
                               />
                               <div className="text-sm font-semibold text-gray-900 text-center">
                                 ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0))} - ₹{new Intl.NumberFormat("en-IN").format(localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000))}
@@ -1269,9 +1833,9 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                         {isExpanded && (
                           <div className="space-y-4 mt-2 mb-4 pb-5">
                             {Array.isArray(options) && options.map((opt) => {
-                              const isChecked = searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
+                              const isChecked = optimisticParams.getAll(opt.urlKey || groupKey).includes(String(opt.value));
                               return (
-                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
+                                <div key={opt.label} className="flex items-center gap-3 cursor-pointer group" onMouseEnter={() => prefetchFilter(opt.urlKey || groupKey, opt.value)} onPointerDown={() => prefetchFilter(opt.urlKey || groupKey, opt.value)} onClick={() => toggleFilter(opt.urlKey || groupKey, opt.value, groupKey, opt.label)}>
                                   <span className={`flex items-center justify-center h-5 w-5 shrink-0 rounded-[4px] border transition-colors ${isChecked ? "bg-primary border-primary" : "border-gray-300 bg-white group-hover:border-gray-400"}`}>
                                     {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
                                   </span>
@@ -1294,6 +1858,16 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
         {/* ================= PRODUCTS SECTION ================= */}
         <div className="flex-1">
+          {handle === "jewellery-on-emi" && emiSettings?.productsIntro?.enabled !== false && (
+            <div className="mb-4 px-4 lg:px-0">
+              <h2 className="font-abhaya text-2xl lg:text-3xl font-extrabold text-[#2B1F1E]">
+                {emiSettings?.productsIntro?.title ?? "Diamond jewelry from ₹50,000"}
+              </h2>
+              <p className="text-xs sm:text-sm text-[#6D625E] font-medium font-figtree mt-1">
+                {emiSettings?.productsIntro?.subtitle ?? "EMI is available where eligible and applies to the diamond component of each piece."}
+              </p>
+            </div>
+          )}
           <div className={`flex items-center justify-between sticky top-0 z-20 ${isMobile ? "gap-3 p-4 bg-white/95 backdrop-blur-sm border-b border-[#F0E7E2]" : "gap-4 py-4 bg-white"}`}>
             <div className={isMobile ? "flex items-center gap-2.5" : "flex gap-3 items-center"}>
               {isMobile ? (
@@ -1318,7 +1892,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
           {!isMobile && activeFilterCount > 0 && (
             <div className="flex flex-wrap items-center gap-2.5 mb-4">
-              {Object.entries(availableFilters).map(([groupKey, options]) => (
+              {Object.entries(displayFilters).map(([groupKey, options]) => (
                 <Fragment key={groupKey}>
                   {groupKey === "Price" ? (
                     (searchParams.get("filter.v.price.gte") || searchParams.get("filter.v.price.lte")) && (
@@ -1341,7 +1915,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
             </div>
           )}
 
-          <div className={`grid mt-4 transition-opacity duration-300 ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 lg:grid-cols-3 gap-6"}`}>
+          <div className={`grid mt-4 transition-opacity duration-300 plp-product-grid ${productsLoading ? "opacity-50 pointer-events-none" : ""} ${isMobile ? "grid-cols-2 gap-4 px-2" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-flow-dense gap-6"}`}>
             {productsLoading && products.length === 0 ? Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />) : gridItems}
           </div>
           <div ref={loadMoreRef} className="w-full flex justify-center items-center py-10">
@@ -1388,8 +1962,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         // if (!hasFaq && !hasBestsellers && !hasSeo) return null;
 
         return (
-          <div className="seo-content container-main py-10 md:py-16 border-t border-gray-100">
-            <div className="w-full px-2 lg:px-6">
+          <div className="seo-content container-main py-10 md:py-16 border-t border-gray-100 max-w-full min-w-0">
+            <div className="w-full max-w-full min-w-0 px-2 lg:px-6">
               <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
                 {/* Bestseller Products (SEO Links) */}
                 {hasBestsellers && (
@@ -1491,10 +2065,13 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
 
               {/* SEO Section */}
               {collection?.descriptionHtml && (
-                <div className="mt-8 border-t border-gray-100 pt-10">
+                <div className={`mt-8 border-t pt-10 max-w-full min-w-0 overflow-hidden ${handle === "jewellery-on-emi" ? "jewellery-emi-content border-[#EADFD8]" : "border-gray-100"}`}>
                   <div
-                    className="
-        max-w-4xl
+                    className={`
+        w-full
+        max-w-full
+        min-w-0
+        overflow-hidden
 
         [&_h1]:text-2xl
         [&_h1]:font-bold
@@ -1593,7 +2170,27 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         [&_blockquote]:text-sm
 
         [&_hr]:my-8
-        [&_hr]:border-gray-100
+        [&_.tw]:block
+        [&_.tw]:w-full
+        [&_.tw]:max-w-full
+        [&_.tw]:overflow-x-auto
+        [&_.tw]:my-6
+        [&_.tw]:rounded-lg
+        [&_.tw]:border
+        [&_.tw]:border-gray-200
+        [&_.tw]:bg-white
+        [&_.tw]:shadow-sm
+
+        [&_.table-scroll-wrapper]:block
+        [&_.table-scroll-wrapper]:w-full
+        [&_.table-scroll-wrapper]:max-w-full
+        [&_.table-scroll-wrapper]:overflow-x-auto
+        [&_.table-scroll-wrapper]:my-6
+        [&_.table-scroll-wrapper]:rounded-lg
+        [&_.table-scroll-wrapper]:border
+        [&_.table-scroll-wrapper]:border-gray-200
+        [&_.table-scroll-wrapper]:bg-white
+        [&_.table-scroll-wrapper]:shadow-sm
 
         [&_table]:block
         [&_table]:w-full
@@ -1606,6 +2203,20 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         [&_table]:shadow-sm
         [&_table]:border
         [&_table]:border-gray-200
+
+        [&_.tw_table]:!table
+        [&_.tw_table]:!w-full
+        [&_.tw_table]:!min-w-[500px]
+        [&_.tw_table]:!my-0
+        [&_.tw_table]:!border-0
+        [&_.tw_table]:!shadow-none
+
+        [&_.table-scroll-wrapper_table]:!table
+        [&_.table-scroll-wrapper_table]:!w-full
+        [&_.table-scroll-wrapper_table]:!min-w-[500px]
+        [&_.table-scroll-wrapper_table]:!my-0
+        [&_.table-scroll-wrapper_table]:!border-0
+        [&_.table-scroll-wrapper_table]:!shadow-none
 
         [&_th]:whitespace-nowrap
         [&_td]:whitespace-nowrap
@@ -1688,8 +2299,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
         [&_pre]:overflow-x-auto
         [&_pre]:text-xs
         [&_pre]:text-gray-700
-      "
-                    dangerouslySetInnerHTML={{ __html: collection.descriptionHtml }}
+      `}
+                    dangerouslySetInnerHTML={{ __html: formattedDescriptionHtml }}
                   />
                 </div>
               )}
@@ -1753,10 +2364,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
               </div>
               <div className="flex-1 flex overflow-hidden">
                 <div className="w-[42%] bg-[#FBF3EF] border-r border-[#F0E7E2] overflow-y-auto">
-                  {Object.entries(availableFilters).map(([groupKey]) => {
+                  {Object.entries(displayFilters).map(([groupKey]) => {
                     let count = 0;
                     if (groupKey === "Price") { if (localPriceRange.min || localPriceRange.max) count = 1; }
-                    else { count = availableFilters[groupKey].filter(opt => searchParams.getAll(opt.urlKey || groupKey).includes(String(opt.value))).length; }
+                    else { count = displayFilters[groupKey].filter(opt => isOptionSelected(groupKey, opt)).length; }
                     const isActive = activeMobileGroup === groupKey;
                     return (
                       <button key={groupKey} onClick={() => setActiveMobileGroup(groupKey)} className={`w-full text-left pl-5 pr-9 py-4 font-figtree text-[0.8125rem] tracking-normal relative leading-snug transition-colors ${isActive ? "bg-white text-[#5a413f] font-semibold" : "text-gray-500 font-medium active:bg-white/60"}`}>
@@ -1768,7 +2379,7 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                   })}
                 </div>
                 <div className="w-[58%] bg-white overflow-y-auto px-4 py-3">
-                  {activeMobileGroup && availableFilters[activeMobileGroup] && (
+                  {activeMobileGroup && displayFilters[activeMobileGroup] && (
                     <div className="space-y-1 pb-24">
                       {activeMobileGroup === "Price" ? (
                         <div className="space-y-6 py-5 px-1.5">
@@ -1780,8 +2391,8 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                               localPriceRange.min !== "" ? Number(localPriceRange.min) : (absolutePrice.min || 0),
                               localPriceRange.max !== "" ? Number(localPriceRange.max) : (absolutePrice.max || 500000)
                             ]}
-                            onValueChange={([min, max]) => setLocalPriceRange({ min: String(min), max: String(max) })}
-                            onValueCommit={applyPriceFilter}
+                            onValueChange={handlePriceDrag}
+                            onValueCommit={handlePriceCommit}
                           />
                           <div className="rounded-xl bg-[#FBF3EF] py-3 px-4 text-center">
                             <span className="font-figtree text-[0.9375rem] font-semibold text-[#5a413f]">
@@ -1790,10 +2401,10 @@ export default function CollectionPage({ params: paramsPromise, initialData }) {
                           </div>
                         </div>
                       ) : (
-                        availableFilters[activeMobileGroup].map((option) => {
-                          const isSelected = searchParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
+                        displayFilters[activeMobileGroup].map((option) => {
+                          const isSelected = optimisticParams.getAll(option.urlKey || activeMobileGroup).includes(String(option.value));
                           return (
-                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
+                            <div key={option.label} className={`flex items-center justify-between gap-2 py-2.5 px-1 rounded-lg cursor-pointer group transition-colors ${isSelected ? "" : "active:bg-gray-50"}`} onMouseEnter={() => prefetchFilter(option.urlKey || activeMobileGroup, option.value)} onPointerDown={() => prefetchFilter(option.urlKey || activeMobileGroup, option.value)} onClick={() => toggleFilter(option.urlKey || activeMobileGroup, option.value, activeMobileGroup, option.label)}>
                               <div className="flex items-center gap-3 min-w-0">
                                 {isSelected ? <div className="w-[19px] h-[19px] shrink-0 bg-[#5a413f] rounded-[5px] flex items-center justify-center"><svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg></div> : <div className="w-[19px] h-[19px] shrink-0 border border-gray-300 rounded-[5px] group-hover:border-[#5a413f] transition-colors" />}
                                 <span className={`font-figtree text-sm leading-snug truncate ${isSelected ? "text-[#5a413f] font-semibold" : "text-gray-600"}`}>{option.label}</span>

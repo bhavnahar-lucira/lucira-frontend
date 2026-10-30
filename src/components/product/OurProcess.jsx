@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { FreeMode, Mousewheel } from "swiper/modules";
 
@@ -47,7 +48,7 @@ export default function OurProcess() {
   ];
 
   return (
-    <section className="w-full bg-white overflow-hidden">
+    <section className="w-full bg-white overflow-hidden my-10 md:my-16">
       <div className="max-w-480 mx-auto px-5 md:px-17 min-[1440px]:px-17">
         <h2 className="text-28px font-bold mb-6 text-black">
           Our Process
@@ -75,7 +76,7 @@ export default function OurProcess() {
               <div className="flex flex-col gap-4 group">
                 {/* Image Container with Taller Aspect Ratio */}
                 <div className="relative aspect-3/4 w-full bg-gray-50 overflow-hidden rounded-sm">
-                  <Image
+                  <Image loader={shopifyLoader}
                     src={step.img}
                     alt={step.title}
                     fill

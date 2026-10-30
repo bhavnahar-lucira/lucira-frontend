@@ -8,10 +8,13 @@ import PointsResetHandler from "@/components/common/PointsResetHandler";
 import { GlobalAuthModal } from "@/components/auth/GlobalAuthModal";
 import Script from "next/script";
 import GtmPageView from "@/components/common/GtmPageView";
-import { organizationSchema, websiteSchema, storesSchema } from "@/lib/seo";
+import { organizationSchema, websiteSchema, getStoresSchema } from "@/lib/seo";
+import { getStorePages } from "@/lib/storeContent";
 import WebEngageRegistration from "@/components/common/WebEngageRegistration";
 import TabTitleAnimator from "@/components/common/TabTitleAnimator";
 import BodyClassManager from "@/components/common/BodyClassManager";
+import ScrollRestoration from "@/components/common/ScrollRestoration";
+import { AnalyticsProvider } from "@/providers/AnalyticsProvider";
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.lucirajewelry.com";
 
@@ -37,13 +40,20 @@ export const viewport = {
   interactiveWidget: "resizes-content",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
   const isProd = process.env.NODE_ENV === "production";
+  // The Store entries in the site-wide schema come from the dashboard store
+  // content, so they follow Dashboard → Stores instead of a hand-kept list.
+  const storesSchema = getStoresSchema(await getStorePages());
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://cdn.shopify.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdn.shopify.com" />
+        {/* Body font, self-hosted (same WOFF2 bytes the Shopify CDN served) and
+            preloaded so text paints in Figtree on first render. */}
+        <link rel="preload" href="/fonts/figtree-wght.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         {isProd && (
           <Script id="google-tag-manager" strategy="afterInteractive">
             {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -74,20 +84,25 @@ export default function RootLayout({ children }) {
             />
           </noscript>
         )}
+        <ScrollRestoration />
         <ReduxProvider>
-          <BodyClassManager />
-          <TabTitleAnimator />
-          <WebEngageRegistration />
-          {isProd && (
-            <Suspense fallback={null}>
-              <GtmPageView />
-            </Suspense>
-          )}
-          <PointsResetHandler />
-          <ZohoSalesIQ />
-          {children}
-          <GlobalAuthModal />
-          <BackToTop />
+          <Suspense fallback={null}>
+            <AnalyticsProvider>
+              <BodyClassManager />
+              <TabTitleAnimator />
+              <WebEngageRegistration />
+              {isProd && (
+                <Suspense fallback={null}>
+                  <GtmPageView />
+                </Suspense>
+              )}
+              <PointsResetHandler />
+              <ZohoSalesIQ />
+              {children}
+              <GlobalAuthModal />
+              <BackToTop />
+            </AnalyticsProvider>
+          </Suspense>
         </ReduxProvider>
         <ToastProvider />
       </body>

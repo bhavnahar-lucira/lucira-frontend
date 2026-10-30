@@ -19,6 +19,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { useSchemeSettings } from "@/hooks/useSchemeSettings";
 
 const PRESETS = [3000, 5000, 10000, 19000];
@@ -223,7 +224,7 @@ export default function MobileSavingCalculator() {
 
           {giftValue > 0 && (
             <div className="w-full my-3">
-              <Image
+              <Image loader={shopifyLoader}
                 src={giftValue >= 10000 
                   ? "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_10k.jpg?v=1781241879" 
                   : "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Mob_Banner_5k.jpg?v=1781241879"

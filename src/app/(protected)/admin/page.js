@@ -13,15 +13,19 @@ import {
   Info,
 } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { selectUser } from "@/redux/features/user/userSlice";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { fetchCustomerDashboardStats, fetchCustomerOrders, fetchRewardCoupon } from "@/lib/api";
+// apiFetch was used below without being imported, which threw a ReferenceError
+// inside the try and silently killed the reward-coupon card.
+import { apiFetch, fetchCustomerDashboardStats, fetchCustomerOrders, fetchOccasionCoupons, fetchRewardCoupon } from "@/lib/api";
 import { shopifyStorefrontFetch, CUSTOMER_ORDERS_QUERY } from "@/lib/shopify-client";
 import { getOrderImage } from "@/lib/utils";
-import { COUPONS, COUPON_DISCLAIMER } from "@/lib/coupons";
+import { COUPONS } from "@/lib/coupons";
+import CouponBanner, { OccasionCoupons } from "@/components/coupons/CouponBanner";
 
 export default function CustomerDashboard() {
   const { user, accessToken } = useSelector((state) => state.user);
@@ -35,22 +39,37 @@ export default function CustomerDashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [rewardCoupon, setRewardCoupon] = useState(null);
+  const [occasionCoupons, setOccasionCoupons] = useState([]);
   const [copiedCode, setCopiedCode] = useState(null);
-  const [showRewardInfo, setShowRewardInfo] = useState(false);
 
   useEffect(() => {
     if (!user?.id && !user?.email && !user?.mobile) return;
 
     async function fetchReward() {
       try {
-        const data = await fetchRewardCoupon({
-          customerId: user?.id,
-          email: user?.email,
-          mobile: user?.mobile,
-        });
-        if (data?.hasCoupon && data?.code) {
-          const coupon = COUPONS.find((c) => c.code === data.code);
-          if (coupon) setRewardCoupon(coupon);
+        const [rewardData, dynamicCouponsData] = await Promise.all([
+          fetchRewardCoupon({
+            customerId: user?.id,
+            email: user?.email,
+            mobile: user?.mobile,
+          }),
+          apiFetch("/api/cart/coupons/active", { suppressErrorLog: true }).catch(() => null)
+        ]);
+
+        if (rewardData?.hasCoupon && rewardData?.code) {
+          const dynamicCoupons = dynamicCouponsData?.coupons || [];
+          const allCoupons = [...dynamicCoupons, ...COUPONS];
+          const coupon = allCoupons.find((c) => c.code === rewardData.code);
+          if (coupon) {
+            setRewardCoupon(coupon);
+          } else {
+            // Fallback if coupon is missing from both lists
+            setRewardCoupon({
+              code: rewardData.code,
+              title: "Exclusive Discount",
+              condition: "Applicable on your purchase",
+            });
+          }
         }
       } catch (err) {
         console.warn("[CustomerDashboard] Reward coupon fetch failed:", err);
@@ -66,12 +85,15 @@ export default function CustomerDashboard() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  // Birthday / anniversary coupons — open 7 days before the date saved in
+  // Rewards and for 14 days after that. The backend decides eligibility from
+  // the customer's own Shopify record, so an empty list simply renders nothing.
   useEffect(() => {
-    if (!showRewardInfo) return;
-    const closeOnOutsideClick = () => setShowRewardInfo(false);
-    document.addEventListener("click", closeOnOutsideClick);
-    return () => document.removeEventListener("click", closeOnOutsideClick);
-  }, [showRewardInfo]);
+    if (!accessToken) return;
+    fetchOccasionCoupons(accessToken)
+      .then((data) => setOccasionCoupons(data?.coupons || []))
+      .catch(() => setOccasionCoupons([]));
+  }, [accessToken]);
 
   useEffect(() => {
     async function fetchData() {
@@ -94,10 +116,23 @@ export default function CustomerDashboard() {
           if (ordersData && ordersData.orders) {
             // Backend orders pass through as-is apart from the thumbnail, which can
             // come back as a generic placeholder — drop it so no image renders.
-            storefrontOrders = ordersData.orders.slice(0, 5).map((order) => ({
-              ...order,
-              image: getOrderImage(order?.image),
-            }));
+            storefrontOrders = ordersData.orders.slice(0, 5).map((order) => {
+              const isCancelled = Boolean(
+                order.cancelledAt ||
+                order.cancelled_at ||
+                order.canceledAt ||
+                order.cancelReason ||
+                order.cancel_reason ||
+                order.status === 'Cancelled' ||
+                order.status === 'Canceled' ||
+                (typeof order.status === 'string' && order.status.toUpperCase() === 'CANCELLED')
+              );
+              return {
+                ...order,
+                status: isCancelled ? 'Cancelled' : order.status,
+                image: getOrderImage(order?.image),
+              };
+            });
           } else {
             throw new Error("Empty backend orders");
           }
@@ -113,14 +148,21 @@ export default function CustomerDashboard() {
             storefrontOrders = data?.customer?.orders?.edges?.map(({ node }) => {
               if (!node) return null;
               const mainItem = node.lineItems?.edges?.[0]?.node;
+              const isCancelled = Boolean(
+                node.canceledAt ||
+                node.cancelReason ||
+                node.financialStatus === 'VOIDED'
+              );
+              const fStatus = (node.fulfillmentStatus || "").toUpperCase();
               return {
                 id: node.id,
                 orderNumber: node.orderNumber ? node.orderNumber.toString() : "N/A",
                 date: node.processedAt ? new Date(node.processedAt).toLocaleDateString('en-IN', {
                   year: 'numeric', month: 'long', day: 'numeric'
                 }) : "Date Unknown",
-                status: node.fulfillmentStatus === 'FULFILLED' ? 'Delivered' : 
-                        node.fulfillmentStatus === 'PARTIAL' ? 'In Transit' : 'Processing',
+                status: isCancelled ? 'Cancelled' : 
+                        (fStatus === 'FULFILLED' ? 'Delivered' : 
+                         fStatus === 'PARTIAL' ? 'In Transit' : 'Processing'),
                 amount: node.totalPrice ? new Intl.NumberFormat('en-IN', {
                   style: 'currency', currency: node.totalPrice.currencyCode || 'INR',
                 }).format(node.totalPrice.amount) : "0.00",
@@ -200,62 +242,17 @@ export default function CustomerDashboard() {
 
       {/* Welcome Reward Coupon */}
       {rewardCoupon && (
-        <div className="relative rounded-2xl shadow-lg shadow-primary/20">
-          {/* Gradient + dot texture live in their own clipped layer so the tooltip
-              below (a sibling, not clipped) isn't cut off by overflow-hidden. */}
-          <div className="absolute inset-0 rounded-2xl overflow-hidden bg-gradient-to-br from-[#4A3230] via-primary to-[#7C5A45]">
-            <div
-              className="absolute inset-0 opacity-[0.08] pointer-events-none"
-              style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "14px 14px" }}
-            />
-          </div>
-          <div className="relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4">
-            <div className="hidden sm:flex shrink-0 size-10 rounded-full bg-white/15 items-center justify-center ring-1 ring-white/20">
-              <Gift className="size-5 text-white" strokeWidth={2} />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Gift className="size-4 text-white sm:hidden" strokeWidth={2} />
-                <h3 className="text-[11px] font-bold text-white uppercase tracking-widest">Your Welcome Reward</h3>
-                <span className="text-[11px] font-semibold text-white/80">{rewardCoupon.title}</span>
-
-                <div className="relative group/info" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => setShowRewardInfo((v) => !v)}
-                    className="flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
-                    aria-label="Coupon terms"
-                  >
-                    <Info className="size-3.5" strokeWidth={2.5} />
-                  </button>
-                  <div
-                    className={`absolute z-30 top-full left-0 mt-2 w-64 rounded-lg bg-white text-zinc-700 text-[11px] font-medium leading-relaxed p-3 shadow-xl transition-opacity ${
-                      showRewardInfo ? "opacity-100" : "opacity-0 pointer-events-none"
-                    } group-hover/info:opacity-100 group-hover/info:pointer-events-auto`}
-                  >
-                    {rewardCoupon.condition}. {COUPON_DISCLAIMER}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleCopyRewardCode(rewardCoupon.code)}
-              className="shrink-0 flex items-center justify-between sm:justify-start gap-3 h-10 pl-4 pr-2 rounded-xl bg-white/95 hover:bg-white transition-colors font-bold text-[13px] tracking-[0.15em] text-primary cursor-pointer"
-            >
-              {rewardCoupon.code}
-              <span className="flex items-center justify-center size-6 rounded-lg bg-primary/10">
-                {copiedCode === rewardCoupon.code ? (
-                  <CheckCircle2 className="size-3.5 text-emerald-600" />
-                ) : (
-                  <Copy className="size-3.5 text-primary" />
-                )}
-              </span>
-            </button>
-          </div>
-        </div>
+        <CouponBanner
+          heading="Your Welcome Reward"
+          coupon={rewardCoupon}
+          copied={copiedCode === rewardCoupon.code}
+          onCopy={handleCopyRewardCode}
+        />
       )}
+
+      {/* Birthday / anniversary coupons, while the customer's window is open */}
+      <OccasionCoupons coupons={occasionCoupons} copiedCode={copiedCode} onCopy={handleCopyRewardCode} />
+
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -308,7 +305,7 @@ export default function CustomerDashboard() {
                 >
                   {order.image && (
                     <div className="size-20 bg-zinc-50 rounded-2xl overflow-hidden shrink-0 border border-zinc-100">
-                      <Image
+                      <Image loader={shopifyLoader}
                         src={order.image}
                         alt={order.product}
                         width={80}
@@ -325,7 +322,9 @@ export default function CustomerDashboard() {
                       <span
                         className={`w-fit mx-auto md:mx-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           order.status === "Delivered"
-                            ? "bg-emerald-50 text-emerald-600"
+                            ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                            : order.status === "Cancelled" || order.status === "Canceled"
+                            ? "bg-red-50 text-red-600 border border-red-200"
                             : "bg-blue-50 text-blue-600"
                         }`}
                       >

@@ -7,25 +7,7 @@ import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { AddressForm } from "./AddressForm";
 import { AddressListInline } from "./AddressListInline";
 import { AddressSummaryCard } from "./AddressSummaryCard";
-import { emptyAddressForm, normalizeAddressForm } from "@/lib/checkout/address-helpers";
-
-function validateAddressForm(form) {
-  if (!form.firstName.trim()) return "First name is required";
-  if (!form.lastName.trim()) return "Last name is required";
-  if (!form.address1.trim()) return "Address is required";
-  if (!form.city.trim()) return "City is required";
-  if (!form.province.trim()) return "State is required";
-  if (!form.zip.trim()) return "PIN code is required";
-  if (!/^\d{6}$/.test(form.zip.trim())) return "Please enter a valid 6-digit PIN code";
-  if (!form.country.trim()) return "Country is required";
-  if (form.gstin.trim()) {
-    const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    if (!gstinRegex.test(form.gstin.trim())) {
-      return "Please enter a valid 15-digit GSTIN";
-    }
-  }
-  return "";
-}
+import { emptyAddressForm, normalizeAddressForm, validateAddressForm } from "@/lib/checkout/address-helpers";
 
 /**
  * Pickup has no shipping address to be "same as", so it always shows a

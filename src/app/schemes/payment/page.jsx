@@ -14,6 +14,7 @@ import {
   fetchOrnaverseEnrollments, 
   createOrnaverseReceipt 
 } from "@/lib/api";
+import { toE164, toTenDigit } from "@/lib/phone";
 import { pushPromoClick } from "@/lib/gtm";
 import { BadgeCheck, Loader2, ShieldCheck, Sparkles, WalletCards } from "lucide-react";
 
@@ -118,7 +119,7 @@ export default function SchemePaymentPage() {
           creative_name: "Pay Securely Cta in schemes payment page",
           location_id: "/schemes/payment",
           promo_id: String(enrollment?.amount || ""),
-          promo_name: user?.mobile || user?.phone || "",
+          promo_name: toE164(user?.mobile || user?.phone) || user?.mobile || user?.phone || "",
         });
       } catch (error) {
         console.error("Error pushing to dataLayer:", error);
@@ -157,7 +158,7 @@ export default function SchemePaymentPage() {
         name: "Lucira Jewelry",
         description: "Vault of Dreams Scheme",
         prefill: {
-          name: user?.name || "Customer",
+          name: user?.name || user?.phone || user?.mobile || "",
           contact: user?.phone || user?.mobile,
           email: user?.email,
         },
@@ -201,7 +202,7 @@ export default function SchemePaymentPage() {
               tenure,
               scheme_monthly_details: months,
               bonus_value: amount,
-              mobile: user?.phone || user?.mobile,
+              mobile: toTenDigit(user?.phone || user?.mobile),
               party_name: enrollment.party_name || user?.name,
               scheme_code: "9+1",
               max_installment_amount: MAX_INSTALLMENT_AMOUNT,
@@ -229,7 +230,7 @@ export default function SchemePaymentPage() {
                 document_no: 123, // Placeholder as in original
                 document_date: new Date().toISOString(),
                 document_id: 99, // Placeholder as in original
-                mobile: user?.phone || user?.mobile,
+                mobile: toTenDigit(user?.phone || user?.mobile),
                 party_id: partyId.toString(),
                 party_name: enrollment.party_name || user?.name,
                 email: user?.email || "",
@@ -257,7 +258,7 @@ export default function SchemePaymentPage() {
                 currency_id: "103",
                 exchange_rate: 1,
                 ledger_id: 154,
-                company_id: 2,
+                company_id: 1,
                 scheme_type: "1",
                 scheme_unique_code: matchedScheme.scheme_unique_code,
               }

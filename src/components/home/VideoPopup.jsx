@@ -149,7 +149,7 @@ export default function VideoPopup({ isOpen, onClose, videoData, initialIndex })
             ))}
           </Swiper>
 
-          <style jsx>{`
+          <style>{`
             .vertical-text {
                writing-mode: vertical-lr;
                transform: rotate(180deg);
@@ -259,7 +259,7 @@ export default function VideoPopup({ isOpen, onClose, videoData, initialIndex })
         </Swiper>
       </div>
 
-      <style jsx global>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }

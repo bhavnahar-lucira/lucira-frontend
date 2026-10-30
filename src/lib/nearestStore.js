@@ -200,13 +200,23 @@ export async function resolveNearestStores(rawPincode) {
 
   const warehouses = live.filter((s) => !s.visitable);
 
-  const nearby = hasCoords
+  // EVERY visitable store with coordinates, nearest first and NOT distance-capped.
+  // This is the ordering signal: a shopper 900km from the nearest store is still
+  // better served by a piece that physically exists at *some* store than by one
+  // that has to be made to order, so the ranking degrades gradually instead of
+  // falling off a cliff at NEAREST_STORE_MAX_KM.
+  const ranked = hasCoords
     ? live
         .filter((s) => s.visitable && s.lat != null && s.lng != null)
         .map((s) => ({ ...s, distance: calculateDistance(lat, lng, s.lat, s.lng) }))
-        .filter((s) => s.distance != null && s.distance <= NEAREST_STORE_MAX_KM)
+        .filter((s) => s.distance != null)
         .sort((a, b) => a.distance - b.distance)
     : [];
+
+  // The UI signal, still capped. The header promises a store the shopper could
+  // actually walk into, so "nearest store" must never read as one 900km away —
+  // `status` and `nearest` keep hanging off this, unchanged.
+  const nearby = ranked.filter((s) => s.distance <= NEAREST_STORE_MAX_KM);
 
   return {
     pincode,
@@ -215,6 +225,7 @@ export async function resolveNearestStores(rawPincode) {
     coords: hasCoords ? { lat, lng } : null,
     city,
     nearby,
+    ranked,
     warehouses,
     nearest: nearby[0] || null,
   };

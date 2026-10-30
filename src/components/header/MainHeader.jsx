@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { LogOut } from "lucide-react";
 import Image from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import SearchPopup from "./SearchPopup";
@@ -23,7 +24,6 @@ import PincodePicker from "./PincodePicker";
 import { isFreeGiftVariant } from "@/lib/freeGifts";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 
 const getInitials = (name = "") =>
@@ -96,7 +96,7 @@ export default function MainHeader() {
   const displayItems = (items || []).filter(
     (item) =>
       item.variantId !== INSURANCE_VARIANT_ID &&
-      !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+      !item.isFreeGift &&
       !isFreeGiftVariant(item.variantId) &&
       !item.properties?.['_byj_parent'] &&
       !item.properties?.[' _byj_parent'] &&
@@ -125,7 +125,7 @@ export default function MainHeader() {
       const filteredItemsForGtm = items.filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.isFreeGift &&
           !isFreeGiftVariant(item.variantId) &&
           !item.properties?.['_byj_parent'] &&
           !item.properties?.[' _byj_parent'] &&
@@ -392,7 +392,7 @@ export default function MainHeader() {
         {/* Logo */}
         <div className="flex items-center mr-8 lg:mr-16 shrink-0">
           <Link href="/" prefetch={false}>
-            <Image
+            <Image loader={shopifyLoader}
               src="https://cdn.shopify.com/s/files/1/0739/8516/3482/files/logo.svg"
               alt="Lucira Jewelry"
               width={100}

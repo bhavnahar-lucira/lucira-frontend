@@ -1,6 +1,7 @@
 import { fetchWithRetry } from "@/utils/helpers";
 import { logout } from "@/redux/features/user/userSlice";
 import { searchContent } from "@/lib/contentSearch";
+import { toE164 } from "@/lib/phone";
 
 /* ================= GENERIC API FETCH ================= */
 
@@ -13,7 +14,10 @@ export const apiFetch = async (url, options = {}) => {
   // We ensure the URL is absolute to avoid hitting the Next.js server on port 3000
   let finalUrl = url;
   if (url.startsWith("/api") && !url.startsWith("/api/proxy/")) {
-    const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+    let base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+    if (typeof window !== "undefined" && window.location.protocol === "https:" && base.startsWith("http://") && !base.includes("localhost") && !base.includes("127.0.0.1")) {
+      base = base.replace(/^http:\/\//i, "https://");
+    }
     finalUrl = `${base}${url}`;
     
     // Debug log to confirm where requests are actually going
@@ -96,7 +100,7 @@ export const apiFetch = async (url, options = {}) => {
       // Downgrade "not found" errors to warnings to prevent console pollution
       if (res.status === 404 || errorMsg.toLowerCase().includes("not found")) {
         console.warn(`[apiFetch Resource Not Found] ${finalUrl}: ${errorMsg}`);
-        return data || {};
+        return data || { error: errorMsg, status: res.status };
       } else if (res.status === 403) {
         console.warn(`[apiFetch Unauthorized] ${finalUrl}: ${errorMsg}`);
       } else if (!options.suppressErrorLog) {
@@ -116,29 +120,112 @@ export const apiFetch = async (url, options = {}) => {
 };
 /* ================= AUTH HELPERS ================= */
 
-const normalizeMobile = (mobile) => {
-  let clean = String(mobile || "").replace(/\D/g, "");
-  if (clean.length === 10) return `91${clean}`;
-  return clean;
-};
-
 /* ================= SEND OTP ================= */
 
 export const sendOtpApi = (mobile) =>
   apiFetch("/api/auth/send-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile: normalizeMobile(mobile) }),
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
   });
 
 /* ================= VERIFY OTP ================= */
 
-export const verifyOtpApi = (mobile, otp, sessionId = null) => {
+// `extra` carries optional flags such as { rewardSource: "scratch_card" },
+// which makes the backend return the customer's signup reward with the login.
+export const verifyOtpApi = (mobile, otp, sessionId = null, extra = {}) => {
   const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const finalSessionId = sessionId || (typeof window !== 'undefined' ? localStorage.getItem("cart_session_id") : null);
   return apiFetch("/api/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ mobile, otp, sessionId, sourcePage }),
+    body: JSON.stringify({ ...extra, mobile: toE164(mobile) || mobile, otp, sessionId: finalSessionId, sourcePage }),
   });
 };
+
+/* ================= POPUP VIEW TRACKING ================= */
+
+// Fire-and-forget (sendBeacon survives page unload) — seconds the scratch card was on screen.
+export const trackScratchCardView = (sessionId, seconds = 1) => {
+  if (typeof window === "undefined" || !sessionId || seconds < 1) return;
+  const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+  const body = JSON.stringify({
+    event: "scratch_card_view",
+    sessionId,
+    page: window.location.pathname,
+    metadata: { durationSeconds: Math.max(1, seconds) },
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(`${base}/api/track`, new Blob([body], { type: "application/json" }));
+    } else {
+      fetch(`${base}/api/track`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch {}
+};
+
+// Fire-and-forget (sendBeacon survives page unload) — seconds the spin wheel / login popup was on screen.
+export const trackSpinWheelView = (sessionId, seconds = 1, source = "popup") => {
+  if (typeof window === "undefined" || !sessionId || seconds < 1) return;
+  const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+  const body = JSON.stringify({
+    event: "spin_wheel_view",
+    sessionId,
+    page: window.location.pathname,
+    metadata: { durationSeconds: Math.max(1, seconds), source },
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(`${base}/api/track`, new Blob([body], { type: "application/json" }));
+    } else {
+      fetch(`${base}/api/track`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch {}
+};
+
+// Fire-and-forget (sendBeacon survives page unload) — seconds the ATC / Cart / Auth popup was on screen.
+export const trackAuthModalView = (sessionId, source = "atc_login", seconds = 1) => {
+  if (typeof window === "undefined" || !sessionId || seconds < 1) return;
+  const base = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+  const cleanSource = (source || "atc_login").toLowerCase().trim();
+  const eventName = cleanSource.endsWith("_view") ? cleanSource : `${cleanSource}_view`;
+  const body = JSON.stringify({
+    event: eventName,
+    sessionId,
+    page: window.location.pathname,
+    metadata: { durationSeconds: Math.max(1, seconds), source: cleanSource },
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(`${base}/api/track`, new Blob([body], { type: "application/json" }));
+    } else {
+      fetch(`${base}/api/track`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {});
+    }
+  } catch {}
+};
+
+/* ================= SIGNUP REWARD LOOKUP ================= */
+
+// Scratch-card popup, before OTP: { exists, firstName, reward: { label, amount, status } | null }.
+// Never contains the coupon code — that only comes back from verify/register.
+export const rewardLookupApi = (mobile) =>
+  apiFetch("/api/auth/reward-lookup", {
+    method: "POST",
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
+  });
 
 /* ================= REGISTER ================= */
 
@@ -147,17 +234,19 @@ export const checkCustomerApi = (payload) =>
     method: "POST",
     body: JSON.stringify({ 
       ...payload, 
-      mobile: normalizeMobile(payload.mobile) 
+      mobile: toE164(payload.mobile) || payload.mobile 
     }),
   });
 
 export const registerCustomer = (payload) => {
   const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const sid = payload.sessionId || (typeof window !== 'undefined' ? localStorage.getItem("cart_session_id") : null);
   return apiFetch("/api/auth/register", {
     method: "POST",
     body: JSON.stringify({ 
       ...payload, 
-      mobile: normalizeMobile(payload.mobile),
+      sessionId: sid,
+      mobile: toE164(payload.mobile) || payload.mobile,
       sourcePage
     }),
   });
@@ -208,6 +297,17 @@ export const fetchCustomerDashboardStats = (accessToken) =>
   apiFetch("/api/customer/dashboard-stats", {
     headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
   });
+
+// The birthday / anniversary coupons this customer can use today — open from
+// 7 days before the date they saved in My Account → Rewards, for 14 days.
+// Empty for everyone outside that window; the backend decides, never the client.
+export const fetchOccasionCoupons = (accessToken) => {
+  if (!accessToken || accessToken.startsWith('simulated_')) return Promise.resolve({ coupons: [] });
+  return apiFetch("/api/customer/occasion-coupons", {
+    headers: { "Authorization": `Bearer ${accessToken}` },
+    suppressErrorLog: true,
+  });
+};
 
 export const fetchCustomerAddresses = (accessToken) => {
   if (!accessToken || accessToken.startsWith('simulated_')) return Promise.resolve({ addresses: [], customer: null, defaultAddressId: null });
@@ -305,6 +405,20 @@ export const createRazorpayOrder = (payload, accessToken) =>
 
 export const completeRazorpayPayment = (payload, accessToken) =>
   apiFetch("/api/payment/razorpay/complete", {
+    method: "POST",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
+    body: JSON.stringify(payload),
+  });
+
+export const createPhonePeOrder = (payload, accessToken) =>
+  apiFetch("/api/payment/phonepe/order", {
+    method: "POST",
+    headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
+    body: JSON.stringify(payload),
+  });
+
+export const verifyPhonePePayment = (payload, accessToken) =>
+  apiFetch("/api/payment/phonepe/verify", {
     method: "POST",
     headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {},
     body: JSON.stringify(payload),
@@ -446,11 +560,15 @@ export const fetchLocalRates = () => apiFetch("/api/local-rates");
 
 /* ================= ORNAVERSE SCHEMES ================= */
 
-export const fetchOrnaverseCustomer = (mobile) =>
-  apiFetch("/api/schemes/customer/get", {
+export const fetchOrnaverseCustomer = (param, email = null) => {
+  const body = (typeof param === "object" && param !== null)
+    ? param
+    : { mobile: param, ...(email ? { email } : {}) };
+  return apiFetch("/api/schemes/customer/get", {
     method: "POST",
-    body: JSON.stringify({ mobile }),
+    body: JSON.stringify(body),
   });
+};
 
 export const updateOrnaverseCustomer = (payload) =>
   apiFetch("/api/schemes/customer/update", {
@@ -481,9 +599,47 @@ export const createOrnaverseReceipt = (payload) =>
 
 export const fetchSchemeOfferSettings = () => apiFetch("/api/settings/scheme-offer");
 
+// Dispatch/delivery-estimate config written by the dashboard's Dispatch Settings
+// page. Read through useDispatchInfo() rather than called directly — the hook
+// caches it store-wide so the PDP, cart and shipping page share one request.
+export const fetchDispatchSettings = () => apiFetch("/api/settings/dispatch");
+
 export const createSchemeRazorpayPlan = (amount, tenure) =>
   apiFetch("/api/schemes/razorpay/plan", {
     method: "POST",
     body: JSON.stringify({ amount, tenure }),
   });
 
+export const fetchOffersPageSettings = () => apiFetch("/api/settings/offers-page");
+
+/* ================= EVENT EXHIBITION APIS ================= */
+
+export const checkExhibitionCustomerApi = (mobile) =>
+  apiFetch("/api/exhibition/check", {
+    method: "POST",
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile }),
+  });
+
+export const sendExhibitionOtpApi = (mobile, extra = {}) =>
+  apiFetch("/api/exhibition/send-otp", {
+    method: "POST",
+    body: JSON.stringify({
+      mobile: toE164(mobile) || mobile,
+      ...extra,
+    }),
+  });
+
+export const verifyExhibitionOtpApi = (mobile, otp) =>
+  apiFetch("/api/exhibition/verify-otp", {
+    method: "POST",
+    body: JSON.stringify({ mobile: toE164(mobile) || mobile, otp }),
+  });
+
+export const claimExhibitionRewardApi = (payload) =>
+  apiFetch("/api/exhibition/claim", {
+    method: "POST",
+    body: JSON.stringify({
+      ...payload,
+      mobile: toE164(payload.mobile) || payload.mobile,
+    }),
+  });

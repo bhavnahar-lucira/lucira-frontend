@@ -10,10 +10,12 @@ import { useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { clearCart } from "@/redux/features/cart/cartSlice";
 
+
 export default function SuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
+
   const orderName = searchParams.get("orderName");
   const [isVerifying, setIsVerifying] = useState(true);
 
@@ -33,6 +35,7 @@ export default function SuccessPage() {
         const purchaseData = JSON.parse(storedData);
         // Fire the Purchase Event
         pushPurchase(purchaseData);
+
         
         // Track Search Analytics Purchase
         if (purchaseData.items) {

@@ -1,7 +1,13 @@
 import { notFound } from "next/navigation";
 import ProductPageClient from "@/components/product/ProductPageClient";
+import { getStorePages } from "@/lib/storeContent";
 import { getProductSchema, getBreadcrumbSchema } from "@/lib/seo";
 import { shopifyStorefrontFetch, getAllProductHandles } from "@/lib/shopify";
+import { preload } from "react-dom";
+import { getImageProps } from "next/image";
+import shopifyLoader from "@/utils/shopifyLoader";
+import { sortGalleryMedia, HERO_IMAGE_SIZES } from "@/lib/galleryMedia";
+import { getVariantSelection } from "@/lib/variantSelection";
 import "./product-page.css";
 
 export const revalidate = 86400; // 24 hours
@@ -21,7 +27,7 @@ const PRODUCT_QUERY = `
       publishedAt
       collectionHandles: collections(first: 10) { edges { node { handle } } }
       featuredImage { url }
-      images(first: 20) {
+      images(first: 100) {
         edges {
           node {
             url
@@ -29,10 +35,14 @@ const PRODUCT_QUERY = `
           }
         }
       }
-      media(first: 20) {
+      media(first: 100) {
         edges {
           node {
             mediaContentType
+            previewImage {
+              url
+              altText
+            }
             ... on MediaImage {
               image {
                 url
@@ -41,6 +51,10 @@ const PRODUCT_QUERY = `
             }
             ... on Video {
               alt
+              previewImage {
+                url
+                altText
+              }
               sources {
                 url
                 mimeType
@@ -49,6 +63,10 @@ const PRODUCT_QUERY = `
             }
             ... on ExternalVideo {
               alt
+              previewImage {
+                url
+                altText
+              }
               embedUrl
               host
             }
@@ -150,6 +168,13 @@ const PRODUCT_QUERY = `
         value
       }
       category: metafield(namespace: "ornaverse", key: "category") { value }
+      products_audio: metafield(namespace: "custom", key: "products_audio") {
+        reference {
+          ... on GenericFile { url mimeType }
+          ... on Video { sources { url mimeType } }
+          ... on MediaImage { image { url } }
+        }
+      }
     }
   }
 `;
@@ -239,34 +264,112 @@ async function getProduct(handle) {
     const comps = v.components?.value ? JSON.parse(v.components.value) : null;
     const variantConfig = v.variant_config?.value ? JSON.parse(v.variant_config.value) : null;
 
-    const metalComp = comps?.components?.find(c => c.item_group_name === "Gold");
-    const diamondComps = comps?.components?.filter(c => c.item_group_name === "Diamond") || [];
-    const gemstoneComps = comps?.components?.filter(c => c.item_group_name === "Gemstone" || c.item_group_name === "Color Stone") || [];
-    // Any component that isn't gold/diamond/gemstone (beads, evil eye, steel, etc.) is
-    // surfaced as a generic "Other Material" - one column per component, grouped by name.
-    const KNOWN_GROUPS = ["Gold", "Diamond", "Gemstone", "Color Stone"];
-    const otherComps = comps?.components?.filter(c => c.item_group_name && !KNOWN_GROUPS.includes(c.item_group_name)) || [];
-    const otherMaterials = otherComps.map(c => ({
-      material: c.item_group_name,
-      color: c.stone_color_code && c.stone_color_code !== "NA" ? c.stone_color_code : "",
-      pieces: c.pieces || "1",
-      weight: c.weight || "0",
-    }));
+    const isMetalGroup = (name) => {
+      const g = String(name || '').trim().toLowerCase();
+      return g.includes('gold') || g.includes('platin') || g.includes('silver');
+    };
+    const isStoneGroup = (name) => {
+      const g = String(name || '').trim().toLowerCase();
+      return g.includes('diamond') || g.includes('gemstone') || g.includes('color stone');
+    };
+
+    const metalComps = comps?.components?.filter(c => isMetalGroup(c.item_group_name)) || [];
+    const goldComp = metalComps.find(c => String(c.item_group_name).toLowerCase().includes('gold'));
+    const platinumComp = metalComps.find(c => String(c.item_group_name).toLowerCase().includes('platin'));
+    const silverComp = metalComps.find(c => String(c.item_group_name).toLowerCase().includes('silver'));
+    const diamondComps = comps?.components?.filter(c => String(c.item_group_name).toLowerCase().includes('diamond')) || [];
+    const gemstoneComps = comps?.components?.filter(c => {
+      const g = String(c.item_group_name || '').toLowerCase();
+      return g.includes('gemstone') || g.includes('color stone');
+    }) || [];
+
+    // Any component that isn't precious metal / diamond / gemstone (beads, evil eye, steel, flexi belt, etc.)
+    // Prioritize additional_item_type from DI-GoldPrice.variant_config if present
+    let otherMaterials = [];
+    if (variantConfig?.additional_item_type) {
+      otherMaterials = [{
+        material: variantConfig.additional_item_type,
+        color: "",
+        pieces: "1",
+        weight: variantConfig.additional_item_weight ? String(variantConfig.additional_item_weight) : "0",
+      }];
+    } else {
+      const otherComps = comps?.components?.filter(c => c.item_group_name && !isMetalGroup(c.item_group_name) && !isStoneGroup(c.item_group_name)) || [];
+      otherMaterials = otherComps.map(c => ({
+        material: c.item_group_name,
+        color: c.stone_color_code && c.stone_color_code !== "NA" ? c.stone_color_code : "",
+        pieces: c.pieces || "1",
+        weight: c.weight || "0",
+      }));
+    }
     const rawStoreData = v.in_store_available?.value || v.custom_in_store_available?.value;
     const in_store_available = rawStoreData ? JSON.parse(rawStoreData) : [];
 
-    let metal_purity = metalComp?.karat_code ? `${metalComp.karat_code}K` : (v.custom_metal_purity?.value || variantConfig?.purity || getOpt(options, ["metal purity", "purity"]));
-    let metal_color = metalComp?.stone_color_code && metalComp.stone_color_code !== "NA" ? metalComp.stone_color_code : (v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]));
-    
-    if (!metal_color) {
-      const lowerTitle = v.title.toLowerCase();
-      if (lowerTitle.includes('yellow') && lowerTitle.includes('white')) metal_color = 'Yellow-White Gold';
-      else if (lowerTitle.includes('rose') && lowerTitle.includes('white')) metal_color = 'Rose-White Gold';
-      else if (lowerTitle.includes('rose')) metal_color = 'Rose Gold';
-      else if (lowerTitle.includes('white')) metal_color = 'White Gold';
-      else if (lowerTitle.includes('yellow')) metal_color = 'Yellow Gold';
-      else if (lowerTitle.includes('platinum')) metal_color = 'Platinum';
+    let metal_purity = "";
+    if (metalComps.length > 1) {
+      const purities = [];
+      if (platinumComp) purities.push(platinumComp.karat_code ? `${platinumComp.karat_code} PLT` : "950 PLT");
+      if (goldComp?.karat_code) purities.push(`${goldComp.karat_code}KT`);
+      if (silverComp) purities.push(silverComp.karat_code ? `${silverComp.karat_code} Silver` : "Silver");
+      metal_purity = purities.join(" & ");
+    } else if (goldComp?.karat_code) {
+      metal_purity = `${goldComp.karat_code}KT`;
+    } else if (platinumComp) {
+      metal_purity = platinumComp.karat_code ? `${platinumComp.karat_code} PLT` : "950 PLT";
+    } else if (silverComp) {
+      metal_purity = silverComp.karat_code ? `${silverComp.karat_code} Silver` : "Silver";
     }
+    if (!metal_purity) {
+      metal_purity = v.custom_metal_purity?.value || variantConfig?.purity || getOpt(options, ["metal purity", "purity"]);
+    }
+    if (metal_purity) {
+      metal_purity = String(metal_purity)
+        .replace(/\bplatinum\b/gi, "PLT")
+        .replace(/\bplt\b/gi, "PLT")
+        .replace(/(\d+)\s*kt\b/gi, "$1KT")
+        .replace(/(\d+)\s*k\b/gi, "$1KT");
+    }
+
+    let metal_color = v.custom_metal_color?.value || getOpt(options, ["metal color", "material color"]);
+
+    if (!metal_color) {
+      const optColor = getOpt(options, ["color", "metal"]);
+      if (optColor) {
+        const cleaned = optColor.replace(/^\d+\s*kt\s*/i, "").trim();
+        if (cleaned && !/^\d+$/.test(cleaned)) {
+          metal_color = cleaned;
+        }
+      }
+    }
+
+    if (!metal_color && goldComp?.stone_color_code && goldComp.stone_color_code !== "NA") {
+      metal_color = goldComp.stone_color_code;
+    }
+
+    const varContext = `${v.title || ""} ${v.sku || ""} ${Object.values(options).join(" ")}`.toLowerCase();
+    const hasWord = (word) => new RegExp(`\\b${word}\\b`, 'i').test(varContext);
+
+    let detectedGoldTone = "";
+    if (hasWord('rose')) detectedGoldTone = 'Rose Gold';
+    else if (hasWord('yellow')) detectedGoldTone = 'Yellow Gold';
+    else if (hasWord('white')) detectedGoldTone = 'White Gold';
+
+    if (platinumComp && goldComp) {
+      const goldTone = detectedGoldTone || (metal_color && !metal_color.toLowerCase().includes('platin') && !metal_color.toLowerCase().includes('plt') ? metal_color : 'Rose Gold');
+      metal_color = `Platinum & ${goldTone}`;
+    } else if (!metal_color) {
+      if (hasWord('yellow') && hasWord('white')) metal_color = 'Yellow-White Gold';
+      else if (hasWord('rose') && hasWord('white')) metal_color = 'Rose-White Gold';
+      else if (hasWord('rose')) metal_color = 'Rose Gold';
+      else if (hasWord('white')) metal_color = 'White Gold';
+      else if (hasWord('yellow')) metal_color = 'Yellow Gold';
+      else if (hasWord('platinum')) metal_color = 'Platinum';
+    }
+    if (metal_color) {
+      metal_color = String(metal_color).replace(/\bplt\b/gi, "Platinum");
+    }
+
+    const totalMetalWeight = metalComps.reduce((sum, m) => sum + (Number(m.weight) || 0), 0);
 
     let diamonds = [];
     if (diamondComps && diamondComps.length > 0) {
@@ -351,9 +454,12 @@ async function getProduct(handle) {
     if (gemstoneComps && gemstoneComps.length > 0) {
       gemstones = gemstoneComps.map((g, index) => {
         const i = index + 1;
+        const rawShape = (g.shape_code && g.shape_code !== "NA")
+          ? g.shape_code
+          : (v[`g${i}_shape`]?.value && v[`g${i}_shape`]?.value !== "NA" ? v[`g${i}_shape`]?.value : "");
         return {
           color: g.stone_color_code && g.stone_color_code !== "NA" ? g.stone_color_code : (v[`g${i}_color`]?.value || "Other"),
-          shape: g.shape_code && g.shape_code !== "NA" ? g.shape_code : (v[`g${i}_shape`]?.value || "Round"),
+          shape: rawShape,
           pieces: g.pieces || v[`g${i}_pcs`]?.value || "1",
           weight: g.weight || v[`g${i}_wt`]?.value || "0"
         };
@@ -364,9 +470,10 @@ async function getProduct(handle) {
     if (gemstones.length === 0) {
       [1, 2, 3, 4].forEach(i => {
         if (v[`g${i}_color`]?.value || v[`g${i}_wt`]?.value || v[`g${i}_type`]?.value) {
+          const rawShape = v[`g${i}_shape`]?.value && v[`g${i}_shape`]?.value !== "NA" ? v[`g${i}_shape`]?.value : "";
           gemstones.push({
             color: v[`g${i}_color`]?.value || "Other",
-            shape: v[`g${i}_shape`]?.value || "Round",
+            shape: rawShape,
             pieces: v[`g${i}_pcs`]?.value || "1",
             weight: v[`g${i}_wt`]?.value || "0",
             quality: v[`g${i}_clarity`]?.value || "Na",
@@ -382,9 +489,12 @@ async function getProduct(handle) {
           .filter(s => s.stone_type === 'gemstone')
           .map((s, index) => {
             const i = index + 1;
+            const rawShape = (v[`g${i}_shape`]?.value && v[`g${i}_shape`]?.value !== "NA")
+              ? v[`g${i}_shape`]?.value
+              : (s.shape_code && s.shape_code !== "NA" ? s.shape_code : "");
             return {
               color: v[`g${i}_color`]?.value || "Other",
-              shape: v[`g${i}_shape`]?.value || s.shape_code || "RD",
+              shape: rawShape,
               pieces: s.stone_quantity || v[`g${i}_pcs`]?.value || "1",
               weight: s.stone_weight || v[`g${i}_wt`]?.value || "0",
               quality: v[`g${i}_clarity`]?.value || "Na",
@@ -399,6 +509,15 @@ async function getProduct(handle) {
         gemstones = JSON.parse(v.gemstones_meta.value);
       } catch(e) {}
     }
+
+    const isOnlyPlatinum = (platinumComp && !goldComp && !silverComp) ||
+      (!goldComp && !silverComp && (variantConfig?.metal_type?.toLowerCase() === "platinum" || variantConfig?.metal_type?.toLowerCase() === "plt"));
+
+    const variantConfigMetalWeight = variantConfig
+      ? (isOnlyPlatinum
+          ? (Number(variantConfig.platinum_weight) > 0 ? Number(variantConfig.platinum_weight) : variantConfig.metal_weight)
+          : variantConfig.metal_weight)
+      : null;
 
     return {
       id: v.id.split("/").pop(),
@@ -416,7 +535,7 @@ async function getProduct(handle) {
       metafields: {
         metal_purity,
         metal_color,
-        metal_weight: v.metal_weight?.value || v.custom_metal_weight?.value || metalComp?.weight || variantConfig?.metal_weight,
+        metal_weight: v.metal_weight?.value || v.custom_metal_weight?.value || (totalMetalWeight > 0 ? Number(totalMetalWeight.toFixed(3)) : null) || variantConfigMetalWeight || variantConfig?.metal_weight,
         gross_weight: v.gross_weight?.value || v.custom_gross_weight?.value,
         top_width: v.top_width?.value || v.custom_top_width?.value,
         top_height: v.top_height?.value || v.custom_top_height?.value,
@@ -434,25 +553,27 @@ async function getProduct(handle) {
     if (m.mediaContentType === "IMAGE") {
       return {
         type: "IMAGE",
-        url: m.image.url,
-        alt: m.image.altText || ""
+        url: m.image?.url || m.previewImage?.url,
+        alt: m.image?.altText || m.previewImage?.altText || ""
       };
     } else if (m.mediaContentType === "VIDEO") {
       return {
         type: "VIDEO",
         url: m.sources?.[0]?.url,
         mimeType: m.sources?.[0]?.mimeType,
-        preview: product.featuredImage?.url,
+        preview: m.previewImage?.url || product.featuredImage?.url,
+        previewImage: m.previewImage,
         sources: m.sources,
-        alt: m.alt || product.title
+        alt: m.alt || m.previewImage?.altText || product.title
       };
     } else if (m.mediaContentType === "EXTERNAL_VIDEO") {
         return {
           type: "EXTERNAL_VIDEO",
           url: m.embedUrl,
           host: m.host,
-          preview: product.featuredImage?.url,
-          alt: m.alt || product.title
+          preview: m.previewImage?.url || product.featuredImage?.url,
+          previewImage: m.previewImage,
+          alt: m.alt || m.previewImage?.altText || product.title
         };
     }
     return null;
@@ -463,12 +584,23 @@ async function getProduct(handle) {
     alt: img.altText || ""
   }));
 
+  // Product audio (custom.products_audio - "One file" metafield)
+  const audioRef = product.products_audio?.reference;
+  const audioUrl =
+    audioRef?.url ||
+    audioRef?.sources?.find(s => s.mimeType?.startsWith("audio"))?.url ||
+    audioRef?.sources?.[0]?.url ||
+    audioRef?.image?.url ||
+    null;
+
   // Strip heavy unused fields to save Vercel bandwidth
   delete product.descriptionHtml;
   delete product.seo;
+  delete product.products_audio;
 
   return {
     ...product,
+    audioUrl,
     id: product.id.split("/").pop(),
     shopifyId: product.id,
     type: product.productType, // Alias for component compatibility
@@ -486,6 +618,45 @@ async function getProduct(handle) {
   };
 }
 
+/**
+ * Emit a <link rel="preload"> for the gallery's first image so the browser
+ * starts the LCP download while parsing the HTML, instead of after hydration.
+ *
+ * Uses the same ordering (sortGalleryMedia), the same initial variant rule as
+ * ProductPageClient (first in-stock variant, else the first one) and
+ * next/image's own srcset generation, so the preload URL is exactly the URL the
+ * gallery <img> will request. A ?variant= link can pick a different colour; in
+ * that case this preload is simply unused, nothing breaks.
+ */
+function preloadHeroImage(product) {
+  try {
+    const variants = product?.variants || [];
+    const initialVariant = variants.find((v) => v.inStock) || variants[0] || null;
+    const { color } = getVariantSelection(initialVariant);
+    const hero = sortGalleryMedia(product?.media || [], color, initialVariant)[0];
+    if (!hero || hero.type !== "IMAGE" || !hero.url) return;
+
+    const isShopify = hero.url.includes("cdn.shopify.com") || hero.url.includes("myshopify.com");
+    const { props } = getImageProps({
+      src: hero.url,
+      alt: "",
+      fill: true,
+      priority: true,
+      sizes: HERO_IMAGE_SIZES,
+      loader: isShopify ? shopifyLoader : undefined,
+    });
+    preload(props.src, {
+      as: "image",
+      fetchPriority: "high",
+      imageSrcSet: props.srcSet,
+      imageSizes: props.sizes,
+    });
+  } catch (err) {
+    // A preload hint is an optimisation only; never let it break the page.
+    console.warn("[product page] hero preload skipped:", err?.message || err);
+  }
+}
+
 export default async function ProductPage({ params }) {
   const { handle } = await params;
   const rawProduct = await getProduct(handle);
@@ -494,6 +665,10 @@ export default async function ProductPage({ params }) {
     notFound();
   }
 
+  // Dashboard-managed store content for the "Visit Lucira Store Near You"
+  // section (Dashboard → Stores). Cached alongside the page's own ISR window.
+  const storePages = await getStorePages();
+
   const jsonLd = getProductSchema(rawProduct);
   const breadcrumbs = [
     { name: "Home", url: "/" },
@@ -501,6 +676,8 @@ export default async function ProductPage({ params }) {
     { name: rawProduct.title, url: `/products/${rawProduct.handle}` }
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
+
+  preloadHeroImage(rawProduct);
 
   return (
     <>
@@ -512,8 +689,9 @@ export default async function ProductPage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <ProductPageClient 
-        product={rawProduct} 
+      <ProductPageClient
+        product={rawProduct}
+        storePages={storePages}
       />
     </>
   );

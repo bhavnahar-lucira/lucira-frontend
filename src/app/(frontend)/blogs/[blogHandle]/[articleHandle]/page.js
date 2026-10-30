@@ -3,19 +3,33 @@ import {
   getArticleByBlogAndHandle,
   getArticlesByBlogHandle,
   getMostViewedArticles,
-  getAllArticleHandles
+  getArticlesByBlogHandleStorefront
 } from "@/lib/blogs";
 import BlogArticleClient from "@/components/blogs/BlogArticleClient";
+import { getReadingTimeLabel } from "@/lib/readingTime";
 import "./blog-article.css";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
+import { getArticleFaqSchema } from "@/lib/articleFaqs";
 
-// SSG: Fully static blog articles. Pre-rendered at build time.
-// This eliminates Vercel function invocations and Data Cache reading costs.
+// SSG: static blog articles, pre-rendered at build time and served from the
+// cache like `revalidate: false` would. Unlike `false`, a page that fails to
+// fetch content during build (e.g. Shopify rate-limiting the live-scrape
+// fallback) isn't broken forever — Next revalidates it in the background at
+// most once a day, so it can self-heal on a later visit instead of staying
+// empty until the next full redeploy.
 export const dynamicParams = true;
-export const revalidate = false;
+export const revalidate = 86400;
 
 export async function generateStaticParams() {
-  return await getAllArticleHandles();
+  try {
+    const articles = await getArticlesByBlogHandleStorefront("stories");
+    return articles.slice(0, 4).map((article) => ({
+      blogHandle: "stories",
+      articleHandle: article.handle,
+    }));
+  } catch (e) {
+    return [];
+  }
 }
 
 function stripHtml(value) {
@@ -29,13 +43,6 @@ function formatDate(value) {
     month: "long",
     year: "numeric",
   });
-}
-
-function readingTime(article) {
-  const text = article.content || stripHtml(article.contentHtml);
-  const words = text.split(/\s+/).filter(Boolean).length;
-  if (!words) return null;
-  return `${Math.max(1, Math.ceil(words / 220))} Mins`;
 }
 
 function slugify(value) {
@@ -55,13 +62,33 @@ function prepareArticleHtml(html) {
     .replace(/href="https:\/\/www\.lucirajewelry\.com\//g, 'href="/')
     .replace(/href="\/(products|collections|blogs)\//g, 'href="/$1/');
 
+  // Normalise every table (themed comparison tables + bare Shopify tables that
+  // ship with no class): tag it and wrap it in a horizontal-scroll shell so the
+  // stylesheet can render it full-width on desktop and scrollable on mobile,
+  // consistently across every blog.
+  processedHtml = processedHtml
+    .replace(/<table\b([^>]*)>/gi, (match, attrs) => {
+      const tagged = /class=/i.test(attrs)
+        ? attrs.replace(/class=(["'])(.*?)\1/i, 'class=$1$2 blog-data-table$1')
+        : `${attrs} class="blog-data-table"`;
+      return `<div class="blog-table-wrap"><table${tagged}>`;
+    })
+    .replace(/<\/table>/gi, "</table></div>");
+
   const toc = [];
   const usedIds = new Set();
   const finalHtml = processedHtml.replace(/<h([2-3])([^>]*)>(.*?)<\/h\1>/gi, (match, level, attrs, content) => {
     const label = stripHtml(content);
     if (!label) return match;
 
-    const existingId = attrs.match(/\sid=["']([^"']+)["']/i)?.[1];
+    // Product-card titles ship as <h3 class="image-text-product-title">; they
+    // are not article sections and must not pollute the Table of Content.
+    if (/image-text-product-title|image-text-product/i.test(attrs)) return match;
+
+    // Strip Shopify inline styles so CSS classes take full control
+    let cleanAttrs = attrs.replace(/\s*style=["'][^"']*["']/gi, "");
+
+    const existingId = cleanAttrs.match(/\sid=["']([^"']+)["']/i)?.[1];
     let id = existingId || slugify(label);
     let count = 2;
 
@@ -73,7 +100,7 @@ function prepareArticleHtml(html) {
     usedIds.add(id);
     toc.push({ id, label, level: Number(level) });
 
-    const nextAttrs = existingId ? attrs : `${attrs} id="${id}"`;
+    const nextAttrs = existingId ? cleanAttrs : `${cleanAttrs} id="${id}"`;
     return `<h${level}${nextAttrs}>${content}</h${level}>`;
   });
 
@@ -144,8 +171,21 @@ export default async function ArticlePage({ params }) {
   const displayTitle = article.seo?.title || article.title || contentTitle || article.blogTitle || blogHandle.charAt(0).toUpperCase() + blogHandle.slice(1);
   
   const publishedDate = formatDate(article.publishedAt || article.created_at || new Date().toISOString());
-  const readTime = readingTime(article);
+  const readTime = getReadingTimeLabel(article);
   const { html: bodyHtml, toc } = prepareArticleHtml(article.contentHtml || article.content);
+
+  // If the body is empty, Shopify 2.0 sections scraping likely failed (e.g. rate
+  // limiting during a big build). Throwing here would be worse than the bug it's
+  // trying to prevent: generateStaticParams pre-renders every article in ONE
+  // `next build`, so an uncaught error for a single article fails the entire
+  // build and blocks every other page from deploying. notFound() keeps the same
+  // guarantee (this broken, empty render is never cached) without taking the
+  // whole site down — dynamicParams + the 24h revalidate above mean this path
+  // just retries on a later visit instead of being pre-rendered now.
+  if (!bodyHtml) {
+    console.error(`Article content is empty for ${articleHandle}. Scraping likely failed.`);
+    return notFound();
+  }
 
   const related = relatedArticles
     .filter((item) => item.handle !== article.handle)
@@ -158,6 +198,9 @@ export default async function ArticlePage({ params }) {
     { name: displayTitle, url: `/blogs/${blogHandle}/${article.handle}` }
   ];
   const breadcrumbLd = getBreadcrumbSchema(breadcrumbs);
+  // Read from the same body the reader sees, so a new post with an FAQ section
+  // gets its FAQPage markup with nothing to fill in. Null when there is none.
+  const faqLd = getArticleFaqSchema(bodyHtml);
 
   return (
     <>
@@ -169,6 +212,12 @@ export default async function ArticlePage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
+      {faqLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        />
+      )}
       <BlogArticleClient
         article={{ ...article, title: displayTitle }}
         bodyHtml={bodyHtml}

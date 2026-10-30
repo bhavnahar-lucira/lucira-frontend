@@ -18,7 +18,7 @@ import {
   removeGyftrRedeem,
   repriceCartForCheckout,
 } from "@/redux/features/cart/cartSlice";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Store, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,21 +27,23 @@ import {
   apiFetch,
   completeRazorpayPayment,
   createRazorpayOrder,
+  createPhonePeOrder,
+  verifyPhonePePayment,
 } from "@/lib/api";
-import { getCookie } from "@/lib/utils";
+import { getCookie, getShippingDateValue } from "@/lib/utils";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
 import { getStoredUtms, sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { toE164, toTenDigit } from "@/lib/phone";
 import { trackPaymentStep } from "@/lib/searchAnalytics";
 import { calculateCouponDiscount } from "@/lib/coupons";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useCustomerAddresses } from "@/hooks/checkout/useCustomerAddresses";
 import { useBillingAddress } from "@/hooks/checkout/useBillingAddress";
-
+import { useDispatchInfo } from "@/hooks/useDispatchInfo";
 
 const INSURANCE_VARIANT_ID = "gid://shopify/ProductVariant/47709366026458";
-const GOLDCOIN_VARIANT_ID = "gid://shopify/ProductVariant/47661824082138";
 
 const BILLING_SELECTION_STORAGE_KEY = "checkoutBillingAddressSelection";
 
@@ -80,8 +82,8 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input placeholder="First name" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="Last name" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="First name *" value={form.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="Last name *" value={form.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="h-12 border-zinc-200" />
         <Input placeholder="Company (optional)" value={form.company} onChange={(e) => onChange("company", e.target.value)} className="h-12 border-zinc-200" />
         {form.country.trim().toLowerCase() === "india" ? (
           <Input
@@ -95,14 +97,14 @@ function AddressFields({ form, onChange, makeDefault, onDefaultChange, submitLab
           <div className="hidden md:block" />
         )}
         <div className="md:col-span-2">
-          <Input placeholder="Address" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
+          <Input placeholder="Address *" value={form.address1} onChange={(e) => onChange("address1", e.target.value)} className="h-12 border-zinc-200" />
         </div>
         <div className="md:col-span-2">
           <Input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={(e) => onChange("address2", e.target.value)} className="h-12 border-zinc-200" />
         </div>
-        <Input placeholder="City" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="State" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
-        <Input placeholder="PIN code" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="City *" value={form.city} onChange={(e) => onChange("city", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="State *" value={form.province} onChange={(e) => onChange("province", e.target.value)} className="h-12 border-zinc-200" />
+        <Input placeholder="PIN code *" value={form.zip} onChange={(e) => onChange("zip", e.target.value)} className="h-12 border-zinc-200" />
         <Input placeholder="Country/Region" value={form.country} onChange={(e) => onChange("country", e.target.value)} className="h-12 border-zinc-200" />
         <div className="md:col-span-2">
           <Input
@@ -151,10 +153,7 @@ function getCartSessionId() {
 }
 
 function normalizePhone(value = "") {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (digits.length === 10) return digits;
-  if (digits.length > 10) return digits.slice(-10);
-  return digits;
+  return toTenDigit(value);
 }
 
 function loadRazorpayScript() {
@@ -184,6 +183,46 @@ function loadRazorpayScript() {
   });
 }
 
+function loadPhonePeScript() {
+  if (typeof window === "undefined") {
+    return Promise.resolve(false);
+  }
+
+  if (window.PhonePeCheckout) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    const existingScript = document.querySelector('script[src="https://mercury.phonepe.com/web/bundle/checkout.js"]');
+
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(true), { once: true });
+      existingScript.addEventListener("error", () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://mercury.phonepe.com/web/bundle/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
+const STORE_NAME_MAPPING = {
+  "BO1": "Borivali",
+  "CS1": "Chembur",
+  "PS1": "Pune",
+  "NOS18": "Noida",
+};
+
+function getStoreDisplayName(codeOrName = "") {
+  if (!codeOrName) return "";
+  const mapped = STORE_NAME_MAPPING[codeOrName] || codeOrName;
+  return mapped.toLowerCase().includes("store") ? mapped : `${mapped} Store`;
+}
+
 export default function PaymentPage() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const router = useRouter();
@@ -194,9 +233,17 @@ export default function PaymentPage() {
   const hasFiredPaymentStep = useRef(false);
   
 
-  const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("razorpay");
+  const [selectedPaymentGateway, setSelectedPaymentGateway] = useState("phonepe");
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [checkoutSelection, setCheckoutSelection] = useState(null);
+  const [checkoutSelection, setCheckoutSelection] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = window.localStorage.getItem("checkout_selection");
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return null;
+  });
   const summaryRef = useRef(null);
   const summaryBreakdownRef = useRef(null);
   const [addAddressDialogOpen, setAddAddressDialogOpen] = useState(false);
@@ -205,7 +252,7 @@ export default function PaymentPage() {
   const [makeDefault, setMakeDefault] = useState(false);
 
   const { user, accessToken, isAuthenticated } = useSelector((state) => state.user);
-  const { items, totalAmount, appliedCoupon, nectorPoints, gyftrRedeem, loading } = useCart();
+  const { items, totalAmount, appliedCoupon, appliedCoupons,gyftrRedeem, nectorPoints, loading } = useCart();
 
   // We need eligibleBraceletId first
   useEffect(() => {
@@ -221,6 +268,61 @@ export default function PaymentPage() {
   const [coinsProceedAction, setCoinsProceedAction] = useState(null);
 
   const [priceProtectionSeconds, setPriceProtectionSeconds] = useState(600);
+
+  // Preload checkout scripts on mount
+  useEffect(() => {
+    loadRazorpayScript();
+    loadPhonePeScript();
+  }, []);
+
+  const phonePePollIntervalRef = useRef(null);
+
+  // Clear polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (phonePePollIntervalRef.current) {
+        clearInterval(phonePePollIntervalRef.current);
+        phonePePollIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  // Window message listener for PhonePe iframe completion (e.g. from callback page inside iframe)
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === "PHONEPE_PAYMENT_COMPLETED") {
+        const orderName = event.data.orderName;
+        if (phonePePollIntervalRef.current) {
+          clearInterval(phonePePollIntervalRef.current);
+          phonePePollIntervalRef.current = null;
+        }
+        try {
+          window.PhonePeCheckout?.closePage?.();
+        } catch {}
+        dispatch(clearCart());
+        dispatch(removeCoupon());
+        dispatch(removePoints());
+        window.localStorage.removeItem("phonepe_pending_order");
+        toast.success(`Order placed successfully: ${orderName}`);
+        router.replace(`/success?orderName=${encodeURIComponent(orderName)}`);
+      } else if (event.data?.type === "PHONEPE_PAYMENT_FAILED") {
+        if (phonePePollIntervalRef.current) {
+          clearInterval(phonePePollIntervalRef.current);
+          phonePePollIntervalRef.current = null;
+        }
+        try {
+          window.PhonePeCheckout?.closePage?.();
+        } catch {}
+        setPaymentLoading(false);
+        toast.error(event.data.message || "Payment was not completed.");
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+    };
+  }, [dispatch, router]);
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -283,12 +385,36 @@ export default function PaymentPage() {
     return items || [];
   }, [items]);
 
+  const { config: dispatchConfig } = useDispatchInfo();
+
+  /* The order's `_Shipping Date` is stamped here, not at add-to-cart: the cart
+     line the shopper is reading recomputes its date on every render, so a
+     snapshot taken hours (or days) earlier lands on the order as a dispatch
+     date the storefront never showed — same-day after the cutoff has passed,
+     or a date already in the past. Same inputs as CartItem, build-your-own
+     included: those are always made to order whatever the variant flag says. */
+  const stampShippingDates = useCallback(
+    (list) =>
+      list.map((item) => {
+        const isRTS = (item.inStock === true || item.inStock === "true") && !item.properties?.["_byj_preview"];
+        return {
+          ...item,
+          orderStatus: isRTS ? "RTS" : "MTO",
+          shippingDate: getShippingDateValue(dispatchConfig, {
+            inStock: isRTS,
+            leadTime: item.leadTime,
+          }),
+        };
+      }),
+    [dispatchConfig]
+  );
+
   const finalAmount = useMemo(() => {
     const insuranceItem = (items || []).find(item => item.variantId === INSURANCE_VARIANT_ID);
     const insuranceValue = insuranceItem ? (insuranceItem.price * (insuranceItem.quantity || 1)) : 0;
     const subtotalValue = (totalAmount || 0) - insuranceValue;
 
-    const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+    const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
     const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
     const gyftrDiscountAmount = gyftrRedeem?.amount || 0;
@@ -296,6 +422,12 @@ export default function PaymentPage() {
   }, [items, totalAmount, appliedCoupon, nectorPoints, gyftrRedeem]);
 
   const isPickup = checkoutSelection?.deliveryMethod === "pickup";
+  const selectedStore = checkoutSelection?.selectedStore;
+  const storeDisplayName = getStoreDisplayName(selectedStore?.code || selectedStore?.name);
+  const pickupHeaderTitle = storeDisplayName ? `Pickup from ${storeDisplayName}` : "Store Pickup";
+  const pickupAddressText = selectedStore
+    ? [selectedStore.address, selectedStore.city, selectedStore.state, selectedStore.zip].filter(Boolean).join(", ")
+    : "Store address";
   const isIndiaShipping = (selectedAddress?.country || "").trim().toLowerCase() === "india";
 
   // Remove points/wallet redemption when leaving the payment page to prevent stale claims
@@ -335,14 +467,24 @@ export default function PaymentPage() {
   const partialCodDetails = useMemo(() => {
     const total = Math.max(0, Number(finalAmount || 0));
 
-    const hasGoldCoin = items?.length > 0 && items.some(item =>
-      item.variantId === GOLDCOIN_VARIANT_ID ||
-      (item.handle && item.handle.includes("gold-coin")) ||
-      (item.type && item.type.toLowerCase() === "gold coin") ||
-      (item.title && item.title.toLowerCase().includes("gold coin"))
+    // Free gifts (such as a promotional/free gold coin) do not disqualify Partial COD.
+    // Only purchased (paid) gold coins disqualify Partial COD.
+    const isFreeItem = (item) => Boolean(
+      item.isFreeGift ||
+      Number(item.price || 0) === 0 ||
+      (item.title && item.title.toLowerCase().includes("free")) ||
+      (item.variantTitle && item.variantTitle.toLowerCase().includes("free gift"))
     );
 
-    const isEligible = total > 0 && total < 50000 && !hasGoldCoin;
+    const hasGoldCoin = items?.length > 0 && items.some(item =>
+      !isFreeItem(item) && (
+        (item.handle && item.handle.includes("gold-coin")) ||
+        (item.type && item.type.toLowerCase() === "gold coin") ||
+        (item.title && item.title.toLowerCase().includes("gold coin"))
+      )
+    );
+
+    const isEligible = total > 0 && total <= 50000 && !hasGoldCoin;
     const prepaidAmount = isEligible ? total * 0.2 : 0;
     const codAmount = isEligible ? total - prepaidAmount : 0;
 
@@ -353,14 +495,26 @@ export default function PaymentPage() {
     };
   }, [finalAmount, items]);
 
+  const isUpiEligible = useMemo(() => {
+    return Number(finalAmount || 0) <= 100000;
+  }, [finalAmount]);
+
   const paymentGateways = useMemo(() => {
-    const gateways = [
-      {
-        id: "razorpay",
-        name: "Razorpay Secure (UPI, Cards, Int'l Cards, Wallets)",
+    const gateways = [];
+
+    if (isUpiEligible) {
+      gateways.push({
+        id: "phonepe",
+        name: "Pay with UPI (PhonePe)",
         amount: finalAmount,
-      },
-    ];
+      });
+    }
+
+    gateways.push({
+      id: "razorpay",
+      name: "Full Payment (Cards, Netbanking, Wallets)",
+      amount: finalAmount,
+    });
 
     if (partialCodDetails.isEligible) {
       gateways.push({
@@ -371,7 +525,7 @@ export default function PaymentPage() {
     }
 
     return gateways;
-  }, [finalAmount, partialCodDetails]);
+  }, [finalAmount, isUpiEligible, partialCodDetails]);
 
   const selectedPayableAmount = selectedPaymentGateway === "partial_cod"
     ? partialCodDetails.prepaidAmount
@@ -379,9 +533,12 @@ export default function PaymentPage() {
 
   useEffect(() => {
     if (selectedPaymentGateway === "partial_cod" && !partialCodDetails.isEligible) {
+      setSelectedPaymentGateway(isUpiEligible ? "phonepe" : "razorpay");
+    }
+    if (selectedPaymentGateway === "phonepe" && !isUpiEligible) {
       setSelectedPaymentGateway("razorpay");
     }
-  }, [partialCodDetails.isEligible, selectedPaymentGateway]);
+  }, [partialCodDetails.isEligible, isUpiEligible, selectedPaymentGateway]);
 
   const getGatewayCopy = (gateway) => {
     if (gateway.id === "partial_cod") {
@@ -439,6 +596,10 @@ export default function PaymentPage() {
       return;
     }
 
+    if (selectedPaymentGateway === "phonepe" && !isUpiEligible) {
+      toast.info("UPI payment is not available for orders above ₹1,00,000.");
+      return;
+    }
 
     const isPickup = checkoutSelection?.deliveryMethod === "pickup";
 
@@ -453,15 +614,19 @@ export default function PaymentPage() {
     }
 
     try {
+      const paymentTypeName = selectedPaymentGateway === "partial_cod"
+        ? "Partial COD"
+        : (selectedPaymentGateway === "phonepe" ? "PhonePe UPI" : "Razorpay");
+
       // Trigger CRM Webhook for Add Payment Info on click
       sendCheckoutCrmEvent("add_payment_info", {
         email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
-        mobile: customer?.phone || user?.mobile || selectedAddress?.phone || "",
+        mobile: toE164(customer?.phone || user?.mobile || selectedAddress?.phone || ""),
         firstName: customer?.firstName || user?.name?.split(' ')[0] || "",
         lastName: customer?.lastName || user?.name?.split(' ')[1] || "",
         totalCartValue: Number(finalAmount),
         cartItems: checkoutItems,
-        paymentType: selectedPaymentGateway === "partial_cod" ? "Partial COD" : "Razorpay",
+        paymentType: paymentTypeName,
         billingPincode: selectedBillingAddress?.zip || "",
         billingCity: selectedBillingAddress?.city || "",
         billingState: selectedBillingAddress?.province || "",
@@ -482,7 +647,7 @@ export default function PaymentPage() {
       const filteredItemsForGtm = (items || []).filter(
         (item) =>
           item.variantId !== INSURANCE_VARIANT_ID &&
-          !(item.variantId === GOLDCOIN_VARIANT_ID && item.isFreeGift) &&
+          !item.isFreeGift &&
           !item.properties?.['_byj_parent'] &&
           !(item.properties?.['_byj_group_id'] && !item.properties?.['_byj_preview'])
       );
@@ -492,7 +657,7 @@ export default function PaymentPage() {
       const subtotalValue = (totalAmount || 0) - insuranceValue;
 
       const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-      const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+      const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
       const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
       const gyftrDiscountAmount = gyftrRedeem?.amount || 0;
@@ -504,12 +669,19 @@ export default function PaymentPage() {
           codAmount: partialCodDetails.codAmount,
           grandTotal: grandTotalValue,
         }
-        : {
-          type: "razorpay",
-          prepaidAmount: grandTotalValue,
-          codAmount: 0,
-          grandTotal: grandTotalValue,
-        };
+        : (selectedPaymentGateway === "phonepe"
+          ? {
+            type: "phonepe",
+            prepaidAmount: grandTotalValue,
+            codAmount: 0,
+            grandTotal: grandTotalValue,
+          }
+          : {
+            type: "razorpay",
+            prepaidAmount: grandTotalValue,
+            codAmount: 0,
+            grandTotal: grandTotalValue,
+          });
       const loyaltyPoints = appliedCoupon?.loyaltyPoints || "";
 
       const purchaseDataForLater = {
@@ -529,7 +701,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
             else if (lowerTitle.includes("pendant")) category = "Pendants";
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-            else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+            else if (item.isFreeGift) category = "Free Gift";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
           }
 
@@ -550,8 +722,9 @@ export default function PaymentPage() {
       window.localStorage.setItem("gtm_purchase_data", JSON.stringify(purchaseDataForLater));
 
       pushAddPaymentInfo({
-        payment_type: selectedPaymentGateway === "partial_cod" ? "Partial COD" : "Razorpay",
-        value: paymentMethodDetails.prepaidAmount,
+        payment_type: paymentTypeName,
+        // Full order revenue, not the amount charged now - matches purchase.value.
+        value: grandTotalValue,
         currency: "INR",
         coupon: couponDetails?.code || "NA",
         loyalty_points: loyaltyPoints,
@@ -564,7 +737,7 @@ export default function PaymentPage() {
             else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
             else if (lowerTitle.includes("pendant")) category = "Pendants";
             else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-            else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+            else if (item.isFreeGift) category = "Free Gift";
             else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
           }
 
@@ -583,21 +756,226 @@ export default function PaymentPage() {
         })
       });
 
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded || !window.Razorpay) {
-        throw new Error("Unable to load Razorpay checkout");
-      }
-
       const customerName =
         customer?.firstName || customer?.lastName
           ? [customer?.firstName, customer?.lastName].filter(Boolean).join(" ")
           : user?.name || "Lucira Customer";
 
+      // PhonePe payment flow (for UPI full payment or Partial COD via PhonePe)
+      if (selectedPaymentGateway === "phonepe" || selectedPaymentGateway === "partial_cod") {
+        const phonePeOrder = await createPhonePeOrder({
+          userId: user?.id || "",
+          context: process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront',
+          sessionId: getCartSessionId(),
+          items: stampShippingDates(checkoutItems),
+          customer: {
+            name: customerName,
+            email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
+            phone: normalizePhone(customer?.phone || user?.mobile || selectedAddress?.phone || ""),
+          },
+          shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
+          billingAddress: selectedBillingAddress,
+          appliedCoupons: appliedCoupons || [],
+          appliedCoupon: appliedCoupon ? {
+            ...couponDetails,
+            value: couponDiscountAmount,
+            valueType: "FIXED_AMOUNT"
+          } : null,
+          nectorPoints: nectorPoints,
+          paymentMethod: paymentMethodDetails,
+          amount: paymentMethodDetails.prepaidAmount,
+          gclid: getCookie("gclid") || "",
+          utm: getStoredUtms(),
+          redirectBaseUrl: window.location.origin,
+        }, accessToken);
+
+        const serverPricing = phonePeOrder?.pricing;
+        const serverGrandTotal = Number(serverPricing?.grandTotal ?? phonePeOrder?.paymentMethod?.grandTotal);
+
+        if (Number.isFinite(serverGrandTotal) && Math.round(serverGrandTotal) !== Math.round(grandTotalValue)) {
+          console.warn(
+            `[payment] Total mismatch — shown ₹${grandTotalValue}, server ₹${serverGrandTotal}. Re-syncing.`
+          );
+
+          if (serverPricing) {
+            const serverCoupon = Number(serverPricing.couponDiscount || 0);
+            const serverPoints = Number(serverPricing.pointsDiscount || 0);
+
+            if (appliedCoupon && serverCoupon !== couponDiscountAmount) {
+              if (serverCoupon > 0) {
+                dispatch(applyCoupon({ ...couponDetails, value: serverCoupon, valueType: "FIXED_AMOUNT", restricted: false, applicableItemIds: [] }));
+              } else {
+                dispatch(removeCoupon());
+                toast.info(`Coupon ${couponDetails?.code || ""} is no longer valid for this order.`);
+              }
+            }
+
+            if (nectorPoints && serverPoints !== pointsDiscountAmount) {
+              if (serverPoints > 0) dispatch(applyPoints({ ...nectorPoints, fiat_value: serverPoints }));
+              else {
+                dispatch(removePoints());
+                toast.info("Your loyalty points could not be applied to this order.");
+              }
+            }
+          }
+
+          await dispatch(repriceCartForCheckout({ userId: user?.id }));
+
+          toast.info("Your total has been updated to today's live rates. Please review it and pay again.");
+          scrollToSummary();
+          setPaymentLoading(false);
+          return;
+        }
+
+        if (!phonePeOrder?.redirectUrl) {
+          throw new Error(phonePeOrder?.error || "Unable to start PhonePe payment");
+        }
+
+        window.localStorage.setItem("phonepe_pending_order", JSON.stringify({
+          merchantOrderId: phonePeOrder.merchantOrderId,
+          draftId: phonePeOrder.draftId,
+        }));
+
+        // Open PhonePe official popup checkout (matching Razorpay SDK popup experience)
+        const scriptLoaded = await loadPhonePeScript();
+        if (scriptLoaded && window.PhonePeCheckout?.transact) {
+          let isVerifying = false;
+
+          const handleConclusion = async () => {
+            if (isVerifying) return;
+            isVerifying = true;
+            if (phonePePollIntervalRef.current) {
+              clearInterval(phonePePollIntervalRef.current);
+              phonePePollIntervalRef.current = null;
+            }
+            try {
+              setPaymentLoading(true);
+              const res = await verifyPhonePePayment({ merchantOrderId: phonePeOrder.merchantOrderId }, accessToken);
+              if (res?.success && res?.shopifyOrderName) {
+                try {
+                  window.PhonePeCheckout?.closePage?.();
+                } catch {}
+                dispatch(clearCart());
+                dispatch(removeCoupon());
+                dispatch(removePoints());
+                window.localStorage.removeItem("phonepe_pending_order");
+                toast.success(`Order placed successfully: ${res.shopifyOrderName}`);
+                router.replace(`/success?orderName=${encodeURIComponent(res.shopifyOrderName)}`);
+              } else if (res?.state === "FAILED") {
+                try {
+                  window.PhonePeCheckout?.closePage?.();
+                } catch {}
+                setPaymentLoading(false);
+                toast.error(res?.message || "Payment was not completed.");
+              } else {
+                router.push(`/checkout/payment/phonepe-callback?merchantOrderId=${encodeURIComponent(phonePeOrder.merchantOrderId)}`);
+              }
+            } catch (err) {
+              console.error("[phonepe] Verification error:", err);
+              setPaymentLoading(false);
+              router.push(`/checkout/payment/phonepe-callback?merchantOrderId=${encodeURIComponent(phonePeOrder.merchantOrderId)}`);
+            }
+          };
+
+          // Active background polling while PhonePe popup is open (catches QR scans on mobile)
+          if (phonePePollIntervalRef.current) {
+            clearInterval(phonePePollIntervalRef.current);
+          }
+          phonePePollIntervalRef.current = setInterval(async () => {
+            if (isVerifying) return;
+            try {
+              const res = await verifyPhonePePayment({ merchantOrderId: phonePeOrder.merchantOrderId }, accessToken);
+              if (res?.success && res?.shopifyOrderName) {
+                clearInterval(phonePePollIntervalRef.current);
+                phonePePollIntervalRef.current = null;
+                isVerifying = true;
+                try {
+                  window.PhonePeCheckout?.closePage?.();
+                } catch {}
+                dispatch(clearCart());
+                dispatch(removeCoupon());
+                dispatch(removePoints());
+                window.localStorage.removeItem("phonepe_pending_order");
+                toast.success(`Order placed successfully: ${res.shopifyOrderName}`);
+                router.replace(`/success?orderName=${encodeURIComponent(res.shopifyOrderName)}`);
+              } else if (res?.state === "FAILED") {
+                clearInterval(phonePePollIntervalRef.current);
+                phonePePollIntervalRef.current = null;
+                isVerifying = true;
+                try {
+                  window.PhonePeCheckout?.closePage?.();
+                } catch {}
+                setPaymentLoading(false);
+                toast.error(res?.message || "Payment failed on PhonePe.");
+              }
+            } catch (e) {}
+          }, 3000);
+
+          setPaymentLoading(false);
+
+          const enforcePhonePeEdgeToEdge = () => {
+            const iframes = document.querySelectorAll('iframe[id*="phonepe-transact"], [class*="_phonepeSDK"] iframe');
+            iframes.forEach((ifr) => {
+              ifr.setAttribute("scrolling", "no");
+              if (window.innerWidth > 600) {
+                ifr.style.setProperty("width", "1180px", "important");
+                ifr.style.setProperty("max-width", "min(1180px, 95vw)", "important");
+                ifr.style.setProperty("height", "715px", "important");
+                ifr.style.setProperty("max-height", "min(715px, 94vh)", "important");
+                ifr.style.setProperty("border-radius", "24px", "important");
+                ifr.style.setProperty("overflow", "hidden", "important");
+                ifr.style.setProperty("box-shadow", "0 25px 50px -12px rgba(0, 0, 0, 0.35)", "important");
+              } else {
+                ifr.style.setProperty("width", "100vw", "important");
+                ifr.style.setProperty("max-width", "100vw", "important");
+                ifr.style.setProperty("height", "564px", "important");
+                ifr.style.setProperty("max-height", "90vh", "important");
+                ifr.style.setProperty("border-radius", "20px 20px 0 0", "important");
+                ifr.style.setProperty("overflow", "hidden", "important");
+              }
+            });
+          };
+
+          window.PhonePeCheckout.transact({
+            tokenUrl: phonePeOrder.redirectUrl,
+            callback: function (response) {
+              if (response === "USER_CANCEL") {
+                if (phonePePollIntervalRef.current) {
+                  clearInterval(phonePePollIntervalRef.current);
+                  phonePePollIntervalRef.current = null;
+                }
+                setPaymentLoading(false);
+                toast.info("Payment window closed.");
+              } else if (response === "CONCLUDED") {
+                handleConclusion();
+              } else {
+                handleConclusion();
+              }
+            },
+            type: "IFRAME",
+          });
+
+          enforcePhonePeEdgeToEdge();
+          const edgeTimer = setInterval(enforcePhonePeEdgeToEdge, 100);
+          setTimeout(() => clearInterval(edgeTimer), 4000);
+          return;
+        }
+
+        // Fallback to top-level redirect if PhonePeCheckout SDK is blocked or unavailable
+        window.location.href = phonePeOrder.redirectUrl;
+        return;
+      }
+
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded || !window.Razorpay) {
+        throw new Error("Unable to load Razorpay checkout");
+      }
+
       const order = await createRazorpayOrder({
         userId: user?.id || "",
         context: process.env.NODE_ENV === 'development' ? 'localhost' : 'storefront',
         sessionId: getCartSessionId(),
-        items: checkoutItems,
+        items: stampShippingDates(checkoutItems),
         customer: {
           name: customerName,
           email: customer?.email || user?.email || checkoutSelection?.customerEmail || "",
@@ -605,6 +983,7 @@ export default function PaymentPage() {
         },
         shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
         billingAddress: selectedBillingAddress,
+        appliedCoupons: appliedCoupons || [],
         appliedCoupon: appliedCoupon ? {
           ...couponDetails,
           value: couponDiscountAmount,
@@ -692,7 +1071,7 @@ export default function PaymentPage() {
             const subtotalValue = (totalAmount || 0) - insuranceValue;
 
             const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-            const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+            const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
             const pointsDiscountAmount = nectorPoints?.fiat_value || 0;
             const gyftrDiscountAmount = gyftrRedeem?.amount || 0;
@@ -703,8 +1082,8 @@ export default function PaymentPage() {
 
             const purchaseData = {
               currency: "INR",
-              value: purchaseValue,
-              tax: Number((purchaseValue * 0.03).toFixed(2)),
+              value: grandTotalValue,
+              tax: Number((grandTotalValue * 0.03).toFixed(2)),
               shipping: 0,
               affiliation: "Lucira Jewelry",
               transaction_id: response.razorpay_payment_id,
@@ -718,7 +1097,7 @@ export default function PaymentPage() {
                   else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
                   else if (lowerTitle.includes("pendant")) category = "Pendants";
                   else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-                  else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+                  else if (item.isFreeGift) category = "Free Gift";
                   else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
                 }
 
@@ -768,6 +1147,7 @@ export default function PaymentPage() {
               },
               shippingAddress: isPickup ? checkoutSelection.selectedStore : selectedAddress,
               billingAddress: selectedBillingAddress,
+              appliedCoupons: appliedCoupons || [],
               appliedCoupon: appliedCoupon ? {
                 ...couponDetails,
                 value: couponDiscountAmount,
@@ -776,7 +1156,7 @@ export default function PaymentPage() {
               nectorPoints: nectorPoints, // Pass points for completion attributes
               gyftrRedeem: gyftrRedeem,
               paymentMethod: order.paymentMethod || paymentMethodDetails,
-              cartItems: checkoutItems, // Pass items explicitly as fallback for backend
+              cartItems: stampShippingDates(checkoutItems), // Pass items explicitly as fallback for backend
               gclid: getCookie("gclid") || "",
               utm: getStoredUtms(),
             }, accessToken);
@@ -800,6 +1180,13 @@ export default function PaymentPage() {
             setPaymentLoading(false);
           }
         },
+        method: {
+          upi: false,
+          card: true,
+          netbanking: true,
+          wallet: true,
+          emi: true,
+        },
         modal: {
           ondismiss: () => {
             toast.info("Payment window closed.");
@@ -810,27 +1197,12 @@ export default function PaymentPage() {
           name: order.customer?.name || customerName,
           email: order.customer?.email || checkoutSelection?.customerEmail || "",
           contact: order.customer?.phone || order.customer?.contact || normalizePhone(customer?.phone || user?.mobile || selectedAddress?.phone || ""),
-          method: "upi",
         },
         notes: {
           shipping_address: isPickup ? checkoutSelection.selectedStore?.address : formatAddressPreview(selectedAddress),
           billing_address: formatAddressPreview(selectedBillingAddress),
           shipping_gstin: selectedAddress?.gstin || "",
           billing_gstin: selectedBillingAddress?.gstin || "",
-        },
-        config: {
-          display: {
-            blocks: {
-              upi: {
-                name: "Pay via UPI",
-                methods: ["vpa", "qr"],
-              },
-            },
-            sequence: ["block.upi", "block.cards", "block.netbanking"],
-            preferences: {
-              show_default_blocks: true,
-            },
-          },
         },
         theme: {
           color: "#111111",
@@ -858,7 +1230,7 @@ export default function PaymentPage() {
         const subtotalValue = (totalAmount || 0) - insuranceValue;
 
         const couponDetails = typeof appliedCoupon === 'object' ? appliedCoupon : { code: appliedCoupon, value: 0, valueType: "FIXED_AMOUNT" };
-        const couponDiscountAmount = calculateCouponDiscount(appliedCoupon, items, subtotalValue);
+        const couponDiscountAmount = calculateCouponDiscount(appliedCoupons?.length ? appliedCoupons : appliedCoupon, items, subtotalValue);
 
         const grandTotalValue = subtotalValue + insuranceValue - couponDiscountAmount;
 
@@ -876,7 +1248,7 @@ export default function PaymentPage() {
               else if (lowerTitle.includes("earring") || lowerTitle.includes("bali")) category = "Earrings";
               else if (lowerTitle.includes("pendant")) category = "Pendants";
               else if (lowerTitle.includes("bracelet")) category = "Bracelets";
-              else if (item.variantId === GOLDCOIN_VARIANT_ID) category = "Gold Coin";
+              else if (item.isFreeGift) category = "Free Gift";
               else if (item.variantId === INSURANCE_VARIANT_ID) category = "Insurance";
             }
 
@@ -988,14 +1360,18 @@ export default function PaymentPage() {
                 <div className="border-0 lg:border lg:border-[#EBE1D7] lg:rounded-[8px] overflow-hidden mb-3 lg:mb-0">
                   <div className="flex items-center gap-4 py-4 px-4 bg-white">
                     <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      {isPickup ? (
+                        <Store size={20} className="text-black" />
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
                       <p className="font-figtree font-medium text-[14px] leading-none tracking-normal align-middle mb-[9px] text-black truncate">
-                        Delivering to {customer?.name || user?.name || "Customer"}
+                        {isPickup ? pickupHeaderTitle : `Delivering to ${customer?.name || user?.name || "Customer"}`}
                       </p>
                       <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
-                        {isPickup ? [checkoutSelection?.selectedStore?.address, checkoutSelection?.selectedStore?.city, checkoutSelection?.selectedStore?.state, checkoutSelection?.selectedStore?.zip].filter(Boolean).join(", ") : formatAddressPreview(selectedAddress)}
+                        {isPickup ? pickupAddressText : formatAddressPreview(selectedAddress)}
                       </p>
                     </div>
                     <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
@@ -1022,14 +1398,18 @@ export default function PaymentPage() {
                             className={`block p-4 rounded-[6px] border transition-colors cursor-pointer ${selectedPaymentGateway === gateway.id ? "border-[#5A413F] bg-[#FAF0E6]/40" : "border-[#EBE1D7]"}`}
                           >
                             <div className="flex justify-between items-center">
-                              <div>
-                                <h4 className="font-figtree font-medium text-black text-[0.9rem] mb-[8px]">
-                                  {copy.title}
-                                </h4>
-                                <p className="font-figtree text-[0.8rem] text-black/70 mt-1">
-                                  {copy.subtitle}
-                                </p>
-                              </div>
+                                <div>
+                                  <h4 className="font-figtree font-medium text-black text-[0.9rem] mb-[8px]">
+                                    {gateway.id === "razorpay" && `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                    {gateway.id === "phonepe" && `Pay with UPI ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                    {gateway.id === "partial_cod" && `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                  </h4>
+                                  <p className="font-figtree text-[0.8rem] text-black/70 mt-1">
+                                    {gateway.id === "razorpay" && "Complete your Purchase with Ease"}
+                                    {gateway.id === "phonepe" && "Payment via PhonePe UPI"}
+                                    {gateway.id === "partial_cod" && `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
+                                  </p>
+                                </div>
                               <div className="relative flex items-center justify-center shrink-0">
                                 <RadioGroupItem value={gateway.id} id={`m-opt-${gateway.id}`} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1078,14 +1458,18 @@ export default function PaymentPage() {
                 <div className="border border-[#EBE1D7] rounded-[8px] overflow-hidden">
                   <div className="flex items-center gap-4 py-4 px-4 bg-white">
                     <div className="w-11 h-11 rounded-full border border-[#EBE1D7] flex items-center justify-center shrink-0 bg-[#FDFBF9]">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      {isPickup ? (
+                        <Store size={20} className="text-black" />
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0 pt-1">
                       <p className="font-figtree font-medium text-[14px] leading-none tracking-normal align-middle mb-[9px] text-black truncate">
-                        Delivering to {customer?.name || user?.name || "Customer"}
+                        {isPickup ? pickupHeaderTitle : `Delivering to ${customer?.name || user?.name || "Customer"}`}
                       </p>
                       <p className="font-figtree font-normal text-[12px] leading-none tracking-normal align-middle text-black truncate">
-                        {isPickup ? [checkoutSelection?.selectedStore?.address, checkoutSelection?.selectedStore?.city, checkoutSelection?.selectedStore?.state, checkoutSelection?.selectedStore?.zip].filter(Boolean).join(", ") : formatAddressPreview(selectedAddress)}
+                        {isPickup ? pickupAddressText : formatAddressPreview(selectedAddress)}
                       </p>
                     </div>
                     <Link prefetch={false} href={shipToChangeHref} className="font-figtree font-medium text-[13px] text-black shrink-0">
@@ -1112,14 +1496,18 @@ export default function PaymentPage() {
                             className={`block p-4 rounded-[6px] border transition-colors cursor-pointer ${selectedPaymentGateway === gateway.id ? "border-[#5A413F] bg-[#FAF0E6]/40" : "border-[#EBE1D7]"}`}
                           >
                             <div className="flex justify-between items-center">
-                              <div>
-                                <h4 className="font-figtree font-medium text-black text-[1rem] mb-[8px]">
-                                  {copy.title}
-                                </h4>
-                                <p className="font-figtree text-[12px] text-black/70 mt-[8px] mb-0">
-                                  {copy.subtitle}
-                                </p>
-                              </div>
+                                <div>
+                                  <h4 className="font-figtree font-medium text-black text-[1rem] mb-[8px]">
+                                    {gateway.id === "razorpay" && `Full Payment ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                    {gateway.id === "phonepe" && `Pay with UPI ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                    {gateway.id === "partial_cod" && `Partial COD ₹${Number(gateway.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                                  </h4>
+                                  <p className="font-figtree text-[12px] text-black/70 mt-[8px] mb-0">
+                                    {gateway.id === "razorpay" && "Complete your Purchase with Ease"}
+                                    {gateway.id === "phonepe" && "Payment via PhonePe UPI"}
+                                    {gateway.id === "partial_cod" && `Pay Remaining ₹${partialCodDetails.codAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })} at Delivery`}
+                                  </p>
+                                </div>
                               <div className="relative flex items-center justify-center shrink-0">
                                 <RadioGroupItem value={gateway.id} id={`d-opt-${gateway.id}`} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1136,7 +1524,7 @@ export default function PaymentPage() {
                   </div>
 
                 <div className="flex items-center justify-between gap-6 pt-4">
-                  <Link prefetch={false} href="/checkout/shipping" className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
+                  <Link prefetch={false} href={shipToChangeHref} className="flex items-center gap-1.5 text-[0.975rem] capitalize font-semibold text-accent hover:opacity-80 transition-opacity">
                     <ChevronLeft className="size-4" />
                     Return to shipping
                   </Link>
@@ -1220,6 +1608,8 @@ export default function PaymentPage() {
           setCoinsProceedAction(null);
         }}
       />
+
+
     </div>
   );
 }
