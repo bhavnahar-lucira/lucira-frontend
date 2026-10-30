@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SILVER_STATIC_SECTION_IDS as S } from "@/lib/silverRateSections";
+import { DEFAULT_RATE_HEADING_VARIANT } from "@/lib/rateHeadingVariant";
 
 // Mirror of GoldMetaContent for the silver rate city pages.
 // Content (intro, purity/hallmark/buying/investment/factors/festival/market blocks,
@@ -17,10 +18,12 @@ export default function SilverMetaContent({
   rate925, // per gram
   rate999Yesterday, // per gram
   currentDate,
+  headingVariant = DEFAULT_RATE_HEADING_VARIANT,
 }) {
   const [openFaq, setOpenFaq] = useState(null);
 
   const city = silverMeta.cityName || cityName || "Mumbai";
+  const w = headingVariant;
   const state = silverMeta.state || stateName || "";
   const nearby = silverMeta.nearbyCityName || "";
   const nearbyNote = silverMeta.nearbyCityNote || "";
@@ -144,7 +147,7 @@ export default function SilverMetaContent({
             )}
 
             {/* At a glance */}
-            <h2 id={S.atAGlance} className="scroll-mt-24">Today&apos;s Silver Rate in {city} at a Glance</h2>
+            <h2 id={S.atAGlance} className="scroll-mt-24">Today&apos;s Silver {w.glance} in {city} at a Glance</h2>
             <p>Updated {currentDate} | All prices include 3% GST | Hallmark and making charges are additional.</p>
             <table>
               <thead><tr><th>Silver Type</th><th>Per Gram</th><th>Per 10g</th><th>Per 100g</th><th>Per 1 Kg</th></tr></thead>
@@ -158,7 +161,7 @@ export default function SilverMetaContent({
             {/* Today vs Yesterday */}
             {y999 > 0 && (
               <>
-                <h2 id={S.todayVsYesterday} className="scroll-mt-24">Today vs Yesterday - Silver Rate Change in {city}</h2>
+                <h2 id={S.todayVsYesterday} className="scroll-mt-24">Today vs Yesterday - Silver {w.change} Change in {city}</h2>
                 <table>
                   <thead><tr><th>Purity</th><th>Today (₹/g)</th><th>Yesterday (₹/g)</th><th>Change</th></tr></thead>
                   <tbody>
@@ -221,7 +224,7 @@ export default function SilverMetaContent({
             {/* Weekly trend */}
             {weekly.length > 0 && (
               <>
-                <h2 id={S.weeklyTrend} className="scroll-mt-24">Weekly Silver Price Trend in {city} (Last 7 Days)</h2>
+                <h2 id={S.weeklyTrend} className="scroll-mt-24">Weekly Silver {w.weekly} Trend in {city} (Last 7 Days)</h2>
                 <table>
                   <thead><tr><th>Date</th><th>999 (₹/g)</th><th>925 (₹/g)</th><th>Market Note</th></tr></thead>
                   <tbody>
@@ -241,7 +244,7 @@ export default function SilverMetaContent({
             {/* Monthly trend */}
             {monthly.length > 0 && (
               <>
-                <h2 id={S.monthlyTrend} className="scroll-mt-24">Monthly Silver Rate Trend in {city} - Last 12 Months</h2>
+                <h2 id={S.monthlyTrend} className="scroll-mt-24">Monthly Silver {w.monthly} Trend in {city} - Last 12 Months</h2>
                 <table>
                   <thead><tr><th>Month</th><th>999 (₹/g)</th><th>925 (₹/g)</th></tr></thead>
                   <tbody>
@@ -260,7 +263,7 @@ export default function SilverMetaContent({
             {/* Nearby city */}
             {nearby && (
               <>
-                <h2 id={S.nearbyCity} className="scroll-mt-24">Today&apos;s Silver Rate in {nearby}</h2>
+                <h2 id={S.nearbyCity} className="scroll-mt-24">Today&apos;s Silver {w.nearby} in {nearby}</h2>
                 <p>{nearbyNote || ("Silver rates in " + nearby + " are the same as " + city + ".")}</p>
                 <table>
                   <thead><tr><th>Purity</th><th>Per Gram</th><th>Per 1 Kg</th><th>Notes</th></tr></thead>

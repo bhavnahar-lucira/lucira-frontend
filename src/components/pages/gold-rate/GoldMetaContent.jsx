@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { GOLD_STATIC_SECTION_IDS as S } from "@/lib/goldRateSections";
+import { DEFAULT_RATE_HEADING_VARIANT } from "@/lib/rateHeadingVariant";
 
 // Full React port of the Shopify Liquid `gold-rate-city-page` section.
 // Content (intro, karat/hallmark/buying/investment/factors/festival/market blocks,
@@ -17,10 +18,12 @@ export default function GoldMetaContent({
   rate22k, // per gram
   rate24kYesterday, // per gram
   currentDate,
+  headingVariant = DEFAULT_RATE_HEADING_VARIANT,
 }) {
   const [openFaq, setOpenFaq] = useState(null);
 
   const city = goldMeta.cityName || cityName || "Mumbai";
+  const w = headingVariant;
   const state = goldMeta.state || stateName || "";
   const nearby = goldMeta.nearbyCityName || "";
   const nearbyNote = goldMeta.nearbyCityNote || "";
@@ -148,7 +151,7 @@ export default function GoldMetaContent({
             )}
 
             {/* At a glance */}
-            <h2 id={S.atAGlance} className="scroll-mt-24">Today&apos;s Gold Rate in {city} at a Glance</h2>
+            <h2 id={S.atAGlance} className="scroll-mt-24">Today&apos;s Gold {w.glance} in {city} at a Glance</h2>
             <p>Updated {currentDate} | All prices include 3% GST | Hallmark and making charges are additional.</p>
             <table>
               <thead><tr><th>Gold Type</th><th>Per Gram</th><th>Per 8g</th><th>Per 10g</th><th>Per 100g</th></tr></thead>
@@ -164,7 +167,7 @@ export default function GoldMetaContent({
             {/* Today vs Yesterday */}
             {y24 > 0 && (
               <>
-                <h2 id={S.todayVsYesterday} className="scroll-mt-24">Today vs Yesterday - Gold Rate Change in {city}</h2>
+                <h2 id={S.todayVsYesterday} className="scroll-mt-24">Today vs Yesterday - Gold {w.change} Change in {city}</h2>
                 <table>
                   <thead><tr><th>Karat</th><th>Today (₹/g)</th><th>Yesterday (₹/g)</th><th>Change</th></tr></thead>
                   <tbody>
@@ -246,7 +249,7 @@ export default function GoldMetaContent({
             {/* Weekly trend */}
             {weekly.length > 0 && (
               <>
-                <h2 id={S.weeklyTrend} className="scroll-mt-24">Weekly Gold Price Trend in {city} (Last 7 Days)</h2>
+                <h2 id={S.weeklyTrend} className="scroll-mt-24">Weekly Gold {w.weekly} Trend in {city} (Last 7 Days)</h2>
                 <table>
                   <thead><tr><th>Date</th><th>22K (₹/g)</th><th>24K (₹/g)</th><th>18K (₹/g)</th><th>Market Note</th></tr></thead>
                   <tbody>
@@ -267,7 +270,7 @@ export default function GoldMetaContent({
             {/* Monthly trend */}
             {monthly.length > 0 && (
               <>
-                <h2 id={S.monthlyTrend} className="scroll-mt-24">Monthly Gold Rate Trend in {city} - Last 12 Months</h2>
+                <h2 id={S.monthlyTrend} className="scroll-mt-24">Monthly Gold {w.monthly} Trend in {city} - Last 12 Months</h2>
                 <table>
                   <thead><tr><th>Month</th><th>22K (₹/g)</th><th>24K (₹/g)</th><th>18K (₹/g)</th></tr></thead>
                   <tbody>
@@ -287,7 +290,7 @@ export default function GoldMetaContent({
             {/* Nearby city */}
             {nearby && (
               <>
-                <h2 id={S.nearbyCity} className="scroll-mt-24">Today&apos;s Gold Rate in {nearby}</h2>
+                <h2 id={S.nearbyCity} className="scroll-mt-24">Today&apos;s Gold {w.nearby} in {nearby}</h2>
                 <p>{nearbyNote || ("Gold rates in " + nearby + " are the same as " + city + ".")}</p>
                 <table>
                   <thead><tr><th>Karat / Purity</th><th>Per Gram</th><th>Per 10 Gram</th><th>Notes</th></tr></thead>

@@ -17,7 +17,11 @@ import { ChevronDown } from "lucide-react";
 // Collapsed to the first `visibleCount` items with a See more/less toggle. Hidden
 // items stay in the DOM (display:none, not unmounted) so they're still present in
 // the markup for crawlers instead of appearing only after a click.
-export default function OnThisPage({ sections = [], visibleCount = 5 }) {
+//
+// `title` is the visible H2. Each rate page passes a metal + city specific one
+// (e.g. "Silver Rate in Surat – Table of Contents") so the heading isn't the same
+// generic "On this page" on hundreds of pages.
+export default function OnThisPage({ sections = [], visibleCount = 5, title = "On this page" }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!sections.length) return null;
@@ -36,7 +40,7 @@ export default function OnThisPage({ sections = [], visibleCount = 5 }) {
               id="on-this-page-title"
               className="font-abhaya text-lg md:text-xl font-semibold text-zinc-900 px-5 md:px-6 py-4 border-b border-[#F2E3C6] bg-[#FFFDF9] m-0"
             >
-              On this page
+              {title}
             </h2>
 
             <ul className="m-0 p-0 list-none">

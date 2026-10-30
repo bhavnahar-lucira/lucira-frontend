@@ -13,6 +13,7 @@ import PlatinumMetaContent from "./PlatinumMetaContent";
 import OnThisPage from "../gold-rate/OnThisPage";
 import { PLATINUM_RATE_TEMPLATE } from "@/data/platinumRateTemplate";
 import { buildPlatinumRateSections } from "@/lib/platinumRateSections";
+import { getRateHeadingVariant } from "@/lib/rateHeadingVariant";
 import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
@@ -179,6 +180,10 @@ export default function PlatinumRatePage({ page }) {
         }
     } catch { heroDateStr = ""; }
 
+    // Rate/Price wording for the fallback H1 and the hardcoded H2s, picked once
+    // here so the headings and the On-this-page labels always agree.
+    const headingVariant = getRateHeadingVariant(cityNameDisplay);
+
     // Jump links for the "On this page" widget. The has* flags mirror
     // PlatinumMetaContent's own render conditions so the list never links to a
     // section that got conditionally skipped.
@@ -193,8 +198,9 @@ export default function PlatinumRatePage({ page }) {
             hasTodayVsYesterday: y950 > 0,
             hasWeekly: hist.length > 0,
             hasMonthly: hist.length > 0,
+            headingVariant,
         });
-    }, [platinumMeta, cityNameDisplay, yesterdayRateNum]);
+    }, [platinumMeta, cityNameDisplay, yesterdayRateNum, headingVariant]);
 
     return (
         <div className="platinum-rate-page bg-white min-h-screen font-figtree overflow-x-hidden">
@@ -209,7 +215,7 @@ export default function PlatinumRatePage({ page }) {
                     </nav>
 
                     <h1 className="font-abhaya text-[30px] md:text-[44px] leading-tight text-zinc-900 font-semibold">
-                        {(platinumMeta && platinumMeta.heroTitle) || `Platinum Rate in ${cityNameDisplay} Today`}
+                        {(platinumMeta && platinumMeta.heroTitle) || headingVariant.h1("Platinum", cityNameDisplay)}
                         {" "}
                         {platinumMeta?.heroStamp ? (
                             <span className="block md:inline font-figtree font-normal text-[14px] md:text-[18px] text-zinc-500 whitespace-nowrap">
@@ -290,7 +296,7 @@ export default function PlatinumRatePage({ page }) {
 
             {/* Jump links, directly under the calculator. Ids are city-independent,
                 so #platinum-purity is the same fragment on every city page. */}
-            <OnThisPage sections={tocSections} />
+            <OnThisPage sections={tocSections} title={`Platinum Rate in ${cityNameDisplay} – Table of Contents`} />
 
             {/* Metaobject content first (same pattern as gold). Cities without a
                 linked platinum_rate_city metaobject keep rendering the hardcoded
@@ -300,6 +306,7 @@ export default function PlatinumRatePage({ page }) {
                 <PlatinumMetaContent
                     platinumMeta={platinumMeta}
                     cityName={cityNameDisplay}
+                    headingVariant={headingVariant}
                     stateName={stateName}
                     rate950={todayRateNum}
                     rate900={rates ? Number(rates.platinum_price_900) : 0}

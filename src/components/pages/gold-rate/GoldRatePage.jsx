@@ -13,6 +13,7 @@ import GoldMetaContent from "./GoldMetaContent";
 import OnThisPage from "./OnThisPage";
 import { GOLD_RATE_TEMPLATE } from "@/data/goldRateTemplate";
 import { buildGoldRateSections } from "@/lib/goldRateSections";
+import { getRateHeadingVariant } from "@/lib/rateHeadingVariant";
 import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
@@ -174,6 +175,10 @@ export default function GoldRatePage({ page }) {
         }
     } catch { heroDateStr = ""; }
 
+    // Rate/Price wording for the fallback H1 and the hardcoded H2s, picked once
+    // here so the headings and the On-this-page labels always agree.
+    const headingVariant = getRateHeadingVariant(cityNameDisplay);
+
     // Jump links for the "On this page" widget. The has* flags mirror
     // GoldMetaContent's own render conditions so the list never links to a
     // section that got conditionally skipped.
@@ -188,8 +193,9 @@ export default function GoldRatePage({ page }) {
             hasTodayVsYesterday: y24 > 0,
             hasWeekly: hist.length > 0,
             hasMonthly: hist.length > 0,
+            headingVariant,
         });
-    }, [goldMeta, cityNameDisplay, yesterdayRateNum]);
+    }, [goldMeta, cityNameDisplay, yesterdayRateNum, headingVariant]);
 
     return (
         <div className="gold-rate-page bg-white min-h-screen font-figtree overflow-x-hidden">
@@ -204,7 +210,7 @@ export default function GoldRatePage({ page }) {
                     </nav>
 
                     <h1 className="font-abhaya text-[30px] md:text-[44px] leading-tight text-zinc-900 font-semibold">
-                        {(goldMeta && goldMeta.heroTitle) || `Gold Rate in ${cityNameDisplay} Today`}
+                        {(goldMeta && goldMeta.heroTitle) || headingVariant.h1("Gold", cityNameDisplay)}
                         {" "}
                         {goldMeta?.heroStamp ? (
                             <span className="block md:inline font-figtree font-normal text-[14px] md:text-[18px] text-zinc-500 whitespace-nowrap">
@@ -285,7 +291,7 @@ export default function GoldRatePage({ page }) {
 
             {/* Jump links, directly under the calculator. Ids are city-independent,
                 so #todays-rate is the same fragment on every city page. */}
-            <OnThisPage sections={tocSections} />
+            <OnThisPage sections={tocSections} title={`Gold Rate in ${cityNameDisplay} – Table of Contents`} />
 
             {/* Loop through all sections from template JSON in exact order */}
             <div className="sections-wrapper">
@@ -338,6 +344,7 @@ export default function GoldRatePage({ page }) {
                 <GoldMetaContent
                     goldMeta={goldMeta}
                     cityName={cityNameDisplay}
+                    headingVariant={headingVariant}
                     stateName={stateName}
                     rate24k={todayRateNum}
                     rate22k={parseInt((goldWidgetSettings.rate_avg || '').replace(/[₹, ]/g, '')) || 0}

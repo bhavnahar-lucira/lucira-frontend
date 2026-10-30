@@ -13,6 +13,8 @@
 // import it without pulling in the Storefront fetch layer.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { DEFAULT_RATE_HEADING_VARIANT } from "./rateHeadingVariant";
+
 // Headings hardcoded in SilverMetaContent (rate tables computed from live
 // rates, so they aren't authored per city in Shopify). Values are the anchor ids.
 export const SILVER_STATIC_SECTION_IDS = {
@@ -42,25 +44,27 @@ export function buildSilverRateSections(silverMeta, opts = {}) {
     hasTodayVsYesterday = false,
     hasWeekly = false,
     hasMonthly = false,
+    headingVariant = DEFAULT_RATE_HEADING_VARIANT,
   } = opts;
 
   const S = SILVER_STATIC_SECTION_IDS;
   const nearby = silverMeta?.nearbyCityName || "";
   const sections = [];
+  const w = headingVariant;
 
-  sections.push({ id: S.atAGlance, label: `Today's Silver Rate in ${city} at a Glance` });
+  sections.push({ id: S.atAGlance, label: `Today's Silver ${w.glance} in ${city} at a Glance` });
   if (hasTodayVsYesterday) {
-    sections.push({ id: S.todayVsYesterday, label: `Today vs Yesterday - Silver Rate Change` });
+    sections.push({ id: S.todayVsYesterday, label: `Today vs Yesterday - Silver ${w.change} Change` });
   }
   sections.push({ id: S.purityComparison, label: "Silver Purity Comparison" });
   if (hasWeekly) {
-    sections.push({ id: S.weeklyTrend, label: "Weekly Silver Price Trend (Last 7 Days)" });
+    sections.push({ id: S.weeklyTrend, label: `Weekly Silver ${w.weekly} Trend (Last 7 Days)` });
   }
   if (hasMonthly) {
-    sections.push({ id: S.monthlyTrend, label: "Monthly Silver Rate Trend (Last 12 Months)" });
+    sections.push({ id: S.monthlyTrend, label: `Monthly Silver ${w.monthly} Trend (Last 12 Months)` });
   }
   if (nearby) {
-    sections.push({ id: S.nearbyCity, label: `Today's Silver Rate in ${nearby}` });
+    sections.push({ id: S.nearbyCity, label: `Today's Silver ${w.nearby} in ${nearby}` });
   }
 
   // Authored per-city content blocks, already sorted by sort_order upstream.

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PLATINUM_STATIC_SECTION_IDS as S } from "@/lib/platinumRateSections";
+import { DEFAULT_RATE_HEADING_VARIANT } from "@/lib/rateHeadingVariant";
 
 // Mirror of GoldMetaContent for the platinum rate city pages.
 // Content (intro, purity/hallmark/buying/investment/factors/festival/market blocks,
@@ -17,10 +18,12 @@ export default function PlatinumMetaContent({
   rate900, // per gram
   rate950Yesterday, // per gram
   currentDate,
+  headingVariant = DEFAULT_RATE_HEADING_VARIANT,
 }) {
   const [openFaq, setOpenFaq] = useState(null);
 
   const city = platinumMeta.cityName || cityName || "Mumbai";
+  const w = headingVariant;
   const state = platinumMeta.state || stateName || "";
   const nearby = platinumMeta.nearbyCityName || "";
   const nearbyNote = platinumMeta.nearbyCityNote || "";
@@ -142,7 +145,7 @@ export default function PlatinumMetaContent({
             )}
 
             {/* At a glance */}
-            <h2 id={S.atAGlance} className="scroll-mt-24">Today&apos;s Platinum Rate in {city} at a Glance</h2>
+            <h2 id={S.atAGlance} className="scroll-mt-24">Today&apos;s Platinum {w.glance} in {city} at a Glance</h2>
             <p>Updated {currentDate} | All prices include 3% GST | Hallmark and making charges are additional.</p>
             <table>
               <thead><tr><th>Platinum Type</th><th>Per Gram</th><th>Per 8g</th><th>Per 10g</th><th>Per 100g</th></tr></thead>
@@ -156,7 +159,7 @@ export default function PlatinumMetaContent({
             {/* Today vs Yesterday */}
             {y950 > 0 && (
               <>
-                <h2 id={S.todayVsYesterday} className="scroll-mt-24">Today vs Yesterday - Platinum Rate Change in {city}</h2>
+                <h2 id={S.todayVsYesterday} className="scroll-mt-24">Today vs Yesterday - Platinum {w.change} Change in {city}</h2>
                 <table>
                   <thead><tr><th>Purity</th><th>Today (₹/g)</th><th>Yesterday (₹/g)</th><th>Change</th></tr></thead>
                   <tbody>
@@ -217,7 +220,7 @@ export default function PlatinumMetaContent({
             {/* Weekly trend */}
             {weekly.length > 0 && (
               <>
-                <h2 id={S.weeklyTrend} className="scroll-mt-24">Weekly Platinum Price Trend in {city} (Last 7 Days)</h2>
+                <h2 id={S.weeklyTrend} className="scroll-mt-24">Weekly Platinum {w.weekly} Trend in {city} (Last 7 Days)</h2>
                 <table>
                   <thead><tr><th>Date</th><th>950 (₹/g)</th><th>900 (₹/g)</th><th>Market Note</th></tr></thead>
                   <tbody>
@@ -237,7 +240,7 @@ export default function PlatinumMetaContent({
             {/* Monthly trend */}
             {monthly.length > 0 && (
               <>
-                <h2 id={S.monthlyTrend} className="scroll-mt-24">Monthly Platinum Rate Trend in {city} - Last 12 Months</h2>
+                <h2 id={S.monthlyTrend} className="scroll-mt-24">Monthly Platinum {w.monthly} Trend in {city} - Last 12 Months</h2>
                 <table>
                   <thead><tr><th>Month</th><th>950 (₹/g)</th><th>900 (₹/g)</th></tr></thead>
                   <tbody>
@@ -256,7 +259,7 @@ export default function PlatinumMetaContent({
             {/* Nearby city */}
             {nearby && (
               <>
-                <h2 id={S.nearbyCity} className="scroll-mt-24">Today&apos;s Platinum Rate in {nearby}</h2>
+                <h2 id={S.nearbyCity} className="scroll-mt-24">Today&apos;s Platinum {w.nearby} in {nearby}</h2>
                 <p>{nearbyNote || ("Platinum rates in " + nearby + " are the same as " + city + ".")}</p>
                 <table>
                   <thead><tr><th>Purity</th><th>Per Gram</th><th>Per 10 Gram</th><th>Notes</th></tr></thead>
