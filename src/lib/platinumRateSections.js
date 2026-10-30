@@ -12,6 +12,8 @@
 // import it without pulling in the Storefront fetch layer.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { DEFAULT_RATE_HEADING_VARIANT } from "./rateHeadingVariant";
+
 // Headings hardcoded in PlatinumMetaContent (rate tables computed from live
 // rates, so they aren't authored per city in Shopify). Values are the anchor ids.
 export const PLATINUM_STATIC_SECTION_IDS = {
@@ -41,25 +43,27 @@ export function buildPlatinumRateSections(platinumMeta, opts = {}) {
     hasTodayVsYesterday = false,
     hasWeekly = false,
     hasMonthly = false,
+    headingVariant = DEFAULT_RATE_HEADING_VARIANT,
   } = opts;
 
   const S = PLATINUM_STATIC_SECTION_IDS;
   const nearby = platinumMeta?.nearbyCityName || "";
   const sections = [];
+  const w = headingVariant;
 
-  sections.push({ id: S.atAGlance, label: `Today's Platinum Rate in ${city} at a Glance` });
+  sections.push({ id: S.atAGlance, label: `Today's Platinum ${w.glance} in ${city} at a Glance` });
   if (hasTodayVsYesterday) {
-    sections.push({ id: S.todayVsYesterday, label: `Today vs Yesterday - Platinum Rate Change` });
+    sections.push({ id: S.todayVsYesterday, label: `Today vs Yesterday - Platinum ${w.change} Change` });
   }
   sections.push({ id: S.purityComparison, label: "Platinum Purity Comparison" });
   if (hasWeekly) {
-    sections.push({ id: S.weeklyTrend, label: "Weekly Platinum Price Trend (Last 7 Days)" });
+    sections.push({ id: S.weeklyTrend, label: `Weekly Platinum ${w.weekly} Trend (Last 7 Days)` });
   }
   if (hasMonthly) {
-    sections.push({ id: S.monthlyTrend, label: "Monthly Platinum Rate Trend (Last 12 Months)" });
+    sections.push({ id: S.monthlyTrend, label: `Monthly Platinum ${w.monthly} Trend (Last 12 Months)` });
   }
   if (nearby) {
-    sections.push({ id: S.nearbyCity, label: `Today's Platinum Rate in ${nearby}` });
+    sections.push({ id: S.nearbyCity, label: `Today's Platinum ${w.nearby} in ${nearby}` });
   }
 
   // Authored per-city content blocks, already sorted by sort_order upstream.

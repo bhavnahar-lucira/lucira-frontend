@@ -13,6 +13,7 @@ import SilverMetaContent from "./SilverMetaContent";
 import OnThisPage from "../gold-rate/OnThisPage";
 import { SILVER_RATE_TEMPLATE } from "@/data/silverRateTemplate";
 import { buildSilverRateSections } from "@/lib/silverRateSections";
+import { getRateHeadingVariant } from "@/lib/rateHeadingVariant";
 import { fetchLocalRates } from "@/lib/api";
 
 const stateCityMap = {
@@ -179,6 +180,10 @@ export default function SilverRatePage({ page }) {
         }
     } catch { heroDateStr = ""; }
 
+    // Rate/Price wording for the fallback H1 and the hardcoded H2s, picked once
+    // here so the headings and the On-this-page labels always agree.
+    const headingVariant = getRateHeadingVariant(cityNameDisplay);
+
     // Jump links for the "On this page" widget. The has* flags mirror
     // SilverMetaContent's own render conditions so the list never links to a
     // section that got conditionally skipped.
@@ -193,8 +198,9 @@ export default function SilverRatePage({ page }) {
             hasTodayVsYesterday: y999 > 0,
             hasWeekly: hist.length > 0,
             hasMonthly: hist.length > 0,
+            headingVariant,
         });
-    }, [silverMeta, cityNameDisplay, yesterdayRateNum]);
+    }, [silverMeta, cityNameDisplay, yesterdayRateNum, headingVariant]);
 
     return (
         <div className="silver-rate-page bg-white min-h-screen font-figtree overflow-x-hidden">
@@ -209,7 +215,7 @@ export default function SilverRatePage({ page }) {
                     </nav>
 
                     <h1 className="font-abhaya text-[30px] md:text-[44px] leading-tight text-zinc-900 font-semibold">
-                        {(silverMeta && silverMeta.heroTitle) || `Silver Rate in ${cityNameDisplay} Today`}
+                        {(silverMeta && silverMeta.heroTitle) || headingVariant.h1("Silver", cityNameDisplay)}
                         {" "}
                         {silverMeta?.heroStamp ? (
                             <span className="block md:inline font-figtree font-normal text-[14px] md:text-[18px] text-zinc-500 whitespace-nowrap">
@@ -300,6 +306,7 @@ export default function SilverRatePage({ page }) {
                 <SilverMetaContent
                     silverMeta={silverMeta}
                     cityName={cityNameDisplay}
+                    headingVariant={headingVariant}
                     stateName={stateName}
                     rate999={todayRateNum}
                     rate925={rates ? Number(rates.silver_price_925) : 0}
