@@ -35,7 +35,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import { toast } from 'react-toastify';
-import { apiFetch, fetchVariantPricing } from "@/lib/api";
+import { apiFetch, fetchVariantPricing, fetchLocalRates } from "@/lib/api";
 import { motion } from "framer-motion";
 import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
 import Link from "next/link";
@@ -821,6 +821,14 @@ export default function ProductPageClient({
   // fallback so the PDP doesn't show a price stale by up to 24h (page.js
   // revalidate: 86400) when the static ISR-cached price has drifted from Shopify.
   const [livePrice, setLivePrice] = useState(null);
+  const [localRates, setLocalRates] = useState(null);
+  useEffect(() => {
+    fetchLocalRates()
+      .then((rates) => {
+        if (rates) setLocalRates(rates);
+      })
+      .catch((e) => console.warn("Failed to load local rates", e));
+  }, []);
   const shouldToastVariantChangeRef = useRef(false);
 
   // Schemes are not available for gold coins or plain gold jewelry
@@ -1855,6 +1863,48 @@ export default function ProductPageClient({
   // Additional item (e.g. attached chain/material) sourced straight from the variant's
   // DI-GoldPrice.variant_config metafield rather than the pricing API, since that engine
   // doesn't know about this component.
+  const platinumInfo = useMemo(() => {
+    try {
+      let weight = 0;
+      let purity = "950";
+
+      const config = JSON.parse(activeVariant?.metafields?.variant_config || "{}");
+      if (config.platinum_weight && Number(config.platinum_weight) > 0) {
+        weight = Number(config.platinum_weight);
+      }
+
+      if (!weight && activeVariant?.metafields?.components) {
+        const raw = typeof activeVariant.metafields.components === "string"
+          ? JSON.parse(activeVariant.metafields.components)
+          : activeVariant.metafields.components;
+        const comps = raw?.components || (Array.isArray(raw) ? raw : []);
+        const pt = comps.find(c => String(c.item_group_name || "").toLowerCase().includes("platin"));
+        if (pt && pt.weight) {
+          weight = Number(pt.weight);
+          if (pt.karat_code) purity = pt.karat_code;
+        }
+      }
+
+      if (weight <= 0) return null;
+
+      const rate = Number(
+        priceBreakup?.metal_rates?.platinum_price ||
+        localRates?.platinum_price ||
+        priceBreakup?.raw_breakup?.platinum?.rate_per_gram ||
+        6726.60
+      );
+
+      return {
+        weight,
+        purity,
+        rate,
+        cost: Math.round(weight * rate),
+      };
+    } catch (e) {
+      return null;
+    }
+  }, [activeVariant, priceBreakup, localRates]);
+
   const additionalItemInfo = useMemo(() => {
     try {
       const config = JSON.parse(activeVariant?.metafields?.variant_config || "{}");
@@ -1930,6 +1980,46 @@ export default function ProductPageClient({
     if (!pb || !priceBreakupMatches) return pb;
 
     const priceRows = [...(pb.price || [])];
+
+    // Check if platinum row is already present
+    const ptIdx = priceRows.findIndex(
+      (item) => typeof item.label === "string" && (item.label.toLowerCase().includes("platinum") || item.label.toLowerCase().includes("plt"))
+    );
+
+    if (ptIdx === -1 && platinumInfo && platinumInfo.weight > 0 && platinumInfo.cost > 0) {
+      const goldIndex = priceRows.findIndex((item) => {
+        const lbl = typeof item.label === "string" ? item.label.toLowerCase() : "";
+        return lbl.includes("gold") || lbl.includes("kt") || lbl.includes("18k") || lbl.includes("14k") || lbl.includes("9k");
+      });
+
+      const ptRateFormatted = Math.round(platinumInfo.rate).toLocaleString("en-IN");
+      const ptRow = {
+        label: `Platinum ${platinumInfo.purity} (₹${ptRateFormatted}/g)`,
+        value: `₹${formatPrice(platinumInfo.cost)}`,
+      };
+
+      // Place platinum FIRST before gold row
+      if (goldIndex >= 0) {
+        priceRows.splice(goldIndex, 0, ptRow);
+      } else {
+        priceRows.unshift(ptRow);
+      }
+    }
+
+    // Ensure platinum is ordered BEFORE gold row
+    const finalPtIdx = priceRows.findIndex(
+      (item) => typeof item.label === "string" && (item.label.toLowerCase().includes("platinum") || item.label.toLowerCase().includes("plt"))
+    );
+    const finalGoldIdx = priceRows.findIndex((item) => {
+      const lbl = typeof item.label === "string" ? item.label.toLowerCase() : "";
+      return lbl.includes("gold") || lbl.includes("kt") || lbl.includes("18k") || lbl.includes("14k") || lbl.includes("9k");
+    });
+
+    if (finalPtIdx >= 0 && finalGoldIdx >= 0 && finalPtIdx > finalGoldIdx) {
+      const [ptItem] = priceRows.splice(finalPtIdx, 1);
+      priceRows.splice(finalGoldIdx, 0, ptItem);
+    }
+
     if (additionalItemInfo) {
       const mcIndex = priceRows.findIndex((item) => item.label?.toLowerCase().includes("making charges"));
       const newRow = { label: "Other Material", value: `₹${formatPrice(additionalItemInfo.charges)}` };
@@ -1961,13 +2051,29 @@ export default function ProductPageClient({
       }
     }
 
+    // Ensure GST row perfectly balances with currentPrice so all rows sum exactly to grand_total
+    const gstIdx = priceRows.findIndex(item => typeof item.label === "string" && item.label.toLowerCase().includes("gst"));
+    if (gstIdx >= 0) {
+      const parsePrice = (str) => Number(String(str).replace(/[^0-9.-]+/g, "")) || 0;
+      let nonGstSum = 0;
+      priceRows.forEach((r, idx) => {
+        if (idx !== gstIdx) nonGstSum += parsePrice(r.value);
+      });
+      if (currentPrice > nonGstSum) {
+        const balancedGst = currentPrice - nonGstSum;
+        const gstRow = { ...priceRows[gstIdx] };
+        gstRow.value = `₹${formatPrice(balancedGst)}`;
+        priceRows[gstIdx] = gstRow;
+      }
+    }
+
     return {
       ...pb,
       price: priceRows,
       grand_total: `₹${formatPrice(currentPrice)}`,
       total_savings: currentComparePrice > currentPrice ? `₹${formatPrice(currentComparePrice - currentPrice)}` : "₹0",
     };
-  }, [priceBreakup, priceBreakupMatches, additionalItemInfo, currentPrice, currentComparePrice]);
+  }, [priceBreakup, priceBreakupMatches, additionalItemInfo, platinumInfo, currentPrice, currentComparePrice]);
 
   // Fetch the live Shopify price for the active variant, independent of the
   // backend's gold/diamond breakup lookup above. That breakup is served from the
