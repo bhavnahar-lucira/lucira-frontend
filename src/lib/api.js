@@ -58,11 +58,14 @@ export const apiFetch = async (url, options = {}) => {
     const contentType = res.headers.get("content-type");
     let data;
 
-    if (contentType?.includes("application/json")) {
-      data = await res.json();
-    } else {
-      data = await res.text();
-      try { data = JSON.parse(data); } catch(e) {}
+    const rawText = await res.text();
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      data = {
+        error: !res.ok ? `Server error (${res.status})` : null,
+        raw: rawText
+      };
     }
 
     if (!res.ok) {
