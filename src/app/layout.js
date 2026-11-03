@@ -8,6 +8,7 @@ import PointsResetHandler from "@/components/common/PointsResetHandler";
 import { GlobalAuthModal } from "@/components/auth/GlobalAuthModal";
 import Script from "next/script";
 import GtmPageView from "@/components/common/GtmPageView";
+import OptiPhoenixSync from "@/components/common/OptiPhoenixSync";
 import { organizationSchema, websiteSchema, getStoresSchema } from "@/lib/seo";
 import { getStorePages } from "@/lib/storeContent";
 import WebEngageRegistration from "@/components/common/WebEngageRegistration";
@@ -97,6 +98,7 @@ export default async function RootLayout({ children }) {
                 </Suspense>
               )}
               <PointsResetHandler />
+              <OptiPhoenixSync />
               <ZohoSalesIQ />
               {children}
               <GlobalAuthModal />
