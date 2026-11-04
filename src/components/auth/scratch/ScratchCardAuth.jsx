@@ -13,7 +13,10 @@ import { trackSignupSuccess, VARIANT_SCRATCH } from "@/lib/signupExperiment";
 import { RewardTicket } from "./RewardTicket";
 import { ScratchSurface } from "./ScratchSurface";
 
-const COVER_SRC = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437258093.jpg?v=1790752132";
+const COVER_SRC = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437258093.png?v=1793776116";
+// Diwali "Happy Diwali" badge that sits on top of the card (350×232 PNG).
+const BADGE_SRC = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_1_2ad9b57c-9659-4b02-8fd1-462ef026d760.png?v=1793776112";
+const BADGE_RATIO = 232 / 350;
 const OTP_RESEND_SECONDS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const EMPTY_OTP = ["", "", "", ""];
@@ -293,8 +296,11 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const [showTapReveal, setShowTapReveal] = useState(false);
   const [copied, setCopied] = useState(false);
   // Only ever rendered client-side (AuthDialog mounts it after the popup opens).
+  // Short phones also cap by height so card + Diwali badge (~1.41× card) clear the sheet.
   const [cardSize] = useState(() =>
-    typeof window === "undefined" ? 255 : Math.round(Math.min(window.innerWidth * 0.68, 290))
+    typeof window === "undefined"
+      ? 255
+      : Math.round(Math.min(window.innerWidth * 0.68, 290, (window.innerHeight - 330) / 1.41))
   );
 
   const phoneRef = useRef(null);
@@ -545,10 +551,17 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const ticketMode = step === "won" ? "won" : lookupReward?.status === "expired" ? "reactivate" : "reveal";
   const ticketAmount = reward?.amount ?? lookupReward?.amount ?? 0;
 
+  // Badge overlaps the card's top edge slightly; the card gets a top margin for
+  // the part that sticks out so badge + card are centred as one block.
+  const badgeWidth = Math.round(cardSize * 0.7);
+  const badgeHeight = Math.round(badgeWidth * BADGE_RATIO);
+  const badgeOverlap = Math.round(badgeHeight * 0.12);
+  const badgeAbove = badgeHeight - badgeOverlap;
+
   const card = (
     <motion.div
       className="relative"
-      style={{ width: cardSize, height: cardSize }}
+      style={{ width: cardSize, height: cardSize, marginTop: badgeAbove }}
       initial={reduce ? false : { opacity: 0, scale: 0.8, y: 30 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 220, damping: 20 }}
@@ -558,6 +571,15 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
         animate={!reduce && cardLocked && !keyboardOpen ? { y: [0, -6, 0] } : { y: 0 }}
         transition={cardLocked ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
       >
+        <img
+          src={BADGE_SRC}
+          alt="Happy Diwali – Scratch & Win"
+          width={badgeWidth}
+          height={badgeHeight}
+          draggable={false}
+          className="absolute left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none"
+          style={{ width: badgeWidth, height: badgeHeight, top: -badgeAbove }}
+        />
         <motion.div animate={shake} className="absolute inset-0 rounded-[12px] shadow-[0_18px_40px_rgba(0,0,0,0.45)]" style={{ perspective: 900 }}>
           {hasStoredPrize ? (
             <motion.div
@@ -832,7 +854,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       {/* Sized from the keyboard-closed height so the card stays put */}
       <div
         className="absolute z-10 left-0 right-0 top-0 flex flex-col items-center justify-center"
-        style={{ height: Math.max(cardSize + 60, baseHeight - 170) }}
+        style={{ height: Math.max(cardSize + badgeAbove + 60, baseHeight - 170) }}
       >
         {card}
         <AnimatePresence>
