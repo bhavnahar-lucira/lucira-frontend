@@ -33,6 +33,7 @@ import { useCart } from "@/hooks/useCart";
 import { toast } from "react-toastify";
 import { pushAddPaymentInfo } from "@/lib/gtm";
 import { getStoredUtms, sendCheckoutCrmEvent } from "@/lib/checkout-crm";
+import { getConvExpLog } from "@/lib/optiphoenix";
 import { toE164, toTenDigit } from "@/lib/phone";
 import { trackPaymentStep } from "@/lib/searchAnalytics";
 import { calculateCouponDiscount } from "@/lib/coupons";
@@ -1136,6 +1137,7 @@ export default function PaymentPage() {
               cartItems: stampShippingDates(checkoutItems), // Pass items explicitly as fallback for backend
               gclid: getCookie("gclid") || "",
               utm: getStoredUtms(),
+              conv_exp_log: getConvExpLog(),
             }, accessToken);
 
             toast.success(
