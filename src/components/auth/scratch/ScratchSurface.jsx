@@ -214,6 +214,9 @@ export function ScratchSurface({
         onPointerLeave={endStroke}
       />
 
+      {/* White card edge (Diwali design) */}
+      <div className="absolute inset-0 rounded-[12px] border-[3px] border-white pointer-events-none" />
+
       {/* Idle shimmer sweep until the first scratch */}
       {!started && !reduce && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
