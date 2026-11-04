@@ -15,7 +15,7 @@ import { ScratchSurface } from "./ScratchSurface";
 
 const COVER_SRC = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Frame_1437258093.png?v=1793776116";
 // Diwali "Happy Diwali" badge that sits on top of the card (350×232 PNG).
-const BADGE_SRC = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_1_2ad9b57c-9659-4b02-8fd1-462ef026d760.png?v=1793776112";
+const BADGE_SRC = "https://cdn.shopify.com/s/files/1/0739/8516/3482/files/Group_1400004297.png?v=1793791532";
 const BADGE_RATIO = 232 / 350;
 const OTP_RESEND_SECONDS = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
