@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -121,7 +121,20 @@ function useBaselineHeight() {
   const [h, setH] = useState(() => (typeof window === "undefined" ? 700 : window.innerHeight));
   useEffect(() => {
     const vv = window.visualViewport;
-    const update = () => setH((prev) => Math.max(prev, vv?.height || 0, window.innerHeight));
+    // The keyboard never changes the width, so a width change (rotation,
+    // resizing the window) is a real new viewport: start the baseline over.
+    // The height often lands in a later resize event (iOS rotation does this),
+    // so follow it both ways for a moment after the width changes.
+    let lastWidth = window.innerWidth;
+    let followUntil = 0;
+    const update = () => {
+      const current = Math.max(vv?.height || 0, window.innerHeight);
+      if (window.innerWidth !== lastWidth) {
+        lastWidth = window.innerWidth;
+        followUntil = Date.now() + 700;
+      }
+      setH((prev) => (Date.now() < followUntil ? current : Math.max(prev, current)));
+    };
     update();
     vv?.addEventListener("resize", update);
     window.addEventListener("resize", update);
@@ -131,6 +144,17 @@ function useBaselineHeight() {
     };
   }, []);
   return h;
+}
+
+function useViewportWidth() {
+  const [w, setW] = useState(() => (typeof window === "undefined" ? 375 : window.innerWidth));
+  useEffect(() => {
+    const update = () => setW(window.innerWidth);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return w;
 }
 
 // Seeded PRNG so the confetti layout is pure (same burst every render).
@@ -176,6 +200,105 @@ function Confetti() {
         />
       ))}
     </div>
+  );
+}
+
+// Gold crackers bursting in the dark area around the card. Six points take
+// turns (one every ~0.8s) and keep going until the card is revealed, to pull
+// the eye to it; each point repeats on a 4.8s cycle. ~100 small elements, all
+// transform/opacity only.
+const FIREWORKS = [
+  { left: "14%", top: "17%", delay: 0.2, color: "#f5c76a", r: 46 },
+  { left: "86%", top: "11%", delay: 1.0, color: "#ffe2a8", r: 40 },
+  { left: "11%", top: "50%", delay: 1.8, color: "#f0a868", r: 42 },
+  { left: "89%", top: "44%", delay: 2.6, color: "#f5c76a", r: 46 },
+  { left: "16%", top: "80%", delay: 3.4, color: "#ffe2a8", r: 38 },
+  { left: "84%", top: "76%", delay: 4.2, color: "#f0a868", r: 40 },
+];
+const FIREWORK_RAYS = 12;
+const BURST_DURATION = 1.3;
+const FIREWORK_CYCLE = 4.8;
+const BURST_LOOP = { repeat: Infinity, repeatDelay: FIREWORK_CYCLE - BURST_DURATION };
+
+function Fireworks() {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      {FIREWORKS.map((f, i) => {
+        const burstDelay = f.delay + 0.5;
+        return (
+          <div key={i} className="absolute" style={{ left: f.left, top: f.top }}>
+            {/* Rising trail */}
+            <motion.span
+              className="absolute w-[2px] h-[18px] -ml-px rounded-full"
+              style={{ background: `linear-gradient(to top, transparent, ${f.color})`, boxShadow: `0 0 4px ${f.color}` }}
+              initial={{ y: 90, opacity: 0 }}
+              animate={{ y: [90, 40, 0], opacity: [0, 0.9, 0] }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: f.delay, repeat: Infinity, repeatDelay: FIREWORK_CYCLE - 0.5 }}
+            />
+            {/* Flash at the burst point */}
+            <motion.span
+              className="absolute w-[40px] h-[40px] -ml-[20px] -mt-[20px] rounded-full"
+              style={{ background: `radial-gradient(circle, #ffffffcc 0%, ${f.color}88 25%, transparent 70%)` }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0.2, 1.4, 1.8], opacity: [0, 0.9, 0] }}
+              transition={{ duration: 0.9, ease: "easeOut", delay: burstDelay, repeat: Infinity, repeatDelay: FIREWORK_CYCLE - 0.9 }}
+            />
+            {Array.from({ length: FIREWORK_RAYS }, (_, j) => {
+              const a = (j / FIREWORK_RAYS) * Math.PI * 2;
+              const x = Math.cos(a) * f.r;
+              const y = Math.sin(a) * f.r;
+              return (
+                <Fragment key={j}>
+                  {/* Streak pointing outward, bright tip first */}
+                  <motion.span
+                    className="absolute w-[2px] h-[11px] -ml-px -mt-[5.5px] rounded-full"
+                    style={{
+                      background: `linear-gradient(to top, transparent, ${f.color})`,
+                      boxShadow: `0 0 6px ${f.color}`,
+                      rotate: (a * 180) / Math.PI + 90,
+                    }}
+                    initial={{ x: 0, y: 0, opacity: 0, scale: 0.4 }}
+                    // Out fast, then drift down a little as it fades (gravity). Starts
+                    // at opacity 0 because the first keyframe is shown during the delay.
+                    animate={{
+                      x: [0, 0, x * 0.8, x],
+                      y: [0, 0, y * 0.8, y + 12],
+                      opacity: [0, 1, 1, 0],
+                      scale: [0.6, 0.6, 1, 0.5],
+                    }}
+                    transition={{ duration: BURST_DURATION, ease: "easeOut", times: [0, 0.03, 0.4, 1], delay: burstDelay, ...BURST_LOOP }}
+                  />
+                  {/* Inner ring of twinkles, a beat behind the streaks */}
+                  {j % 3 === 0 && (
+                    <motion.span
+                      className="absolute w-[3px] h-[3px] -ml-[1.5px] -mt-[1.5px] rounded-full bg-white"
+                      style={{ boxShadow: `0 0 6px ${f.color}` }}
+                      initial={{ x: 0, y: 0, opacity: 0 }}
+                      animate={{ x: [0, x * 0.5, x * 0.55], y: [0, y * 0.5, y * 0.55 + 10], opacity: [0, 1, 0] }}
+                      transition={{ duration: BURST_DURATION, ease: "easeOut", times: [0, 0.4, 1], delay: burstDelay + 0.1, ...BURST_LOOP }}
+                    />
+                  )}
+                </Fragment>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Warm gold glow breathing behind the card while it waits to be scratched.
+function CardGlow() {
+  return (
+    <motion.div
+      aria-hidden="true"
+      className="absolute inset-0 rounded-[12px] pointer-events-none"
+      style={{ boxShadow: "0 0 36px 8px rgba(245,199,106,0.55), 0 0 80px 20px rgba(240,168,104,0.22)" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: [0.35, 1, 0.35] }}
+      transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+    />
   );
 }
 
@@ -295,13 +418,12 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
   const [revealed, setRevealed] = useState(false);
   const [showTapReveal, setShowTapReveal] = useState(false);
   const [copied, setCopied] = useState(false);
-  // Only ever rendered client-side (AuthDialog mounts it after the popup opens).
-  // Short phones also cap by height so card + Diwali badge (~1.41× card) clear the sheet.
-  const [cardSize] = useState(() =>
-    typeof window === "undefined"
-      ? 255
-      : Math.round(Math.min(window.innerWidth * 0.68, 290, (window.innerHeight - 330) / 1.41))
-  );
+  // Width-led, capped by the keyboard-closed height so card + Diwali badge
+  // (~1.41× card) sit clear of the sheet (~220px) on short screens; never below
+  // 180 so the card stays readable. Follows resizes (baseHeight only grows, so
+  // the keyboard opening never shrinks it).
+  const viewportWidth = useViewportWidth();
+  const cardSize = Math.round(Math.max(180, Math.min(viewportWidth * 0.68, 290, (baseHeight - 280) / 1.41)));
 
   const phoneRef = useRef(null);
   const nameRef = useRef(null);
@@ -571,6 +693,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
         animate={!reduce && cardLocked && !keyboardOpen ? { y: [0, -6, 0] } : { y: 0 }}
         transition={cardLocked ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
       >
+        {!reduce && !revealed && <CardGlow />}
         <img
           src={BADGE_SRC}
           alt="Happy Diwali – Scratch & Win"
@@ -627,7 +750,7 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
               onPointerDown={(e) => e.preventDefault()}
               onClick={nudgeCard}
             >
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/45 backdrop-blur-sm text-white text-[11px] tracking-[0.4px]">
+              <span className="flex items-center gap-1.5 px-3 py-1 whitespace-nowrap rounded-full bg-black/45 backdrop-blur-sm text-white text-[11px] tracking-[0.4px]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="4" y="11" width="16" height="10" rx="2" />
                   <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -854,8 +977,10 @@ export function ScratchCardAuth({ onClose, onSuccess }) {
       {/* Sized from the keyboard-closed height so the card stays put */}
       <div
         className="absolute z-10 left-0 right-0 top-0 flex flex-col items-center justify-center"
-        style={{ height: Math.max(cardSize + badgeAbove + 60, baseHeight - 170) }}
+        style={{ height: Math.max(cardSize + badgeAbove + 40, baseHeight - 220) }}
       >
+        {/* Paused while typing: the keyboard covers most of it and it shouldn't distract */}
+        {!reduce && !revealed && !keyboardOpen && <Fireworks />}
         {card}
         <AnimatePresence>
           {showTapReveal && !revealed && (
