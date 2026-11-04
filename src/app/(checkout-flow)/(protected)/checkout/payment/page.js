@@ -274,6 +274,7 @@ export default function PaymentPage() {
   }, []);
 
   const phonePePollIntervalRef = useRef(null);
+  const isPhonePeVerifyingRef = useRef(false);
 
   // Clear polling interval on unmount
   useEffect(() => {
@@ -821,11 +822,11 @@ export default function PaymentPage() {
         // Open PhonePe official popup checkout (matching Razorpay SDK popup experience)
         const scriptLoaded = await loadPhonePeScript();
         if (scriptLoaded && window.PhonePeCheckout?.transact) {
-          let isVerifying = false;
+          isPhonePeVerifyingRef.current = false;
 
           const handleConclusion = async () => {
-            if (isVerifying) return;
-            isVerifying = true;
+            if (isPhonePeVerifyingRef.current) return;
+            isPhonePeVerifyingRef.current = true;
             if (phonePePollIntervalRef.current) {
               clearInterval(phonePePollIntervalRef.current);
               phonePePollIntervalRef.current = null;
@@ -864,13 +865,15 @@ export default function PaymentPage() {
             clearInterval(phonePePollIntervalRef.current);
           }
           phonePePollIntervalRef.current = setInterval(async () => {
-            if (isVerifying) return;
+            if (isPhonePeVerifyingRef.current) return;
+            isPhonePeVerifyingRef.current = true;
             try {
               const res = await verifyPhonePePayment({ merchantOrderId: phonePeOrder.merchantOrderId }, accessToken);
               if (res?.success && res?.shopifyOrderName) {
-                clearInterval(phonePePollIntervalRef.current);
-                phonePePollIntervalRef.current = null;
-                isVerifying = true;
+                if (phonePePollIntervalRef.current) {
+                  clearInterval(phonePePollIntervalRef.current);
+                  phonePePollIntervalRef.current = null;
+                }
                 try {
                   window.PhonePeCheckout?.closePage?.();
                 } catch {}
@@ -881,16 +884,22 @@ export default function PaymentPage() {
                 toast.success(`Order placed successfully: ${res.shopifyOrderName}`);
                 router.replace(`/success?orderName=${encodeURIComponent(res.shopifyOrderName)}`);
               } else if (res?.state === "FAILED") {
-                clearInterval(phonePePollIntervalRef.current);
-                phonePePollIntervalRef.current = null;
-                isVerifying = true;
+                if (phonePePollIntervalRef.current) {
+                  clearInterval(phonePePollIntervalRef.current);
+                  phonePePollIntervalRef.current = null;
+                }
                 try {
                   window.PhonePeCheckout?.closePage?.();
                 } catch {}
                 setPaymentLoading(false);
                 toast.error(res?.message || "Payment failed on PhonePe.");
+              } else {
+                // Pending: release in-flight flag for next poll tick
+                isPhonePeVerifyingRef.current = false;
               }
-            } catch (e) {}
+            } catch (e) {
+              isPhonePeVerifyingRef.current = false;
+            }
           }, 3000);
 
           setPaymentLoading(false);
