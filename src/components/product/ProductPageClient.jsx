@@ -1266,9 +1266,7 @@ export default function ProductPageClient({
     ? nearestAvailableStore
     : null;
   const otherAvailableStoreCount = nearbyAvailableStore ? Math.max(availableStoreCount - 1, 0) : availableStoreCount;
-  const defaultDispatchMessage = isCentralInStock
-    ? "Estimated free dispatch within 48 hrs"
-    : calculateDispatchDate();
+  const defaultDispatchMessage = calculateDispatchDate();
   const deliveryMessage = deliveryInfo.status === "undeliverable"
     ? deliveryInfo.message
     : defaultDispatchMessage;
@@ -1291,15 +1289,9 @@ export default function ProductPageClient({
             {/* Stock status always shows; the estimate/countdown is
                 what the dashboard's master toggle hides. */}
             {dispatchLine.enabled && dispatchLine.pdpHeadline ? (
-              dispatchLine.isWeekend ? (
-                <>
-                  <strong style={{ fontWeight: 700, color: "#189351" }}>In Stock</strong> • <strong style={{ fontWeight: 600 }}>Dispatches on Monday</strong>
-                </>
-              ) : (
-                <>
-                  <strong style={{ fontWeight: 700, color: "#189351" }}>In stock.</strong> <strong style={{ fontWeight: 600 }}>{dispatchLine.headline}</strong>
-                </>
-              )
+              <>
+                <strong style={{ fontWeight: 700, color: "#189351" }}>In Stock</strong> • <strong style={{ fontWeight: 600 }}>{dispatchLine.headline}</strong>
+              </>
             ) : (
               `${dispatchLine.label}.`
             )}
