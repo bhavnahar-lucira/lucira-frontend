@@ -73,7 +73,9 @@ export function extractTargetDispatchDate(order) {
         const title = (item.title || item.name || "").toLowerCase();
         const sku = (item.sku || "").toLowerCase();
         const isIns = item.isInsurance || title.includes("insurance") || sku.includes("ins");
-        if (isIns) {
+        const orderStatus = (item.orderStatus || props["Order Status"] || props["_Order Status"] || "").toUpperCase();
+        const isInStockItem = isIns || orderStatus === "RTS" || item.inStock === true || item.inStock === "true";
+        if (isInStockItem) {
           if (!inStockDispatchDate || parsed > inStockDispatchDate) inStockDispatchDate = parsed;
         } else {
           if (!mtoDispatchDate || parsed > mtoDispatchDate) mtoDispatchDate = parsed;
@@ -134,11 +136,40 @@ export function getOrderMilestoneStatus(order, clickpostData = null) {
   const now = new Date();
   const nowTime = now.getTime();
 
+  const rawItems = order.lineItems || order.line_items || [];
+  const items = Array.isArray(rawItems)
+    ? rawItems
+    : (rawItems.edges ? rawItems.edges.map(e => e.node) : []);
+
+  const isOrderInStock = items.length > 0 && items.every(item => {
+    const rawProps = item.properties || item.customAttributes || [];
+    const props = Array.isArray(rawProps)
+      ? rawProps.reduce((acc, p) => ({ ...acc, [p.key || p.name]: p.value }), {})
+      : rawProps;
+    const title = (item.title || item.name || "").toLowerCase();
+    const sku = (item.sku || "").toLowerCase();
+    const isIns = item.isInsurance || title.includes("insurance") || sku.includes("ins");
+    const orderStatus = (item.orderStatus || props["Order Status"] || props["_Order Status"] || "").toUpperCase();
+    const isBYJ = Boolean(props["_byj_preview"]);
+    return isIns || (!isBYJ && (orderStatus === "RTS" || item.inStock === true || item.inStock === "true"));
+  });
+
   const targetDispatchDate = extractTargetDispatchDate(order);
 
-  let dispatchDay = targetDispatchDate && !isNaN(targetDispatchDate.getTime())
-    ? new Date(targetDispatchDate.getFullYear(), targetDispatchDate.getMonth(), targetDispatchDate.getDate())
-    : new Date(placedDay.getTime() + 10 * 86400000);
+  let dispatchDay;
+  if (targetDispatchDate && !isNaN(targetDispatchDate.getTime())) {
+    dispatchDay = new Date(targetDispatchDate.getFullYear(), targetDispatchDate.getMonth(), targetDispatchDate.getDate());
+  } else if (isOrderInStock) {
+    const d = new Date(placedDay.getFullYear(), placedDay.getMonth(), placedDay.getDate());
+    let added = 0;
+    while (added < 3) {
+      d.setDate(d.getDate() + 1);
+      if (d.getDay() !== 0) added++;
+    }
+    dispatchDay = d;
+  } else {
+    dispatchDay = new Date(placedDay.getTime() + 10 * 86400000);
+  }
 
   if (dispatchDay < placedDay) dispatchDay = placedDay;
 
@@ -151,10 +182,10 @@ export function getOrderMilestoneStatus(order, clickpostData = null) {
       return "Processing";
     }
 
-    if (diffDays <= 3) {
+    if (diffDays <= 4 || isOrderInStock) {
       const mid1 = new Date(placedDay.getTime() + 1 * 86400000);
       if (nowTime >= mid1.getTime()) {
-        return "Manufacturing";
+        return "Quality Control";
       }
       return "Processing";
     }
