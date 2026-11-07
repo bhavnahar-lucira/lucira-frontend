@@ -121,15 +121,15 @@ export const DISPATCH_DEFAULTS = {
   enabled: true,
   timezone: "Asia/Kolkata",
   // A dispatch date that lands on a Sunday is bumped to Monday when true.
-  excludeSundays: false,
+  excludeSundays: true,
   inStock: {
-    label: "In stock",
+    label: "In Stock",
     // Orders before this time dispatch after `beforeCutoffDays`, orders after
     // it dispatch after `afterCutoffDays`. Both counted from today.
     cutoffHour: 12,
     cutoffMinute: 0,
-    beforeCutoffDays: 0,
-    afterCutoffDays: 1,
+    beforeCutoffDays: 3,
+    afterCutoffDays: 4,
     template: "Estimated dispatch by {date}",
     dateFormat: "MMM D, YYYY",
     timerEnabled: true,
@@ -172,13 +172,13 @@ export function mergeDispatchConfig(stored) {
   return {
     enabled: typeof s.enabled === "boolean" ? s.enabled : DISPATCH_DEFAULTS.enabled,
     timezone: dispatchStr(s.timezone, DISPATCH_DEFAULTS.timezone),
-    excludeSundays: Boolean(s.excludeSundays),
+    excludeSundays: true,
     inStock: {
       label: dispatchStr(inS.label, DISPATCH_DEFAULTS.inStock.label),
       cutoffHour: dispatchInt(inS.cutoffHour, 0, 23, DISPATCH_DEFAULTS.inStock.cutoffHour),
       cutoffMinute: dispatchInt(inS.cutoffMinute, 0, 59, DISPATCH_DEFAULTS.inStock.cutoffMinute),
-      beforeCutoffDays: dispatchInt(inS.beforeCutoffDays, 0, 60, DISPATCH_DEFAULTS.inStock.beforeCutoffDays),
-      afterCutoffDays: dispatchInt(inS.afterCutoffDays, 0, 60, DISPATCH_DEFAULTS.inStock.afterCutoffDays),
+      beforeCutoffDays: dispatchInt(inS.beforeCutoffDays, 3, 60, DISPATCH_DEFAULTS.inStock.beforeCutoffDays),
+      afterCutoffDays: dispatchInt(inS.afterCutoffDays, 4, 60, DISPATCH_DEFAULTS.inStock.afterCutoffDays),
       template: dispatchStr(inS.template, DISPATCH_DEFAULTS.inStock.template),
       dateFormat: dispatchStr(inS.dateFormat, DISPATCH_DEFAULTS.inStock.dateFormat),
       timerEnabled: typeof inS.timerEnabled === "boolean" ? inS.timerEnabled : DISPATCH_DEFAULTS.inStock.timerEnabled,
@@ -240,8 +240,13 @@ function dispatchZonedParts(date, timezone) {
    the browser's offset can move the day. */
 function dispatchAddDays(parts, days, excludeSundays) {
   const d = new Date(Date.UTC(parts.year, parts.month, parts.day));
+  if (excludeSundays && d.getUTCDay() === 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
   d.setUTCDate(d.getUTCDate() + Math.max(0, Math.trunc(days) || 0));
-  if (excludeSundays && d.getUTCDay() === 0) d.setUTCDate(d.getUTCDate() + 1);
+  if (excludeSundays && d.getUTCDay() === 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
   return d;
 }
 
@@ -357,11 +362,12 @@ export function formatDispatchMessage(config, options = {}) {
   let tooltipText = "";
   let supportingText = "";
   let isWeekend = false;
+  let daysDiff = 0;
 
   if (inStock) {
     const todayUTC = Date.UTC(parts.year, parts.month, parts.day);
     const targetUTC = dispatchDate.getTime();
-    const daysDiff = Math.round((targetUTC - todayUTC) / 86400000);
+    daysDiff = Math.round((targetUTC - todayUTC) / 86400000);
 
     const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const dispatchDayName = daysOfWeek[dispatchDate.getUTCDay()];
@@ -378,27 +384,27 @@ export function formatDispatchMessage(config, options = {}) {
     const dayOfWeek = new Date(todayUTC).getUTCDay();
     isWeekend = dayOfWeek === 0 || (dayOfWeek === 6 && cutoffDayOffset === 1);
 
-    if (isWeekend) {
-      headline = "Dispatches on Monday";
-      pdpHeadline = "In Stock • Dispatches on Monday";
-      cartHeadline = "In Stock • Dispatches on Monday";
-      tooltipText = "Your order will be dispatched on Monday by 7:30 PM";
-      supportingText = tooltipText;
-      text = "In Stock • Dispatches on Monday";
-    } else if (cutoffDayOffset === 0) {
+    if (daysDiff === 0) {
       headline = "Ready to Dispatch Today";
       pdpHeadline = "In stock. Ready to Dispatch Today";
       cartHeadline = "Ready to Dispatch Today";
       tooltipText = "Your order will be dispatched today by 7:30 PM";
       supportingText = tooltipText;
       text = "Ready to Dispatch Today";
-    } else {
+    } else if (daysDiff === 1) {
       headline = "Ready to Dispatch Tomorrow";
       pdpHeadline = "In stock. Ready to Dispatch Tomorrow";
       cartHeadline = "Ready to Dispatch Tomorrow";
       tooltipText = "Your order will be dispatched tomorrow by 7:30 PM";
       supportingText = tooltipText;
       text = "Ready to Dispatch Tomorrow";
+    } else {
+      headline = `Dispatches on ${dispatchDayName}`;
+      pdpHeadline = `In Stock • Dispatches on ${dispatchDayName}`;
+      cartHeadline = `In Stock • Dispatches on ${dispatchDayName}`;
+      tooltipText = `Your order will be dispatched on ${dispatchDayName} by 7:30 PM`;
+      supportingText = tooltipText;
+      text = `In Stock • Dispatches on ${dispatchDayName}`;
     }
   }
 
@@ -408,7 +414,7 @@ export function formatDispatchMessage(config, options = {}) {
     date: dispatchDate,
     dateText,
     text,
-    sentence: text ? (isWeekend ? text : `${section.label}. ${text}`) : section.label,
+    sentence: text ? (inStock ? text : `${section.label}. ${text}`) : section.label,
     showTimer,
     countdown,
     secondsToCutoff,
