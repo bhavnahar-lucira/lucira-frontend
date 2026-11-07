@@ -306,13 +306,28 @@ export default function OrderDetailsPage() {
         const isIns = item.isInsurance || 
                       (item.title || "").toLowerCase().includes("insurance") || 
                       (item.sku || "").toLowerCase().includes("ins");
-        if (isIns) {
+        const orderStatus = (item.orderStatus || props['Order Status'] || props['_Order Status'] || "").toUpperCase();
+        const isInStockItem = isIns || orderStatus === 'RTS' || item.inStock === true || item.inStock === 'true';
+        if (isInStockItem) {
           if (!inStockDispatchDate || parsed > inStockDispatchDate) inStockDispatchDate = parsed;
         } else {
           if (!mtoDispatchDate || parsed > mtoDispatchDate) mtoDispatchDate = parsed;
         }
       }
     }
+  });
+
+  const isOrderInStock = sortedLineItems.length > 0 && sortedLineItems.every(item => {
+    const rawProps = item.properties || item.customAttributes || [];
+    const props = Array.isArray(rawProps)
+      ? rawProps.reduce((acc, p) => ({ ...acc, [p.key || p.name]: p.value }), {})
+      : rawProps;
+    const isIns = item.isInsurance || 
+                  (item.title || "").toLowerCase().includes("insurance") || 
+                  (item.sku || "").toLowerCase().includes("ins");
+    const orderStatus = (item.orderStatus || props['Order Status'] || props['_Order Status'] || "").toUpperCase();
+    const isBYJ = Boolean(props['_byj_preview']);
+    return isIns || (!isBYJ && (orderStatus === 'RTS' || item.inStock === true || item.inStock === 'true'));
   });
 
   const targetDispatchDate = mtoDispatchDate || inStockDispatchDate || parseFlexibleDate(order.targetDispatchDate);
@@ -402,6 +417,15 @@ export default function OrderDetailsPage() {
     let dispatchDay;
     if (targetDispatchDate && !isNaN(targetDispatchDate.getTime())) {
       dispatchDay = new Date(targetDispatchDate.getFullYear(), targetDispatchDate.getMonth(), targetDispatchDate.getDate());
+    } else if (isOrderInStock) {
+      // In-stock items default to 3 days (excluding Sundays) from order placed date
+      const d = new Date(placedDay.getFullYear(), placedDay.getMonth(), placedDay.getDate());
+      let added = 0;
+      while (added < 3) {
+        d.setDate(d.getDate() + 1);
+        if (d.getDay() !== 0) added++;
+      }
+      dispatchDay = d;
     } else {
       dispatchDay = new Date(placedDay.getTime() + 10 * 86400000);
     }
@@ -441,8 +465,8 @@ export default function OrderDetailsPage() {
       };
     }
 
-    if (diffDays <= 3) {
-      // 2-3 days shipping
+    if (diffDays <= 4 || isOrderInStock) {
+      // In-stock 3-day shipping (up to 4 calendar days if weekend/Sunday excluded)
       const mid1 = new Date(placedDay.getTime() + 1 * 86400000);
       return {
         0: placed,

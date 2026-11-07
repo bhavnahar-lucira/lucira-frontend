@@ -40,11 +40,11 @@ export function StorePickupSection({ isDesktop, pickup, pickupPhone, setPickupPh
   let maxDispatchDays = 0;
   if (cartItems && cartItems.length > 0) {
     cartItems.forEach(item => {
-      let itemDays = item.inStock ? 2 : ((parseInt(item.leadTime) || 12) + 3);
+      let itemDays = item.inStock ? 3 : ((parseInt(item.leadTime) || 12) + 3);
       if (itemDays > maxDispatchDays) maxDispatchDays = itemDays;
     });
   } else {
-    maxDispatchDays = 2; // default if no items
+    maxDispatchDays = 3; // default if no items
   }
   const pickupDaysFromNow = maxDispatchDays + 2;
 
