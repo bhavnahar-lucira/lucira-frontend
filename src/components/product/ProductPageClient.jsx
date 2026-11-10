@@ -838,8 +838,8 @@ export default function ProductPageClient({
   const [livePrice, setLivePrice] = useState(null);
   const shouldToastVariantChangeRef = useRef(false);
 
-  // Schemes are not available for gold coins or plain gold jewelry
-  const isGoldOrCoinProduct = useMemo(() => {
+  // Gold coins / /collections/gold-coins detection (shared by Schemes & DGRP)
+  const isGoldCoinProduct = useMemo(() => {
     const rawTags = product?.tags || [];
     const tList = Array.isArray(rawTags)
       ? rawTags
@@ -847,9 +847,14 @@ export default function ProductPageClient({
     const title = String(product?.title || '').toLowerCase();
     const handle = String(product?.handle || '').toLowerCase();
     const type = String(product?.productType || product?.type || '').toLowerCase();
+    const handles = (product?.collectionHandles || []).map(h => String(h || '').toLowerCase());
+    const ctx = String(collectionContext || '').toLowerCase();
 
-    // 1. Gold coins and bars
-    const isCoin =
+    return (
+      handles.some(h => h === 'gold-coins' || h === 'plain-gold-coins' || h.includes('gold-coin')) ||
+      ctx === 'gold-coins' ||
+      ctx === 'plain-gold-coins' ||
+      ctx.includes('gold-coin') ||
       tList.some(t => {
         const s = t.toLowerCase().replace(/[-_]/g, ' ');
         return (
@@ -868,9 +873,20 @@ export default function ProductPageClient({
       handle.includes('gold-coin') ||
       handle.includes('coin') ||
       type.includes('gold coin') ||
-      type.includes('coin');
+      type.includes('coin')
+    );
+  }, [product, collectionContext]);
 
-    if (isCoin) return true;
+  // Schemes are not available for gold coins or plain gold jewelry
+  const isGoldOrCoinProduct = useMemo(() => {
+    if (isGoldCoinProduct) return true;
+
+    const rawTags = product?.tags || [];
+    const tList = Array.isArray(rawTags)
+      ? rawTags
+      : (typeof rawTags === 'string' ? rawTags.split(',').map(t => t.trim()) : []);
+    const title = String(product?.title || '').toLowerCase();
+    const type = String(product?.productType || product?.type || '').toLowerCase();
 
     // 2. Plain gold products
     const isPlain =
@@ -889,7 +905,7 @@ export default function ProductPageClient({
       (typeof getItemOfferCategory === 'function' && getItemOfferCategory(product) === OFFER_CATEGORY.GOLD);
 
     return isPlain;
-  }, [product]);
+  }, [product, isGoldCoinProduct]);
 
   // Fixed origin: a window-based one differs between server and client
   // markup and breaks hydration (see lib/siteOrigin).
@@ -2004,6 +2020,9 @@ export default function ProductPageClient({
     const title = String(product?.title || "").toLowerCase();
     return /gold|\d+k|\d+kt/.test(purity) || /gold/.test(color) || /gold/.test(title);
   }, [activeVariant, activeKarat, activeColor, product]);
+
+  // Hide DGRP on PDP when price is below ₹15,000 or on gold coins (/collections/gold-coins)
+  const isDgrpEligible = isDgrpGold && !isGoldCoinProduct && Number(currentPrice || 0) >= 15000;
 
   const dgrpTenureMonths = isDgrpDiamond ? 6 : 3;
   const dgrpAdvanceAmount = Math.round((Number(currentPrice || 0) * 10) / 100);
@@ -3166,7 +3185,7 @@ export default function ProductPageClient({
             </div>
 
             {/* Lock & Key (DGRP) Entry Banner */}
-            {isDgrpGold && (
+            {isDgrpEligible && (
               <div className="mb-6">
                 <DgrpPdpBanner
                   advanceAmount={dgrpAdvanceAmount}
@@ -4546,26 +4565,28 @@ export default function ProductPageClient({
       )}
 
       {/* Lock & Key (DGRP) Drawer Flow */}
-      <DgrpDrawer
-        isOpen={isDgrpDrawerOpen}
-        onClose={() => setIsDgrpDrawerOpen(false)}
-        product={product}
-        activeVariant={activeVariant}
-        currentPrice={currentPrice}
-        lockedGoldRate={liveGoldRate}
-        isDiamond={isDgrpDiamond}
-        tenureMonths={dgrpTenureMonths}
-        advanceAmount={dgrpAdvanceAmount}
-        monthlyEmi={dgrpMonthlyEmi}
-        priceBreakup={priceBreakup}
-        activeColor={activeColor}
-        activeKarat={activeKarat}
-        selectedSize={selectedSize}
-        shippingDate={getShippingDateValue(dispatchConfig, {
-          inStock: activeVariant?.inStock === true || activeVariant?.inStock === "true",
-          leadTime: product?.productMetafields?.lead_time,
-        })}
-      />
+      {isDgrpEligible && (
+        <DgrpDrawer
+          isOpen={isDgrpDrawerOpen}
+          onClose={() => setIsDgrpDrawerOpen(false)}
+          product={product}
+          activeVariant={activeVariant}
+          currentPrice={currentPrice}
+          lockedGoldRate={liveGoldRate}
+          isDiamond={isDgrpDiamond}
+          tenureMonths={dgrpTenureMonths}
+          advanceAmount={dgrpAdvanceAmount}
+          monthlyEmi={dgrpMonthlyEmi}
+          priceBreakup={priceBreakup}
+          activeColor={activeColor}
+          activeKarat={activeKarat}
+          selectedSize={selectedSize}
+          shippingDate={getShippingDateValue(dispatchConfig, {
+            inStock: activeVariant?.inStock === true || activeVariant?.inStock === "true",
+            leadTime: product?.productMetafields?.lead_time,
+          })}
+        />
+      )}
     </div>
   );
 }
