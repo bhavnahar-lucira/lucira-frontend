@@ -394,6 +394,10 @@ export default function OrderDetailsPage() {
     return dates;
   })();
 
+  // Extract status strings for stage calculation
+  const rawStatus = (order.reason_status_description || order.status || "").toLowerCase();
+  const normalizedStatus = rawStatus.replace(/[^a-z0-9]/g, '');
+
   // Dynamic calculation of milestone dates for all orders (In-stock, Express, MTO)
   const stageDates = (() => {
     const placed = new Date(orderPlacedDate);
@@ -412,9 +416,10 @@ export default function OrderDetailsPage() {
 
     const diffDays = Math.round((dispatchDay.getTime() - placedDay.getTime()) / 86400000);
 
-    // If actual courier dispatch scan exists from ClickPost, use it for dispatch date
+    // If actual courier dispatch scan exists from ClickPost or ERP dispatch milestone exists, use it
     const actualDispatch = clickpostScanDates?.[5];
-    const effectiveDispatch = actualDispatch || dispatchDay;
+    const erpDispatchDate = (normalizedStatus.includes('dispatch') || normalizedStatus.includes('shipped') || normalizedStatus.includes('invoice') || normalizedStatus.includes('readytoinvoice') || normalizedStatus.includes('readytoship')) && order.documentDate ? new Date(order.documentDate) : null;
+    const effectiveDispatch = actualDispatch || (erpDispatchDate && !isNaN(erpDispatchDate.getTime()) ? erpDispatchDate : dispatchDay);
 
     if (diffDays <= 0) {
       // In-stock / Same-day shipping: crafting is already complete; everything aligns with dispatch target
@@ -488,8 +493,6 @@ export default function OrderDetailsPage() {
   );
   const status = (order.fulfillmentStatus || "").toUpperCase();
   const fStatus = (order.financialStatus || "").toUpperCase();
-  const rawStatus = (order.reason_status_description || order.status || "").toLowerCase();
-  const normalizedStatus = rawStatus.replace(/[^a-z0-9]/g, '');
   // eslint-disable-next-line react-hooks/purity
   const nowTime = Date.now();
 
@@ -512,7 +515,7 @@ export default function OrderDetailsPage() {
   const isDelivered = status === 'DELIVERED' || cpBucket === 6 || (cpDesc.includes('deliver') && !cpDesc.includes('outfordelivery')) || (normalizedStatus.includes('deliver') && !normalizedStatus.includes('outfordelivery'));
   const isOutForDelivery = cpBucket === 4 || cpDesc.includes('outfordelivery') || normalizedStatus.includes('outfordelivery');
   const isInTransit = cpBucket === 3 || cpDesc.includes('intransit') || cpDesc.includes('transit') || cpDesc.includes('reachedhub') || cpDesc.includes('departed') || (!isBeforeDispatchDate && (normalizedStatus.includes('transit') || status === 'IN_TRANSIT'));
-  const isDispatched = cpBucket === 2 || cpDesc.includes('pickedup') || cpDesc.includes('dispatched') || hasCourierPickup || isFulfilled || normalizedStatus.includes('dispatched') || normalizedStatus.includes('shipped');
+  const isDispatched = cpBucket === 2 || cpDesc.includes('pickedup') || cpDesc.includes('dispatched') || hasCourierPickup || isFulfilled || normalizedStatus.includes('dispatch') || normalizedStatus.includes('shipped') || normalizedStatus.includes('invoice') || normalizedStatus.includes('readytoinvoice') || normalizedStatus.includes('readytoship') || normalizedStatus.includes('packed');
 
   if (isCancelled) {
     currentStageIndex = 0;
@@ -1293,7 +1296,7 @@ export default function OrderDetailsPage() {
                   </div>
                   <ChevronLeft className="rotate-180 size-6" />
                 </button>
-                <a href="https://wa.me/+917208934782" target="_blank" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
+                <a href="https://wa.me/+917304464910" target="_blank" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
                   <span className="text-base font-bold">Chat with Support</span>
                   <ChevronLeft className="rotate-180 size-6" />
                 </a>

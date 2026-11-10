@@ -21,7 +21,7 @@ import TryOnButton from "../common/TryOnButton";
 import { pushPromoClick, getNumericId } from "@/lib/gtm";
 import { productPageUrl } from "@/lib/siteOrigin";
 
-const WHATSAPP_NUMBER = "+917208934782";
+const WHATSAPP_NUMBER = "+917304464910";
 
 /**
  * Brand colour per CTA, plus the label colour once the hover fill is down.
@@ -127,19 +127,19 @@ export default function ProductCardCta({
   // 1. Try At Home WhatsApp URL: "Hi, I'd like to book a free home trial for [Product Name] [Product URL]"
   const tryAtHomeWhatsappHref = React.useMemo(() => {
     const message = `Hi, I'd like to book a free home trial for ${productTitle}${productUrl ? ` ${productUrl}` : ""}`;
-    return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+    return `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
   }, [productTitle, productUrl]);
 
   // 2. Videocall WhatsApp URL: "Hi, I'd like to schedule a video call for [Product Name] [Product URL]"
   const videoCallWhatsappHref = React.useMemo(() => {
     const message = `Hi, I'd like to schedule a video call for ${productTitle}${productUrl ? ` ${productUrl}` : ""}`;
-    return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+    return `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
   }, [productTitle, productUrl]);
 
   // 3. Chat With Experts WhatsApp URL: "Hi! I'm interested in this product and would like to know more: [Product Name] [Product URL]"
   const chatWithExpertsWhatsappHref = React.useMemo(() => {
     const message = `Hi! I'm interested in this product and would like to know more: ${productTitle}${productUrl ? ` ${productUrl}` : ""}`;
-    return `https://api.whatsapp.com/send/?phone=+917208934782&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+    return `https://api.whatsapp.com/send/?phone=+917304464910&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
   }, [productTitle, productUrl]);
 
   return (
