@@ -36,7 +36,12 @@ export function AuthDialog({
   experimentVariant = null,
   experimentDevice = null,
 }) {
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const liveIsMobile = useMediaQuery("(max-width: 768px)");
+  // The auto signup popup (the only caller passing experimentDevice) picks
+  // mobile/desktop once, when it opens. Keep that layout for its whole life so
+  // rotating a phone or resizing the window can't swap the scratch card for the
+  // spin wheel mid-OTP. Every other caller still follows the live viewport.
+  const isMobile = experimentDevice ? experimentDevice === "mobile" : liveIsMobile;
   const router = useRouter();
   const pathname = usePathname();
   const [currentStep, setCurrentStep] = useState(initialStep);

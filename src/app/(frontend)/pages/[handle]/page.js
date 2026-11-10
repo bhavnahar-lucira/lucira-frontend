@@ -160,7 +160,7 @@ function withRateDate(title) {
 }
 
 // ─── Gold rate city meta (competitor-style) ──────────────────────────────────
-// "Todays Gold Rate in Mumbai for 14, 18, 22 & 24 Carat - 18 Aug 2026, 11 AM"
+// "Todays Gold Rate in Mumbai for 14, 18, 22 & 24 Carat on 18 Aug 2026, 11 AM"
 // Short month keeps the title near the SERP character limit while still
 // carrying the date + current IST time as a freshness signal. Rate pages
 // render with no-store, so the stamp is the actual request time.
@@ -168,7 +168,7 @@ function goldRateCityMeta(city) {
   const { fullDate, time } = istRateStamp();
 
   return {
-    title: `Todays Gold Rate in ${city} for 14, 18, 22 & 24 Carat - ${fullDate}, ${time}`,
+    title: `Todays Gold Rate in ${city} for 14, 18, 22 & 24 Carat on ${fullDate}, ${time}`,
     description: `Gold Rate Today in ${city} - ${fullDate}, ${time} IST. Get live gold rates for 14K, 18K, 22K & 24K in ${city} and yesterday's gold rate per gram.`,
   };
 }
@@ -180,7 +180,7 @@ function silverRateCityMeta(city) {
   const { fullDate, time } = istRateStamp();
 
   return {
-    title: `Todays Silver Rate in ${city} for 999 & 925 Silver - ${fullDate}, ${time}`,
+    title: `Todays Silver Rate in ${city} for 999 & 925 Silver on ${fullDate}, ${time}`,
     description: `Silver Rate Today in ${city} - ${fullDate}, ${time} IST. Get live silver rates for 999 fine & 925 sterling silver per gram and per kg in ${city}, plus yesterday's silver rate.`,
   };
 }
@@ -189,7 +189,7 @@ function platinumRateCityMeta(city) {
   const { fullDate, time } = istRateStamp();
 
   return {
-    title: `Todays Platinum Rate in ${city} for 950 & 900 Platinum - ${fullDate}, ${time}`,
+    title: `Todays Platinum Rate in ${city} for 950 & 900 Platinum on ${fullDate}, ${time}`,
     description: `Platinum Rate Today in ${city} - ${fullDate}, ${time} IST. Get live platinum rates for Pt 950 & Pt 900 per gram in ${city} and yesterday's platinum rate per gram.`,
   };
 }

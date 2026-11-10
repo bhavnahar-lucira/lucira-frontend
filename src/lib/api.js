@@ -2,6 +2,7 @@ import { fetchWithRetry } from "@/utils/helpers";
 import { logout } from "@/redux/features/user/userSlice";
 import { searchContent } from "@/lib/contentSearch";
 import { toE164 } from "@/lib/phone";
+import { getConvExpLog } from "@/lib/optiphoenix";
 
 /* ================= GENERIC API FETCH ================= */
 
@@ -58,11 +59,14 @@ export const apiFetch = async (url, options = {}) => {
     const contentType = res.headers.get("content-type");
     let data;
 
-    if (contentType?.includes("application/json")) {
-      data = await res.json();
-    } else {
-      data = await res.text();
-      try { data = JSON.parse(data); } catch(e) {}
+    const rawText = await res.text();
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      data = {
+        error: !res.ok ? `Server error (${res.status})` : null,
+        raw: rawText
+      };
     }
 
     if (!res.ok) {
@@ -137,7 +141,7 @@ export const verifyOtpApi = (mobile, otp, sessionId = null, extra = {}) => {
   const finalSessionId = sessionId || (typeof window !== 'undefined' ? localStorage.getItem("cart_session_id") : null);
   return apiFetch("/api/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ ...extra, mobile: toE164(mobile) || mobile, otp, sessionId: finalSessionId, sourcePage }),
+    body: JSON.stringify({ ...extra, mobile: toE164(mobile) || mobile, otp, sessionId: finalSessionId, sourcePage, conv_exp_log: getConvExpLog() }),
   });
 };
 
@@ -247,7 +251,8 @@ export const registerCustomer = (payload) => {
       ...payload, 
       sessionId: sid,
       mobile: toE164(payload.mobile) || payload.mobile,
-      sourcePage
+      sourcePage,
+      conv_exp_log: getConvExpLog()
     }),
   });
 };
@@ -281,6 +286,22 @@ export const fetchRewardCoupon = async ({ customerId, email, mobile }) => {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
   return data;
+};
+
+// Background sync of the Convert.com experiment log (localStorage
+// conv_zoho_exp_log) to the customer's OptiPhoenix metafield. Plain fetch, not
+// apiFetch: a failed analytics sync must never trigger apiFetch's 401 logout.
+export const saveOptiPhoenixLog = async (log, accessToken) => {
+  let base = BACKEND_URL.replace(/\/$/, "");
+  if (window.location.protocol === "https:" && base.startsWith("http://") && !base.includes("localhost") && !base.includes("127.0.0.1")) {
+    base = base.replace(/^http:\/\//i, "https://");
+  }
+  const res = await fetch(`${base}/api/customer/optiphoenix`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+    body: JSON.stringify({ log }),
+  });
+  return res.ok;
 };
 
 export const fetchCustomerProfile = (accessToken) =>
