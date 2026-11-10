@@ -143,6 +143,24 @@ function getInstallmentLabel(ins) {
   return `${num}${suffix} Instalment`;
 }
 
+const SUPPORT_WHATSAPP_NUMBER = "+917304464910";
+
+function buildCancelWhatsAppUrl(plan) {
+  const details = [
+    plan?.plan_code ? `Plan Code: ${plan.plan_code}` : null,
+    plan?.shopify_order_name ? `Order: ${plan.shopify_order_name}` : null,
+    plan?.product?.title ? `Product: ${plan.product.title}` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const message = details
+    ? `Hi Lucira team, I would like to request cancellation of my Lock & Key (Digi Gold Rate Protection) plan (${details}).`
+    : "Hi Lucira team, I would like to request cancellation of my Lock & Key (Digi Gold Rate Protection) plan.";
+
+  return `https://api.whatsapp.com/send/?phone=${encodeURIComponent(SUPPORT_WHATSAPP_NUMBER)}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+}
+
 export default function DigiGoldPage() {
   const user = useSelector(selectUser);
 
@@ -692,6 +710,19 @@ export default function DigiGoldPage() {
                           <span>{isExpanded ? "Hide Plan" : "View Plan"}</span>
                           <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                         </button>
+
+                        {!isCancelled && !isCompleted && (
+                          <a
+                            href={buildCancelWhatsAppUrl(plan)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Request plan cancellation via WhatsApp (10% cancellation fee applies)"
+                            className="w-full sm:w-auto sm:px-4 h-10 bg-white text-red-600 border border-red-200 rounded-lg font-medium text-xs sm:text-[13px] hover:bg-red-50 transition-all flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
+                          >
+                            <XCircle size={14} />
+                            <span>Cancel Plan</span>
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
