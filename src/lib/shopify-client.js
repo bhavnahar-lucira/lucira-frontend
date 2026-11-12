@@ -88,6 +88,26 @@ export const VARIANT_PRICE_QUERY = `
   }
 `;
 
+// Live per-variant stock for the PDP. The product page HTML is ISR-cached for up
+// to 24h, so the stock baked into it can lag Shopify; the client re-reads this on
+// mount and overlays it (same rule as the server: availableForSale && !currentlyNotInStock).
+export const PRODUCT_STOCK_QUERY = `
+  query getProductStock($id: ID!) {
+    node(id: $id) {
+      ... on Product {
+        id
+        variants(first: 250) {
+          nodes {
+            id
+            availableForSale
+            currentlyNotInStock
+          }
+        }
+      }
+    }
+  }
+`;
+
 /* ================= CART QUERIES & MUTATIONS ================= */
 
 export const CART_QUERY = `

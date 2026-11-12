@@ -40,6 +40,20 @@ export async function POST(request) {
       revalidatePath(`/products/${handle}`);
     }
 
+    // Batched product pages from the backend webhook flush (stock changes during a
+    // sync burst). Only plain Shopify handles are accepted so this can't be used to
+    // purge arbitrary paths, and the batch is capped.
+    let batchCount = 0;
+    if (Array.isArray(body.handles)) {
+      const HANDLE_RE = /^[a-z0-9][a-z0-9-]{0,254}$/i;
+      const unique = [...new Set(body.handles)]
+        .filter((h) => typeof h === 'string' && HANDLE_RE.test(h) && h !== handle)
+        .slice(0, 250);
+      for (const h of unique) revalidatePath(`/products/${h}`);
+      batchCount = unique.length;
+      if (batchCount) console.log(`[Next.js Revalidate] Batch revalidated ${batchCount} product page(s)`);
+    }
+
     if (type === 'collection' && handle) {
        revalidatePath(`/collections/${handle}`);
     } else if (type === 'collections') {
@@ -55,7 +69,7 @@ export async function POST(request) {
       console.error('[Next.js Revalidate] Failed to ping backend cache clear:', e);
     }
 
-    return NextResponse.json({ revalidated: true, now: Date.now(), handle }, { headers: corsHeaders });
+    return NextResponse.json({ revalidated: true, now: Date.now(), handle, batchCount }, { headers: corsHeaders });
   } catch (error) {
     console.error('[Next.js Revalidate] Error during revalidation:', error);
     return NextResponse.json({ revalidated: false, message: 'Error revalidating' }, { status: 500, headers: corsHeaders });
