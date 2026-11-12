@@ -16,7 +16,8 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Calendar
+  Calendar,
+  Download
 } from "lucide-react";
 import Image from "next/image";
 import shopifyLoader from "@/utils/shopifyLoader";
@@ -27,6 +28,7 @@ import { useSelector } from "react-redux";
 import { apiFetch } from "@/lib/api";
 import { getOrderImage } from "@/lib/utils";
 import { shopifyStorefrontFetch, toShopifyGid } from "@/lib/shopify-client";
+import OrderInvoiceDownload, { useOrderInvoices, OrderInvoiceHeaderButton } from "@/components/dashboard/OrderInvoiceDownload";
 
 function getClickpostTrackingUrl(waybill, cpId) {
   if (!waybill) return "";
@@ -76,6 +78,8 @@ export default function OrderDetailsPage() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  // Fetched once; shared by the header button and the Order Summary block.
+  const invoiceState = useOrderInvoices(id, accessToken);
 
   const handleCopyWaybill = (text) => {
     if (!text) return;
@@ -216,7 +220,7 @@ export default function OrderDetailsPage() {
     return (
       <div className="text-center py-20 font-figtree">
         <AlertCircle size={48} className="mx-auto text-zinc-300 mb-4" />
-        <h3 className="text-xl font-bold text-zinc-900">Order not found</h3>
+        <h3 className="text-xl font-bold text-primary">Order not found</h3>
         <Link prefetch={false} href="/admin/orders" className="text-primary hover:underline mt-4 block font-bold uppercase tracking-widest text-xs">
           Back to all orders
         </Link>
@@ -323,19 +327,27 @@ export default function OrderDetailsPage() {
     "Manufacturing",
     "Quality Control",
     "Certification",
+    "Invoiced",
     "Dispatch",
     "In Transit",
     "Out For Delivery",
     "Delivered"
   ];
 
+  // Named stage indices — "Invoiced" (Ornaverse ECommSales invoice posted)
+  // sits between Certification and Dispatch.
+  const STAGE = {
+    CONFIRMED: 0, PROCESSING: 1, MANUFACTURING: 2, QUALITY_CONTROL: 3, CERTIFICATION: 4,
+    INVOICED: 5, DISPATCH: 6, IN_TRANSIT: 7, OUT_FOR_DELIVERY: 8, DELIVERED: 9,
+  };
+
   // Extract real courier milestone dates from ClickPost scans (for Dispatch, In Transit, Out For Delivery, Delivered)
   const clickpostScanDates = (() => {
     const dates = {
-      5: null, // Dispatch
-      6: null, // In Transit
-      7: null, // Out For Delivery
-      8: null, // Delivered
+      6: null, // Dispatch
+      7: null, // In Transit
+      8: null, // Out For Delivery
+      9: null, // Delivered
     };
 
     const scans = clickpostData?.tracking?.scans || [];
@@ -346,11 +358,11 @@ export default function OrderDetailsPage() {
       if (!t || isNaN(t.getTime())) continue;
 
       if (bucket === 6 || (desc.includes('deliver') && !desc.includes('outfordelivery'))) {
-        if (!dates[8] || t > dates[8]) dates[8] = t;
+        if (!dates[9] || t > dates[9]) dates[9] = t;
       } else if (bucket === 4 || desc.includes('outfordelivery') || desc.includes('outfordeliver')) {
-        if (!dates[7] || t > dates[7]) dates[7] = t;
+        if (!dates[8] || t > dates[8]) dates[8] = t;
       } else if (bucket === 3 || desc.includes('intransit') || desc.includes('transit') || desc.includes('reachedhub') || desc.includes('departed')) {
-        if (!dates[6] || t > dates[6]) dates[6] = t;
+        if (!dates[7] || t > dates[7]) dates[7] = t;
       } else if (
         bucket === 2 || 
         desc.includes('pickedup') || 
@@ -359,7 +371,7 @@ export default function OrderDetailsPage() {
         desc.includes('manifested') || 
         desc.includes('inward')
       ) {
-        if (!dates[5] || t < dates[5]) dates[5] = t;
+        if (!dates[6] || t < dates[6]) dates[6] = t;
       }
     }
 
@@ -370,21 +382,21 @@ export default function OrderDetailsPage() {
         const b = latest.clickpost_status_bucket;
         const d = (latest.clickpost_status_description || latest.status || "").toLowerCase().replace(/[^a-z0-9]/g, '');
         if (b === 6 || (d.includes('deliver') && !d.includes('outfordelivery'))) {
-          if (!dates[8]) dates[8] = lt;
+          if (!dates[9]) dates[9] = lt;
         } else if (b === 4 || d.includes('outfordelivery')) {
-          if (!dates[7]) dates[7] = lt;
+          if (!dates[8]) dates[8] = lt;
         } else if (b === 3 || d.includes('intransit') || d.includes('transit')) {
-          if (!dates[6]) dates[6] = lt;
+          if (!dates[7]) dates[7] = lt;
         } else if (b === 2 || d.includes('pickedup') || d.includes('dispatched') || d.includes('pickupdone')) {
-          if (!dates[5]) dates[5] = lt;
+          if (!dates[6]) dates[6] = lt;
         }
       }
     }
 
     const additional = clickpostData?.tracking?.additional;
-    if (!dates[5] && additional?.pickup_date) {
+    if (!dates[6] && additional?.pickup_date) {
       const pt = new Date(additional.pickup_date);
-      if (!isNaN(pt.getTime())) dates[5] = pt;
+      if (!isNaN(pt.getTime())) dates[6] = pt;
     }
 
     return dates;
@@ -393,6 +405,13 @@ export default function OrderDetailsPage() {
   // Extract status strings for stage calculation
   const rawStatus = (order.reason_status_description || order.status || "").toLowerCase();
   const normalizedStatus = rawStatus.replace(/[^a-z0-9]/g, '');
+
+  // Ornaverse invoice (posted, not cancelled) — drives the "Invoiced" stage.
+  // invoices[] is newest first; the latest one is the live invoice.
+  const postedInvoices = invoiceState.invoices || [];
+  const currentInvoice = postedInvoices[0] || null;
+  const invoiceDate = currentInvoice?.documentDate ? new Date(currentInvoice.documentDate) : null;
+  const isInvoiced = Boolean(currentInvoice) || normalizedStatus.includes('invoiced');
 
   // Dynamic calculation of milestone dates for all orders (In-stock, Express, MTO)
   const stageDates = (() => {
@@ -413,8 +432,8 @@ export default function OrderDetailsPage() {
     const diffDays = Math.round((dispatchDay.getTime() - placedDay.getTime()) / 86400000);
 
     // If actual courier dispatch scan exists from ClickPost or ERP dispatch milestone exists, use it
-    const actualDispatch = clickpostScanDates?.[5];
-    const erpDispatchDate = (normalizedStatus.includes('dispatch') || normalizedStatus.includes('shipped') || normalizedStatus.includes('invoice') || normalizedStatus.includes('readytoinvoice') || normalizedStatus.includes('readytoship')) && order.documentDate ? new Date(order.documentDate) : null;
+    const actualDispatch = clickpostScanDates?.[STAGE.DISPATCH];
+    const erpDispatchDate = (normalizedStatus.includes('dispatch') || normalizedStatus.includes('shipped') || normalizedStatus.includes('readytoship')) && order.documentDate ? new Date(order.documentDate) : null;
     const effectiveDispatch = actualDispatch || (erpDispatchDate && !isNaN(erpDispatchDate.getTime()) ? erpDispatchDate : dispatchDay);
 
     if (diffDays <= 0) {
@@ -425,7 +444,8 @@ export default function OrderDetailsPage() {
         2: placed,
         3: placed,
         4: placed,
-        5: effectiveDispatch,
+        5: invoiceDate,
+        6: effectiveDispatch,
       };
     }
 
@@ -437,7 +457,8 @@ export default function OrderDetailsPage() {
         2: placed,
         3: dispatchDay,
         4: dispatchDay,
-        5: effectiveDispatch,
+        5: invoiceDate,
+        6: effectiveDispatch,
       };
     }
 
@@ -450,7 +471,8 @@ export default function OrderDetailsPage() {
         2: mid1,
         3: mid1,
         4: dispatchDay,
-        5: effectiveDispatch,
+        5: invoiceDate,
+        6: effectiveDispatch,
       };
     }
 
@@ -472,7 +494,8 @@ export default function OrderDetailsPage() {
       2: finalD2,
       3: finalD3,
       4: finalD4,
-      5: effectiveDispatch,
+      5: invoiceDate,
+      6: effectiveDispatch,
     };
   })();
 
@@ -499,40 +522,44 @@ export default function OrderDetailsPage() {
     (cpBucket && cpBucket >= 2) || 
     cpDesc.includes('pickedup') || 
     cpDesc.includes('dispatched') || 
-    clickpostScanDates[5]
+    clickpostScanDates[STAGE.DISPATCH]
   );
   const isFulfilled = status === 'FULFILLED' || status === 'SHIPPED';
 
   // Upcoming dispatch date guard (e.g. 10 Oct for MTO placed on 22 Sept):
   // Courier hasn't moved yet (cpBucket <= 1). Crafting milestones apply.
-  const isBeforeDispatchDate = Boolean(targetDispatchDate && nowTime < stageDates[5]?.getTime());
+  const isBeforeDispatchDate = Boolean(targetDispatchDate && nowTime < stageDates[STAGE.DISPATCH]?.getTime());
 
   // ClickPost live tracking & ERP status checks:
   const isDelivered = status === 'DELIVERED' || cpBucket === 6 || (cpDesc.includes('deliver') && !cpDesc.includes('outfordelivery')) || (normalizedStatus.includes('deliver') && !normalizedStatus.includes('outfordelivery'));
   const isOutForDelivery = cpBucket === 4 || cpDesc.includes('outfordelivery') || normalizedStatus.includes('outfordelivery');
   const isInTransit = cpBucket === 3 || cpDesc.includes('intransit') || cpDesc.includes('transit') || cpDesc.includes('reachedhub') || cpDesc.includes('departed') || (!isBeforeDispatchDate && (normalizedStatus.includes('transit') || status === 'IN_TRANSIT'));
-  const isDispatched = cpBucket === 2 || cpDesc.includes('pickedup') || cpDesc.includes('dispatched') || hasCourierPickup || isFulfilled || normalizedStatus.includes('dispatch') || normalizedStatus.includes('shipped') || normalizedStatus.includes('invoice') || normalizedStatus.includes('readytoinvoice') || normalizedStatus.includes('readytoship') || normalizedStatus.includes('packed');
+  const isDispatched = cpBucket === 2 || cpDesc.includes('pickedup') || cpDesc.includes('dispatched') || hasCourierPickup || isFulfilled || normalizedStatus.includes('dispatch') || normalizedStatus.includes('shipped') || normalizedStatus.includes('readytoship') || normalizedStatus.includes('packed') || normalizedStatus.includes('repairinvoice');
 
   if (isCancelled) {
     currentStageIndex = 0;
   } else if (isDelivered) {
-    currentStageIndex = 8; // Delivered (from ClickPost bucket 6)
+    currentStageIndex = STAGE.DELIVERED; // ClickPost bucket 6
   } else if (isOutForDelivery) {
-    currentStageIndex = 7; // Out For Delivery (from ClickPost bucket 4)
+    currentStageIndex = STAGE.OUT_FOR_DELIVERY; // ClickPost bucket 4
   } else if (isInTransit) {
-    currentStageIndex = 6; // In Transit (from ClickPost bucket 3)
+    currentStageIndex = STAGE.IN_TRANSIT; // ClickPost bucket 3
   } else if (isDispatched) {
-    currentStageIndex = 5; // Dispatch (from ClickPost bucket 2)
+    currentStageIndex = STAGE.DISPATCH; // ClickPost bucket 2
+  }
+  // Invoice posted on Ornaverse (ECommSales) — before the courier picks it up
+  else if (isInvoiced) {
+    currentStageIndex = STAGE.INVOICED;
   } 
   // Manufacturing & crafting milestones
-  else if (normalizedStatus.includes('certif') || normalizedStatus.includes('hallmark') || (stageDates[4] && nowTime >= stageDates[4].getTime())) {
-    currentStageIndex = 4; // Certification (1 day before dispatch)
+  else if (normalizedStatus.includes('certif') || normalizedStatus.includes('hallmark') || normalizedStatus.includes('readytoinvoice') || normalizedStatus.includes('invoicepending') || (stageDates[4] && nowTime >= stageDates[4].getTime())) {
+    currentStageIndex = STAGE.CERTIFICATION; // 1 day before dispatch, or ERP "Ready to Invoice" / "Invoice Pending"
   } 
   else if (normalizedStatus.includes('quality') || normalizedStatus.includes('qc') || (stageDates[3] && nowTime >= stageDates[3].getTime())) {
-    currentStageIndex = 3; // Quality Control (2 days before dispatch)
+    currentStageIndex = STAGE.QUALITY_CONTROL; // 2 days before dispatch
   } 
   else if (normalizedStatus.includes('manufactur') || normalizedStatus.includes('production') || normalizedStatus.includes('making') || (stageDates[2] && nowTime >= stageDates[2].getTime())) {
-    currentStageIndex = 2; // Manufacturing (1 day after processing)
+    currentStageIndex = STAGE.MANUFACTURING; // 1 day after processing
   } 
   else if (
     normalizedStatus.includes('process') || 
@@ -544,28 +571,66 @@ export default function OrderDetailsPage() {
     fStatus === 'PARTIALLY_PAID' ||
     (stageDates[1] && nowTime >= stageDates[1].getTime())
   ) {
-    currentStageIndex = 1; // Processing / PO Generated
+    currentStageIndex = STAGE.PROCESSING; // PO Generated
   } else {
-    currentStageIndex = 0; // Order Confirmed
+    currentStageIndex = STAGE.CONFIRMED;
   }
+
+  // Shown where the "Track Your Order" button would be when ClickPost has no
+  // tracking link for this order (it used to say "Live tracking available",
+  // which was exactly when it wasn't).
+  const trackingPlaceholder = isCancelled
+    ? "Tracking not applicable"
+    : isDelivered
+      ? "Order delivered"
+      : (isDispatched || isInTransit || isOutForDelivery)
+        ? "Tracking link coming soon"
+        : "Tracking available once shipped";
+
+  // Date shown under each stage: estimates for the crafting steps, the real
+  // Ornaverse invoice date for Invoiced, ClickPost scans from Dispatch on.
+  const getStageDate = (index, isCurrent) => {
+    if (index <= STAGE.CERTIFICATION) {
+      return stageDates[index] ? { date: stageDates[index], actual: false } : null;
+    }
+    if (index === STAGE.INVOICED) {
+      return invoiceDate ? { date: invoiceDate, actual: true } : null;
+    }
+    if (index === STAGE.DISPATCH) {
+      if (clickpostScanDates[STAGE.DISPATCH]) return { date: clickpostScanDates[STAGE.DISPATCH], actual: true };
+      const est = stageDates[STAGE.DISPATCH];
+      // An estimate on an earlier DAY than the actual invoice would read
+      // backwards — hide it (same day is fine).
+      const dayOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      if (!est || (invoiceDate && dayOf(est) < dayOf(invoiceDate))) return null;
+      return { date: est, actual: false };
+    }
+    if (clickpostScanDates[index]) return { date: clickpostScanDates[index], actual: true };
+    if (isCurrent && order.documentDate) return { date: new Date(order.documentDate), actual: true };
+    return null;
+  };
+  const formatStageDate = (d) => d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
 
   // Ensure index is within bounds
   const progressPct = Math.min(100, (currentStageIndex / (stages.length - 1)) * 100);
 
   return (
     <div className="font-figtree space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="flex items-center gap-4">
-        <Link prefetch={false} href="/admin/orders" className="size-10 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-zinc-900 hover:bg-zinc-50 transition-colors">
-          <ChevronLeft size={20} />
-        </Link>
-        <div>
-          <h2 className="text-xl md:text-2xl font-bold text-primary tracking-tight">Order #{order.orderNumber}</h2>
-          <p className="text-zinc-500 font-medium text-sm md:text-base">Placed on {new Date(order.processedAt).toLocaleDateString('en-IN', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })}</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-4 min-w-0">
+          <Link prefetch={false} href="/admin/orders" className="size-10 shrink-0 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-primary hover:bg-accent/10 hover:border-accent/30 transition-colors">
+            <ChevronLeft size={20} />
+          </Link>
+          <div className="min-w-0">
+            <h2 className="text-xl md:text-2xl font-bold text-primary tracking-tight">Order #{order.orderNumber}</h2>
+            <p className="text-zinc-500 font-medium text-sm md:text-base">Placed on {new Date(order.processedAt).toLocaleDateString('en-IN', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}</p>
+          </div>
         </div>
+        <OrderInvoiceHeaderButton invoiceState={invoiceState} />
       </div>
 
       {isCancelled && (
@@ -589,7 +654,7 @@ export default function OrderDetailsPage() {
                   ? "bg-red-50 text-red-700 border border-red-200"
                   : isDelivered 
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
-                    : "bg-blue-50 text-blue-700 border border-blue-200"
+                    : "bg-accent/10 text-tertiary border border-accent/25"
               }`}>
                 {isCancelled ? <AlertCircle size={12} /> : isDelivered ? <CheckCircle2 size={12} /> : <Clock size={12} />}      
                 {isCancelled ? "Cancelled" : stages[currentStageIndex]}
@@ -612,16 +677,16 @@ export default function OrderDetailsPage() {
                 href={clickpostData.clickpostUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+                className="inline-flex items-center gap-2 px-3.5 py-2 bg-primary hover:bg-tertiary text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-primary/20"
               >
                 <Truck size={13} />
                 <span>Track Your Order</span>
-                <ExternalLink size={12} className="text-zinc-400" />
+                <ExternalLink size={12} className="text-white/70" />
               </a>
             ) : (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-50 border border-zinc-200/60 rounded-xl text-xs font-medium text-zinc-500">
-                <Truck size={14} className="text-zinc-400" />
-                <span>Live tracking available</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/5 border border-accent/20 rounded-xl text-xs font-medium text-tertiary">
+                <Truck size={14} className="text-accent" />
+                <span>{trackingPlaceholder}</span>
               </div>
             )}
           </div>
@@ -629,7 +694,7 @@ export default function OrderDetailsPage() {
 
         {/* Desktop Timeline (md and up) */}
         <div className="hidden md:block pt-2 pb-2">
-          {/* 8 Milestone Steps with perfectly centered connecting lines */}
+          {/* Milestone steps with perfectly centered connecting lines */}
           <div className="flex w-full">
             {stages.map((stage, index) => {
               const isCompleted = index <= currentStageIndex;
@@ -647,7 +712,7 @@ export default function OrderDetailsPage() {
                             index < currentStageIndex
                               ? isDelivered
                                 ? "bg-emerald-600"
-                                : "bg-zinc-900"
+                                : "bg-primary"
                               : "w-0"
                           }`}
                           style={{ width: index < currentStageIndex ? "100%" : "0%" }}
@@ -661,7 +726,7 @@ export default function OrderDetailsPage() {
                         isCompleted
                           ? isDelivered
                             ? "size-4 bg-emerald-600 text-white"
-                            : "size-4 bg-zinc-900 text-white"
+                            : "size-4 bg-primary text-white"
                           : "size-2.5 bg-white border-2 border-zinc-200"
                       }`}
                     >
@@ -675,7 +740,7 @@ export default function OrderDetailsPage() {
                   <p
                     className={`text-[11px] leading-tight transition-colors ${
                       isCurrent
-                        ? "text-zinc-900 font-semibold"
+                        ? "text-primary font-semibold"
                         : isCompleted
                           ? "text-zinc-700 font-medium"
                           : "text-zinc-400 font-normal"
@@ -684,22 +749,26 @@ export default function OrderDetailsPage() {
                     {stage}
                   </p>
 
-                  {/* Calculated Milestone Date (0-5) or ClickPost Courier Scan Date (5-8) */}
-                  {index <= 5 && stageDates[index] ? (
-                    <span className={`text-[10px] ${isCurrent ? 'text-zinc-800 font-semibold' : 'text-zinc-400 font-normal'} mt-1`}>
-                      {(index === 5 && clickpostScanDates[5])
-                        ? clickpostScanDates[5].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
-                        : stageDates[index].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                    </span>
-                  ) : index >= 6 && clickpostScanDates[index] ? (
-                    <span className={`text-[10px] ${isCurrent ? 'text-zinc-800 font-semibold' : 'text-zinc-500 font-medium'} mt-1`}>
-                      {clickpostScanDates[index].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                    </span>
-                  ) : isCurrent && order.documentDate ? (
-                    <span className="text-[10px] text-zinc-500 font-medium mt-1">
-                      {new Date(order.documentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                    </span>
-                  ) : null}
+                  {/* Estimated crafting date, Ornaverse invoice date, or ClickPost scan date */}
+                  {(() => {
+                    const sd = getStageDate(index, isCurrent);
+                    return sd ? (
+                      <span className={`text-[10px] ${isCurrent ? 'text-primary font-semibold' : sd.actual ? 'text-zinc-500 font-medium' : 'text-zinc-400 font-normal'} mt-1`}>
+                        {formatStageDate(sd.date)}
+                      </span>
+                    ) : null;
+                  })()}
+                  {index === STAGE.INVOICED && currentInvoice && !isCancelled && (
+                    <button
+                      type="button"
+                      onClick={() => invoiceState.download(currentInvoice.documentNo)}
+                      disabled={Boolean(invoiceState.downloading)}
+                      className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-accent hover:text-primary transition-colors disabled:opacity-60"
+                    >
+                      {invoiceState.downloading ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+                      Download
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -713,7 +782,7 @@ export default function OrderDetailsPage() {
             <div className="absolute left-[17px] top-2.5 bottom-2.5 w-[2px] bg-zinc-100 rounded-full overflow-hidden">
               <div
                 className={`w-full transition-all duration-700 ease-out ${
-                  isDelivered ? "bg-emerald-600" : "bg-zinc-900"
+                  isDelivered ? "bg-emerald-600" : "bg-primary"
                 }`}
                 style={{ height: `${(currentStageIndex / (stages.length - 1)) * 100}%` }}
               />
@@ -732,7 +801,7 @@ export default function OrderDetailsPage() {
                           isCompleted
                             ? isDelivered
                               ? "size-4 bg-emerald-600 text-white"
-                              : "size-4 bg-zinc-900 text-white"
+                              : "size-4 bg-primary text-white"
                             : "size-2.5 bg-white border-2 border-zinc-200"
                         }`}
                       >
@@ -746,7 +815,7 @@ export default function OrderDetailsPage() {
                       <p
                         className={`text-xs ${
                           isCurrent
-                            ? "text-zinc-900 font-semibold"
+                            ? "text-primary font-semibold"
                             : isCompleted
                               ? "text-zinc-700 font-medium"
                               : "text-zinc-400 font-normal"
@@ -755,21 +824,27 @@ export default function OrderDetailsPage() {
                         {stage}
                       </p>
 
-                      {index <= 5 && stageDates[index] ? (
-                        <span className={`text-[11px] ${isCurrent ? 'text-zinc-800 font-semibold' : 'text-zinc-400 font-normal'}`}>
-                          {(index === 5 && clickpostScanDates[5])
-                            ? clickpostScanDates[5].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
-                            : stageDates[index].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                        </span>
-                      ) : index >= 6 && clickpostScanDates[index] ? (
-                        <span className={`text-[11px] ${isCurrent ? 'text-zinc-800 font-semibold' : 'text-zinc-500 font-medium'}`}>
-                          {clickpostScanDates[index].toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                        </span>
-                      ) : isCurrent && order.documentDate ? (
-                        <span className="text-[11px] text-zinc-500 font-medium">
-                          {new Date(order.documentDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
-                        </span>
-                      ) : null}
+                      <span className="flex items-baseline gap-2.5 shrink-0">
+                        {index === STAGE.INVOICED && currentInvoice && !isCancelled && (
+                          <button
+                            type="button"
+                            onClick={() => invoiceState.download(currentInvoice.documentNo)}
+                            disabled={Boolean(invoiceState.downloading)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent hover:text-primary transition-colors disabled:opacity-60"
+                          >
+                            {invoiceState.downloading ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
+                            Download
+                          </button>
+                        )}
+                        {(() => {
+                          const sd = getStageDate(index, isCurrent);
+                          return sd ? (
+                            <span className={`text-[11px] ${isCurrent ? 'text-primary font-semibold' : sd.actual ? 'text-zinc-500 font-medium' : 'text-zinc-400 font-normal'}`}>
+                              {formatStageDate(sd.date)}
+                            </span>
+                          ) : null;
+                        })()}
+                      </span>
                     </div>
                   </div>
                 );
@@ -784,18 +859,18 @@ export default function OrderDetailsPage() {
                 href={clickpostData.clickpostUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-tertiary text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-primary/20"
               >
                 <Truck size={13} />
                 <span>Track Your Order</span>
-                <ExternalLink size={12} className="text-zinc-400" />
+                <ExternalLink size={12} className="text-white/70" />
               </a>
             </div>
           ) : (
             <div className="mt-6">
-              <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-50 border border-zinc-200/60 rounded-xl text-xs font-medium text-zinc-500">
-                <Truck size={14} className="text-zinc-400" />
-                <span>Live tracking available</span>
+              <div className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent/5 border border-accent/20 rounded-xl text-xs font-medium text-tertiary">
+                <Truck size={14} className="text-accent" />
+                <span>{trackingPlaceholder}</span>
               </div>
             </div>
           )}
@@ -804,20 +879,20 @@ export default function OrderDetailsPage() {
 
       {/* ClickPost Courier & Delivery Tracking Details */}
       {(clickpostData?.waybill || clickpostData?.clickpostUrl || clickpostData?.tracking) && (
-        currentStageIndex >= 5 || (clickpostData.tracking?.scans && clickpostData.tracking.scans.length > 0 && clickpostData.tracking.status_bucket > 1) ? (
+        currentStageIndex >= STAGE.DISPATCH || (clickpostData.tracking?.scans && clickpostData.tracking.scans.length > 0 && clickpostData.tracking.status_bucket > 1) ? (
           <div className="bg-white rounded-2xl border border-zinc-100 p-6 md:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.02)]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-100">
               <div className="flex items-center gap-3.5">
-                <div className="size-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-700 shrink-0">
+                <div className="size-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent shrink-0">
                   <Truck size={18} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-sm font-semibold text-zinc-900">
+                    <h4 className="text-sm font-semibold text-primary">
                       {clickpostData.courierName || clickpostData.tracking?.courier_name || "Courier"} Tracking
                     </h4>
                     {clickpostData.tracking?.latest_status?.status && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-zinc-100 text-zinc-700">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-accent/10 text-tertiary">
                         {clickpostData.tracking.latest_status.status}
                       </span>
                     )}
@@ -843,10 +918,10 @@ export default function OrderDetailsPage() {
                   href={clickpostData.clickpostUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-semibold rounded-xl transition-all shadow-sm shrink-0"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary hover:bg-tertiary text-white text-xs font-semibold rounded-xl transition-all shadow-sm shadow-primary/20 shrink-0"
                 >
                   <span>Track Your Order</span>
-                  <ExternalLink size={13} className="text-zinc-400" />
+                  <ExternalLink size={13} className="text-white/70" />
                 </a>
               )}
             </div>
@@ -862,7 +937,7 @@ export default function OrderDetailsPage() {
                         idx === 0 ? "bg-emerald-600 ring-4 ring-emerald-100" : "bg-zinc-300"
                       }`} />
                       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-                        <p className={`text-xs font-semibold ${idx === 0 ? "text-zinc-900" : "text-zinc-700"}`}>
+                        <p className={`text-xs font-semibold ${idx === 0 ? "text-primary" : "text-zinc-700"}`}>
                           {scan.status || scan.clickpost_status_description || "Update"}
                           {scan.location ? ` — ${scan.location}` : ""}
                         </p>
@@ -897,7 +972,7 @@ export default function OrderDetailsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           {/* Order Items */}
-          <div className="bg-white rounded-[8px] border border-zinc-100 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden shadow-sm">
             <div className="p-8 border-b border-zinc-100">
               <h3 className="text-lg font-bold text-primary uppercase tracking-tight">Items in this order</h3>  
             </div>
@@ -927,7 +1002,7 @@ export default function OrderDetailsPage() {
                         </div>
                       )}
                       <div className="flex-1">
-                        <h4 className="font-bold text-zinc-900">{item.title}</h4>
+                        <h4 className="font-bold text-primary">{item.title}</h4>
                         <p className="text-xs text-zinc-500 font-medium mt-1">Quantity: {item.quantity}</p>
                         <p className="text-lg font-bold text-primary mt-2">
                           {formatCurrency(item.price?.amount || item.price, item.price?.currencyCode || item.variant?.price?.currencyCode)}
@@ -935,7 +1010,7 @@ export default function OrderDetailsPage() {
                       </div>
                       {!isInsurance && handle && (
                         <div className="hidden sm:block">
-                          <Link prefetch={false} href={productUrl} className="px-6 py-2 border-2 border-zinc-100 text-zinc-900 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-zinc-50 transition-colors">
+                          <Link prefetch={false} href={productUrl} className="px-6 py-2 border border-primary/25 text-primary text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-primary hover:text-white hover:border-primary transition-colors">
                             View Product
                           </Link>
                         </div>
@@ -960,7 +1035,7 @@ export default function OrderDetailsPage() {
                           {properties['_byj_preview'] && (
                             <div>
                               <p className="text-[10px] font-bold uppercase tracking-widest text-[#5c4f3a] mb-1">Preview Design</p>
-                              <a href={properties['_byj_preview']} target="_blank" rel="noreferrer" className="text-sm font-medium text-blue-600 hover:underline">
+                              <a href={properties['_byj_preview']} target="_blank" rel="noreferrer" className="text-sm font-medium text-accent hover:underline">
                                 View Full Image
                               </a>
                             </div>
@@ -992,9 +1067,9 @@ export default function OrderDetailsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Payment Details */}
-            <div className="bg-white rounded-[8px] border border-zinc-100 p-8 shadow-sm">
+            <div className="bg-white rounded-2xl border border-zinc-100 p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
-                <div className="size-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">  
+                <div className="size-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">  
                   <CreditCard size={20} />
                 </div>
                 <h3 className="text-lg font-bold text-primary uppercase tracking-tight">Payment</h3>
@@ -1016,16 +1091,16 @@ export default function OrderDetailsPage() {
             </div>
 
             {/* Shipping Address */}
-            <div className="bg-white rounded-[8px] border border-zinc-100 p-8 shadow-sm h-full">
+            <div className="bg-white rounded-2xl border border-zinc-100 p-8 shadow-sm h-full">
               <div className="flex items-center gap-3 mb-6">
-                <div className="size-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                <div className="size-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center">
                   <MapPin size={20} />
                 </div>
                 <h3 className="text-lg font-bold text-primary uppercase tracking-tight">Delivery Address</h3>   
               </div>
               {order.shippingAddress && order.shippingAddress.address1 ? (
                 <div className="space-y-1 text-sm text-zinc-600 font-medium">
-                  <p className="text-zinc-900 font-bold">{order.shippingAddress.firstName} {order.shippingAddress.lastName}</p>
+                  <p className="text-primary font-bold">{order.shippingAddress.firstName} {order.shippingAddress.lastName}</p>
                   <p>{order.shippingAddress.address1}</p>
                   {order.shippingAddress.address2 && <p>{order.shippingAddress.address2}</p>}
                   <p>{order.shippingAddress.city}, {order.shippingAddress.province} {order.shippingAddress.zip}</p>
@@ -1043,12 +1118,12 @@ export default function OrderDetailsPage() {
 
         <div className="space-y-8">
           {/* Order Summary */}
-          <div className="bg-white rounded-[8px] border border-zinc-100 p-8 shadow-sm">
+          <div className="bg-white rounded-2xl border border-zinc-100 p-8 shadow-sm">
             <h3 className="text-xl font-bold text-primary uppercase tracking-tight mb-6">Order Summary</h3>     
             <div className="space-y-4">
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">Subtotal</span>
-                <span className="text-zinc-900 font-bold">{formatCurrency(order.subtotalPrice?.amount || order.subtotalPrice, order.subtotalPrice?.currencyCode)}</span>
+                <span className="text-primary font-bold">{formatCurrency(order.subtotalPrice?.amount || order.subtotalPrice, order.subtotalPrice?.currencyCode)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">Shipping</span>
@@ -1056,7 +1131,7 @@ export default function OrderDetailsPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">Estimated Tax</span>
-                <span className="text-zinc-900 font-bold">{formatCurrency(order.totalTax?.amount || order.totalTax, order.totalTax?.currencyCode)}</span>
+                <span className="text-primary font-bold">{formatCurrency(order.totalTax?.amount || order.totalTax, order.totalTax?.currencyCode)}</span>
               </div>
               <div className="pt-4 border-t border-zinc-100 flex justify-between items-center">
                 <span className="text-lg font-bold text-primary uppercase tracking-tight">Total</span>
@@ -1065,10 +1140,18 @@ export default function OrderDetailsPage() {
                 </span>
               </div>
             </div>
+            <div className="mt-6 pt-6 border-t border-zinc-100">
+              <OrderInvoiceDownload
+                invoiceState={invoiceState}
+                orderNumber={order.orderNumber}
+                isCancelled={isCancelled}
+                isShipped={isDispatched || isInTransit || isOutForDelivery || isDelivered}
+              />
+            </div>
           </div>
 
           {/* Help Center */}
-          <div className="bg-zinc-900 rounded-[4px] p-8 text-white relative overflow-hidden shadow-xl shadow-zinc-200">
+          <div className="bg-gradient-to-br from-primary to-tertiary rounded-2xl p-8 text-white relative overflow-hidden shadow-xl shadow-primary/20">
             <div className="absolute -right-10 -bottom-10 size-40 bg-white/5 rounded-full blur-2xl" />
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-3">
@@ -1077,13 +1160,13 @@ export default function OrderDetailsPage() {
                 </div>
                 <h3 className="text-lg font-bold uppercase tracking-tight">Need Help?</h3>
               </div>
-              <p className="text-sm text-zinc-400 font-medium">Have questions about your order or our delivery process?</p>
+              <p className="text-sm text-white/75 font-medium">Have questions about your order or our delivery process?</p>
               <div className="space-y-3">
                 <button
                   onClick={handleReturnClick}
                   disabled={order.fulfillmentStatus !== 'FULFILLED' || isCancelled}
                   title={isCancelled ? "This order has been cancelled" : order.fulfillmentStatus !== 'FULFILLED' ? "Available once your order is delivered" : "Request a return"}
-                  className="w-full flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed group"
+                  className="w-full flex items-center justify-between p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-colors border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
                   <div className="flex items-center gap-3">
                     <RefreshCcw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
@@ -1091,11 +1174,11 @@ export default function OrderDetailsPage() {
                   </div>
                   <ChevronLeft className="rotate-180 size-6" />
                 </button>
-                <a href="https://wa.me/+917304464910" target="_blank" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
+                <a href="https://wa.me/+917304464910" target="_blank" className="flex items-center justify-between p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-colors border border-white/10">
                   <span className="text-base font-bold">Chat with Support</span>
                   <ChevronLeft className="rotate-180 size-6" />
                 </a>
-                <Link prefetch={false} href="/pages/shipping-policy" className="flex items-center justify-between p-4 bg-white/5 rounded-sm hover:bg-white/10 transition-colors border border-white/5">
+                <Link prefetch={false} href="/pages/shipping-policy" className="flex items-center justify-between p-4 bg-white/10 rounded-xl hover:bg-white/20 transition-colors border border-white/10">
                   <span className="text-base font-bold">Shipping Policy</span>
                   <ChevronLeft className="rotate-180 size-6" />
                 </Link>

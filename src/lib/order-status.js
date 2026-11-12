@@ -9,6 +9,7 @@ export const STAGES = [
   "Manufacturing",
   "Quality Control",
   "Certification",
+  "Invoiced",
   "Dispatch",
   "In Transit",
   "Out For Delivery",
@@ -124,8 +125,20 @@ export function getOrderMilestoneStatus(order, clickpostData = null) {
   if (cpBucket === 3 || cpDesc.includes("intransit") || cpDesc.includes("transit") || cpDesc.includes("reachedhub") || cpDesc.includes("departed") || normalizedStatus.includes("transit")) {
     return "In Transit";
   }
-  if (cpBucket === 2 || cpDesc.includes("pickedup") || cpDesc.includes("dispatched") || normalizedStatus.includes("dispatch") || normalizedStatus.includes("shipped") || normalizedStatus.includes("invoice") || normalizedStatus.includes("readytoinvoice") || normalizedStatus.includes("readytoship") || fStatus === "SHIPPED") {
+  if (cpBucket === 2 || cpDesc.includes("pickedup") || cpDesc.includes("dispatched") || normalizedStatus.includes("dispatch") || normalizedStatus.includes("shipped") || normalizedStatus.includes("repairinvoice") || normalizedStatus.includes("readytoship") || fStatus === "SHIPPED") {
     return "Dispatch";
+  }
+
+  // Ornaverse invoice posted (the backend's /orders adds `invoice` from one
+  // batched lookup) and not shipped yet — same "Invoiced" stage as the order page.
+  if (order.invoice?.documentNo) {
+    return "Invoiced";
+  }
+
+  // ERP "Ready to Invoice" / "Invoice Pending": crafting and certification are
+  // done, the Ornaverse invoice is not posted yet — never "Dispatch".
+  if (normalizedStatus.includes("readytoinvoice") || normalizedStatus.includes("invoicepending")) {
+    return "Certification";
   }
 
   const placedDate = order.processedAt || order.processed_at || order.date || Date.now();
@@ -196,7 +209,7 @@ export function getOrderMilestoneStatus(order, clickpostData = null) {
   if (cpBucket === 3 || cpDesc.includes("intransit") || cpDesc.includes("transit") || cpDesc.includes("reachedhub") || cpDesc.includes("departed") || normalizedStatus.includes("transit")) {
     return "In Transit";
   }
-  if (cpBucket === 2 || cpDesc.includes("pickedup") || cpDesc.includes("dispatched") || normalizedStatus.includes("dispatch") || normalizedStatus.includes("shipped") || normalizedStatus.includes("invoice") || normalizedStatus.includes("readytoinvoice") || normalizedStatus.includes("readytoship") || fStatus === "SHIPPED") {
+  if (cpBucket === 2 || cpDesc.includes("pickedup") || cpDesc.includes("dispatched") || normalizedStatus.includes("dispatch") || normalizedStatus.includes("shipped") || normalizedStatus.includes("repairinvoice") || normalizedStatus.includes("readytoship") || fStatus === "SHIPPED") {
     return "Dispatch";
   }
 

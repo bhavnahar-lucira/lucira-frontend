@@ -309,6 +309,44 @@ export const fetchCustomerProfile = (accessToken) =>
     headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}
   });
 
+// Order invoice (Ornaverse ECommSales). The status call says whether a posted
+// invoice exists yet; the download streams the PDF from the backend, which
+// checks the order belongs to this customer before printing anything.
+export const fetchOrderInvoiceStatus = (orderId, accessToken) => {
+  if (!accessToken || accessToken.startsWith('simulated_')) return Promise.resolve({ available: false, invoices: [] });
+  return apiFetch(`/api/customer/orders/${encodeURIComponent(orderId)}/invoice`, {
+    headers: { "Authorization": `Bearer ${accessToken}` },
+    suppressErrorLog: true,
+  });
+};
+
+// Raw fetch like saveOptiPhoenixLog above: apiFetch reads every response as
+// text, which would corrupt the binary PDF.
+export const downloadOrderInvoice = async (orderId, documentNo, accessToken) => {
+  let base = BACKEND_URL.replace(/\/$/, "");
+  if (window.location.protocol === "https:" && base.startsWith("http://") && !base.includes("localhost") && !base.includes("127.0.0.1")) {
+    base = base.replace(/^http:\/\//i, "https://");
+  }
+  const qs = documentNo ? `?documentNo=${encodeURIComponent(documentNo)}` : "";
+  const res = await fetch(`${base}/api/customer/orders/${encodeURIComponent(orderId)}/invoice/pdf${qs}`, {
+    headers: { "Authorization": `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Your session has expired. Please log in again to download the invoice.");
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || `Could not download the invoice (${res.status}).`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Lucira-Invoice-${(documentNo || orderId).replace(/[^A-Za-z0-9-]/g, "")}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+};
+
 export const fetchCustomerOrders = (accessToken) =>
   apiFetch("/api/customer/orders", {
     headers: accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}

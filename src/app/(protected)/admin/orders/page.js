@@ -355,7 +355,7 @@ export default function MyOrdersPage() {
 
                     {/* Product name + date */}
                     <div className="space-y-0.5 md:space-y-1.5">
-                      <h4 className="font-figtree text-sm md:text-xl font-bold text-zinc-900 leading-tight tracking-tight">
+                      <h4 className="font-figtree text-sm md:text-xl font-bold text-primary leading-tight tracking-tight">
                         {order.product}
                       </h4>
                       <p className="font-figtree text-[10px] md:text-sm text-zinc-400 font-medium">
@@ -450,7 +450,7 @@ export default function MyOrdersPage() {
               <ShoppingBag size={34} />
             </div>
             <div className="space-y-2">
-              <h3 className="font-figtree text-lg md:text-2xl font-bold text-zinc-900">
+              <h3 className="font-figtree text-lg md:text-2xl font-bold text-primary">
                 No orders yet
               </h3>
               <p className="font-figtree text-sm text-zinc-500 font-normal max-w-sm mx-auto leading-relaxed">
@@ -476,7 +476,7 @@ export default function MyOrdersPage() {
               <ShoppingBag size={24} className="text-primary" />
             </div>
             <div>
-              <h3 className="font-figtree text-lg md:text-2xl font-bold text-zinc-900">
+              <h3 className="font-figtree text-lg md:text-2xl font-bold text-primary">
                 Looking for something else?
               </h3>
               <p className="font-figtree text-sm text-zinc-500 font-normal max-w-md mt-1.5 leading-relaxed">
