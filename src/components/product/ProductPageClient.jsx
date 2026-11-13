@@ -37,7 +37,7 @@ import "swiper/css";
 import { toast } from 'react-toastify';
 import { apiFetch, fetchVariantPricing, fetchLocalRates } from "@/lib/api";
 import { motion } from "framer-motion";
-import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY } from "@/lib/shopify-client";
+import { shopifyStorefrontFetch, toShopifyGid, VARIANT_PRICE_QUERY, PRODUCT_STOCK_QUERY } from "@/lib/shopify-client";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { calculateDistance } from "@/utils/distance";
@@ -356,13 +356,57 @@ const getStoreDisplayName = (name) => {
 };
 
 export default function ProductPageClient({
-  product,
+  product: serverProduct,
   complementaryProducts: initialComplementaryProducts = [],
   matchingProducts: initialMatchingProducts = [],
   // Dashboard-managed store content for the "Visit Lucira Store Near You"
   // section below the product. Falls back to the baked-in defaults when absent.
   storePages = null,
 }) {
+  // ---------------------------------------------------------------------------
+  // Live stock overlay
+  // The server-rendered product (and so every variant's inStock) is ISR-cached
+  // for up to 24h and only refreshes when the backend's Shopify webhook manages to
+  // revalidate this page. Shopify inventory is synced automatically all day, so
+  // the cached copy could keep showing "In Stock" after Shopify went to 0. Re-read
+  // the live per-variant stock once on mount and overlay it, using the same rule
+  // as the server (availableForSale && !currentlyNotInStock). When nothing
+  // differs, `product` keeps the server object's identity, so no effect re-runs.
+  // ---------------------------------------------------------------------------
+  const [liveStock, setLiveStock] = useState(null); // { [variantGid]: boolean }
+  const product = useMemo(() => {
+    if (!liveStock || !serverProduct?.variants?.length) return serverProduct;
+    let changed = false;
+    const variants = serverProduct.variants.map((v) => {
+      const live = liveStock[v.shopifyId || toShopifyGid(v.id, "ProductVariant")];
+      const cached = v.inStock === true || v.inStock === "true";
+      if (live === undefined || live === cached) return v;
+      changed = true;
+      return { ...v, inStock: live, inventoryQuantity: live ? 10 : 0 };
+    });
+    return changed ? { ...serverProduct, variants } : serverProduct;
+  }, [serverProduct, liveStock]);
+
+  useEffect(() => {
+    const pid = serverProduct?.shopifyId || serverProduct?.id;
+    if (!pid) return;
+    let cancelled = false;
+    shopifyStorefrontFetch(PRODUCT_STOCK_QUERY, { id: toShopifyGid(pid, "Product") })
+      .then((data) => {
+        const nodes = data?.node?.variants?.nodes;
+        if (cancelled || !Array.isArray(nodes) || nodes.length === 0) return;
+        const map = {};
+        nodes.forEach((n) => {
+          map[n.id] = n.availableForSale === true && n.currentlyNotInStock === false;
+        });
+        setLiveStock(map);
+      })
+      .catch((err) => console.error("Live stock fetch failed", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [serverProduct?.shopifyId, serverProduct?.id]);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const variantIdFromUrl = searchParams.get("variant");
@@ -489,6 +533,7 @@ export default function ProductPageClient({
                 title
                 sku
                 availableForSale
+                currentlyNotInStock
                 price { amount currencyCode }
                 compareAtPrice { amount currencyCode }
                 selectedOptions { name value }
@@ -576,7 +621,9 @@ export default function ProductPageClient({
               sku: v.sku,
               price: Number(v.price.amount),
               compare_price: v.compareAtPrice ? Number(v.compareAtPrice.amount) : null,
-              inStock: v.availableForSale === true,
+              // Same rule as the PDP/collections: "continue selling" (made-to-order)
+              // variants are availableForSale but not in stock.
+              inStock: v.availableForSale === true && v.currentlyNotInStock !== true,
               image: v.image?.url,
               tags: v.selectedOptions.map(o => o.value).join(" "),
               size: options.size || null,
@@ -783,6 +830,18 @@ export default function ProductPageClient({
 
   const [selectedSize, setSelectedSize] = useState(initialSize);
   const [activeVariant, setActiveVariant] = useState(initialVariant);
+
+  // Keep the selected variant's stock in step with the live overlay above
+  // (activeVariant is a copy taken from the server product on first render).
+  useEffect(() => {
+    setActiveVariant((prev) => {
+      if (!prev) return prev;
+      const fresh = product.variants?.find((v) => String(v.id) === String(prev.id));
+      if (!fresh || fresh.inStock === prev.inStock) return prev;
+      return { ...prev, inStock: fresh.inStock, inventoryQuantity: fresh.inventoryQuantity };
+    });
+  }, [product]);
+
   const [priceBreakup, setPriceBreakup] = useState(null);
   // Flips once the first pricing fetch has settled (success, "not found" or
   // error). The savings box + offers strip wait for it so the strip doesn't
